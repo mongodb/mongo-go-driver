@@ -233,18 +233,18 @@ func hasStalePrimary(fsm fsm, srv description.Server) bool {
 	// Compare the election ID values of the server and the topology lexicographically.
 	compRes := bytes.Compare(srv.ElectionID[:], fsm.maxElectionID[:])
 
-	if wireVersion := srv.WireVersion; wireVersion != nil && wireVersion.Max < 17 {
-		// If the server's election ID is less than the topology's max election ID, the primary is considered
-		// "stale". Similarly, if the server's "setVersion" is less than the topology's max "setVersion", the
-		// primary is considered stale.
-		return compRes == -1 || fsm.maxSetVersion > srv.SetVersion
+	if wireVersion := srv.WireVersion; wireVersion != nil && wireVersion.Max >= 17 {
+		// In the Post-6.0 case, a primary is considered "stale" if the server's election ID is greather than the
+		// topology's max election ID. In these versions, the primary is also considered "stale" if the server's
+		// election ID is LTE to the topologies election ID and the server's "setVersion" is less than the topology's
+		// max "setVersion".
+		return compRes == -1 || (compRes != 1 && srv.SetVersion < fsm.maxSetVersion)
 	}
 
-	// In the Post-6.0 case, a primary is considered "stale" if the server's election ID is greather than the
-	// topology's max election ID. In these versions, the primary is also considered "stale" if the server's
-	// election ID is LTE to the topologies election ID and the server's "setVersion" is less than the topology's
-	// max "setVersion".
-	return compRes == -1 || (compRes != 1 && srv.SetVersion < fsm.maxSetVersion)
+	// If the server's election ID is less than the topology's max election ID, the primary is considered
+	// "stale". Similarly, if the server's "setVersion" is less than the topology's max "setVersion", the
+	// primary is considered stale.
+	return compRes == -1 || fsm.maxSetVersion > srv.SetVersion
 }
 
 // transferEVTuple will transfer the ("ElectionID", "SetVersion") tuple from the description server to the topology.
