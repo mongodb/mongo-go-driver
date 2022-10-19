@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -479,7 +478,7 @@ func (c *connection) close() error {
 		return nil
 	}
 
-	if c.config.httpClient == http.DefaultClient {
+	if c.config != nil && c.config.httpClient == internal.DefaultHTTPClient {
 		defer c.config.httpClient.CloseIdleConnections()
 	}
 

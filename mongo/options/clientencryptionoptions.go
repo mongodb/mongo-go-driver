@@ -10,6 +10,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+
+	"go.mongodb.org/mongo-driver/internal"
 )
 
 // ClientEncryptionOptions represents all possible options used to configure a ClientEncryption instance.
@@ -23,7 +25,7 @@ type ClientEncryptionOptions struct {
 // ClientEncryption creates a new ClientEncryptionOptions instance.
 func ClientEncryption() *ClientEncryptionOptions {
 	return &ClientEncryptionOptions{
-		HTTPClient: http.DefaultClient,
+		HTTPClient: internal.DefaultHTTPClient,
 	}
 }
 
@@ -58,7 +60,7 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *
 
 // SetHTTPClient specifies the http.Client to be used for any KMS provider making HTTP requests.
 //
-// This should only be used to set custom HTTP client configurations. By default, the connection will use a http.DefaultClient.
+// This should only be used to set custom HTTP client configurations. By default, the connection will use an internal.DefaultHTTPClient.
 func (c *ClientEncryptionOptions) SetHTTPClient(client *http.Client) *ClientEncryptionOptions {
 	c.HTTPClient = client
 	return c

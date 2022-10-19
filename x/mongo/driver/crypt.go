@@ -101,7 +101,7 @@ func NewCrypt(opts *CryptOptions) Crypt {
 		bypassAutoEncryption: opts.BypassAutoEncryption,
 	}
 	if c.httpClient == nil {
-		c.httpClient = http.DefaultClient
+		c.httpClient = internal.DefaultHTTPClient
 	}
 	return c
 }
@@ -238,7 +238,7 @@ func (c *crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) 
 // Close cleans up any resources associated with the Crypt instance.
 func (c *crypt) Close() {
 	c.mongoCrypt.Close()
-	if c.httpClient == http.DefaultClient {
+	if c.httpClient == internal.DefaultHTTPClient {
 		c.httpClient.CloseIdleConnections()
 	}
 }

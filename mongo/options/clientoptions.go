@@ -165,7 +165,7 @@ type ClientOptions struct {
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
 	return &ClientOptions{
-		HTTPClient: http.DefaultClient,
+		HTTPClient: internal.DefaultHTTPClient,
 	}
 }
 

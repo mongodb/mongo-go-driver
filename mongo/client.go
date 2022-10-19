@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -311,7 +312,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 		return replaceErrors(disconnector.Disconnect(ctx))
 	}
 
-	if c.httpClient == http.DefaultClient {
+	if c.httpClient == internal.DefaultHTTPClient {
 		c.httpClient.CloseIdleConnections()
 	}
 

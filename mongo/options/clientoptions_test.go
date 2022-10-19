@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"os"
 	"reflect"
 	"testing"
@@ -210,7 +209,7 @@ func TestClientOptions(t *testing.T) {
 					err: internal.WrapErrorf(
 						errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 					),
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -219,7 +218,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        fmt.Errorf("unknown read preference %v", ""),
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -228,7 +227,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        errors.New("can not specify tags, max staleness, or hedge with mode primary"),
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -237,7 +236,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -246,7 +245,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -287,7 +286,7 @@ func TestClientOptions(t *testing.T) {
 						errors.New("unescaped slash in username"),
 						"error parsing uri",
 					),
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -474,7 +473,7 @@ func TestClientOptions(t *testing.T) {
 						errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
 						"error validating uri",
 					),
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -485,7 +484,7 @@ func TestClientOptions(t *testing.T) {
 						errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
 						"error validating uri",
 					),
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -497,7 +496,7 @@ func TestClientOptions(t *testing.T) {
 							"along with tlsCertificateFile or tlsPrivateKeyFile"),
 						"error validating uri",
 					),
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -523,7 +522,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCAFile=testdata/empty-ca.pem",
 				&ClientOptions{
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
@@ -532,7 +531,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCAFile=testdata/ca-key.pem",
 				&ClientOptions{
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
@@ -541,7 +540,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCAFile=testdata/malformed-ca.pem",
 				&ClientOptions{
 					Hosts:      []string{"localhost"},
-					HTTPClient: http.DefaultClient,
+					HTTPClient: internal.DefaultHTTPClient,
 					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},

@@ -8,7 +8,8 @@ package auth
 
 import (
 	"context"
-	"net/http"
+
+	"go.mongodb.org/mongo-driver/internal"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -38,7 +39,7 @@ type MongoDBAWSAuthenticator struct {
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
-		httpClient = http.DefaultClient
+		httpClient = internal.DefaultHTTPClient
 		defer httpClient.CloseIdleConnections()
 	}
 	adapter := &awsSaslAdapter{
