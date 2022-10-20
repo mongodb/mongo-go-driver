@@ -208,6 +208,9 @@ func MergeAutoEncryptionOptions(opts ...*AutoEncryptionOptions) *AutoEncryptionO
 		if opt.BypassQueryAnalysis != nil {
 			aeo.BypassQueryAnalysis = opt.BypassQueryAnalysis
 		}
+		if opt.HTTPClient != nil {
+			aeo.HTTPClient = opt.HTTPClient
+		}
 	}
 
 	return aeo
