@@ -28,7 +28,7 @@ var DefaultHTTPClient = &http.Client{
 	},
 }
 
-// CloseIdleConnections closes any connections which were previously
+// CloseIdleHTTPConnections closes any connections which were previously
 // connected from previous requests but are now sitting idle in
 // a "keep-alive" state. It does not interrupt any connections currently
 // in use.
