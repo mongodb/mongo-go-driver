@@ -239,7 +239,7 @@ func (c *crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) 
 func (c *crypt) Close() {
 	c.mongoCrypt.Close()
 	if c.httpClient == internal.DefaultHTTPClient {
-		c.httpClient.CloseIdleConnections()
+		internal.CloseIdleHTTPConnections(c.httpClient)
 	}
 }
 

@@ -479,7 +479,7 @@ func (c *connection) close() error {
 	}
 
 	if c.config != nil && c.config.httpClient == internal.DefaultHTTPClient {
-		defer c.config.httpClient.CloseIdleConnections()
+		defer internal.CloseIdleHTTPConnections(c.config.httpClient)
 	}
 
 	var err error

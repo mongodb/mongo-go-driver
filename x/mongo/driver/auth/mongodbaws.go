@@ -40,7 +40,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
 		httpClient = internal.DefaultHTTPClient
-		defer httpClient.CloseIdleConnections()
+		defer internal.CloseIdleHTTPConnections(httpClient)
 	}
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{

@@ -6,7 +6,38 @@
 
 package internal // import "go.mongodb.org/mongo-driver/internal"
 
-import "net/http"
+import (
+	"net"
+	"net/http"
+	"time"
+)
 
 // DefaultHTTPClient is the default HTTP client used across the driver.
-var DefaultHTTPClient = &http.Client{}
+var DefaultHTTPClient = &http.Client{
+	Transport: &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	},
+}
+
+// CloseIdleConnections closes any connections which were previously
+// connected from previous requests but are now sitting idle in
+// a "keep-alive" state. It does not interrupt any connections currently
+// in use.
+// Borrowed from go standard library.
+func CloseIdleHTTPConnections(client *http.Client) {
+	type closeIdler interface {
+		CloseIdleConnections()
+	}
+	if tr, ok := client.Transport.(closeIdler); ok {
+		tr.CloseIdleConnections()
+	}
+}

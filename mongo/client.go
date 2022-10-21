@@ -313,7 +313,7 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	}
 
 	if c.httpClient == internal.DefaultHTTPClient {
-		c.httpClient.CloseIdleConnections()
+		internal.CloseIdleHTTPConnections(c.httpClient)
 	}
 
 	return nil
