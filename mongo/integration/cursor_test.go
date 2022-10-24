@@ -240,7 +240,6 @@ func TestCursor(t *testing.T) {
 			assert.Equal(mt, fEvt.CommandName, "getMore",
 				`expected a failed "getMore" event, got %q`, fEvt.CommandName)
 
-			time.Sleep(100 * time.Millisecond)
 
 			// Assert that a "killCursors" command was sent and was successful (Close
 			// used the 2 second Client Timeout).
