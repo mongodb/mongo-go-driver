@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"reflect"
 	"testing"
@@ -165,6 +166,7 @@ func TestClientOptions(t *testing.T) {
 				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
 				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				cmp.AllowUnexported(ClientOptions{}),
+				cmpopts.IgnoreFields(http.Client{}, "Transport"),
 			); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 				t.Errorf("Merged client options do not match. got %v; want %v", got, want)
@@ -595,6 +597,7 @@ func TestClientOptions(t *testing.T) {
 					cmp.Comparer(compareErrors),
 					cmpopts.SortSlices(stringLess),
 					cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
+					cmpopts.IgnoreFields(http.Client{}, "Transport"),
 				); diff != "" {
 					t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
 				}
