@@ -1777,13 +1777,13 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
-  - name: go1.10-build
+  - name: go1.13-build
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
           targets: "build"
-          BUILD_ENV: "PATH=/opt/golang/go1.10/bin:$PATH GOROOT=/opt/golang/go1.10"
+          BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
   # Build with whatever the latest Go version is that we're using for tests
   - name: build
