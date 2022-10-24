@@ -149,14 +149,6 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 	return a
 }
 
-// SetHTTPClient specifies the http.Client to be used for any KMS provider making HTTP requests.
-//
-// This should only be used to set custom HTTP client configurations. By default, the connection will use an internal.DefaultHTTPClient.
-func (a *AutoEncryptionOptions) SetHTTPClient(client *http.Client) *AutoEncryptionOptions {
-	a.HTTPClient = client
-	return a
-}
-
 // SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
 // EncryptedFieldsMap is used for Queryable Encryption.
 // Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.

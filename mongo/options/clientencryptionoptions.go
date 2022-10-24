@@ -58,14 +58,6 @@ func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *
 	return c
 }
 
-// SetHTTPClient specifies the http.Client to be used for any KMS provider making HTTP requests.
-//
-// This should only be used to set custom HTTP client configurations. By default, the connection will use an internal.DefaultHTTPClient.
-func (c *ClientEncryptionOptions) SetHTTPClient(client *http.Client) *ClientEncryptionOptions {
-	c.HTTPClient = client
-	return c
-}
-
 // BuildTLSConfig specifies tls.Config options for each KMS provider to use to configure TLS on all connections created
 // to the KMS provider. The input map should contain a mapping from each KMS provider to a document containing the necessary
 // options, as follows:
