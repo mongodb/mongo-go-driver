@@ -12,11 +12,9 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -37,19 +35,14 @@ type Cursor struct {
 	registry      *bsoncodec.Registry
 	clientSession *session.Client
 
-	// timeout is the Timeout specified on the Client used to create the Cursor
-	// to be used in "refreshing" the timeout for the Close call in All.
-	timeout *time.Duration
-
 	err error
 }
 
 func newCursor(bc batchCursor, registry *bsoncodec.Registry) (*Cursor, error) {
-	return newCursorWithSession(bc, registry, nil, nil)
+	return newCursorWithSession(bc, registry, nil)
 }
 
-func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry,
-	clientSession *session.Client, timeout *time.Duration) (*Cursor, error) {
+func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry, clientSession *session.Client) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
@@ -60,7 +53,6 @@ func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry,
 		bc:            bc,
 		registry:      registry,
 		clientSession: clientSession,
-		timeout:       timeout,
 	}
 	if bc.ID() == 0 {
 		c.closeImplicitSession()
@@ -255,21 +247,9 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	var err error
 
 	// Defer a call to Close to try to clean up the cursor server-side when all
-	// documents have been exhausted. If c.timeout is set, use a new, "refreshed"
-	// timeout context for Close. If c.timeout is not set, use passed-in ctx; in
-	// this case, we have no way of knowing the original timeout on the context
-	// passed into All, and the server will automatically clean up resources
-	// eventually.
-	closeCtx := ctx
-	cancelCloseCtx := func() {}
-	if c.timeout != nil {
-		closeCtx, cancelCloseCtx = internal.MakeTimeoutContext(context.Background(),
-			*c.timeout)
-	}
-	defer func() {
-		c.Close(closeCtx)
-		cancelCloseCtx()
-	}()
+	// documents have been exhausted. Use context.Background() to ensure Close
+	// completes even if the context passed to All has errored.
+	defer c.Close(context.Background())
 
 	batch := c.batch // exhaust the current batch before iterating the batch cursor
 	for {

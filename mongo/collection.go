@@ -922,7 +922,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
-	cursor, err := newCursorWithSession(bc, a.registry, sess, a.client.timeout)
+	cursor, err := newCursorWithSession(bc, a.registry, sess)
 	return cursor, replaceErrors(err)
 }
 
@@ -1343,7 +1343,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
-	return newCursorWithSession(bc, coll.registry, sess, coll.client.timeout)
+	return newCursorWithSession(bc, coll.registry, sess)
 }
 
 // FindOne executes a find command and returns a SingleResult for one document in the collection.

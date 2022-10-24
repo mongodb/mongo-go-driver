@@ -205,9 +205,7 @@ func TestCursor(t *testing.T) {
 			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
 		})
 
-		cliOpts := options.Client().SetTimeout(2 * time.Second)
-		mtOpts := mtest.NewOptions().ClientOptions(cliOpts)
-		mt.RunOpts("deferred Close uses Timeout", mtOpts, func(mt *mtest.T) {
+		mt.Run("deferred Close uses context.Background", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
 
 			// Find with batchSize 2 so All will run getMore for next 3 docs and error.
@@ -239,7 +237,6 @@ func TestCursor(t *testing.T) {
 			assert.NotNil(mt, fEvt, `expected a failed "getMore" event, got no event`)
 			assert.Equal(mt, fEvt.CommandName, "getMore",
 				`expected a failed "getMore" event, got %q`, fEvt.CommandName)
-
 
 			// Assert that a "killCursors" command was sent and was successful (Close
 			// used the 2 second Client Timeout).
