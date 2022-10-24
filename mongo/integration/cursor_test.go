@@ -236,9 +236,9 @@ func TestCursor(t *testing.T) {
 			assert.Equal(mt, stEvt.CommandName, "getMore",
 				`expected a "getMore" started event, got %q`, stEvt.CommandName)
 			fEvt := mt.GetFailedEvent()
-			assert.NotNil(mt, fEvt, `expected a successful "getMore" event, got no event`)
+			assert.NotNil(mt, fEvt, `expected a failed "getMore" event, got no event`)
 			assert.Equal(mt, fEvt.CommandName, "getMore",
-				`expected a successful "getMore" event, got %q`, fEvt.CommandName)
+				`expected a failed "getMore" event, got %q`, fEvt.CommandName)
 
 			time.Sleep(100 * time.Millisecond)
 
