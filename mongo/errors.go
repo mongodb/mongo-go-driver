@@ -112,6 +112,12 @@ func IsTimeout(err error) bool {
 		if err == driver.ErrDeadlineWouldBeExceeded {
 			return true
 		}
+		if err == topology.ErrServerSelectionTimeout {
+			return true
+		}
+		if _, ok := err.(topology.WaitQueueTimeoutError); ok {
+			return true
+		}
 		if ce, ok := err.(CommandError); ok && ce.IsMaxTimeMSExpiredError() {
 			return true
 		}
