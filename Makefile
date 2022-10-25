@@ -27,6 +27,16 @@ add-license:
 build:
 	go build $(BUILD_TAGS) $(PKGS)
 
+.PHONY: build-113
+build-113:
+	# Remove retract directives from go.mod for go1.13 build, as versions less
+	# than 1.16 will error when building with retract. The same .sum file can be
+	# used, but must be named go.noretract.sum.
+	pcregrep -M -v 'retract \([^\)]+\)' go.mod > go.noretract.mod
+	cp go.sum go.noretract.sum
+	go build -modfile=go.noretract.mod $(BUILD_TAGS) $(PKGS)
+	rm go.noretract.mod go.noretract.sum
+
 .PHONY: build-examples
 build-examples:
 	go build $(BUILD_TAGS) ./examples/... ./x/mongo/driver/examples/...

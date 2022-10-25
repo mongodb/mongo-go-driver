@@ -1782,7 +1782,7 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build-113"
           BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
   # Build with whatever the latest Go version is that we're using for tests
