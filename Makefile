@@ -32,7 +32,7 @@ build-113:
 	# Remove retract directives from go.mod for go1.13 build, as versions less
 	# than 1.16 will error when building with retract. The same .sum file can be
 	# used, but must be named go.noretract.sum.
-	pcregrep -M -v 'retract \([^\)]+\)' go.mod > go.noretract.mod
+	sed -e '/retract (/,/)/d' go.mod > go.noretract.mod
 	cp go.sum go.noretract.sum
 	go build -modfile=go.noretract.mod $(BUILD_TAGS) $(PKGS)
 	rm go.noretract.mod go.noretract.sum
