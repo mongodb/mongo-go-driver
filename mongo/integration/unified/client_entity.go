@@ -25,8 +25,10 @@ import (
 )
 
 // Security-sensitive commands that should be ignored in command monitoring by default.
-var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslContinue", "getnonce",
-	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb"}
+var securitySensitiveCommands = []string{
+	"authenticate", "saslStart", "saslContinue", "getnonce",
+	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb",
+}
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
@@ -295,7 +297,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
-		AppendString("failure", evt.Failure)
+		AppendString("failure", evt.Failure.Error())
 	if evt.ServiceID != nil {
 		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}

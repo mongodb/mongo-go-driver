@@ -385,7 +385,7 @@ func stringifyEventsForClient(client *clientEntity) string {
 
 	str.WriteString("\nFailed Events\n\n")
 	for _, evt := range client.failedEvents() {
-		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Failure: %s\n", evt.ConnectionID, evt.CommandName, evt.Failure))
+		str.WriteString(fmt.Sprintf("[%s] CommandName: %s, Failure: %e\n", evt.ConnectionID, evt.CommandName, evt.Failure))
 	}
 
 	str.WriteString("\nPool Events\n\n")

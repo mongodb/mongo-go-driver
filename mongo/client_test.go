@@ -340,7 +340,7 @@ func TestClient(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Setup a client and skip the test based on server version.
 				var started []*event.CommandStartedEvent
-				var failureReasons []string
+				var failureReasons []error
 				cmdMonitor := &event.CommandMonitor{
 					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 						if evt.CommandName == "endSessions" {
@@ -391,7 +391,7 @@ func TestClient(t *testing.T) {
 				numEventsExpected := int(math.Ceil(divisionResult))
 				assert.Equal(t, len(started), numEventsExpected, "expected %d started events, got %d", numEventsExpected,
 					len(started))
-				assert.Equal(t, len(failureReasons), 0, "endSessions errors: %v", failureReasons)
+				assert.Equal(t, len(failureReasons), 0, "endSessions errors: %e", failureReasons)
 
 				for i := 0; i < numEventsExpected; i++ {
 					sentArray := started[i].Command.Lookup("endSessions").Array()

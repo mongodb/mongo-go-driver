@@ -34,7 +34,7 @@ func ExampleCommandMonitor() {
 			)
 		},
 		Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
-			log.Printf("Command: %v Failure: %v\n",
+			log.Printf("Command: %v Failure: %e\n",
 				startedCommands[evt.RequestID],
 				evt.Failure,
 			)

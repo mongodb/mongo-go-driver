@@ -580,7 +580,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		if err == nil {
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
-			var roundTrip = op.roundTrip
+			roundTrip := op.roundTrip
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
@@ -981,8 +981,8 @@ func (op Operation) createWireMessage(
 	dst []byte,
 	desc description.SelectedServer,
 	maxTimeMS uint64,
-	conn Connection) ([]byte, startedInformation, error) {
-
+	conn Connection,
+) ([]byte, startedInformation, error) {
 	// If topology is not LoadBalanced, API version is not declared, and wire version is unknown
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
@@ -1074,8 +1074,8 @@ func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc de
 }
 
 func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, dst []byte, desc description.SelectedServer,
-	conn Connection) ([]byte, startedInformation, error) {
-
+	conn Connection,
+) ([]byte, startedInformation, error) {
 	var info startedInformation
 	var flags wiremessage.MsgFlag
 	var wmindex int32
@@ -1761,7 +1761,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	failedEvent := &event.CommandFailedEvent{
-		Failure:              info.cmdErr.Error(),
+		Failure:              info.cmdErr,
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)

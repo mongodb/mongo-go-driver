@@ -208,7 +208,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 }
 
 func TestServer(t *testing.T) {
-	var serverTestTable = []struct {
+	serverTestTable := []struct {
 		name            string
 		connectionError bool
 		networkError    bool
@@ -769,7 +769,7 @@ func TestServer(t *testing.T) {
 			assert.True(t, ok, "expected type %T, got %T", event.ServerHeartbeatFailedEvent{}, publishedEvents[1])
 			assert.Equal(t, failed.ConnectionID, s.conn.ID(), "expected connectionID to match")
 			assert.False(t, failed.Awaited, "expected awaited to be false")
-			assert.True(t, errors.Is(failed.Failure, readErr), "expected Failure to be %v, got: %v", readErr, failed.Failure)
+			assert.True(t, errors.Is(failed.Failure, readErr), "expected Failure to be %e, got: %e", readErr, failed.Failure)
 		})
 	})
 	t.Run("WithServerAppName", func(t *testing.T) {
