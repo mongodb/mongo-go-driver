@@ -4,7 +4,8 @@
   "createEntities": [
     {
       "client": {
-        "id": "client0"
+        "id": "client0",
+        "useMultipleMongoses": false
       }
     },
     {

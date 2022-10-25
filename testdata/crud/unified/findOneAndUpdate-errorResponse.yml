@@ -5,6 +5,7 @@ schemaVersion: "1.12"
 createEntities:
   - client:
       id: &client0 client0
+      useMultipleMongoses: false
   - database:
       id: &database0 database0
       client: *client0
