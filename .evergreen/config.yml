@@ -1782,8 +1782,10 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build-113"
-          BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
+          targets: "build"
+          # Use GO111MODULE=off to disable modules, as go versions less than
+          # 1.16 will complain about the retract directives in go.mod.
+          BUILD_ENV: "GO111MODULE=off PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
   # Build with whatever the latest Go version is that we're using for tests
   - name: build
