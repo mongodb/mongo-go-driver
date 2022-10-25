@@ -210,7 +210,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 		// with no error.
 		err = s.clientSession.CheckAbortTransaction()
 		if err != nil {
-			return res, err
+			return res, nil
 		}
 
 		// If context has errored, run AbortTransaction and return, as the CommitLoop
