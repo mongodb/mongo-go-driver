@@ -206,9 +206,20 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			return res, err
 		}
 
+		// Check if callback intentionally aborted and, if so, return immediately
+		// with no error.
 		err = s.clientSession.CheckAbortTransaction()
 		if err != nil {
-			return res, nil
+			return res, err
+		}
+
+		// If context has errored, run AbortTransaction and return, as the CommitLoop
+		// has no chance of succeeding.
+		if ctx.Err() != nil {
+			// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
+			// cancellations, but forwards Value requests to the original one.
+			_ = s.AbortTransaction(internal.NewBackgroundContext(ctx))
+			return nil, ctx.Err()
 		}
 
 	CommitLoop:
