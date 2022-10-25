@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -202,6 +203,51 @@ func TestCursor(t *testing.T) {
 			mongoErr, ok := err.(mongo.CommandError)
 			assert.True(mt, ok, "expected mongo.CommandError, got: %T", err)
 			assert.Equal(mt, failpointData.ErrorCode, mongoErr.Code, "expected code %v, got: %v", failpointData.ErrorCode, mongoErr.Code)
+		})
+
+		mt.Run("deferred Close uses context.Background", func(mt *mtest.T) {
+			initCollection(mt, mt.Coll)
+
+			// Find with batchSize 2 so All will run getMore for next 3 docs and error.
+			cur, err := mt.Coll.Find(context.Background(), bson.D{},
+				options.Find().SetBatchSize(2))
+			assert.Nil(mt, err, "Find error: %v", err)
+
+			// Create a context and immediately cancel it.
+			canceledCtx, cancel := context.WithCancel(context.Background())
+			cancel()
+
+			// Clear "insert" and "find" events.
+			mt.ClearEvents()
+
+			// Call All with the canceled context and expect context.Canceled.
+			var docs []bson.D
+			err = cur.All(canceledCtx, &docs)
+			assert.NotNil(mt, err, "expected error for All, got nil")
+			assert.True(mt, errors.Is(err, context.Canceled),
+				"expected context.Canceled error, got %v", err)
+
+			// Assert that a "getMore" command was sent and failed (Next used the
+			// canceled context).
+			stEvt := mt.GetStartedEvent()
+			assert.NotNil(mt, stEvt, `expected a "getMore" started event, got no event`)
+			assert.Equal(mt, stEvt.CommandName, "getMore",
+				`expected a "getMore" started event, got %q`, stEvt.CommandName)
+			fEvt := mt.GetFailedEvent()
+			assert.NotNil(mt, fEvt, `expected a failed "getMore" event, got no event`)
+			assert.Equal(mt, fEvt.CommandName, "getMore",
+				`expected a failed "getMore" event, got %q`, fEvt.CommandName)
+
+			// Assert that a "killCursors" command was sent and was successful (Close
+			// used the 2 second Client Timeout).
+			stEvt = mt.GetStartedEvent()
+			assert.NotNil(mt, stEvt, `expected a "killCursors" started event, got no event`)
+			assert.Equal(mt, stEvt.CommandName, "killCursors",
+				`expected a "killCursors" started event, got %q`, stEvt.CommandName)
+			suEvt := mt.GetSucceededEvent()
+			assert.NotNil(mt, suEvt, `expected a successful "killCursors" event, got no event`)
+			assert.Equal(mt, suEvt.CommandName, "killCursors",
+				`expected a successful "killCursors" event, got %q`, suEvt.CommandName)
 		})
 	})
 	mt.RunOpts("close", noClientOpts, func(mt *mtest.T) {
