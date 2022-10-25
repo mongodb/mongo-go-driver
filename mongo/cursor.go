@@ -247,7 +247,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	var err error
 
 	// Defer a call to Close to try to clean up the cursor server-side when all
-	// documents have been exhausted. Use context.Background() to ensure Close
+	// documents have not been exhausted. Use context.Background() to ensure Close
 	// completes even if the context passed to All has errored.
 	defer c.Close(context.Background())
 
