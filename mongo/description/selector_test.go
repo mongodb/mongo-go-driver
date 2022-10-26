@@ -231,32 +231,61 @@ func TestSelector_Sharded(t *testing.T) {
 }
 
 func BenchmarkSelector_Sharded(b *testing.B) {
-	subject := readpref.Primary()
+	bench := func(b *testing.B, serversHook func(servers []Server)) {
+		subject := readpref.Primary()
 
-	s := Server{
-		Addr:              address.Address("localhost:27017"),
-		HeartbeatInterval: time.Duration(10) * time.Second,
-		LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
-		LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
-		Kind:              Mongos,
-		WireVersion:       &VersionRange{Min: 0, Max: 5},
-	}
-	servers := make([]Server, 100)
-	for i := 0; i < len(servers); i++ {
-		servers[i] = s
-	}
-	servers[0].Kind = LoadBalancer
-	c := Topology{
-		Kind:    Sharded,
-		Servers: servers,
-	}
-
-	b.ResetTimer()
-	b.RunParallel(func(p *testing.PB) {
-		for p.Next() {
-			_, _ = ReadPrefSelector(subject).SelectServer(c, c.Servers)
+		s := Server{
+			Addr:              address.Address("localhost:27017"),
+			HeartbeatInterval: time.Duration(10) * time.Second,
+			LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
+			LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
+			Kind:              Mongos,
+			WireVersion:       &VersionRange{Min: 0, Max: 5},
 		}
+		servers := make([]Server, 100)
+		for i := 0; i < len(servers); i++ {
+			servers[i] = s
+		}
+		serversHook(servers)
+		c := Topology{
+			Kind:    Sharded,
+			Servers: servers,
+		}
+
+		b.ResetTimer()
+		b.RunParallel(func(p *testing.PB) {
+			b.ReportAllocs()
+			for p.Next() {
+				_, _ = ReadPrefSelector(subject).SelectServer(c, c.Servers)
+			}
+		})
+	}
+	b.Run("AllFit", func(b *testing.B) {
+		bench(b, func(servers []Server) {
+			//noop
+		})
 	})
+	b.Run("AllButOneFit", func(b *testing.B) {
+		bench(b, func(servers []Server) {
+			servers[0].Kind = LoadBalancer
+		})
+
+	})
+	b.Run("HalfFit", func(b *testing.B) {
+		bench(b, func(servers []Server) {
+			for i := 0; i < len(servers); i += 2 {
+				servers[i].Kind = LoadBalancer
+			}
+		})
+	})
+	b.Run("OneFit", func(b *testing.B) {
+		bench(b, func(servers []Server) {
+			for i := 1; i < len(servers); i++ {
+				servers[i].Kind = LoadBalancer
+			}
+		})
+	})
+
 }
 
 func TestSelector_Single(t *testing.T) {
