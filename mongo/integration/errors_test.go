@@ -23,6 +23,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 type netErr struct {
@@ -515,13 +517,25 @@ func TestErrors(t *testing.T) {
 				err    error
 				result bool
 			}{
-				{"context timeout", mongo.CommandError{100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}, true},
-				{"ServerError NetworkTimeoutError", mongo.CommandError{100, "", []string{"NetworkTimeoutError"}, "blah", nil, nil}, true},
-				{"ServerError ExceededTimeLimitError", mongo.CommandError{100, "", []string{"ExceededTimeLimitError"}, "blah", nil, nil}, true},
-				{"ServerError false", mongo.CommandError{100, "", []string{"other"}, "blah", nil, nil}, false},
-				{"net error true", mongo.CommandError{100, "", []string{"other"}, "blah", netErr{true}, nil}, true},
+				{"context timeout", mongo.CommandError{
+					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}, true},
+				{"deadline would be exceeded", mongo.CommandError{
+					100, "", []string{"other"}, "blah", driver.ErrDeadlineWouldBeExceeded, nil}, true},
+				{"server selection timeout", mongo.CommandError{
+					100, "", []string{"other"}, "blah", topology.ErrServerSelectionTimeout, nil}, true},
+				{"wait queue timeout", mongo.CommandError{
+					100, "", []string{"other"}, "blah", topology.WaitQueueTimeoutError{}, nil}, true},
+				{"ServerError NetworkTimeoutError", mongo.CommandError{
+					100, "", []string{"NetworkTimeoutError"}, "blah", nil, nil}, true},
+				{"ServerError ExceededTimeLimitError", mongo.CommandError{
+					100, "", []string{"ExceededTimeLimitError"}, "blah", nil, nil}, true},
+				{"ServerError false", mongo.CommandError{
+					100, "", []string{"other"}, "blah", nil, nil}, false},
+				{"net error true", mongo.CommandError{
+					100, "", []string{"other"}, "blah", netErr{true}, nil}, true},
 				{"net error false", netErr{false}, false},
-				{"wrapped error", wrappedError{mongo.CommandError{100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}}, true},
+				{"wrapped error", wrappedError{mongo.CommandError{
+					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}}, true},
 				{"other error", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {
