@@ -1721,13 +1721,16 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
-// monitor if possible. If success/failure events aren't being monitored, no events are published.
+// monitor if possible. If finished/success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
+	if op.CommandMonitor == nil {
+		return
+	}
 	success := info.cmdErr == nil
 	if _, ok := info.cmdErr.(WriteCommandError); ok {
 		success = true
 	}
-	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
+	if op.CommandMonitor.Finished == nil && ((success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil)) {
 		return
 	}
 
@@ -1746,7 +1749,11 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		ServiceID:          info.serviceID,
 	}
 
-	if success {
+	if op.CommandMonitor.Finished != nil {
+		op.CommandMonitor.Finished(ctx, &finished)
+	}
+
+	if success && op.CommandMonitor.Succeeded != nil {
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
 		if !info.redacted {
@@ -1760,11 +1767,13 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return
 	}
 
-	failedEvent := &event.CommandFailedEvent{
-		Failure:              info.cmdErr.Error(),
-		CommandFinishedEvent: finished,
+	if !success && op.CommandMonitor.Failed != nil {
+		failedEvent := &event.CommandFailedEvent{
+			Failure:              info.cmdErr.Error(),
+			CommandFinishedEvent: finished,
+		}
+		op.CommandMonitor.Failed(ctx, failedEvent)
 	}
-	op.CommandMonitor.Failed(ctx, failedEvent)
 }
 
 // sessionsSupported returns true of the given server version indicates that it supports sessions.
