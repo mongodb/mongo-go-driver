@@ -93,10 +93,7 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_BRANCH="master"
-          # LIBMONGOCRYPT_COMMIT is the development branch including unreleased features of libmongocrypt 1.6.0.
-          # TODO(GODRIVER-2515) use libmongocrypt 1.6.0 once it is tagged.
-          LIBMONGOCRYPT_COMMIT="393046ba379d097f482a9d41d05bf2ebc78ce397"
+          LIBMONGOCRYPT_TAG="1.6.1"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -105,7 +102,7 @@ functions:
              mkdir libmongocrypt-all
              cd libmongocrypt-all
              # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_BRANCH/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
              cd ..
              cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
@@ -116,7 +113,7 @@ functions:
           else
             git clone https://github.com/mongodb/libmongocrypt
             cd libmongocrypt
-            git checkout $LIBMONGOCRYPT_COMMIT
+            git checkout $LIBMONGOCRYPT_TAG
             cd ..
             ./libmongocrypt/.evergreen/compile.sh
           fi
