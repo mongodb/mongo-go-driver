@@ -26,6 +26,7 @@ type expectedError struct {
 	IncludedLabels []string       `bson:"errorLabelsContain"`
 	OmittedLabels  []string       `bson:"errorLabelsOmit"`
 	ExpectedResult *bson.RawValue `bson:"expectResult"`
+	ErrorResponse  *bson.Raw      `bson:"errorResponse"`
 }
 
 // verifyOperationError compares the expected error to the actual operation result. If the expected parameter is nil,
@@ -125,6 +126,19 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 			return fmt.Errorf("result comparison error: %v", err)
 		}
 	}
+
+	if expected.ErrorResponse != nil {
+		if details.raw == nil {
+			return fmt.Errorf("expected error response from the server, got none")
+		}
+
+		// Allow extra keys as 'errorResponse' functions like a root-level document.
+		gotValue := documentToRawValue(details.raw)
+		expectedValue := documentToRawValue(*expected.ErrorResponse)
+		if err := verifyValuesMatch(ctx, expectedValue, gotValue, true); err != nil {
+			return fmt.Errorf("error response comparison error: %v", err)
+		}
+	}
 	return nil
 }
 
@@ -133,6 +147,7 @@ type errorDetails struct {
 	codes     []int32
 	codeNames []string
 	labels    []string
+	raw       bson.Raw
 }
 
 // extractErrorDetails creates an errorDetails instance based on the provided error. It returns the details and an "ok"
@@ -145,6 +160,7 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		details.codes = []int32{converted.Code}
 		details.codeNames = []string{converted.Name}
 		details.labels = converted.Labels
+		details.raw = converted.Raw
 	case mongo.WriteException:
 		if converted.WriteConcernError != nil {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
@@ -154,6 +170,7 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 			details.codes = append(details.codes, int32(we.Code))
 		}
 		details.labels = converted.Labels
+		details.raw = converted.Raw
 	case mongo.BulkWriteException:
 		if converted.WriteConcernError != nil {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
@@ -161,6 +178,7 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		}
 		for _, we := range converted.WriteErrors {
 			details.codes = append(details.codes, int32(we.Code))
+			details.raw = we.Raw
 		}
 		details.labels = converted.Labels
 	default:

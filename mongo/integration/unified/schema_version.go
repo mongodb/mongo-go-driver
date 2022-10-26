@@ -16,7 +16,7 @@ import (
 
 var (
 	supportedSchemaVersions = map[int]string{
-		1: "1.9",
+		1: "1.12",
 	}
 )
 
