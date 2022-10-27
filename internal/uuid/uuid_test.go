@@ -3,6 +3,13 @@
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Turn off building when race detector is enabled. These tests cause race
+// detector errors pre go 1.19, as the race detector has a limit of 8128
+// goroutines.
+//
+//go:build !race
+// +build !race
 
 package uuid
 
