@@ -108,6 +108,7 @@ if [ -z ${MAKEFILE_TARGET+x} ]; then
   MAKEFILE_TARGET="evg-test"
 fi
 
+RACE=${RACE} \
 AUTH=${AUTH} \
 SSL=${SSL} \
 MONGO_GO_DRIVER_CA_FILE=${MONGO_GO_DRIVER_CA_FILE} \
