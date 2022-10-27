@@ -1991,7 +1991,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("Do not connect to mongocryptd when shared library is loaded",
+	mt.RunOpts("20. Bypass creating mongocryptd client when shared library is loaded",
 		noClientOpts, func(mt *mtest.T) {
 
 			cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
@@ -2029,10 +2029,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
 			}()
 
-			// Run a Find through the encrypted client to make sure mongocryptd is started ('find' uses the
+			// Run an Insert through the encrypted client to make sure mongocryptd is started ('insert' uses the
 			// mongocryptd and will wait for it to be active).
-			_, err = encClient.Database("test").Collection("test").Find(context.Background(), bson.D{})
-			assert.Nil(mt, err, "Find error: %v", err)
+			_, err = encClient.Database("db").Collection("coll").InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
 }
 
