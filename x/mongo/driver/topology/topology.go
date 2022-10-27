@@ -542,10 +542,19 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 		return desc.Servers, nil
 	}
 
-	var allowed []description.Server
-	for _, s := range desc.Servers {
+	allowedIndexes := make([]int, 0, len(desc.Servers))
+	for i, s := range desc.Servers {
 		if s.Kind != description.Unknown {
-			allowed = append(allowed, s)
+			allowedIndexes = append(allowedIndexes, i)
+		}
+	}
+	var allowed []description.Server
+	if len(allowedIndexes) == len(desc.Servers) {
+		allowed = desc.Servers
+	} else {
+		allowed = make([]description.Server, len(allowedIndexes))
+		for i, idx := range allowedIndexes {
+			allowed[i] = desc.Servers[idx]
 		}
 	}
 
