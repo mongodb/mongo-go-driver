@@ -116,7 +116,7 @@ build-aws-ecs-test:
 .PHONY: evg-test
 evg-test:
 	for TEST in $(TEST_PKGS); do \
-		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $(RACE) $$TEST >> test.suite ; \
+		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
 	done
 
 .PHONY: evg-test-atlas
