@@ -39,8 +39,7 @@ type MongoDBAWSAuthenticator struct {
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	httpClient := cfg.HTTPClient
 	if httpClient == nil {
-		httpClient = internal.DefaultHTTPClient
-		defer internal.CloseIdleHTTPConnections(httpClient)
+		return errors.New("cfg.HTTPClient must not be nil")
 	}
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
