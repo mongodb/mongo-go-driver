@@ -128,9 +128,22 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	for _, uri := range []string{
+		"mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100",
+		// Test with user:pass as a regression test for GODRIVER-2620
+		"mongodb+srv://user:pass@test1.test.build.10gen.cc/?heartbeatFrequencyMS=100",
+	} {
+		t.Run(uri, func(t *testing.T) {
+			testPollingSRVRecordsSpec(t, uri)
+		})
+	}
+}
+
+func testPollingSRVRecordsSpec(t *testing.T, uri string) {
+	t.Helper()
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
-			cs, err := connstring.ParseAndValidate("mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100")
+			cs, err := connstring.ParseAndValidate(uri)
 			require.NoError(t, err, "Problem parsing the uri: %v", err)
 			topo, err := New(
 				WithConnString(func(connstring.ConnString) connstring.ConnString { return cs }),
