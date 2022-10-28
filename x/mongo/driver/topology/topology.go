@@ -241,17 +241,16 @@ func (t *Topology) Connect() error {
 			return err
 		}
 		// sanity check before passing the hostname to resolver
-		parsedHosts := strings.Split(uri.Host, ",")
-		if len(parsedHosts) != 1 {
+		if parsedHosts := strings.Split(uri.Host, ","); len(parsedHosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
-		_, _, err = net.SplitHostPort(parsedHosts[0])
+		_, _, err = net.SplitHostPort(uri.Host)
 		if err == nil {
 			// we were able to successfully extract a port from the host,
 			// but should not be able to when using SRV
 			return fmt.Errorf("URI with srv must not include a port number")
 		}
-		go t.pollSRVRecords(parsedHosts[0])
+		go t.pollSRVRecords(uri.Host)
 		t.pollingwg.Add(1)
 	}
 
