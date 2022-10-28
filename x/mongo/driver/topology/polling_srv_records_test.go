@@ -127,7 +127,7 @@ func compareHosts(t *testing.T, received []description.Server, expected []string
 func TestPollingSRVRecordsSpec(t *testing.T) {
 	for _, uri := range []string{
 		"mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100",
-                // Test with user:pass as a regression test for GODRIVER-2620
+		// Test with user:pass as a regression test for GODRIVER-2620
 		"mongodb+srv://user:pass@test1.test.build.10gen.cc/?heartbeatFrequencyMS=100",
 	} {
 		t.Run(uri, func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 }
 
 func testPollingSRVRecordsSpec(t *testing.T, uri string) {
-    t.Helper()
+	t.Helper()
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
