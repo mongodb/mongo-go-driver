@@ -127,7 +127,7 @@ func compareHosts(t *testing.T, received []description.Server, expected []string
 func TestPollingSRVRecordsSpec(t *testing.T) {
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
-			uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
+			uri := "mongodb+srv://user:pass@test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 			cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 			require.NoError(t, err, "error constructing topology configs: %v", err)
 

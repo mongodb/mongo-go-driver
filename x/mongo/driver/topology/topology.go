@@ -14,6 +14,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -234,7 +236,22 @@ func (t *Topology) Connect() error {
 
 	t.serversLock.Unlock()
 	if t.pollingRequired {
-		go t.pollSRVRecords()
+		uri, err := url.Parse(t.cfg.URI)
+		if err != nil {
+			return err
+		}
+		// sanity check before passing the hostname to resolver
+		parsedHosts := strings.Split(uri.Host, ",")
+		if len(parsedHosts) != 1 {
+			return fmt.Errorf("URI with SRV must include one and only one hostname")
+		}
+		_, _, err = net.SplitHostPort(parsedHosts[0])
+		if err == nil {
+			// we were able to successfully extract a port from the host,
+			// but should not be able to when using SRV
+			return fmt.Errorf("URI with srv must not include a port number")
+		}
+		go t.pollSRVRecords(parsedHosts[0])
 		t.pollingwg.Add(1)
 	}
 
@@ -556,7 +573,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 	return suitable, nil
 }
 
-func (t *Topology) pollSRVRecords() {
+func (t *Topology) pollSRVRecords(hosts string) {
 	defer t.pollingwg.Done()
 
 	serverConfig := newServerConfig(t.cfg.ServerOpts...)
@@ -572,13 +589,6 @@ func (t *Topology) pollSRVRecords() {
 			<-t.pollingDone
 		}
 	}()
-
-	// remove the scheme
-	uri := t.cfg.URI[14:]
-	hosts := uri
-	if idx := strings.IndexAny(uri, "/?@"); idx != -1 {
-		hosts = uri[:idx]
-	}
 
 	for {
 		select {
