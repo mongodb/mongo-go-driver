@@ -837,58 +837,66 @@ func serverKindFromString(t *testing.T, s string) description.ServerKind {
 }
 
 func BenchmarkSelectServerFromDescription(b *testing.B) {
-	bench := func(b *testing.B, serversHook func(servers []description.Server)) {
-		s := description.Server{
-			Addr:              address.Address("localhost:27017"),
-			HeartbeatInterval: time.Duration(10) * time.Second,
-			LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
-			LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
-			Kind:              description.Mongos,
-			WireVersion:       &description.VersionRange{Min: 0, Max: 5},
-		}
-		servers := make([]description.Server, 100)
-		for i := 0; i < len(servers); i++ {
-			servers[i] = s
-		}
-		serversHook(servers)
-		desc := description.Topology{
-			Servers: servers,
-		}
+	for _, bcase := range []struct {
+		name        string
+		serversHook func(servers []description.Server)
+	}{
+		{
+			"AllFit",
+			func(servers []description.Server) {},
+		},
+		{
+			"AllButOneFit",
+			func(servers []description.Server) {
+				servers[0].Kind = description.Unknown
+			},
+		},
+		{
+			"HalfFit",
+			func(servers []description.Server) {
+				for i := 0; i < len(servers); i += 2 {
+					servers[i].Kind = description.Unknown
+				}
+			},
+		},
+		{
+			"OneFit",
+			func(servers []description.Server) {
+				for i := 1; i < len(servers); i++ {
+					servers[i].Kind = description.Unknown
+				}
+			},
+		},
+	} {
+		bcase := bcase
 
-		timeout := make(chan time.Time)
-		b.ResetTimer()
-		b.RunParallel(func(p *testing.PB) {
-			b.ReportAllocs()
-			for p.Next() {
-				var c Topology
-				_, _ = c.selectServerFromDescription(desc, newServerSelectionState(selectNone, timeout))
+		b.Run(bcase.name, func(b *testing.B) {
+			s := description.Server{
+				Addr:              address.Address("localhost:27017"),
+				HeartbeatInterval: time.Duration(10) * time.Second,
+				LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
+				LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
+				Kind:              description.Mongos,
+				WireVersion:       &description.VersionRange{Min: 0, Max: 5},
 			}
+			servers := make([]description.Server, 100)
+			for i := 0; i < len(servers); i++ {
+				servers[i] = s
+			}
+			bcase.serversHook(servers)
+			desc := description.Topology{
+				Servers: servers,
+			}
+
+			timeout := make(chan time.Time)
+			b.ResetTimer()
+			b.RunParallel(func(p *testing.PB) {
+				b.ReportAllocs()
+				for p.Next() {
+					var c Topology
+					_, _ = c.selectServerFromDescription(desc, newServerSelectionState(selectNone, timeout))
+				}
+			})
 		})
 	}
-	b.Run("AllFit", func(b *testing.B) {
-		bench(b, func(servers []description.Server) {
-			//noop
-		})
-	})
-	b.Run("AllButOneFit", func(b *testing.B) {
-		bench(b, func(servers []description.Server) {
-			servers[0].Kind = description.Unknown
-		})
-
-	})
-	b.Run("HalfFit", func(b *testing.B) {
-		bench(b, func(servers []description.Server) {
-			for i := 0; i < len(servers); i += 2 {
-				servers[i].Kind = description.Unknown
-			}
-		})
-	})
-	b.Run("OneFit", func(b *testing.B) {
-		bench(b, func(servers []description.Server) {
-			for i := 1; i < len(servers); i++ {
-				servers[i].Kind = description.Unknown
-			}
-		})
-	})
-
 }
