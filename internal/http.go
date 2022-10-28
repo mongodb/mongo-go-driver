@@ -7,7 +7,6 @@
 package internal // import "go.mongodb.org/mongo-driver/internal"
 
 import (
-	"net"
 	"net/http"
 	"time"
 )
@@ -16,7 +15,7 @@ import (
 var DefaultHTTPClient = &http.Client{
 	// TODO(GODRIVER-2623): Use "http.DefaultTransport.Clone" once we change the minimum supported Go version to 1.13.
 	Transport: &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,

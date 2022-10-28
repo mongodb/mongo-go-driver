@@ -8,8 +8,7 @@ package auth
 
 import (
 	"context"
-
-	"go.mongodb.org/mongo-driver/internal"
+	"errors"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
