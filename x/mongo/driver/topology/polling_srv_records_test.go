@@ -136,6 +136,7 @@ func TestPollingSRVRecordsSpec(t *testing.T) {
 }
 
 func testPollingSRVRecordsSpec(t *testing.T, uri string) {
+    t.Helper()
 	for _, tt := range srvPollingTests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
