@@ -231,64 +231,72 @@ func TestSelector_Sharded(t *testing.T) {
 }
 
 func BenchmarkLatencySelector(b *testing.B) {
-	bench := func(b *testing.B, serversHook func(servers []Server)) {
-		s := Server{
-			Addr:              address.Address("localhost:27017"),
-			HeartbeatInterval: time.Duration(10) * time.Second,
-			LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
-			LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
-			Kind:              Mongos,
-			WireVersion:       &VersionRange{Min: 0, Max: 5},
-			AverageRTTSet:     true,
-			AverageRTT:        time.Second,
-		}
-		servers := make([]Server, 100)
-		for i := 0; i < len(servers); i++ {
-			servers[i] = s
-		}
-		serversHook(servers)
-		//this will make base 1 sec latency < min (0.5) + conf (1)
-		//and high latency 2 higher than the threshold
-		servers[99].AverageRTT = 500 * time.Millisecond
-		c := Topology{
-			Kind:    Sharded,
-			Servers: servers,
-		}
+	for _, bcase := range []struct {
+		name        string
+		serversHook func(servers []Server)
+	}{
+		{
+			"AllFit",
+			func(servers []Server) {},
+		},
+		{
+			"AllButOneFit",
+			func(servers []Server) {
+				servers[0].AverageRTT = 2 * time.Second
+			},
+		},
+		{
+			"HalfFit",
+			func(servers []Server) {
+				for i := 0; i < len(servers); i += 2 {
+					servers[i].AverageRTT = 2 * time.Second
+				}
+			},
+		},
+		{
+			"OneFit",
+			func(servers []Server) {
+				for i := 1; i < len(servers); i++ {
+					servers[i].AverageRTT = 2 * time.Second
+				}
+			},
+		},
+	} {
+		bcase := bcase
 
-		b.ResetTimer()
-		b.RunParallel(func(p *testing.PB) {
-			b.ReportAllocs()
-			for p.Next() {
-				_, _ = LatencySelector(time.Second).SelectServer(c, c.Servers)
+		b.Run(bcase.name, func(b *testing.B) {
+			s := Server{
+				Addr:              address.Address("localhost:27017"),
+				HeartbeatInterval: time.Duration(10) * time.Second,
+				LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
+				LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
+				Kind:              Mongos,
+				WireVersion:       &VersionRange{Min: 0, Max: 5},
+				AverageRTTSet:     true,
+				AverageRTT:        time.Second,
 			}
+			servers := make([]Server, 100)
+			for i := 0; i < len(servers); i++ {
+				servers[i] = s
+			}
+			bcase.serversHook(servers)
+			//this will make base 1 sec latency < min (0.5) + conf (1)
+			//and high latency 2 higher than the threshold
+			servers[99].AverageRTT = 500 * time.Millisecond
+			c := Topology{
+				Kind:    Sharded,
+				Servers: servers,
+			}
+
+			b.ResetTimer()
+			b.RunParallel(func(p *testing.PB) {
+				b.ReportAllocs()
+				for p.Next() {
+					_, _ = LatencySelector(time.Second).SelectServer(c, c.Servers)
+				}
+			})
 		})
 	}
-	b.Run("AllFit", func(b *testing.B) {
-		bench(b, func(servers []Server) {
-			//noop
-		})
-	})
-	b.Run("AllButOneFit", func(b *testing.B) {
-		bench(b, func(servers []Server) {
-			servers[0].AverageRTT = 2 * time.Second
-		})
-
-	})
-	b.Run("HalfFit", func(b *testing.B) {
-		bench(b, func(servers []Server) {
-			for i := 0; i < len(servers); i += 2 {
-				servers[i].AverageRTT = 2 * time.Second
-			}
-		})
-	})
-	b.Run("OneFit", func(b *testing.B) {
-		bench(b, func(servers []Server) {
-			for i := 1; i < len(servers); i++ {
-				servers[i].AverageRTT = 2 * time.Second
-			}
-		})
-	})
-
 }
 
 func BenchmarkSelector_Sharded(b *testing.B) {
