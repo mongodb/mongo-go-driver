@@ -842,26 +842,26 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 		serversHook func(servers []description.Server)
 	}{
 		{
-			"AllFit",
-			func(servers []description.Server) {},
+			name:        "AllFit",
+			serversHook: func(servers []description.Server) {},
 		},
 		{
-			"AllButOneFit",
-			func(servers []description.Server) {
+			name: "AllButOneFit",
+			serversHook: func(servers []description.Server) {
 				servers[0].Kind = description.Unknown
 			},
 		},
 		{
-			"HalfFit",
-			func(servers []description.Server) {
+			name: "HalfFit",
+			serversHook: func(servers []description.Server) {
 				for i := 0; i < len(servers); i += 2 {
 					servers[i].Kind = description.Unknown
 				}
 			},
 		},
 		{
-			"OneFit",
-			func(servers []description.Server) {
+			name: "OneFit",
+			serversHook: func(servers []description.Server) {
 				for i := 1; i < len(servers); i++ {
 					servers[i].Kind = description.Unknown
 				}
