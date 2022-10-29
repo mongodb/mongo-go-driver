@@ -236,26 +236,26 @@ func BenchmarkSelector_Sharded(b *testing.B) {
 		serversHook func(servers []Server)
 	}{
 		{
-			"AllFit",
-			func(servers []Server) {},
+			name:        "AllFit",
+			serversHook: func(servers []Server) {},
 		},
 		{
-			"AllButOneFit",
-			func(servers []Server) {
+			name: "AllButOneFit",
+			serversHook: func(servers []Server) {
 				servers[0].Kind = LoadBalancer
 			},
 		},
 		{
-			"HalfFit",
-			func(servers []Server) {
+			name: "HalfFit",
+			serversHook: func(servers []Server) {
 				for i := 0; i < len(servers); i += 2 {
 					servers[i].Kind = LoadBalancer
 				}
 			},
 		},
 		{
-			"OneFit",
-			func(servers []Server) {
+			name: "OneFit",
+			serversHook: func(servers []Server) {
 				for i := 1; i < len(servers); i++ {
 					servers[i].Kind = LoadBalancer
 				}
