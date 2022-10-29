@@ -236,26 +236,26 @@ func BenchmarkLatencySelector(b *testing.B) {
 		serversHook func(servers []Server)
 	}{
 		{
-			"AllFit",
-			func(servers []Server) {},
+			name:        "AllFit",
+			serversHook: func(servers []Server) {},
 		},
 		{
-			"AllButOneFit",
-			func(servers []Server) {
+			name: "AllButOneFit",
+			serversHook: func(servers []Server) {
 				servers[0].AverageRTT = 2 * time.Second
 			},
 		},
 		{
-			"HalfFit",
-			func(servers []Server) {
+			name: "HalfFit",
+			serversHook: func(servers []Server) {
 				for i := 0; i < len(servers); i += 2 {
 					servers[i].AverageRTT = 2 * time.Second
 				}
 			},
 		},
 		{
-			"OneFit",
-			func(servers []Server) {
+			name: "OneFit",
+			serversHook: func(servers []Server) {
 				for i := 1; i < len(servers); i++ {
 					servers[i].AverageRTT = 2 * time.Second
 				}
