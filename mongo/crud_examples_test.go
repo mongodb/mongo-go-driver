@@ -625,16 +625,17 @@ func ExampleWithSession() {
 	err = mongo.WithSession(
 		context.TODO(),
 		sess,
-		func(sessCtx mongo.SessionContext) error {
-			// Use sessCtx as the Context parameter for InsertOne and FindOne so
-			// both operations are run under the new Session.
+		func(ctx mongo.SessionContext) error {
+			// Use the mongo.SessionContext as the Context parameter for
+			// InsertOne and FindOne so both operations are run under the new
+			// Session.
 
 			if err := sess.StartTransaction(); err != nil {
 				return err
 			}
 
 			coll := client.Database("db").Collection("coll")
-			res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+			res, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
 			if err != nil {
 				// Abort the transaction after an error. Use
 				// context.Background() to ensure that the abort can complete
@@ -646,7 +647,7 @@ func ExampleWithSession() {
 
 			var result bson.M
 			err = coll.FindOne(
-				sessCtx,
+				ctx,
 				bson.D{{"_id", res.InsertedID}},
 			).Decode(result)
 			if err != nil {
@@ -681,28 +682,29 @@ func ExampleClient_UseSessionWithOptions() {
 	err := client.UseSessionWithOptions(
 		context.TODO(),
 		opts,
-		func(sessCtx mongo.SessionContext) error {
-			// Use sessCtx as the Context parameter for InsertOne and FindOne so
-			// both operations are run under the new Session.
+		func(ctx mongo.SessionContext) error {
+			// Use the mongo.SessionContext as the Context parameter for
+			// InsertOne and FindOne so both operations are run under the new
+			// Session.
 
-			if err := sessCtx.StartTransaction(); err != nil {
+			if err := ctx.StartTransaction(); err != nil {
 				return err
 			}
 
 			coll := client.Database("db").Collection("coll")
-			res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+			res, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
 			if err != nil {
 				// Abort the transaction after an error. Use
 				// context.Background() to ensure that the abort can complete
 				// successfully even if the context passed to mongo.WithSession
 				// is changed to have a timeout.
-				_ = sessCtx.AbortTransaction(context.Background())
+				_ = ctx.AbortTransaction(context.Background())
 				return err
 			}
 
 			var result bson.M
 			err = coll.FindOne(
-				sessCtx,
+				ctx,
 				bson.D{{"_id", res.InsertedID}},
 			).Decode(result)
 			if err != nil {
@@ -710,7 +712,7 @@ func ExampleClient_UseSessionWithOptions() {
 				// context.Background() to ensure that the abort can complete
 				// successfully even if the context passed to mongo.WithSession
 				// is changed to have a timeout.
-				_ = sessCtx.AbortTransaction(context.Background())
+				_ = ctx.AbortTransaction(context.Background())
 				return err
 			}
 			fmt.Println(result)
@@ -718,7 +720,7 @@ func ExampleClient_UseSessionWithOptions() {
 			// Use context.Background() to ensure that the commit can complete
 			// successfully even if the context passed to mongo.WithSession is
 			// changed to have a timeout.
-			return sessCtx.CommitTransaction(context.Background())
+			return ctx.CommitTransaction(context.Background())
 		})
 	if err != nil {
 		log.Fatal(err)
@@ -748,19 +750,20 @@ func ExampleClient_StartSession_withTransaction() {
 		SetReadPreference(readpref.PrimaryPreferred())
 	result, err := sess.WithTransaction(
 		context.TODO(),
-		func(sessCtx mongo.SessionContext) (interface{}, error) {
-			// Use sessCtx as the Context parameter for InsertOne and FindOne so
-			// both operations are run in a transaction.
+		func(ctx mongo.SessionContext) (interface{}, error) {
+			// Use the mongo.SessionContext as the Context parameter for
+			// InsertOne and FindOne so both operations are run under the new
+			// Session.
 
 			coll := client.Database("db").Collection("coll")
-			res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+			res, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
 			if err != nil {
 				return nil, err
 			}
 
 			var result bson.M
 			err = coll.FindOne(
-				sessCtx,
+				ctx,
 				bson.D{{"_id", res.InsertedID}},
 			).Decode(result)
 			if err != nil {
@@ -784,16 +787,17 @@ func ExampleNewSessionContext() {
 		panic(err)
 	}
 	defer sess.EndSession(context.TODO())
-	sessCtx := mongo.NewSessionContext(context.TODO(), sess)
+	ctx := mongo.NewSessionContext(context.TODO(), sess)
 
-	// Start a transaction and sessCtx as the Context parameter to InsertOne and
-	// FindOne so both operations will be run in the transaction.
+	// Start a transaction and use the mongo.SessionContext as the Context
+	// parameter for InsertOne and FindOne so both operations are run in the
+	// transaction.
 	if err = sess.StartTransaction(); err != nil {
 		panic(err)
 	}
 
 	coll := client.Database("db").Collection("coll")
-	res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+	res, err := coll.InsertOne(ctx, bson.D{{"x", 1}})
 	if err != nil {
 		// Abort the transaction after an error. Use context.Background() to
 		// ensure that the abort can complete successfully even if the context
@@ -804,7 +808,7 @@ func ExampleNewSessionContext() {
 
 	var result bson.M
 	err = coll.FindOne(
-		sessCtx,
+		ctx,
 		bson.D{{"_id", res.InsertedID}},
 	).Decode(&result)
 	if err != nil {
