@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"reflect"
 	"testing"
@@ -165,6 +166,7 @@ func TestClientOptions(t *testing.T) {
 				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
 				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				cmp.AllowUnexported(ClientOptions{}),
+				cmpopts.IgnoreFields(http.Client{}, "Transport"),
 			); diff != "" {
 				t.Errorf("diff:\n%s", diff)
 				t.Errorf("Merged client options do not match. got %v; want %v", got, want)
@@ -205,40 +207,47 @@ func TestClientOptions(t *testing.T) {
 			{
 				"ParseError",
 				"not-mongo-db-uri://",
-				&ClientOptions{err: internal.WrapErrorf(
-					errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
-				)},
+				&ClientOptions{
+					err: internal.WrapErrorf(
+						errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
+					),
+					HTTPClient: internal.DefaultHTTPClient,
+				},
 			},
 			{
 				"ReadPreference Invalid Mode",
 				"mongodb://localhost/?maxStaleness=200",
 				&ClientOptions{
-					err:   fmt.Errorf("unknown read preference %v", ""),
-					Hosts: []string{"localhost"},
+					err:        fmt.Errorf("unknown read preference %v", ""),
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
 				"ReadPreference Primary With Options",
 				"mongodb://localhost/?readPreference=Primary&maxStaleness=200",
 				&ClientOptions{
-					err:   errors.New("can not specify tags, max staleness, or hedge with mode primary"),
-					Hosts: []string{"localhost"},
+					err:        errors.New("can not specify tags, max staleness, or hedge with mode primary"),
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
 				"TLS addCertFromFile error",
 				"mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/doesntexist",
 				&ClientOptions{
-					err:   &os.PathError{Op: "open", Path: "testdata/doesntexist"},
-					Hosts: []string{"localhost"},
+					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
 				"TLS ClientCertificateKey",
 				"mongodb://localhost/?ssl=true&sslClientCertificateKeyFile=testdata/doesntexist",
 				&ClientOptions{
-					err:   &os.PathError{Op: "open", Path: "testdata/doesntexist"},
-					Hosts: []string{"localhost"},
+					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
 				},
 			},
 			{
@@ -274,10 +283,13 @@ func TestClientOptions(t *testing.T) {
 			{
 				"Unescaped slash in username",
 				"mongodb:///:pwd@localhost",
-				&ClientOptions{err: internal.WrapErrorf(
-					errors.New("unescaped slash in username"),
-					"error parsing uri",
-				)},
+				&ClientOptions{
+					err: internal.WrapErrorf(
+						errors.New("unescaped slash in username"),
+						"error parsing uri",
+					),
+					HTTPClient: internal.DefaultHTTPClient,
+				},
 			},
 			{
 				"Password",
@@ -458,27 +470,36 @@ func TestClientOptions(t *testing.T) {
 			{
 				"TLS only tlsCertificateFile",
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
-				&ClientOptions{err: internal.WrapErrorf(
-					errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
-					"error validating uri",
-				)},
+				&ClientOptions{
+					err: internal.WrapErrorf(
+						errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
+						"error validating uri",
+					),
+					HTTPClient: internal.DefaultHTTPClient,
+				},
 			},
 			{
 				"TLS only tlsPrivateKeyFile",
 				"mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
-				&ClientOptions{err: internal.WrapErrorf(
-					errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
-					"error validating uri",
-				)},
+				&ClientOptions{
+					err: internal.WrapErrorf(
+						errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
+						"error validating uri",
+					),
+					HTTPClient: internal.DefaultHTTPClient,
+				},
 			},
 			{
 				"TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
-				&ClientOptions{err: internal.WrapErrorf(
-					errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
-						"along with tlsCertificateFile or tlsPrivateKeyFile"),
-					"error validating uri",
-				)},
+				&ClientOptions{
+					err: internal.WrapErrorf(
+						errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
+							"along with tlsCertificateFile or tlsPrivateKeyFile"),
+						"error validating uri",
+					),
+					HTTPClient: internal.DefaultHTTPClient,
+				},
 			},
 			{
 				"disable OCSP endpoint check",
@@ -502,24 +523,27 @@ func TestClientOptions(t *testing.T) {
 				"TLS empty CA file",
 				"mongodb://localhost/?tlsCAFile=testdata/empty-ca.pem",
 				&ClientOptions{
-					Hosts: []string{"localhost"},
-					err:   errors.New("the specified CA file does not contain any valid certificates"),
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
+					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
 			{
 				"TLS CA file with no certificates",
 				"mongodb://localhost/?tlsCAFile=testdata/ca-key.pem",
 				&ClientOptions{
-					Hosts: []string{"localhost"},
-					err:   errors.New("the specified CA file does not contain any valid certificates"),
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
+					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
 			{
 				"TLS malformed CA file",
 				"mongodb://localhost/?tlsCAFile=testdata/malformed-ca.pem",
 				&ClientOptions{
-					Hosts: []string{"localhost"},
-					err:   errors.New("the specified CA file does not contain any valid certificates"),
+					Hosts:      []string{"localhost"},
+					HTTPClient: internal.DefaultHTTPClient,
+					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
 			{
@@ -573,6 +597,7 @@ func TestClientOptions(t *testing.T) {
 					cmp.Comparer(compareErrors),
 					cmpopts.SortSlices(stringLess),
 					cmpopts.IgnoreFields(connstring.ConnString{}, "SSLClientCertificateKeyPassword"),
+					cmpopts.IgnoreFields(http.Client{}, "Transport"),
 				); diff != "" {
 					t.Errorf("URI did not apply correctly: (-want +got)\n%s", diff)
 				}

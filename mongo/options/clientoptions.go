@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -104,6 +105,7 @@ type ClientOptions struct {
 	DisableOCSPEndpointCheck *bool
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
+	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
 	MaxConnIdleTime          *time.Duration
@@ -162,7 +164,9 @@ type ClientOptions struct {
 
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
-	return new(ClientOptions)
+	return &ClientOptions{
+		HTTPClient: internal.DefaultHTTPClient,
+	}
 }
 
 // Validate validates the client options. This method will return the first error found.
@@ -767,6 +771,14 @@ func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
 	return c
 }
 
+// SetHTTPClient specifies the http.Client to be used for any HTTP requests.
+//
+// This should only be used to set custom HTTP client configurations. By default, the connection will use an internal.DefaultHTTPClient.
+func (c *ClientOptions) SetHTTPClient(client *http.Client) *ClientOptions {
+	c.HTTPClient = client
+	return c
+}
+
 // SetWriteConcern specifies the write concern to use to for write operations. This can also be set through the following
 // URI options:
 //
@@ -888,6 +900,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if len(opt.Hosts) > 0 {
 			c.Hosts = opt.Hosts
+		}
+		if opt.HTTPClient != nil {
+			c.HTTPClient = opt.HTTPClient
 		}
 		if opt.LoadBalanced != nil {
 			c.LoadBalanced = opt.LoadBalanced

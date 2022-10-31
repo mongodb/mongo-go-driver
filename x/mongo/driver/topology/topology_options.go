@@ -8,6 +8,7 @@ package topology
 
 import (
 	"crypto/tls"
+	"net/http"
 	"strings"
 	"time"
 
@@ -170,6 +171,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			ServerAPI:     serverAPI,
 			LoadBalanced:  loadBalanced,
 			ClusterClock:  clock,
+			HTTPClient:    co.HTTPClient,
 		}
 
 		if mechanism == "" {
@@ -289,6 +291,15 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		connOpts = append(connOpts, WithTLSConfig(
 			func(*tls.Config) *tls.Config {
 				return co.TLSConfig
+			},
+		))
+	}
+
+	// HTTP Client
+	if co.HTTPClient != nil {
+		connOpts = append(connOpts, WithHTTPClient(
+			func(*http.Client) *http.Client {
+				return co.HTTPClient
 			},
 		))
 	}
