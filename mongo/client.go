@@ -281,6 +281,10 @@ func (c *Client) Disconnect(ctx context.Context) error {
 		ctx = context.Background()
 	}
 
+	if c.httpClient == internal.DefaultHTTPClient {
+		defer internal.CloseIdleHTTPConnections(c.httpClient)
+	}
+
 	c.endSessions(ctx)
 	if c.mongocryptdFLE != nil {
 		if err := c.mongocryptdFLE.disconnect(ctx); err != nil {
@@ -310,10 +314,6 @@ func (c *Client) Disconnect(ctx context.Context) error {
 
 	if disconnector, ok := c.deployment.(driver.Disconnector); ok {
 		return replaceErrors(disconnector.Disconnect(ctx))
-	}
-
-	if c.httpClient == internal.DefaultHTTPClient {
-		internal.CloseIdleHTTPConnections(c.httpClient)
 	}
 
 	return nil
