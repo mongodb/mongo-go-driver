@@ -335,7 +335,6 @@ functions:
     - command: shell.exec
       type: test
       params:
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -350,7 +349,10 @@ functions:
           export GOROOT="${GO_DIST}"
           export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          MONGODB_URI="${MONGODB_URI}" MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
+          export MONGODB_URI="${MONGODB_URI}"
+          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
+
+          make -s evg-test-enterprise-auth
 
   run-enterprise-gssapi-auth-tests:
     - command: shell.exec
@@ -377,7 +379,9 @@ functions:
           export GOROOT="${GO_DIST}"
           export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
+          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
+
+          make -s evg-test-enterprise-auth
 
   run-enterprise-gssapi-service-host-auth-tests:
     - command: shell.exec
@@ -404,7 +408,9 @@ functions:
           export GOROOT="${GO_DIST}"
           export GOCACHE="$GOCACHE"
           export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}" make -s evg-test-auth
+          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
+
+          make -s evg-test-enterprise-auth
 
   run-atlas-test:
     - command: shell.exec

@@ -29,7 +29,7 @@ build:
 
 .PHONY: build-examples
 build-examples:
-	go build $(BUILD_TAGS) ./examples/... ./x/mongo/driver/examples/...
+	go build $(BUILD_TAGS) ./examples/...
 
 .PHONY: build-no-tags
 build-no-tags:
@@ -128,9 +128,9 @@ evg-test-atlas-data-lake:
 	ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo/integration -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
 	ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo/integration -run TestAtlasDataLake >> spec_test.suite
 
-.PHONY: evg-test-auth
-evg-test-auth:
-	go run -tags gssapi ./x/mongo/driver/examples/count/main.go -uri $(MONGODB_URI)
+.PHONY: evg-test-enterprise-auth
+evg-test-enterprise-auth:
+	go run -tags gssapi ./cmd/testentauth/main.go
 
 .PHONY: evg-test-kmip
 evg-test-kmip:
