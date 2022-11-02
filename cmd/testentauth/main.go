@@ -47,5 +47,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed executing count command: %v", err)
 	}
-	log.Println("Count of test.test:", count)
+	log.Println("Count of test collection:", count)
 }
