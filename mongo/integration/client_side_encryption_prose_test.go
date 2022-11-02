@@ -2007,8 +2007,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 
 			// Listen for connections in a separate goroutine.
-			listener := listenForConnections(t, func(_ net.Conn) {
+			listener := listenForConnections(t, func(c net.Conn) {
 				mt.Fatalf("Unexpected connection created to mock mongocryptd goroutine")
+				c.Close()
 			})
 			defer listener.Close()
 
