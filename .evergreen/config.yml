@@ -2407,6 +2407,7 @@ buildvariants:
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
+        batchtime: 1440 # Run at most once per 24 hours.
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"
