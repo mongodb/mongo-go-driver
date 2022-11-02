@@ -29,14 +29,16 @@ var defaultTimeoutArgs = []string{"--idleShutdownTimeoutSecs=60"}
 var databaseOpts = options.Database().SetReadConcern(readconcern.New()).SetReadPreference(readpref.Primary())
 
 type mongocryptdClient struct {
-	cryptSharedLibAvailable bool
-	bypassSpawn             bool
-	client                  *Client
-	path                    string
-	spawnArgs               []string
+	bypassSpawn bool
+	client      *Client
+	path        string
+	spawnArgs   []string
 }
 
-func newMongocryptdClient(cryptSharedLibAvailable bool, opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
+// newMongocryptdClient creates a client to mongocryptd.
+// newMongocryptdClient is expected to not be called if the crypt shared library is available.
+// The crypt shared library replaces all mongocryptd functionality.
+func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
@@ -55,9 +57,7 @@ func newMongocryptdClient(cryptSharedLibAvailable bool, opts *options.AutoEncryp
 		// - mongocryptdBypassSpawn is passed
 		// - bypassAutoEncryption is true because mongocryptd is not used during decryption
 		// - bypassQueryAnalysis is true because mongocryptd is not used during decryption
-		// - the crypt_shared library is available because it replaces all mongocryptd functionality.
-		bypassSpawn:             bypassSpawn || bypassAutoEncryption || bypassQueryAnalysis || cryptSharedLibAvailable,
-		cryptSharedLibAvailable: cryptSharedLibAvailable,
+		bypassSpawn: bypassSpawn || bypassAutoEncryption || bypassQueryAnalysis,
 	}
 
 	if !mc.bypassSpawn {
@@ -114,18 +114,11 @@ func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd
 
 // connect connects the underlying Client instance. This must be called before performing any mark operations.
 func (mc *mongocryptdClient) connect(ctx context.Context) error {
-	if mc.cryptSharedLibAvailable {
-		// Do not connect when the crypt_shared library is available because it replaces all mongocryptd functionality.
-		return nil
-	}
 	return mc.client.Connect(ctx)
 }
 
 // disconnect disconnects the underlying Client instance. This should be called after all operations have completed.
 func (mc *mongocryptdClient) disconnect(ctx context.Context) error {
-	if mc.cryptSharedLibAvailable {
-		return nil
-	}
 	return mc.client.Disconnect(ctx)
 }
 
