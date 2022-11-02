@@ -2221,6 +2221,8 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 // The user provided run function will be called with the accepted
 // connection. The user is responsible for calling Close on the returned listener.
 func listenForConnections(t *testing.T, run func(net.Conn)) net.Listener {
+        t.Helper()
+        
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Errorf("Could not set up a listener: %v", err)
