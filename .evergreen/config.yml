@@ -335,7 +335,6 @@ functions:
     - command: shell.exec
       type: test
       params:
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
