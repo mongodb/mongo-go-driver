@@ -15,6 +15,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -1989,6 +1990,51 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 		})
 	})
+
+	mt.RunOpts("20. Bypass creating mongocryptd client when shared library is loaded",
+		noClientOpts, func(mt *mtest.T) {
+
+			cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
+			if cryptSharedLibPath == "" {
+				mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
+				return
+			}
+
+			kmsProviders := map[string]map[string]interface{}{
+				"local": {
+					"key": localMasterKey,
+				},
+			}
+
+			// Listen for connections in a separate goroutine.
+			listener := listenForConnections(t, func(c net.Conn) {
+				mt.Fatalf("Unexpected connection created to mock mongocryptd goroutine")
+				c.Close()
+			})
+			defer listener.Close()
+
+			uri := "mongodb://" + listener.Addr().String()
+			mongocryptdSpawnArgs := map[string]interface{}{
+				"mongocryptdURI":     uri,
+				"cryptSharedLibPath": cryptSharedLibPath,
+			}
+
+			aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).
+				SetExtraOptions(mongocryptdSpawnArgs)
+			cliOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
+			testutil.AddTestServerAPIVersion(cliOpts)
+			encClient, err := mongo.Connect(context.Background(), cliOpts)
+			assert.Nil(mt, err, "Connect error: %v", err)
+			defer func() {
+				err = encClient.Disconnect(context.Background())
+				assert.Nil(mt, err, "encrypted client Disconnect error: %v", err)
+			}()
+
+			// Run an Insert through the encrypted client to make sure mongocryptd is started ('insert' uses the
+			// mongocryptd and will wait for it to be active).
+			_, err = encClient.Database("db").Collection("coll").InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+		})
 }
 
 func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) watcher {
@@ -2169,4 +2215,28 @@ func (d *deadlockTest) disconnect(mt *mtest.T) {
 	assert.Nil(mt, err, "clientEncryption Close error: %v", err)
 	d.clientTest.Disconnect(context.Background())
 	assert.Nil(mt, err, "clientTest Disconnect error: %v", err)
+}
+
+// listenForConnections creates a listener that will listen for connections.
+// The user provided run function will be called with the accepted
+// connection. The user is responsible for calling Close on the returned listener.
+func listenForConnections(t *testing.T, run func(net.Conn)) net.Listener {
+	t.Helper()
+
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Errorf("Could not set up a listener: %v", err)
+		t.FailNow()
+	}
+	go func() {
+		for {
+			// Ignore errors due to closing the listener connection.
+			c, _ := l.Accept()
+			if c == nil {
+				break
+			}
+			go run(c)
+		}
+	}()
+	return l
 }

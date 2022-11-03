@@ -445,14 +445,14 @@ func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) erro
 		return err
 	}
 
-	// If the crypt_shared library was loaded successfully, signal to the mongocryptd client creator
-	// that it can bypass spawning mongocryptd.
-	cryptSharedLibAvailable := mc.CryptSharedLibVersionString() != ""
-	mongocryptdFLE, err := newMongocryptdClient(cryptSharedLibAvailable, clientOpts.AutoEncryptionOptions)
-	if err != nil {
-		return err
+	// If the crypt_shared library was not loaded, try to spawn and connect to mongocryptd.
+	if mc.CryptSharedLibVersionString() == "" {
+		mongocryptdFLE, err := newMongocryptdClient(clientOpts.AutoEncryptionOptions)
+		if err != nil {
+			return err
+		}
+		c.mongocryptdFLE = mongocryptdFLE
 	}
-	c.mongocryptdFLE = mongocryptdFLE
 
 	c.configureCryptFLE(mc, clientOpts.AutoEncryptionOptions)
 	return nil
