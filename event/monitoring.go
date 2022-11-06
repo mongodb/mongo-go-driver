@@ -8,6 +8,7 @@ package event // import "go.mongodb.org/mongo-driver/event"
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -32,10 +33,10 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
-	DurationNanos int64
-	CommandName   string
-	RequestID     int64
-	ConnectionID  string
+	Duration     time.Duration
+	CommandName  string
+	RequestID    int64
+	ConnectionID string
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
 	// this value (e.g. on MDB < 4.2), it is unset.
 	ServerConnectionID *int32
@@ -157,18 +158,18 @@ type ServerHeartbeatStartedEvent struct {
 
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
-	DurationNanos int64
-	Reply         description.Server
-	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool   // If this heartbeat was awaitable
+	Duration     time.Duration
+	Reply        description.Server
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
 type ServerHeartbeatFailedEvent struct {
-	DurationNanos int64
-	Failure       error
-	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool   // If this heartbeat was awaitable
+	Duration     time.Duration
+	Failure      error
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client
