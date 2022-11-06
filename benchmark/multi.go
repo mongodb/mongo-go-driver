@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
@@ -46,7 +46,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 
 	tm.ResetTimer()
 
-	cursor, err := coll.Find(ctx, bsonx.Doc{})
+	cursor, err := coll.Find(ctx, bson.D{})
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 		return err
 	}
 
-	err = db.RunCommand(ctx, bsonx.Doc{{"create", bsonx.String("corpus")}}).Err()
+	err = db.RunCommand(ctx, bson.D{{"create", "corpus"}}).Err()
 	if err != nil {
 		return err
 	}

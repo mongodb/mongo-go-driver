@@ -10,7 +10,7 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/x/bsonx"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func bsonDocumentEncoding(tm TimerManager, iters int, source string) error {
@@ -22,7 +22,7 @@ func bsonDocumentEncoding(tm TimerManager, iters int, source string) error {
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := doc.MarshalBSON()
+		out, err := bson.Marshal(doc)
 		if err != nil {
 			return err
 		}
@@ -40,7 +40,7 @@ func bsonDocumentDecodingLazy(tm TimerManager, iters int, source string) error {
 		return err
 	}
 
-	raw, err := doc.MarshalBSON()
+	raw, err := bson.Marshal(doc)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,8 @@ func bsonDocumentDecodingLazy(tm TimerManager, iters int, source string) error {
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := bsonx.ReadDoc(raw)
+		var out bson.D
+		err := bson.Unmarshal(raw, &out)
 		if err != nil {
 			return err
 		}
@@ -65,7 +66,7 @@ func bsonDocumentDecoding(tm TimerManager, iters, numKeys int, source string) er
 		return err
 	}
 
-	raw, err := doc.MarshalBSON()
+	raw, err := bson.Marshal(doc)
 	if err != nil {
 		return err
 	}
@@ -73,7 +74,8 @@ func bsonDocumentDecoding(tm TimerManager, iters, numKeys int, source string) er
 	tm.ResetTimer()
 
 	for i := 0; i < iters; i++ {
-		out, err := bsonx.ReadDoc(raw)
+		var out bson.D
+		err := bson.Unmarshal(raw, &out)
 		if err != nil {
 			return err
 		}
