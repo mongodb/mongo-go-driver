@@ -705,7 +705,7 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 func (s *Server) check() (description.Server, error) {
 	var descPtr *description.Server
 	var err error
-	var durationNanos int64
+	var duration time.Duration
 
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
@@ -760,19 +760,19 @@ func (s *Server) check() (description.Server, error) {
 			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
 			err = baseOperation.Execute(s.heartbeatCtx)
 		}
-		durationNanos = time.Since(start).Nanoseconds()
+		duration = time.Since(start)
 
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)
 			descPtr = &tempDesc
-			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), durationNanos, tempDesc, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, s.conn.getCurrentlyStreaming() || streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
 				_ = s.conn.close()
 			}
-			s.publishServerHeartbeatFailedEvent(s.conn.ID(), durationNanos, err, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, s.conn.getCurrentlyStreaming() || streamable)
 		}
 	}
 
@@ -901,14 +901,15 @@ func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await b
 
 // publishes a ServerHeartbeatSucceededEvent to indicate hello has succeeded
 func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
-	durationNanos int64,
+	duration time.Duration,
 	desc description.Server,
-	await bool) {
+	await bool,
+) {
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
-		DurationNanos: durationNanos,
-		Reply:         desc,
-		ConnectionID:  connectionID,
-		Awaited:       await,
+		Duration:     duration,
+		Reply:        desc,
+		ConnectionID: connectionID,
+		Awaited:      await,
 	}
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatSucceeded != nil {
@@ -918,14 +919,15 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 
 // publishes a ServerHeartbeatFailedEvent to indicate hello has failed
 func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
-	durationNanos int64,
+	duration time.Duration,
 	err error,
-	await bool) {
+	await bool,
+) {
 	serverHeartbeatFailed := &event.ServerHeartbeatFailedEvent{
-		DurationNanos: durationNanos,
-		Failure:       err,
-		ConnectionID:  connectionID,
-		Awaited:       await,
+		Duration:     duration,
+		Failure:      err,
+		ConnectionID: connectionID,
+		Awaited:      await,
 	}
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatFailed != nil {
