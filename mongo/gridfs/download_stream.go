@@ -235,6 +235,11 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 			_ = ds.cursor.Close(ctx)
 			return ds.cursor.Err()
 		}
+		// If there are no more chunks, but we didn't read the expected number of chunks, return an
+		// ErrWrongIndex error to indicate that we're missing chunks at the end of the file.
+		if ds.expectedChunk != ds.numChunks {
+			return ErrWrongIndex
+		}
 		return errNoMoreChunks
 	}
 
