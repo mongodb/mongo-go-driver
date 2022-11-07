@@ -21,7 +21,7 @@ var (
 		"transactions/unified",
 		"load-balancers",
 		"collection-management",
-		"command-monitoring/unified",
+		"command-monitoring",
 		"sessions",
 		"retryable-writes/unified",
 		"client-side-encryption/unified",

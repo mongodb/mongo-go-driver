@@ -1,9 +1,9 @@
 {
-  "description": "pre-42-server-connection-id",
+  "description": "server-connection-id",
   "schemaVersion": "1.6",
   "runOnRequirements": [
     {
-      "maxServerVersion": "4.0.99"
+      "minServerVersion": "4.2"
     }
   ],
   "createEntities": [
@@ -41,7 +41,7 @@
   ],
   "tests": [
     {
-      "description": "command events do not include server connection id",
+      "description": "command events include server connection id",
       "operations": [
         {
           "name": "insertOne",
@@ -72,25 +72,25 @@
             {
               "commandStartedEvent": {
                 "commandName": "insert",
-                "hasServerConnectionId": false
+                "hasServerConnectionId": true
               }
             },
             {
               "commandSucceededEvent": {
                 "commandName": "insert",
-                "hasServerConnectionId": false
+                "hasServerConnectionId": true
               }
             },
             {
               "commandStartedEvent": {
                 "commandName": "find",
-                "hasServerConnectionId": false
+                "hasServerConnectionId": true
               }
             },
             {
               "commandFailedEvent": {
                 "commandName": "find",
-                "hasServerConnectionId": false
+                "hasServerConnectionId": true
               }
             }
           ]
