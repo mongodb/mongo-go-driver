@@ -9,3 +9,4 @@ options:
     replicaSet: repl0
     authSource: thisDB
     ssl: false
+ping: true

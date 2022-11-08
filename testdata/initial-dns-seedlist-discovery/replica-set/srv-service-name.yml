@@ -9,3 +9,4 @@ hosts:
 options:
     ssl: true
     srvServiceName: "customname"
+ping: true

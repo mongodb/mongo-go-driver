@@ -8,3 +8,4 @@ numHosts: 1
 options:
     srvMaxHosts: 1
     ssl: true
+ping: true

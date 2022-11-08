@@ -8,3 +8,4 @@ hosts:
 options:
     loadBalanced: false
     ssl: true
+ping: true

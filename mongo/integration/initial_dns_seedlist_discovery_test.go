@@ -15,12 +15,15 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -37,6 +40,7 @@ type seedlistTest struct {
 	NumHosts *int     `bson:"numHosts"`
 	Error    bool     `bson:"error"`
 	Options  bson.Raw `bson:"options"`
+	Ping     bool     `bson:"ping"`
 }
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
@@ -61,6 +65,38 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 			runSeedlistDiscoveryTest(mt, path.Join(directoryPath, file))
 		})
 	}
+}
+
+// runSeedListDiscoverPingTest will create a new connection using the test URI and ping the server.
+func runSeedListDiscoveryPingTest(mt *mtest.T, tcase seedlistTest) {
+	mt.Parallel()
+
+	if !tcase.Ping {
+		return
+	}
+
+	// Create a new connection using the test URI.
+	opts := options.Client().ApplyURI(tcase.URI)
+
+	// If the test case expects SSL, set the CA file.
+	if tlsConfig := getSSLSettings(mt, tcase); tlsConfig != nil {
+		opts.SetTLSConfig(tlsConfig)
+	}
+
+	ctx := context.Background()
+
+	client, err := mongo.Connect(ctx, opts)
+	assert.Nil(mt, err, "Connect error: %v", err)
+
+	mt.Cleanup(func() { _ = client.Disconnect(ctx) })
+
+	// Create a context with a timeout to prevent the ping operation from blocking indefinitely.
+	pingCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	// Ping the server.
+	err = client.Ping(pingCtx, readpref.Nearest())
+	assert.Nil(mt, err, "Ping error: %v", err)
 }
 
 func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
@@ -131,6 +167,8 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		_, err := getServerByAddress(host, topo)
 		assert.Nil(mt, err, "error finding host %q: %v", host, err)
 	}
+
+	runSeedListDiscoveryPingTest(mt, test)
 }
 
 func buildSet(list []string) map[string]struct{} {
@@ -230,6 +268,7 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 	if err != nil {
 		return description.Server{}, err
 	}
+
 	selectedServerConnection, err := selectedServer.Connection(context.Background())
 	if err != nil {
 		return description.Server{}, err
