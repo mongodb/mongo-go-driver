@@ -1570,6 +1570,21 @@ tasks:
       - func: run-load-balancer
       - func: run-load-balancer-tests
 
+  - name: test-race
+    tags: ["race"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "noauth"
+          SSL: "nossl"
+          RACE: "-race"
+
   - name: test-replicaset-noauth-nossl
     tags: ["test", "replicaset"]
     commands:
@@ -2376,6 +2391,12 @@ buildvariants:
     tasks:
       # macos MongoDB servers do not staple OCSP responses and only support RSA.
       - name: ".ocsp-rsa !.ocsp-staple"
+
+  - matrix_name: "race-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    display_name: "Race Detector Test"
+    tasks:
+      - name: ".race"
 
   - matrix_name: "versioned-api-test"
     matrix_spec: { version: ["5.0", "6.0", "latest"], os-ssl-40: "*" }
