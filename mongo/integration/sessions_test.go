@@ -301,10 +301,10 @@ func TestSessions(t *testing.T) {
 			assert.Nil(mt, err, "StartSession error: %v", err)
 			defer sess.EndSession(context.Background())
 
-			sessCtx := mongo.NewSessionContext(context.Background(), sess)
-			assert.Equal(mt, sess.ID(), sessCtx.ID(), "expected Session ID %v, got %v", sess.ID(), sessCtx.ID())
+			ctx := mongo.NewSessionContext(context.Background(), sess)
+			assert.Equal(mt, sess.ID(), ctx.ID(), "expected Session ID %v, got %v", sess.ID(), ctx.ID())
 
-			gotSess := mongo.SessionFromContext(sessCtx)
+			gotSess := mongo.SessionFromContext(ctx)
 			assert.NotNil(mt, gotSess, "expected SessionFromContext to return non-nil value, got nil")
 			assert.Equal(mt, sess.ID(), gotSess.ID(), "expected Session ID %v, got %v", sess.ID(), gotSess.ID())
 		})
@@ -323,8 +323,8 @@ func TestSessions(t *testing.T) {
 				return mongo.NewSessionContext(context.Background(), sess)
 			}
 
-			sessCtx := createSessionContext(mt)
-			sess := mongo.SessionFromContext(sessCtx)
+			ctx := createSessionContext(mt)
+			sess := mongo.SessionFromContext(ctx)
 			assert.NotNil(mt, sess, "expected SessionFromContext to return non-nil value, got nil")
 			defer sess.EndSession(context.Background())
 
@@ -333,14 +333,14 @@ func TestSessions(t *testing.T) {
 
 			numDocs := 2
 			for i := 0; i < numDocs; i++ {
-				_, err = mt.Coll.InsertOne(sessCtx, bson.D{{"x", 1}})
+				_, err = mt.Coll.InsertOne(ctx, bson.D{{"x", 1}})
 				assert.Nil(mt, err, "InsertOne error at index %d: %v", i, err)
 			}
 
 			// Assert that the collection count is 0 before committing and numDocs after. This tests that the InsertOne
 			// calls were actually executed in the transaction because the pre-commit count does not include them.
 			assertCollectionCount(mt, 0)
-			err = sess.CommitTransaction(sessCtx)
+			err = sess.CommitTransaction(ctx)
 			assert.Nil(mt, err, "CommitTransaction error: %v", err)
 			assertCollectionCount(mt, int64(numDocs))
 		})

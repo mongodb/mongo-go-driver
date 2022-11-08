@@ -103,7 +103,7 @@ func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan 
 		return fmt.Errorf("error unmarshalling arguments to transactionOptions: %v", err)
 	}
 
-	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+	_, err = sess.WithTransaction(ctx, func(ctx mongo.SessionContext) (interface{}, error) {
 		for idx, oper := range operations {
 			if err := oper.execute(ctx, loopDone); err != nil {
 				return nil, fmt.Errorf("error executing operation %q at index %d: %v", oper.Name, idx, err)

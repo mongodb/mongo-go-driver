@@ -81,20 +81,22 @@ func TestLoadBalancerSupport(t *testing.T) {
 			assertErrorHasInfo(mt, err, 1, 0, 0)
 		})
 		mt.RunOpts("transactions", maxPoolSizeMtOpts, func(mt *mtest.T) {
-			sess, err := mt.Client.StartSession()
-			assert.Nil(mt, err, "StartSession error: %v", err)
-			defer sess.EndSession(context.Background())
-			sessCtx := mongo.NewSessionContext(context.Background(), sess)
+			{
+				sess, err := mt.Client.StartSession()
+				assert.Nil(mt, err, "StartSession error: %v", err)
+				defer sess.EndSession(context.Background())
+				ctx := mongo.NewSessionContext(context.Background(), sess)
 
-			// Start a transaction and perform one transactional operation to pin a connection.
-			err = sess.StartTransaction()
-			assert.Nil(mt, err, "StartTransaction error: %v", err)
-			_, err = mt.Coll.InsertOne(sessCtx, bson.M{"x": 1})
-			assert.Nil(mt, err, "InsertOne error: %v", err)
+				// Start a transaction and perform one transactional operation to pin a connection.
+				err = sess.StartTransaction()
+				assert.Nil(mt, err, "StartTransaction error: %v", err)
+				_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
+				assert.Nil(mt, err, "InsertOne error: %v", err)
+			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
 			defer cancel()
-			_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
+			_, err := mt.Coll.InsertOne(ctx, bson.M{"x": 1})
 			assertErrorHasInfo(mt, err, 0, 1, 0)
 		})
 	})
