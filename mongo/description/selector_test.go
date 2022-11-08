@@ -230,6 +230,75 @@ func TestSelector_Sharded(t *testing.T) {
 	require.Equal([]Server{s}, result)
 }
 
+func BenchmarkLatencySelector(b *testing.B) {
+	for _, bcase := range []struct {
+		name        string
+		serversHook func(servers []Server)
+	}{
+		{
+			name:        "AllFit",
+			serversHook: func(servers []Server) {},
+		},
+		{
+			name: "AllButOneFit",
+			serversHook: func(servers []Server) {
+				servers[0].AverageRTT = 2 * time.Second
+			},
+		},
+		{
+			name: "HalfFit",
+			serversHook: func(servers []Server) {
+				for i := 0; i < len(servers); i += 2 {
+					servers[i].AverageRTT = 2 * time.Second
+				}
+			},
+		},
+		{
+			name: "OneFit",
+			serversHook: func(servers []Server) {
+				for i := 1; i < len(servers); i++ {
+					servers[i].AverageRTT = 2 * time.Second
+				}
+			},
+		},
+	} {
+		bcase := bcase
+
+		b.Run(bcase.name, func(b *testing.B) {
+			s := Server{
+				Addr:              address.Address("localhost:27017"),
+				HeartbeatInterval: time.Duration(10) * time.Second,
+				LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
+				LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
+				Kind:              Mongos,
+				WireVersion:       &VersionRange{Min: 0, Max: 5},
+				AverageRTTSet:     true,
+				AverageRTT:        time.Second,
+			}
+			servers := make([]Server, 100)
+			for i := 0; i < len(servers); i++ {
+				servers[i] = s
+			}
+			bcase.serversHook(servers)
+			//this will make base 1 sec latency < min (0.5) + conf (1)
+			//and high latency 2 higher than the threshold
+			servers[99].AverageRTT = 500 * time.Millisecond
+			c := Topology{
+				Kind:    Sharded,
+				Servers: servers,
+			}
+
+			b.ResetTimer()
+			b.RunParallel(func(p *testing.PB) {
+				b.ReportAllocs()
+				for p.Next() {
+					_, _ = LatencySelector(time.Second).SelectServer(c, c.Servers)
+				}
+			})
+		})
+	}
+}
+
 func BenchmarkSelector_Sharded(b *testing.B) {
 	subject := readpref.Primary()
 
