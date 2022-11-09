@@ -50,6 +50,16 @@ func ConvertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOpt
 	return driverOpts
 }
 
+// authenticatable will return true if the authentication credentials are configured in a way that would require the
+// handshaker to authenticate.
+func authenticatable(cred *options.Credential) bool {
+	if cred == nil {
+		return false
+	}
+
+	return cred.Username != "" || cred.AuthMechanism == auth.MongoDBX509 || cred.AuthMechanism == auth.GSSAPI
+}
+
 // NewConfig will translate data from client options into a topology config for building non-default deployments.
 // Server and topoplogy options are not honored if a custom deployment is used.
 func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
@@ -139,8 +149,10 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(clock).
 			ServerAPI(serverAPI).LoadBalanced(loadBalanced)
 	}
+
 	// Auth & Database & Password & Username
-	if co.Auth != nil {
+	//  cs.Username != "" || cs.AuthMechanism == auth.MongoDBX509 || cs.AuthMechanism == auth.GSSAPI
+	if authenticatable(co.Auth) {
 		cred := &auth.Cred{
 			Username:    co.Auth.Username,
 			Password:    co.Auth.Password,
@@ -148,6 +160,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			Props:       co.Auth.AuthMechanismProperties,
 			Source:      co.Auth.AuthSource,
 		}
+
 		mechanism := co.Auth.AuthMechanism
 
 		if len(cred.Source) == 0 {
@@ -178,6 +191,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			// Required for SASL mechanism negotiation during handshake
 			handshakeOpts.DBUser = cred.Source + "." + cred.Username
 		}
+
 		if co.AuthenticateToAnything != nil && *co.AuthenticateToAnything {
 			// Authenticate arbiters
 			handshakeOpts.PerformAuthentication = func(serv description.Server) bool {
@@ -189,7 +203,9 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			return auth.Handshaker(nil, handshakeOpts)
 		}
 	}
+
 	connOpts = append(connOpts, WithHandshaker(handshaker))
+
 	// ConnectTimeout
 	if co.ConnectTimeout != nil {
 		serverOpts = append(serverOpts, WithHeartbeatTimeout(
