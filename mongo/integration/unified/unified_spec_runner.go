@@ -26,12 +26,6 @@ var (
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
-		// The Go Driver does not support the deprecated "contentType" GridFS file option.
-		"upload when contentType is provided": {},
-		// The Go Driver does not support the deprecated "disableMD5" GridFS file option.
-		"upload when length is 0 sans MD5": {},
-		// The Go Driver does not support the deprecated "disableMD5" GridFS file option.
-		"upload when length is 1 sans MD5": {},
 	}
 )
 

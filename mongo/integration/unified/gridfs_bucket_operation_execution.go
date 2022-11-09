@@ -237,6 +237,10 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 			if err != nil {
 				return nil, fmt.Errorf("error converting source string to bytes: %v", err)
 			}
+		case "contentType":
+			return nil, newSkipTestError("the deprecated contentType file option is not supported")
+		case "disableMD5":
+			return nil, newSkipTestError("the deprecated disableMD5 file option is not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized bucket upload option %q", key)
 		}
