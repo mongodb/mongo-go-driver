@@ -35,6 +35,13 @@ func BenchmarkHex(b *testing.B) {
 	}
 }
 
+func BenchmarkObjectIDFromHex(b *testing.B) {
+	id := NewObjectID().Hex()
+	for i := 0; i < b.N; i++ {
+		_, _ = ObjectIDFromHex(id)
+	}
+}
+
 func TestFromHex_RoundTrip(t *testing.T) {
 	before := NewObjectID()
 	after, err := ObjectIDFromHex(before.Hex())
