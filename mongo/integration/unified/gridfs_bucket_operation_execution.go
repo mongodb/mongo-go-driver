@@ -154,7 +154,7 @@ func executeBucketDownloadByName(ctx context.Context, operation *operation) (*op
 		}
 	}
 	if filename == "" {
-		return nil, newMissingArgumentError("id")
+		return nil, newMissingArgumentError("filename")
 	}
 
 	var buf bytes.Buffer
