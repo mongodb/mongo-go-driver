@@ -173,6 +173,10 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	default:
 		op = operation.NewCommand(runCmdDoc)
 	}
+
+	// TODO(GODRIVER-2649): ReadConcern(db.readConcern) will not actually pass the database's
+	// read concern. Remove this note once readConcern is correctly passed to the operation
+	// level.
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
