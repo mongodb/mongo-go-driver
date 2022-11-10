@@ -67,7 +67,7 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 	}
 }
 
-// runSeedListDiscoverPingTest will create a new connection using the test URI and ping the server.
+// runSeedListDiscoverPingTest will create a new connection using the test URI and attempt to "ping" the server.
 func runSeedListDiscoveryPingTest(mt *mtest.T, tcase seedlistTest) {
 	mt.Parallel()
 
@@ -267,6 +267,13 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 	selectedServer, err := topo.SelectServer(context.Background(), selectByName)
 	if err != nil {
 		return description.Server{}, err
+	}
+
+	// If the selected server is a topology.SelectedServer, then we can get the description without creating a
+	// connect pool.
+	topologySelectedServer, ok := selectedServer.(*topology.SelectedServer)
+	if ok {
+		return topologySelectedServer.Description().Server, nil
 	}
 
 	selectedServerConnection, err := selectedServer.Connection(context.Background())
