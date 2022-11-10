@@ -127,6 +127,45 @@ func executeBucketDownload(ctx context.Context, operation *operation) (*operatio
 	return newValueResult(bsontype.Binary, bsoncore.AppendBinary(nil, 0, buffer.Bytes()), nil), nil
 }
 
+func executeBucketDownloadByName(ctx context.Context, operation *operation) (*operationResult, error) {
+	bucket, err := entities(ctx).gridFSBucket(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	var filename string
+	opts := options.GridFSName()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "filename":
+			filename = val.StringValue()
+		case "revision":
+			opts.SetRevision(val.AsInt32())
+		default:
+			return nil, fmt.Errorf("unrecognized bucket download option %q", key)
+		}
+	}
+	if filename == "" {
+		return nil, newMissingArgumentError("filename")
+	}
+
+	var buf bytes.Buffer
+	_, err = bucket.DownloadToStreamByName(filename, &buf, opts)
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+
+	return newValueResult(bsontype.Binary, bsoncore.AppendBinary(nil, 0, buf.Bytes()), nil), nil
+}
+
 func executeBucketDrop(ctx context.Context, operation *operation) (*operationResult, error) {
 	bucket, err := entities(ctx).gridFSBucket(operation.Object)
 	if err != nil {
@@ -198,6 +237,10 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 			if err != nil {
 				return nil, fmt.Errorf("error converting source string to bytes: %v", err)
 			}
+		case "contentType":
+			return nil, newSkipTestError("the deprecated contentType file option is not supported")
+		case "disableMD5":
+			return nil, newSkipTestError("the deprecated disableMD5 file option is not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized bucket upload option %q", key)
 		}
