@@ -310,9 +310,6 @@ func selectByKind(candidates []Server, kind ServerKind) []Server {
 			viableIndexes = append(viableIndexes, i)
 		}
 	}
-	if len(viableIndexes) == len(candidates) {
-		return candidates
-	}
 	result := make([]Server, len(viableIndexes))
 	for i, idx := range viableIndexes {
 		result[i] = candidates[idx]
