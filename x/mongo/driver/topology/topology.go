@@ -564,14 +564,10 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 			allowedIndexes = append(allowedIndexes, i)
 		}
 	}
-	var allowed []description.Server
-	if len(allowedIndexes) == len(desc.Servers) {
-		allowed = desc.Servers
-	} else {
-		allowed = make([]description.Server, len(allowedIndexes))
-		for i, idx := range allowedIndexes {
-			allowed[i] = desc.Servers[idx]
-		}
+
+	allowed := make([]description.Server, len(allowedIndexes))
+	for i, idx := range allowedIndexes {
+		allowed[i] = desc.Servers[idx]
 	}
 
 	suitable, err := selectionState.selector.SelectServer(desc, allowed)
