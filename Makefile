@@ -1,12 +1,3 @@
-# We list packages with shell scripts and loop through them to avoid testing with ./...
-# Running go test ./... will run tests in all packages concurrently which can lead to
-# unexpected errors.
-#
-# TODO(GODRIVER-2093): Use ./... to run tests in all packages with parallelism and remove
-# these PKG variables and loops from all make targets.
-PKGS = $(shell etc/list_pkgs.sh)
-TEST_PKGS = $(shell etc/list_test_pkgs.sh)
-
 ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)" "$(ATLAS_TLS12)" "$(ATLAS_FREE_SRV)" "$(ATLAS_REPLSET_SRV)" "$(ATLAS_SHARD_SRV)" "$(ATLAS_TLS11_SRV)" "$(ATLAS_TLS12_SRV)" "$(ATLAS_SERVERLESS)" "$(ATLAS_SERVERLESS_SRV)"
 GODISTS=linux/amd64 linux/386 linux/arm64 linux/arm linux/s390x
 TEST_TIMEOUT = 1800
@@ -25,7 +16,7 @@ add-license:
 
 .PHONY: build
 build:
-	go build $(BUILD_TAGS) $(PKGS)
+	go build $(BUILD_TAGS) ./...
 
 .PHONY: build-examples
 build-examples:
@@ -33,17 +24,13 @@ build-examples:
 
 .PHONY: build-no-tags
 build-no-tags:
-	go build $(PKGS)
+	go build ./...
 
 .PHONY: build-tests
 build-tests:
-	for TEST in $(TEST_PKGS); do \
-		go test $(BUILD_TAGS) -c $$TEST ; \
-		if [ $$? -ne 0 ]; \
-		then \
-			exit 1; \
-		fi \
-	done
+	# Use ^$ to match no tests so that no tests are actually run but all tests are
+	# compiled.
+	go test $(BUILD_TAGS) -run ^$$ ./...
 
 .PHONY: check-fmt
 check-fmt:
@@ -88,25 +75,19 @@ update-notices:
 ### Local testing targets. ###
 .PHONY: test
 test:
-	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $$TEST ; \
-	done
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -p 1 ./...
 
 .PHONY: test-cover
 test-cover:
-	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $$TEST ; \
-	done
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) -p 1 ./...
 
 .PHONY: test-race
 test-race:
-	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $$TEST ; \
-	done
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race -p 1 ./...
 
 .PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout 60s -short $(TEST_PKGS)
+	go test $(BUILD_TAGS) -timeout 60s -short -p 1 ./...
 
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
@@ -115,9 +96,7 @@ build-aws-ecs-test:
 
 .PHONY: evg-test
 evg-test:
-	for TEST in $(TEST_PKGS); do \
-		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
-	done
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s -p 1 ./... >> test.suite
 
 .PHONY: evg-test-atlas
 evg-test-atlas:
