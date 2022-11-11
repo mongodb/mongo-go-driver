@@ -151,7 +151,6 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 
 	// Auth & Database & Password & Username
-	//  cs.Username != "" || cs.AuthMechanism == auth.MongoDBX509 || cs.AuthMechanism == auth.GSSAPI
 	if authenticatable(co.Auth) {
 		cred := &auth.Cred{
 			Username:    co.Auth.Username,
