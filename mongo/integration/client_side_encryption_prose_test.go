@@ -1010,7 +1010,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				if tc.useSharedLib && "" == os.Getenv("CRYPT_SHARED_LIB_PATH") {
+				if tc.useSharedLib && os.Getenv("CRYPT_SHARED_LIB_PATH") == "" {
 					mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
 					return
 				}
