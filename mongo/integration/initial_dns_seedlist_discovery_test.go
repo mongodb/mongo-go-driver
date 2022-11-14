@@ -48,12 +48,18 @@ func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
 	defer mt.Close()
 
 	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
+		mt.Parallel()
+
 		runSeedlistDiscoveryDirectory(mt, "replica-set")
 	})
 	mt.RunOpts("sharded", mtest.NewOptions().Topologies(mtest.Sharded).CreateClient(false), func(mt *mtest.T) {
+		mt.Parallel()
+
 		runSeedlistDiscoveryDirectory(mt, "sharded")
 	})
 	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false), func(mt *mtest.T) {
+		mt.Parallel()
+
 		runSeedlistDiscoveryDirectory(mt, "load-balanced")
 	})
 }
@@ -68,27 +74,13 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 }
 
 // runSeedListDiscoverPingTest will create a new connection using the test URI and attempt to "ping" the server.
-func runSeedListDiscoveryPingTest(mt *mtest.T, tcase seedlistTest) {
-	mt.Parallel()
-
-	if !tcase.Ping {
-		return
-	}
-
-	// Create a new connection using the test URI.
-	opts := options.Client().ApplyURI(tcase.URI)
-
-	// If the test case expects SSL, set the CA file.
-	if tlsConfig := getSSLSettings(mt, tcase); tlsConfig != nil {
-		opts.SetTLSConfig(tlsConfig)
-	}
-
+func runSeedListDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
 	ctx := context.Background()
 
-	client, err := mongo.Connect(ctx, opts)
+	client, err := mongo.Connect(ctx, clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 
-	mt.Cleanup(func() { _ = client.Disconnect(ctx) })
+	defer func() { _ = client.Disconnect(ctx) }()
 
 	// Create a context with a timeout to prevent the ping operation from blocking indefinitely.
 	pingCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
@@ -168,7 +160,9 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		assert.Nil(mt, err, "error finding host %q: %v", host, err)
 	}
 
-	runSeedListDiscoveryPingTest(mt, test)
+	if test.Ping {
+		runSeedListDiscoveryPingTest(mt, opts)
+	}
 }
 
 func buildSet(list []string) map[string]struct{} {
