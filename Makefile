@@ -29,8 +29,9 @@ build-no-tags:
 .PHONY: build-tests
 build-tests:
 	# Use ^$ to match no tests so that no tests are actually run but all tests are
-	# compiled.
-	go test $(BUILD_TAGS) -run ^$$ ./...
+	# compiled. Run with -short to ensure none of the TestMain functions try to
+	# connect to a server.
+	go test -short $(BUILD_TAGS) -run ^$$ ./...
 
 .PHONY: check-fmt
 check-fmt:
