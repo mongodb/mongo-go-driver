@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -120,7 +119,11 @@ func TestCollection(t *testing.T) {
 		})
 	})
 	mt.RunOpts("insert many", noClientOpts, func(mt *mtest.T) {
+		mt.Parallel()
+
 		mt.Run("success", func(mt *mtest.T) {
+			mt.Parallel()
+
 			want1 := int32(11)
 			want2 := int32(12)
 			docs := []interface{}{
@@ -137,11 +140,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, want2, res.InsertedIDs[2], "expected inserted ID %v, got %v", want2, res.InsertedIDs[2])
 		})
 		mt.Run("batches", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to refactor integration and other longrunning
-			// TODO tasks.
-			if os.Getenv("EVR_TASK_ID") == "" {
-				mt.Skip("skipping long running integration test outside of evergreen")
-			}
+			mt.Parallel()
 
 			const (
 				megabyte = 10 * 10 * 10 * 10 * 10 * 10
@@ -167,11 +166,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, numDocs, len(res.InsertedIDs), "expected %v inserted IDs, got %v", numDocs, len(res.InsertedIDs))
 		})
 		mt.Run("large document batches", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to refactor integration and other longrunning
-			// TODO tasks.
-			if os.Getenv("EVR_TASK_ID") == "" {
-				mt.Skip("skipping long running integration test outside of evergreen")
-			}
+			mt.Parallel()
 
 			docs := []interface{}{create16MBDocument(mt), create16MBDocument(mt)}
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
@@ -182,6 +177,8 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, "insert", evt.CommandName, "expected 'insert' event, got '%v'", evt.CommandName)
 		})
 		mt.RunOpts("write error", noClientOpts, func(mt *mtest.T) {
+			mt.Parallel()
+
 			docs := []interface{}{
 				bson.D{{"_id", primitive.NewObjectID()}},
 				bson.D{{"_id", primitive.NewObjectID()}},
@@ -212,7 +209,9 @@ func TestCollection(t *testing.T) {
 			}
 		})
 		mt.Run("return only inserted ids", func(mt *mtest.T) {
-			id := int32(11)
+			mt.Parallel()
+
+			id := int32(15)
 			docs := []interface{}{
 				bson.D{{"_id", id}},
 				bson.D{{"_id", id}},
@@ -249,11 +248,7 @@ func TestCollection(t *testing.T) {
 			}
 		})
 		mt.Run("writeError index", func(mt *mtest.T) {
-			// TODO(GODRIVER-425): remove this as part a larger project to refactor integration and other longrunning
-			// TODO tasks.
-			if os.Getenv("EVR_TASK_ID") == "" {
-				mt.Skip("skipping long running integration test outside of evergreen")
-			}
+			mt.Parallel()
 
 			// force multiple batches
 			numDocs := 700000

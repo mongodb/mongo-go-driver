@@ -53,6 +53,8 @@ const (
 )
 
 func TestClientSideEncryptionProse(t *testing.T) {
+	t.Parallel()
+
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
 	defer mt.Close()
@@ -476,6 +478,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		assert.NotNil(mt, err, "expected InsertOne error for document over 16MiB, got nil")
 	})
 	mt.Run("5. views are prohibited", func(mt *mtest.T) {
+		mt.Parallel()
+
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -933,6 +937,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 	mt.RunOpts("8. bypass mongocryptd spawning", noClientOpts, func(mt *mtest.T) {
+		mt.Parallel()
+
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -1081,6 +1087,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			{"collection", mongo.CollectionStream},
 		}
 		mt.RunOpts("auto encryption errors", noClientOpts, func(mt *mtest.T) {
+			mt.Parallel()
+
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
 					autoEncryptionOpts := options.AutoEncryption().
@@ -1993,7 +2001,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	mt.RunOpts("20. Bypass creating mongocryptd client when shared library is loaded",
 		noClientOpts, func(mt *mtest.T) {
-
 			cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
 			if cryptSharedLibPath == "" {
 				mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
