@@ -197,6 +197,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	// GridFS operations
 	case "delete":
 		return executeBucketDelete(ctx, op)
+	case "downloadByName":
+		return executeBucketDownloadByName(ctx, op)
 	case "download":
 		return executeBucketDownload(ctx, op)
 	case "drop":

@@ -8,8 +8,8 @@ package mtest
 
 import (
 	"context"
+	"errors"
 
-	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/address"
