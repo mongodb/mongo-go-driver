@@ -40,7 +40,7 @@ type seedlistTest struct {
 	NumHosts *int     `bson:"numHosts"`
 	Error    bool     `bson:"error"`
 	Options  bson.Raw `bson:"options"`
-	Ping     bool     `bson:"ping"`
+	Ping     *bool    `bson:"ping"`
 }
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
@@ -73,8 +73,8 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 	}
 }
 
-// runSeedListDiscoverPingTest will create a new connection using the test URI and attempt to "ping" the server.
-func runSeedListDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
+// runSeedlistDiscoveryPingTest will create a new connection using the test URI and attempt to "ping" the server.
+func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
 	ctx := context.Background()
 
 	client, err := mongo.Connect(ctx, clientOpts)
@@ -160,8 +160,8 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 		assert.Nil(mt, err, "error finding host %q: %v", host, err)
 	}
 
-	if test.Ping {
-		runSeedListDiscoveryPingTest(mt, opts)
+	if ping := test.Ping; ping == nil || *ping {
+		runSeedlistDiscoveryPingTest(mt, opts)
 	}
 }
 
