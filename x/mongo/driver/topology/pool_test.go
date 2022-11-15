@@ -445,7 +445,11 @@ func TestPool(t *testing.T) {
 		})
 	})
 	t.Run("checkOut", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("return error when attempting to create new connection", func(t *testing.T) {
+			t.Parallel()
+
 			dialErr := errors.New("create new connection error")
 			p := newPool(poolConfig{}, WithDialer(func(Dialer) Dialer {
 				return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
@@ -472,6 +476,8 @@ func TestPool(t *testing.T) {
 			p.close(context.Background())
 		})
 		t.Run("closes perished connections", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 2, func(nc net.Conn) {
@@ -507,7 +513,9 @@ func TestPool(t *testing.T) {
 			time.Sleep(50 * time.Millisecond)
 			c2, err := p.checkOut(context.Background())
 			noerr(t, err)
-			assert.NotEqualf(t, c1, c2, "expected a new connection on 2nd check out after idle timeout expires")
+			// Assert that the connection pointers are not equal. Don't use "assert.NotEqual" because it asserts
+			// non-equality of fields, possibly accessing some fields non-atomically and causing a race condition.
+			assert.True(t, c1 != c2, "expected a new connection on 2nd check out after idle timeout expires")
 			assert.Equalf(t, 2, d.lenopened(), "should have opened 2 connections")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "pool should have 1 total connection")
 
@@ -609,6 +617,8 @@ func TestPool(t *testing.T) {
 		// Test that if a checkOut() times out, it returns a WaitQueueTimeout error that wraps a
 		// context.DeadlineExceeded error.
 		t.Run("wait queue timeout error", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
@@ -647,6 +657,8 @@ func TestPool(t *testing.T) {
 		// wantConnQueue may grow unbounded while a checkOut() is blocked, even if all subsequent
 		// checkOut() calls time out (due to the behavior of wantConnQueue.cleanFront()).
 		t.Run("wait queue doesn't overflow", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
@@ -804,6 +816,8 @@ func TestPool(t *testing.T) {
 		})
 	})
 	t.Run("checkIn", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("cannot return same connection to pool twice", func(t *testing.T) {
 			t.Parallel()
 
@@ -897,6 +911,8 @@ func TestPool(t *testing.T) {
 			p2.close(context.Background())
 		})
 		t.Run("bumps the connection idle deadline", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 1, func(nc net.Conn) {
@@ -928,6 +944,8 @@ func TestPool(t *testing.T) {
 			assert.Equalf(t, 1, p.totalConnectionCount(), "should have 1 total connection in pool")
 		})
 		t.Run("sets minPoolSize connection idle deadline", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 4, func(nc net.Conn) {
@@ -963,6 +981,8 @@ func TestPool(t *testing.T) {
 		})
 	})
 	t.Run("maintain", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("creates MinPoolSize connections shortly after calling ready", func(t *testing.T) {
 			t.Parallel()
 
@@ -1013,6 +1033,8 @@ func TestPool(t *testing.T) {
 			p.close(context.Background())
 		})
 		t.Run("removes perished connections", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 5, func(nc net.Conn) {
@@ -1060,6 +1082,8 @@ func TestPool(t *testing.T) {
 			p.close(context.Background())
 		})
 		t.Run("removes perished connections and replaces them to maintain MinPoolSize", func(t *testing.T) {
+			t.Parallel()
+
 			cleanup := make(chan struct{})
 			defer close(cleanup)
 			addr := bootstrapConnections(t, 5, func(nc net.Conn) {
