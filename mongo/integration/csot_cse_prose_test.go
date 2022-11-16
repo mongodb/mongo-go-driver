@@ -30,10 +30,6 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 
 	mt.RunOpts("2. maxTimeMS is not set for commands sent to mongocryptd",
 		noClientOpts, func(mt *mtest.T) {
-			if testing.Short() {
-				mt.Skip("skipping integration test in short mode")
-			}
-
 			kmsProviders := map[string]map[string]interface{}{
 				"local": {
 					"key": localMasterKey,

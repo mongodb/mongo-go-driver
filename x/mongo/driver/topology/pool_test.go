@@ -513,7 +513,9 @@ func TestPool(t *testing.T) {
 			time.Sleep(50 * time.Millisecond)
 			c2, err := p.checkOut(context.Background())
 			noerr(t, err)
-			assert.NotEqualf(t, c1, c2, "expected a new connection on 2nd check out after idle timeout expires")
+			// Assert that the connection pointers are not equal. Don't use "assert.NotEqual" because it asserts
+			// non-equality of fields, possibly accessing some fields non-atomically and causing a race condition.
+			assert.True(t, c1 != c2, "expected a new connection on 2nd check out after idle timeout expires")
 			assert.Equalf(t, 2, d.lenopened(), "should have opened 2 connections")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "pool should have 1 total connection")
 
