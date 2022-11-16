@@ -94,24 +94,24 @@ func SingleFindOneByID(ctx context.Context, tm TimerManager, iters int) error {
 	}
 	coll := db.Collection("corpus")
 
-	ids := make([]interface{}, iters)
 	for i := 0; i < iters; i++ {
-		res, err := coll.InsertOne(ctx, doc)
+		idDoc := make(bson.D, 0, len(doc)+1)
+		idDoc = append(idDoc, bson.E{"_id", i})
+		idDoc = append(idDoc, doc...)
+		res, err := coll.InsertOne(ctx, idDoc)
 		if err != nil {
 			return err
 		}
 		if res.InsertedID == nil {
 			return errors.New("no inserted ID returned")
 		}
-
-		ids[i] = res.InsertedID
 	}
 
 	tm.ResetTimer()
 
-	for _, id := range ids {
+	for i := 0; i < iters; i++ {
 		var res bson.D
-		err := coll.FindOne(ctx, bson.D{{"_id", id}}).Decode(&res)
+		err := coll.FindOne(ctx, bson.D{{"_id", i}}).Decode(&res)
 		if err != nil {
 			return err
 		}
