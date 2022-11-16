@@ -282,7 +282,37 @@ func TestRetryableWritesProse(t *testing.T) {
 
 			require.True(mt, secondFailPointConfigured)
 
-			// Assert that the "NotWritablePrimary" error is returned.
+			// Assert that the "ShutdownInProgress" error is returned.
 			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(shutdownInProgressErrorCode)))
+		})
+
+	mt.RunOpts(fmt.Sprintf("%s label on first and second error returns first", driver.NoWritesPerformed), mtNWPOpts,
+		func(mt *mtest.T) {
+			const shutdownInProgressErrorCode int32 = 91
+			const notWritablePrimaryErrorCode int32 = 10107
+
+			monitor := new(event.CommandMonitor)
+			mt.ResetClient(options.Client().SetRetryWrites(true).SetMonitor(monitor))
+
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode:               mtest.FailPointMode{Times: 2},
+				Data: mtest.FailPointData{
+					ErrorCode: notWritablePrimaryErrorCode,
+					ErrorLabels: &[]string{
+						driver.NoWritesPerformed,
+						driver.RetryableWriteError,
+					},
+					FailCommands: []string{"insert"},
+				},
+			})
+
+			// Attempt to insert a document.
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+
+			require.NotNil(mt, err)
+
+			// Assert that the "NotWritablePrimary" error is returned.
+			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(notWritablePrimaryErrorCode)))
 		})
 }
