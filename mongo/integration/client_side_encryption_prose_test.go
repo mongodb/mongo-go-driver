@@ -974,6 +974,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			setBypassAutoEncryption bool
 			bypassAutoEncryption    bool
 			bypassQueryAnalysis     bool
+			useSharedLib            bool
 		}{
 			{
 				name:            "mongocryptdBypassSpawn only",
@@ -1002,9 +1003,23 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				mongocryptdOpts:     mongocryptdBypassSpawnNotSet,
 				bypassQueryAnalysis: true,
 			},
+			{
+				name:         "use shared library",
+				useSharedLib: true,
+				mongocryptdOpts: map[string]interface{}{
+					"mongocryptdURI":       "mongodb://localhost:27021/db?serverSelectionTimeoutMS=1000",
+					"mongocryptdSpawnArgs": []string{"--pidfilepath=bypass-spawning-mongocryptd.pid", "--port=27021"},
+					"cryptSharedLibPath":   os.Getenv("CRYPT_SHARED_LIB_PATH"),
+					"cryptSharedRequired":  true,
+				},
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
+				if tc.useSharedLib && os.Getenv("CRYPT_SHARED_LIB_PATH") == "" {
+					mt.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
+					return
+				}
 				aeo := options.AutoEncryption().
 					SetKmsProviders(kmsProviders).
 					SetKeyVaultNamespace(kvNamespace).
@@ -1019,8 +1034,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				_, err := cpt.cseColl.InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 
-				// Check for mongocryptd server selection error if auto encryption was not bypassed.
-				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) && !tc.bypassQueryAnalysis {
+				// Check for mongocryptd server selection error if auto encryption needed mongocryptd.
+				if !(tc.setBypassAutoEncryption && tc.bypassAutoEncryption) && !tc.bypassQueryAnalysis && !tc.useSharedLib {
 					assert.NotNil(mt, err, "expected InsertOne error, got nil")
 					mcryptErr, ok := err.(mongo.MongocryptdError)
 					assert.True(mt, ok, "expected error type %T, got %v of type %T", mongo.MongocryptdError{}, err, err)
@@ -1029,7 +1044,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					return
 				}
 
-				// If auto encryption is bypassed, the command should succeed. Create a new client to connect to
+				// If mongocryptd was not needed, the command should succeed. Create a new client to connect to
 				// mongocryptd and verify it is not running.
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
