@@ -15,12 +15,15 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -37,6 +40,7 @@ type seedlistTest struct {
 	NumHosts *int     `bson:"numHosts"`
 	Error    bool     `bson:"error"`
 	Options  bson.Raw `bson:"options"`
+	Ping     *bool    `bson:"ping"`
 }
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
@@ -44,12 +48,18 @@ func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
 	defer mt.Close()
 
 	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
+		mt.Parallel()
+
 		runSeedlistDiscoveryDirectory(mt, "replica-set")
 	})
 	mt.RunOpts("sharded", mtest.NewOptions().Topologies(mtest.Sharded).CreateClient(false), func(mt *mtest.T) {
+		mt.Parallel()
+
 		runSeedlistDiscoveryDirectory(mt, "sharded")
 	})
 	mt.RunOpts("load balanced", mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false), func(mt *mtest.T) {
+		mt.Parallel()
+
 		runSeedlistDiscoveryDirectory(mt, "load-balanced")
 	})
 }
@@ -61,6 +71,24 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 			runSeedlistDiscoveryTest(mt, path.Join(directoryPath, file))
 		})
 	}
+}
+
+// runSeedlistDiscoveryPingTest will create a new connection using the test URI and attempt to "ping" the server.
+func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
+	ctx := context.Background()
+
+	client, err := mongo.Connect(ctx, clientOpts)
+	assert.Nil(mt, err, "Connect error: %v", err)
+
+	defer func() { _ = client.Disconnect(ctx) }()
+
+	// Create a context with a timeout to prevent the ping operation from blocking indefinitely.
+	pingCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	// Ping the server.
+	err = client.Ping(pingCtx, readpref.Nearest())
+	assert.Nil(mt, err, "Ping error: %v", err)
 }
 
 func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
@@ -130,6 +158,10 @@ func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
 	for _, host := range test.Hosts {
 		_, err := getServerByAddress(host, topo)
 		assert.Nil(mt, err, "error finding host %q: %v", host, err)
+	}
+
+	if ping := test.Ping; ping == nil || *ping {
+		runSeedlistDiscoveryPingTest(mt, opts)
 	}
 }
 
@@ -230,6 +262,14 @@ func getServerByAddress(address string, topo *topology.Topology) (description.Se
 	if err != nil {
 		return description.Server{}, err
 	}
+
+	// If the selected server is a topology.SelectedServer, then we can get the description without creating a
+	// connect pool.
+	topologySelectedServer, ok := selectedServer.(*topology.SelectedServer)
+	if ok {
+		return topologySelectedServer.Description().Server, nil
+	}
+
 	selectedServerConnection, err := selectedServer.Connection(context.Background())
 	if err != nil {
 		return description.Server{}, err

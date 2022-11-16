@@ -15,5 +15,6 @@
   },
   "parsed_options": {
     "auth_database": "adminDB"
-  }
+  },
+  "ping": true
 }

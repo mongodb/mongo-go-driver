@@ -8,4 +8,5 @@ hosts:
 options:
     replicaSet: repl0
     ssl: true
+ping: true
 comment: Is correct, as returned host name shared the URI root "test.build.10gen.cc".
