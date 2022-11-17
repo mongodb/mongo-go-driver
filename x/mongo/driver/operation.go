@@ -397,10 +397,13 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
-		switch err := err.(type) {
+		switch typedError := err.(type) {
 		case LabeledError:
-			if !err.HasErrorLabel(NoWritesPerformed) && err.HasErrorLabel(RetryableWriteError) {
-				prevIndefiniteErr = err.(error)
+			// If the error is not labeled NoWritesPerformed and is retryable, or if the previous error is
+			// undefined, then set the previous indefinite error to be the current error.
+			if !typedError.HasErrorLabel(NoWritesPerformed) &&
+				typedError.HasErrorLabel(RetryableWriteError) || prevIndefiniteErr == nil {
+				prevIndefiniteErr = err
 			}
 		}
 
@@ -595,6 +598,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
+	checkError:
 		var perr error
 		switch tt := err.(type) {
 		case WriteCommandError:
@@ -627,9 +631,12 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
-			// return the previous indefinite error.
-			if tt.HasErrorLabel(NoWritesPerformed) {
-				return prevIndefiniteErr
+			// set the error to the "previous indefinite error" unless the current error is already the
+			// "previous indefinite error". After reseting, repeat the error check.
+			if tt.HasErrorLabel(NoWritesPerformed) && !errors.Is(tt, prevIndefiniteErr) {
+				err = prevIndefiniteErr
+
+				goto checkError
 			}
 
 			// If the operation isn't being retried, process the response
@@ -720,9 +727,12 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
-			// return the previous indefinite error.
-			if tt.HasErrorLabel(NoWritesPerformed) {
-				return prevIndefiniteErr
+			// set the error to the "previous indefinite error" unless the current error is already the
+			// "previous indefinite error". After reseting, repeat the error check.
+			if tt.HasErrorLabel(NoWritesPerformed) && !errors.Is(tt, prevIndefiniteErr) {
+				err = prevIndefiniteErr
+
+				goto checkError
 			}
 
 			// If the operation isn't being retried, process the response
