@@ -49,6 +49,130 @@ func (cncd *channelNetConnDialer) DialContext(_ context.Context, _, _ string) (n
 	return cnc, nil
 }
 
+type errorQueue struct {
+	errors []error
+	mutex  sync.Mutex
+}
+
+func (eq *errorQueue) head() error {
+	eq.mutex.Lock()
+	defer eq.mutex.Unlock()
+	if len(eq.errors) > 0 {
+		return eq.errors[0]
+	}
+	return nil
+}
+
+func (eq *errorQueue) dequeue() bool {
+	eq.mutex.Lock()
+	defer eq.mutex.Unlock()
+	if len(eq.errors) > 0 {
+		eq.errors = eq.errors[1:]
+		return true
+	}
+	return false
+}
+
+type timeoutConn struct {
+	net.Conn
+	errors *errorQueue
+}
+
+func (c *timeoutConn) Read(b []byte) (int, error) {
+	n, err := 0, c.errors.head()
+	if err == nil {
+		n, err = c.Conn.Read(b)
+	}
+	return n, err
+}
+
+func (c *timeoutConn) Write(b []byte) (int, error) {
+	n, err := 0, c.errors.head()
+	if err == nil {
+		n, err = c.Conn.Write(b)
+	}
+	return n, err
+}
+
+type timeoutDialer struct {
+	Dialer
+	errors *errorQueue
+}
+
+func (d *timeoutDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	var dialer net.Dialer
+	c, e := dialer.DialContext(ctx, network, address)
+	return &timeoutConn{c, d.errors}, e
+}
+
+type timeoutErr struct {
+	net.UnknownNetworkError
+}
+
+func (e *timeoutErr) Timeout() bool {
+	return true
+}
+
+var timeout = &timeoutErr{"test timeout"}
+
+// TestServerHeartbeatTimeout tests timeout retry for GODRIVER-2577.
+func TestServerHeartbeatTimeout(t *testing.T) {
+	testCases := []struct {
+		desc              string
+		ioErrors          []error
+		expectPoolCleared bool
+	}{
+		{
+			desc:              "one single timeout should not clear the pool",
+			ioErrors:          []error{nil, timeout, nil, timeout, nil},
+			expectPoolCleared: false,
+		},
+		{
+			desc:              "continuous timeouts should clear the pool",
+			ioErrors:          []error{nil, timeout, timeout, nil},
+			expectPoolCleared: true,
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+
+			errors := &errorQueue{errors: tc.ioErrors}
+			tpm := monitor.NewTestPoolMonitor()
+			server := NewServer(
+				address.Address("localhost:27017"),
+				primitive.NewObjectID(),
+				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
+					return tpm.PoolMonitor
+				}),
+				WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
+					return append(opts,
+						WithDialer(func(d Dialer) Dialer {
+							var dialer net.Dialer
+							return &timeoutDialer{&dialer, errors}
+						}))
+				}),
+				WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
+					return &event.ServerMonitor{
+						ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+							if !errors.dequeue() {
+								wg.Done()
+							}
+						},
+					}
+				}),
+			)
+			require.NoError(t, server.Connect(nil))
+			wg.Wait()
+			assert.Equal(t, tc.expectPoolCleared, tpm.IsPoolCleared(), "expected pool cleared to be %v but was %v", tc.expectPoolCleared, tpm.IsPoolCleared())
+		})
+	}
+}
+
 // TestServerConnectionTimeout tests how different timeout errors are handled during connection
 // creation and server handshake.
 func TestServerConnectionTimeout(t *testing.T) {
