@@ -30,7 +30,7 @@
        "collection": {
          "id": "collection0",
          "database": "database0",
-         "collectionName": "coll"
+         "collectionName": "no-writes-performed-collection"
        }
      }
    ],
@@ -88,7 +88,7 @@
        ],
        "outcome": [
          {
-           "collectionName": "coll",
+           "collectionName": "no-writes-performed-collection",
            "databaseName": "retryable-writes-tests",
            "documents": []
          }
