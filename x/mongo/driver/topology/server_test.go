@@ -11,8 +11,12 @@ package topology
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"io/ioutil"
 	"net"
+	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -100,23 +104,34 @@ type timeoutDialer struct {
 }
 
 func (d *timeoutDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	var dialer net.Dialer
-	c, e := dialer.DialContext(ctx, network, address)
+	c, e := d.Dialer.DialContext(ctx, network, address)
+
+	if caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE"); len(caFile) > 0 {
+		pem, err := ioutil.ReadFile(caFile)
+		if err != nil {
+			return nil, err
+		}
+
+		ca := x509.NewCertPool()
+		if !ca.AppendCertsFromPEM(pem) {
+			return nil, errors.New("unable to load CA file")
+		}
+
+		config := &tls.Config{
+			InsecureSkipVerify: true,
+			RootCAs:            ca,
+		}
+		c = tls.Client(c, config)
+	}
 	return &timeoutConn{c, d.errors}, e
 }
 
-type timeoutErr struct {
-	net.UnknownNetworkError
-}
-
-func (e *timeoutErr) Timeout() bool {
-	return true
-}
-
-var timeout = &timeoutErr{"test timeout"}
-
 // TestServerHeartbeatTimeout tests timeout retry for GODRIVER-2577.
 func TestServerHeartbeatTimeout(t *testing.T) {
+	networkTimeoutError := &net.DNSError{
+		IsTimeout: true,
+	}
+
 	testCases := []struct {
 		desc              string
 		ioErrors          []error
@@ -124,12 +139,12 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 	}{
 		{
 			desc:              "one single timeout should not clear the pool",
-			ioErrors:          []error{nil, timeout, nil, timeout, nil},
+			ioErrors:          []error{nil, networkTimeoutError, nil, networkTimeoutError, nil},
 			expectPoolCleared: false,
 		},
 		{
 			desc:              "continuous timeouts should clear the pool",
-			ioErrors:          []error{nil, timeout, timeout, nil},
+			ioErrors:          []error{nil, networkTimeoutError, networkTimeoutError, nil},
 			expectPoolCleared: true,
 		},
 	}
@@ -164,6 +179,9 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 							}
 						},
 					}
+				}),
+				WithHeartbeatInterval(func(time.Duration) time.Duration {
+					return 2 * time.Second
 				}),
 			)
 			require.NoError(t, server.Connect(nil))
