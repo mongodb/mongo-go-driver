@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 func TestExtJSON(t *testing.T) {

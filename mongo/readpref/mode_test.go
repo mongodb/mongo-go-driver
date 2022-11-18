@@ -9,7 +9,7 @@ package readpref
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMode_String(t *testing.T) {

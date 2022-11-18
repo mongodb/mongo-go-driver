@@ -9,7 +9,7 @@ package driver
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBatchCursor(t *testing.T) {
