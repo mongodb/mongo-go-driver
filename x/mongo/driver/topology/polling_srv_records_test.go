@@ -142,12 +142,12 @@ func testPollingSRVRecordsSpec(t *testing.T, uri string) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 			require.NoError(t, err, "error constructing topology configs: %v", err)
+			cfg.RescanSRVInterval = time.Millisecond * 5
 
 			topo, err := New(cfg)
 			require.NoError(t, err, "Could not create the topology: %v", err)
 			mockRes := newMockResolver(tt.recordsToAdd, tt.recordsToRemove, tt.lookupFail, tt.lookupTimeout)
 			topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
-			topo.rescanSRVInterval = time.Millisecond * 5
 			err = topo.Connect()
 			require.NoError(t, err, "Could not Connect to the topology: %v", err)
 
@@ -171,12 +171,12 @@ func TestPollSRVRecords(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
+		cfg.RescanSRVInterval = time.Millisecond * 5
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 		mockRes := newMockResolver(nil, nil, false, false)
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
-		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
 		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 		topo.serversLock.Lock()
@@ -209,12 +209,12 @@ func TestPollSRVRecords(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
+		cfg.RescanSRVInterval = time.Millisecond * 5
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 		mockRes := newMockResolver([]*net.SRV{{"blah.bleh", 27019, 0, 0}, {"localhost.test.build.10gen.cc.", 27020, 0, 0}}, nil, false, false)
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
-		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
 		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 
@@ -236,13 +236,13 @@ func TestPollSRVRecords(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
+		cfg.RescanSRVInterval = time.Millisecond * 5
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 		mockRes := newMockResolver(nil, nil, false, false)
 		mockRes.fail = 1
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
-		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
 		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 
@@ -289,7 +289,7 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 
 		topo := createLBTopology(t, "mongodb+srv://test3.test.build.10gen.cc")
 		topo.dnsResolver = dnsResolver
-		topo.rescanSRVInterval = time.Millisecond * 5
+		topo.cfg.RescanSRVInterval = time.Millisecond * 5
 		err := topo.Connect()
 		assert.Nil(t, err, "Connect error: %v", err)
 		defer func() {
@@ -298,7 +298,7 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 
 		// Wait for 2*rescanInterval and assert that polling was not done and the final host list only contains the
 		// original host.
-		time.Sleep(2 * topo.rescanSRVInterval)
+		time.Sleep(2 * topo.cfg.RescanSRVInterval)
 		lookupCalledTimes := atomic.LoadInt32(&mockResolver.ranLookup)
 		assert.Equal(t, int32(0), lookupCalledTimes, "expected SRV lookup to occur 0 times, got %d", lookupCalledTimes)
 		expectedHosts := []string{"localhost.test.build.10gen.cc:27017"}
@@ -315,13 +315,13 @@ func TestPollSRVRecordsMaxHosts(t *testing.T) {
 		uri := "mongodb+srv://test1.test.build.10gen.cc/?heartbeatFrequencyMS=100"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVMaxHosts(srvMaxHosts), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
+		cfg.RescanSRVInterval = time.Millisecond * 5
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 
 		mockRes := newMockResolver(recordsToAdd, recordsToRemove, false, false)
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
-		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
 		assert.Nil(t, err, "Connect error: %v", err)
 
@@ -387,13 +387,13 @@ func TestPollSRVRecordsServiceName(t *testing.T) {
 		uri := "mongodb+srv://test22.test.build.10gen.cc/?heartbeatFrequencyMS=100&srvServiceName=customname"
 		cfg, err := NewConfig(options.Client().ApplyURI(uri).SetSRVServiceName(srvServiceName), nil)
 		require.NoError(t, err, "error constructing topology config: %v", err)
+		cfg.RescanSRVInterval = time.Millisecond * 5
 
 		topo, err := New(cfg)
 		require.NoError(t, err, "Could not create the topology: %v", err)
 
 		mockRes := newMockResolver(recordsToAdd, recordsToRemove, false, false)
 		topo.dnsResolver = &dns.Resolver{mockRes.LookupSRV, mockRes.LookupTXT}
-		topo.rescanSRVInterval = time.Millisecond * 5
 		err = topo.Connect()
 		assert.Nil(t, err, "Connect error: %v", err)
 

@@ -23,6 +23,7 @@ import (
 )
 
 const defaultServerSelectionTimeout = 30 * time.Second
+const defaultRescanSRVInterval = 60 * time.Second
 
 // Config is used to construct a topology.
 type Config struct {
@@ -36,6 +37,7 @@ type Config struct {
 	SRVMaxHosts            int
 	SRVServiceName         string
 	LoadBalanced           bool
+	RescanSRVInterval      time.Duration
 }
 
 // ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
@@ -67,6 +69,9 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	// Set the default "ServerSelectionTimeout" to 30 seconds.
 	cfgp.ServerSelectionTimeout = defaultServerSelectionTimeout
 
+	// Set the default "RescanSRVInterval" to 60 seconds.
+	cfgp.RescanSRVInterval = defaultRescanSRVInterval
+
 	// Set the default "SeedList" to localhost.
 	cfgp.SeedList = []string{"localhost:27017"}
 
@@ -89,6 +94,11 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 
 	if co.SRVMaxHosts != nil {
 		cfgp.SRVMaxHosts = *co.SRVMaxHosts
+	}
+
+	// RescanSRVInterval
+	if co.RescanSRVInterval != nil {
+		cfgp.RescanSRVInterval = *co.RescanSRVInterval
 	}
 
 	// AppName
