@@ -39,7 +39,7 @@
        "description": "InsertOne fails after NoWritesPerformed error",
        "runOnRequirements": [
          {
-           "minServerVersion": "4.0",
+           "minServerVersion": "4.4",
            "topologies": [
              "replicaset"
            ]
