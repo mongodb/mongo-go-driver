@@ -20,6 +20,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -243,7 +244,7 @@ func TestConnection(t *testing.T) {
 
 							connectErr = conn.connect(connectCtx)
 						}
-						assert.Soon(t, callback, tc.maxConnectTime)
+						helpers.AssertSoon(t, callback, tc.maxConnectTime)
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
@@ -278,7 +279,7 @@ func TestConnection(t *testing.T) {
 
 							connectErr = conn.connect(connectCtx)
 						}
-						assert.Soon(t, callback, tc.maxConnectTime)
+						helpers.AssertSoon(t, callback, tc.maxConnectTime)
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})

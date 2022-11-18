@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -525,7 +526,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func(ctx context.Context) {
+		helpers.AssertSoon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -573,7 +574,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func(ctx context.Context) {
+		helpers.AssertSoon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -624,7 +625,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func(ctx context.Context) {
+		helpers.AssertSoon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -675,7 +676,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >275ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func(ctx context.Context) {
+		helpers.AssertSoon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {

@@ -18,6 +18,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -86,7 +87,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				// Assert that the pool is cleared within 2 seconds.
-				assert.Soon(mt, func(ctx context.Context) {
+				helpers.AssertSoon(mt, func(ctx context.Context) {
 					ticker := time.NewTicker(100 * time.Millisecond)
 					defer ticker.Stop()
 
@@ -131,7 +132,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 						SetMinPoolSize(5))
 
 					// Assert that the pool is cleared within 2 seconds.
-					assert.Soon(mt, func(ctx context.Context) {
+					helpers.AssertSoon(mt, func(ctx context.Context) {
 						ticker := time.NewTicker(100 * time.Millisecond)
 						defer ticker.Stop()
 
@@ -175,7 +176,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 
 					// Assert that the pool is cleared within 2 seconds.
-					assert.Soon(mt, func(ctx context.Context) {
+					helpers.AssertSoon(mt, func(ctx context.Context) {
 						ticker := time.NewTicker(100 * time.Millisecond)
 						defer ticker.Stop()
 

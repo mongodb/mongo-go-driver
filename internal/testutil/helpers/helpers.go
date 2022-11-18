@@ -7,14 +7,45 @@
 package helpers
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
 )
+
+// AssertSoon runs the provided callback and fails the passed-in test if the callback
+// does not complete within timeout. The provided callback should respect the
+// passed-in context and cease execution when it has expired.
+func AssertSoon(t testing.TB, callback func(ctx context.Context), timeout time.Duration) {
+	t.Helper()
+
+	// Create context to manually cancel callback after Soon assertion.
+	callbackCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	fullCallback := func() {
+		callback(callbackCtx)
+		done <- struct{}{}
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	go fullCallback()
+
+	select {
+	case <-done:
+		return
+	case <-timer.C:
+		t.Fatalf("timed out in %s waiting for callback", timeout)
+	}
+}
 
 // FindJSONFilesInDir finds the JSON files in a directory.
 func FindJSONFilesInDir(t *testing.T, dir string) []string {

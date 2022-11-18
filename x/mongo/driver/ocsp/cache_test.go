@@ -11,11 +11,9 @@ import (
 	"crypto"
 	"crypto/tls"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/ocsp"
 )
@@ -25,10 +23,6 @@ var (
 )
 
 func TestCache(t *testing.T) {
-	assert.RegisterOpts(reflect.TypeOf(&ocsp.Response{}), cmp.Comparer(func(r1, r2 *ocsp.Response) bool {
-		return r1 == r2
-	}))
-
 	testRequest := &ocsp.Request{
 		HashAlgorithm:  crypto.SHA1,
 		IssuerNameHash: []byte("issuerNameHash"),

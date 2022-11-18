@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -96,7 +97,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
@@ -110,7 +111,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
@@ -124,7 +125,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
@@ -138,7 +139,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
 		})
 	})
 }
