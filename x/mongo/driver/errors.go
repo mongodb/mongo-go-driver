@@ -132,7 +132,7 @@ func (wce WriteCommandError) Is(tgt error) bool {
 		return false
 	}
 
-	// If the WriteError lenghts are not equal, then the errors are not equal.
+	// If the WriteError lengths are not equal, then the errors are not equal.
 	if len(target.WriteErrors) != len(wce.WriteErrors) {
 		return false
 	}
