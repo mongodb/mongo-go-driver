@@ -240,6 +240,7 @@ functions:
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
           REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
           LOAD_BALANCER=${LOAD_BALANCER} \
+          REQUESTED_CRYPT_SHARED_VERSION=${REQUESTED_CRYPT_SHARED_VERSION} \
           sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
@@ -1629,6 +1630,21 @@ tasks:
           # Don't use the crypt_shared library, which should cause all of the tests to fall
           # back to using mongocryptd instead of crypt_shared.
           SKIP_CRYPT_SHARED_LIB: "true"
+
+  - name: test-replicaset-auth-ssl-crypt_shared_latest_major
+    tags: ["test", "replicaset", "authssl", "mongocryptd"]
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+      - func: run-tests
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+          REQUESTED_CRYPT_SHARED_VERSION: "latest-major"
 
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
