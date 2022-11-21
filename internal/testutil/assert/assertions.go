@@ -428,6 +428,37 @@ func Nil(t TestingT, object interface{}, msgAndArgs ...interface{}) bool {
 	return Fail(t, fmt.Sprintf("Expected nil, but got: %#v", object), msgAndArgs...)
 }
 
+// getLen try to get length of object.
+// return (false, 0) if impossible.
+func getLen(x interface{}) (ok bool, length int) {
+	v := reflect.ValueOf(x)
+	defer func() {
+		if e := recover(); e != nil {
+			ok = false
+		}
+	}()
+	return true, v.Len()
+}
+
+// Len asserts that the specified object has specific length.
+// Len also fails if the object has a type that len() not accept.
+//
+//	assert.Len(t, mySlice, 3)
+func Len(t TestingT, object interface{}, length int, msgAndArgs ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	ok, l := getLen(object)
+	if !ok {
+		return Fail(t, fmt.Sprintf("\"%s\" could not be applied builtin len()", object), msgAndArgs...)
+	}
+
+	if l != length {
+		return Fail(t, fmt.Sprintf("\"%s\" should have %d item(s), but has %d", object, length, l), msgAndArgs...)
+	}
+	return true
+}
+
 // True asserts that the specified value is true.
 //
 //	assert.True(t, myBool)

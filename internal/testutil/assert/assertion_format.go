@@ -171,6 +171,17 @@ func IsTypef(t TestingT, expectedType interface{}, object interface{}, msg strin
 	return IsType(t, expectedType, object, append([]interface{}{msg}, args...)...)
 }
 
+// Lenf asserts that the specified object has specific length.
+// Lenf also fails if the object has a type that len() not accept.
+//
+//	assert.Lenf(t, mySlice, 3, "error message %s", "formatted")
+func Lenf(t TestingT, object interface{}, length int, msg string, args ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	return Len(t, object, length, append([]interface{}{msg}, args...)...)
+}
+
 // Lessf asserts that the first element is less than the second
 //
 //	assert.Lessf(t, 1, 2, "error message %s", "formatted")
