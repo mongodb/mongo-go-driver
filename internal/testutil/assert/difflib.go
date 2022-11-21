@@ -2,6 +2,7 @@
 
 // Copyright 2013 Patrick Mezard. All rights reserved. Use of this source code is
 // governed by a license that can be found in the THIRD-PARTY-NOTICES file.
+
 package assert
 
 import (
