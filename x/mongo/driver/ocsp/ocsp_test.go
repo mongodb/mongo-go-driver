@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 func TestContactResponders(t *testing.T) {

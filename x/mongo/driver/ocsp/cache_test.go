@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 	"golang.org/x/crypto/ocsp"
 )
 

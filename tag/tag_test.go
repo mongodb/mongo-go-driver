@@ -9,8 +9,8 @@ package tag
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/require"
 )
 
 func TestTag_String(t *testing.T) {

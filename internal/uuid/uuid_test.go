@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/internal/testutil/israce"
+	"go.mongodb.org/mongo-driver/internal/testutil/require"
 )
 
 // GODRIVER-2349

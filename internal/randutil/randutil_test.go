@@ -9,7 +9,7 @@ package randutil
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/testutil/require"
 )
 
 func TestCryptoSeed(t *testing.T) {

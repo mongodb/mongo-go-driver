@@ -10,7 +10,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 func TestGetRegion(t *testing.T) {

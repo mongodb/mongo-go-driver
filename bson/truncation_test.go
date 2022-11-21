@@ -9,8 +9,8 @@ package bson
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/internal/testutil/assert"
 )
 
 type inputArgs struct {

@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/testutil/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
