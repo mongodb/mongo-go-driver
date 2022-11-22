@@ -1639,12 +1639,12 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+          REQUESTED_CRYPT_SHARED_VERSION: "latest-major"
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
-          REQUESTED_CRYPT_SHARED_VERSION: "latest-major"
 
   - name: test-replicaset-auth-nossl
     tags: ["test", "replicaset", "authssl"]
