@@ -181,7 +181,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 					}
 				}),
 				WithHeartbeatInterval(func(time.Duration) time.Duration {
-					return 2 * time.Second
+					return 200 * time.Millisecond
 				}),
 			)
 			require.NoError(t, server.Connect(nil))

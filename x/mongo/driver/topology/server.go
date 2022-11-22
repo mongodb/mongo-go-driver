@@ -554,23 +554,30 @@ func (s *Server) update() {
 			defer s.processErrorLock.Unlock()
 
 			s.updateDescription(desc)
-			if lastError := desc.LastError; lastError != nil {
-				// Retry after the first timeout in case of a FAAS pause as described in GODRIVER-2577.
-				if err := unwrapConnectionError(lastError); err != nil {
-					err, ok := err.(net.Error)
-					if ok && err.Timeout() && timeoutCnt < 1 {
-						timeoutCnt++
-						// Continue to next loop.
-						return true
-					}
+			// Retry after the first timeout before clearing the pool in case of a FAAS pause as
+			// described in GODRIVER-2577.
+			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 1 {
+				if err == context.Canceled || err == context.DeadlineExceeded {
+					timeoutCnt++
+					// We want to immediately retry on timeout error. Continue to next loop.
+					return true
 				}
+				if err, ok := err.(net.Error); ok && err.Timeout() {
+					timeoutCnt++
+					// We want to immediately retry on timeout error. Continue to next loop.
+					return true
+				}
+			}
+			if err := desc.LastError; err != nil {
 				// Clear the pool once the description has been updated to Unknown. Pass in a nil service ID to clear
 				// because the monitoring routine only runs for non-load balanced deployments in which servers don't return
 				// IDs.
 				s.pool.clear(err, nil)
 			}
+			// We're either not handling a timeout error, or we just handled the 2nd consecutive
+			// timeout error. In either case, reset the timeout count to 0 and return false to
+			// continue the normal check process.
 			timeoutCnt = 0
-			// Run forward.
 			return false
 		}(); isShortcut {
 			continue
