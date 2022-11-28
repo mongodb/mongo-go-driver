@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# check_fmt gopackages...
-# Runs gofmt on given packages and checks that *_example_test.go files have wrapped lines.
+# check_fmt
+# Runs go fmt on all packages in the repo and checks that *_example_test.go files have wrapped lines.
 
-gofmt_out="$(gofmt -l -s "$@")"
+gofmt_out="$(go fmt ./...)"
 
 if [[ $gofmt_out ]]; then
-  echo "gofmt check failed for:";
+  echo "go fmt check failed for:";
   sed -e 's/^/ - /' <<< "$gofmt_out";
   exit 1;
 fi
