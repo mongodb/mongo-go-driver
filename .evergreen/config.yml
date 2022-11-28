@@ -1045,6 +1045,7 @@ tasks:
   - name: sa-fmt
     tags: ["static-analysis"]
     commands:
+      - func: install-linters
       - func: run-make
         vars:
           targets: check-fmt
