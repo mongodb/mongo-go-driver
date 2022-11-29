@@ -21,6 +21,9 @@ import (
 // AssertSoon runs the provided callback and fails the passed-in test if the callback
 // does not complete within timeout. The provided callback should respect the
 // passed-in context and cease execution when it has expired.
+//
+// Deprecated: This function will be removed with GODRIVER-2667, use assert.Eventually
+// instead.
 func AssertSoon(t testing.TB, callback func(ctx context.Context), timeout time.Duration) {
 	t.Helper()
 
