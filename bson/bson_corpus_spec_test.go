@@ -512,10 +512,13 @@ func TestRelaxedUUIDValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			// get canonical extended JSON
-			var compactCEJ bytes.Buffer
-			require.NoError(t, json.Compact(&compactCEJ, []byte(tc.canonicalExtJSON)))
-			cEJ := unescapeUnicode(compactCEJ.String(), "0x05")
+			// get canonical extended JSON (if provided)
+			cEJ := ""
+			if tc.canonicalExtJSON != "" {
+				var compactCEJ bytes.Buffer
+				require.NoError(t, json.Compact(&compactCEJ, []byte(tc.canonicalExtJSON)))
+				cEJ = unescapeUnicode(compactCEJ.String(), "0x05")
+			}
 
 			// get degenerate extended JSON
 			var compactDEJ bytes.Buffer
