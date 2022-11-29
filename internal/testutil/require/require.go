@@ -1,4 +1,4 @@
-// Copied from https://github.com/stretchr/testify/blob/master/require/require.go
+// Copied from https://github.com/stretchr/testify/blob/1333b5d3bda8cf5aedcf3e1aaa95cac28aaab892/require/require.go
 
 // Copyright 2020 Mat Ryer, Tyler Bunnell and all contributors. All rights reserved.
 // Use of this source code is governed by an MIT-style license that can be found in
