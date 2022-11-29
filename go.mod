@@ -15,7 +15,6 @@ require (
 	github.com/klauspost/compress v1.13.6
 	github.com/kr/pretty v0.1.0
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
-	github.com/tidwall/pretty v1.2.1
 	github.com/xdg-go/scram v1.1.1
 	github.com/xdg-go/stringprep v1.0.3
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d

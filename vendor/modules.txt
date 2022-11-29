@@ -22,8 +22,6 @@ github.com/kr/pretty
 github.com/kr/text
 # github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 github.com/montanaflynn/stats
-# github.com/tidwall/pretty v1.2.1
-github.com/tidwall/pretty
 # github.com/xdg-go/pbkdf2 v1.0.0
 github.com/xdg-go/pbkdf2
 # github.com/xdg-go/scram v1.1.1
