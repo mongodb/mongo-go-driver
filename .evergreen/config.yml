@@ -2118,21 +2118,18 @@ axes:
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.18"
-          PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1604-64-go-1-18"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
           GO_DIST: "/opt/golang/go1.18"
-          PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.18"
-          PYTHON3_BINARY: python3
 
   # OSes that require >= 4.0 for SSL
   - id: os-ssl-40
@@ -2145,7 +2142,6 @@ axes:
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.18"
-          PYTHON3_BINARY: "C:/python/Python38/python.exe"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1804-64-go-1-18"
         display_name: "Ubuntu 18.04"
@@ -2159,7 +2155,6 @@ axes:
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
           GO_DIST: "/opt/golang/go1.18"
-          PYTHON3_BINARY: python3
 
   # OCSP linux tasks need to run against this OS since stapling is disabled on Ubuntu 18.04 (SERVER-51364)
   - id: ocsp-rhel-70
@@ -2170,7 +2165,6 @@ axes:
         run_on: rhel70-build
         variables:
           GO_DIST: "/opt/golang/go1.18"
-          PYTHON3_BINARY: "/opt/python/3.6/bin/python3"
 
   - id: os-aws-auth
     display_name: OS
@@ -2183,7 +2177,6 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.18"
           SKIP_ECS_AUTH_TEST: true
-          PYTHON3_BINARY: "C:/python/Python38/python.exe"
       - id: "ubuntu1804-64-go-1-18"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
@@ -2197,7 +2190,6 @@ axes:
           GO_DIST: "/opt/golang/go1.18"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
-          PYTHON3_BINARY: python3
 
 task_groups:
   - name: serverless_task_group
