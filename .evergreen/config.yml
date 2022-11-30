@@ -35,7 +35,6 @@ functions:
     - command: shell.exec
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        shell: "bash"
         script: |
           # Get the current unique version of this checkout.
           if [ "${is_patch}" = "true" ]; then
@@ -339,10 +338,9 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
-        shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          . ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+          sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   send-perf-data:
     - command: perf.send
@@ -486,7 +484,6 @@ functions:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -596,7 +593,6 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
-        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -607,7 +603,7 @@ functions:
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
           MAKEFILE_TARGET=evg-test-serverless \
-            . ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+            sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   run-atlas-data-lake-test:
     - command: shell.exec
