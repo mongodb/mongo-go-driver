@@ -323,9 +323,10 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+          . ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   send-perf-data:
     - command: perf.send
@@ -485,8 +486,8 @@ functions:
           . $DRIVERS_TOOLS/.evergreen/utils.sh
           . $DRIVERS_TOOLS/.evergreen/find-python3.sh
 
-          export PYTHON="$(find_python3)" # Uniform python lookup utility.
-          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+          export PYTHON="$(find_python3)"
+          venvcreate "$PYTHON" venv
 
           $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
@@ -621,8 +622,8 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON="$(find_python3)" # Uniform python lookup utility.
-          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+          export PYTHON="$(find_python3)"
+          venvcreate "$PYTHON" venv
 
           $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
@@ -649,8 +650,8 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON="$(find_python3)" # Uniform python lookup utility.
-          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+          export PYTHON="$(find_python3)"
+          venvcreate "$PYTHON" venv
 
           $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
@@ -679,8 +680,8 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON="$(find_python3)" # Uniform python lookup utility.
-          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+          export PYTHON="$(find_python3)"
+          venvcreate "$PYTHON" venv
 
           $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
@@ -707,8 +708,8 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON="$(find_python3)" # Uniform python lookup utility.
-          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+          export PYTHON="$(find_python3)"
+          venvcreate "$PYTHON" venv
 
           $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
@@ -2148,7 +2149,6 @@ axes:
         run_on: ubuntu1804-build
         variables:
           GO_DIST: "/opt/golang/go1.18"
-          PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
@@ -2229,7 +2229,7 @@ task_groups:
             . $DRIVERS_TOOLS/.evergreen/utils.sh
             . $DRIVERS_TOOLS/.evergreen/find-python3.sh
 
-            export PYTHON="$(find_python3)" # Uniform python lookup utility.
+            export PYTHON="$(find_python3)"
 
             # Download the enterprise server download for current platform to $MONGODB_BINARIES.
             # This is required for tests that need mongocryptd.
