@@ -2221,7 +2221,7 @@ task_groups:
                 --strip-path-components 2
 
             # Download the crypt_shared dynamic library for the current platform.
-             $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            find_python3 $DRIVERS_TOOLS/.evergreen/mongodl.py \
               --component crypt_shared \
               --version ${SERVERLESS_MONGODB_VERSION} \
               --edition enterprise \
