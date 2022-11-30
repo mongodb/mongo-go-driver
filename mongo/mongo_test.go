@@ -19,14 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-func compareErrors(e1, e2 error) bool {
-	if e1 == nil || e2 == nil {
-		return e1 == nil && e2 == nil
-	}
-
-	return e1.Error() == e2.Error()
-}
-
 func TestMongoHelpers(t *testing.T) {
 	t.Run("transform and ensure ID", func(t *testing.T) {
 		t.Run("newly added _id should be first element", func(t *testing.T) {
@@ -421,7 +413,12 @@ func TestMongoHelpers(t *testing.T) {
 				arr, hasOutputStage, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
 				assert.Equal(t, tc.hasOutputStage, hasOutputStage, "expected hasOutputStage %v, got %v",
 					tc.hasOutputStage, hasOutputStage)
-				assert.True(t, compareErrors(tc.err, err), "expected error %v, got %v", tc.err, err)
+				if tc.err != nil {
+					assert.NotNil(t, err)
+					assert.EqualError(t, err, tc.err.Error())
+				} else {
+					assert.Nil(t, err)
+				}
 
 				var expected bsoncore.Document
 				if tc.arr != nil {
