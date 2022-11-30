@@ -140,15 +140,7 @@ functions:
              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
              export PATH="$PATH"
-
           EOT
-
-          # Check if the DRIVERS_TOOLS directory exists, if it does then run the evergreen setup scripts to export the
-          # PYTHON3_BINARY environment variable.
-          if [ -d "$DRIVERS_TOOLS" ]; then
-            . $DRIVERS_TOOLS/.evergreen/utils.sh
-            . $DRIVERS_TOOLS/.evergreen/find-python3.sh
-          fi
 
           # See what we variables we've set.
           cat expansion.yml
@@ -490,8 +482,6 @@ functions:
           export CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/ca-ec.pem"
           export CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/client-ec.pem"
 
-          # Check if the DRIVERS_TOOLS directory exists, if it does then run the evergreen setup scripts to export the
-          # PYTHON3_BINARY environment variable.
           . $DRIVERS_TOOLS/.evergreen/utils.sh
           . $DRIVERS_TOOLS/.evergreen/find-python3.sh
 
@@ -623,9 +613,18 @@ functions:
   run-valid-ocsp-server:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          find_python3 -m venv ./venv
+          . ./activate-ocspvenv.sh
+
+          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
+          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
+
+          export PYTHON="$(find_python3)" # Uniform python lookup utility.
+          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+
+          $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -642,9 +641,18 @@ functions:
   run-revoked-ocsp-server:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          find_python3 -m venv ./venv
+          . ./activate-ocspvenv.sh
+
+          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
+          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
+
+          export PYTHON="$(find_python3)" # Uniform python lookup utility.
+          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+
+          $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -663,9 +671,18 @@ functions:
   run-valid-delegate-ocsp-server:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          find_python3 -m venv ./venv
+          . ./activate-ocspvenv.sh
+
+          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
+          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
+
+          export PYTHON="$(find_python3)" # Uniform python lookup utility.
+          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+
+          $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -682,9 +699,18 @@ functions:
   run-revoked-delegate-ocsp-server:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          find_python3 -m venv ./venv
+          . ./activate-ocspvenv.sh
+
+          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
+          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
+
+          export PYTHON="$(find_python3)" # Uniform python lookup utility.
+          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+
+          $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -2163,8 +2189,6 @@ axes:
         run_on: ubuntu1804-test
         variables:
           GO_DIST: "/opt/golang/go1.18"
-            #PYTHON3_BINARY: "$(find_python3)"
-            #PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
@@ -2210,10 +2234,15 @@ task_groups:
               exit 1
             fi
 
+            . $DRIVERS_TOOLS/.evergreen/utils.sh
+            . $DRIVERS_TOOLS/.evergreen/find-python3.sh
+
+            export PYTHON="$(find_python3)" # Uniform python lookup utility.
+
             # Download the enterprise server download for current platform to $MONGODB_BINARIES.
             # This is required for tests that need mongocryptd.
             # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            find_python3 $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            $PYTHON $DRIVERS_TOOLS/.evergreen/mongodl.py \
                 --component archive \
                 --version ${SERVERLESS_MONGODB_VERSION} \
                 --edition enterprise \
@@ -2221,7 +2250,7 @@ task_groups:
                 --strip-path-components 2
 
             # Download the crypt_shared dynamic library for the current platform.
-            find_python3 $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            $PYTHON $DRIVERS_TOOLS/.evergreen/mongodl.py \
               --component crypt_shared \
               --version ${SERVERLESS_MONGODB_VERSION} \
               --edition enterprise \
