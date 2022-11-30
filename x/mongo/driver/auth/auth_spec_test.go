@@ -13,8 +13,8 @@ import (
 	"path"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/internal/testutil/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 

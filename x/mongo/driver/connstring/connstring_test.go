@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/require"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 

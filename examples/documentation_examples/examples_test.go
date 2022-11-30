@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/examples/documentation_examples"
-	"go.mongodb.org/mongo-driver/internal/testutil/require"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 type inputArgs struct {

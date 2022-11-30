@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/require"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 

@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/require"
+	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 // AssertSoon runs the provided callback and fails the passed-in test if the callback
