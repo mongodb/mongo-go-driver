@@ -9,7 +9,7 @@ package address
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 func TestAddress_String(t *testing.T) {

@@ -10,115 +10,106 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/tag"
 )
 
 func TestPrimary(t *testing.T) {
-	require := require.New(t)
 	subject := Primary()
 
-	require.Equal(PrimaryMode, subject.Mode())
+	require.Equal(t, PrimaryMode, subject.Mode())
 	_, set := subject.MaxStaleness()
-	require.False(set)
-	require.Empty(subject.TagSets())
+	require.False(t, set)
+	require.Len(t, subject.TagSets(), 0)
 }
 
 func TestPrimaryPreferred(t *testing.T) {
-	require := require.New(t)
 	subject := PrimaryPreferred()
 
-	require.Equal(PrimaryPreferredMode, subject.Mode())
+	require.Equal(t, PrimaryPreferredMode, subject.Mode())
 	_, set := subject.MaxStaleness()
-	require.False(set)
-	require.Empty(subject.TagSets())
+	require.False(t, set)
+	require.Len(t, subject.TagSets(), 0)
 }
 
 func TestPrimaryPreferred_with_options(t *testing.T) {
-	require := require.New(t)
 	subject := PrimaryPreferred(
 		WithMaxStaleness(time.Duration(10)),
 		WithTags("a", "1", "b", "2"),
 	)
 
-	require.Equal(PrimaryPreferredMode, subject.Mode())
+	require.Equal(t, PrimaryPreferredMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
-	require.True(set)
-	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
+	require.True(t, set)
+	require.Equal(t, time.Duration(10), ms)
+	require.Equal(t, []tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestSecondaryPreferred(t *testing.T) {
-	require := require.New(t)
 	subject := SecondaryPreferred()
 
-	require.Equal(SecondaryPreferredMode, subject.Mode())
+	require.Equal(t, SecondaryPreferredMode, subject.Mode())
 	_, set := subject.MaxStaleness()
-	require.False(set)
-	require.Empty(subject.TagSets())
+	require.False(t, set)
+	require.Len(t, subject.TagSets(), 0)
 }
 
 func TestSecondaryPreferred_with_options(t *testing.T) {
-	require := require.New(t)
 	subject := SecondaryPreferred(
 		WithMaxStaleness(time.Duration(10)),
 		WithTags("a", "1", "b", "2"),
 	)
 
-	require.Equal(SecondaryPreferredMode, subject.Mode())
+	require.Equal(t, SecondaryPreferredMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
-	require.True(set)
-	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
+	require.True(t, set)
+	require.Equal(t, time.Duration(10), ms)
+	require.Equal(t, []tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestSecondary(t *testing.T) {
-	require := require.New(t)
 	subject := Secondary()
 
-	require.Equal(SecondaryMode, subject.Mode())
+	require.Equal(t, SecondaryMode, subject.Mode())
 	_, set := subject.MaxStaleness()
-	require.False(set)
-	require.Empty(subject.TagSets())
+	require.False(t, set)
+	require.Len(t, subject.TagSets(), 0)
 }
 
 func TestSecondary_with_options(t *testing.T) {
-	require := require.New(t)
 	subject := Secondary(
 		WithMaxStaleness(time.Duration(10)),
 		WithTags("a", "1", "b", "2"),
 	)
 
-	require.Equal(SecondaryMode, subject.Mode())
+	require.Equal(t, SecondaryMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
-	require.True(set)
-	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
+	require.True(t, set)
+	require.Equal(t, time.Duration(10), ms)
+	require.Equal(t, []tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestNearest(t *testing.T) {
-	require := require.New(t)
 	subject := Nearest()
 
-	require.Equal(NearestMode, subject.Mode())
+	require.Equal(t, NearestMode, subject.Mode())
 	_, set := subject.MaxStaleness()
-	require.False(set)
-	require.Empty(subject.TagSets())
+	require.False(t, set)
+	require.Len(t, subject.TagSets(), 0)
 }
 
 func TestNearest_with_options(t *testing.T) {
-	require := require.New(t)
 	subject := Nearest(
 		WithMaxStaleness(time.Duration(10)),
 		WithTags("a", "1", "b", "2"),
 	)
 
-	require.Equal(NearestMode, subject.Mode())
+	require.Equal(t, NearestMode, subject.Mode())
 	ms, set := subject.MaxStaleness()
-	require.True(set)
-	require.Equal(time.Duration(10), ms)
-	require.Equal([]tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
+	require.True(t, set)
+	require.Equal(t, time.Duration(10), ms)
+	require.Equal(t, []tag.Set{{tag.Tag{Name: "a", Value: "1"}, tag.Tag{Name: "b", Value: "2"}}}, subject.TagSets())
 }
 
 func TestHedge(t *testing.T) {

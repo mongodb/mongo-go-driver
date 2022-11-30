@@ -13,7 +13,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -135,7 +136,7 @@ func TestSDAMProse(t *testing.T) {
 					time.Sleep(500 * time.Millisecond)
 				}
 			}
-			assert.Soon(t, callback, defaultCallbackTimeout)
+			helpers.AssertSoon(t, callback, defaultCallbackTimeout)
 		})
 	})
 

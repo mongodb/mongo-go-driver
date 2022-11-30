@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 func TestExtJSON(t *testing.T) {

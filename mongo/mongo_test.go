@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -413,7 +413,12 @@ func TestMongoHelpers(t *testing.T) {
 				arr, hasOutputStage, err := transformAggregatePipeline(bson.NewRegistryBuilder().Build(), tc.pipeline)
 				assert.Equal(t, tc.hasOutputStage, hasOutputStage, "expected hasOutputStage %v, got %v",
 					tc.hasOutputStage, hasOutputStage)
-				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
+				if tc.err != nil {
+					assert.NotNil(t, err)
+					assert.EqualError(t, err, tc.err.Error())
+				} else {
+					assert.Nil(t, err)
+				}
 
 				var expected bsoncore.Document
 				if tc.arr != nil {

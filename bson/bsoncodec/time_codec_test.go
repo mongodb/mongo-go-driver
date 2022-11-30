@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -43,7 +43,13 @@ func TestTimeCodec(t *testing.T) {
 				actualTime := actual.Interface().(time.Time)
 				assert.Equal(t, actualTime.Location().String() == "UTC", tc.utc,
 					"Expected UTC: %v, got %v", tc.utc, actualTime.Location())
-				assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+
+				if tc.utc {
+					nowUTC := now.UTC()
+					assert.Equal(t, nowUTC, actualTime, "expected time %v, got %v", nowUTC, actualTime)
+				} else {
+					assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+				}
 			})
 		}
 	})
@@ -72,7 +78,8 @@ func TestTimeCodec(t *testing.T) {
 				if tc.name == "timestamp" {
 					now = time.Unix(now.Unix(), 0)
 				}
-				assert.Equal(t, now, actualTime, "expected time %v, got %v", now, actualTime)
+				nowUTC := now.UTC()
+				assert.Equal(t, nowUTC, actualTime, "expected time %v, got %v", nowUTC, actualTime)
 			})
 		}
 	})

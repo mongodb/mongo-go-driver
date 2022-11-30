@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 

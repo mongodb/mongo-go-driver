@@ -12,7 +12,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -111,7 +112,7 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 		}
 	}
 
-	assert.Soon(mt, callback, defaultCallbackTimeout)
+	helpers.AssertSoon(mt, callback, defaultCallbackTimeout)
 }
 
 func assertEventCount(mt *mtest.T, testCase *testCase, op *operation) {
@@ -150,7 +151,7 @@ func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
 	}
 
 	timeout := convertValueToMilliseconds(mt, op.Arguments.Lookup("timeoutMS"))
-	assert.Soon(mt, callback, timeout)
+	helpers.AssertSoon(mt, callback, timeout)
 }
 
 // getPrimaryAddress returns the address of the current primary. If failFast is true, the server selection fast path
