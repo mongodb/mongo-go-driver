@@ -934,6 +934,7 @@ functions:
   start-kms-mock-server:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -949,6 +950,7 @@ functions:
   start-kms-mock-server-require-client-cert:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
