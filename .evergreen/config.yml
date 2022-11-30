@@ -141,7 +141,6 @@ functions:
              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
              export PATH="$PATH"
           EOT
-
           # See what we variables we've set.
           cat expansion.yml
     # Load the expansion file to make an evergreen variable with the current unique version

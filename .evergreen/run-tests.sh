@@ -19,7 +19,6 @@ export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install
 export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
 export GOFLAGS=-mod=vendor
 
-# ! add a note here
 . $DRIVERS_TOOLS/.evergreen/utils.sh
 . $DRIVERS_TOOLS/.evergreen/find-python3.sh
 
@@ -60,7 +59,6 @@ if [ ! -z $PYTHON3_BINARY ]; then
 
   # Set the PYTHON environment variable to point to the active python3 binary. This is used by the
   # set-temp-creds.sh script.
-  # ! is this block needed?
   if [ "Windows_NT" = "$OS" ]; then
     export PYTHON="$(pwd)/venv/Scripts/python"
   else
