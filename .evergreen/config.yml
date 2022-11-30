@@ -35,6 +35,7 @@ functions:
     - command: shell.exec
       params:
         working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
         script: |
           # Get the current unique version of this checkout.
           if [ "${is_patch}" = "true" ]; then
@@ -170,6 +171,22 @@ functions:
           # initialize submodules
           git submodule init
           git submodule update
+    - command: shell.exec
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
+          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
+
+          export PYTHON3_BINARY="$(find_python3)"
+          venvcreate "$PYTHON3_BINARY" venv
+
+          echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
+    # Load the expansion file to make an evergreen variable with the current unique version
+    - command: expansions.update
+      params:
+        file: src/go.mongodb.org/mongo-driver/expansion.yml
 
   install-linters:
     - command: shell.exec
@@ -482,13 +499,7 @@ functions:
           export CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/ca-ec.pem"
           export CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/client-ec.pem"
 
-          . $DRIVERS_TOOLS/.evergreen/utils.sh
-          . $DRIVERS_TOOLS/.evergreen/find-python3.sh
-
-          export PYTHON="$(find_python3)"
-          venvcreate "$PYTHON" venv
-
-          $PYTHON -m venv ./venv
+          ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
 
           # Set the PYTHON environment variable to point to the active python3 binary. This is used by the
@@ -585,6 +596,7 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -595,7 +607,7 @@ functions:
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
           SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
           MAKEFILE_TARGET=evg-test-serverless \
-            sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+            . ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -618,13 +630,7 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
 
-          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
-
-          export PYTHON="$(find_python3)"
-          venvcreate "$PYTHON" venv
-
-          $PYTHON -m venv ./venv
+          ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -646,13 +652,7 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
 
-          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
-
-          export PYTHON="$(find_python3)"
-          venvcreate "$PYTHON" venv
-
-          $PYTHON -m venv ./venv
+          ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -676,13 +676,7 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
 
-          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
-
-          export PYTHON="$(find_python3)"
-          venvcreate "$PYTHON" venv
-
-          $PYTHON -m venv ./venv
+          ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -704,13 +698,7 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
 
-          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
-
-          export PYTHON="$(find_python3)"
-          venvcreate "$PYTHON" venv
-
-          $PYTHON -m venv ./venv
+          ${PYTHON3_BINARY} -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -2225,15 +2213,10 @@ task_groups:
               exit 1
             fi
 
-            . $DRIVERS_TOOLS/.evergreen/utils.sh
-            . $DRIVERS_TOOLS/.evergreen/find-python3.sh
-
-            export PYTHON="$(find_python3)"
-
             # Download the enterprise server download for current platform to $MONGODB_BINARIES.
             # This is required for tests that need mongocryptd.
             # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            $PYTHON $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
                 --component archive \
                 --version ${SERVERLESS_MONGODB_VERSION} \
                 --edition enterprise \
@@ -2241,7 +2224,7 @@ task_groups:
                 --strip-path-components 2
 
             # Download the crypt_shared dynamic library for the current platform.
-            $PYTHON $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
               --component crypt_shared \
               --version ${SERVERLESS_MONGODB_VERSION} \
               --edition enterprise \

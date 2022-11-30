@@ -19,10 +19,10 @@ export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install
 export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
 export GOFLAGS=-mod=vendor
 
-. $DRIVERS_TOOLS/.evergreen/utils.sh
-. $DRIVERS_TOOLS/.evergreen/find-python3.sh
-
-export PYTHON3_BINARY="$(find_python3)"
+#. $DRIVERS_TOOLS/.evergreen/utils.sh
+#. $DRIVERS_TOOLS/.evergreen/find-python3.sh
+#
+#export PYTHON3_BINARY="$(find_python3)"
 
 SSL=${SSL:-nossl}
 if [ "$SSL" != "nossl" -a -z "${SERVERLESS+x}" ]; then
@@ -50,12 +50,12 @@ fi
 # tasks) requires the use of apt-get, which we wish to avoid. So, we do not set
 # a python3 binary on Ubuntu 14.04. Setting AWS temp credentials for legacy
 # server version tasks is unneccesary, as temp credentials are only needed on 4.2+.
-if [ ! -z $PYTHON3_BINARY ]; then
+if [ ! -z ${PYTHON3_BINARY} ]; then
   export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
   export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"
   export AWS_DEFAULT_REGION="us-east-1"
 
-  $PYTHON3_BINARY -m venv ./venv
+  ${PYTHON3_BINARY} -m venv ./venv
 
   # Set the PYTHON environment variable to point to the active python3 binary. This is used by the
   # set-temp-creds.sh script.
