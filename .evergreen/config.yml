@@ -140,7 +140,16 @@ functions:
              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
              export PATH="$PATH"
+
           EOT
+
+          # Check if the DRIVERS_TOOLS directory exists, if it does then run the evergreen setup scripts to export the
+          # PYTHON3_BINARY environment variable.
+          if [ -d "$DRIVERS_TOOLS" ]; then
+            . $DRIVERS_TOOLS/.evergreen/utils.sh
+            . $DRIVERS_TOOLS/.evergreen/find-python3.sh
+          fi
+
           # See what we variables we've set.
           cat expansion.yml
     # Load the expansion file to make an evergreen variable with the current unique version
@@ -468,6 +477,7 @@ functions:
       type: test
       params:
         working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -480,7 +490,15 @@ functions:
           export CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/ca-ec.pem"
           export CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/client-ec.pem"
 
-          ${PYTHON3_BINARY} -m venv ./venv
+          # Check if the DRIVERS_TOOLS directory exists, if it does then run the evergreen setup scripts to export the
+          # PYTHON3_BINARY environment variable.
+          . $DRIVERS_TOOLS/.evergreen/utils.sh
+          . $DRIVERS_TOOLS/.evergreen/find-python3.sh
+
+          export PYTHON="$(find_python3)" # Uniform python lookup utility.
+          venvcreate "$PYTHON" venv # No leaks or undocumented dependencies.
+
+          $PYTHON -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
 
           # Set the PYTHON environment variable to point to the active python3 binary. This is used by the
@@ -607,7 +625,7 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          ${PYTHON3_BINARY} -m venv ./venv
+          find_python3 -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -626,7 +644,7 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          ${PYTHON3_BINARY} -m venv ./venv
+          find_python3 -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -647,7 +665,7 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          ${PYTHON3_BINARY} -m venv ./venv
+          find_python3 -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -666,7 +684,7 @@ functions:
       params:
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
-          ${PYTHON3_BINARY} -m venv ./venv
+          find_python3 -m venv ./venv
           ./venv/${VENV_BIN_DIR|bin}/pip3 install -r mock-ocsp-responder-requirements.txt
     - command: shell.exec
       params:
@@ -730,10 +748,11 @@ functions:
       type: test
       params:
         working_dir: "src"
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate-kmstlsvenv.sh
+          . ./activate-authawsvenv.sh
           mongo aws_e2e_regular_aws.js
     - command: shell.exec
       type: test
@@ -760,10 +779,11 @@ functions:
       type: test
       params:
         working_dir: "src"
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate-kmstlsvenv.sh
+          . ./activate-authawsvenv.sh
           mongo aws_e2e_assume_role.js
     - command: shell.exec
       type: test
@@ -796,6 +816,7 @@ functions:
       type: test
       params:
         working_dir: "src"
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
@@ -803,7 +824,7 @@ functions:
             exit 0
           fi
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate-kmstlsvenv.sh
+          . ./activate-authawsvenv.sh
           mongo aws_e2e_ec2.js
     - command: shell.exec
       type: test
@@ -878,6 +899,7 @@ functions:
       type: test
       params:
         working_dir: "src"
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
@@ -891,7 +913,7 @@ functions:
           cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
           tar -czf $ECS_SRC_DIR/src.tgz -C $PROJECT_DIRECTORY .
           cd $AUTH_AWS_DIR
-          . ./activate-kmstlsvenv.sh
+          . ./activate-authawsvenv.sh
           cat <<EOF > setup.js
             const mongo_binaries = "$MONGODB_BINARIES";
             const project_dir = "$ECS_SRC_DIR";
@@ -938,6 +960,7 @@ functions:
 
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           . ./activate-kmstlsvenv.sh
+
     - command: shell.exec
       params:
         background: true
@@ -2140,7 +2163,8 @@ axes:
         run_on: ubuntu1804-test
         variables:
           GO_DIST: "/opt/golang/go1.18"
-          PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
+            #PYTHON3_BINARY: "$(find_python3)"
+            #PYTHON3_BINARY: "/opt/python/3.8/bin/python3"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
@@ -2189,7 +2213,7 @@ task_groups:
             # Download the enterprise server download for current platform to $MONGODB_BINARIES.
             # This is required for tests that need mongocryptd.
             # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            find_python3 $DRIVERS_TOOLS/.evergreen/mongodl.py \
                 --component archive \
                 --version ${SERVERLESS_MONGODB_VERSION} \
                 --edition enterprise \
@@ -2197,7 +2221,7 @@ task_groups:
                 --strip-path-components 2
 
             # Download the crypt_shared dynamic library for the current platform.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
+             $DRIVERS_TOOLS/.evergreen/mongodl.py \
               --component crypt_shared \
               --version ${SERVERLESS_MONGODB_VERSION} \
               --edition enterprise \
