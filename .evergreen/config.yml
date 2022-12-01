@@ -175,7 +175,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
         script: |
-          . ${DRIVERS_TOOLS}/.evergreen/utils.sh
+          . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
           export PYTHON3_BINARY="$(find_python3)"
