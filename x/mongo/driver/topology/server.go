@@ -732,35 +732,40 @@ func (s *Server) check() (description.Server, error) {
 	var err error
 	var durationNanos int64
 
-	previousDescription := s.Description()
-	streamable := previousDescription.TopologyVersion != nil
-
-	isNilConn := s.conn == nil
-	if !isNilConn {
-		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
-	}
-	// Create a new connection if this is the first check, the connection was closed after an error during the previous
-	// check, or the previous check was cancelled.
-	if isNilConn || s.conn.closed() || s.checkWasCancelled() {
+	start := time.Now()
+	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
+		// Create a new connection if this is the first check, the connection was closed after an error during the previous
+		// check, or the previous check was cancelled.
+		isNilConn := s.conn == nil
+		if !isNilConn {
+			s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
+		}
 		// Create a new connection and add it's handshake RTT as a sample.
 		err = s.setupHeartbeatConnection()
+		durationNanos = time.Since(start).Nanoseconds()
 		if err == nil {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
+			if !isNilConn {
+				s.publishServerHeartbeatSucceededEvent(s.conn.ID(), durationNanos, s.conn.desc, false)
+			}
 		} else {
 			err = unwrapConnectionError(err)
+			if !isNilConn {
+				s.publishServerHeartbeatFailedEvent(s.conn.ID(), durationNanos, err, false)
+			}
 		}
-	}
-
-	if !isNilConn && err == nil {
+	} else {
 		// An existing connection is being used. Use the server description properties to execute the right heartbeat.
 
 		// Wrap conn in a type that implements driver.StreamerConnection.
 		heartbeatConn := initConnection{s.conn}
 		baseOperation := s.createBaseOperation(heartbeatConn)
+		previousDescription := s.Description()
+		streamable := previousDescription.TopologyVersion != nil
 
-		start := time.Now()
+		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
 		switch {
 		case s.conn.getCurrentlyStreaming():
 			// The connection is already in a streaming state, so we stream the next response.
