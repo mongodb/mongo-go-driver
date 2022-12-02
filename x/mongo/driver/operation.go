@@ -397,7 +397,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Set the previous indefinite error to be returned in any case where a retryable write error does not have a
 		// NoWritesPerfomed label (the definite case).
-		switch typedError := err.(type) {
+		switch terr := err.(type) {
 		case LabeledError:
 			// If the "previousError" is "null", then the "currentError" is the first error encountered
 			// during the retry attempt cycle. We must persist the first error in the case where all
@@ -409,8 +409,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is not labeled NoWritesPerformed and is retryable, then set the previous
 			// indefinite error to be the current error.
-			if !typedError.HasErrorLabel(NoWritesPerformed) &&
-				typedError.HasErrorLabel(RetryableWriteError) {
+			if !terr.HasErrorLabel(NoWritesPerformed) && terr.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err
 			}
 		}
