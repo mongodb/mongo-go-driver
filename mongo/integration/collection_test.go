@@ -15,12 +15,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -337,7 +336,7 @@ func TestCollection(t *testing.T) {
 			initCollection(mt, mt.Coll)
 			indexView := mt.Coll.Indexes()
 			_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-				Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+				Keys: bson.D{{"x", 1}},
 			})
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 
@@ -406,7 +405,7 @@ func TestCollection(t *testing.T) {
 			initCollection(mt, mt.Coll)
 			indexView := mt.Coll.Indexes()
 			_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-				Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+				Keys: bson.D{{"x", 1}},
 			})
 			assert.Nil(mt, err, "index CreateOne error: %v", err)
 
@@ -492,8 +491,6 @@ func TestCollection(t *testing.T) {
 			doc := bson.D{{"$set", bson.D{{"x", 2}}}}
 			docBytes, err := bson.Marshal(doc)
 			assert.Nil(mt, err, "Marshal error: %v", err)
-			xUpdate := bsonx.Doc{{"x", bsonx.Int32(2)}}
-			xDoc := bsonx.Doc{{"$set", bsonx.Document(xUpdate)}}
 
 			testCases := []struct {
 				name   string
@@ -502,7 +499,6 @@ func TestCollection(t *testing.T) {
 				{"bsoncore Document", bsoncore.Document(docBytes)},
 				{"bson Raw", bson.Raw(docBytes)},
 				{"bson D", doc},
-				{"bsonx Document", xDoc},
 				{"byte slice", docBytes},
 			}
 			for _, tc := range testCases {
@@ -707,8 +703,8 @@ func TestCollection(t *testing.T) {
 			assert.NotNil(mt, res.UpsertedID, "expected upserted ID, got nil")
 		})
 		mt.Run("write error", func(mt *mtest.T) {
-			filter := bsonx.Doc{{"_id", bsonx.String("foo")}}
-			replacement := bsonx.Doc{{"_id", bsonx.Double(3.14159)}}
+			filter := bson.D{{"_id", "foo"}}
+			replacement := bson.D{{"_id", 3.14159}}
 			_, err := mt.Coll.InsertOne(context.Background(), filter)
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
@@ -841,7 +837,7 @@ func TestCollection(t *testing.T) {
 					initCollection(mt, mt.Coll)
 					indexView := mt.Coll.Indexes()
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+						Keys: bson.D{{"x", 1}},
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
@@ -1211,7 +1207,7 @@ func TestCollection(t *testing.T) {
 					initCollection(mt, mt.Coll)
 					indexView := mt.Coll.Indexes()
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+						Keys: bson.D{{"x", 1}},
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
@@ -1271,7 +1267,7 @@ func TestCollection(t *testing.T) {
 					initCollection(mt, mt.Coll)
 					indexView := mt.Coll.Indexes()
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+						Keys: bson.D{{"x", 1}},
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
@@ -1347,7 +1343,7 @@ func TestCollection(t *testing.T) {
 					initCollection(mt, mt.Coll)
 					indexView := mt.Coll.Indexes()
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+						Keys: bson.D{{"x", 1}},
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
@@ -1429,7 +1425,7 @@ func TestCollection(t *testing.T) {
 					initCollection(mt, mt.Coll)
 					indexView := mt.Coll.Indexes()
 					_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-						Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+						Keys: bson.D{{"x", 1}},
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
@@ -1884,7 +1880,7 @@ func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts *options.Aggre
 	if createIndex {
 		indexView := mt.Coll.Indexes()
 		_, err := indexView.CreateOne(context.Background(), mongo.IndexModel{
-			Keys: bsonx.Doc{{"x", bsonx.Int32(1)}},
+			Keys: bson.D{{"x", 1}},
 		})
 		assert.Nil(mt, err, "CreateOne error: %v", err)
 	}

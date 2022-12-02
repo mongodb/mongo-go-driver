@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
@@ -207,7 +207,6 @@ var readPrefTestTopology = Topology{
 func TestSelector_Sharded(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Primary()
 
 	s := Server{
@@ -225,9 +224,9 @@ func TestSelector_Sharded(t *testing.T) {
 
 	result, err := ReadPrefSelector(subject).SelectServer(c, c.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{s}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{s}, result)
 }
 
 func BenchmarkLatencySelector(b *testing.B) {
@@ -368,7 +367,6 @@ func BenchmarkSelector_Sharded(b *testing.B) {
 func TestSelector_Single(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Primary()
 
 	s := Server{
@@ -386,260 +384,242 @@ func TestSelector_Single(t *testing.T) {
 
 	result, err := ReadPrefSelector(subject).SelectServer(c, c.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{s}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{s}, result)
 }
 
 func TestSelector_Primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Primary()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_Primary_with_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Primary()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Empty(result, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 0)
 }
 
 func TestSelector_PrimaryPreferred(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.PrimaryPreferred()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_PrimaryPreferred_ignores_tags(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.PrimaryPreferred(
 		readpref.WithTags("a", "2"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_PrimaryPreferred_with_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.PrimaryPreferred()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Equal([]Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, []Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
 }
 
 func TestSelector_PrimaryPreferred_with_no_primary_and_tags(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.PrimaryPreferred(
 		readpref.WithTags("a", "2"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_PrimaryPreferred_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.PrimaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_PrimaryPreferred_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.PrimaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_SecondaryPreferred(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Equal([]Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, []Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
 }
 
 func TestSelector_SecondaryPreferred_with_tags(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred(
 		readpref.WithTags("a", "2"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_SecondaryPreferred_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred(
 		readpref.WithTags("a", "3"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_SecondaryPreferred_with_tags_that_do_not_match_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred(
 		readpref.WithTags("a", "3"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 0)
 }
 
 func TestSelector_SecondaryPreferred_with_no_secondaries(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestPrimary})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_SecondaryPreferred_with_no_secondaries_or_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{})
 
-	require.NoError(err)
-	require.Len(result, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 0)
 }
 
 func TestSelector_SecondaryPreferred_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_SecondaryPreferred_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.SecondaryPreferred(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Secondary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Secondary()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Equal([]Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, []Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Secondary_with_tags(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Secondary(
 		readpref.WithTags("a", "2"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
@@ -682,161 +662,149 @@ func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
 func TestSelector_Secondary_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Secondary(
 		readpref.WithTags("a", "3"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 0)
 }
 
 func TestSelector_Secondary_with_no_secondaries(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Secondary()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestPrimary})
 
-	require.NoError(err)
-	require.Len(result, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 0)
 }
 
 func TestSelector_Secondary_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Secondary(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Secondary_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Secondary(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Nearest(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 3)
-	require.Equal([]Server{readPrefTestPrimary, readPrefTestSecondary1, readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 3)
+	require.Equal(t, []Server{readPrefTestPrimary, readPrefTestSecondary1, readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Nearest_with_tags(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest(
 		readpref.WithTags("a", "1"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Equal([]Server{readPrefTestPrimary, readPrefTestSecondary1}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, []Server{readPrefTestPrimary, readPrefTestSecondary1}, result)
 }
 
 func TestSelector_Nearest_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest(
 		readpref.WithTags("a", "3"),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 0)
+	require.NoError(t, err)
+	require.Len(t, result, 0)
 }
 
 func TestSelector_Nearest_with_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Equal([]Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, []Server{readPrefTestSecondary1, readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Nearest_with_no_secondaries(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest()
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestPrimary})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestPrimary}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestPrimary}, result)
 }
 
 func TestSelector_Nearest_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
-	require.NoError(err)
-	require.Len(result, 2)
-	require.Equal([]Server{readPrefTestPrimary, readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 2)
+	require.Equal(t, []Server{readPrefTestPrimary, readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Nearest_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
 	result, err := ReadPrefSelector(subject).SelectServer(readPrefTestTopology, []Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
-	require.NoError(err)
-	require.Len(result, 1)
-	require.Equal([]Server{readPrefTestSecondary2}, result)
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	require.Equal(t, []Server{readPrefTestSecondary2}, result)
 }
 
 func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(50) * time.Second),
 	)
@@ -856,13 +824,12 @@ func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 
 	_, err := ReadPrefSelector(subject).SelectServer(c, c.Servers)
 
-	require.Error(err)
+	require.Error(t, err)
 }
 
 func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
 	subject := readpref.Nearest(
 		readpref.WithMaxStaleness(time.Duration(100) * time.Second),
 	)
@@ -882,5 +849,5 @@ func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 
 	_, err := ReadPrefSelector(subject).SelectServer(c, c.Servers)
 
-	require.Error(err)
+	require.Error(t, err)
 }

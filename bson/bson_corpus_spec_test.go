@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -20,10 +21,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
-	"github.com/tidwall/pretty"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/testutil/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 type testCase struct {
@@ -312,7 +312,9 @@ func runTest(t *testing.T, file string) {
 					expectNoError(t, err, fmt.Sprintf("%s: reading canonical BSON", v.Description))
 
 					// get canonical extended JSON
-					cEJ := unescapeUnicode(string(pretty.Ugly([]byte(v.CanonicalExtJSON))), test.BsonType)
+					var compactEJ bytes.Buffer
+					require.NoError(t, json.Compact(&compactEJ, []byte(v.CanonicalExtJSON)))
+					cEJ := unescapeUnicode(compactEJ.String(), test.BsonType)
 					if test.BsonType == "0x01" {
 						cEJ = normalizeCanonicalDouble(t, *test.TestKey, cEJ)
 					}
@@ -328,7 +330,9 @@ func runTest(t *testing.T, file string) {
 
 					// native_to_relaxed_extended_json(bson_to_native(cB)) = rEJ (if rEJ exists)
 					if v.RelaxedExtJSON != nil {
-						rEJ := unescapeUnicode(string(pretty.Ugly([]byte(*v.RelaxedExtJSON))), test.BsonType)
+						var compactEJ bytes.Buffer
+						require.NoError(t, json.Compact(&compactEJ, []byte(*v.RelaxedExtJSON)))
+						rEJ := unescapeUnicode(compactEJ.String(), test.BsonType)
 						if test.BsonType == "0x01" {
 							rEJ = normalizeRelaxedDouble(t, *test.TestKey, rEJ)
 						}
@@ -368,7 +372,9 @@ func runTest(t *testing.T, file string) {
 
 					/*** degenerate JSON round-trip tests (if exists) ***/
 					if v.DegenerateExtJSON != nil {
-						dEJ := unescapeUnicode(string(pretty.Ugly([]byte(*v.DegenerateExtJSON))), test.BsonType)
+						var compactEJ bytes.Buffer
+						require.NoError(t, json.Compact(&compactEJ, []byte(*v.DegenerateExtJSON)))
+						dEJ := unescapeUnicode(compactEJ.String(), test.BsonType)
 						if test.BsonType == "0x01" {
 							dEJ = normalizeCanonicalDouble(t, *test.TestKey, dEJ)
 						}
@@ -506,11 +512,18 @@ func TestRelaxedUUIDValidation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
-			// get canonical extended JSON
-			cEJ := unescapeUnicode(string(pretty.Ugly([]byte(tc.canonicalExtJSON))), "0x05")
+			// get canonical extended JSON (if provided)
+			cEJ := ""
+			if tc.canonicalExtJSON != "" {
+				var compactCEJ bytes.Buffer
+				require.NoError(t, json.Compact(&compactCEJ, []byte(tc.canonicalExtJSON)))
+				cEJ = unescapeUnicode(compactCEJ.String(), "0x05")
+			}
 
 			// get degenerate extended JSON
-			dEJ := unescapeUnicode(string(pretty.Ugly([]byte(tc.degenerateExtJSON))), "0x05")
+			var compactDEJ bytes.Buffer
+			require.NoError(t, json.Compact(&compactDEJ, []byte(tc.degenerateExtJSON)))
+			dEJ := unescapeUnicode(compactDEJ.String(), "0x05")
 
 			// convert dEJ to native doc
 			var doc D
