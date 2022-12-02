@@ -399,10 +399,18 @@ func (op Operation) Execute(ctx context.Context) error {
 		// NoWritesPerfomed label (the definite case).
 		switch typedError := err.(type) {
 		case LabeledError:
-			// If the error is not labeled NoWritesPerformed and is retryable, or if the previous error is
-			// undefined, then set the previous indefinite error to be the current error.
+			// If the "previousError" is "null", then the "currentError" is the first error encountered
+			// during the retry attempt cycle. We must persist the first error in the case where all
+			// succeeding errors are labeled "NoWritesPerformed", which would otherwise raise "null" as the
+			// error.
+			if prevIndefiniteErr == nil {
+				prevIndefiniteErr = err
+			}
+
+			// If the error is not labeled NoWritesPerformed and is retryable, then set the previous
+			// indefinite error to be the current error.
 			if !typedError.HasErrorLabel(NoWritesPerformed) &&
-				typedError.HasErrorLabel(RetryableWriteError) || prevIndefiniteErr == nil {
+				typedError.HasErrorLabel(RetryableWriteError) {
 				prevIndefiniteErr = err
 			}
 		}
