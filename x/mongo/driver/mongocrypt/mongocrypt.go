@@ -244,6 +244,32 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 		}
 	}
 
+	if opts.RangeOptions != nil {
+		idx, mongocryptDoc := bsoncore.AppendDocumentStart(nil)
+		if opts.RangeOptions.Min != nil {
+			mongocryptDoc = bsoncore.AppendValueElement(mongocryptDoc, "min", *opts.RangeOptions.Min)
+		}
+		if opts.RangeOptions.Max != nil {
+			mongocryptDoc = bsoncore.AppendValueElement(mongocryptDoc, "max", *opts.RangeOptions.Max)
+		}
+		if opts.RangeOptions.Precision != nil {
+			mongocryptDoc = bsoncore.AppendInt32Element(mongocryptDoc, "precision", *opts.RangeOptions.Precision)
+		}
+		mongocryptDoc = bsoncore.AppendInt64Element(mongocryptDoc, "sparsity", opts.RangeOptions.Sparsity)
+
+		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
+		if err != nil {
+			return nil, err
+		}
+
+		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
+		defer mongocryptBinary.close()
+
+		if ok := C.mongocrypt_ctx_setopt_algorithm_range(ctx.wrapped, mongocryptBinary.wrapped); !ok {
+			return nil, ctx.createErrorFromStatus()
+		}
+	}
+
 	algoStr := C.CString(opts.Algorithm)
 	defer C.free(unsafe.Pointer(algoStr))
 

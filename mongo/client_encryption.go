@@ -135,6 +135,21 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 		transformed.SetContentionFactor(*eo.ContentionFactor)
 	}
 
+	if eo.RangeOptions != nil {
+		var transformedRange mcopts.ExplicitRangeOptions
+		if eo.RangeOptions.Min != nil {
+			transformedRange.Min = &bsoncore.Value{Type: eo.RangeOptions.Min.Type, Data: eo.RangeOptions.Min.Value}
+		}
+		if eo.RangeOptions.Max != nil {
+			transformedRange.Max = &bsoncore.Value{Type: eo.RangeOptions.Max.Type, Data: eo.RangeOptions.Max.Value}
+		}
+		if eo.RangeOptions.Precision != nil {
+			transformedRange.Precision = eo.RangeOptions.Precision
+		}
+		transformedRange.Sparsity = eo.RangeOptions.Sparsity
+		transformed.SetRangeOptions(transformedRange)
+	}
+
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
 	if err != nil {
 		return primitive.Binary{}, err
