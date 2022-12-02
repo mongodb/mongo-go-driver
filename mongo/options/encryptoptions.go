@@ -7,6 +7,7 @@
 package options
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -17,6 +18,13 @@ const (
 	QueryTypeEquality string = "equality"
 )
 
+type RangeOptions struct {
+	Min       *bson.RawValue
+	Max       *bson.RawValue
+	Sparsity  int64
+	Precision *int32
+}
+
 // EncryptOptions represents options to explicitly encrypt a value.
 type EncryptOptions struct {
 	KeyID            *primitive.Binary
@@ -24,6 +32,7 @@ type EncryptOptions struct {
 	Algorithm        string
 	QueryType        string
 	ContentionFactor *int64
+	RangeOptions     *RangeOptions
 }
 
 // Encrypt creates a new EncryptOptions instance.
@@ -74,6 +83,41 @@ func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOpt
 	return e
 }
 
+// SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "rangePreview".
+// NOTE: The Range algorithm is experimental only. It is not intended for public use.
+func (e *EncryptOptions) SetRangeOptions(ro RangeOptions) *EncryptOptions {
+	e.RangeOptions = &ro
+	return e
+}
+
+// SetMin sets the range index minimum value.
+// NOTE: The Range algorithm is experimental only. It is not intended for public use.
+func (ro *RangeOptions) SetMin(min bson.RawValue) *RangeOptions {
+	ro.Min = &min
+	return ro
+}
+
+// SetMax sets the range index maximum value.
+// NOTE: The Range algorithm is experimental only. It is not intended for public use.
+func (ro *RangeOptions) SetMax(max bson.RawValue) *RangeOptions {
+	ro.Max = &max
+	return ro
+}
+
+// SetSparsity sets the range index sparsity.
+// NOTE: The Range algorithm is experimental only. It is not intended for public use.
+func (ro *RangeOptions) SetSparsity(sparsity int64) *RangeOptions {
+	ro.Sparsity = sparsity
+	return ro
+}
+
+// SetPrecision sets the range index precision.
+// NOTE: The Range algorithm is experimental only. It is not intended for public use.
+func (ro *RangeOptions) SetPrecision(precision int32) *RangeOptions {
+	ro.Precision = &precision
+	return ro
+}
+
 // MergeEncryptOptions combines the argued EncryptOptions in a last-one wins fashion.
 func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
 	eo := Encrypt()
@@ -96,6 +140,9 @@ func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
 		}
 		if opt.ContentionFactor != nil {
 			eo.ContentionFactor = opt.ContentionFactor
+		}
+		if opt.RangeOptions != nil {
+			eo.RangeOptions = opt.RangeOptions
 		}
 	}
 
