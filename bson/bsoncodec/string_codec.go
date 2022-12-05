@@ -15,7 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// StringCodec is the Codec used for struct values.
+// StringCodec is the Codec used for string values.
 type StringCodec struct {
 	DecodeObjectIDAsHex bool
 }
