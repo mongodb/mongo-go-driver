@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -67,6 +68,7 @@ type Client struct {
 	sessionPool    *session.Pool
 	timeout        *time.Duration
 	httpClient     *http.Client
+	logger         logger.Logger
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -216,6 +218,31 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			return nil, replaceErrors(err)
 		}
 	}
+
+	if clientOpt.LoggerOptions != nil {
+		sink := clientOpt.LoggerOptions.Sink
+		if sink == nil {
+			// Set the default sink to os.Stderr
+		}
+
+		componentLevels := clientOpt.LoggerOptions.ComponentLevels
+		fmt.Println("componentLevels in client:", componentLevels)
+		if componentLevels == nil {
+			componentLevels = make(map[options.LogComponent]options.LogLevel)
+		}
+
+		internalComponentLevels := make(map[logger.LogComponent]logger.LogLevel)
+		for component, level := range componentLevels {
+			internalComponentLevels[logger.LogComponent(component)] = logger.LogLevel(level)
+		}
+
+		fmt.Println("internalComponentLevels", internalComponentLevels)
+
+		client.logger = logger.New(sink, internalComponentLevels)
+	}
+
+	fmt.Println("client logger in client construct:", client.logger)
+
 	return client, nil
 }
 
@@ -277,6 +304,9 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	// Close the logger at the end of this function to ensure that all log messages have been written.
+	defer c.logger.Close()
+
 	if ctx == nil {
 		ctx = context.Background()
 	}

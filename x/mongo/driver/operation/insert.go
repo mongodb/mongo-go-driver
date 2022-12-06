@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -40,6 +41,7 @@ type Insert struct {
 	result                   InsertResult
 	serverAPI                *driver.ServerAPIOptions
 	timeout                  *time.Duration
+	logger                   logger.Logger
 }
 
 // InsertResult represents an insert result returned by the server.
@@ -85,6 +87,7 @@ func (i *Insert) processResponse(info driver.ResponseInfo) error {
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
 func (i *Insert) Execute(ctx context.Context) error {
+	fmt.Println("Insert.Execute")
 	if i.deployment == nil {
 		return errors.New("the Insert operation must have a Deployment set before Execute can be called")
 	}
@@ -110,6 +113,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 		WriteConcern:      i.writeConcern,
 		ServerAPI:         i.serverAPI,
 		Timeout:           i.timeout,
+		Logger:            i.logger,
 	}.Execute(ctx)
 
 }
@@ -289,5 +293,11 @@ func (i *Insert) Timeout(timeout *time.Duration) *Insert {
 	}
 
 	i.timeout = timeout
+	return i
+}
+
+func (i *Insert) Logger(logger logger.Logger) *Insert {
+	i.logger = logger
+
 	return i
 }

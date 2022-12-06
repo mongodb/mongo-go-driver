@@ -179,7 +179,8 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerSelector(bw.selector).ClusterClock(bw.collection.client.clock).
 		Database(bw.collection.db.name).Collection(bw.collection.name).
 		Deployment(bw.collection.client.deployment).Crypt(bw.collection.client.cryptFLE).
-		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout)
+		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
+		Logger(bw.collection.client.logger)
 	if bw.comment != nil {
 		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {

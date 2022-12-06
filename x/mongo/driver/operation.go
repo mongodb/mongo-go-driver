@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -231,6 +232,8 @@ type Operation struct {
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
+
+	Logger logger.Logger
 
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
@@ -1727,6 +1730,17 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if _, ok := info.cmdErr.(WriteCommandError); ok {
 		success = true
 	}
+
+	//if success {
+	//	res := bson.Raw{}
+	//	// Only copy the reply for commands that are not security sensitive
+	//	if !info.redacted {
+	//		res = bson.Raw(info.response)
+	//	}
+
+	op.Logger.Print(logger.DebugLogLevel, &logger.CommandSucceededMessage{})
+	//}
+
 	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
 		return
 	}
@@ -1757,6 +1771,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)
+
 		return
 	}
 
