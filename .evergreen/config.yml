@@ -93,7 +93,7 @@ functions:
           go version
           go env
 
-          # TODO (GODRIVER-2676) use libmongocrypt 1.7.0 once it is released.
+          # TODO(GODRIVER-2676): use libmongocrypt 1.7.0 once it is released.
           LIBMONGOCRYPT_GITREF="1.7.0-alpha0"
           # Install libmongocrypt based on OS.
           git clone https://github.com/mongodb/libmongocrypt
