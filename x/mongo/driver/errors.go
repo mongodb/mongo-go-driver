@@ -117,28 +117,6 @@ func (wce WriteCommandError) Error() string {
 	return buf.String()
 }
 
-// Is reports whether any error in err's chain matches target by comparing the error codes for the WriteConcernError
-// and all of the WriteErrors. If any values from either field are "false", the function will return false.
-func (wce WriteCommandError) Is(tgt error) bool {
-	target, ok := tgt.(WriteCommandError)
-	if !ok {
-		return false
-	}
-
-	targetWCE := target.WriteConcernError
-	wceWCE := wce.WriteConcernError
-
-	if targetWCE != nil && wceWCE != nil && !wceWCE.Is(*targetWCE) {
-		return false
-	}
-
-	if !wce.WriteErrors.Is(target.WriteErrors) {
-		return false
-	}
-
-	return true
-}
-
 // Retryable returns true if the error is retryable
 func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bool {
 	for _, label := range wce.Labels {
@@ -185,16 +163,6 @@ func (wce WriteConcernError) Error() string {
 		return fmt.Sprintf("(%v) %v", wce.Name, wce.Message)
 	}
 	return wce.Message
-}
-
-// Is reports whether any error in err's chain matches target by comparing the error codes for the WriteConcernError.
-func (wce WriteConcernError) Is(tgt error) bool {
-	target, ok := tgt.(WriteConcernError)
-	if !ok {
-		return false
-	}
-
-	return wce.Code == target.Code
 }
 
 // Retryable returns true if the error is retryable
@@ -253,16 +221,6 @@ type WriteError struct {
 
 func (we WriteError) Error() string { return we.Message }
 
-// Is reports whether any error in err's chain matches target by comparing the error codes for the WriteError.
-func (we WriteError) Is(tgt error) bool {
-	target, ok := tgt.(WriteError)
-	if !ok {
-		return false
-	}
-
-	return we.Code == target.Code
-}
-
 // WriteErrors is a group of non-write concern failures that occurred as a result
 // of a write operation.
 type WriteErrors []WriteError
@@ -278,26 +236,6 @@ func (we WriteErrors) Error() string {
 	}
 	fmt.Fprint(&buf, "]")
 	return buf.String()
-}
-
-// Is reports whether any error in err's chain matches target by comparing the error codes for the WriteErrors.
-func (we WriteErrors) Is(tgt error) bool {
-	target, ok := tgt.(WriteErrors)
-	if !ok {
-		return false
-	}
-
-	if len(we) != len(target) {
-		return false
-	}
-
-	for idx, err := range we {
-		if !err.Is(target[idx]) {
-			return false
-		}
-	}
-
-	return true
 }
 
 // Error is a command execution error from the database.
@@ -327,16 +265,6 @@ func (e Error) Error() string {
 // Unwrap returns the underlying error.
 func (e Error) Unwrap() error {
 	return e.Wrapped
-}
-
-// Is reports whether any error in err's chain matches target by comparing the error codes for the Error.
-func (e Error) Is(tgt error) bool {
-	target, ok := tgt.(Error)
-	if !ok {
-		return false
-	}
-
-	return errors.Is(e.Wrapped, target.Wrapped) && e.Code == target.Code
 }
 
 // HasErrorLabel returns true if the error contains the specified label.

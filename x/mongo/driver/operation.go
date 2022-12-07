@@ -606,6 +606,12 @@ func (op Operation) Execute(ctx context.Context) error {
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
+		// prevIndefiniteErrorIsSet is "true" if the "err" variable has been set to the "prevIndefiniteErr" in
+		// a case in the switch statement below.
+		var prevIndefiniteErrIsSet bool
+
+		// TODO(GODRIVERS-2579): When refactoring the "Execute" method, consider creating a separate method for the
+		// error handling logic below. This will remove the necessity of the "checkError" goto label.
 	checkError:
 		var perr error
 		switch tt := err.(type) {
@@ -641,8 +647,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
 			// "previous indefinite error". After reseting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !errors.Is(tt, prevIndefiniteErr) {
+			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
+				prevIndefiniteErrIsSet = true
 
 				goto checkError
 			}
@@ -737,8 +744,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
 			// "previous indefinite error". After reseting, repeat the error check.
-			if tt.HasErrorLabel(NoWritesPerformed) && !errors.Is(tt, prevIndefiniteErr) {
+			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
+				prevIndefiniteErrIsSet = true
 
 				goto checkError
 			}
