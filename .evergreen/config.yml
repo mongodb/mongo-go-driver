@@ -2023,6 +2023,50 @@ tasks:
             EXPECT_ERROR='unable to retrieve GCP credentials' \
               ./testgcpkms
 
+  - name: "testawskms-task"
+    commands:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          echo "Building build-awskms-test ... begin"
+          BUILD_TAGS="-tags cse" \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+            make build-awskms-test
+          echo "Building build-awskms-test ... end"
+
+          export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
+          export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
+
+          LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+          MONGODB_URI='${atlas_free_tier_uri}' \
+            ./testawskms
+
+  - name: "testawskms-fail-task"
+    # testawskms-fail-task runs without environment variables.
+    # It is expected to fail to obtain credentials.
+    commands:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          echo "Building build-awskms-test ... begin"
+          BUILD_TAGS="-tags cse" \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+            make build-awskms-test
+          echo "Building build-awskms-test ... end"
+
+          LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+          MONGODB_URI='${atlas_free_tier_uri}' \
+          EXPECT_ERROR='unable to retrieve AWS credentials' \
+            ./testawskms
+
   - name: "test-fuzz"
     commands:
       - func: bootstrap-mongo-orchestration
@@ -2439,3 +2483,13 @@ buildvariants:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - testgcpkms-fail-task
+
+  - name: testawskms-variant
+    display_name: "AWS KMS"
+    run_on:
+      - debian11-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.18"
+    tasks:
+      - testawskms-task
+      - testawskms-fail-task

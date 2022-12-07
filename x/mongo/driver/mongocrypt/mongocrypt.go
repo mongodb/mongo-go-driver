@@ -16,12 +16,16 @@ package mongocrypt
 // #include <stdlib.h>
 import "C"
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
@@ -410,7 +414,50 @@ func (m *MongoCrypt) createErrorFromStatus() error {
 	return errorFromStatus(status)
 }
 
+// needsKmsProvider returns true if provider was initially set to an empty document.
+// An empty document signals the driver to fetch credentials.
+func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
+	val, err := kmsProviders.LookupErr(provider)
+	if err != nil {
+		// KMS provider is not configured.
+		return false
+	}
+	doc, ok := val.DocumentOK()
+	// KMS provider is an empty document.
+	return ok && len(doc) == 5
+}
+
 // GetKmsProviders returns the originally configured KMS providers.
-func (m *MongoCrypt) GetKmsProviders() bsoncore.Document {
-	return m.kmsProviders
+func (m *MongoCrypt) GetKmsProviders(ctx context.Context, httpClient *http.Client) (bsoncore.Document, error) {
+	builder := bsoncore.NewDocumentBuilder()
+
+	if needsKmsProvider(m.kmsProviders, "gcp") {
+		// "gcp" KMS provider is an empty document.
+		// Attempt to fetch from GCP Instance Metadata server.
+		{
+			p := creds.GcpCredentialProvider{HTTPClient: httpClient}
+			token, err := p.GetCredentials(ctx)
+			if err != nil {
+				return nil, err
+			}
+			builder.StartDocument("gcp").
+				AppendString("accessToken", token).
+				FinishDocument()
+
+		}
+	} else if needsKmsProvider(m.kmsProviders, "aws") {
+		p := creds.AwsCredentialProvider{HTTPClient: httpClient}
+		provider, err := p.GetCredentials(ctx)
+		if err != nil {
+			return nil, internal.WrapErrorf(err, "unable to retrieve AWS credentials")
+		}
+		builder.StartDocument("aws").
+			AppendString("accessKeyId", provider.Value.AccessKeyID).
+			AppendString("secretAccessKey", provider.Value.SecretAccessKey)
+		if len(provider.Value.SessionToken) > 0 {
+			builder.AppendString("sessionToken", provider.Value.SessionToken)
+		}
+		builder.FinishDocument()
+	}
+	return builder.Build(), nil
 }
