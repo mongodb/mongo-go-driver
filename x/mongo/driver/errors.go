@@ -137,12 +137,8 @@ func (wce WriteCommandError) Is(tgt error) bool {
 		return false
 	}
 
-	if len(wce.WriteErrors) > 0 {
-		for idx, twe := range target.WriteErrors {
-			if !wce.WriteErrors[idx].Is(twe) {
-				return false
-			}
-		}
+	if !wce.WriteErrors.Is(target.WriteErrors) {
+		return false
 	}
 
 	return true
@@ -287,6 +283,26 @@ func (we WriteErrors) Error() string {
 	}
 	fmt.Fprint(&buf, "]")
 	return buf.String()
+}
+
+// Is reports whether any error in err's chain matches target by comparing the error codes for the WriteErrors.
+func (we WriteErrors) Is(tgt error) bool {
+	target, ok := tgt.(WriteErrors)
+	if !ok {
+		return false
+	}
+
+	if len(we) != len(target) {
+		return false
+	}
+
+	for idx, err := range we {
+		if !err.Is(target[idx]) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Error is a command execution error from the database.
