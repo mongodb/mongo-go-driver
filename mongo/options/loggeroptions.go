@@ -72,3 +72,9 @@ func (opts *LoggerOptions) SetComponentLevels(componentLevels map[LogComponent]L
 
 	return opts
 }
+
+func (opts *LoggerOptions) SetSink(sink LogSink) *LoggerOptions {
+	opts.Sink = sink
+
+	return opts
+}

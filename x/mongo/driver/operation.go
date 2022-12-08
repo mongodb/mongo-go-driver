@@ -109,6 +109,16 @@ type finishedInformation struct {
 	serviceID    *primitive.ObjectID
 }
 
+// success returns true if there was no command error or the command error is a "WriteCommandError".
+func (info finishedInformation) success() bool {
+	success := info.cmdErr == nil
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
+		success = true
+	}
+
+	return success
+}
+
 // ResponseInfo contains the context required to parse a server response.
 type ResponseInfo struct {
 	ServerResponse        bsoncore.Document
@@ -1723,51 +1733,86 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	op.CommandMonitor.Started(ctx, started)
 }
 
+// canPublishSucceededEvent returns true if a CommandSucceededEvent can be published for the given command. This is true
+// if the command is not an unacknowledged write and the command monitor is monitoring succeeded events.
+func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
+	success := info.success()
+
+	return op.CommandMonitor != nil &&
+		(!success || op.CommandMonitor.Succeeded != nil) &&
+		(success || op.CommandMonitor.Failed == nil)
+}
+
+// canLogSucceededCommand returns true if the command can be logged.
+func (op Operation) canLogSucceededCommand() bool {
+	return op.Logger.Is(logger.DebugLogLevel, logger.CommandLogComponent)
+}
+
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
+//
+// This method will also log the command if the logger is configured to log commands.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
-	success := info.cmdErr == nil
-	if _, ok := info.cmdErr.(WriteCommandError); ok {
-		success = true
+	// duration is the time between the start of the operation and the end of the operation.
+	var duration time.Duration
+
+	// getDuration is a closure that returns the duration of the operation. It is used to lazy load the duration.
+	var getDuration = func() time.Duration {
+		if duration != 0 {
+			return duration
+		}
+
+		if !info.startTime.IsZero() {
+			return time.Since(info.startTime)
+		}
+
+		return 0
 	}
 
-	//if success {
-	//	res := bson.Raw{}
-	//	// Only copy the reply for commands that are not security sensitive
-	//	if !info.redacted {
-	//		res = bson.Raw(info.response)
-	//	}
+	// rawResponse is the raw response from the server.
+	var rawResponse bson.Raw
 
-	op.Logger.Print(logger.DebugLogLevel, &logger.CommandSucceededMessage{})
-	//}
+	// getRawResponse is a closure that returns the raw response from the server. It is used to lazy load the
+	// rawResponse variable.
+	var getRawResponse = func() bson.Raw {
+		if rawResponse != nil {
+			return rawResponse
+		}
 
-	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
+		if !info.redacted {
+			return bson.Raw(info.response)
+		}
+
+		return nil
+	}
+
+	// If logging is enabled for the command component at the debug level, log the command response.
+	if op.canLogSucceededCommand() {
+		cmdMsg := logger.NewCommandSuccessMessage(getDuration(), getRawResponse(), &logger.Command{
+			Name:      info.cmdName,
+			RequestID: int64(info.requestID),
+		})
+
+		op.Logger.Print(logger.DebugLogLevel, cmdMsg)
+	}
+
+	// If the finished event cannot be published, return early.
+	if !op.canPublishFinishedEvent(info) {
 		return
-	}
-
-	var durationNanos int64
-	var emptyTime time.Time
-	if info.startTime != emptyTime {
-		durationNanos = time.Since(info.startTime).Nanoseconds()
 	}
 
 	finished := event.CommandFinishedEvent{
 		CommandName:        info.cmdName,
 		RequestID:          int64(info.requestID),
 		ConnectionID:       info.connID,
-		DurationNanos:      durationNanos,
+		DurationNanos:      getDuration().Nanoseconds(),
 		ServerConnectionID: info.serverConnID,
 		ServiceID:          info.serviceID,
 	}
 
-	if success {
-		res := bson.Raw{}
-		// Only copy the reply for commands that are not security sensitive
-		if !info.redacted {
-			res = bson.Raw(info.response)
-		}
+	if info.success() {
 		successEvent := &event.CommandSucceededEvent{
-			Reply:                res,
+			Reply:                getRawResponse(),
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)

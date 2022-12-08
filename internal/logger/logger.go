@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
 )
@@ -77,10 +78,13 @@ func (logger Logger) Print(level LogLevel, msg ComponentMessage) {
 
 func (logger *Logger) startPrinter(jobs <-chan job) {
 	for job := range jobs {
+		fmt.Printf("printer job: %v\n", job)
+
 		level := job.level
 		msg := job.msg
 
 		if !logger.Is(level, msg.Component()) {
+			fmt.Println("printer job dropped", level, msg.Component())
 			return
 		}
 
@@ -90,7 +94,12 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 		}
 
 		if sink := logger.sink; sink != nil {
-			sink.Info(int(level), string(bytes), msg.KeysAndValues()...)
+			fmt.Println("printer job sent to sink", level, msg.Component())
+			// TODO: the -2 offset is to align the printer with the logr API. We probably shouldn't bake
+			// TODO: this into the code. How should we handle this?
+			sink.Info(int(level)-2, string(bytes), msg.KeysAndValues()...)
 		}
+
+		fmt.Println("printer job done")
 	}
 }
