@@ -402,7 +402,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		case labeledError:
 			// If the "prevIndefiniteErr" is nil, then the current error is the first error encountered
 			// during the retry attempt cycle. We must persist the first error in the case where all
-			// succeeding errors are labeled "NoWritesPerformed", which would otherwise raise nil as the
+			// following errors are labeled "NoWritesPerformed", which would otherwise raise nil as the
 			// error.
 			if prevIndefiniteErr == nil {
 				prevIndefiniteErr = err
