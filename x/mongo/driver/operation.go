@@ -610,7 +610,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		// a case in the switch statement below.
 		var prevIndefiniteErrIsSet bool
 
-		// TODO(GODRIVERS-2579): When refactoring the "Execute" method, consider creating a separate method for the
+		// TODO(GODRIVER-2579): When refactoring the "Execute" method, consider creating a separate method for the
 		// error handling logic below. This will remove the necessity of the "checkError" goto label.
 	checkError:
 		var perr error
