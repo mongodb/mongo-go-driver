@@ -282,7 +282,7 @@ func TestRetryableWritesProse(t *testing.T) {
 
 			require.True(mt, secondFailPointConfigured)
 
-			// Assert that the "ShutdownInProgress" error is returned.
+			// Assert that the "NotWritablePrimary" error is returned.
 			require.True(mt, err.(mongo.WriteException).HasErrorCode(int(shutdownInProgressErrorCode)))
 		})
 }

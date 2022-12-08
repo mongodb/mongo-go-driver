@@ -749,9 +749,8 @@ func ExampleClient_StartSession_withTransaction() {
 	result, err := sess.WithTransaction(
 		context.TODO(),
 		func(sessCtx mongo.SessionContext) (interface{}, error) {
-			// Use the mongo.SessionContext as the Context parameter for
-			// InsertOne and FindOne so both operations are run in the same
-			// transaction.
+			// Use sessCtx as the Context parameter for InsertOne and FindOne so
+			// both operations are run in a transaction.
 
 			coll := client.Database("db").Collection("coll")
 			res, err := coll.InsertOne(sessCtx, bson.D{{"x", 1}})

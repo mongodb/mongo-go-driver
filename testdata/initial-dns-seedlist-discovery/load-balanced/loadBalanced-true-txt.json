@@ -9,6 +9,5 @@
   "options": {
     "loadBalanced": true,
     "ssl": true
-  },
-  "ping": true
+  }
 }

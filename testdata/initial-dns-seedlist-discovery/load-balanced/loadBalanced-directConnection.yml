@@ -11,4 +11,3 @@ options:
     loadBalanced: true
     ssl: true
     directConnection: false
-ping: true

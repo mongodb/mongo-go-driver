@@ -8,4 +8,3 @@ hosts:
 options:
     ssl: true
     directConnection: false
-ping: true

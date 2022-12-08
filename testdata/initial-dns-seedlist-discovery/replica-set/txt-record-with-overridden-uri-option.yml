@@ -9,4 +9,3 @@ options:
     replicaSet: repl0
     authSource: otherDB
     ssl: true
-ping: true

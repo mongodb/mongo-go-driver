@@ -11,4 +11,3 @@ options:
     ssl: true
 parsed_options:
     auth_database: adminDB
-ping: true

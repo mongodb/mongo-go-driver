@@ -11,6 +11,5 @@
   "options": {
     "ssl": true,
     "directConnection": false
-  },
-  "ping": true
+  }
 }

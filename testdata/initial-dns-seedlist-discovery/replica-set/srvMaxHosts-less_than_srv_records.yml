@@ -13,4 +13,3 @@ hosts:
 options:
     srvMaxHosts: 1
     ssl: true
-ping: true
