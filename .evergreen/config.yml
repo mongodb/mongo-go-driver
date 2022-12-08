@@ -94,7 +94,7 @@ functions:
           go env
 
           # TODO(GODRIVER-2676): use libmongocrypt 1.7.0 once it is released.
-          LIBMONGOCRYPT_TAG="1.7.0-alpha0"
+          LIBMONGOCRYPT_TAG="1.7.0-alpha1"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -106,7 +106,7 @@ functions:
              # TODO(GODRIVER-2676): replace this URL once libmongocrypt 1.7.0 is released with the following:
              # curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              # There is no tag URL for libmongocrypt pre-releases.
-             LIBMONGOCRYPT_COMMIT=a162f4871cface46bdade94cdf7e3ad9459297af
+             LIBMONGOCRYPT_COMMIT=2cd2f77ae806a3a4c12750b39b0be92b0ca3b2c1
              curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
              tar -xf libmongocrypt-all.tar.gz
              cd ..
