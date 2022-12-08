@@ -1140,7 +1140,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Insert already encrypted data and verify that it is automatically decrypted by Next().
 					insertDocuments(mt, cpt.coll, []bson.Raw{testConfig.EncryptedDocument})
 					assert.True(mt, stream.Next(context.Background()), "expected Next to return true, got false")
-					gotDocument := stream.Current.Lookup("fullDocument").Document()
+					gotValue, err := stream.Current.LookupErr("fullDocument")
+					assert.Nil(mt, err, "did not find fullDocument in stream.Current: %v", stream.Current)
+					gotDocument := gotValue.Document()
 					err = compareDocs(mt, testConfig.DecryptedDocument, gotDocument)
 					assert.Nil(mt, err, "compareDocs error: %v", err)
 				})

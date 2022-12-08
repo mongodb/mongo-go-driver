@@ -264,11 +264,11 @@ tests:
         arguments:
           document: &doc8 { _id: 1, encrypted_javascriptWithScope: {"$code": "var x = 1;", "$scope": {} } }
         result:
-            # DRIVERS-2272: The expected error message changed in mongocryptd 6.0. Before it was:
-            # "Cannot use deterministic encryption for element of type: javascriptWithScope"
-            # After it is:
-            # "Cannot encrypt element of type: javascriptWithScope"
-            # Only check for the common suffix.
+          # DRIVERS-2272: The expected error message changed in mongocryptd 6.0. Before it was:
+          # "Cannot use deterministic encryption for element of type: javascriptWithScope"
+          # After it is:
+          # "Cannot encrypt element of type: javascriptWithScope"
+          # Only check for the common suffix.
           errorContains: "element of type: javascriptWithScope"
   - description: "type=object"
     clientOptions:
@@ -282,11 +282,11 @@ tests:
         arguments:
           document: &doc9 { _id: 1, encrypted_object: {} }
         result:
-            # DRIVERS-2272: The expected error message changed in mongocryptd 6.0. Before it was:
-            # "Cannot use deterministic encryption for element of type: object"
-            # After it is:
-            # "Cannot encrypt element of type: object"
-            # Only check for the common suffix.
+          # DRIVERS-2272: The expected error message changed in mongocryptd 6.0. Before it was:
+          # "Cannot use deterministic encryption for element of type: object"
+          # After it is:
+          # "Cannot encrypt element of type: object"
+          # Only check for the common suffix.
           errorContains: "element of type: object"
   - description: "type=timestamp"
     clientOptions:
