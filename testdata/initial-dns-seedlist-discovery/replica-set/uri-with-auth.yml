@@ -1,0 +1,19 @@
+uri: "mongodb+srv://auser:apass@test1.test.build.10gen.cc/?replicaSet=repl0"
+seeds:
+    - localhost.test.build.10gen.cc:27017
+    - localhost.test.build.10gen.cc:27018
+hosts:
+    - localhost:27017
+    - localhost:27018
+    - localhost:27019
+options:
+    replicaSet: repl0
+    ssl: true
+parsed_options:
+    user: auser
+    password: apass
+# Don't run a ping for URIs that include userinfo. Ping doesn't require authentication, so missing
+# userinfo isn't a problem, but some drivers will fail handshake on a connection if userinfo is
+# provided but incorrect.
+ping: false
+comment: Should preserve auth credentials

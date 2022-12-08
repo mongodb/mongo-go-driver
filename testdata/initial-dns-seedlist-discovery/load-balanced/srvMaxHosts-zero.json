@@ -10,5 +10,6 @@
     "loadBalanced": true,
     "srvMaxHosts": 0,
     "ssl": true
-  }
+  },
+  "ping": true
 }

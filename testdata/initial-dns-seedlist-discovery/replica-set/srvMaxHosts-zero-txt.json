@@ -13,5 +13,6 @@
     "replicaSet": "repl0",
     "srvMaxHosts": 0,
     "ssl": true
-  }
+  },
+  "ping": true
 }

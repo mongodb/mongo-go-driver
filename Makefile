@@ -47,7 +47,7 @@ build-tests:
 
 .PHONY: check-fmt
 check-fmt:
-	etc/check_fmt.sh $(PKGS)
+	etc/check_fmt.sh
 
 # check-modules runs "go mod tidy" then "go mod vendor" and exits with a non-zero exit code if there
 # are any module or vendored modules changes. The intent is to confirm two properties:
@@ -69,7 +69,7 @@ doc:
 
 .PHONY: fmt
 fmt:
-	gofmt -l -s -w $(PKGS)
+	go fmt ./...
 
 .PHONY: lint
 lint:

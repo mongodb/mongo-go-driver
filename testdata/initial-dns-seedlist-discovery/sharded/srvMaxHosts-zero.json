@@ -11,5 +11,6 @@
   "options": {
     "srvMaxHosts": 0,
     "ssl": true
-  }
+  },
+  "ping": true
 }

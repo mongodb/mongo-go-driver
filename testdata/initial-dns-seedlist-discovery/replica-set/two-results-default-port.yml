@@ -9,3 +9,4 @@ hosts:
 options:
     replicaSet: repl0
     ssl: true
+ping: true
