@@ -80,11 +80,12 @@ func executeAWSHTTPRequest(ctx context.Context, httpClient *http.Client, req *ht
 // getEC2Credentials generates EC2 credentials.
 func (p *AwsCredentialProvider) getEC2Credentials(ctx context.Context) (*awsv4.StaticProvider, error) {
 	// get token
-	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2TokenPath, nil)
+	req, err := http.NewRequest(http.MethodPut, awsEC2URI+awsEC2TokenPath, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "30")
+	const defaultEC2TTLSeconds = "30"
+	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", defaultEC2TTLSeconds)
 
 	token, err := executeAWSHTTPRequest(ctx, p.HTTPClient, req)
 	if err != nil {
@@ -96,7 +97,7 @@ func (p *AwsCredentialProvider) getEC2Credentials(ctx context.Context) (*awsv4.S
 	tokenStr := string(token)
 
 	// get role name
-	req, err = http.NewRequest("GET", awsEC2URI+awsEC2RolePath, nil)
+	req, err = http.NewRequest(http.MethodGet, awsEC2URI+awsEC2RolePath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +113,7 @@ func (p *AwsCredentialProvider) getEC2Credentials(ctx context.Context) (*awsv4.S
 
 	// get credentials
 	pathWithRole := awsEC2URI + awsEC2RolePath + string(role)
-	req, err = http.NewRequest("GET", pathWithRole, nil)
+	req, err = http.NewRequest(http.MethodGet, pathWithRole, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +154,7 @@ func (p *AwsCredentialProvider) GetCredentials(ctx context.Context) (*awsv4.Stat
 	if len(relativeEcsURI) > 0 {
 		fullURI := awsRelativeURI + relativeEcsURI
 
-		req, err := http.NewRequest("GET", fullURI, nil)
+		req, err := http.NewRequest(http.MethodGet, fullURI, nil)
 		if err != nil {
 			return nil, err
 		}

@@ -29,7 +29,7 @@ func (p *GcpCredentialProvider) GetCredentials(ctx context.Context) (string, err
 		metadataHost = envhost
 	}
 	url := fmt.Sprintf("http://%s/computeMetadata/v1/instance/service-accounts/default/token", metadataHost)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
 	}
