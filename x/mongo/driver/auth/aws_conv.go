@@ -37,7 +37,7 @@ type awsConversation struct {
 	valid    bool
 	nonce    []byte
 	provider interface {
-		GetCredentials(ctx context.Context) (*awsv4.StaticProvider, error)
+		getCredentials(ctx context.Context) (*awsv4.StaticProvider, error)
 	}
 }
 
@@ -148,7 +148,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	creds, err := ac.provider.GetCredentials(context.Background())
+	creds, err := ac.provider.getCredentials(context.Background())
 	if err != nil {
 		return nil, err
 	}

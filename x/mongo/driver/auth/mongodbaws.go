@@ -43,12 +43,12 @@ type mongoDBAWSAuthenticator struct {
 }
 
 // GetCredentials gets AWS credentials.
-func (a *mongoDBAWSAuthenticator) GetCredentials(ctx context.Context) (*awsv4.StaticProvider, error) {
-	c, err := a.ValidateAndMakeCredentials()
-	if err == nil {
+func (a *mongoDBAWSAuthenticator) getCredentials(ctx context.Context) (*awsv4.StaticProvider, error) {
+	c, err := a.AwsCredentials.ValidateAndMakeCredentials()
+	if c != nil || err != nil {
 		return c, err
 	}
-	return a.GetCredentials(ctx)
+	return a.AwsCredentialProvider.GetCredentials(ctx)
 }
 
 // Auth authenticates the connection.

@@ -445,7 +445,8 @@ func (m *MongoCrypt) GetKmsProviders(ctx context.Context, httpClient *http.Clien
 				FinishDocument()
 
 		}
-	} else if needsKmsProvider(m.kmsProviders, "aws") {
+	}
+	if needsKmsProvider(m.kmsProviders, "aws") {
 		p := creds.AwsCredentialProvider{HTTPClient: httpClient}
 		provider, err := p.GetCredentials(ctx)
 		if err != nil {

@@ -77,8 +77,8 @@ func executeAWSHTTPRequest(ctx context.Context, httpClient *http.Client, req *ht
 	return ioutil.ReadAll(resp.Body)
 }
 
-// GetEC2Credentials generates EC2 credentials.
-func (p *AwsCredentialProvider) GetEC2Credentials(ctx context.Context) (*awsv4.StaticProvider, error) {
+// getEC2Credentials generates EC2 credentials.
+func (p *AwsCredentialProvider) getEC2Credentials(ctx context.Context) (*awsv4.StaticProvider, error) {
 	// get token
 	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2TokenPath, nil)
 	if err != nil {
@@ -179,7 +179,7 @@ func (p *AwsCredentialProvider) GetCredentials(ctx context.Context) (*awsv4.Stat
 	}
 
 	// Credentials from EC2 metadata
-	creds, err = p.GetEC2Credentials(context.Background())
+	creds, err = p.getEC2Credentials(context.Background())
 	if creds == nil && err == nil {
 		return nil, errors.New("unable to get credentials")
 	}
