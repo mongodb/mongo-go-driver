@@ -423,7 +423,8 @@ func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
 		return false
 	}
 	doc, ok := val.DocumentOK()
-	// KMS provider is an empty document.
+	// KMS provider is an empty document if the length is 5.
+	// An empty document contains 4 bytes of "\x00" and a null byte.
 	return ok && len(doc) == 5
 }
 
@@ -434,17 +435,14 @@ func (m *MongoCrypt) GetKmsProviders(ctx context.Context, httpClient *http.Clien
 	if needsKmsProvider(m.kmsProviders, "gcp") {
 		// "gcp" KMS provider is an empty document.
 		// Attempt to fetch from GCP Instance Metadata server.
-		{
-			p := creds.GcpCredentialProvider{HTTPClient: httpClient}
-			token, err := p.GetCredentials(ctx)
-			if err != nil {
-				return nil, err
-			}
-			builder.StartDocument("gcp").
-				AppendString("accessToken", token).
-				FinishDocument()
-
+		p := creds.GcpCredentialProvider{HTTPClient: httpClient}
+		token, err := p.GetCredentials(ctx)
+		if err != nil {
+			return nil, err
 		}
+		builder.StartDocument("gcp").
+			AppendString("accessToken", token).
+			FinishDocument()
 	}
 	if needsKmsProvider(m.kmsProviders, "aws") {
 		p := creds.AwsCredentialProvider{HTTPClient: httpClient}
