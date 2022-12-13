@@ -9,6 +9,9 @@ package auth
 import (
 	"context"
 	"errors"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/awsv4"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -34,6 +37,20 @@ type MongoDBAWSAuthenticator struct {
 	sessionToken string
 }
 
+type mongoDBAWSAuthenticator struct {
+	creds.AwsCredentials
+	creds.AwsCredentialProvider
+}
+
+// GetCredentials gets AWS credentials.
+func (a *mongoDBAWSAuthenticator) getCredentials(ctx context.Context) (*awsv4.StaticProvider, error) {
+	c, err := a.AwsCredentials.ValidateAndMakeCredentials()
+	if c != nil || err != nil {
+		return c, err
+	}
+	return a.AwsCredentialProvider.GetCredentials(ctx)
+}
+
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	httpClient := cfg.HTTPClient
@@ -42,10 +59,16 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	}
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
-			username:   a.username,
-			password:   a.password,
-			token:      a.sessionToken,
-			httpClient: httpClient,
+			provider: &mongoDBAWSAuthenticator{
+				AwsCredentials: creds.AwsCredentials{
+					Username: a.username,
+					Password: a.password,
+					Token:    a.sessionToken,
+				},
+				AwsCredentialProvider: creds.AwsCredentialProvider{
+					HTTPClient: httpClient,
+				},
+			},
 		},
 	}
 	err := ConductSaslConversation(ctx, cfg, a.source, adapter)
