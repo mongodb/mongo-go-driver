@@ -1874,6 +1874,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		RequestID:          int64(info.requestID),
 		ConnectionID:       info.connID,
 		Duration:           info.duration,
+		DurationNanos:      info.duration.Nanoseconds(),
 		ServerConnectionID: info.serverConnID,
 		ServiceID:          info.serviceID,
 	}
