@@ -18,7 +18,7 @@ const (
 	QueryTypeEquality string = "equality"
 )
 
-// RangeOpts specifies index options for a Queryable Encryption field supporting "rangePreview" queries.
+// RangeOptions specifies index options for a Queryable Encryption field supporting "rangePreview" queries.
 // NOTE: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 type RangeOptions struct {
 	Min       *bson.RawValue
