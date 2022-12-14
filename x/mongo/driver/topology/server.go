@@ -906,10 +906,11 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	await bool,
 ) {
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
-		Duration:     duration,
-		Reply:        desc,
-		ConnectionID: connectionID,
-		Awaited:      await,
+		DurationNanos: duration.Nanoseconds(),
+		Duration:      duration,
+		Reply:         desc,
+		ConnectionID:  connectionID,
+		Awaited:       await,
 	}
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatSucceeded != nil {
@@ -924,10 +925,11 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	await bool,
 ) {
 	serverHeartbeatFailed := &event.ServerHeartbeatFailedEvent{
-		Duration:     duration,
-		Failure:      err,
-		ConnectionID: connectionID,
-		Awaited:      await,
+		DurationNanos: duration.Nanoseconds(),
+		Duration:      duration,
+		Failure:       err,
+		ConnectionID:  connectionID,
+		Awaited:       await,
 	}
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatFailed != nil {

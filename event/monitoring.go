@@ -33,10 +33,12 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
-	Duration     time.Duration
-	CommandName  string
-	RequestID    int64
-	ConnectionID string
+	// Deprecated: Use Duration instead.
+	DurationNanos int64
+	Duration      time.Duration
+	CommandName   string
+	RequestID     int64
+	ConnectionID  string
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
 	// this value (e.g. on MDB < 4.2), it is unset.
 	ServerConnectionID *int32
@@ -158,18 +160,22 @@ type ServerHeartbeatStartedEvent struct {
 
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
-	Duration     time.Duration
-	Reply        description.Server
-	ConnectionID string // The address this heartbeat was sent to with a unique identifier
-	Awaited      bool   // If this heartbeat was awaitable
+	// Deprecated: Use Duration instead.
+	DurationNanos int64
+	Duration      time.Duration
+	Reply         description.Server
+	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
+	Awaited       bool   // If this heartbeat was awaitable
 }
 
 // ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
 type ServerHeartbeatFailedEvent struct {
-	Duration     time.Duration
-	Failure      error
-	ConnectionID string // The address this heartbeat was sent to with a unique identifier
-	Awaited      bool   // If this heartbeat was awaitable
+	// Deprecated: Use Duration instead.
+	DurationNanos int64
+	Duration      time.Duration
+	Failure       error
+	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
+	Awaited       bool   // If this heartbeat was awaitable
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client
