@@ -278,7 +278,6 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 
 	selector := makePinnedSelector(sess, coll.writeSelector)
 
-	fmt.Println("selector", selector)
 	op := operation.NewInsert(docs...).
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).

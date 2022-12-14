@@ -47,6 +47,9 @@ type clientEntity struct {
 	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store it
 
 	entityMap *EntityMap
+
+	// loggerActual is the channel to send log messages to for validation.
+	loggerActual <-chan logActual
 }
 
 func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
@@ -77,6 +80,16 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
 			return nil, fmt.Errorf("error parsing URI options: %v", err)
+		}
+	}
+
+	// TODO: add explanation
+	if olm := entityOptions.ObserveLogMessages; olm != nil {
+		logActualCh := make(chan logActual)
+		entity.loggerActual = logActualCh
+
+		if err := setLoggerClientOptions(logActualCh, clientOpts, olm); err != nil {
+			return nil, fmt.Errorf("error setting logger options: %v", err)
 		}
 	}
 

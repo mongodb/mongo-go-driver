@@ -11,15 +11,15 @@ type LogLevel int
 
 const (
 	// OffLogLevel disables logging and is the default logging priority.
-	OffLogLevel LogLevel = LogLevel(logger.OffLogLevel)
+	OffLogLevel LogLevel = LogLevel(logger.OffLevel)
 
 	// InfoLogLevel enables logging of informational messages. These logs are High-level information about normal
 	// driver behavior. Example: MongoClient creation or close.
-	InfoLogLevel LogLevel = LogLevel(logger.InfoLogLevel)
+	InfoLogLevel LogLevel = LogLevel(logger.InfoLevel)
 
 	// DebugLogLevel enables logging of debug messages. These logs can be voluminous and are intended for detailed
 	// information that may be helpful when debugging an application. Example: A command starting.
-	DebugLogLevel LogLevel = LogLevel(logger.DebugLogLevel)
+	DebugLogLevel LogLevel = LogLevel(logger.DebugLevel)
 )
 
 // LogComponent is an enumeration representing the "components" which can be logged against. A LogLevel can be
@@ -28,19 +28,19 @@ type LogComponent int
 
 const (
 	// AllLogComponents enables logging for all components.
-	AllLogComponent LogComponent = LogComponent(logger.AllLogComponent)
+	AllLogComponent LogComponent = LogComponent(logger.AllComponent)
 
 	// CommandLogComponent enables command monitor logging.
-	CommandLogComponent LogComponent = LogComponent(logger.CommandLogComponent)
+	CommandLogComponent LogComponent = LogComponent(logger.CommandComponent)
 
 	// TopologyLogComponent enables topology logging.
-	TopologyLogComponent LogComponent = LogComponent(logger.TopologyLogComponent)
+	TopologyLogComponent LogComponent = LogComponent(logger.TopologyComponent)
 
 	// ServerSelectionLogComponent enables server selection logging.
-	ServerSelectionLogComponent LogComponent = LogComponent(logger.ServerSelectionLogComponent)
+	ServerSelectionLogComponent LogComponent = LogComponent(logger.ServerSelectionComponent)
 
 	// ConnectionLogComponent enables connection services logging.
-	ConnectionLogComponent LogComponent = LogComponent(logger.ConnectionLogComponent)
+	ConnectionLogComponent LogComponent = LogComponent(logger.ConnectionComponent)
 )
 
 // LogSink is an interface that can be implemented to provide a custom sink for the driver's logs.

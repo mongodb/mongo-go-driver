@@ -107,6 +107,7 @@ type finishedInformation struct {
 	startTime    time.Time
 	redacted     bool
 	serviceID    *primitive.ObjectID
+	serverHost   string
 }
 
 // success returns true if there was no command error or the command error is a "WriteCommandError".
@@ -574,7 +575,10 @@ func (op Operation) Execute(ctx context.Context) error {
 			serverConnID: startedInfo.serverConnID,
 			redacted:     startedInfo.redacted,
 			serviceID:    startedInfo.serviceID,
+			serverHost:   desc.Server.Addr.String(),
 		}
+
+		//fmt.Println("hosts:", desc.Server.Hosts)
 
 		// Check for possible context error. If no context error, check if there's enough time to perform a
 		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
@@ -1745,7 +1749,7 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 
 // canLogSucceededCommand returns true if the command can be logged.
 func (op Operation) canLogSucceededCommand() bool {
-	return op.Logger.Is(logger.DebugLogLevel, logger.CommandLogComponent)
+	return op.Logger.Is(logger.DebugLevel, logger.CommandComponent)
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
@@ -1788,12 +1792,14 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	// If logging is enabled for the command component at the debug level, log the command response.
 	if op.canLogSucceededCommand() {
-		cmdMsg := logger.NewCommandSuccessMessage(getDuration(), getRawResponse(), &logger.Command{
-			Name:      info.cmdName,
-			RequestID: int64(info.requestID),
+		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
+			Name:       info.cmdName,
+			RequestID:  int64(info.requestID),
+			Msg:        logger.CommandMessageSucceeded,
+			DurationMS: getDuration().Milliseconds(),
+			Reply:      getRawResponse().String(),
+			ServerHost: info.serverHost,
 		})
-
-		op.Logger.Print(logger.DebugLogLevel, cmdMsg)
 	}
 
 	// If the finished event cannot be published, return early.

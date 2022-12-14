@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -36,6 +37,13 @@ type storeEventsAsEntitiesConfig struct {
 	Events      []string `bson:"events"`
 }
 
+type observeLogMessages struct {
+	Command         logger.LevelLiteral `bson:"command"`
+	Topology        logger.LevelLiteral `bson:"topology"`
+	ServerSelection logger.LevelLiteral `bson:"serverSelection"`
+	Connection      logger.LevelLiteral `bson:"connection"`
+}
+
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity
 // types, only a subset of the options that this type contains apply to any given entity.
 type entityOptions struct {
@@ -50,6 +58,7 @@ type entityOptions struct {
 	ObserveSensitiveCommands *bool                         `bson:"observeSensitiveCommands"`
 	StoreEventsAsEntities    []storeEventsAsEntitiesConfig `bson:"storeEventsAsEntities"`
 	ServerAPIOptions         *serverAPIOptions             `bson:"serverApi"`
+	ObserveLogMessages       *observeLogMessages           `bson:"observeLogMessages"`
 
 	// Options for database entities.
 	DatabaseName    string                 `bson:"databaseName"`
@@ -71,6 +80,7 @@ type entityOptions struct {
 
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
 }
+
 type clientEncryptionOpts struct {
 	KeyVaultClient    string              `bson:"keyVaultClient"`
 	KeyVaultNamespace string              `bson:"keyVaultNamespace"`

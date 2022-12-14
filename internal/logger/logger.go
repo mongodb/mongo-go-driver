@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"io"
 	"os"
 )
@@ -12,13 +11,13 @@ type LogSink interface {
 }
 
 type job struct {
-	level LogLevel
+	level Level
 	msg   ComponentMessage
 }
 
 // Logger is the driver's logger. It is used to log messages from the driver either to OS or to a custom LogSink.
 type Logger struct {
-	componentLevels map[LogComponent]LogLevel
+	componentLevels map[Component]Level
 	sink            LogSink
 	jobs            chan job
 }
@@ -30,9 +29,9 @@ type Logger struct {
 //
 // The "componentLevels" parameter is variadic with the latest value taking precedence. If no component has a LogLevel
 // set, then the constructor will attempt to source the LogLevel from the environment.
-func New(sink LogSink, componentLevels ...map[LogComponent]LogLevel) Logger {
+func New(sink LogSink, componentLevels ...map[Component]Level) Logger {
 	logger := Logger{
-		componentLevels: mergeComponentLevels([]map[LogComponent]LogLevel{
+		componentLevels: mergeComponentLevels([]map[Component]Level{
 			getEnvComponentLevels(),
 			mergeComponentLevels(componentLevels...),
 		}...),
@@ -53,7 +52,7 @@ func New(sink LogSink, componentLevels ...map[LogComponent]LogLevel) Logger {
 
 // NewWithWriter will construct a new logger with the given writer. If the given writer is nil, then the logger will
 // log using the standard library with output to os.Stderr.
-func NewWithWriter(w io.Writer, componentLevels ...map[LogComponent]LogLevel) Logger {
+func NewWithWriter(w io.Writer, componentLevels ...map[Component]Level) Logger {
 	return New(newOSSink(w), componentLevels...)
 }
 
@@ -63,11 +62,11 @@ func (logger Logger) Close() {
 }
 
 // Is will return true if the given LogLevel is enabled for the given LogComponent.
-func (logger Logger) Is(level LogLevel, component LogComponent) bool {
+func (logger Logger) Is(level Level, component Component) bool {
 	return logger.componentLevels[component] >= level
 }
 
-func (logger Logger) Print(level LogLevel, msg ComponentMessage) {
+func (logger Logger) Print(level Level, msg ComponentMessage) {
 	select {
 	case logger.jobs <- job{level, msg}:
 		// job sent
@@ -78,28 +77,18 @@ func (logger Logger) Print(level LogLevel, msg ComponentMessage) {
 
 func (logger *Logger) startPrinter(jobs <-chan job) {
 	for job := range jobs {
-		fmt.Printf("printer job: %v\n", job)
-
 		level := job.level
 		msg := job.msg
 
+		// If the level is not enabled for the component, then skip the message.
 		if !logger.Is(level, msg.Component()) {
-			fmt.Println("printer job dropped", level, msg.Component())
 			return
 		}
 
-		bytes, err := msg.ExtJSONBytes()
-		if err != nil {
-			panic(err)
-		}
-
 		if sink := logger.sink; sink != nil {
-			fmt.Println("printer job sent to sink", level, msg.Component())
 			// TODO: the -2 offset is to align the printer with the logr API. We probably shouldn't bake
 			// TODO: this into the code. How should we handle this?
-			sink.Info(int(level)-2, string(bytes), msg.KeysAndValues()...)
+			sink.Info(int(level), msg.Message(), msg.KeysAndValues()...)
 		}
-
-		fmt.Println("printer job done")
 	}
 }

@@ -1,58 +1,61 @@
 package logger
 
-import (
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
+const (
+	CommandMessageStarted   = "Command started"
+	CommandMessageSucceeded = "Command succeeded"
 )
 
-const DefaultCommandSucceededMessageMessage = "Command succeeded"
-
-type Command struct {
-	// Name is the name of the command.
-	Name string `bson:"name"`
-
-	// RequestID is the driver-generated request ID for the command.
-	RequestID int64 `bson:"requestID"`
+type CommandStartedMessage struct {
+	Name       string `bson:"commandName"`
+	RequestID  int64  `bson:"requestId"`
+	ServerHost string `bson:"serverHost"`
+	Msg        string `bson:"message"`
+	Database   string `bson:"databaseName"`
 }
 
-func (cmd *Command) KeysAndValues() []interface{} {
+func (*CommandStartedMessage) Component() Component {
+	return CommandComponent
+}
+
+func (msg *CommandStartedMessage) KeysAndValues() []interface{} {
 	return []interface{}{
-		"name", cmd.Name,
-		"requestID", cmd.RequestID,
+		"message", msg.Msg,
+		"databaseName", msg.Database,
+		"commandName", msg.Name,
 	}
+}
+
+func (msg *CommandStartedMessage) Message() string {
+	return msg.Msg
 }
 
 type CommandSucceededMessage struct {
-	*Command
-
-	Message    string `bson:"message"`
+	Name       string `bson:"commandName"`
+	RequestID  int64  `bson:"requestId"`
+	ServerHost string `bson:"serverHost"`
+	ServerPort int32  `bson:"serverPort"`
+	Msg        string `bson:"message"`
 	DurationMS int64  `bson:"durationMS"`
-	Reply      string `bson:"reply"`
+	Reply      string `bson:"reply0"`
+	ReplyRaw   []byte `bson:"reply"`
 }
 
-func NewCommandSuccessMessage(duration time.Duration, reply bson.Raw, cmd *Command) *CommandSucceededMessage {
-	return &CommandSucceededMessage{
-		Command:    cmd,
-		Message:    DefaultCommandSucceededMessageMessage,
-		DurationMS: duration.Milliseconds(),
-		Reply:      reply.String(),
-	}
-}
-
-func (*CommandSucceededMessage) Component() LogComponent {
-	return CommandLogComponent
-}
-
-func (msg *CommandSucceededMessage) ExtJSONBytes() ([]byte, error) {
-	return bson.MarshalExtJSON(msg, false, false)
+func (*CommandSucceededMessage) Component() Component {
+	return CommandComponent
 }
 
 func (msg *CommandSucceededMessage) KeysAndValues() []interface{} {
 	return []interface{}{
-		"command", msg.Command.KeysAndValues(),
-		"message", msg.Message,
+		"commandName", msg.Name,
+		"requestId", msg.RequestID,
+		"message", msg.Msg,
 		"durationMS", msg.DurationMS,
 		"reply", msg.Reply,
+		"serverHost", msg.ServerHost,
+		"serverPort", msg.ServerPort,
 	}
+}
+
+func (msg *CommandSucceededMessage) Message() string {
+	return msg.Msg
 }

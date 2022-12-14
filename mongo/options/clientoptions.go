@@ -584,8 +584,6 @@ func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 func (c *ClientOptions) SetLoggerOptions(opts *LoggerOptions) *ClientOptions {
 	c.LoggerOptions = opts
 
-	fmt.Println("SetLoggerOptions", opts, c.LoggerOptions)
-
 	return c
 }
 

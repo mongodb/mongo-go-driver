@@ -226,24 +226,24 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 
 		componentLevels := clientOpt.LoggerOptions.ComponentLevels
-		fmt.Println("componentLevels in client:", componentLevels)
 		if componentLevels == nil {
 			componentLevels = make(map[options.LogComponent]options.LogLevel)
 		}
 
-		internalComponentLevels := make(map[logger.LogComponent]logger.LogLevel)
+		internalComponentLevels := make(map[logger.Component]logger.Level)
 		for component, level := range componentLevels {
-			internalComponentLevels[logger.LogComponent(component)] = logger.LogLevel(level)
+			internalComponentLevels[logger.Component(component)] = logger.Level(level)
 		}
-
-		fmt.Println("internalComponentLevels", internalComponentLevels)
 
 		client.logger = logger.New(sink, internalComponentLevels)
 	}
 
-	fmt.Println("client logger in client construct:", client.logger)
-
 	return client, nil
+}
+
+// TODO: remove this
+func (c *Client) Logger() logger.Logger {
+	return c.logger
 }
 
 // Connect initializes the Client by starting background monitoring goroutines.

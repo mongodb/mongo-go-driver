@@ -35,12 +35,13 @@ const (
 
 // TestCase holds and runs a unified spec test case
 type TestCase struct {
-	Description       string             `bson:"description"`
-	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
-	SkipReason        *string            `bson:"skipReason"`
-	Operations        []*operation       `bson:"operations"`
-	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
-	Outcome           []*collectionData  `bson:"outcome"`
+	Description       string                        `bson:"description"`
+	RunOnRequirements []mtest.RunOnBlock            `bson:"runOnRequirements"`
+	SkipReason        *string                       `bson:"skipReason"`
+	Operations        []*operation                  `bson:"operations"`
+	ExpectedEvents    []*expectedEvents             `bson:"expectEvents"`
+	ExpectLogMessages expectedLogMessagesForClients `bson:"expectLogMessages"`
+	Outcome           []*collectionData             `bson:"outcome"`
 
 	initialData     []*collectionData
 	createEntities  []map[string]*entityOptions
@@ -133,11 +134,11 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 	}
 }
 
-// ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+func parseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase, error) {
 	var testFile TestFile
-	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
+	if err := bson.UnmarshalExtJSON(testJSON, false, &testFile); err != nil {
+		return nil, nil, err
+	}
 
 	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
@@ -148,7 +149,18 @@ func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.Run
 		testCase.loopDone = make(chan struct{})
 		testCase.killAllSessions = *op.RunKillAllSessions
 	}
-	return testFile.RunOnRequirements, testFile.TestCases
+
+	return testFile.RunOnRequirements, testFile.TestCases, nil
+}
+
+// ParseTestFile create an array of TestCases from the testJSON json blob
+func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+	t.Helper()
+
+	runOnRequirements, testCases, err := parseTestFile(testJSON, opts...)
+	assert.Nil(t, err, "error parsing test file: %v", err)
+
+	return runOnRequirements, testCases
 }
 
 // GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after
@@ -201,6 +213,11 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
 	if err := checkSchemaVersion(tc.schemaVersion); err != nil {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
+	}
+
+	// Validate the ExpectedLogMessages.
+	if err := tc.ExpectLogMessages.validate(); err != nil {
+		return fmt.Errorf("invalid expected log messages: %v", err)
 	}
 
 	testCtx := newTestContext(context.Background(), tc.entities)
@@ -263,6 +280,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
+	for clientName, clientEntity := range tc.entities.clients() {
+		go startLogMessageValidator(clientName, clientEntity, tc.ExpectLogMessages)
+	}
+
 	// Work around SERVER-39704.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
 		if err := performDistinctWorkaround(testCtx); err != nil {
@@ -294,6 +315,14 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			}
 		}
 	}
+
+	//if expectLogMessages := tc.ExpectLogMessages; expectLogMessages != nil {
+	//	for idx, expectedLogMessage := range expectLogMessages {
+	//		if err := verifyLogMessages(testCtx, expectedLogMessage); err != nil {
+	//			return fmt.Errorf("log messages verification failed at index %d: %v", idx, err)
+	//		}
+	//	}
+	//}
 
 	for idx, collData := range tc.Outcome {
 		if err := collData.verifyContents(testCtx); err != nil {
