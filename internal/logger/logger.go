@@ -3,7 +3,11 @@ package logger
 import (
 	"io"
 	"os"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
+
+const messageKey = "message"
 
 // LogSink is an interface that can be implemented to provide a custom sink for the driver's logs.
 type LogSink interface {
@@ -85,10 +89,47 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 			return
 		}
 
-		if sink := logger.sink; sink != nil {
-			// TODO: the -2 offset is to align the printer with the logr API. We probably shouldn't bake
-			// TODO: this into the code. How should we handle this?
-			sink.Info(int(level), msg.Message(), msg.KeysAndValues()...)
+		sink := logger.sink
+
+		// If the sink is nil, then skip the message.
+		if sink == nil {
+			return
 		}
+
+		// leveInt is the integer representation of the level.
+		levelInt := int(level)
+
+		// convert the component message into raw BSON.
+		msgBytes, err := bson.Marshal(msg)
+		if err != nil {
+			sink.Info(levelInt, "error marshalling message to BSON: %v", err)
+
+			return
+		}
+
+		rawMsg := bson.Raw(msgBytes)
+
+		// Gather the keys and values from the BSON message as a variadic slice.
+		elems, err := rawMsg.Elements()
+		if err != nil {
+			sink.Info(levelInt, "error getting elements from BSON message: %v", err)
+
+			return
+		}
+
+		var keysAndValues []interface{}
+		for _, elem := range elems {
+			keysAndValues = append(keysAndValues, elem.Key(), elem.Value())
+		}
+
+		// Get the message string from the rawMsg.
+		msgValue, err := rawMsg.LookupErr(messageKey)
+		if err != nil {
+			sink.Info(levelInt, "error getting message from BSON message: %v", err)
+
+			return
+		}
+
+		sink.Info(int(level), msgValue.String(), keysAndValues...)
 	}
 }

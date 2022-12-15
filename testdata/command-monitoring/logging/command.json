@@ -60,10 +60,126 @@
               "level": "debug",
               "component": "command",
               "data": {
+                "message": "Command started",
+                "databaseName": "logging-tests",
+                "commandName": "ping",
+                "command": {
+                  "$$matchAsDocument": {
+                    "$$matchAsRoot": {
+                      "ping": 1,
+                      "$db": "logging-tests"
+                    }
+                  }
+                },
+                "requestId": {
+                  "$$type": [
+                    "int",
+                    "long"
+                  ]
+                },
+                "serverHost": {
+                  "$$type": "string"
+                },
+                "serverPort": {
+                  "$$type": [
+                    "int",
+                    "long"
+                  ]
+                }
+              }
+            },
+            {
+              "level": "debug",
+              "component": "command",
+              "data": {
                 "message": "Command succeeded",
                 "commandName": "ping",
                 "reply": {
                   "$$type": "string"
+                },
+                "requestId": {
+                  "$$type": [
+                    "int",
+                    "long"
+                  ]
+                },
+                "serverHost": {
+                  "$$type": "string"
+                },
+                "serverPort": {
+                  "$$type": [
+                    "int",
+                    "long"
+                  ]
+                },
+                "durationMS": {
+                  "$$type": [
+                    "double",
+                    "int",
+                    "long"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "description": "A failed command",
+      "operations": [
+        {
+          "name": "find",
+          "object": "collection",
+          "arguments": {
+            "filter": {
+              "$or": true
+            }
+          },
+          "expectError": {
+            "isClientError": false
+          }
+        }
+      ],
+      "expectLogMessages": [
+        {
+          "client": "client",
+          "messages": [
+            {
+              "level": "debug",
+              "component": "command",
+              "data": {
+                "message": "Command started",
+                "databaseName": "logging-tests",
+                "commandName": "find",
+                "command": {
+                  "$$type": "string"
+                },
+                "requestId": {
+                  "$$type": [
+                    "int",
+                    "long"
+                  ]
+                },
+                "serverHost": {
+                  "$$type": "string"
+                },
+                "serverPort": {
+                  "$$type": [
+                    "int",
+                    "long"
+                  ]
+                }
+              }
+            },
+            {
+              "level": "debug",
+              "component": "command",
+              "data": {
+                "message": "Command failed",
+                "commandName": "find",
+                "failure": {
+                  "$$exists": true
                 },
                 "requestId": {
                   "$$type": [

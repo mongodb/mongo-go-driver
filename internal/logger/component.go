@@ -56,15 +56,6 @@ func (componentl ComponentLiteral) Component() Component {
 
 type ComponentMessage interface {
 	Component() Component
-	//ExtJSONBytes() ([]byte, error)
-
-	// KeysAndValues returns a slice of alternating keys and values. The keys are strings and the values are
-	// arbitrary types. The keys are used to identify the values in the output. This method is used by the log
-	// sink for structured logging.
-	KeysAndValues() []interface{}
-
-	// Message returns a string representation of the message.
-	Message() string
 }
 
 type componentEnv string

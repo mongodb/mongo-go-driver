@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -94,20 +96,21 @@ type startedInformation struct {
 	serverConnID             *int32
 	redacted                 bool
 	serviceID                *primitive.ObjectID
+	serverAddress            address.Address
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName      string
-	requestID    int32
-	response     bsoncore.Document
-	cmdErr       error
-	connID       string
-	serverConnID *int32
-	startTime    time.Time
-	redacted     bool
-	serviceID    *primitive.ObjectID
-	serverHost   string
+	cmdName       string
+	requestID     int32
+	response      bsoncore.Document
+	cmdErr        error
+	connID        string
+	serverConnID  *int32
+	startTime     time.Time
+	redacted      bool
+	serviceID     *primitive.ObjectID
+	serverAddress address.Address
 }
 
 // success returns true if there was no command error or the command error is a "WriteCommandError".
@@ -551,6 +554,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		startedInfo.serverConnID = conn.ServerConnectionID()
+		startedInfo.serverAddress = conn.Description().Addr
+
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -568,14 +573,14 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:      startedInfo.cmdName,
-			requestID:    startedInfo.requestID,
-			startTime:    time.Now(),
-			connID:       startedInfo.connID,
-			serverConnID: startedInfo.serverConnID,
-			redacted:     startedInfo.redacted,
-			serviceID:    startedInfo.serviceID,
-			serverHost:   desc.Server.Addr.String(),
+			cmdName:       startedInfo.cmdName,
+			requestID:     startedInfo.requestID,
+			startTime:     time.Now(),
+			connID:        startedInfo.connID,
+			serverConnID:  startedInfo.serverConnID,
+			redacted:      startedInfo.redacted,
+			serviceID:     startedInfo.serviceID,
+			serverAddress: desc.Server.Addr,
 		}
 
 		//fmt.Println("hosts:", desc.Server.Hosts)
@@ -1704,37 +1709,68 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 	return err == nil
 }
 
+// canLogCommandMessage returns true if the command can be logged.
+func (op Operation) canLogCommandMessage() bool {
+	return op.Logger.Is(logger.DebugLevel, logger.CommandComponent)
+}
+
+func (op Operation) canPublishStartedEven() bool {
+	return op.CommandMonitor != nil && op.CommandMonitor.Started != nil
+}
+
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
 // an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
 // no events are published.
 func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
-	if op.CommandMonitor == nil || op.CommandMonitor.Started == nil {
-		return
-	}
+	var cmdCopy bson.Raw
 
-	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
-	// If there was a type 1 payload for the current batch, convert it to a BSON array.
-	cmdCopy := bson.Raw{}
-	if !info.redacted {
-		cmdCopy = make([]byte, len(info.cmd))
-		copy(cmdCopy, info.cmd)
-		if info.documentSequenceIncluded {
-			cmdCopy = cmdCopy[:len(info.cmd)-1] // remove 0 byte at end
-			cmdCopy = op.addBatchArray(cmdCopy)
-			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0) // add back 0 byte and update length
+	var getCmdCopy = func() bson.Raw {
+		if cmdCopy != nil {
+			return cmdCopy
 		}
+
+		// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
+		// If there was a type 1 payload for the current batch, convert it to a BSON array.
+		if !info.redacted {
+			cmdCopy = make([]byte, len(info.cmd))
+			copy(cmdCopy, info.cmd)
+			if info.documentSequenceIncluded {
+				cmdCopy = cmdCopy[:len(info.cmd)-1] // remove 0 byte at end
+				cmdCopy = op.addBatchArray(cmdCopy)
+				cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0) // add back 0 byte and update length
+			}
+		}
+		return cmdCopy
 	}
 
-	started := &event.CommandStartedEvent{
-		Command:            cmdCopy,
-		DatabaseName:       op.Database,
-		CommandName:        info.cmdName,
-		RequestID:          int64(info.requestID),
-		ConnectionID:       info.connID,
-		ServerConnectionID: info.serverConnID,
-		ServiceID:          info.serviceID,
+	// If logging is enabled for the command component at the debug level, log the command response.
+	if op.canLogCommandMessage() {
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+		portInt, _ := strconv.Atoi(port)
+
+		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
+			Name:         info.cmdName,
+			RequestID:    int64(info.requestID),
+			ServerHost:   host,
+			ServerPort:   int32(portInt),
+			Message:      logger.CommandMessageStartedDefault,
+			Command:      getCmdCopy().String(),
+			DatabaseName: op.Database,
+		})
 	}
-	op.CommandMonitor.Started(ctx, started)
+
+	if op.canPublishStartedEven() {
+		started := &event.CommandStartedEvent{
+			Command:            getCmdCopy(),
+			DatabaseName:       op.Database,
+			CommandName:        info.cmdName,
+			RequestID:          int64(info.requestID),
+			ConnectionID:       info.connID,
+			ServerConnectionID: info.serverConnID,
+			ServiceID:          info.serviceID,
+		}
+		op.CommandMonitor.Started(ctx, started)
+	}
 }
 
 // canPublishSucceededEvent returns true if a CommandSucceededEvent can be published for the given command. This is true
@@ -1745,11 +1781,6 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 	return op.CommandMonitor != nil &&
 		(!success || op.CommandMonitor.Succeeded != nil) &&
 		(success || op.CommandMonitor.Failed == nil)
-}
-
-// canLogSucceededCommand returns true if the command can be logged.
-func (op Operation) canLogSucceededCommand() bool {
-	return op.Logger.Is(logger.DebugLevel, logger.CommandComponent)
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
@@ -1791,14 +1822,18 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	// If logging is enabled for the command component at the debug level, log the command response.
-	if op.canLogSucceededCommand() {
+	if op.canLogCommandMessage() {
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+		portInt, _ := strconv.Atoi(port)
+
 		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
 			Name:       info.cmdName,
 			RequestID:  int64(info.requestID),
-			Msg:        logger.CommandMessageSucceeded,
+			Message:    logger.CommandMessageSucceededDefault,
 			DurationMS: getDuration().Milliseconds(),
 			Reply:      getRawResponse().String(),
-			ServerHost: info.serverHost,
+			ServerHost: host,
+			ServerPort: int32(portInt),
 		})
 	}
 
