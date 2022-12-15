@@ -294,7 +294,6 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 	case "$$matchAsDocument":
 		fmt.Println("assertionVal: ", assertionVal)
 		fmt.Println("actual: ", actual)
-		panic("you've meep'd your last moop")
 	default:
 		return fmt.Errorf("unrecognized special matching assertion %q", assertion)
 	}
