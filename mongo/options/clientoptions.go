@@ -752,7 +752,8 @@ func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 // "tlsPrivateKeyFile". The "tlsCertificateKeyFile" option specifies a path to the client certificate and private key,
 // which must be concatenated into one file. The "tlsCertificateFile" and "tlsPrivateKey" combination specifies separate
 // paths to the client certificate and private key, respectively. Note that if "tlsCertificateKeyFile" is used, the
-// other two options must not be specified.
+// other two options must not be specified. Only the subject name of the first certificate is honored as the username
+// for X509 auth in a file with multiple certs.
 //
 // 3. "tlsCertificateKeyFilePassword" (or "sslClientCertificateKeyPassword"): Specify the password to decrypt the client
 // private key file (e.g. "tlsCertificateKeyFilePassword=password").
@@ -1049,8 +1050,8 @@ func addClientCertFromConcatenatedFile(cfg *tls.Config, certKeyFile, keyPassword
 	return addClientCertFromBytes(cfg, data, keyPassword)
 }
 
-// addClientCertFromBytes adds a client certificate to the configuration given a path to the
-// containing file and returns the certificate's subject name.
+// addClientCertFromBytes adds client certificates to the configuration given a path to the
+// containing file and returns the subject name in the first certificate.
 func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (string, error) {
 	var currentBlock *pem.Block
 	var certDecodedBlock []byte
@@ -1067,6 +1068,8 @@ func addClientCertFromBytes(cfg *tls.Config, data []byte, keyPasswd string) (str
 		if currentBlock.Type == "CERTIFICATE" {
 			certBlock := data[start : len(data)-len(remaining)]
 			certBlocks = append(certBlocks, certBlock)
+			// Assign the certDecodedBlock when it is never set,
+			// so only the first certificate is honored in a file with multiple certs.
 			if certDecodedBlock == nil {
 				certDecodedBlock = currentBlock.Bytes
 			}
