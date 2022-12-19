@@ -58,7 +58,9 @@ type entityOptions struct {
 	ObserveSensitiveCommands *bool                         `bson:"observeSensitiveCommands"`
 	StoreEventsAsEntities    []storeEventsAsEntitiesConfig `bson:"storeEventsAsEntities"`
 	ServerAPIOptions         *serverAPIOptions             `bson:"serverApi"`
-	ObserveLogMessages       *observeLogMessages           `bson:"observeLogMessages"`
+
+	// Options for logger entities.
+	ObserveLogMessages *observeLogMessages `bson:"observeLogMessages"`
 
 	// Options for database entities.
 	DatabaseName    string                 `bson:"databaseName"`

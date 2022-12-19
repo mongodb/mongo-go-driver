@@ -583,8 +583,6 @@ func (op Operation) Execute(ctx context.Context) error {
 			serverAddress: desc.Server.Addr,
 		}
 
-		//fmt.Println("hosts:", desc.Server.Hosts)
-
 		// Check for possible context error. If no context error, check if there's enough time to perform a
 		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
 		// as a threshold. Otherwise, use the minimum observed RTT.
@@ -1749,12 +1747,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
-			Name:         info.cmdName,
-			RequestID:    int64(info.requestID),
-			ServerHost:   host,
-			ServerPort:   int32(portInt),
-			Message:      logger.CommandMessageStartedDefault,
-			Command:      getCmdCopy().String(),
+			Name:       info.cmdName,
+			RequestID:  int64(info.requestID),
+			ServerHost: host,
+			ServerPort: int32(portInt),
+			Message:    logger.CommandMessageStartedDefault,
+			//Command:      getCmdCopy().String(),
+			Command:      bson.Raw(info.cmd).String(),
 			DatabaseName: op.Database,
 		})
 	}
@@ -1822,7 +1821,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	// If logging is enabled for the command component at the debug level, log the command response.
-	if op.canLogCommandMessage() {
+	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 

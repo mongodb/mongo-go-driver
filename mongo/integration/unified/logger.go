@@ -33,7 +33,6 @@ func newLogger(actualCh chan logActual) *Logger {
 
 // Info ...
 func (logger *Logger) Info(level int, msg string, args ...interface{}) {
-	fmt.Println("message logged: ", level, msg, args)
 	if logger.actualCh != nil {
 		logger.actualCh <- logActual{
 			position: logger.nextPosition,

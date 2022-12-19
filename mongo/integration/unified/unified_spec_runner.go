@@ -280,9 +280,9 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	for clientName, clientEntity := range tc.entities.clients() {
-		go startLogMessageValidator(clientName, clientEntity, tc.ExpectLogMessages)
-	}
+	// start the log message validation worker.
+	logMessageValidator := startLogMessageValidator(tc)
+	defer logMessageValidator.close()
 
 	// Work around SERVER-39704.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
@@ -316,20 +316,18 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	//if expectLogMessages := tc.ExpectLogMessages; expectLogMessages != nil {
-	//	for idx, expectedLogMessage := range expectLogMessages {
-	//		if err := verifyLogMessages(testCtx, expectedLogMessage); err != nil {
-	//			return fmt.Errorf("log messages verification failed at index %d: %v", idx, err)
-	//		}
-	//	}
-	//}
-
 	for idx, collData := range tc.Outcome {
 		if err := collData.verifyContents(testCtx); err != nil {
 			return fmt.Errorf("error verifying outcome for collection %q at index %d: %v",
 				collData.namespace(), idx, err)
 		}
 	}
+
+	// For each client, verify that all expected log messages were received.
+	if err := logMessageValidator.validate(); err != nil {
+		return fmt.Errorf("error verifying log messages: %v", err)
+	}
+
 	return nil
 }
 

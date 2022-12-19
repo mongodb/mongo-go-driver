@@ -292,8 +292,23 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 		}
 		return nil
 	case "$$matchAsDocument":
-		fmt.Println("assertionVal: ", assertionVal)
-		fmt.Println("actual: ", actual)
+		var actualDoc bson.Raw
+		str, ok := actual.StringValueOK()
+		if !ok {
+			return fmt.Errorf("expected value to be a string but got a %s", actual.Type)
+		}
+
+		if err := bson.UnmarshalExtJSON([]byte(str), true, &actualDoc); err != nil {
+			return fmt.Errorf("error unmarshalling string as document: %v", err)
+		}
+
+		if err := verifyValuesMatch(ctx, assertionVal, documentToRawValue(actualDoc), true); err != nil {
+			return fmt.Errorf("error matching $$matchAsRoot assertion: %v", err)
+		}
+	case "$$matchAsRoot":
+		if err := verifyValuesMatch(ctx, assertionVal, actual, true); err != nil {
+			return fmt.Errorf("error matching $$matchAsRoot assertion: %v", err)
+		}
 	default:
 		return fmt.Errorf("unrecognized special matching assertion %q", assertion)
 	}

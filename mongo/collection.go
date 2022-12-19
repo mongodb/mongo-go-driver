@@ -1223,7 +1223,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime)
+		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 	if fo.AllowDiskUse != nil {

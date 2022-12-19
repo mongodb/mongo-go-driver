@@ -241,11 +241,6 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	return client, nil
 }
 
-// TODO: remove this
-func (c *Client) Logger() logger.Logger {
-	return c.logger
-}
-
 // Connect initializes the Client by starting background monitoring goroutines.
 // If the Client was created using the NewClient function, this method must be called before a Client can be used.
 //

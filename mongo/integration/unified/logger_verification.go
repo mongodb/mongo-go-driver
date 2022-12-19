@@ -3,9 +3,16 @@ package unified
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/logger"
+)
+
+var (
+	errLogMessageDocumentMismatch  = fmt.Errorf("log message document mismatch")
+	errLogMessageMarshalingFailure = fmt.Errorf("log message marshaling failure")
+	errLogMessageLevelMismatch     = fmt.Errorf("log message level mismatch")
 )
 
 // expectedLogMessage is a log message that is expected to be observed by the driver.
@@ -51,7 +58,7 @@ func (elm *expectedLogMessage) validate() error {
 func (elm *expectedLogMessage) isLogActual(got logActual) error {
 	// The levels of the expected log message and the actual log message must match, upto logger.Level.
 	if int(elm.LevelLiteral.Level()) != got.level {
-		return fmt.Errorf("expected level %v, got %v", elm.LevelLiteral, got.level)
+		return fmt.Errorf("%w %v, got %v", errLogMessageLevelMismatch, elm.LevelLiteral, got.level)
 	}
 
 	// expectedDoc is the expected document that should be logged. This is the document that we will compare to the
@@ -68,7 +75,7 @@ func (elm *expectedLogMessage) isLogActual(got logActual) error {
 	// Marshal the actualD bson.D into a bson.Raw so that we can compare it to the expectedDoc bson.RawValue.
 	actualRaw, err := bson.Marshal(actualD)
 	if err != nil {
-		return fmt.Errorf("error marshalling actual document: %v", err)
+		return fmt.Errorf("%w: %v", errLogMessageMarshalingFailure, err)
 	}
 
 	// actualDoc is the actual document that was logged. This is the document that we will compare to the expected
@@ -76,7 +83,7 @@ func (elm *expectedLogMessage) isLogActual(got logActual) error {
 	actualDoc := documentToRawValue(actualRaw)
 
 	if err := verifyValuesMatch(context.Background(), expectedDoc, actualDoc, true); err != nil {
-		return fmt.Errorf("documents do not match: %v", err)
+		return fmt.Errorf("%w: %v", errLogMessageDocumentMismatch, err)
 	}
 
 	return nil
@@ -148,15 +155,141 @@ func (elmc expectedLogMessagesForClients) forClient(clientName string) *expected
 	return nil
 }
 
-func startLogMessageValidator(clientName string, entity *clientEntity, want expectedLogMessagesForClients) {
-	for actual := range entity.loggerActual {
-		if expected := want.forClient(clientName); expected != nil {
-			// The log messages must be in the same order as the expected messages to ensure correct
-			// logging order, per the specifications.
-			message := expected.Messages[actual.position-1]
-			if err := message.isLogActual(actual); err != nil {
-				panic(err)
-			}
+// logMessageResult represents the verification result of a log message.
+type logMessageResult struct {
+	// err is the error that occurred while verifying the log message. If no error occurred, this will be nil.
+	err error
+}
+
+// logMesageClientValidator defines the expectation for log messages.
+type logMessageClientValidator struct {
+	// want are the expected log messages for a given client.
+	want *expectedLogMessagesForClient
+
+	// invalid are the message pointers to the log result.
+	invalid sync.Map
+}
+
+// err will return the first error found for the expected log messages.
+func (clientValidator *logMessageClientValidator) validate() error {
+	if clientValidator.want == nil {
+		return nil
+	}
+
+	for _, msg := range clientValidator.want.Messages {
+		result, ok := clientValidator.invalid.Load(msg)
+		if !ok {
+			// If the log message is not found, that means the worker deleted it.
+			continue
+		}
+
+		if err := result.(*logMessageResult).err; err != nil {
+			return err
 		}
 	}
+
+	return nil
+}
+
+// logMessageVAlidator defines the expectation for log messages accross all clients.
+type logMessageValidator struct {
+	clientValidators map[string]*logMessageClientValidator
+}
+
+func (validator *logMessageValidator) close() {}
+
+// addClient wil add a new client to the "logMessageValidator". By default all messages are considered "invalid" and
+// "missing" until they are verified.
+func (validator *logMessageValidator) addClient(clientName string, all expectedLogMessagesForClients) {
+	want := all.forClient(clientName)
+	if want == nil {
+		return
+	}
+
+	if validator.clientValidators == nil {
+		validator.clientValidators = make(map[string]*logMessageClientValidator)
+	}
+
+	validator.clientValidators[clientName] = &logMessageClientValidator{
+		want:    want,
+		invalid: sync.Map{},
+	}
+
+	// Iterate through all of the "want" messages and create a logMessageResult for each one with a default error
+	// message of "message expected, but not logged".
+	for _, msg := range want.Messages {
+		// Check to see if the "Data" field on the message has a "message" value.
+		var err error
+
+		msgStr, ok := msg.Data.Lookup("message").StringValueOK()
+		if ok {
+			err = fmt.Errorf("message %q for client %q expected, but not logged", msgStr, clientName)
+		} else {
+			err = fmt.Errorf("message for client %q expected, but not logged", clientName)
+		}
+
+		validator.clientValidators[clientName].invalid.Store(msg, &logMessageResult{err: err})
+	}
+}
+
+// getClient will return the "logMessageClientValidator" for the given client name. If no client exists for the given
+// client name, this will return nil.
+func (validator *logMessageValidator) getClient(clientName string) *logMessageClientValidator {
+	if validator.clientValidators == nil {
+		return nil
+	}
+
+	return validator.clientValidators[clientName]
+}
+
+// validate will validate all log messages receiced by all clients and return the first error encountered.
+func (validator *logMessageValidator) validate() error {
+	for _, clientValidator := range validator.clientValidators {
+		if err := clientValidator.validate(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// startLogMessageClientValidator will listen to the "logActual" channel for a given client entity, updating the
+// "invalid" map to either (1) delete the "missing message" if the message was found and is valid, or (2) update the
+// map to express the error that occurred while validating the message.
+func startLogMessageClientValidator(entity *clientEntity, validator *logMessageClientValidator) {
+	if validator == nil || validator.want == nil {
+		return
+	}
+
+	for actual := range entity.loggerActual {
+		message := validator.want.Messages[actual.position-1]
+
+		// Lookup the logMessageResult for the message.
+		result, ok := validator.invalid.Load(message)
+		if !ok {
+			continue
+		}
+
+		if err := message.isLogActual(actual); err != nil {
+			// If the log message is not valid, update the logMessageResult with the error as to why.
+			result.(*logMessageResult).err = err
+
+			continue
+		}
+
+		// If the message is valid, we can delete the logMessageResult from the map.
+		validator.invalid.Delete(message)
+	}
+}
+
+// startLogMessageValidate will start one worker per client entity that will validate the log messages for that client.
+func startLogMessageValidator(tcase *TestCase) *logMessageValidator {
+	validator := new(logMessageValidator)
+	for clientName, entity := range tcase.entities.clients() {
+		validator.addClient(clientName, tcase.ExpectLogMessages)
+
+		go startLogMessageClientValidator(entity, validator.getClient(clientName))
+	}
+
+	return validator
 }
