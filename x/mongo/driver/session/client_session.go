@@ -98,6 +98,7 @@ type LoadBalancedTransactionConnection interface {
 	ServerConnectionID() *int32
 	Address() address.Address
 	Stale() bool
+	IsNil() bool
 
 	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
 	PinToCursor() error
