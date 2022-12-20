@@ -1757,9 +1757,7 @@ func defaultReplyCallback(ctx context.Context, rsp *bsoncore.Document) bson.Raw 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
-	fmt.Println("publishFinishedEvent")
 	if op.CommandMonitor == nil {
-		fmt.Println(1)
 		return
 	}
 
@@ -1773,7 +1771,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		success = true
 	}
 	if (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
-		fmt.Println(2)
 		return
 	}
 
@@ -1803,7 +1800,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)
-		fmt.Println(3)
 		return
 	}
 
