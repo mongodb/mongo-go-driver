@@ -1577,10 +1577,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "error on CreateCollection: %v", err)
 			err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 			assert.Nil(mt, err, "error on Drop: %v", err)
-			keyVaultClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()))
+			keyVaultClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
 			assert.Nil(mt, err, "error on Connect: %v", err)
 			datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
-			_, err = datakeysColl.InsertOne(context.TODO(), key1Document)
+			_, err = datakeysColl.InsertOne(context.Background(), key1Document)
 			assert.Nil(mt, err, "error on InsertOne: %v", err)
 			// Create a ClientEncryption.
 			ceo := options.ClientEncryption().
@@ -1782,7 +1782,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
 			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
-			_, err = wcmColl.Indexes().CreateOne(context.TODO(), keyVaultIndex)
+			_, err = wcmColl.Indexes().CreateOne(context.Background(), keyVaultIndex)
 			assert.Nil(mt, err, "error creating keyAltNames index: %v", err)
 
 			// Using client_encryption, create a data key with a local KMS provider and the keyAltName "def".
@@ -2171,10 +2171,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					assert.Nil(mt, err, "error on CreateCollection: %v", err)
 					err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 					assert.Nil(mt, err, "error on Drop: %v", err)
-					keyVaultClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mtest.ClusterURI()))
+					keyVaultClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
 					assert.Nil(mt, err, "error on Connect: %v", err)
 					datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
-					_, err = datakeysColl.InsertOne(context.TODO(), key1Document)
+					_, err = datakeysColl.InsertOne(context.Background(), key1Document)
 					assert.Nil(mt, err, "error on InsertOne: %v", err)
 					// Create a ClientEncryption.
 					ceo := options.ClientEncryption().
