@@ -11,12 +11,9 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -36,13 +33,12 @@ const (
 )
 
 type awsConversation struct {
-	state      clientState
-	valid      bool
-	nonce      []byte
-	username   string
-	password   string
-	token      string
-	httpClient *http.Client
+	state    clientState
+	valid    bool
+	nonce    []byte
+	provider interface {
+		getCredentials(ctx context.Context) (*awsv4.StaticProvider, error)
+	}
 }
 
 type serverMessage struct {
@@ -50,21 +46,10 @@ type serverMessage struct {
 	Host  string           `bson:"h"`
 }
 
-type ecsResponse struct {
-	AccessKeyID     string `json:"AccessKeyId"`
-	SecretAccessKey string `json:"SecretAccessKey"`
-	Token           string `json:"Token"`
-}
-
 const (
 	amzDateFormat       = "20060102T150405Z"
-	awsRelativeURI      = "http://169.254.170.2/"
-	awsEC2URI           = "http://169.254.169.254/"
-	awsEC2RolePath      = "latest/meta-data/iam/security-credentials/"
-	awsEC2TokenPath     = "latest/api/token"
 	defaultRegion       = "us-east-1"
 	maxHostLength       = 255
-	defaultHTTPTimeout  = 10 * time.Second
 	responceNonceLength = 64
 )
 
@@ -128,149 +113,6 @@ func getRegion(host string) (string, error) {
 	return region, nil
 }
 
-func (ac *awsConversation) validateAndMakeCredentials() (*awsv4.StaticProvider, error) {
-	if ac.username != "" && ac.password == "" {
-		return nil, errors.New("ACCESS_KEY_ID is set, but SECRET_ACCESS_KEY is missing")
-	}
-	if ac.username == "" && ac.password != "" {
-		return nil, errors.New("SECRET_ACCESS_KEY is set, but ACCESS_KEY_ID is missing")
-	}
-	if ac.username == "" && ac.password == "" && ac.token != "" {
-		return nil, errors.New("AWS_SESSION_TOKEN is set, but ACCESS_KEY_ID and SECRET_ACCESS_KEY are missing")
-	}
-	if ac.username != "" || ac.password != "" || ac.token != "" {
-		return &awsv4.StaticProvider{Value: awsv4.Value{
-			AccessKeyID:     ac.username,
-			SecretAccessKey: ac.password,
-			SessionToken:    ac.token,
-		}}, nil
-	}
-	return nil, nil
-}
-
-func executeAWSHTTPRequest(httpClient *http.Client, req *http.Request) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultHTTPTimeout)
-	defer cancel()
-	resp, err := httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return ioutil.ReadAll(resp.Body)
-}
-
-func (ac *awsConversation) getEC2Credentials() (*awsv4.StaticProvider, error) {
-	// get token
-	req, err := http.NewRequest("PUT", awsEC2URI+awsEC2TokenPath, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", "30")
-
-	token, err := executeAWSHTTPRequest(ac.httpClient, req)
-	if err != nil {
-		return nil, err
-	}
-	if len(token) == 0 {
-		return nil, errors.New("unable to retrieve token from EC2 metadata")
-	}
-	tokenStr := string(token)
-
-	// get role name
-	req, err = http.NewRequest("GET", awsEC2URI+awsEC2RolePath, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-aws-ec2-metadata-token", tokenStr)
-
-	role, err := executeAWSHTTPRequest(ac.httpClient, req)
-	if err != nil {
-		return nil, err
-	}
-	if len(role) == 0 {
-		return nil, errors.New("unable to retrieve role_name from EC2 metadata")
-	}
-
-	// get credentials
-	pathWithRole := awsEC2URI + awsEC2RolePath + string(role)
-	req, err = http.NewRequest("GET", pathWithRole, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-aws-ec2-metadata-token", tokenStr)
-	creds, err := executeAWSHTTPRequest(ac.httpClient, req)
-	if err != nil {
-		return nil, err
-	}
-
-	var es2Resp ecsResponse
-	err = json.Unmarshal(creds, &es2Resp)
-	if err != nil {
-		return nil, err
-	}
-	ac.username = es2Resp.AccessKeyID
-	ac.password = es2Resp.SecretAccessKey
-	ac.token = es2Resp.Token
-
-	return ac.validateAndMakeCredentials()
-}
-
-func (ac *awsConversation) getCredentials() (*awsv4.StaticProvider, error) {
-	// Credentials passed through URI
-	creds, err := ac.validateAndMakeCredentials()
-	if creds != nil || err != nil {
-		return creds, err
-	}
-
-	// Credentials from environment variables
-	ac.username = os.Getenv("AWS_ACCESS_KEY_ID")
-	ac.password = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	ac.token = os.Getenv("AWS_SESSION_TOKEN")
-
-	creds, err = ac.validateAndMakeCredentials()
-	if creds != nil || err != nil {
-		return creds, err
-	}
-
-	// Credentials from ECS metadata
-	relativeEcsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
-	if len(relativeEcsURI) > 0 {
-		fullURI := awsRelativeURI + relativeEcsURI
-
-		req, err := http.NewRequest("GET", fullURI, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		body, err := executeAWSHTTPRequest(ac.httpClient, req)
-		if err != nil {
-			return nil, err
-		}
-
-		var espResp ecsResponse
-		err = json.Unmarshal(body, &espResp)
-		if err != nil {
-			return nil, err
-		}
-		ac.username = espResp.AccessKeyID
-		ac.password = espResp.SecretAccessKey
-		ac.token = espResp.Token
-
-		creds, err = ac.validateAndMakeCredentials()
-		if creds != nil || err != nil {
-			return creds, err
-		}
-	}
-
-	// Credentials from EC2 metadata
-	creds, err = ac.getEC2Credentials()
-	if creds == nil && err == nil {
-		return nil, errors.New("unable to get credentials")
-	}
-	return creds, err
-}
-
 func (ac *awsConversation) firstMsg() []byte {
 	// Values are cached for use in final message parameters
 	ac.nonce = make([]byte, 32)
@@ -306,7 +148,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	creds, err := ac.getCredentials()
+	creds, err := ac.provider.getCredentials(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -320,8 +162,8 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	req.Header.Set("Content-Length", "43")
 	req.Host = sm.Host
 	req.Header.Set("X-Amz-Date", currentTime.Format(amzDateFormat))
-	if len(ac.token) > 0 {
-		req.Header.Set("X-Amz-Security-Token", ac.token)
+	if len(creds.Value.SessionToken) > 0 {
+		req.Header.Set("X-Amz-Security-Token", creds.Value.SessionToken)
 	}
 	req.Header.Set("X-MongoDB-Server-Nonce", base64.StdEncoding.EncodeToString(sm.Nonce.Data))
 	req.Header.Set("X-MongoDB-GS2-CB-Flag", "n")
@@ -339,8 +181,8 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	idx, msg := bsoncore.AppendDocumentStart(nil)
 	msg = bsoncore.AppendStringElement(msg, "a", req.Header.Get("Authorization"))
 	msg = bsoncore.AppendStringElement(msg, "d", req.Header.Get("X-Amz-Date"))
-	if len(ac.token) > 0 {
-		msg = bsoncore.AppendStringElement(msg, "t", ac.token)
+	if len(creds.Value.SessionToken) > 0 {
+		msg = bsoncore.AppendStringElement(msg, "t", creds.Value.SessionToken)
 	}
 	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
 
