@@ -100,7 +100,7 @@ type startedInformation struct {
 type finishedInformation struct {
 	cmdName      string
 	requestID    int32
-	response     bsoncore.Document
+	response     *bsoncore.Document
 	cmdErr       error
 	connID       string
 	serverConnID *int32
@@ -602,7 +602,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 		}
 
-		finishedInfo.response = res
+		finishedInfo.response = &res
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
@@ -1746,14 +1746,34 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	op.CommandMonitor.Started(ctx, started)
 }
 
+func defaultReplyCallback(ctx context.Context, rsp *bsoncore.Document) bson.Raw {
+	if rsp == nil {
+		return nil
+	}
+
+	return bson.Raw(*rsp)
+}
+
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
+	fmt.Println("publishFinishedEvent")
+	if op.CommandMonitor == nil {
+		fmt.Println(1)
+		return
+	}
+
+	replyCallback := defaultReplyCallback
+	if op.CommandMonitor.ReplyCallback != nil {
+		replyCallback = op.CommandMonitor.ReplyCallback
+	}
+
 	success := info.cmdErr == nil
 	if _, ok := info.cmdErr.(WriteCommandError); ok {
 		success = true
 	}
-	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
+	if (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
+		fmt.Println(2)
 		return
 	}
 
@@ -1775,14 +1795,15 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if success {
 		res := bson.Raw{}
 		// Only copy the reply for commands that are not security sensitive
-		if !info.redacted {
-			res = bson.Raw(info.response)
+		if !info.redacted && info.response != nil {
+			res = replyCallback(ctx, info.response)
 		}
 		successEvent := &event.CommandSucceededEvent{
 			Reply:                res,
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)
+		fmt.Println(3)
 		return
 	}
 

@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.
@@ -58,9 +59,10 @@ type CommandFailedEvent struct {
 
 // CommandMonitor represents a monitor that is triggered for different events.
 type CommandMonitor struct {
-	Started   func(context.Context, *CommandStartedEvent)
-	Succeeded func(context.Context, *CommandSucceededEvent)
-	Failed    func(context.Context, *CommandFailedEvent)
+	Started       func(context.Context, *CommandStartedEvent)
+	Succeeded     func(context.Context, *CommandSucceededEvent)
+	Failed        func(context.Context, *CommandFailedEvent)
+	ReplyCallback func(context.Context, *bsoncore.Document) bson.Raw
 }
 
 // strings for pool command monitoring reasons
