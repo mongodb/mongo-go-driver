@@ -163,6 +163,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 }
 
 // EncryptExpression encrypts an expression to query a range index.
+// On success, `result` is populated with the resulting BSON document.
 // `expr` is expected to be a BSON document of one of the following forms:
 // 1. A Match Expression of this form:
 //   {$and: [{<field>: {$gt: <value1>}}, {<field>: {$lt: <value2> }}]}
@@ -171,19 +172,23 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 // $gt may also be $gte. $lt may also be $lte.
 // Only supported for queryType "rangePreview"
 // NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, opts ...*options.EncryptOptions) *SingleResult {
+func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...*options.EncryptOptions) error {
 	transformed := transformExplicitEncryptionOptions(opts...)
 
 	exprDoc, err := transformBsoncoreDocument(bson.DefaultRegistry, expr, true, "expr")
 	if err != nil {
-		return &SingleResult{err: err}
+		return err
 	}
 
 	encryptedExprDoc, err := ce.crypt.EncryptExplicitExpression(ctx, exprDoc, transformed)
 	if err != nil {
-		return &SingleResult{err: err}
+		return err
 	}
-	return NewSingleResultFromDocument(encryptedExprDoc, err, bson.DefaultRegistry)
+	err = bson.Unmarshal([]byte(encryptedExprDoc), result)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Decrypt decrypts an encrypted value (BSON binary of subtype 6) and returns the original BSON value.

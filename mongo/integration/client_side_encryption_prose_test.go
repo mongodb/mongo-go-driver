@@ -2282,11 +2282,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Encrypt.
 					var encryptedExpr bson.Raw
 					{
-						res := clientEncryption.EncryptExpression(context.Background(), expr, eo)
-						assert.Nil(mt, res.Err(), "error in EncryptExpression: %v", res.Err())
-						var err error
-						encryptedExpr, err = res.DecodeBytes()
-						assert.Nil(mt, err, "error in Decode: %v", err)
+						err := clientEncryption.EncryptExpression(context.Background(), expr, &encryptedExpr, eo)
+						assert.Nil(mt, err, "error in EncryptExpression: %v", err)
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
@@ -2327,11 +2324,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Encrypt.
 					var encryptedExpr bson.Raw
 					{
-						res := clientEncryption.EncryptExpression(context.Background(), expr, eo)
-						assert.Nil(mt, res.Err(), "error in EncryptExpression: %v", res.Err())
-						var err error
-						encryptedExpr, err = res.DecodeBytes()
-						assert.Nil(mt, err, "error in Decode: %v", err)
+						err := clientEncryption.EncryptExpression(context.Background(), expr, &encryptedExpr, eo)
+						assert.Nil(mt, err, "error in EncryptExpression: %v", err)
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
@@ -2367,11 +2361,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Encrypt.
 					var encryptedExpr bson.Raw
 					{
-						res := clientEncryption.EncryptExpression(context.Background(), expr, eo)
-						assert.Nil(mt, res.Err(), "error in EncryptExpression: %v", res.Err())
-						var err error
-						encryptedExpr, err = res.DecodeBytes()
-						assert.Nil(mt, err, "error in Decode: %v", err)
+						err := clientEncryption.EncryptExpression(context.Background(), expr, &encryptedExpr, eo)
+						assert.Nil(mt, err, "error in EncryptExpression: %v", err)
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
@@ -2408,11 +2399,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// Encrypt.
 					var encryptedExpr bson.Raw
 					{
-						res := clientEncryption.EncryptExpression(context.Background(), expr, eo)
-						assert.Nil(mt, res.Err(), "error in EncryptExpression: %v", res.Err())
-						var err error
-						encryptedExpr, err = res.DecodeBytes()
-						assert.Nil(mt, err, "error in Decode: %v", err)
+						err := clientEncryption.EncryptExpression(context.Background(), expr, &encryptedExpr, eo)
+						assert.Nil(mt, err, "error in EncryptExpression: %v", err)
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
