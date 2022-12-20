@@ -2060,7 +2060,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
 
-	rangeRunOpts := mtest.NewOptions().MinServerVersion("6.2").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	rangeRunOpts := mtest.NewOptions().MinServerVersion("6.2").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.RunOpts("22. range explicit encryption", rangeRunOpts, func(mt *mtest.T) {
 		type testcase struct {
 			typeStr       string
