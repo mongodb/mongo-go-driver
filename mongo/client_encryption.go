@@ -184,6 +184,11 @@ func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interfac
 	if err != nil {
 		return err
 	}
+	if raw, ok := result.(*bson.Raw); ok {
+		// Avoid the cost of Unmarshal.
+		*raw = bson.Raw(encryptedExprDoc)
+		return nil
+	}
 	err = bson.Unmarshal([]byte(encryptedExprDoc), result)
 	if err != nil {
 		return err
