@@ -35,13 +35,13 @@ const (
 
 // TestCase holds and runs a unified spec test case
 type TestCase struct {
-	Description       string                        `bson:"description"`
-	RunOnRequirements []mtest.RunOnBlock            `bson:"runOnRequirements"`
-	SkipReason        *string                       `bson:"skipReason"`
-	Operations        []*operation                  `bson:"operations"`
-	ExpectedEvents    []*expectedEvents             `bson:"expectEvents"`
-	ExpectLogMessages expectedLogMessagesForClients `bson:"expectLogMessages"`
-	Outcome           []*collectionData             `bson:"outcome"`
+	Description       string             `bson:"description"`
+	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
+	SkipReason        *string            `bson:"skipReason"`
+	Operations        []*operation       `bson:"operations"`
+	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
+	ExpectLogMessages clientLogs         `bson:"expectLogMessages"`
+	Outcome           []*collectionData  `bson:"outcome"`
 
 	initialData     []*collectionData
 	createEntities  []map[string]*entityOptions
@@ -116,7 +116,8 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 				// catch panics from looking up elements and fail if it's unexpected
 				if r := recover(); r != nil {
 					if !expectValidFail {
-						mt.Fatal(r)
+						//mt.Fatal(r)
+						panic(r)
 					}
 				}
 			}()
@@ -213,11 +214,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
 	if err := checkSchemaVersion(tc.schemaVersion); err != nil {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
-	}
-
-	// Validate the ExpectedLogMessages.
-	if err := tc.ExpectLogMessages.validate(); err != nil {
-		return fmt.Errorf("invalid expected log messages: %v", err)
 	}
 
 	testCtx := newTestContext(context.Background(), tc.entities)

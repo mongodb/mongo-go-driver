@@ -9,9 +9,10 @@ import (
 // logActual is a struct representing an actual log message that was observed by the driver.
 type logActual struct {
 	position int
-	level    int
-	message  string
-	args     []interface{}
+	message  *logMessage
+	//level    int
+	//message  string
+	//args     []interface{}
 }
 
 // Logger is the Sink used to captured log messages for logger verification in the unified spec tests.
@@ -34,11 +35,14 @@ func newLogger(actualCh chan logActual) *Logger {
 // Info ...
 func (logger *Logger) Info(level int, msg string, args ...interface{}) {
 	if logger.actualCh != nil {
+		logMessage, err := newLogMessage(level, args...)
+		if err != nil {
+			panic(err)
+		}
+
 		logger.actualCh <- logActual{
 			position: logger.nextPosition,
-			level:    level,
-			message:  msg,
-			args:     args,
+			message:  logMessage,
 		}
 
 		// Increment the nextPosition so that the next log message will have the correct position.

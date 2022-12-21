@@ -64,17 +64,25 @@ func (llevel LevelLiteral) equalFold(str string) bool {
 	return strings.EqualFold(string(llevel), str)
 }
 
-// parseLevel will check if the given string is a valid environment variable literal for a logging severity level. If it
-// is, then it will return the Level. The default Level is “Off”.
-func parseLevel(level string) Level {
-	for _, llevel := range []LevelLiteral{
+func AllLevelLiterals() []LevelLiteral {
+	return []LevelLiteral{
+		OffLevelLiteral,
+		EmergencyLevelLiteral,
+		AlertLevelLiteral,
+		CriticalLevelLiteral,
 		ErrorLevelLiteral,
 		WarnLevelLiteral,
 		NoticeLevelLiteral,
 		InfoLevelLiteral,
 		DebugLevelLiteral,
 		TraceLevelLiteral,
-	} {
+	}
+}
+
+// parseLevel will check if the given string is a valid environment variable literal for a logging severity level. If it
+// is, then it will return the Level. The default Level is “Off”.
+func parseLevel(level string) Level {
+	for _, llevel := range AllLevelLiterals() {
 		if llevel.equalFold(level) {
 			return llevel.Level()
 		}
