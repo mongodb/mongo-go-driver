@@ -2287,7 +2287,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
-					opts := options.Find().SetSort(bson.M{"_id": 1})
+					opts := options.Find().SetSort(bson.D{{"_id", 1}})
 					cursor, err := coll.Find(context.Background(), encryptedExpr, opts)
 					assert.Nil(mt, err, "error in coll.Find: %v", err)
 					defer cursor.Close(context.Background())
@@ -2329,7 +2329,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
-					opts := options.Find().SetSort(bson.M{"_id": 1})
+					opts := options.Find().SetSort(bson.D{{"_id", 1}})
 					cursor, err := coll.Find(context.Background(), encryptedExpr, opts)
 					assert.Nil(mt, err, "error in coll.Find: %v", err)
 					defer cursor.Close(context.Background())
@@ -2366,7 +2366,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
-					opts := options.Find().SetSort(bson.M{"_id": 1})
+					opts := options.Find().SetSort(bson.D{{"_id", 1}})
 					cursor, err := coll.Find(context.Background(), encryptedExpr, opts)
 					assert.Nil(mt, err, "error in coll.Find: %v", err)
 					defer cursor.Close(context.Background())
@@ -2404,7 +2404,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					}
 
 					coll := encryptedClient.Database("db").Collection("explicit_encryption")
-					opts := options.Find().SetSort(bson.M{"_id": 1})
+					opts := options.Find().SetSort(bson.D{{"_id", 1}})
 					cursor, err := coll.Find(context.Background(), bson.M{"$expr": encryptedExpr}, opts)
 					assert.Nil(mt, err, "error in coll.Find: %v", err)
 					defer cursor.Close(context.Background())
