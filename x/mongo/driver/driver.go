@@ -71,9 +71,9 @@ type Connection interface {
 	ServerConnectionID() *int32
 	Address() address.Address
 	Stale() bool
-	// IsNil returns true if the underlying connection is nil. Some implementations of Connection
+	// Alive returns true if the underlying connection is non-nil. Some implementations of Connection
 	// wrap an actual connection that may be nil without the wrapper being nil.
-	IsNil() bool
+	Alive() bool
 }
 
 // RTTMonitor represents a round-trip-time monitor.

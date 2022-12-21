@@ -85,9 +85,9 @@ func (c *ChannelConn) Stale() bool {
 	return false
 }
 
-// IsNil implements the driver.Connection interface.
-func (c *ChannelConn) IsNil() bool {
-	return c == nil
+// Alive implements the driver.Connection interface.
+func (c *ChannelConn) Alive() bool {
+	return c != nil
 }
 
 // MakeReply creates an OP_REPLY wiremessage from a BSON document

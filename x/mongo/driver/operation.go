@@ -270,9 +270,9 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 		return nil, nil, err
 	}
 
-	// If the provided client session has a non-nil pinned connection, it should be used for the operation because this
+	// If the provided client session has an alive pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
-	if op.Client != nil && !op.Client.PinnedConnection.IsNil() {
+	if op.Client != nil && op.Client.PinnedConnection.Alive() {
 		return server, op.Client.PinnedConnection, nil
 	}
 
