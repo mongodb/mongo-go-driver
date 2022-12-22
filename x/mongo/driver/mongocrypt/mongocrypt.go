@@ -226,9 +226,8 @@ const (
 	IndexTypeIndexed   = 2
 )
 
-// CreateExplicitEncryptionContext creates a Context to use for explicit encryption.
-func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
-
+// createExplicitEncryptionContext creates an explicit encryption context.
+func (m *MongoCrypt) createExplicitEncryptionContext(opts *options.ExplicitEncryptionOptions) (*Context, error) {
 	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
 	if ctx.wrapped == nil {
 		return nil, m.createErrorFromStatus()
@@ -245,6 +244,32 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 	if opts.KeyAltName != nil {
 		if err := setAltName(ctx, *opts.KeyAltName); err != nil {
 			return nil, err
+		}
+	}
+
+	if opts.RangeOptions != nil {
+		idx, mongocryptDoc := bsoncore.AppendDocumentStart(nil)
+		if opts.RangeOptions.Min != nil {
+			mongocryptDoc = bsoncore.AppendValueElement(mongocryptDoc, "min", *opts.RangeOptions.Min)
+		}
+		if opts.RangeOptions.Max != nil {
+			mongocryptDoc = bsoncore.AppendValueElement(mongocryptDoc, "max", *opts.RangeOptions.Max)
+		}
+		if opts.RangeOptions.Precision != nil {
+			mongocryptDoc = bsoncore.AppendInt32Element(mongocryptDoc, "precision", *opts.RangeOptions.Precision)
+		}
+		mongocryptDoc = bsoncore.AppendInt64Element(mongocryptDoc, "sparsity", opts.RangeOptions.Sparsity)
+
+		mongocryptDoc, err := bsoncore.AppendDocumentEnd(mongocryptDoc, idx)
+		if err != nil {
+			return nil, err
+		}
+
+		mongocryptBinary := newBinaryFromBytes(mongocryptDoc)
+		defer mongocryptBinary.close()
+
+		if ok := C.mongocrypt_ctx_setopt_algorithm_range(ctx.wrapped, mongocryptBinary.wrapped); !ok {
+			return nil, ctx.createErrorFromStatus()
 		}
 	}
 
@@ -268,10 +293,33 @@ func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts
 			return nil, ctx.createErrorFromStatus()
 		}
 	}
+	return ctx, nil
+}
 
+// CreateExplicitEncryptionContext creates a Context to use for explicit encryption.
+func (m *MongoCrypt) CreateExplicitEncryptionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
+	ctx, err := m.createExplicitEncryptionContext(opts)
+	if err != nil {
+		return ctx, err
+	}
 	docBinary := newBinaryFromBytes(doc)
 	defer docBinary.close()
 	if ok := C.mongocrypt_ctx_explicit_encrypt_init(ctx.wrapped, docBinary.wrapped); !ok {
+		return nil, ctx.createErrorFromStatus()
+	}
+
+	return ctx, nil
+}
+
+// CreateExplicitEncryptionExpressionContext creates a Context to use for explicit encryption of an expression.
+func (m *MongoCrypt) CreateExplicitEncryptionExpressionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
+	ctx, err := m.createExplicitEncryptionContext(opts)
+	if err != nil {
+		return ctx, err
+	}
+	docBinary := newBinaryFromBytes(doc)
+	defer docBinary.close()
+	if ok := C.mongocrypt_ctx_explicit_encrypt_expression_init(ctx.wrapped, docBinary.wrapped); !ok {
 		return nil, ctx.createErrorFromStatus()
 	}
 

@@ -56,6 +56,15 @@ type ExplicitEncryptionOptions struct {
 	Algorithm        string
 	QueryType        string
 	ContentionFactor *int64
+	RangeOptions     *ExplicitRangeOptions
+}
+
+// ExplicitRangeOptions specifies options for the range index.
+type ExplicitRangeOptions struct {
+	Min       *bsoncore.Value
+	Max       *bsoncore.Value
+	Sparsity  int64
+	Precision *int32
 }
 
 // ExplicitEncryption creates a new ExplicitEncryptionOptions instance.
@@ -90,6 +99,12 @@ func (eeo *ExplicitEncryptionOptions) SetQueryType(queryType string) *ExplicitEn
 // SetContentionFactor specifies the contention factor.
 func (eeo *ExplicitEncryptionOptions) SetContentionFactor(contentionFactor int64) *ExplicitEncryptionOptions {
 	eeo.ContentionFactor = &contentionFactor
+	return eeo
+}
+
+// SetRangeOptions specifies the range options.
+func (eeo *ExplicitEncryptionOptions) SetRangeOptions(ro ExplicitRangeOptions) *ExplicitEncryptionOptions {
+	eeo.RangeOptions = &ro
 	return eeo
 }
 

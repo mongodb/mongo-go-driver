@@ -116,10 +116,8 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 	return primitive.Binary{Subtype: subtype, Data: data}, nil
 }
 
-// Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
-func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
-	opts ...*options.EncryptOptions) (primitive.Binary, error) {
-
+// transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
+func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts.ExplicitEncryptionOptions {
 	eo := options.MergeEncryptOptions(opts...)
 	transformed := mcopts.ExplicitEncryption()
 	if eo.KeyID != nil {
@@ -135,11 +133,67 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 		transformed.SetContentionFactor(*eo.ContentionFactor)
 	}
 
+	if eo.RangeOptions != nil {
+		var transformedRange mcopts.ExplicitRangeOptions
+		if eo.RangeOptions.Min != nil {
+			transformedRange.Min = &bsoncore.Value{Type: eo.RangeOptions.Min.Type, Data: eo.RangeOptions.Min.Value}
+		}
+		if eo.RangeOptions.Max != nil {
+			transformedRange.Max = &bsoncore.Value{Type: eo.RangeOptions.Max.Type, Data: eo.RangeOptions.Max.Value}
+		}
+		if eo.RangeOptions.Precision != nil {
+			transformedRange.Precision = eo.RangeOptions.Precision
+		}
+		transformedRange.Sparsity = eo.RangeOptions.Sparsity
+		transformed.SetRangeOptions(transformedRange)
+	}
+	return transformed
+}
+
+// Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
+func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
+	opts ...*options.EncryptOptions) (primitive.Binary, error) {
+
+	transformed := transformExplicitEncryptionOptions(opts...)
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
 	if err != nil {
 		return primitive.Binary{}, err
 	}
 	return primitive.Binary{Subtype: subtype, Data: data}, nil
+}
+
+// EncryptExpression encrypts an expression to query a range index.
+// On success, `result` is populated with the resulting BSON document.
+// `expr` is expected to be a BSON document of one of the following forms:
+// 1. A Match Expression of this form:
+//   {$and: [{<field>: {$gt: <value1>}}, {<field>: {$lt: <value2> }}]}
+// 2. An Aggregate Expression of this form:
+//   {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
+// $gt may also be $gte. $lt may also be $lte.
+// Only supported for queryType "rangePreview"
+// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...*options.EncryptOptions) error {
+	transformed := transformExplicitEncryptionOptions(opts...)
+
+	exprDoc, err := transformBsoncoreDocument(bson.DefaultRegistry, expr, true, "expr")
+	if err != nil {
+		return err
+	}
+
+	encryptedExprDoc, err := ce.crypt.EncryptExplicitExpression(ctx, exprDoc, transformed)
+	if err != nil {
+		return err
+	}
+	if raw, ok := result.(*bson.Raw); ok {
+		// Avoid the cost of Unmarshal.
+		*raw = bson.Raw(encryptedExprDoc)
+		return nil
+	}
+	err = bson.Unmarshal([]byte(encryptedExprDoc), result)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Decrypt decrypts an encrypted value (BSON binary of subtype 6) and returns the original BSON value.
