@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -70,6 +71,57 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	})
 
 	return ce, nil
+}
+
+// CreateEncryptedCollection creates a new collection with a helper to automatically generate new encryption data keys for null keyIds.
+func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
+	db *Database, coll string, createOpts *options.CreateCollectionOptions,
+	kmsProvider string, dkOpts *options.DataKeyOptions) (*Collection, error) {
+	if createOpts == nil {
+		return nil, errors.New("nil CreateCollectionOptions")
+	} else if createOpts.EncryptedFields == nil {
+		return nil, errors.New("no EncryptedFields defined for the collection")
+	}
+
+	efBSON, err := transformBsoncoreDocument(db.registry, createOpts.EncryptedFields, true, "encryptedFields")
+	if err != nil {
+		return nil, err
+	}
+	r := bsonrw.NewBSONDocumentReader(efBSON)
+	dec, err := bson.NewDecoder(r)
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]interface{}
+	err = dec.Decode(&m)
+	if err != nil {
+		return nil, err
+	}
+
+	if v, ok := m["fields"]; ok {
+		if fields, ok := v.(primitive.A); ok {
+			for _, field := range fields {
+				if f, ok := field.(map[string]interface{}); !ok {
+					continue
+				} else if v, ok := f["keyId"]; !ok || v == nil {
+					dk, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
+					if err != nil {
+						return nil, err
+					}
+					f["keyId"] = primitive.Binary{
+						Subtype: 4,
+						Data:    dk.Data,
+					}
+				}
+			}
+			createOpts.EncryptedFields = m
+		}
+	}
+	err = db.CreateCollection(ctx, coll, createOpts)
+	if err != nil {
+		return nil, err
+	}
+	return db.Collection(coll), nil
 }
 
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the

@@ -2059,6 +2059,140 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			_, err = encClient.Database("db").Collection("coll").InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
+
+	mt.Run("21. automatic data encryption keys", func(mt *mtest.T) {
+		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
+			opts := options.Client().ApplyURI(mtest.ClusterURI())
+			client, err := mongo.Connect(context.Background(), opts)
+			if err != nil {
+				return nil, nil, err
+			}
+			ceo := options.ClientEncryption().
+				SetKmsProviders(fullKmsProvidersMap).
+				SetKeyVaultNamespace(kvNamespace)
+			clientEnc, err := mongo.NewClientEncryption(client, ceo)
+			if err != nil {
+				return nil, nil, err
+			}
+			return client, clientEnc, nil
+		}
+
+		mt.Run("case 1: simple creation and validation", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				client.Disconnect(context.Background())
+				clientEnc.Close(context.Background())
+			}()
+
+			var encryptedFields bson.Raw
+			err = bson.UnmarshalExtJSON([]byte(`{
+				"fields": [{
+					"path": "ssn",
+					"bsonType": "string",
+					"keyId": null
+				}]
+			}`), true /* canonical */, &encryptedFields)
+			assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+			coll, err := clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"local", nil,
+			)
+			assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+			_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", "123-45-6789"}})
+			assert.ErrorContains(mt, err, "Document failed validation")
+		})
+		mt.Run("case 2: missing encryptedFields", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				client.Disconnect(context.Background())
+				clientEnc.Close(context.Background())
+			}()
+
+			coll, err := clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection(),
+				"local", nil,
+			)
+			assert.Nil(mt, coll, "expect nil collection")
+			assert.EqualError(mt, err, "no EncryptedFields defined for the collection")
+		})
+		mt.Run("case 3: invalid keyId", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				client.Disconnect(context.Background())
+				clientEnc.Close(context.Background())
+			}()
+
+			var encryptedFields bson.Raw
+			err = bson.UnmarshalExtJSON([]byte(`{
+				"fields": [{
+					"path": "ssn",
+					"bsonType": "string",
+					"keyId": false
+				}]
+			}`), true /* canonical */, &encryptedFields)
+			assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+			_, err = clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"local", nil,
+			)
+			assert.ErrorContains(mt, err, "BSON field 'create.encryptedFields.fields.keyId' is the wrong type 'bool', expected type 'binData'")
+		})
+		mt.Run("case 4: insert encrypted value", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				client.Disconnect(context.Background())
+				clientEnc.Close(context.Background())
+			}()
+
+			var encryptedFields bson.Raw
+			err = bson.UnmarshalExtJSON([]byte(`{
+				"fields": [{
+					"path": "ssn",
+					"bsonType": "string",
+					"keyId": null
+				}]
+			}`), true /* canonical */, &encryptedFields)
+			assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+			coll, err := clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"local", nil,
+			)
+			assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+			rawValueType, rawValueData, err := bson.MarshalValue("123-45-6789")
+			assert.Nil(mt, err, "MarshalValue error: %v", err)
+			rawValue := bson.RawValue{Type: rawValueType, Value: rawValueData}
+			dataKeyID, err := clientEnc.CreateDataKey(context.Background(), "local")
+			assert.Nil(mt, err, "CreateDataKey error: %v", err)
+			encryptionOpts := options.Encrypt().
+				SetAlgorithm(deterministicAlgorithm).
+				SetKeyID(dataKeyID)
+			encryptedField, err := clientEnc.Encrypt(
+				context.Background(),
+				rawValue,
+				encryptionOpts)
+			assert.Nil(mt, err, "Encrypt error: %v", err)
+
+			_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", encryptedField}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+		})
+	})
 }
 
 func getWatcher(mt *mtest.T, streamType mongo.StreamType, cpt *cseProseTest) watcher {
