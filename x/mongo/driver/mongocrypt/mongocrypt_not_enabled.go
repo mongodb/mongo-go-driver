@@ -38,6 +38,11 @@ func (m *MongoCrypt) CreateEncryptionContext(db string, cmd bsoncore.Document) (
 	panic(cseNotSupportedMsg)
 }
 
+// CreateExplicitEncryptionExpressionContext creates a Context to use for explicit encryption of an expression.
+func (m *MongoCrypt) CreateExplicitEncryptionExpressionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
+	panic(cseNotSupportedMsg)
+}
+
 // CreateDecryptionContext creates a Context to use for decryption.
 func (m *MongoCrypt) CreateDecryptionContext(cmd bsoncore.Document) (*Context, error) {
 	panic(cseNotSupportedMsg)

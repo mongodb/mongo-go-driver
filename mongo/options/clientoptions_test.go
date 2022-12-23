@@ -573,6 +573,15 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
 				baseClient().SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
 			},
+			{
+				"GODRIVER-2650 X509 certificate",
+				"mongodb://localhost/?ssl=true&authMechanism=mongodb-x509&sslClientCertificateKeyFile=testdata/one-pk-multiple-certs.pem",
+				baseClient().SetAuth(Credential{
+					AuthMechanism: "mongodb-x509", AuthSource: "$external",
+					// Subject name in the first certificate is used as the username for X509 auth.
+					Username: `C=US,ST=New York,L=New York City,O=MongoDB,OU=Drivers,CN=localhost`,
+				}).SetTLSConfig(&tls.Config{Certificates: make([]tls.Certificate, 1)}),
+			},
 		}
 
 		for _, tc := range testCases {
