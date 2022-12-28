@@ -2059,13 +2059,16 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			_, err = encClient.Database("db").Collection("coll").InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
-	mt.Run("21. automatic data encryption keys", func(mt *mtest.T) {
+	autoKeyRunOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	mt.RunOpts("21. automatic data encryption keys", autoKeyRunOpts, func(mt *mtest.T) {
 		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
 			opts := options.Client().ApplyURI(mtest.ClusterURI())
 			client, err := mongo.Connect(context.Background(), opts)
 			if err != nil {
 				return nil, nil, err
 			}
+			client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			client.Database("db").Drop(context.Background())
 			ceo := options.ClientEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace)
@@ -2180,7 +2183,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			dataKeyID, err := clientEnc.CreateDataKey(context.Background(), "local")
 			assert.Nil(mt, err, "CreateDataKey error: %v", err)
 			encryptionOpts := options.Encrypt().
-				SetAlgorithm(deterministicAlgorithm).
+				SetAlgorithm("Unindexed").
 				SetKeyID(dataKeyID)
 			encryptedField, err := clientEnc.Encrypt(
 				context.Background(),
