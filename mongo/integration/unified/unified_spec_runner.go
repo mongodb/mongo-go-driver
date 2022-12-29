@@ -219,6 +219,11 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
+	// Validate the ExpectLogMessages.
+	if err := tc.ExpectLogMessages.validate(); err != nil {
+		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
+	}
+
 	testCtx := newTestContext(context.Background(), tc.entities)
 
 	defer func() {
@@ -270,11 +275,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			}
 
 			if entityOptions.ObserveLogMessages != nil && entityType == "client" {
-				// If the test specifies to observe log messages, we need to include the number of
-				// messages to expect per client. This let's us know when to stop listening for
-				// log messages.
-				entityOptions.ObserveLogMessages.bufferSize = tc.ExpectLogMessages.
-					clientVolume(entityOptions.ID)
+				entityOptions.ObserveLogMessages.volume = tc.ExpectLogMessages.volume(entityOptions.ID)
 			}
 
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
@@ -290,7 +291,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	// Create a logMessageValidator and start the workers.
 	logMessageValidator := newLogMessageValidator(tc)
 
-	logMessageValidator.startWorkers()
+	logMessageValidator.startWorkers(testCtx)
 	defer logMessageValidator.close()
 
 	// Work around SERVER-39704.
@@ -334,7 +335,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 
 	// Create a context with a deadline to use for log message validation. This will prevent any blocking from
 	// test cases with N messages where only N - K (0 < K < N) messages are observed.
-	lmvCtx, cancelLmvCtx := context.WithDeadline(context.Background(), time.Now().Add(logMessageValidatorTimeout))
+	lmvCtx, cancelLmvCtx := context.WithDeadline(testCtx, time.Now().Add(logMessageValidatorTimeout))
 	defer cancelLmvCtx()
 
 	// For each client, verify that all expected log messages were received.

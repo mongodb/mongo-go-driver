@@ -68,7 +68,7 @@ func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientO
 		return fmt.Errorf("observeLogMessages is nil")
 	}
 
-	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue, olm.bufferSize)).
+	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue, olm.volume)).
 		SetComponentLevels(map[options.LogComponent]options.LogLevel{
 			options.CommandLogComponent:         options.LogLevel(olm.Command.Level()),
 			options.TopologyLogComponent:        options.LogLevel(olm.Topology.Level()),

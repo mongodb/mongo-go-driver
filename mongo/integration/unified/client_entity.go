@@ -84,7 +84,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	// TODO: add explanation
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
-		entity.logQueue = make(chan orderedLogMessage, olm.bufferSize)
+		entity.logQueue = make(chan orderedLogMessage, olm.volume)
 
 		if err := setLoggerClientOptions(entity, clientOpts, olm); err != nil {
 			return nil, fmt.Errorf("error setting logger options: %v", err)

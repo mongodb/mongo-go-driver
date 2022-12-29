@@ -43,36 +43,37 @@ type logMessage struct {
 func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	logMessage := new(logMessage)
 
-	if len(args) > 0 {
-		// actualD is the bson.D analogue of the got.args empty interface slice. For example, if got.args is
-		// []interface{}{"foo", 1}, then actualD will be bson.D{{"foo", 1}}.
-		actualD := bson.D{}
-		for i := 0; i < len(args); i += 2 {
-			// If args exceeds the length of the slice, then we have an invalid log message.
-			if i+1 >= len(args) {
-				return nil, fmt.Errorf("%w: %s", errLogStructureInvalid, "uneven number of arguments")
-			}
-
-			actualD = append(actualD, bson.E{Key: args[i].(string), Value: args[i+1]})
-		}
-
-		// Marshal the actualD bson.D into a bson.Raw so that we can compare it to the expectedDoc
-		// bson.RawValue.
-		bytes, err := bson.Marshal(actualD)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", errLogMarshalingFailure, err)
-		}
-
-		logMessage.Data = bson.Raw(bytes)
-	}
-
-	// Iterate over the literal levels until we get the highest level literal that matches the level of the log
-	// message.
+	// Iterate over the literal levels until we get the highest "LevelLiteral" that matches the level of the
+	// "LogMessage".
 	for _, l := range logger.AllLevelLiterals() {
 		if l.Level() == logger.Level(level) {
 			logMessage.LevelLiteral = l
 		}
 	}
+
+	if len(args) == 0 {
+		return logMessage, nil
+	}
+
+	// The argument slice must have an even number of elements, otherwise it would not maintain the key-value
+	// structure of the document.
+	if len(args)%2 != 0 {
+		return nil, fmt.Errorf("%w: %v", errLogStructureInvalid, args)
+	}
+
+	// Create a new document from the arguments.
+	actualD := bson.D{}
+	for i := 0; i < len(args); i += 2 {
+		actualD = append(actualD, bson.E{Key: args[i].(string), Value: args[i+1]})
+	}
+
+	// Marshal the document into a raw value and assign it to the logMessage.
+	bytes, err := bson.Marshal(actualD)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", errLogMarshalingFailure, err)
+	}
+
+	logMessage.Data = bson.Raw(bytes)
 
 	return logMessage, nil
 }
@@ -96,39 +97,30 @@ func (message *logMessage) validate() error {
 
 // is will check if the "got" logActual argument matches the expectedLogMessage. Note that we do not need to
 // compare the component literals, as that can be validated through the messages and arguments.
-func (message logMessage) is(target *logMessage) error {
+func (message logMessage) is(ctx context.Context, target *logMessage) error {
 	if target == nil {
 		return errLogNotFound
 	}
 
 	// The levels of the expected log message and the actual log message must match, upto logger.Level.
 	if message.LevelLiteral.Level() != target.LevelLiteral.Level() {
-		return fmt.Errorf("%w %v, got %v", errLogLevelMismatch, message.LevelLiteral,
+		return fmt.Errorf("%w: want %v, got %v", errLogLevelMismatch, message.LevelLiteral,
 			target.LevelLiteral)
 	}
 
-	// expectedDoc is the expected document that should be logged. This is the document that we will compare to the
-	// document associated with logActual.
-	expectedDoc := documentToRawValue(message.Data)
+	rawMsg := documentToRawValue(message.Data)
+	rawTgt := documentToRawValue(target.Data)
 
-	// targetDoc is the actual document that was logged. This is the document that we will compare to the expected
-	// document.
-	targetDoc := documentToRawValue(target.Data)
-
-	if err := verifyValuesMatch(context.Background(), expectedDoc, targetDoc, true); err != nil {
+	if err := verifyValuesMatch(ctx, rawMsg, rawTgt, true); err != nil {
 		return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
 	}
 
 	return nil
 }
 
-// clientLogMessages is a struct representing the expected log messages for a client. This is used
-// for the "expectEvents" assertion in the unified test format.
+// clientLogMessages is a struct representing the expected "LogMessages" for a client.
 type clientLogMessages struct {
-	// Client is the name of the client to check for expected log messages. This is a required field.
-	Client string `bson:"client"`
-
-	// LogMessages is a slice of expected log messages. This is a required field.
+	Client      string        `bson:"client"`
 	LogMessages []*logMessage `bson:"messages"`
 }
 
@@ -174,7 +166,7 @@ func (logs clientLogs) validate() error {
 	return nil
 }
 
-func (logs clientLogs) client(clientName string) *clientLogMessages {
+func (logs clientLogs) get(clientName string) *clientLogMessages {
 	for _, client := range logs {
 		if client.Client == clientName {
 			return client
@@ -184,8 +176,8 @@ func (logs clientLogs) client(clientName string) *clientLogMessages {
 	return nil
 }
 
-func (logs clientLogs) clientVolume(clientName string) int {
-	client := logs.client(clientName)
+func (logs clientLogs) volume(clientName string) int {
+	client := logs.get(clientName)
 	if client == nil {
 		return 0
 	}
@@ -257,7 +249,7 @@ func (validator *logMessageValidator) validate(ctx context.Context) error {
 	return nil
 }
 
-func (validator *logMessageValidator) startClientWorker(clientName string, clientEntity *clientEntity) {
+func (validator *logMessageValidator) startWorker(ctx context.Context, clientName string, clientEntity *clientEntity) {
 	clientLogs := validator.clientLogs
 	if clientLogs == nil {
 		return
@@ -274,7 +266,7 @@ func (validator *logMessageValidator) startClientWorker(clientName string, clien
 			continue
 		}
 
-		if err := expectedMessage.is(actual.logMessage); err != nil {
+		if err := expectedMessage.is(ctx, actual.logMessage); err != nil {
 			validator.err <- err
 
 			continue
@@ -288,9 +280,9 @@ func (validator *logMessageValidator) startClientWorker(clientName string, clien
 	validator.done <- struct{}{}
 }
 
-func (validator *logMessageValidator) startWorkers() {
+func (validator *logMessageValidator) startWorkers(ctx context.Context) {
 	for clientName, clientEntity := range validator.testCase.entities.clients() {
-		go validator.startClientWorker(clientName, clientEntity)
+		go validator.startWorker(ctx, clientName, clientEntity)
 	}
 }
 
