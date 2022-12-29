@@ -251,19 +251,19 @@ func TestClientLog(t *testing.T) {
 	t.Run("validate", func(t *testing.T) {
 		for _, tcase := range []struct {
 			name     string
-			messages *clientLog
+			messages *clientLogMessages
 			want     []error
 		}{
 			{
 				"empty",
-				&clientLog{},
+				&clientLogMessages{},
 				[]error{errLogClientRequired},
 			},
 			{
 				"valid",
-				&clientLog{
+				&clientLogMessages{
 					Client: "client",
-					Messages: []*logMessage{
+					LogMessages: []*logMessage{
 						{
 							LevelLiteral:     logger.DebugLevelLiteral,
 							ComponentLiteral: logger.CommandComponentLiteral,
@@ -275,25 +275,25 @@ func TestClientLog(t *testing.T) {
 			},
 			{
 				"missing messages empty",
-				&clientLog{
-					Client:   "client",
-					Messages: []*logMessage{},
+				&clientLogMessages{
+					Client:      "client",
+					LogMessages: []*logMessage{},
 				},
 				[]error{errLogMessagesRequired},
 			},
 			{
 				"missing messages nil",
-				&clientLog{
-					Client:   "client",
-					Messages: nil,
+				&clientLogMessages{
+					Client:      "client",
+					LogMessages: nil,
 				},
 				[]error{errLogMessagesRequired},
 			},
 			{
 				"invalid messages",
-				&clientLog{
+				&clientLogMessages{
 					Client: "client",
-					Messages: []*logMessage{
+					LogMessages: []*logMessage{
 						{
 							LevelLiteral: logger.DebugLevelLiteral,
 							Data:         bson.Raw{},
@@ -340,7 +340,7 @@ func TestClientLogs(t *testing.T) {
 				clientLogs{
 					{
 						Client: "client",
-						Messages: []*logMessage{
+						LogMessages: []*logMessage{
 							{
 								LevelLiteral:     logger.DebugLevelLiteral,
 								ComponentLiteral: logger.CommandComponentLiteral,
@@ -356,7 +356,7 @@ func TestClientLogs(t *testing.T) {
 				clientLogs{
 					{
 						Client: "client",
-						Messages: []*logMessage{
+						LogMessages: []*logMessage{
 							{
 								LevelLiteral: logger.DebugLevelLiteral,
 								Data:         bson.Raw{},
@@ -371,7 +371,7 @@ func TestClientLogs(t *testing.T) {
 				clientLogs{
 					{
 						Client: "client",
-						Messages: []*logMessage{
+						LogMessages: []*logMessage{
 							{
 								LevelLiteral:     logger.DebugLevelLiteral,
 								ComponentLiteral: logger.CommandComponentLiteral,
@@ -381,7 +381,7 @@ func TestClientLogs(t *testing.T) {
 					},
 					{
 						Client: "client",
-						Messages: []*logMessage{
+						LogMessages: []*logMessage{
 							{
 								LevelLiteral:     logger.DebugLevelLiteral,
 								ComponentLiteral: logger.CommandComponentLiteral,

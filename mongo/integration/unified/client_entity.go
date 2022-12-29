@@ -48,8 +48,7 @@ type clientEntity struct {
 
 	entityMap *EntityMap
 
-	// loggerActual is the channel to send log messages to for validation.
-	loggerActual <-chan logActual
+	logQueue chan orderedLogMessage
 }
 
 func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
@@ -85,10 +84,9 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	// TODO: add explanation
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
-		logActualCh := make(chan logActual)
-		entity.loggerActual = logActualCh
+		entity.logQueue = make(chan orderedLogMessage, olm.bufferSize)
 
-		if err := setLoggerClientOptions(logActualCh, clientOpts, olm); err != nil {
+		if err := setLoggerClientOptions(entity, clientOpts, olm); err != nil {
 			return nil, fmt.Errorf("error setting logger options: %v", err)
 		}
 	}
@@ -171,6 +169,10 @@ func getURIForClient(opts *entityOptions) string {
 
 func (c *clientEntity) stopListeningForEvents() {
 	c.setRecordEvents(false)
+}
+
+func (c *clientEntity) stopListeningForLogs() {
+	close(c.logQueue)
 }
 
 func (c *clientEntity) isIgnoredEvent(commandName string, eventDoc bson.Raw) bool {

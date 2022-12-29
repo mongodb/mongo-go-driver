@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -27,6 +28,8 @@ var (
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
 	}
+
+	logMessageValidatorTimeout = 1 * time.Second
 )
 
 const (
@@ -266,6 +269,14 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 				}
 			}
 
+			if entityOptions.ObserveLogMessages != nil && entityType == "client" {
+				// If the test specifies to observe log messages, we need to include the number of
+				// messages to expect per client. This let's us know when to stop listening for
+				// log messages.
+				entityOptions.ObserveLogMessages.bufferSize = tc.ExpectLogMessages.
+					clientVolume(entityOptions.ID)
+			}
+
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
 				if isSkipTestError(err) {
 					ls.Skip(err)
@@ -276,8 +287,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	// start the log message validation worker.
-	logMessageValidator := startLogMessageValidator(tc)
+	// Create a logMessageValidator and start the workers.
+	logMessageValidator := newLogMessageValidator(tc)
+
+	logMessageValidator.startWorkers()
 	defer logMessageValidator.close()
 
 	// Work around SERVER-39704.
@@ -319,8 +332,13 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
+	// Create a context with a deadline to use for log message validation. This will prevent any blocking from
+	// test cases with N messages where only N - K (0 < K < N) messages are observed.
+	lmvCtx, cancelLmvCtx := context.WithDeadline(context.Background(), time.Now().Add(logMessageValidatorTimeout))
+	defer cancelLmvCtx()
+
 	// For each client, verify that all expected log messages were received.
-	if err := logMessageValidator.validate(); err != nil {
+	if err := logMessageValidator.validate(lmvCtx); err != nil {
 		return fmt.Errorf("error verifying log messages: %v", err)
 	}
 

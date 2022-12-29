@@ -26,22 +26,16 @@ var (
 
 // logMessage is a log message that is expected to be observed by the driver.
 type logMessage struct {
-	// LevelLiteral is the literal logging level of the expected log message. Note that this is not the same as the
-	// LogLevel type in the driver's options package, which are the levels that can be configured for the driver's
-	// logger. This is a required field.
+	// LevelLiteral is the literal logging level of the expected log message.
 	LevelLiteral logger.LevelLiteral `bson:"level"`
 
-	// ComponentLiteral is the literal logging component of the expected log message. Note that this is not the
-	// same as the Component type in the driver's logger package, which are the components that can be configured
-	// for the driver's logger. This is a required field.
+	// ComponentLiteral is the literal logging component of the expected log message.
 	ComponentLiteral logger.ComponentLiteral `bson:"component"`
 
 	// Data is the expected data of the log message. This is a required field.
 	Data bson.Raw `bson:"data"`
 
-	// FailureIsRedacted is a boolean indicating whether or not the expected log message should be redacted. If
-	// true, the expected log message should be redacted. If false, the expected log message should not be
-	// redacted. This is a required field.
+	// FailureIsRedacted is a boolean indicating whether or not the expected log message should be redacted.
 	FailureIsRedacted bool `bson:"failureIsRedacted"`
 }
 
@@ -128,27 +122,27 @@ func (message logMessage) is(target *logMessage) error {
 	return nil
 }
 
-// clientLog is a struct representing the expected log messages for a client. This is used
+// clientLogMessages is a struct representing the expected log messages for a client. This is used
 // for the "expectEvents" assertion in the unified test format.
-type clientLog struct {
+type clientLogMessages struct {
 	// Client is the name of the client to check for expected log messages. This is a required field.
 	Client string `bson:"client"`
 
-	// Messages is a slice of expected log messages. This is a required field.
-	Messages []*logMessage `bson:"messages"`
+	// LogMessages is a slice of expected log messages. This is a required field.
+	LogMessages []*logMessage `bson:"messages"`
 }
 
 // validate will validate the expectedLogMessasagesForClient and return an error if it is invalid.
-func (log *clientLog) validate() error {
+func (log *clientLogMessages) validate() error {
 	if log.Client == "" {
 		return errLogClientRequired
 	}
 
-	if log.Messages == nil || len(log.Messages) == 0 {
+	if log.LogMessages == nil || len(log.LogMessages) == 0 {
 		return errLogMessagesRequired
 	}
 
-	for _, msg := range log.Messages {
+	for _, msg := range log.LogMessages {
 		if err := msg.validate(); err != nil {
 			return fmt.Errorf("%w: %v", errLogMessageInvalid, err)
 		}
@@ -157,7 +151,7 @@ func (log *clientLog) validate() error {
 	return nil
 }
 
-type clientLogs []*clientLog
+type clientLogs []*clientLogMessages
 
 // validate will validate the expectedLogMessagesForClients and return an error if it is invalid.
 func (logs clientLogs) validate() error {
@@ -180,130 +174,124 @@ func (logs clientLogs) validate() error {
 	return nil
 }
 
-// logMessageWithError is the logMessage given by the TestFile with an associated error.
-type logMessageWithError struct {
-	*logMessage
-	err error
-}
-
-// newLogMessageWithError will create a logMessageWithError from a logMessage and an error.
-func newLogMessageWithError(message *logMessage, err error) *logMessageWithError {
-	return &logMessageWithError{
-		logMessage: message,
-		err:        err,
-	}
-}
-
-// clientLogWithError is the clientLog given by the TestFile where each logMessage has an associated error encountered
-// by the test runner.
-type clientLogWithError struct {
-	client   string
-	messages []*logMessageWithError
-}
-
-// newClientLogWithError will create a clientLogWithError from a clientLog. Each logMessage in the clientLog will be
-// converted to a logMessageWithError with a default error indicating that the log message was not found. The error for
-// a message will be updated when the test runner encounters the "actual" analogue to the "expected" log message. When
-// the analogue encountered, one of two things will happen:
-//
-//  1. If the "actual" log matches the "expected" log, then the error will be updated to nil.
-//  2. If the "actual" log does not match the "expected" log, then the error will be updated to indicate that the
-//     "actual" log did not match the "expected" log and why.
-//
-// This is done in the event that test runner expects a log but never encounters it, propagating the "not found but
-// expected" error to the user.
-func newClientLogWithError(log *clientLog) *clientLogWithError {
-	const messageKey = "message"
-
-	clwe := &clientLogWithError{
-		client:   log.Client,
-		messages: make([]*logMessageWithError, len(log.Messages)),
-	}
-
-	for i, msg := range log.Messages {
-		clwe.messages[i] = newLogMessageWithError(msg, fmt.Errorf("%w: client=%q, message=%q",
-			errLogNotFound, log.Client, msg.Data.Lookup(messageKey).StringValue()))
-
-	}
-
-	return clwe
-}
-
-// err will return the first error found for the expected log messages.
-func (clwe *clientLogWithError) validate() error {
-	for _, msg := range clwe.messages {
-		if msg.err != nil {
-			return msg.err
+func (logs clientLogs) client(clientName string) *clientLogMessages {
+	for _, client := range logs {
+		if client.Client == clientName {
+			return client
 		}
 	}
 
 	return nil
 }
 
-// logMessageVAlidator defines the expectation for log messages accross all clients.
+func (logs clientLogs) clientVolume(clientName string) int {
+	client := logs.client(clientName)
+	if client == nil {
+		return 0
+	}
+
+	return len(client.LogMessages)
+}
+
+// logMessageValidator defines the expectation for log messages accross all clients.
 type logMessageValidator struct {
-	clientLogs map[string]*clientLogWithError
-}
+	testCase *TestCase
 
-func (validator *logMessageValidator) close() {}
-
-// addClient wil add a new client to the "logMessageValidator". By default all messages are considered "invalid" and
-// "missing" until they are verified.
-func (validator *logMessageValidator) addClients(clients clientLogs) {
-	const messageKey = "message"
-
-	if validator.clientLogs == nil {
-		validator.clientLogs = make(map[string]*clientLogWithError)
-	}
-
-	for _, clientMessages := range clients {
-		validator.clientLogs[clientMessages.Client] = newClientLogWithError(clientMessages)
-	}
-}
-
-// getClient will return the "logMessageClientValidator" for the given client name. If no client exists for the given
-// client name, this will return nil.
-func (validator *logMessageValidator) getClient(clientName string) *clientLogWithError {
-	if validator.clientLogs == nil {
-		return nil
-	}
-
-	return validator.clientLogs[clientName]
-}
-
-// validate will validate all log messages receiced by all clients and return the first error encountered.
-func (validator *logMessageValidator) validate() error {
-	for _, client := range validator.clientLogs {
-		if err := client.validate(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// startLogMessageClientValidator will listen to the "logActual" channel for a given client entity, updating the
-// "invalid" map to either (1) delete the "missing message" if the message was found and is valid, or (2) update the
-// map to express the error that occurred while validating the message.
-func startLogMessageClientValidator(entity *clientEntity, clientLogs *clientLogWithError) {
-	for actual := range entity.loggerActual {
-		message := clientLogs.messages[actual.position-1]
-		if message == nil {
-			continue
-		}
-
-		message.err = message.is(actual.message)
-	}
+	clientLogs map[string]*clientLogMessages
+	done       chan struct{}
+	err        chan error
 }
 
 // startLogMessageValidate will start one worker per client entity that will validate the log messages for that client.
-func startLogMessageValidator(tcase *TestCase) *logMessageValidator {
-	validator := new(logMessageValidator)
-	for clientName, entity := range tcase.entities.clients() {
-		validator.addClients(tcase.ExpectLogMessages)
+func newLogMessageValidator(testCase *TestCase) *logMessageValidator {
+	const messageKey = "message"
 
-		go startLogMessageClientValidator(entity, validator.getClient(clientName))
+	validator := &logMessageValidator{
+		testCase:   testCase,
+		clientLogs: make(map[string]*clientLogMessages),
+		done:       make(chan struct{}, len(testCase.entities.clients())),
+		err:        make(chan error, 1),
+	}
+
+	for _, clientLogMessages := range validator.testCase.ExpectLogMessages {
+		validator.clientLogs[clientLogMessages.Client] = clientLogMessages
 	}
 
 	return validator
 }
+
+// validate will validate all log messages receiced by all clients and return the first error encountered.
+func (validator *logMessageValidator) validate(ctx context.Context) error {
+	// Wait until all of the workers have finished or the context has been cancelled.
+	for i := 0; i < len(validator.testCase.entities.clients()); i++ {
+		select {
+		case err := <-validator.err:
+			return err
+		case <-validator.done:
+		case <-ctx.Done():
+			// Get the client and log message "message" field for the logs that have not been processed
+			// yet.
+			var clientNames []string
+
+			for clientName, clientLogMessages := range validator.clientLogs {
+				for _, logMessage := range clientLogMessages.LogMessages {
+					if logMessage == nil {
+						continue
+					}
+
+					message, err := logMessage.Data.LookupErr("message")
+					if err != nil {
+						panic(fmt.Sprintf("expected log message to have a %q field", "message"))
+					}
+
+					clientNames = append(clientNames, fmt.Sprintf("%s: %s", clientName, message))
+				}
+			}
+
+			// This error will likely only happen if the expected logs specified in the "clientNames" have
+			// not been implemented.
+			return fmt.Errorf("context cancelled before all log messages were processed: %v", clientNames)
+		}
+	}
+
+	return nil
+}
+
+func (validator *logMessageValidator) startClientWorker(clientName string, clientEntity *clientEntity) {
+	clientLogs := validator.clientLogs
+	if clientLogs == nil {
+		return
+	}
+
+	clientLog, ok := clientLogs[clientName]
+	if !ok {
+		return
+	}
+
+	for actual := range clientEntity.logQueue {
+		expectedMessage := clientLog.LogMessages[actual.order-1]
+		if expectedMessage == nil {
+			continue
+		}
+
+		if err := expectedMessage.is(actual.logMessage); err != nil {
+			validator.err <- err
+
+			continue
+		}
+
+		// Remove the expected message from the slice so that we can ensure that all expected messages are
+		// received.
+		clientLog.LogMessages[actual.order-1] = nil
+	}
+
+	validator.done <- struct{}{}
+}
+
+func (validator *logMessageValidator) startWorkers() {
+	for clientName, clientEntity := range validator.testCase.entities.clients() {
+		go validator.startClientWorker(clientName, clientEntity)
+	}
+}
+
+func (validator *logMessageValidator) close() {}

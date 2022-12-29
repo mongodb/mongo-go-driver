@@ -42,6 +42,8 @@ type observeLogMessages struct {
 	Topology        logger.LevelLiteral `bson:"topology"`
 	ServerSelection logger.LevelLiteral `bson:"serverSelection"`
 	Connection      logger.LevelLiteral `bson:"connection"`
+
+	bufferSize int // expected number of messages to observe
 }
 
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity
