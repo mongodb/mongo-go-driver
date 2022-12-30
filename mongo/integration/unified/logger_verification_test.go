@@ -68,7 +68,8 @@ func TestLogMessage(t *testing.T) {
 					return
 				}
 
-				if err := tcase.want.is(context.Background(), got); err != nil {
+				err = verifyLogMessagesMatch(context.Background(), tcase.want, got)
+				if err != nil {
 					t.Fatalf("newLogMessage = %v, want %v", got, tcase.want)
 				}
 			})
@@ -235,7 +236,7 @@ func TestLogMessage(t *testing.T) {
 			t.Run(tcase.name, func(t *testing.T) {
 				t.Parallel()
 
-				got := tcase.expected.is(context.Background(), tcase.actual)
+				got := verifyLogMessagesMatch(context.Background(), tcase.expected, tcase.actual)
 				for _, err := range tcase.want {
 					if !errors.Is(got, err) {
 						t.Errorf("expected error %v, got %v", err, got)

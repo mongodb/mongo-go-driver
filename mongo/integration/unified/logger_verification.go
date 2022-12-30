@@ -95,21 +95,24 @@ func (message *logMessage) validate() error {
 	return nil
 }
 
-// is will check if the "got" logActual argument matches the expectedLogMessage. Note that we do not need to
-// compare the component literals, as that can be validated through the messages and arguments.
-func (message logMessage) is(ctx context.Context, target *logMessage) error {
-	if target == nil {
-		return errLogNotFound
+// verifyLogMessagesMatch will verify that the actual log messages match the expected log messages.
+func verifyLogMessagesMatch(ctx context.Context, expected, actual *logMessage) error {
+	if actual == nil && expected == nil {
+		return nil
+	}
+
+	if actual == nil || expected == nil {
+		return errLogDocumentMismatch
 	}
 
 	// The levels of the expected log message and the actual log message must match, upto logger.Level.
-	if message.LevelLiteral.Level() != target.LevelLiteral.Level() {
-		return fmt.Errorf("%w: want %v, got %v", errLogLevelMismatch, message.LevelLiteral,
-			target.LevelLiteral)
+	if expected.LevelLiteral.Level() != actual.LevelLiteral.Level() {
+		return fmt.Errorf("%w: want %v, got %v", errLogLevelMismatch, expected.LevelLiteral,
+			actual.LevelLiteral)
 	}
 
-	rawMsg := documentToRawValue(message.Data)
-	rawTgt := documentToRawValue(target.Data)
+	rawMsg := documentToRawValue(expected.Data)
+	rawTgt := documentToRawValue(actual.Data)
 
 	if err := verifyValuesMatch(ctx, rawMsg, rawTgt, true); err != nil {
 		return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
@@ -266,7 +269,8 @@ func (validator *logMessageValidator) startWorker(ctx context.Context, clientNam
 			continue
 		}
 
-		if err := expectedMessage.is(ctx, actual.logMessage); err != nil {
+		err := verifyLogMessagesMatch(ctx, expectedMessage, actual.logMessage)
+		if err != nil {
 			validator.err <- err
 
 			continue
