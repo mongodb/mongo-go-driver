@@ -2059,6 +2059,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			_, err = encClient.Database("db").Collection("coll").InsertOne(context.Background(), bson.D{{"unencrypted", "test"}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
+
 	autoKeyRunOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.RunOpts("21. automatic data encryption keys", autoKeyRunOpts, func(mt *mtest.T) {
 		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
@@ -2083,8 +2084,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			client, clientEnc, err := setup()
 			assert.Nil(mt, err, "setup error: %v", err)
 			defer func() {
-				client.Disconnect(context.Background())
-				clientEnc.Close(context.Background())
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
 			}()
 
 			var encryptedFields bson.Raw
@@ -2112,8 +2113,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			client, clientEnc, err := setup()
 			assert.Nil(mt, err, "setup error: %v", err)
 			defer func() {
-				client.Disconnect(context.Background())
-				clientEnc.Close(context.Background())
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
 			}()
 
 			coll, err := clientEnc.CreateEncryptedCollection(
@@ -2129,8 +2130,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			client, clientEnc, err := setup()
 			assert.Nil(mt, err, "setup error: %v", err)
 			defer func() {
-				client.Disconnect(context.Background())
-				clientEnc.Close(context.Background())
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
 			}()
 
 			var encryptedFields bson.Raw
@@ -2155,8 +2156,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			client, clientEnc, err := setup()
 			assert.Nil(mt, err, "setup error: %v", err)
 			defer func() {
-				client.Disconnect(context.Background())
-				clientEnc.Close(context.Background())
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
 			}()
 
 			var encryptedFields bson.Raw
@@ -2169,22 +2170,23 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}`), true /* canonical */, &encryptedFields)
 			assert.Nil(mt, err, "Unmarshal error: %v", err)
 
+			op := options.CreateCollection().SetEncryptedFields(encryptedFields)
 			coll, err := clientEnc.CreateEncryptedCollection(
 				context.Background(),
 				client.Database("db"),
-				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"testing1", op,
 				"local", nil,
 			)
 			assert.Nil(mt, err, "CreateCollection error: %v", err)
 
+			fields := op.EncryptedFields.(map[string]interface{})["fields"].(primitive.A)
+			keyid := fields[0].(map[string]interface{})["keyId"].(primitive.Binary)
 			rawValueType, rawValueData, err := bson.MarshalValue("123-45-6789")
 			assert.Nil(mt, err, "MarshalValue error: %v", err)
 			rawValue := bson.RawValue{Type: rawValueType, Value: rawValueData}
-			dataKeyID, err := clientEnc.CreateDataKey(context.Background(), "local")
-			assert.Nil(mt, err, "CreateDataKey error: %v", err)
 			encryptionOpts := options.Encrypt().
 				SetAlgorithm("Unindexed").
-				SetKeyID(dataKeyID)
+				SetKeyID(keyid)
 			encryptedField, err := clientEnc.Encrypt(
 				context.Background(),
 				rawValue,
@@ -2195,6 +2197,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
 	})
+
 	rangeRunOpts := mtest.NewOptions().MinServerVersion("6.2").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.RunOpts("22. range explicit encryption", rangeRunOpts, func(mt *mtest.T) {
 		type testcase struct {

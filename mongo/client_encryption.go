@@ -74,16 +74,23 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 }
 
 // CreateEncryptedCollection creates a new collection with a help of automatic generation of new encryption data keys for null keyIds.
+// The EncryptedFields field in createOpts will be updated with new keys.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts *options.CreateCollectionOptions,
 	kmsProvider string, dkOpts *options.DataKeyOptions) (*Collection, error) {
 	if createOpts == nil {
 		return nil, errors.New("nil CreateCollectionOptions")
-	} else if createOpts.EncryptedFields == nil {
+	}
+	ef := createOpts.EncryptedFields
+	if ef == nil {
+		// Otherwise, try to get EncryptedFields from EncryptedFieldsMap.
+		ef = db.getEncryptedFieldsFromMap(coll)
+	}
+	if ef == nil {
 		return nil, errors.New("no EncryptedFields defined for the collection")
 	}
 
-	efBSON, err := transformBsoncoreDocument(db.registry, createOpts.EncryptedFields, true, "encryptedFields")
+	efBSON, err := transformBsoncoreDocument(db.registry, ef, true, "encryptedFields")
 	if err != nil {
 		return nil, err
 	}
@@ -103,15 +110,13 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 			for _, field := range fields {
 				if f, ok := field.(map[string]interface{}); !ok {
 					continue
-				} else if v, ok := f["keyId"]; !ok || v == nil {
-					dk, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
+				} else if v, ok := f["keyId"]; ok && v == nil {
+					keyid, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
 					if err != nil {
+						createOpts.EncryptedFields = m
 						return nil, err
 					}
-					f["keyId"] = primitive.Binary{
-						Subtype: 4,
-						Data:    dk.Data,
-					}
+					f["keyId"] = keyid
 				}
 			}
 			createOpts.EncryptedFields = m
