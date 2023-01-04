@@ -2060,6 +2060,142 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
 
+	autoKeyRunOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	mt.RunOpts("21. automatic data encryption keys", autoKeyRunOpts, func(mt *mtest.T) {
+		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
+			opts := options.Client().ApplyURI(mtest.ClusterURI())
+			client, err := mongo.Connect(context.Background(), opts)
+			if err != nil {
+				return nil, nil, err
+			}
+			client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			client.Database("db").Drop(context.Background())
+			ceo := options.ClientEncryption().
+				SetKmsProviders(fullKmsProvidersMap).
+				SetKeyVaultNamespace(kvNamespace)
+			clientEnc, err := mongo.NewClientEncryption(client, ceo)
+			if err != nil {
+				return nil, nil, err
+			}
+			return client, clientEnc, nil
+		}
+
+		mt.Run("case 1: simple creation and validation", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
+			}()
+
+			var encryptedFields bson.Raw
+			err = bson.UnmarshalExtJSON([]byte(`{
+				"fields": [{
+					"path": "ssn",
+					"bsonType": "string",
+					"keyId": null
+				}]
+			}`), true /* canonical */, &encryptedFields)
+			assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+			coll, _, err := clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"local", nil,
+			)
+			assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+			_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", "123-45-6789"}})
+			assert.ErrorContains(mt, err, "Document failed validation")
+		})
+		mt.Run("case 2: missing encryptedFields", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
+			}()
+
+			coll, _, err := clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection(),
+				"local", nil,
+			)
+			assert.Nil(mt, coll, "expect nil collection")
+			assert.EqualError(mt, err, "no EncryptedFields defined for the collection")
+		})
+		mt.Run("case 3: invalid keyId", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
+			}()
+
+			var encryptedFields bson.Raw
+			err = bson.UnmarshalExtJSON([]byte(`{
+				"fields": [{
+					"path": "ssn",
+					"bsonType": "string",
+					"keyId": false
+				}]
+			}`), true /* canonical */, &encryptedFields)
+			assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+			_, _, err = clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"local", nil,
+			)
+			assert.ErrorContains(mt, err, "BSON field 'create.encryptedFields.fields.keyId' is the wrong type 'bool', expected type 'binData'")
+		})
+		mt.Run("case 4: insert encrypted value", func(mt *mtest.T) {
+			client, clientEnc, err := setup()
+			assert.Nil(mt, err, "setup error: %v", err)
+			defer func() {
+				err := clientEnc.Close(context.Background())
+				assert.Nil(mt, err, "error in Close")
+			}()
+
+			var encryptedFields bson.Raw
+			err = bson.UnmarshalExtJSON([]byte(`{
+				"fields": [{
+					"path": "ssn",
+					"bsonType": "string",
+					"keyId": null
+				}]
+			}`), true /* canonical */, &encryptedFields)
+			assert.Nil(mt, err, "Unmarshal error: %v", err)
+
+			coll, ef, err := clientEnc.CreateEncryptedCollection(
+				context.Background(),
+				client.Database("db"),
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
+				"local", nil,
+			)
+			assert.Nil(mt, err, "CreateCollection error: %v", err)
+
+			keyid := ef["fields"].(bson.A)[0].(bson.M)["keyId"].(primitive.Binary)
+			rawValueType, rawValueData, err := bson.MarshalValue("123-45-6789")
+			assert.Nil(mt, err, "MarshalValue error: %v", err)
+			rawValue := bson.RawValue{Type: rawValueType, Value: rawValueData}
+			encryptionOpts := options.Encrypt().
+				SetAlgorithm("Unindexed").
+				SetKeyID(keyid)
+			encryptedField, err := clientEnc.Encrypt(
+				context.Background(),
+				rawValue,
+				encryptionOpts)
+			assert.Nil(mt, err, "Encrypt error: %v", err)
+
+			_, err = coll.InsertOne(context.Background(), bson.D{{"ssn", encryptedField}})
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+		})
+	})
+
 	rangeRunOpts := mtest.NewOptions().MinServerVersion("6.2").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.RunOpts("22. range explicit encryption", rangeRunOpts, func(mt *mtest.T) {
 		type testcase struct {
