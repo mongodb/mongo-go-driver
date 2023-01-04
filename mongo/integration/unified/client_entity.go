@@ -44,7 +44,8 @@ type clientEntity struct {
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
-	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store it
+	eventsCount    map[monitoringEventType]int
+	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store i
 
 	entityMap *EntityMap
 
@@ -67,6 +68,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		ignoredCommands:          ignoredCommands,
 		observedEvents:           make(map[monitoringEventType]struct{}),
 		storedEvents:             make(map[monitoringEventType][]string),
+		eventsCount:              make(map[monitoringEventType]int),
 		entityMap:                em,
 		observeSensitiveCommands: entityOptions.ObserveSensitiveCommands,
 	}
@@ -246,6 +248,9 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 	if _, ok := c.observedEvents[commandStartedEvent]; ok {
 		c.started = append(c.started, evt)
 	}
+
+	c.eventsCount[commandStartedEvent]++
+
 	eventListIDs, ok := c.storedEvents[commandStartedEvent]
 	if !ok {
 		return
@@ -273,6 +278,9 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 	if _, ok := c.observedEvents[commandSucceededEvent]; ok {
 		c.succeeded = append(c.succeeded, evt)
 	}
+
+	c.eventsCount[commandSucceededEvent]++
+
 	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
 	if !ok {
 		return
@@ -299,6 +307,9 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	if _, ok := c.observedEvents[commandFailedEvent]; ok {
 		c.failed = append(c.failed, evt)
 	}
+
+	c.eventsCount[commandFailedEvent]++
+
 	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
 	if !ok {
 		return
@@ -362,6 +373,9 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	if _, ok := c.observedEvents[eventType]; ok {
 		c.pooled = append(c.pooled, evt)
 	}
+
+	c.eventsCount[eventType]++
+
 	if eventListIDs, ok := c.storedEvents[eventType]; ok {
 		eventBSON := getPoolEventDocument(evt, eventType)
 		for _, id := range eventListIDs {
@@ -376,6 +390,16 @@ func (c *clientEntity) setRecordEvents(record bool) {
 
 func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
+}
+
+// eventCount returns the number of events of the given type that have been published.
+func (c *clientEntity) eventCount(eventType monitoringEventType) int {
+	count, ok := c.eventsCount[eventType]
+	if !ok {
+		return 0
+	}
+
+	return count
 }
 
 func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {

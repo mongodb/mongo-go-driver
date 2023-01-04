@@ -14,14 +14,9 @@ type orderedLogMessage struct {
 
 // Logger is the Sink used to captured log messages for logger verification in the unified spec tests.
 type Logger struct {
-	// next represents the line number of the next log message that will be captured. The first log message
-	// will have an order of 1, the second will have an order of 2, and so on. This is used to ensure that the
-	// log messages are captured in the order that they are observed, per the specification.
-	left int
-
+	left      int
 	lastOrder int
-
-	logQueue chan orderedLogMessage
+	logQueue  chan orderedLogMessage
 }
 
 func newLogger(logQueue chan orderedLogMessage, expectedCount int) *Logger {

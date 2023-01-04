@@ -1747,14 +1747,14 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
-			Name:       info.cmdName,
-			RequestID:  int64(info.requestID),
-			ServerHost: host,
-			ServerPort: int32(portInt),
-			Message:    logger.CommandMessageStartedDefault,
-			//Command:      getCmdCopy().String(),
-			Command:      bson.Raw(info.cmd).String(),
-			DatabaseName: op.Database,
+			DriverConnectionID: info.serverConnID,
+			Name:               info.cmdName,
+			RequestID:          int64(info.requestID),
+			ServerHost:         host,
+			ServerPort:         int32(portInt),
+			Message:            logger.CommandMessageStartedDefault,
+			Command:            bson.Raw(info.cmd).String(),
+			DatabaseName:       op.Database,
 		})
 	}
 
@@ -1820,19 +1820,37 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return nil
 	}
 
-	// If logging is enabled for the command component at the debug level, log the command response.
+	// If logging is enabled for the command component at the debug level, log the command success.
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
-			Name:       info.cmdName,
-			RequestID:  int64(info.requestID),
-			Message:    logger.CommandMessageSucceededDefault,
-			DurationMS: getDuration().Milliseconds(),
-			Reply:      getRawResponse().String(),
-			ServerHost: host,
-			ServerPort: int32(portInt),
+			DriverConnectionID: info.serverConnID,
+			Name:               info.cmdName,
+			RequestID:          int64(info.requestID),
+			Message:            logger.CommandMessageSucceededDefault,
+			DurationMS:         getDuration().Milliseconds(),
+			Reply:              getRawResponse().String(),
+			ServerHost:         host,
+			ServerPort:         int32(portInt),
+		})
+	}
+
+	// If logging is enabled for the command component at the debug level, log the command failure.
+	if op.canLogCommandMessage() && !info.success() {
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+		portInt, _ := strconv.Atoi(port)
+
+		op.Logger.Print(logger.DebugLevel, &logger.CommandFailedMessage{
+			DriverConnectionID: info.serverConnID,
+			Name:               info.cmdName,
+			RequestID:          int64(info.requestID),
+			Message:            logger.CommandMessageFailedDefault,
+			DurationMS:         getDuration().Milliseconds(),
+			ServerHost:         host,
+			ServerPort:         int32(portInt),
+			Failure:            info.cmdErr.Error(),
 		})
 	}
 

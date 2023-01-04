@@ -29,7 +29,7 @@ var (
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
 	}
 
-	logMessageValidatorTimeout = 1 * time.Second
+	logMessageValidatorTimeout = 10 * time.Millisecond
 )
 
 const (
@@ -38,13 +38,13 @@ const (
 
 // TestCase holds and runs a unified spec test case
 type TestCase struct {
-	Description       string             `bson:"description"`
-	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
-	SkipReason        *string            `bson:"skipReason"`
-	Operations        []*operation       `bson:"operations"`
-	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
-	ExpectLogMessages clientLogs         `bson:"expectLogMessages"`
-	Outcome           []*collectionData  `bson:"outcome"`
+	Description       string               `bson:"description"`
+	RunOnRequirements []mtest.RunOnBlock   `bson:"runOnRequirements"`
+	SkipReason        *string              `bson:"skipReason"`
+	Operations        []*operation         `bson:"operations"`
+	ExpectedEvents    []*expectedEvents    `bson:"expectEvents"`
+	ExpectLogMessages []*clientLogMessages `bson:"expectLogMessages"`
+	Outcome           []*collectionData    `bson:"outcome"`
 
 	initialData     []*collectionData
 	createEntities  []map[string]*entityOptions
@@ -219,12 +219,12 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
+	testCtx := newTestContext(context.Background(), tc.entities)
+
 	// Validate the ExpectLogMessages.
-	if err := tc.ExpectLogMessages.validate(); err != nil {
+	if err := validateExpectLogMessages(testCtx, tc.ExpectLogMessages); err != nil {
 		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
 	}
-
-	testCtx := newTestContext(context.Background(), tc.entities)
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
@@ -275,7 +275,8 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			}
 
 			if entityOptions.ObserveLogMessages != nil && entityType == "client" {
-				entityOptions.ObserveLogMessages.volume = tc.ExpectLogMessages.volume(entityOptions.ID)
+				entityOptions.ObserveLogMessages.volume =
+					findClientLogMessagesVolume(entityOptions.ID, tc.ExpectLogMessages)
 			}
 
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
@@ -288,11 +289,13 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	// Create a logMessageValidator and start the workers.
-	logMessageValidator := newLogMessageValidator(tc)
+	logMessageValidator, err := newLogMessageValidator(tc)
+	if err != nil {
+		return fmt.Errorf("error creating logMessageValidator: %v", err)
+	}
 
-	logMessageValidator.startWorkers(testCtx)
 	defer logMessageValidator.close()
+	go startLogMessageVerificationWorkers(testCtx, logMessageValidator)
 
 	// Work around SERVER-39704.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
@@ -339,7 +342,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	defer cancelLmvCtx()
 
 	// For each client, verify that all expected log messages were received.
-	if err := logMessageValidator.validate(lmvCtx); err != nil {
+	if err := stopLogMessageVerificationWorkers(lmvCtx, logMessageValidator); err != nil {
 		return fmt.Errorf("error verifying log messages: %v", err)
 	}
 
