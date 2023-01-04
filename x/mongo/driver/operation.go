@@ -247,7 +247,7 @@ type Operation struct {
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
 
-	Logger logger.Logger
+	Logger *logger.Logger
 
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
@@ -1709,7 +1709,7 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 // canLogCommandMessage returns true if the command can be logged.
 func (op Operation) canLogCommandMessage() bool {
-	return op.Logger.Is(logger.DebugLevel, logger.CommandComponent)
+	return op.Logger != nil && op.Logger.Is(logger.DebugLevel, logger.CommandComponent)
 }
 
 func (op Operation) canPublishStartedEven() bool {

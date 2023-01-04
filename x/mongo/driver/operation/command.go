@@ -39,7 +39,7 @@ type Command struct {
 	createCursor   bool
 	cursorOpts     driver.CursorOptions
 	timeout        *time.Duration
-	logger         logger.Logger
+	logger         *logger.Logger
 }
 
 // NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
@@ -224,7 +224,7 @@ func (c *Command) Timeout(timeout *time.Duration) *Command {
 }
 
 // Logger sets the logger for this operation.
-func (c *Command) Logger(logger logger.Logger) *Command {
+func (c *Command) Logger(logger *logger.Logger) *Command {
 	if c == nil {
 		c = new(Command)
 	}

@@ -24,6 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+const clientEntityLogQueueSize = 100
+
 // Security-sensitive commands that should be ignored in command monitoring by default.
 var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslContinue", "getnonce",
 	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb"}
@@ -38,6 +40,7 @@ type clientEntity struct {
 	succeeded                []*event.CommandSucceededEvent
 	failed                   []*event.CommandFailedEvent
 	pooled                   []*event.PoolEvent
+	serverDescriptionChanged []*event.ServerDescriptionChangedEvent
 	ignoredCommands          map[string]struct{}
 	observeSensitiveCommands *bool
 	numConnsCheckedOut       int32
@@ -86,7 +89,8 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	// TODO: add explanation
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
-		entity.logQueue = make(chan orderedLogMessage, olm.volume)
+		// We buffer the logQueue to avoid blocking the logger goroutine.
+		entity.logQueue = make(chan orderedLogMessage, clientEntityLogQueueSize)
 
 		if err := setLoggerClientOptions(entity, clientOpts, olm); err != nil {
 			return nil, fmt.Errorf("error setting logger options: %v", err)
@@ -111,10 +115,16 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			Succeeded: entity.processSucceededEvent,
 			Failed:    entity.processFailedEvent,
 		}
+
 		poolMonitor := &event.PoolMonitor{
 			Event: entity.processPoolEvent,
 		}
-		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor)
+
+		serverMonitor := &event.ServerMonitor{
+			ServerDescriptionChanged: entity.processServerDescriptionChangedEvent,
+		}
+
+		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor).SetServerMonitor(serverMonitor)
 
 		for _, eventTypeStr := range entityOptions.ObserveEvents {
 			eventType, ok := monitoringEventTypeFromString(eventTypeStr)
@@ -382,6 +392,18 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 			c.entityMap.appendEventsEntity(id, eventBSON)
 		}
 	}
+}
+
+func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverDescriptionChangedEvent]; ok {
+		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
+	}
+
+	c.eventsCount[serverDescriptionChangedEvent]++
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {

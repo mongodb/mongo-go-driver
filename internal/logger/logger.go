@@ -33,8 +33,8 @@ type Logger struct {
 //
 // The "componentLevels" parameter is variadic with the latest value taking precedence. If no component has a LogLevel
 // set, then the constructor will attempt to source the LogLevel from the environment.
-func New(sink LogSink, componentLevels ...map[Component]Level) Logger {
-	logger := Logger{
+func New(sink LogSink, componentLevels ...map[Component]Level) *Logger {
+	logger := &Logger{
 		componentLevels: mergeComponentLevels([]map[Component]Level{
 			getEnvComponentLevels(),
 			mergeComponentLevels(componentLevels...),
@@ -56,7 +56,7 @@ func New(sink LogSink, componentLevels ...map[Component]Level) Logger {
 
 // NewWithWriter will construct a new logger with the given writer. If the given writer is nil, then the logger will
 // log using the standard library with output to os.Stderr.
-func NewWithWriter(w io.Writer, componentLevels ...map[Component]Level) Logger {
+func NewWithWriter(w io.Writer, componentLevels ...map[Component]Level) *Logger {
 	return New(newOSSink(w), componentLevels...)
 }
 
@@ -71,12 +71,9 @@ func (logger Logger) Is(level Level, component Component) bool {
 }
 
 func (logger Logger) Print(level Level, msg ComponentMessage) {
-	select {
-	case logger.jobs <- job{level, msg}:
-		// job sent
-	default:
-		// job dropped
-	}
+	// TODO: we probably don't want to block here, but we need to make sure that we don't drop messages. Is there
+	// TODO: a logical way to build a buffer size? Is there another way to avoid blocking?
+	logger.jobs <- job{level, msg}
 }
 
 func (logger *Logger) startPrinter(jobs <-chan job) {

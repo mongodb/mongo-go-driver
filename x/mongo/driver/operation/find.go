@@ -61,7 +61,7 @@ type Find struct {
 	result              driver.CursorResponse
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
-	logger              logger.Logger
+	logger              *logger.Logger
 }
 
 // NewFind constructs and returns a new Find.
@@ -550,7 +550,7 @@ func (f *Find) Timeout(timeout *time.Duration) *Find {
 	return f
 }
 
-func (f *Find) Logger(logger logger.Logger) *Find {
+func (f *Find) Logger(logger *logger.Logger) *Find {
 	if f == nil {
 		f = new(Find)
 	}

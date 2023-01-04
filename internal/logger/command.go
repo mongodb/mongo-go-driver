@@ -19,6 +19,7 @@ type CommandStartedMessage struct {
 
 	DriverConnectionID *int32 `bson:"driverConnectionId,omitempty"`
 	Name               string `bson:"commandName"`
+	OperationID        int32  `bson:"operationId"`
 	RequestID          int64  `bson:"requestId"`
 	ServerHost         string `bson:"serverHost"`
 	ServerPort         int32  `bson:"serverPort"`
@@ -33,6 +34,7 @@ type CommandSucceededMessage struct {
 	DriverConnectionID *int32 `bson:"driverConnectionId,omitempty"`
 	Name               string `bson:"commandName"`
 	RequestID          int64  `bson:"requestId"`
+	OperationID        int32  `bson:"operationId"`
 	ServerHost         string `bson:"serverHost"`
 	ServerPort         int32  `bson:"serverPort"`
 	Message            string `bson:"message"`
@@ -46,6 +48,7 @@ type CommandFailedMessage struct {
 	DriverConnectionID *int32 `bson:"driverConnectionId,omitempty"`
 	Name               string `bson:"commandName"`
 	RequestID          int64  `bson:"requestId"`
+	OperationID        int32  `bson:"operationId"`
 	ServerHost         string `bson:"serverHost"`
 	ServerPort         int32  `bson:"serverPort"`
 	Message            string `bson:"message"`

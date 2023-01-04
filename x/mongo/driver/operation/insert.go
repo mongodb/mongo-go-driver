@@ -41,7 +41,7 @@ type Insert struct {
 	result                   InsertResult
 	serverAPI                *driver.ServerAPIOptions
 	timeout                  *time.Duration
-	logger                   logger.Logger
+	logger                   *logger.Logger
 }
 
 // InsertResult represents an insert result returned by the server.
@@ -295,8 +295,11 @@ func (i *Insert) Timeout(timeout *time.Duration) *Insert {
 	return i
 }
 
-func (i *Insert) Logger(logger logger.Logger) *Insert {
-	i.logger = logger
+func (i *Insert) Logger(logger *logger.Logger) *Insert {
+	if i == nil {
+		i = new(Insert)
+	}
 
+	i.logger = logger
 	return i
 }

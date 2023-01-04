@@ -463,7 +463,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
 	if do.Comment != nil {
 		comment, err := transformValue(coll.registry, do.Comment, true, "comment")
 		if err != nil {
@@ -575,7 +575,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
 		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Logger(coll.client.logger)
 	if uo.Let != nil {
 		let, err := transformBsoncoreDocument(coll.registry, uo.Let, true, "let")
 		if err != nil {

@@ -274,11 +274,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 				}
 			}
 
-			if entityOptions.ObserveLogMessages != nil && entityType == "client" {
-				entityOptions.ObserveLogMessages.volume =
-					findClientLogMessagesVolume(entityOptions.ID, tc.ExpectLogMessages)
-			}
-
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
 				if isSkipTestError(err) {
 					ls.Skip(err)
@@ -288,14 +283,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			}
 		}
 	}
-
-	logMessageValidator, err := newLogMessageValidator(tc)
-	if err != nil {
-		return fmt.Errorf("error creating logMessageValidator: %v", err)
-	}
-
-	defer logMessageValidator.close()
-	go startLogMessageVerificationWorkers(testCtx, logMessageValidator)
 
 	// Work around SERVER-39704.
 	if mtest.ClusterTopologyKind() == mtest.Sharded && tc.performsDistinct() {
@@ -313,6 +300,16 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 			return fmt.Errorf("error running operation %q at index %d: %v", operation.Name, idx, err)
 		}
 	}
+
+	// Create a validator for log messages and start the workers that will observe log messages as they occur
+	// operationally.
+	logMessageValidator, err := newLogMessageValidator(tc)
+	if err != nil {
+		return fmt.Errorf("error creating logMessageValidator: %v", err)
+	}
+
+	defer logMessageValidator.close()
+	go startLogMessageVerificationWorkers(testCtx, logMessageValidator)
 
 	for _, client := range tc.entities.clients() {
 		client.stopListeningForEvents()

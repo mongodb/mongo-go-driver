@@ -19,9 +19,8 @@ type Logger struct {
 	logQueue  chan orderedLogMessage
 }
 
-func newLogger(logQueue chan orderedLogMessage, expectedCount int) *Logger {
+func newLogger(logQueue chan orderedLogMessage) *Logger {
 	return &Logger{
-		left:      expectedCount,
 		lastOrder: 0,
 		logQueue:  logQueue,
 	}
@@ -48,12 +47,7 @@ func (logger *Logger) Info(level int, msg string, args ...interface{}) {
 		logMessage: logMessage,
 	}
 
-	logger.left--
 	logger.lastOrder++
-
-	if logger.left == 0 {
-		close(logger.logQueue)
-	}
 }
 
 // setLoggerClientOptions sets the logger options for the client entity using client options and the observeLogMessages
@@ -63,7 +57,7 @@ func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientO
 		return fmt.Errorf("observeLogMessages is nil")
 	}
 
-	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue, olm.volume)).
+	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue)).
 		SetComponentLevels(map[options.LogComponent]options.LogLevel{
 			options.CommandLogComponent:         options.LogLevel(olm.Command.Level()),
 			options.TopologyLogComponent:        options.LogLevel(olm.Topology.Level()),

@@ -29,6 +29,7 @@ const (
 	connectionCheckOutFailedEvent  monitoringEventType = "ConnectionCheckOutFailedEvent"
 	connectionCheckedOutEvent      monitoringEventType = "ConnectionCheckedOutEvent"
 	connectionCheckedInEvent       monitoringEventType = "ConnectionCheckedInEvent"
+	serverDescriptionChangedEvent  monitoringEventType = "ServerDescriptionChangedEvent"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
@@ -61,6 +62,8 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return connectionCheckedOutEvent, true
 	case "connectioncheckedinevent":
 		return connectionCheckedInEvent, true
+	case "serverdescriptionchangedevent":
+		return serverDescriptionChangedEvent, true
 	default:
 		return "", false
 	}

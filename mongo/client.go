@@ -68,7 +68,7 @@ type Client struct {
 	sessionPool    *session.Pool
 	timeout        *time.Duration
 	httpClient     *http.Client
-	logger         logger.Logger
+	logger         *logger.Logger
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
