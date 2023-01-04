@@ -73,13 +73,12 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
-// CreateEncryptedCollection creates a new collection with a help of automatic generation of new encryption data keys for null keyIds.
-// The EncryptedFields field in createOpts will be updated with new keys.
+// CreateEncryptedCollection creates a new collection with the help of automatic generation of new encryption data keys for null keyIds.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts *options.CreateCollectionOptions,
-	kmsProvider string, dkOpts *options.DataKeyOptions) (*Collection, error) {
+	kmsProvider string, dkOpts *options.DataKeyOptions) (*Collection, bson.M, error) {
 	if createOpts == nil {
-		return nil, errors.New("nil CreateCollectionOptions")
+		return nil, nil, errors.New("nil CreateCollectionOptions")
 	}
 	ef := createOpts.EncryptedFields
 	if ef == nil {
@@ -87,34 +86,34 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 		ef = db.getEncryptedFieldsFromMap(coll)
 	}
 	if ef == nil {
-		return nil, errors.New("no EncryptedFields defined for the collection")
+		return nil, nil, errors.New("no EncryptedFields defined for the collection")
 	}
 
 	efBSON, err := transformBsoncoreDocument(db.registry, ef, true, "encryptedFields")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r := bsonrw.NewBSONDocumentReader(efBSON)
 	dec, err := bson.NewDecoder(r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	var m map[string]interface{}
+	var m bson.M
 	err = dec.Decode(&m)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if v, ok := m["fields"]; ok {
-		if fields, ok := v.(primitive.A); ok {
+		if fields, ok := v.(bson.A); ok {
 			for _, field := range fields {
-				if f, ok := field.(map[string]interface{}); !ok {
+				if f, ok := field.(bson.M); !ok {
 					continue
 				} else if v, ok := f["keyId"]; ok && v == nil {
 					keyid, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
 					if err != nil {
 						createOpts.EncryptedFields = m
-						return nil, err
+						return nil, m, err
 					}
 					f["keyId"] = keyid
 				}
@@ -124,9 +123,9 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	}
 	err = db.CreateCollection(ctx, coll, createOpts)
 	if err != nil {
-		return nil, err
+		return nil, m, err
 	}
-	return db.Collection(coll), nil
+	return db.Collection(coll), m, nil
 }
 
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the

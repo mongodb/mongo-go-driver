@@ -2098,7 +2098,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}`), true /* canonical */, &encryptedFields)
 			assert.Nil(mt, err, "Unmarshal error: %v", err)
 
-			coll, err := clientEnc.CreateEncryptedCollection(
+			coll, _, err := clientEnc.CreateEncryptedCollection(
 				context.Background(),
 				client.Database("db"),
 				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
@@ -2117,7 +2117,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "error in Close")
 			}()
 
-			coll, err := clientEnc.CreateEncryptedCollection(
+			coll, _, err := clientEnc.CreateEncryptedCollection(
 				context.Background(),
 				client.Database("db"),
 				"testing1", options.CreateCollection(),
@@ -2144,7 +2144,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}`), true /* canonical */, &encryptedFields)
 			assert.Nil(mt, err, "Unmarshal error: %v", err)
 
-			_, err = clientEnc.CreateEncryptedCollection(
+			_, _, err = clientEnc.CreateEncryptedCollection(
 				context.Background(),
 				client.Database("db"),
 				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
@@ -2170,17 +2170,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}`), true /* canonical */, &encryptedFields)
 			assert.Nil(mt, err, "Unmarshal error: %v", err)
 
-			op := options.CreateCollection().SetEncryptedFields(encryptedFields)
-			coll, err := clientEnc.CreateEncryptedCollection(
+			coll, ef, err := clientEnc.CreateEncryptedCollection(
 				context.Background(),
 				client.Database("db"),
-				"testing1", op,
+				"testing1", options.CreateCollection().SetEncryptedFields(encryptedFields),
 				"local", nil,
 			)
 			assert.Nil(mt, err, "CreateCollection error: %v", err)
 
-			fields := op.EncryptedFields.(map[string]interface{})["fields"].(primitive.A)
-			keyid := fields[0].(map[string]interface{})["keyId"].(primitive.Binary)
+			keyid := ef["fields"].(bson.A)[0].(bson.M)["keyId"].(primitive.Binary)
 			rawValueType, rawValueData, err := bson.MarshalValue("123-45-6789")
 			assert.Nil(mt, err, "MarshalValue error: %v", err)
 			rawValue := bson.RawValue{Type: rawValueType, Value: rawValueData}
