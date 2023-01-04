@@ -74,6 +74,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 }
 
 // CreateEncryptedCollection creates a new collection with the help of automatic generation of new encryption data keys for null keyIds.
+// It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts *options.CreateCollectionOptions,
 	kmsProvider string, dkOpts *options.DataKeyOptions) (*Collection, bson.M, error) {
