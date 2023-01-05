@@ -219,7 +219,14 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 	}
 
-	if clientOpt.LoggerOptions != nil {
+	{
+		// Create the logger for the client.
+
+		// If there are no logger options, then create a default logger.
+		if clientOpt.LoggerOptions == nil {
+			clientOpt.LoggerOptions = options.Logger()
+		}
+
 		sink := clientOpt.LoggerOptions.Sink
 		if sink == nil {
 			// Set the default sink to os.Stderr

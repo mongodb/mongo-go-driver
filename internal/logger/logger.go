@@ -1,10 +1,14 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/internal"
 )
 
 const messageKey = "message"
@@ -71,8 +75,8 @@ func (logger Logger) Is(level Level, component Component) bool {
 }
 
 func (logger Logger) Print(level Level, msg ComponentMessage) {
-	// TODO: we probably don't want to block here, but we need to make sure that we don't drop messages. Is there
-	// TODO: a logical way to build a buffer size? Is there another way to avoid blocking?
+	// TODO: We should buffer the "jobs" channel and then accept some level of drop rate with a message to the user.
+	// TODO: after the buffer limit has been reached.
 	logger.jobs <- job{level, msg}
 }
 
@@ -106,19 +110,6 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 
 		rawMsg := bson.Raw(msgBytes)
 
-		// Gather the keys and values from the BSON message as a variadic slice.
-		elems, err := rawMsg.Elements()
-		if err != nil {
-			sink.Info(levelInt, "error getting elements from BSON message: %v", err)
-
-			return
-		}
-
-		var keysAndValues []interface{}
-		for _, elem := range elems {
-			keysAndValues = append(keysAndValues, elem.Key(), elem.Value())
-		}
-
 		// Get the message string from the rawMsg.
 		msgValue, err := rawMsg.LookupErr(messageKey)
 		if err != nil {
@@ -127,6 +118,104 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 			return
 		}
 
+		keysAndValues, err := parseKeysAndValues(rawMsg)
+		if err != nil {
+			sink.Info(levelInt, "error parsing keys and values from BSON message: %v", err)
+		}
+
 		sink.Info(int(level), msgValue.String(), keysAndValues...)
 	}
+}
+
+func commandFinder(keyName string, values []string) func(bson.RawElement) bool {
+	valueSet := make(map[string]struct{}, len(values))
+	for _, commandName := range values {
+		valueSet[commandName] = struct{}{}
+	}
+
+	return func(elem bson.RawElement) bool {
+		if elem.Key() != keyName {
+			return false
+		}
+
+		val := elem.Value().StringValue()
+		_, ok := valueSet[val]
+		if !ok {
+			return false
+		}
+
+		return true
+	}
+}
+
+// TODO: figure out how to remove the magic strings from this function.
+func redactHello(msg bson.Raw, elem bson.RawElement) bool {
+	if elem.Key() != "commandName" {
+		return false
+	}
+
+	val := elem.Value().StringValue()
+	if strings.ToLower(val) != internal.LegacyHelloLowercase && val != "hello" {
+		fmt.Println("not hello", val)
+		return false
+	}
+
+	command, err := msg.LookupErr("command")
+	if err != nil {
+		// If there is no command, then we can't redact anything.
+		return false
+	}
+
+	// If "command" is a string and it contains "speculativeAuthenticate", then we must redact the command.
+	// TODO: is this safe? An injection could be possible. Alternative would be to convert the string into
+	// TODO: a document.
+	if command.Type == bsontype.String {
+		return strings.Contains(command.StringValue(), "\"speculativeAuthenticate\":")
+	}
+
+	return false
+}
+
+func parseKeysAndValues(msg bson.Raw) ([]interface{}, error) {
+
+	isRedactableCommand := commandFinder("commandName", []string{
+		"authenticate",
+		"saslStart",
+		"saslContinue",
+		"getnonce",
+		"createUser",
+		"updateUser",
+		"copydbgetnonce",
+		"copydbsaslstart",
+		"copydb",
+	})
+
+	elems, err := msg.Elements()
+	if err != nil {
+		return nil, err
+	}
+
+	var redactCommand bool
+
+	keysAndValues := make([]interface{}, 0, len(elems)*2)
+	for _, elem := range elems {
+		if isRedactableCommand(elem) || redactHello(msg, elem) {
+			redactCommand = true
+		}
+
+		var value interface{} = elem.Value()
+		switch elem.Key() {
+		case "command":
+			if redactCommand {
+				value = bson.RawValue{
+					Type:  bsontype.EmbeddedDocument,
+					Value: []byte{0x05, 0x00, 0x00, 0x00, 0x00},
+				}.String()
+			}
+		}
+
+		keysAndValues = append(keysAndValues, elem.Key(), value)
+	}
+
+	return keysAndValues, nil
 }

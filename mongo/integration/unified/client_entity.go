@@ -254,8 +254,6 @@ func (c *clientEntity) addEventsCount(eventType monitoringEventType, count int32
 	c.eventsCountLock.Lock()
 	defer c.eventsCountLock.Unlock()
 
-	//currentCount := c.eventsCount[eventType]
-	//atomic.AddInt32(&currentCount, count)
 	c.eventsCount[eventType] += count
 }
 

@@ -93,6 +93,8 @@ func validateLogMessage(_ context.Context, message *logMessage) error {
 
 // verifyLogMessagesMatch will verify that the actual log messages match the expected log messages.
 func verifyLogMessagesMatch(ctx context.Context, expected, actual *logMessage) error {
+	const commandKey = "command"
+
 	if actual == nil && expected == nil {
 		return nil
 	}
@@ -110,9 +112,20 @@ func verifyLogMessagesMatch(ctx context.Context, expected, actual *logMessage) e
 	rawExp := documentToRawValue(expected.Data)
 	rawAct := documentToRawValue(actual.Data)
 
+	// Top level data does not have to be 1-1 with the expectation, there are a number of unrequired fields that
+	// may not be present on the expected document.
 	if err := verifyValuesMatch(ctx, rawExp, rawAct, true); err != nil {
 		return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
 	}
+
+	//rawCommandExp := expected.Data.Lookup(commandKey)
+	//rawCommandAct := actual.Data.Lookup(commandKey)
+
+	// The command field in the data must be 1-1 with the expectation.
+	// TODO: Is there a better way to handle this?
+	//if err := verifyValuesMatch(ctx, rawCommandExp, rawCommandAct, true); err != nil {
+	//	return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
+	//}
 
 	return nil
 }
