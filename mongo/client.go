@@ -219,6 +219,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 	}
 
+	// TODO: (GODRIVER-2570) move all this logic to it's own setter function
 	{
 		// Create the logger for the client.
 

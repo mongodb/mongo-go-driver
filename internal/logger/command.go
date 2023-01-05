@@ -6,6 +6,7 @@ const (
 	CommandMessageFailedDefault    = "Command failed"
 	CommandMessageStartedDefault   = "Command started"
 	CommandMessageSucceededDefault = "Command succeeded"
+	CommandMessageDroppedDefault   = "Command dropped due to full log buffer"
 )
 
 type CommandMessage struct{}
@@ -57,4 +58,10 @@ type CommandFailedMessage struct {
 	Message            string `bson:"message"`
 	DurationMS         int64  `bson:"durationMS"`
 	Failure            string `bson:"failure"`
+}
+
+type CommandMessageDropped struct {
+	CommandMessage `bson:"-"`
+
+	Message string `bson:"message"`
 }

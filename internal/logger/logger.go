@@ -11,6 +11,7 @@ import (
 )
 
 const messageKey = "message"
+const jobBufferSize = 100
 
 // LogSink is an interface that can be implemented to provide a custom sink for the driver's logs.
 type LogSink interface {
@@ -51,7 +52,7 @@ func New(sink LogSink, componentLevels ...map[Component]Level) *Logger {
 	}
 
 	// Initialize the jobs channel and start the printer goroutine.
-	logger.jobs = make(chan job)
+	logger.jobs = make(chan job, jobBufferSize)
 	go logger.startPrinter(logger.jobs)
 
 	return logger
@@ -76,7 +77,13 @@ func (logger Logger) Is(level Level, component Component) bool {
 func (logger Logger) Print(level Level, msg ComponentMessage) {
 	// TODO: (GODRIVER-2570) We should buffer the "jobs" channel and then accept some level of drop rate with a message to the user.
 	// TODO: after the buffer limit has been reached.
-	logger.jobs <- job{level, msg}
+	select {
+	case logger.jobs <- job{level, msg}:
+	default:
+		logger.jobs <- job{level, &CommandMessageDropped{
+			Message: CommandMessageDroppedDefault,
+		}}
+	}
 }
 
 func (logger *Logger) startPrinter(jobs <-chan job) {
@@ -122,7 +129,7 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 			sink.Info(levelInt, "error parsing keys and values from BSON message: %v", err)
 		}
 
-		sink.Info(int(level), msgValue.String(), keysAndValues...)
+		sink.Info(int(level), msgValue.StringValue(), keysAndValues...)
 	}
 }
 
