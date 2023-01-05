@@ -17,7 +17,7 @@ func (*CommandMessage) Component() Component {
 type CommandStartedMessage struct {
 	CommandMessage `bson:"-"`
 
-	DriverConnectionID *int32 `bson:"driverConnectionId,omitempty"`
+	DriverConnectionID int32  `bson:"driverConnectionId"`
 	Name               string `bson:"commandName"`
 	OperationID        int32  `bson:"operationId"`
 	RequestID          int64  `bson:"requestId"`
@@ -31,7 +31,7 @@ type CommandStartedMessage struct {
 type CommandSucceededMessage struct {
 	CommandMessage `bson:"-"`
 
-	DriverConnectionID *int32 `bson:"driverConnectionId,omitempty"`
+	DriverConnectionID int32  `bson:"driverConnectionId"`
 	Name               string `bson:"commandName"`
 	RequestID          int64  `bson:"requestId"`
 	OperationID        int32  `bson:"operationId"`
@@ -45,7 +45,7 @@ type CommandSucceededMessage struct {
 type CommandFailedMessage struct {
 	CommandMessage `bson:"-"`
 
-	DriverConnectionID *int32 `bson:"driverConnectionId,omitempty"`
+	DriverConnectionID int32  `bson:"driverConnectionId"`
 	Name               string `bson:"commandName"`
 	RequestID          int64  `bson:"requestId"`
 	OperationID        int32  `bson:"operationId"`

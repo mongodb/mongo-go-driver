@@ -1746,8 +1746,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
+		var driverConnectionID int32
+		if serverConnID := info.serverConnID; serverConnID != nil {
+			driverConnectionID = *serverConnID
+		}
+
 		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
-			DriverConnectionID: info.serverConnID,
+			DriverConnectionID: driverConnectionID,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			ServerHost:         host,
@@ -1820,13 +1825,19 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return nil
 	}
 
+	// TODO: might be worth creating an info method to handle this, since there is repetition.
+	var driverConnectionID int32
+	if serverConnID := info.serverConnID; serverConnID != nil {
+		driverConnectionID = *serverConnID
+	}
+
 	// If logging is enabled for the command component at the debug level, log the command success.
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
-			DriverConnectionID: info.serverConnID,
+			DriverConnectionID: driverConnectionID,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			Message:            logger.CommandMessageSucceededDefault,
@@ -1843,7 +1854,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandFailedMessage{
-			DriverConnectionID: info.serverConnID,
+			DriverConnectionID: driverConnectionID,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			Message:            logger.CommandMessageFailedDefault,

@@ -278,19 +278,19 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 type waitForEventArguments struct {
 	ClientID string              `bson:"client"`
 	Event    map[string]struct{} `bson:"event"`
-	Count    int                 `bson:"count"`
+	Count    int32               `bson:"count"`
 }
 
 // eventCompleted will check all of the events in the event map and return true if all of the events have at least the
 // specified number of occurrences. If the event map is empty, it will return true.
-func (args waitForEventArguments) eventCompleted(client clientEntity) bool {
+func (args waitForEventArguments) eventCompleted(client *clientEntity) bool {
 	for rawEventType := range args.Event {
 		eventType, ok := monitoringEventTypeFromString(rawEventType)
 		if !ok {
 			return false
 		}
 
-		if client.eventCount(eventType) < args.Count {
+		if client.getEventCount(eventType) < args.Count {
 			return false
 		}
 	}
@@ -309,7 +309,7 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 		case <-ctx.Done():
 			return fmt.Errorf("timed out waiting for event: %v", ctx.Err())
 		default:
-			if args.eventCompleted(*client) {
+			if args.eventCompleted(client) {
 				return nil
 			}
 

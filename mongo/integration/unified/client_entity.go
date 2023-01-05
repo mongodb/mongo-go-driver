@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -47,8 +48,10 @@ type clientEntity struct {
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
-	eventsCount    map[monitoringEventType]int
 	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store i
+	eventsCount    map[monitoringEventType]int32
+
+	eventsCountLock sync.RWMutex
 
 	entityMap *EntityMap
 
@@ -71,7 +74,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		ignoredCommands:          ignoredCommands,
 		observedEvents:           make(map[monitoringEventType]struct{}),
 		storedEvents:             make(map[monitoringEventType][]string),
-		eventsCount:              make(map[monitoringEventType]int),
+		eventsCount:              make(map[monitoringEventType]int32),
 		entityMap:                em,
 		observeSensitiveCommands: entityOptions.ObserveSensitiveCommands,
 	}
@@ -247,6 +250,22 @@ func (c *clientEntity) numberConnectionsCheckedOut() int32 {
 	return c.numConnsCheckedOut
 }
 
+func (c *clientEntity) addEventsCount(eventType monitoringEventType, count int32) {
+	c.eventsCountLock.Lock()
+	defer c.eventsCountLock.Unlock()
+
+	//currentCount := c.eventsCount[eventType]
+	//atomic.AddInt32(&currentCount, count)
+	c.eventsCount[eventType] += count
+}
+
+func (c *clientEntity) getEventCount(eventType monitoringEventType) int32 {
+	c.eventsCountLock.RLock()
+	defer c.eventsCountLock.RUnlock()
+
+	return c.eventsCount[eventType]
+}
+
 func getSecondsSinceEpoch() float64 {
 	return float64(time.Now().UnixNano()) / float64(time.Second/time.Nanosecond)
 }
@@ -259,7 +278,7 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 		c.started = append(c.started, evt)
 	}
 
-	c.eventsCount[commandStartedEvent]++
+	c.addEventsCount(commandStartedEvent, 1)
 
 	eventListIDs, ok := c.storedEvents[commandStartedEvent]
 	if !ok {
@@ -289,7 +308,7 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 		c.succeeded = append(c.succeeded, evt)
 	}
 
-	c.eventsCount[commandSucceededEvent]++
+	c.addEventsCount(commandSucceededEvent, 1)
 
 	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
 	if !ok {
@@ -318,7 +337,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		c.failed = append(c.failed, evt)
 	}
 
-	c.eventsCount[commandFailedEvent]++
+	c.addEventsCount(commandFailedEvent, 1)
 
 	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
 	if !ok {
@@ -384,7 +403,7 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 		c.pooled = append(c.pooled, evt)
 	}
 
-	c.eventsCount[eventType]++
+	c.addEventsCount(eventType, 1)
 
 	if eventListIDs, ok := c.storedEvents[eventType]; ok {
 		eventBSON := getPoolEventDocument(evt, eventType)
@@ -403,7 +422,7 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
 	}
 
-	c.eventsCount[serverDescriptionChangedEvent]++
+	c.addEventsCount(serverDescriptionChangedEvent, 1)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {
@@ -412,16 +431,6 @@ func (c *clientEntity) setRecordEvents(record bool) {
 
 func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
-}
-
-// eventCount returns the number of events of the given type that have been published.
-func (c *clientEntity) eventCount(eventType monitoringEventType) int {
-	count, ok := c.eventsCount[eventType]
-	if !ok {
-		return 0
-	}
-
-	return count
 }
 
 func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {
