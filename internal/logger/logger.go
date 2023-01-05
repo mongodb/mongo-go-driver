@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -75,7 +74,7 @@ func (logger Logger) Is(level Level, component Component) bool {
 }
 
 func (logger Logger) Print(level Level, msg ComponentMessage) {
-	// TODO: We should buffer the "jobs" channel and then accept some level of drop rate with a message to the user.
+	// TODO: (GODRIVER-2570) We should buffer the "jobs" channel and then accept some level of drop rate with a message to the user.
 	// TODO: after the buffer limit has been reached.
 	logger.jobs <- job{level, msg}
 }
@@ -148,7 +147,7 @@ func commandFinder(keyName string, values []string) func(bson.RawElement) bool {
 	}
 }
 
-// TODO: figure out how to remove the magic strings from this function.
+// TODO: (GODRIVER-2570) figure out how to remove the magic strings from this function.
 func redactHello(msg bson.Raw, elem bson.RawElement) bool {
 	if elem.Key() != "commandName" {
 		return false
@@ -156,7 +155,6 @@ func redactHello(msg bson.Raw, elem bson.RawElement) bool {
 
 	val := elem.Value().StringValue()
 	if strings.ToLower(val) != internal.LegacyHelloLowercase && val != "hello" {
-		fmt.Println("not hello", val)
 		return false
 	}
 
@@ -167,7 +165,7 @@ func redactHello(msg bson.Raw, elem bson.RawElement) bool {
 	}
 
 	// If "command" is a string and it contains "speculativeAuthenticate", then we must redact the command.
-	// TODO: is this safe? An injection could be possible. Alternative would be to convert the string into
+	// TODO: (GODRIVER-2570) is this safe? An injection could be possible. Alternative would be to convert the string into
 	// TODO: a document.
 	if command.Type == bsontype.String {
 		return strings.Contains(command.StringValue(), "\"speculativeAuthenticate\":")
@@ -176,8 +174,8 @@ func redactHello(msg bson.Raw, elem bson.RawElement) bool {
 	return false
 }
 
+// TODO: (GODRIVER-2570) remove magic strings from this function. These strings could probably go into internal/const.go
 func parseKeysAndValues(msg bson.Raw) ([]interface{}, error) {
-
 	isRedactableCommand := commandFinder("commandName", []string{
 		"authenticate",
 		"saslStart",

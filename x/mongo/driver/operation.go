@@ -1746,13 +1746,12 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
-		var driverConnectionID int32
+		var serverConnectionID int32
 		if serverConnID := info.serverConnID; serverConnID != nil {
-			driverConnectionID = *serverConnID
+			serverConnectionID = *serverConnID
 		}
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
-			DriverConnectionID: driverConnectionID,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			ServerHost:         host,
@@ -1760,6 +1759,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 			Message:            logger.CommandMessageStartedDefault,
 			Command:            bson.Raw(info.cmd).String(),
 			DatabaseName:       op.Database,
+			ServerConnectionID: serverConnectionID,
 		})
 	}
 
@@ -1825,10 +1825,10 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return nil
 	}
 
-	// TODO: might be worth creating an info method to handle this, since there is repetition.
-	var driverConnectionID int32
+	// TODO: (GODRIVER-2570) might be worth creating an info method to handle this, since there is repetition.
+	var serverConnectionID int32
 	if serverConnID := info.serverConnID; serverConnID != nil {
-		driverConnectionID = *serverConnID
+		serverConnectionID = *serverConnID
 	}
 
 	// If logging is enabled for the command component at the debug level, log the command success.
@@ -1837,7 +1837,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
-			DriverConnectionID: driverConnectionID,
+			ServerConnectionID: serverConnectionID,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			Message:            logger.CommandMessageSucceededDefault,
@@ -1854,7 +1854,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandFailedMessage{
-			DriverConnectionID: driverConnectionID,
+			ServerConnectionID: serverConnectionID,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			Message:            logger.CommandMessageFailedDefault,

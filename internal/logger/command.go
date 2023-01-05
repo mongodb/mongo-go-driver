@@ -23,6 +23,7 @@ type CommandStartedMessage struct {
 	RequestID          int64  `bson:"requestId"`
 	ServerHost         string `bson:"serverHost"`
 	ServerPort         int32  `bson:"serverPort"`
+	ServerConnectionID int32  `bson:"serverConnectionId"`
 	Message            string `bson:"message"`
 	Command            string `bson:"command"`
 	DatabaseName       string `bson:"databaseName"`
@@ -37,6 +38,7 @@ type CommandSucceededMessage struct {
 	OperationID        int32  `bson:"operationId"`
 	ServerHost         string `bson:"serverHost"`
 	ServerPort         int32  `bson:"serverPort"`
+	ServerConnectionID int32  `bson:"serverConnectionId"`
 	Message            string `bson:"message"`
 	DurationMS         int64  `bson:"durationMS"`
 	Reply              string `bson:"reply"`
@@ -51,6 +53,7 @@ type CommandFailedMessage struct {
 	OperationID        int32  `bson:"operationId"`
 	ServerHost         string `bson:"serverHost"`
 	ServerPort         int32  `bson:"serverPort"`
+	ServerConnectionID int32  `bson:"serverConnectionId"`
 	Message            string `bson:"message"`
 	DurationMS         int64  `bson:"durationMS"`
 	Failure            string `bson:"failure"`
