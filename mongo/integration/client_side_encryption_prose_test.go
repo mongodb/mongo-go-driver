@@ -2212,7 +2212,47 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		precision := int32(2)
 
+		d128_0, err := primitive.ParseDecimal128("0")
+		assert.Nil(mt, err)
+		d128_6, err := primitive.ParseDecimal128("6")
+		assert.Nil(mt, err)
+		d128_30, err := primitive.ParseDecimal128("30")
+		assert.Nil(mt, err)
+		d128_200, err := primitive.ParseDecimal128("200")
+		assert.Nil(mt, err)
+		d128_201, err := primitive.ParseDecimal128("201")
+		assert.Nil(mt, err)
+
 		tests := []testcase{
+			{
+				typeStr:  "Decimal128NoPrecision",
+				field:    "encryptedDecimal128NoPrecision",
+				typeBson: bson.TypeDecimal128,
+				rangeOpts: options.RangeOptions{
+					Sparsity: 1,
+				},
+				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
+				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
+				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30)},
+				twoHundred:    bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
+				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201)},
+			},
+			{
+				typeStr:  "Decimal128Precision",
+				field:    "encryptedDecimal128Precision",
+				typeBson: bson.TypeDecimal128,
+				rangeOpts: options.RangeOptions{
+					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
+					Max:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
+					Sparsity:  1,
+					Precision: &precision,
+				},
+				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
+				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
+				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30)},
+				twoHundred:    bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
+				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201)},
+			},
 			{
 				typeStr:  "DoubleNoPrecision",
 				field:    "encryptedDoubleNoPrecision",
@@ -2548,7 +2588,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					checkCursorResults(cursor, test.field, test.zero, test.six)
 				})
 
-				if test.field != "encryptedDoubleNoPrecision" {
+				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDecimal128NoPrecision" {
 					mt.Run("Case 6: encrypting a document greater than the maximum errors", func(mt *mtest.T) {
 						encryptedClient, clientEncryption := testSetup()
 						defer clientEncryption.Close(context.Background())
@@ -2585,7 +2625,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					})
 				}
 
-				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDoublePrecision" {
+				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDoublePrecision" && test.field != "encryptedDecimal128NoPrecision" && test.field != "encryptedDecimal128Precision" {
 					mt.Run("Case 8: setting precision errors if the type is not a double", func(mt *mtest.T) {
 						encryptedClient, clientEncryption := testSetup()
 						defer clientEncryption.Close(context.Background())
