@@ -59,6 +59,8 @@ type LoggerOptions struct {
 
 	// Output is the writer to write logs to. If nil, the default is os.Stderr. Output is ignored if Sink is set.
 	Output io.Writer
+
+	MaxDocumentLength uint
 }
 
 // Logger creates a new LoggerOptions instance.
@@ -69,6 +71,12 @@ func Logger() *LoggerOptions {
 // SetComponentLevels sets the LogLevel value for a LogComponent.
 func (opts *LoggerOptions) SetComponentLevels(componentLevels map[LogComponent]LogLevel) *LoggerOptions {
 	opts.ComponentLevels = componentLevels
+
+	return opts
+}
+
+func (opts *LoggerOptions) SetMaxDocumentLength(maxDocumentLength uint) *LoggerOptions {
+	opts.MaxDocumentLength = maxDocumentLength
 
 	return opts
 }

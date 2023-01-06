@@ -1752,14 +1752,17 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		}
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
-			Name:               info.cmdName,
-			RequestID:          int64(info.requestID),
-			ServerHost:         host,
-			ServerPort:         int32(portInt),
-			Message:            logger.CommandMessageStartedDefault,
-			Command:            bson.Raw(info.cmd).String(),
-			DatabaseName:       op.Database,
-			ServerConnectionID: serverConnectionID,
+			Command:      getCmdCopy().String(),
+			DatabaseName: op.Database,
+
+			CommandMessage: logger.CommandMessage{
+				MessageLiteral:     logger.CommandMessageStartedDefault,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: serverConnectionID,
+				ServerHost:         host,
+				ServerPort:         int32(portInt),
+			},
 		})
 	}
 
@@ -1837,14 +1840,17 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
-			ServerConnectionID: serverConnectionID,
-			Name:               info.cmdName,
-			RequestID:          int64(info.requestID),
-			Message:            logger.CommandMessageSucceededDefault,
-			DurationMS:         getDuration().Milliseconds(),
-			Reply:              getRawResponse().String(),
-			ServerHost:         host,
-			ServerPort:         int32(portInt),
+			DurationMS: getDuration().Milliseconds(),
+			Reply:      getRawResponse().String(),
+
+			CommandMessage: logger.CommandMessage{
+				MessageLiteral:     logger.CommandMessageSucceededDefault,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: serverConnectionID,
+				ServerHost:         host,
+				ServerPort:         int32(portInt),
+			},
 		})
 	}
 
@@ -1854,14 +1860,17 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandFailedMessage{
-			ServerConnectionID: serverConnectionID,
-			Name:               info.cmdName,
-			RequestID:          int64(info.requestID),
-			Message:            logger.CommandMessageFailedDefault,
-			DurationMS:         getDuration().Milliseconds(),
-			ServerHost:         host,
-			ServerPort:         int32(portInt),
-			Failure:            info.cmdErr.Error(),
+			DurationMS: getDuration().Milliseconds(),
+			Failure:    info.cmdErr.Error(),
+
+			CommandMessage: logger.CommandMessage{
+				MessageLiteral:     logger.CommandMessageFailedDefault,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: serverConnectionID,
+				ServerHost:         host,
+				ServerPort:         int32(portInt),
+			},
 		})
 	}
 

@@ -12,6 +12,9 @@ import (
 
 const messageKey = "message"
 const jobBufferSize = 100
+const defaultMaxDocumentLength = 1000
+
+const TruncationSuffix = "..."
 
 // LogSink is an interface that can be implemented to provide a custom sink for the driver's logs.
 type LogSink interface {
@@ -25,9 +28,10 @@ type job struct {
 
 // Logger is the driver's logger. It is used to log messages from the driver either to OS or to a custom LogSink.
 type Logger struct {
-	componentLevels map[Component]Level
-	sink            LogSink
-	jobs            chan job
+	componentLevels   map[Component]Level
+	sink              LogSink
+	maxDocumentLength uint
+	jobs              chan job
 }
 
 // New will construct a new logger with the given LogSink. If the given LogSink is nil, then the logger will log using
@@ -37,7 +41,8 @@ type Logger struct {
 //
 // The "componentLevels" parameter is variadic with the latest value taking precedence. If no component has a LogLevel
 // set, then the constructor will attempt to source the LogLevel from the environment.
-func New(sink LogSink, componentLevels ...map[Component]Level) *Logger {
+// TODO: (GODRIVER-2570) Does this need a constructor? Can we just use a struct?
+func New(sink LogSink, maxDocumentLength uint, componentLevels ...map[Component]Level) *Logger {
 	logger := &Logger{
 		componentLevels: mergeComponentLevels([]map[Component]Level{
 			getEnvComponentLevels(),
@@ -51,6 +56,12 @@ func New(sink LogSink, componentLevels ...map[Component]Level) *Logger {
 		logger.sink = newOSSink(os.Stderr)
 	}
 
+	if maxDocumentLength > 0 {
+		logger.maxDocumentLength = maxDocumentLength
+	} else {
+		logger.maxDocumentLength = defaultMaxDocumentLength
+	}
+
 	// Initialize the jobs channel and start the printer goroutine.
 	logger.jobs = make(chan job, jobBufferSize)
 	go logger.startPrinter(logger.jobs)
@@ -60,8 +71,8 @@ func New(sink LogSink, componentLevels ...map[Component]Level) *Logger {
 
 // NewWithWriter will construct a new logger with the given writer. If the given writer is nil, then the logger will
 // log using the standard library with output to os.Stderr.
-func NewWithWriter(w io.Writer, componentLevels ...map[Component]Level) *Logger {
-	return New(newOSSink(w), componentLevels...)
+func NewWithWriter(w io.Writer, maxDocumentLength uint, componentLevels ...map[Component]Level) *Logger {
+	return New(newOSSink(w), maxDocumentLength, componentLevels...)
 }
 
 // Close will close the logger and stop the printer goroutine.
@@ -75,14 +86,10 @@ func (logger Logger) Is(level Level, component Component) bool {
 }
 
 func (logger Logger) Print(level Level, msg ComponentMessage) {
-	// TODO: (GODRIVER-2570) We should buffer the "jobs" channel and then accept some level of drop rate with a message to the user.
-	// TODO: after the buffer limit has been reached.
 	select {
 	case logger.jobs <- job{level, msg}:
 	default:
-		logger.jobs <- job{level, &CommandMessageDropped{
-			Message: CommandMessageDroppedDefault,
-		}}
+		logger.jobs <- job{level, &CommandMessageDropped{}}
 	}
 }
 
@@ -106,46 +113,32 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 		// leveInt is the integer representation of the level.
 		levelInt := int(level)
 
-		// convert the component message into raw BSON.
-		msgBytes, err := bson.Marshal(msg)
-		if err != nil {
-			sink.Info(levelInt, "error marshalling message to BSON: %v", err)
-
-			return
-		}
-
-		rawMsg := bson.Raw(msgBytes)
-
-		// Get the message string from the rawMsg.
-		msgValue, err := rawMsg.LookupErr(messageKey)
-		if err != nil {
-			sink.Info(levelInt, "error getting message from BSON message: %v", err)
-
-			return
-		}
-
-		keysAndValues, err := parseKeysAndValues(rawMsg)
+		keysAndValues, err := formatMessage(msg.Serialize(), logger.maxDocumentLength)
 		if err != nil {
 			sink.Info(levelInt, "error parsing keys and values from BSON message: %v", err)
 		}
 
-		sink.Info(int(level), msgValue.StringValue(), keysAndValues...)
+		sink.Info(int(level), msg.Message(), keysAndValues...)
 	}
 }
 
-func commandFinder(keyName string, values []string) func(bson.RawElement) bool {
+func commandFinder(keyName string, values []string) func(string, interface{}) bool {
 	valueSet := make(map[string]struct{}, len(values))
 	for _, commandName := range values {
 		valueSet[commandName] = struct{}{}
 	}
 
-	return func(elem bson.RawElement) bool {
-		if elem.Key() != keyName {
+	return func(key string, value interface{}) bool {
+		valueStr, ok := value.(string)
+		if !ok {
 			return false
 		}
 
-		val := elem.Value().StringValue()
-		_, ok := valueSet[val]
+		if key != keyName {
+			return false
+		}
+
+		_, ok = valueSet[valueStr]
 		if !ok {
 			return false
 		}
@@ -155,35 +148,48 @@ func commandFinder(keyName string, values []string) func(bson.RawElement) bool {
 }
 
 // TODO: (GODRIVER-2570) figure out how to remove the magic strings from this function.
-func redactHello(msg bson.Raw, elem bson.RawElement) bool {
-	if elem.Key() != "commandName" {
+func shouldRedactHello(key, val string) bool {
+	if key != "commandName" {
 		return false
 	}
 
-	val := elem.Value().StringValue()
 	if strings.ToLower(val) != internal.LegacyHelloLowercase && val != "hello" {
 		return false
 	}
 
-	command, err := msg.LookupErr("command")
-	if err != nil {
-		// If there is no command, then we can't redact anything.
-		return false
+	return strings.Contains(val, "\"speculativeAuthenticate\":")
+}
+
+func truncate(str string, width uint) string {
+	if len(str) <= int(width) {
+		return str
 	}
 
-	// If "command" is a string and it contains "speculativeAuthenticate", then we must redact the command.
-	// TODO: (GODRIVER-2570) is this safe? An injection could be possible. Alternative would be to convert the string into
-	// TODO: a document.
-	if command.Type == bsontype.String {
-		return strings.Contains(command.StringValue(), "\"speculativeAuthenticate\":")
+	// Truncate the byte slice of the string to the given width.
+	newStr := str[:width]
+
+	// Check if the last byte is at the beginning of a multi-byte character.
+	// If it is, then remove the last byte.
+	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
+		return newStr[:len(newStr)-1]
 	}
 
-	return false
+	// Check if the last byte is in the middle of a multi-byte character. If it is, then step back until we
+	// find the beginning of the character.
+	if newStr[len(newStr)-1]&0xC0 == 0x80 {
+		for i := len(newStr) - 1; i >= 0; i-- {
+			if newStr[i]&0xC0 == 0xC0 {
+				return newStr[:i]
+			}
+		}
+	}
+
+	return newStr + TruncationSuffix
 }
 
 // TODO: (GODRIVER-2570) remove magic strings from this function. These strings could probably go into internal/const.go
-func parseKeysAndValues(msg bson.Raw) ([]interface{}, error) {
-	isRedactableCommand := commandFinder("commandName", []string{
+func formatMessage(keysAndValues []interface{}, commandWidth uint) ([]interface{}, error) {
+	shouldRedactCommand := commandFinder("commandName", []string{
 		"authenticate",
 		"saslStart",
 		"saslContinue",
@@ -195,32 +201,28 @@ func parseKeysAndValues(msg bson.Raw) ([]interface{}, error) {
 		"copydb",
 	})
 
-	elems, err := msg.Elements()
-	if err != nil {
-		return nil, err
-	}
+	formattedKeysAndValues := make([]interface{}, len(keysAndValues))
+	for i := 0; i < len(keysAndValues); i += 2 {
+		key := keysAndValues[i].(string)
+		val := keysAndValues[i+1]
 
-	var redactCommand bool
+		switch key {
+		case "command", "reply":
+			str, _ := val.(string)
+			val = truncate(val.(string), commandWidth)
 
-	keysAndValues := make([]interface{}, 0, len(elems)*2)
-	for _, elem := range elems {
-		if isRedactableCommand(elem) || redactHello(msg, elem) {
-			redactCommand = true
-		}
-
-		var value interface{} = elem.Value()
-		switch elem.Key() {
-		case "command":
-			if redactCommand {
-				value = bson.RawValue{
+			if shouldRedactCommand(key, str) || shouldRedactHello(key, str) || len(str) == 0 {
+				val = bson.RawValue{
 					Type:  bsontype.EmbeddedDocument,
 					Value: []byte{0x05, 0x00, 0x00, 0x00, 0x00},
 				}.String()
 			}
+
 		}
 
-		keysAndValues = append(keysAndValues, elem.Key(), value)
+		formattedKeysAndValues[i] = key
+		formattedKeysAndValues[i+1] = val
 	}
 
-	return keysAndValues, nil
+	return formattedKeysAndValues, nil
 }

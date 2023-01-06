@@ -243,7 +243,8 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			internalComponentLevels[logger.Component(component)] = logger.Level(level)
 		}
 
-		client.logger = logger.New(sink, internalComponentLevels)
+		maxDocumentLength := clientOpt.LoggerOptions.MaxDocumentLength
+		client.logger = logger.New(sink, maxDocumentLength, internalComponentLevels)
 	}
 
 	return client, nil

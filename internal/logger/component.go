@@ -56,6 +56,8 @@ func (componentl ComponentLiteral) Component() Component {
 
 type ComponentMessage interface {
 	Component() Component
+	Message() string
+	Serialize() []interface{}
 }
 
 type componentEnv string
