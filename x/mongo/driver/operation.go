@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -318,14 +317,8 @@ func (op Operation) Validate() error {
 	return nil
 }
 
-var memoryPool = sync.Pool{
-	New: func() interface{} {
-		// Start with 1kb buffers.
-		b := make([]byte, 1024)
-		// Return a pointer as the static analysis tool suggests.
-		return &b
-	},
-}
+// Create a pool of maximum 512 byte slices.
+var memoryPool = newByteSlicePool(512)
 
 // Execute runs this operation.
 func (op Operation) Execute(ctx context.Context) error {
@@ -425,17 +418,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		conn = nil
 	}
 
-	wm := memoryPool.Get().(*[]byte)
+	wm := memoryPool.Get()
 	defer func() {
-		// Proper usage of a sync.Pool requires each entry to have approximately the same memory
-		// cost. To obtain this property when the stored type contains a variably-sized buffer,
-		// we add a hard limit on the maximum buffer to place back in the pool. We limit the
-		// size to 16MiB because that's the maximum wire message size supported by MongoDB.
-		//
-		// Comment copied from https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
-		if cap(*wm) > 16*1024*1024 {
-			return
-		}
 		memoryPool.Put(wm)
 	}()
 	for {
@@ -536,7 +520,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createWireMessage(ctx, (*wm)[:0], desc, maxTimeMS, conn)
+		wm, startedInfo, err = op.createWireMessage(ctx, wm[:0], desc, maxTimeMS, conn)
 		if err != nil {
 			return err
 		}
@@ -551,12 +535,12 @@ func (op Operation) Execute(ctx context.Context) error {
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
-		moreToCome := wiremessage.IsMsgMoreToCome(*wm)
+		moreToCome := wiremessage.IsMsgMoreToCome(wm)
 
 		// compress wiremessage if allowed
 		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
-			b := memoryPool.Get().(*[]byte)
-			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
+			b := memoryPool.Get()
+			b, err = compressor.CompressWireMessage(wm, b[:0])
 			memoryPool.Put(wm)
 			wm = b
 			if err != nil {
@@ -595,7 +579,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			res, *wm, err = roundTrip(ctx, conn, *wm)
+			res, wm, err = roundTrip(ctx, conn, wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -975,12 +959,12 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 	}
 
 	// Copy msg, which is a subslice of wm. wm will be used to store the return value of the decompressed message.
-	b := memoryPool.Get().(*[]byte)
+	b := memoryPool.Get()
 	msglen := len(msg)
-	if len(*b) < msglen {
-		*b = make([]byte, msglen)
+	if len(b) < msglen {
+		b = make([]byte, msglen)
 	}
-	copy(*b, msg)
+	copy(b, msg)
 	defer func() {
 		memoryPool.Put(b)
 	}()
@@ -993,7 +977,7 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := DecompressPayload((*b)[0:msglen], opts)
+	uncompressed, err := DecompressPayload(b[0:msglen], opts)
 	if err != nil {
 		return nil, err
 	}
