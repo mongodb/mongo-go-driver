@@ -1752,7 +1752,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		}
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
-			Command:      getCmdCopy().String(),
+			Command:      getCmdCopy(),
 			DatabaseName: op.Database,
 
 			CommandMessage: logger.CommandMessage{
@@ -1822,7 +1822,9 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		}
 
 		if !info.redacted {
-			return bson.Raw(info.response)
+			rawResponse = bson.Raw(info.response)
+
+			return rawResponse
 		}
 
 		return nil
@@ -1840,8 +1842,8 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
-			DurationMS: getDuration().Milliseconds(),
-			Reply:      getRawResponse().String(),
+			Duration: getDuration(),
+			Reply:    getRawResponse(),
 
 			CommandMessage: logger.CommandMessage{
 				MessageLiteral:     logger.CommandMessageSucceededDefault,
@@ -1860,8 +1862,8 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.DebugLevel, &logger.CommandFailedMessage{
-			DurationMS: getDuration().Milliseconds(),
-			Failure:    info.cmdErr.Error(),
+			Duration: getDuration(),
+			Failure:  info.cmdErr.Error(),
 
 			CommandMessage: logger.CommandMessage{
 				MessageLiteral:     logger.CommandMessageFailedDefault,

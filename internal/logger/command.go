@@ -1,5 +1,11 @@
 package logger
 
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
+
 const (
 	CommandMessageFailedDefault    = "Command failed"
 	CommandMessageStartedDefault   = "Command started"
@@ -8,14 +14,14 @@ const (
 )
 
 type CommandMessage struct {
-	DriverConnectionID int32  `bson:"driverConnectionId"`
-	MessageLiteral     string `bson:"message"`
-	Name               string `bson:"commandName"`
-	OperationID        int32  `bson:"operationId"`
-	RequestID          int64  `bson:"requestId"`
-	ServerConnectionID int32  `bson:"serverConnectionId"`
-	ServerHost         string `bson:"serverHost"`
-	ServerPort         int32  `bson:"serverPort"`
+	DriverConnectionID int32
+	MessageLiteral     string
+	Name               string
+	OperationID        int32
+	RequestID          int64
+	ServerConnectionID int32
+	ServerHost         string
+	ServerPort         int32
 }
 
 func (*CommandMessage) Component() Component {
@@ -40,10 +46,10 @@ func serializeKeysAndValues(msg CommandMessage) []interface{} {
 }
 
 type CommandStartedMessage struct {
-	CommandMessage `bson:"-"`
+	CommandMessage
 
-	Command      string `bson:"command"`
-	DatabaseName string `bson:"databaseName"`
+	Command      bson.Raw
+	DatabaseName string
 }
 
 func (msg *CommandStartedMessage) Serialize() []interface{} {
@@ -55,37 +61,37 @@ func (msg *CommandStartedMessage) Serialize() []interface{} {
 }
 
 type CommandSucceededMessage struct {
-	CommandMessage `bson:"-"`
+	CommandMessage
 
-	DurationMS int64  `bson:"durationMS"`
-	Reply      string `bson:"reply"`
+	Duration time.Duration
+	Reply    bson.Raw
 }
 
 func (msg *CommandSucceededMessage) Serialize() []interface{} {
 	return append(serializeKeysAndValues(msg.CommandMessage), []interface{}{
 		"message", msg.MessageLiteral,
-		"durationMS", msg.DurationMS,
+		"durationMS", msg.Duration / time.Millisecond,
 		"reply", msg.Reply,
 	}...)
 }
 
 type CommandFailedMessage struct {
-	CommandMessage `bson:"-"`
+	CommandMessage
 
-	DurationMS int64  `bson:"durationMS"`
-	Failure    string `bson:"failure"`
+	Duration time.Duration
+	Failure  string
 }
 
 func (msg *CommandFailedMessage) Serialize() []interface{} {
 	return append(serializeKeysAndValues(msg.CommandMessage), []interface{}{
 		"message", msg.MessageLiteral,
-		"durationMS", msg.DurationMS,
+		"durationMS", msg.Duration / time.Millisecond,
 		"failure", msg.Failure,
 	}...)
 }
 
 type CommandMessageDropped struct {
-	CommandMessage `bson:"-"`
+	CommandMessage
 }
 
 func (msg *CommandMessageDropped) Serialize() []interface{} {

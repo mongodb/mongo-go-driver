@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -14,10 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
-)
-
-var (
-	ErrLogNotTruncated = fmt.Errorf("log message not truncated")
 )
 
 type testLogSink struct {
@@ -76,8 +71,8 @@ func (sink *testLogSink) errs() <-chan error {
 	return sink.errsCh
 }
 
-func findLogValue(t *testing.T, key string, values ...interface{}) interface{} {
-	t.Helper()
+func findLogValue(mt *mtest.T, key string, values ...interface{}) interface{} {
+	mt.Helper()
 
 	for i := 0; i < len(values); i += 2 {
 		if values[i] == key {
@@ -88,24 +83,30 @@ func findLogValue(t *testing.T, key string, values ...interface{}) interface{} {
 	return nil
 }
 
-func validateCommandTruncated(t *testing.T, commandName string, values ...interface{}) error {
-	t.Helper()
+type logTruncCaseValidator func(values ...interface{}) error
 
-	cmd := findLogValue(t, commandName, values...)
-	if cmd == nil {
-		return fmt.Errorf("%q not found in keys and values", commandName)
+func newLogTruncCaseValidator(mt *mtest.T, commandName string, cond func(int) bool) logTruncCaseValidator {
+	mt.Helper()
+
+	return func(values ...interface{}) error {
+		cmd := findLogValue(mt, commandName, values...)
+		if cmd == nil {
+			return fmt.Errorf("%q not found in keys and values", commandName)
+		}
+
+		cmdStr, ok := cmd.(string)
+
+		if !ok {
+			return fmt.Errorf("command is not a string")
+		}
+
+		cmdLen := len(cmdStr)
+		if !cond(cmdLen) {
+			return fmt.Errorf("expected command length %d", cmdLen)
+		}
+
+		return nil
 	}
-
-	cmdStr, ok := cmd.(string)
-	if !ok {
-		return fmt.Errorf("command is not a string")
-	}
-
-	if len(cmdStr) != 1000+len(logger.TruncationSuffix) {
-		return ErrLogNotTruncated
-	}
-
-	return nil
 }
 
 func TestCommandLoggingAndMonitoringProse(t *testing.T) {
@@ -123,82 +124,153 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 	inc := 0
 	incMutex := &sync.Mutex{}
 
-	mt.Run("1 Default truncation limit", func(mt *mtest.T) {
-		mt.Parallel()
+	defaultLengthWithSuffix := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
 
-		incMutex.Lock()
-		inc++
+	for _, tcase := range []struct {
+		// name is the name of the test case
+		name string
 
-		incMutex.Unlock()
+		// collectionName is the name to assign the collection for processing the operations. This should be
+		// unique accross test cases.
+		collectionName string
 
-		const documentsSize = 100
-		const expectedNumberOfLogs = 4
-		const deadline = 1 * time.Second
+		// maxDocumentLength is the maximum document length for a command message.
+		maxDocumentLength uint
 
-		collectionName := "46a624c57c72463d90f88a733e7b28b4" + fmt.Sprintf("%d", inc)
+		// orderedLogValidators is a slice of log validators that should be 1-1 with the actual logs that are
+		// propagated by the LogSink. The order here matters, the first log will be validated by the 0th
+		// validator, the second log will be validated by the 1st validator, etc.
+		orderedLogValidators []logTruncCaseValidator
 
-		ctx := context.Background()
+		// operation is the operation to perform on the collection that will result in log propagation. The logs
+		// created by "operation" will be validated against the "orderedLogValidators."
+		operation func(context.Context, *mtest.T, *mongo.Collection)
+	}{
+		{
+			name:           "1 Default truncation limit",
+			collectionName: "46a624c57c72463d90f88a733e7b28b4",
+			operation: func(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+				const documentsSize = 100
 
-		sinkCtx, sinkCancel := context.WithDeadline(ctx, time.Now().Add(deadline))
-		defer sinkCancel()
-
-		// Construct a log sink that will validate the logs as they propagate.
-		validator := func(order int, level int, msg string, keysAndValues ...interface{}) error {
-			switch order {
-			case 0: // Command started for "insert"
-				return validateCommandTruncated(mt.T, "command", keysAndValues...)
-			case 1: // Command succeeded for "insert"
-				err := validateCommandTruncated(mt.T, "reply", keysAndValues...)
-				if err != nil && !errors.Is(err, ErrLogNotTruncated) {
-					return err
+				// Construct an array docs containing the document {"x" : "y"} repeated 100 times.
+				docs := []interface{}{}
+				for i := 0; i < documentsSize; i++ {
+					docs = append(docs, bson.D{{"x", "y"}})
 				}
 
-				return nil
-			case 2: // Command started for "find"
-				return nil
-			case 3: // Command succeeded for "find"
-				return validateCommandTruncated(mt.T, "reply", keysAndValues...)
+				// Insert docs to a collection via insertMany.
+				_, err := coll.InsertMany(ctx, docs)
+				assert.Nil(mt, err, "InsertMany error: %v", err)
+
+				// Run find() on the collection where the document was inserted.
+				_, err = coll.Find(ctx, bson.D{})
+				assert.Nil(mt, err, "Find error: %v", err)
+			},
+			orderedLogValidators: []logTruncCaseValidator{
+				newLogTruncCaseValidator(mt, "command", func(actual int) bool {
+					return actual == defaultLengthWithSuffix
+				}),
+				newLogTruncCaseValidator(mt, "reply", func(actual int) bool {
+					return actual <= defaultLengthWithSuffix
+				}),
+				nil,
+				newLogTruncCaseValidator(mt, "reply", func(actual int) bool {
+					return actual == defaultLengthWithSuffix
+				}),
+			},
+		},
+		{
+			name:              "2 Explicitly configured truncation limit",
+			collectionName:    "540baa64dc854ca2a639627e2f0918df",
+			maxDocumentLength: 5,
+			operation: func(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+				result := coll.Database().RunCommand(ctx, bson.D{{"hello", true}})
+				assert.Nil(mt, result.Err(), "RunCommand error: %v", result.Err())
+			},
+			orderedLogValidators: []logTruncCaseValidator{
+				newLogTruncCaseValidator(mt, "command", func(actual int) bool {
+					return actual == 5+len(logger.TruncationSuffix)
+				}),
+				newLogTruncCaseValidator(mt, "reply", func(actual int) bool {
+					return actual == 5+len(logger.TruncationSuffix)
+				}),
+			},
+		},
+		{
+			name:              "3 Truncation with multi-byte codepoints",
+			collectionName:    "41fe9a6918044733875617b56a3125a9",
+			maxDocumentLength: 454, // One byte away from the end of the UTF-8 sequence 世.
+			operation: func(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+				_, err := coll.InsertOne(ctx, bson.D{{"x", "hello 世"}})
+				assert.Nil(mt, err, "InsertOne error: %v", err)
+			},
+			orderedLogValidators: []logTruncCaseValidator{
+				newLogTruncCaseValidator(mt, "command", func(actual int) bool {
+					return actual == 452 // 454 - 2 (length of two bytes in the UTF-8 sequence 世)
+				}),
+				nil, // No need to check the sucess of the message.
+			},
+		},
+	} {
+		tcase := tcase
+
+		mt.Run(tcase.name, func(mt *mtest.T) {
+			mt.Parallel()
+
+			incMutex.Lock()
+			inc++
+
+			incMutex.Unlock()
+
+			const deadline = 1 * time.Second
+			ctx := context.Background()
+
+			sinkCtx, sinkCancel := context.WithDeadline(ctx, time.Now().Add(deadline))
+			defer sinkCancel()
+
+			validator := func(order int, level int, msg string, keysAndValues ...interface{}) error {
+				// If the order exceeds the length of the "orderedCaseValidators," then throw an error.
+				if order >= len(tcase.orderedLogValidators) {
+					return fmt.Errorf("not enough expected cases to validate")
+				}
+
+				caseValidator := tcase.orderedLogValidators[order]
+				if caseValidator == nil {
+					return nil
+				}
+
+				return tcase.orderedLogValidators[order](keysAndValues...)
 			}
 
-			return nil
-		}
+			sink := newTestLogSink(sinkCtx, len(tcase.orderedLogValidators), validator)
 
-		sink := newTestLogSink(sinkCtx, expectedNumberOfLogs, validator)
+			// Configure logging with a minimum severity level of "debug" for the "command" component
+			// without explicitly configure the max document length.
+			loggerOpts := options.Logger().SetSink(sink).
+				SetComponentLevels(map[options.LogComponent]options.LogLevel{
+					options.CommandLogComponent: options.DebugLogLevel,
+				})
 
-		// Configure logging with a minimum severity level of "debug" for the "command" component without
-		// explicitly configure the max document length.
-		loggerOpts := options.Logger().SetSink(sink).
-			SetComponentLevels(map[options.LogComponent]options.LogLevel{
-				options.CommandLogComponent: options.DebugLogLevel,
-			})
+			if mdl := tcase.maxDocumentLength; mdl != 0 {
+				loggerOpts.SetMaxDocumentLength(mdl)
+			}
 
-		clientOpts := options.Client().SetLoggerOptions(loggerOpts).ApplyURI(mtest.ClusterURI())
+			clientOpts := options.Client().SetLoggerOptions(loggerOpts).ApplyURI(mtest.ClusterURI())
 
-		client, err := mongo.Connect(context.TODO(), clientOpts)
-		assert.Nil(mt, err, "Connect error: %v", err)
+			client, err := mongo.Connect(context.TODO(), clientOpts)
+			assert.Nil(mt, err, "Connect error: %v", err)
 
-		coll := mt.CreateCollection(mtest.Collection{
-			Name:   collectionName,
-			Client: client,
-		}, false)
+			coll := mt.CreateCollection(mtest.Collection{
+				Name:   tcase.collectionName,
+				Client: client,
+			}, false)
 
-		// Construct an array docs containing the document {"x" : "y"} repeated 100 times.
-		docs := []interface{}{}
-		for i := 0; i < documentsSize; i++ {
-			docs = append(docs, bson.D{{"x", "y"}})
-		}
+			tcase.operation(ctx, mt, coll)
 
-		// Insert docs to a collection via insertMany.
-		_, err = coll.InsertMany(context.Background(), docs)
-		assert.Nil(mt, err, "InsertMany error: %v", err)
-
-		// Run find() on the collection where the document was inserted.
-		_, err = coll.Find(context.Background(), bson.D{})
-		assert.Nil(mt, err, "Find error: %v", err)
-
-		// Verify the logs.
-		if err := <-sink.errs(); err != nil {
-			mt.Fatalf("unexpected error: %v", err)
-		}
-	})
+			// Verify the logs.
+			if err := <-sink.errs(); err != nil {
+				mt.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
 }

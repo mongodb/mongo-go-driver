@@ -3,8 +3,6 @@ package logger
 import (
 	"io"
 	"log"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 type osSink struct {
@@ -17,70 +15,50 @@ func newOSSink(out io.Writer) *osSink {
 	}
 }
 
-// TODO: (GODRIVERS-2570) Figure out how to handle errors from unmarshalMessage.
-func unmarshalMessage(msg interface{}, args ...interface{}) {
-	actualD := bson.D{}
-	for i := 0; i < len(args); i += 2 {
-		actualD = append(actualD, bson.E{Key: args[i].(string), Value: args[i+1]})
-	}
-
-	bytes, _ := bson.Marshal(actualD)
-	bson.Unmarshal(bytes, msg)
-}
-
-func logCommandMessageStarted(log *log.Logger, args ...interface{}) {
-	var csm CommandStartedMessage
-	unmarshalMessage(&csm, args...)
-
+func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q started on database %q using a connection with server-generated ID %d to %s:%d. " +
 		"The requestID is %d and the operation ID is %d. Command: %s"
 
 	log.Printf(format,
-		csm.Name,
-		csm.DatabaseName,
-		csm.ServerConnectionID,
-		csm.ServerHost,
-		csm.ServerPort,
-		csm.RequestID,
-		csm.OperationID,
-		csm.Command)
+		kvMap["commandName"],
+		kvMap["databaseName"],
+		kvMap["serverConnectionId"],
+		kvMap["serverHost"],
+		kvMap["serverPort"],
+		kvMap["requestId"],
+		kvMap["operationId"],
+		kvMap["command"])
 
 }
 
-func logCommandMessageSucceeded(log *log.Logger, args ...interface{}) {
-	var csm CommandSucceededMessage
-	unmarshalMessage(&csm, args...)
-
+func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q succeeded in %d ms using server-generated ID %d to %s:%d. " +
 		"The requestID is %d and the operation ID is %d. Command reply: %s"
 
 	log.Printf(format,
-		csm.Name,
-		csm.DurationMS,
-		csm.ServerConnectionID,
-		csm.ServerHost,
-		csm.ServerPort,
-		csm.RequestID,
-		csm.OperationID,
-		csm.Reply)
+		kvMap["commandName"],
+		kvMap["duration"],
+		kvMap["serverConnectionId"],
+		kvMap["serverHost"],
+		kvMap["serverPort"],
+		kvMap["requestId"],
+		kvMap["operationId"],
+		kvMap["reply"])
 }
 
-func logCommandMessageFailed(log *log.Logger, args ...interface{}) {
-	var cfm CommandFailedMessage
-	unmarshalMessage(&cfm, args...)
-
+func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q failed in %d ms using a connection with server-generated ID %d to %s:%d. " +
 		" The requestID is %d and the operation ID is %d. Error: %s"
 
 	log.Printf(format,
-		cfm.Name,
-		cfm.DurationMS,
-		cfm.ServerConnectionID,
-		cfm.ServerHost,
-		cfm.ServerPort,
-		cfm.RequestID,
-		cfm.OperationID,
-		cfm.Failure)
+		kvMap["commandName"],
+		kvMap["duration"],
+		kvMap["serverConnectionID"],
+		kvMap["serverHost"],
+		kvMap["serverPort"],
+		kvMap["requestId"],
+		kvMap["operationId"],
+		kvMap["failure"])
 }
 
 func logCommandDropped(log *log.Logger) {
@@ -91,13 +69,20 @@ func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	// TODO: (GODRIVERS-2570) This is how the specification says we SHOULD handle errors. It might be much
 	// TODO: better to just pass the message and then the keys and values ala
 	// TODO: "msg: %s, key1: %v, key2: %v, key3: %v, ...".
+
+	// Create a map of the keys and values.
+	kvMap := make(map[string]interface{})
+	for i := 0; i < len(keysAndValues); i += 2 {
+		kvMap[keysAndValues[i].(string)] = keysAndValues[i+1]
+	}
+
 	switch msg {
 	case CommandMessageStartedDefault:
-		logCommandMessageStarted(osSink.log, keysAndValues...)
+		logCommandMessageStarted(osSink.log, kvMap)
 	case CommandMessageSucceededDefault:
-		logCommandMessageSucceeded(osSink.log, keysAndValues...)
+		logCommandMessageSucceeded(osSink.log, kvMap)
 	case CommandMessageFailedDefault:
-		logCommandMessageFailed(osSink.log, keysAndValues...)
+		logCommandMessageFailed(osSink.log, kvMap)
 	case CommandMessageDroppedDefault:
 		logCommandDropped(osSink.log)
 	}

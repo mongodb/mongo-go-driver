@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 const messageKey = "message"
 const jobBufferSize = 100
-const defaultMaxDocumentLength = 1000
+const DefaultMaxDocumentLength = 1000
 
 const TruncationSuffix = "..."
 
@@ -28,10 +29,11 @@ type job struct {
 
 // Logger is the driver's logger. It is used to log messages from the driver either to OS or to a custom LogSink.
 type Logger struct {
-	componentLevels   map[Component]Level
-	sink              LogSink
-	maxDocumentLength uint
-	jobs              chan job
+	ComponentLevels   map[Component]Level
+	Sink              LogSink
+	MaxDocumentLength uint
+
+	jobs chan job
 }
 
 // New will construct a new logger with the given LogSink. If the given LogSink is nil, then the logger will log using
@@ -44,22 +46,22 @@ type Logger struct {
 // TODO: (GODRIVER-2570) Does this need a constructor? Can we just use a struct?
 func New(sink LogSink, maxDocumentLength uint, componentLevels ...map[Component]Level) *Logger {
 	logger := &Logger{
-		componentLevels: mergeComponentLevels([]map[Component]Level{
+		ComponentLevels: mergeComponentLevels([]map[Component]Level{
 			getEnvComponentLevels(),
 			mergeComponentLevels(componentLevels...),
 		}...),
 	}
 
 	if sink != nil {
-		logger.sink = sink
+		logger.Sink = sink
 	} else {
-		logger.sink = newOSSink(os.Stderr)
+		logger.Sink = newOSSink(os.Stderr)
 	}
 
 	if maxDocumentLength > 0 {
-		logger.maxDocumentLength = maxDocumentLength
+		logger.MaxDocumentLength = maxDocumentLength
 	} else {
-		logger.maxDocumentLength = defaultMaxDocumentLength
+		logger.MaxDocumentLength = DefaultMaxDocumentLength
 	}
 
 	// Initialize the jobs channel and start the printer goroutine.
@@ -82,9 +84,10 @@ func (logger Logger) Close() {
 
 // Is will return true if the given LogLevel is enabled for the given LogComponent.
 func (logger Logger) Is(level Level, component Component) bool {
-	return logger.componentLevels[component] >= level
+	return logger.ComponentLevels[component] >= level
 }
 
+// TODO: (GODRIVER-2570) add an explanation
 func (logger Logger) Print(level Level, msg ComponentMessage) {
 	select {
 	case logger.jobs <- job{level, msg}:
@@ -103,22 +106,22 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 			return
 		}
 
-		sink := logger.sink
+		sink := logger.Sink
 
 		// If the sink is nil, then skip the message.
 		if sink == nil {
 			return
 		}
 
-		// leveInt is the integer representation of the level.
 		levelInt := int(level)
 
-		keysAndValues, err := formatMessage(msg.Serialize(), logger.maxDocumentLength)
+		keysAndValues, err := formatMessage(msg.Serialize(), logger.MaxDocumentLength)
 		if err != nil {
 			sink.Info(levelInt, "error parsing keys and values from BSON message: %v", err)
+
 		}
 
-		sink.Info(int(level), msg.Message(), keysAndValues...)
+		sink.Info(levelInt, msg.Message(), keysAndValues...)
 	}
 }
 
@@ -208,8 +211,15 @@ func formatMessage(keysAndValues []interface{}, commandWidth uint) ([]interface{
 
 		switch key {
 		case "command", "reply":
-			str, _ := val.(string)
-			val = truncate(val.(string), commandWidth)
+			// Command should be a bson.Raw value.
+			raw, ok := val.(bson.Raw)
+			if !ok {
+				return nil, fmt.Errorf("expected value for key %q to be a bson.Raw, but got %T",
+					key, val)
+			}
+
+			str := raw.String()
+			val = truncate(str, commandWidth)
 
 			if shouldRedactCommand(key, str) || shouldRedactHello(key, str) || len(str) == 0 {
 				val = bson.RawValue{

@@ -61,6 +61,10 @@ type LoggerOptions struct {
 	Output io.Writer
 
 	MaxDocumentLength uint
+
+	// SinkLevels is a map LogLevel to the value to pass to info() when logging at that level. This is only valid
+	// if a LogSink is set on the LoggerOptions.
+	SinkLevels map[LogLevel]int
 }
 
 // Logger creates a new LoggerOptions instance.
@@ -83,6 +87,12 @@ func (opts *LoggerOptions) SetMaxDocumentLength(maxDocumentLength uint) *LoggerO
 
 func (opts *LoggerOptions) SetSink(sink LogSink) *LoggerOptions {
 	opts.Sink = sink
+
+	return opts
+}
+
+func (opts *LoggerOptions) SetSinkLevels(sinkLevels map[LogLevel]int) *LoggerOptions {
+	opts.SinkLevels = sinkLevels
 
 	return opts
 }
