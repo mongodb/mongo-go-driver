@@ -715,8 +715,6 @@ func (c *Connection) ID() string {
 
 // ServerConnectionID returns the server connection ID of this connection.
 func (c *Connection) ServerConnectionID() *int32 {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
 	if c.connection == nil {
 		return nil
 	}
