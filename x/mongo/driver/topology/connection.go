@@ -555,7 +555,6 @@ func (c initConnection) Close() error             { return nil }
 func (c initConnection) ID() string               { return c.id }
 func (c initConnection) Address() address.Address { return c.addr }
 func (c initConnection) Stale() bool              { return false }
-func (c initConnection) Alive() bool              { return c.connection != nil }
 func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")

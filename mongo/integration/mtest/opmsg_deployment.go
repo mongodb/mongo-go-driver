@@ -105,11 +105,6 @@ func (*connection) Stale() bool {
 	return false
 }
 
-// Alive returns whether the connection is non-nil.
-func (c *connection) Alive() bool {
-	return c != nil
-}
-
 // mockDeployment wraps a connection and implements the driver.Deployment interface.
 type mockDeployment struct {
 	conn    *connection
