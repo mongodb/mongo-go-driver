@@ -243,18 +243,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			internalComponentLevels[logger.Component(component)] = logger.Level(level)
 		}
 
-		// Convert options sink level to internal sink level.
-		//var internalSinkLevel map[logger.Level]int
-		//if clientOpt.LoggerOptions.SinkLevels != nil {
-		//	internalSinkLevel = make(map[logger.Level]int)
-
-		//	for level, sinkLevel := range clientOpt.LoggerOptions.SinkLevels {
-		//		internalSinkLevel[logger.Level(level)] = sinkLevel
-		//	}
-		//}
-
 		maxDocumentLength := clientOpt.LoggerOptions.MaxDocumentLength
-
 		client.logger = logger.New(sink, maxDocumentLength, internalComponentLevels)
 	}
 

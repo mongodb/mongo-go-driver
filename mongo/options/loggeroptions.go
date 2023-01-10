@@ -10,9 +10,6 @@ import (
 type LogLevel int
 
 const (
-	// OffLogLevel disables logging and is the default logging priority.
-	OffLogLevel LogLevel = LogLevel(logger.OffLevel)
-
 	// InfoLogLevel enables logging of informational messages. These logs are High-level information about normal
 	// driver behavior. Example: MongoClient creation or close.
 	InfoLogLevel LogLevel = LogLevel(logger.InfoLevel)
@@ -49,9 +46,11 @@ type LogSink interface {
 	Info(int, string, ...interface{})
 }
 
+type ComponentLevels map[LogComponent]LogLevel
+
 // LoggerOptions represent options used to configure Logging in the Go Driver.
 type LoggerOptions struct {
-	ComponentLevels map[LogComponent]LogLevel
+	ComponentLevels ComponentLevels
 
 	// Sink is the LogSink that will be used to log messages. If this is nil, the driver will use the standard
 	// logging library.
@@ -61,20 +60,18 @@ type LoggerOptions struct {
 	Output io.Writer
 
 	MaxDocumentLength uint
-
-	// SinkLevels is a map LogLevel to the value to pass to info() when logging at that level. This is only valid
-	// if a LogSink is set on the LoggerOptions.
-	SinkLevels map[LogLevel]int
 }
 
 // Logger creates a new LoggerOptions instance.
 func Logger() *LoggerOptions {
-	return &LoggerOptions{}
+	return &LoggerOptions{
+		ComponentLevels: ComponentLevels{},
+	}
 }
 
 // SetComponentLevels sets the LogLevel value for a LogComponent.
-func (opts *LoggerOptions) SetComponentLevels(componentLevels map[LogComponent]LogLevel) *LoggerOptions {
-	opts.ComponentLevels = componentLevels
+func (opts *LoggerOptions) SetComponentLevel(component LogComponent, level LogLevel) *LoggerOptions {
+	opts.ComponentLevels[component] = level
 
 	return opts
 }
@@ -87,12 +84,6 @@ func (opts *LoggerOptions) SetMaxDocumentLength(maxDocumentLength uint) *LoggerO
 
 func (opts *LoggerOptions) SetSink(sink LogSink) *LoggerOptions {
 	opts.Sink = sink
-
-	return opts
-}
-
-func (opts *LoggerOptions) SetSinkLevels(sinkLevels map[LogLevel]int) *LoggerOptions {
-	opts.SinkLevels = sinkLevels
 
 	return opts
 }

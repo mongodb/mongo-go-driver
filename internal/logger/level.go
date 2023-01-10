@@ -4,12 +4,20 @@ import (
 	"strings"
 )
 
+// DiffToInfo si the number of levels in the Go Driver that come before the "Info" level. This should ensure that "Info"
+// is the 0th level passed to the sink.
+const DiffToInfo = 1
+
 // Level is an enumeration representing the supported log severity levels supported by the driver.
+//
+// The order of the logging levels is important. The driver expects that a user will likely use the logr package to
+// create a LogSink, which defaults InfoLevel as 0. Any additions to the Level enumeration before the InfoLevel will
+// need to also update the "diffToInfo" constant.
 type Level int
 
 const (
-	// OffLevel disables logging and is the default logging priority.
-	OffLevel Level = iota
+	// OffLevel supresses logging.
+	OffLevel Level = iota // TODO: (GODRIVER-2570) do we need this?
 
 	// InfoLevel enables logging of informational messages. These logs are High-level information about normal
 	// driver behavior. Example: MongoClient creation or close.

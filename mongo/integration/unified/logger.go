@@ -3,6 +3,7 @@ package unified
 import (
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -26,15 +27,18 @@ func newLogger(logQueue chan orderedLogMessage) *Logger {
 	}
 }
 
-func (logger *Logger) close() {
-	close(logger.logQueue)
+func (log *Logger) close() {
+	close(log.logQueue)
 }
 
 // Info ...
-func (logger *Logger) Info(level int, msg string, args ...interface{}) {
-	if logger.logQueue == nil {
+func (log *Logger) Info(level int, msg string, args ...interface{}) {
+	if log.logQueue == nil {
 		return
 	}
+
+	// Add the Diff back to the level, as there is no need to create a logging offset.
+	level = level + logger.DiffToInfo
 
 	logMessage, err := newLogMessage(level, args...)
 	if err != nil {
@@ -42,12 +46,12 @@ func (logger *Logger) Info(level int, msg string, args ...interface{}) {
 	}
 
 	// Send the log message to the "orderedLogMessage" channel for validation.
-	logger.logQueue <- orderedLogMessage{
-		order:      logger.lastOrder + 1,
+	log.logQueue <- orderedLogMessage{
+		order:      log.lastOrder + 1,
 		logMessage: logMessage,
 	}
 
-	logger.lastOrder++
+	log.lastOrder++
 }
 
 // setLoggerClientOptions sets the logger options for the client entity using client options and the observeLogMessages
@@ -58,12 +62,10 @@ func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientO
 	}
 
 	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue)).
-		SetComponentLevels(map[options.LogComponent]options.LogLevel{
-			options.CommandLogComponent:         options.LogLevel(olm.Command.Level()),
-			options.TopologyLogComponent:        options.LogLevel(olm.Topology.Level()),
-			options.ServerSelectionLogComponent: options.LogLevel(olm.ServerSelection.Level()),
-			options.ConnectionLogComponent:      options.LogLevel(olm.Connection.Level()),
-		})
+		SetComponentLevel(options.CommandLogComponent, options.LogLevel(olm.Command.Level())).
+		SetComponentLevel(options.TopologyLogComponent, options.LogLevel(olm.Topology.Level())).
+		SetComponentLevel(options.ServerSelectionLogComponent, options.LogLevel(olm.ServerSelection.Level())).
+		SetComponentLevel(options.ConnectionLogComponent, options.LogLevel(olm.Connection.Level()))
 
 	clientOptions.SetLoggerOptions(loggerOpts)
 

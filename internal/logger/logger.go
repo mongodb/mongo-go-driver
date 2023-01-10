@@ -13,8 +13,11 @@ import (
 
 const messageKey = "message"
 const jobBufferSize = 100
+
+// TODO: (GODRIVER-2570) add comment
 const DefaultMaxDocumentLength = 1000
 
+// TODO: (GODRIVER-2570) add comment
 const TruncationSuffix = "..."
 
 // LogSink is an interface that can be implemented to provide a custom sink for the driver's logs.
@@ -121,7 +124,7 @@ func (logger *Logger) startPrinter(jobs <-chan job) {
 
 		}
 
-		sink.Info(levelInt, msg.Message(), keysAndValues...)
+		sink.Info(levelInt-DiffToInfo, msg.Message(), keysAndValues...)
 	}
 }
 

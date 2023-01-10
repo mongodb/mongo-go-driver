@@ -153,9 +153,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			// Configure logging with a minimum severity level of "debug" for the "command" component
 			// without explicitly configure the max document length.
 			loggerOpts := options.Logger().SetSink(sink).
-				SetComponentLevels(map[options.LogComponent]options.LogLevel{
-					options.CommandLogComponent: options.DebugLogLevel,
-				})
+				SetComponentLevel(options.CommandLogComponent, options.DebugLogLevel)
 
 			if mdl := tcase.maxDocumentLength; mdl != 0 {
 				loggerOpts.SetMaxDocumentLength(mdl)
