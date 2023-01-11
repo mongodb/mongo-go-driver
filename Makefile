@@ -174,6 +174,10 @@ evg-test-versioned-api:
 build-gcpkms-test:
 	go build $(BUILD_TAGS) ./cmd/testgcpkms
 
+.PHONY: build-awskms-test
+build-awskms-test:
+	go build $(BUILD_TAGS) ./cmd/testawskms
+
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
 benchmark:perf

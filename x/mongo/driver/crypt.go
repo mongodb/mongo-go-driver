@@ -9,12 +9,9 @@ package driver
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -65,6 +62,8 @@ type Crypt interface {
 	CreateDataKey(ctx context.Context, kmsProvider string, opts *options.DataKeyOptions) (bsoncore.Document, error)
 	// EncryptExplicit encrypts the given value with the given options.
 	EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *options.ExplicitEncryptionOptions) (byte, []byte, error)
+	// EncryptExplicitExpression encrypts the given expression with the given options.
+	EncryptExplicitExpression(ctx context.Context, val bsoncore.Document, opts *options.ExplicitEncryptionOptions) (bsoncore.Document, error)
 	// DecryptExplicit decrypts the given encrypted value.
 	DecryptExplicit(ctx context.Context, subtype byte, data []byte) (bsoncore.Value, error)
 	// Close cleans up any resources associated with the Crypt instance.
@@ -213,6 +212,27 @@ func (c *crypt) EncryptExplicit(ctx context.Context, val bsoncore.Value, opts *o
 
 	sub, data := res.Lookup("v").Binary()
 	return sub, data, nil
+}
+
+// EncryptExplicitExpression encrypts the given expression with the given options.
+func (c *crypt) EncryptExplicitExpression(ctx context.Context, expr bsoncore.Document, opts *options.ExplicitEncryptionOptions) (bsoncore.Document, error) {
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendDocumentElement(doc, "v", expr)
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+
+	cryptCtx, err := c.mongoCrypt.CreateExplicitEncryptionExpressionContext(doc, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cryptCtx.Close()
+
+	res, err := c.executeStateMachine(ctx, cryptCtx, "")
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedExpr := res.Lookup("v").Document()
+	return encryptedExpr, nil
 }
 
 // DecryptExplicit decrypts the given encrypted value.
@@ -400,74 +420,10 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 	}
 }
 
-// needsKmsProvider returns true if provider was initially set to an empty document.
-// An empty document signals the driver to fetch credentials.
-func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
-	val, err := kmsProviders.LookupErr(provider)
-	if err != nil {
-		// KMS provider is not configured.
-		return false
-	}
-	doc, ok := val.DocumentOK()
-	// KMS provider is an empty document.
-	return ok && len(doc) == 5
-}
-
-func getGCPAccessToken(ctx context.Context, httpClient *http.Client) (string, error) {
-	metadataHost := "metadata.google.internal"
-	if envhost := os.Getenv("GCE_METADATA_HOST"); envhost != "" {
-		metadataHost = envhost
-	}
-	url := fmt.Sprintf("http://%s/computeMetadata/v1/instance/service-accounts/default/token", metadataHost)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
-	}
-	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %s", resp.StatusCode, body)
-	}
-	var tokenResponse struct {
-		AccessToken string `json:"access_token"`
-	}
-	// Attempt to read body as JSON
-	err = json.Unmarshal(body, &tokenResponse)
-	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON. Response body: %s", body)
-	}
-	if tokenResponse.AccessToken == "" {
-		return "", fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
-	}
-	return tokenResponse.AccessToken, nil
-}
-
 func (c *crypt) provideKmsProviders(ctx context.Context, cryptCtx *mongocrypt.Context) error {
-	kmsProviders := c.mongoCrypt.GetKmsProviders()
-	builder := bsoncore.NewDocumentBuilder()
-
-	if needsKmsProvider(kmsProviders, "gcp") {
-		// "gcp" KMS provider is an empty document.
-		// Attempt to fetch from GCP Instance Metadata server.
-		{
-			token, err := getGCPAccessToken(ctx, c.httpClient)
-			if err != nil {
-				return err
-			}
-			builder.StartDocument("gcp").
-				AppendString("accessToken", token).
-				FinishDocument()
-
-		}
+	kmsProviders, err := c.mongoCrypt.GetKmsProviders(ctx, c.httpClient)
+	if err != nil {
+		return err
 	}
-
-	return cryptCtx.ProvideKmsProviders(builder.Build())
+	return cryptCtx.ProvideKmsProviders(kmsProviders)
 }

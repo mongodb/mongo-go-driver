@@ -10,6 +10,9 @@
 package mongocrypt
 
 import (
+	"context"
+	"net/http"
+
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
@@ -32,6 +35,11 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 
 // CreateEncryptionContext creates a Context to use for encryption.
 func (m *MongoCrypt) CreateEncryptionContext(db string, cmd bsoncore.Document) (*Context, error) {
+	panic(cseNotSupportedMsg)
+}
+
+// CreateExplicitEncryptionExpressionContext creates a Context to use for explicit encryption of an expression.
+func (m *MongoCrypt) CreateExplicitEncryptionExpressionContext(doc bsoncore.Document, opts *options.ExplicitEncryptionOptions) (*Context, error) {
 	panic(cseNotSupportedMsg)
 }
 
@@ -78,6 +86,6 @@ func (m *MongoCrypt) Close() {
 }
 
 // GetKmsProviders returns the originally configured KMS providers.
-func (m *MongoCrypt) GetKmsProviders() bsoncore.Document {
+func (m *MongoCrypt) GetKmsProviders(ctx context.Context, httpClient *http.Client) (bsoncore.Document, error) {
 	panic(cseNotSupportedMsg)
 }

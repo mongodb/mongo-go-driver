@@ -17,8 +17,14 @@ import (
 )
 
 func TestValue(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Validate", func(t *testing.T) {
+		t.Parallel()
+
 		t.Run("invalid", func(t *testing.T) {
+			t.Parallel()
+
 			v := Value{Type: bsontype.Double, Data: []byte{0x01, 0x02, 0x03, 0x04}}
 			want := NewInsufficientBytesError(v.Data, v.Data)
 			got := v.Validate()
@@ -27,6 +33,8 @@ func TestValue(t *testing.T) {
 			}
 		})
 		t.Run("value", func(t *testing.T) {
+			t.Parallel()
+
 			v := Value{Type: bsontype.Double, Data: AppendDouble(nil, 3.14159)}
 			var want error
 			got := v.Validate()
@@ -35,7 +43,10 @@ func TestValue(t *testing.T) {
 			}
 		})
 	})
+
 	t.Run("IsNumber", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name  string
 			val   Value
@@ -50,7 +61,11 @@ func TestValue(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				isnum := tc.val.IsNumber()
 				if isnum != tc.isnum {
 					t.Errorf("IsNumber did not return the expected boolean. got %t; want %t", isnum, tc.isnum)
@@ -619,10 +634,19 @@ func TestValue(t *testing.T) {
 			nil,
 			[]interface{}{primitive.NewDecimal128(12345, 67890), true},
 		},
+		{
+			"Timestamp.String/Success", Value.String, Value{Type: bsontype.Timestamp, Data: AppendTimestamp(nil, 12345, 67890)},
+			nil,
+			[]interface{}{"{\"$timestamp\":{\"t\":12345,\"i\":67890}}"},
+		},
 	}
 
 	for _, tc := range testCases {
+		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			defer func() {
 				err := recover()
 				if !cmp.Equal(err, tc.panicErr, cmp.Comparer(compareErrors)) {
