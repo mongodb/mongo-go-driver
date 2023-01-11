@@ -1709,7 +1709,7 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 // canLogCommandMessage returns true if the command can be logged.
 func (op Operation) canLogCommandMessage() bool {
-	return op.Logger != nil && op.Logger.Is(logger.DebugLevel, logger.ComponentCommand)
+	return op.Logger != nil && op.Logger.Is(logger.LevelDebug, logger.ComponentCommand)
 }
 
 func (op Operation) canPublishStartedEven() bool {
@@ -1751,7 +1751,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 			serverConnectionID = *serverConnID
 		}
 
-		op.Logger.Print(logger.DebugLevel, &logger.CommandStartedMessage{
+		op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
 			Command:      getCmdCopy(),
 			DatabaseName: op.Database,
 
@@ -1787,7 +1787,7 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 
 	return op.CommandMonitor != nil &&
 		(!success || op.CommandMonitor.Succeeded != nil) &&
-		(success || op.CommandMonitor.Failed == nil)
+		(success || op.CommandMonitor.Failed != nil)
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
@@ -1841,7 +1841,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
-		op.Logger.Print(logger.DebugLevel, &logger.CommandSucceededMessage{
+		op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
 			Duration: getDuration(),
 			Reply:    getRawResponse(),
 
@@ -1861,7 +1861,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
-		op.Logger.Print(logger.DebugLevel, &logger.CommandFailedMessage{
+		op.Logger.Print(logger.LevelDebug, &logger.CommandFailedMessage{
 			Duration: getDuration(),
 			Failure:  info.cmdErr.Error(),
 

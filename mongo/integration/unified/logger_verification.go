@@ -27,23 +27,38 @@ var (
 	errLogContextCanceled   = fmt.Errorf("context cancelled before all log messages were verified")
 )
 
+type componentLiteral string
+
+const (
+	componentLiteralAll             componentLiteral = "all"
+	componentLiteralCommand         componentLiteral = "command"
+	componentLiteralTopology        componentLiteral = "topology"
+	componentLiteralServerSelection componentLiteral = "serverSelection"
+	componentLiteralConnection      componentLiteral = "connection"
+)
+
 // logMessage is a log message that is expected to be observed by the driver.
 type logMessage struct {
-	LevelLiteral      logger.LevelLiteral     `bson:"level"`
-	ComponentLiteral  logger.ComponentLiteral `bson:"component"`
-	Data              bson.Raw                `bson:"data"`
-	FailureIsRedacted bool                    `bson:"failureIsRedacted"`
+	LevelLiteral      string           `bson:"level"`
+	ComponentLiteral  componentLiteral `bson:"component"`
+	Data              bson.Raw         `bson:"data"`
+	FailureIsRedacted bool             `bson:"failureIsRedacted"`
 }
 
-// newLogMessage will create a "logMessage" from the level and a slice of arguments.
+// newLogMessage will create a "logMessage" from the level and a slice of
+// arguments.
 func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	logMessage := new(logMessage)
 
-	// Iterate over the literal levels until we get the highest "LevelLiteral" that matches the level of the
-	// "LogMessage".
-	for _, l := range logger.AllLevelLiterals() {
-		if l.Level() == logger.Level(level) {
-			logMessage.LevelLiteral = l
+	// Iterate over the literal levels until we get the first
+	// "LevelLiteral" that matches the level of the "LogMessage". It doesn't
+	// matter which literal is chose so long as the mapping results in the
+	// correct level.
+	for literal, logLevel := range logger.LevelLiteralMap {
+		if level == int(logLevel) {
+			logMessage.LevelLiteral = literal
+
+			break
 		}
 	}
 
@@ -51,8 +66,8 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 		return logMessage, nil
 	}
 
-	// The argument slice must have an even number of elements, otherwise it would not maintain the key-value
-	// structure of the document.
+	// The argument slice must have an even number of elements, otherwise it
+	// would not maintain the key-value structure of the document.
 	if len(args)%2 != 0 {
 		return nil, fmt.Errorf("%w: %v", errLogStructureInvalid, args)
 	}
@@ -60,10 +75,14 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// Create a new document from the arguments.
 	actualD := bson.D{}
 	for i := 0; i < len(args); i += 2 {
-		actualD = append(actualD, bson.E{Key: args[i].(string), Value: args[i+1]})
+		actualD = append(actualD, bson.E{
+			Key:   args[i].(string),
+			Value: args[i+1],
+		})
 	}
 
-	// Marshal the document into a raw value and assign it to the logMessage.
+	// Marshal the document into a raw value and assign it to the
+	// logMessage.
 	bytes, err := bson.Marshal(actualD)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errLogMarshalingFailure, err)
@@ -92,40 +111,35 @@ func validateLogMessage(_ context.Context, message *logMessage) error {
 }
 
 // verifyLogMessagesMatch will verify that the actual log messages match the expected log messages.
-func verifyLogMessagesMatch(ctx context.Context, expected, actual *logMessage) error {
+func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	const commandKey = "command"
 
-	if actual == nil && expected == nil {
+	if act == nil && exp == nil {
 		return nil
 	}
 
-	if actual == nil || expected == nil {
+	if act == nil || exp == nil {
 		return errLogDocumentMismatch
 	}
 
-	// The levels of the expected log message and the actual log message must match, upto logger.Level.
-	if expected.LevelLiteral.Level() != actual.LevelLiteral.Level() {
-		return fmt.Errorf("%w: want %v, got %v", errLogLevelMismatch, expected.LevelLiteral,
-			actual.LevelLiteral)
+	levelExp := logger.ParseLevel(exp.LevelLiteral)
+	levelAct := logger.ParseLevel(act.LevelLiteral)
+
+	// The levels of the expected log message and the actual log message
+	// must match, upto logger.Level.
+	if levelExp != levelAct {
+		return fmt.Errorf("%w: want %v, got %v", errLogLevelMismatch, levelExp, levelAct)
 	}
 
-	rawExp := documentToRawValue(expected.Data)
-	rawAct := documentToRawValue(actual.Data)
+	rawExp := documentToRawValue(exp.Data)
+	rawAct := documentToRawValue(act.Data)
 
-	// Top level data does not have to be 1-1 with the expectation, there are a number of unrequired fields that
-	// may not be present on the expected document.
+	// Top level data does not have to be 1-1 with the expectation, there
+	// are a number of unrequired fields that may not be present on the
+	// expected document.
 	if err := verifyValuesMatch(ctx, rawExp, rawAct, true); err != nil {
 		return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
 	}
-
-	//rawCommandExp := expected.Data.Lookup(commandKey)
-	//rawCommandAct := actual.Data.Lookup(commandKey)
-
-	// The command field in the data must be 1-1 with the expectation.
-	// TODO: Is there a better way to handle this?
-	//if err := verifyValuesMatch(ctx, rawCommandExp, rawCommandAct, true); err != nil {
-	//	return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
-	//}
 
 	return nil
 }

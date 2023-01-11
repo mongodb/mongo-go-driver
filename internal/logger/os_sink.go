@@ -16,8 +16,9 @@ func newOSSink(out io.Writer) *osSink {
 }
 
 func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Command %q started on database %q using a connection with server-generated ID %d to %s:%d. " +
-		"The requestID is %d and the operation ID is %d. Command: %s"
+	format := "Command %q started on database %q using a connection with " +
+		"server-generated ID %d to %s:%d. The requestID is %d and " +
+		"the operation ID is %d. Command: %s"
 
 	log.Printf(format,
 		kvMap["commandName"],
@@ -32,8 +33,9 @@ func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Command %q succeeded in %d ms using server-generated ID %d to %s:%d. " +
-		"The requestID is %d and the operation ID is %d. Command reply: %s"
+	format := "Command %q succeeded in %d ms using server-generated ID " +
+		"%d to %s:%d. The requestID is %d and the operation ID is " +
+		"%d. Command reply: %s"
 
 	log.Printf(format,
 		kvMap["commandName"],
@@ -47,8 +49,9 @@ func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Command %q failed in %d ms using a connection with server-generated ID %d to %s:%d. " +
-		" The requestID is %d and the operation ID is %d. Error: %s"
+	format := "Command %q failed in %d ms using a connection with " +
+		"server-generated ID %d to %s:%d. The requestID is %d and " +
+		"the operation ID is %d. Error: %s"
 
 	log.Printf(format,
 		kvMap["commandName"],
@@ -66,11 +69,6 @@ func logCommandDropped(log *log.Logger) {
 }
 
 func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
-	// TODO: (GODRIVERS-2570) This is how the specification says we SHOULD handle errors. It might be much
-	// TODO: better to just pass the message and then the keys and values ala
-	// TODO: "msg: %s, key1: %v, key2: %v, key3: %v, ...".
-
-	// Create a map of the keys and values.
 	kvMap := make(map[string]interface{})
 	for i := 0; i < len(keysAndValues); i += 2 {
 		kvMap[keysAndValues[i].(string)] = keysAndValues[i+1]
@@ -86,4 +84,8 @@ func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	case CommandMessageDroppedDefault:
 		logCommandDropped(osSink.log)
 	}
+}
+
+func (osSink *osSink) Error(err error, msg string, kv ...interface{}) {
+	osSink.Info(0, msg, kv...)
 }

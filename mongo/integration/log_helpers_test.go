@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
 
@@ -14,7 +15,7 @@ type testLogSink struct {
 	errsCh     chan error
 }
 
-type logValidator func(order int, level int, msg string, keysAndValues ...interface{}) error
+type logValidator func(order int, lvl int, msg string, kv ...interface{}) error
 
 func newTestLogSink(ctx context.Context, mt *mtest.T, bufferSize int, validator logValidator) *testLogSink {
 	mt.Helper()
@@ -38,7 +39,7 @@ func newTestLogSink(ctx context.Context, mt *mtest.T, bufferSize int, validator 
 
 			level, msg, args := log()
 			if err := validator(order, level, msg, args...); err != nil {
-				sink.errsCh <- fmt.Errorf("invalid log at order %d for level %d and msg %q: %v", order,
+				sink.errsCh <- fmt.Errorf("invalid log at position %d, level %d, and msg %q: %v", order,
 					level, msg, err)
 			}
 
@@ -59,6 +60,10 @@ func (sink *testLogSink) Info(level int, msg string, keysAndValues ...interface{
 	if sink.logsCount++; sink.logsCount == sink.bufferSize {
 		close(sink.logs)
 	}
+}
+
+func (sink *testLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
+	sink.Info(int(logger.LevelInfo), msg, keysAndValues)
 }
 
 func (sink *testLogSink) errs() <-chan error {

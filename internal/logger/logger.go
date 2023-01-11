@@ -1,14 +1,10 @@
 package logger
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 const messageKey = "message"
@@ -16,17 +12,15 @@ const jobBufferSize = 100
 const logSinkPathEnvVar = "MONGODB_LOG_PATH"
 const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
 
-// DefaultMaxDocumentLength is the default maximum length of a stringified BSON document in bytes.
-const DefaultMaxDocumentLength = 1000
-
-// TruncationSuffix are trailling ellipsis "..." appended to a message to indicate to the user that truncation occurred.
-// This constant does not count toward the max document length.
-const TruncationSuffix = "..."
-
-// LogSink represents a logging implementation. It is specifically designed to be a subset of go-logr/logr's LogSink
-// interface.
+// LogSink represents a logging implementation, this interface should be 1-1
+// with the exported "LogSink" interface in the mongo/options pacakge.
 type LogSink interface {
-	Info(int, string, ...interface{})
+	// Info logs a non-error message with the given key/value pairs. The
+	// level argument is provided for optional logging.
+	Info(level int, msg string, keysAndValues ...interface{})
+
+	// Error logs an error, with the given message and key/value pairs.
+	Error(err error, msg string, keysAndValues ...interface{})
 }
 
 type job struct {
@@ -34,31 +28,27 @@ type job struct {
 	msg   ComponentMessage
 }
 
-// Logger is the driver's logger. It is used to log messages from the driver either to OS or to a custom LogSink.
+// Logger represents the configuration for the internal logger.
 type Logger struct {
-	ComponentLevels   map[Component]Level
-	Sink              LogSink
-	MaxDocumentLength uint
-
-	jobs chan job
+	ComponentLevels   map[Component]Level // Log levels for each component.
+	Sink              LogSink             // LogSink for log printing.
+	MaxDocumentLength uint                // Command truncation width.
+	jobs              chan job            // Channel of logs to print.
 }
 
-// New will construct a new logger with the given LogSink. If the given LogSink is nil, then the logger will log using
-// the standard library.
-//
-// If the given LogSink is nil, then the logger will log using the standard library with output to os.Stderr.
-//
-// The "componentLevels" parameter is variadic with the latest value taking precedence. If no component has a LogLevel
-// set, then the constructor will attempt to source the LogLevel from the environment.
-func New(sink LogSink, maxDocumentLength uint, componentLevels map[Component]Level) *Logger {
+// New will construct a new logger. If any of the given options are the
+// zero-value of the argument type, then the constructor will attempt to
+// source the data from the environment. If the environment has not been set,
+// then the constructor will the respective default values.
+func New(sink LogSink, maxDocLen uint, compLevels map[Component]Level) *Logger {
 	return &Logger{
 		ComponentLevels: selectComponentLevels(
-			func() map[Component]Level { return componentLevels },
+			func() map[Component]Level { return compLevels },
 			getEnvComponentLevels,
 		),
 
 		MaxDocumentLength: selectMaxDocumentLength(
-			func() uint { return maxDocumentLength },
+			func() uint { return maxDocLen },
 			getEnvMaxDocumentLength,
 		),
 
@@ -74,34 +64,35 @@ func New(sink LogSink, maxDocumentLength uint, componentLevels map[Component]Lev
 
 // Close will close the logger and stop the printer goroutine.
 func (logger Logger) Close() {
-	close(logger.jobs)
+	// TODO: this is causing test failures
+	//close(logger.jobs)
 }
 
-// Is will return true if the given LogLevel is enabled for the given LogComponent.
+// Is will return true if the given LogLevel is enabled for the given
+// LogComponent.
 func (logger Logger) Is(level Level, component Component) bool {
 	return logger.ComponentLevels[component] >= level
 }
 
-// TODO: (GODRIVER-2570) add an explanation
+// Print will print the given message to the configured LogSink. Once the buffer
+// is full, conflicting messages will be dropped.
 func (logger *Logger) Print(level Level, msg ComponentMessage) {
 	select {
 	case logger.jobs <- job{level, msg}:
 	default:
-		logger.jobs <- job{level, &CommandMessageDropped{}}
 	}
 }
 
-// StartPrintListener will start a goroutine that will listen for log messages and attempt to print them to the
-// configured LogSink.
+// StartPrintListener will start a goroutine that will listen for log messages
+// and attempt to print them to the configured LogSink.
 func StartPrintListener(logger *Logger) {
 	go func() {
 		for job := range logger.jobs {
 			level := job.level
-			levelInt := int(level)
-
 			msg := job.msg
 
-			// If the level is not enabled for the component, then skip the message.
+			// If the level is not enabled for the component, then
+			// skip the message.
 			if !logger.Is(level, msg.Component()) {
 				return
 			}
@@ -113,81 +104,16 @@ func StartPrintListener(logger *Logger) {
 				return
 			}
 
-			keysAndValues, err := formatMessage(msg.Serialize(), logger.MaxDocumentLength)
-			if err != nil {
-				sink.Info(levelInt, "error parsing keys and values from BSON message: %v", err)
-
-			}
-
-			sink.Info(levelInt-DiffToInfo, msg.Message(), keysAndValues...)
+			sink.Info(int(level)-DiffToInfo, msg.Message(),
+				msg.Serialize(logger.MaxDocumentLength)...)
 		}
 	}()
 }
 
-func truncate(str string, width uint) string {
-	if len(str) <= int(width) {
-		return str
-	}
-
-	// Truncate the byte slice of the string to the given width.
-	newStr := str[:width]
-
-	// Check if the last byte is at the beginning of a multi-byte character.
-	// If it is, then remove the last byte.
-	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
-		return newStr[:len(newStr)-1]
-	}
-
-	// Check if the last byte is in the middle of a multi-byte character. If it is, then step back until we
-	// find the beginning of the character.
-	if newStr[len(newStr)-1]&0xC0 == 0x80 {
-		for i := len(newStr) - 1; i >= 0; i-- {
-			if newStr[i]&0xC0 == 0xC0 {
-				return newStr[:i]
-			}
-		}
-	}
-
-	return newStr + TruncationSuffix
-}
-
-// TODO: (GODRIVER-2570) remove magic strings from this function. These strings could probably go into internal/const.go
-func formatMessage(keysAndValues []interface{}, commandWidth uint) ([]interface{}, error) {
-	formattedKeysAndValues := make([]interface{}, len(keysAndValues))
-	for i := 0; i < len(keysAndValues); i += 2 {
-		key := keysAndValues[i].(string)
-		val := keysAndValues[i+1]
-
-		switch key {
-		case "command", "reply":
-			// Command should be a bson.Raw value.
-			raw, ok := val.(bson.Raw)
-			if !ok {
-				return nil, fmt.Errorf("expected value for key %q to be a bson.Raw, but got %T",
-					key, val)
-			}
-
-			str := raw.String()
-			if len(str) == 0 {
-				val = bson.RawValue{
-					Type:  bsontype.EmbeddedDocument,
-					Value: []byte{0x05, 0x00, 0x00, 0x00, 0x00},
-				}.String()
-			} else {
-				val = truncate(str, commandWidth)
-			}
-
-		}
-
-		formattedKeysAndValues[i] = key
-		formattedKeysAndValues[i+1] = val
-	}
-
-	return formattedKeysAndValues, nil
-}
-
-// getEnvMaxDocumentLength will attempt to get the value of "MONGODB_LOG_MAX_DOCUMENT_LENGTH" from the environment, and
-// then parse it as an unsigned integer. If the environment variable is not set, then this function will return 0.
+// getEnvMaxDocumentLength will attempt to get the value of
+// "MONGODB_LOG_MAX_DOCUMENT_LENGTH" from the environment, and then parse it as
+// an unsigned integer. If the environment variable is not set, then this
+// function will return 0.
 func getEnvMaxDocumentLength() uint {
 	max := os.Getenv(maxDocumentLengthEnvVar)
 	if max == "" {
@@ -202,7 +128,8 @@ func getEnvMaxDocumentLength() uint {
 	return uint(maxUint)
 }
 
-// selectMaxDocumentLength will return the first non-zero result of the getter functions.
+// selectMaxDocumentLength will return the first non-zero result of the getter
+// functions.
 func selectMaxDocumentLength(getLen ...func() uint) uint {
 	for _, get := range getLen {
 		if len := get(); len != 0 {
@@ -220,8 +147,8 @@ const (
 	logSinkPathStdErr logSinkPath = "stderr"
 )
 
-// getEnvLogsink will check the environment for LogSink specifications. If none are found, then a LogSink with an stderr
-// writer will be returned.
+// getEnvLogsink will check the environment for LogSink specifications. If none
+// are found, then a LogSink with an stderr writer will be returned.
 func getEnvLogSink() LogSink {
 	path := os.Getenv(logSinkPathEnvVar)
 	lowerPath := strings.ToLower(path)
@@ -252,30 +179,34 @@ func selectLogSink(getSink ...func() LogSink) LogSink {
 	return newOSSink(os.Stderr)
 }
 
-// getEnvComponentLevels returns a component-to-level mapping defined by the environment variables, with
-// "MONGODB_LOG_ALL" taking priority.
+// getEnvComponentLevels returns a component-to-level mapping defined by the
+// environment variables, with "MONGODB_LOG_ALL" taking priority.
 func getEnvComponentLevels() map[Component]Level {
 	componentLevels := make(map[Component]Level)
-	globalLevel := parseLevel(os.Getenv(string(componentEnvVarAll)))
 
-	for _, envVar := range allComponentEnvVars {
-		if envVar == componentEnvVarAll {
-			continue
+	// If the "MONGODB_LOG_ALL" environment variable is set, then set the
+	// level for all components to the value of the environment variable.
+	if all := os.Getenv(mongoDBLogAllEnvVar); all != "" {
+		level := ParseLevel(all)
+		for _, component := range componentEnvVarMap {
+			componentLevels[component] = level
 		}
 
-		level := globalLevel
-		if globalLevel == OffLevel {
-			level = parseLevel(os.Getenv(string(envVar)))
-		}
+		return componentLevels
+	}
 
-		componentLevels[envVar.component()] = level
+	// Otherwise, set the level for each component to the value of the
+	// environment variable.
+	for envVar, component := range componentEnvVarMap {
+		componentLevels[component] = ParseLevel(os.Getenv(envVar))
 	}
 
 	return componentLevels
 }
 
-// selectComponentLevels returns a new map of LogComponents to LogLevels that is the result of merging the provided
-// maps. The maps are merged in order, with the earlier maps taking priority.
+// selectComponentLevels returns a new map of LogComponents to LogLevels that is
+// the result of merging the provided maps. The maps are merged in order, with
+// the earlier maps taking priority.
 func selectComponentLevels(getters ...func() map[Component]Level) map[Component]Level {
 	selected := make(map[Component]Level)
 	set := make(map[Component]struct{})

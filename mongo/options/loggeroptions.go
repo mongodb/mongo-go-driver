@@ -12,11 +12,11 @@ type LogLevel int
 const (
 	// InfoLogLevel enables logging of informational messages. These logs are High-level information about normal
 	// driver behavior. Example: MongoClient creation or close.
-	InfoLogLevel LogLevel = LogLevel(logger.InfoLevel)
+	InfoLogLevel LogLevel = LogLevel(logger.LevelInfo)
 
 	// DebugLogLevel enables logging of debug messages. These logs can be voluminous and are intended for detailed
 	// information that may be helpful when debugging an application. Example: A command starting.
-	DebugLogLevel LogLevel = LogLevel(logger.DebugLevel)
+	DebugLogLevel LogLevel = LogLevel(logger.LevelDebug)
 )
 
 // LogComponent is an enumeration representing the "components" which can be logged against. A LogLevel can be
@@ -44,6 +44,7 @@ const (
 type LogSink interface {
 	// Print(LogLevel, LogComponent, []byte, ...interface{})
 	Info(int, string, ...interface{})
+	Error(error, string, ...interface{})
 }
 
 type ComponentLevels map[LogComponent]LogLevel

@@ -17,7 +17,6 @@ import (
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -38,10 +37,10 @@ type storeEventsAsEntitiesConfig struct {
 }
 
 type observeLogMessages struct {
-	Command         logger.LevelLiteral `bson:"command"`
-	Topology        logger.LevelLiteral `bson:"topology"`
-	ServerSelection logger.LevelLiteral `bson:"serverSelection"`
-	Connection      logger.LevelLiteral `bson:"connection"`
+	Command         string `bson:"command"`
+	Topology        string `bson:"topology"`
+	ServerSelection string `bson:"serverSelection"`
+	Connection      string `bson:"connection"`
 }
 
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity
