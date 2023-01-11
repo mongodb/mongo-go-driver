@@ -107,10 +107,10 @@ type finishedInformation struct {
 	cmdErr        error
 	connID        string
 	serverConnID  *int32
-	startTime     time.Time
 	redacted      bool
 	serviceID     *primitive.ObjectID
 	serverAddress address.Address
+	duration      time.Duration
 }
 
 // success returns true if there was no command error or the command error is a "WriteCommandError".
@@ -575,13 +575,14 @@ func (op Operation) Execute(ctx context.Context) error {
 		finishedInfo := finishedInformation{
 			cmdName:       startedInfo.cmdName,
 			requestID:     startedInfo.requestID,
-			startTime:     time.Now(),
 			connID:        startedInfo.connID,
 			serverConnID:  startedInfo.serverConnID,
 			redacted:      startedInfo.redacted,
 			serviceID:     startedInfo.serviceID,
 			serverAddress: desc.Server.Addr,
 		}
+
+		startedTime := time.Now()
 
 		// Check for possible context error. If no context error, check if there's enough time to perform a
 		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
@@ -613,6 +614,8 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
+		finishedInfo.duration = time.Since(startedTime)
+
 		op.publishFinishedEvent(ctx, finishedInfo)
 
 		var perr error
@@ -1780,8 +1783,9 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	}
 }
 
-// canPublishSucceededEvent returns true if a CommandSucceededEvent can be published for the given command. This is true
-// if the command is not an unacknowledged write and the command monitor is monitoring succeeded events.
+// canPublishSucceededEvent returns true if a CommandSucceededEvent can be
+// published for the given command. This is true if the command is not an
+// unacknowledged write and the command monitor is monitoring succeeded events.
 func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 	success := info.success()
 
@@ -1792,25 +1796,7 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
-//
-// This method will also log the command if the logger is configured to log commands.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
-	// duration is the time between the start of the operation and the end of the operation.
-	var duration time.Duration
-
-	// getDuration is a closure that returns the duration of the operation. It is used to lazy load the duration.
-	var getDuration = func() time.Duration {
-		if duration != 0 {
-			return duration
-		}
-
-		if !info.startTime.IsZero() {
-			return time.Since(info.startTime)
-		}
-
-		return 0
-	}
-
 	// rawResponse is the raw response from the server.
 	var rawResponse bson.Raw
 
@@ -1842,7 +1828,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
-			Duration: getDuration(),
+			Duration: info.duration,
 			Reply:    getRawResponse(),
 
 			CommandMessage: logger.CommandMessage{
@@ -1862,7 +1848,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.LevelDebug, &logger.CommandFailedMessage{
-			Duration: getDuration(),
+			Duration: info.duration,
 			Failure:  info.cmdErr.Error(),
 
 			CommandMessage: logger.CommandMessage{
@@ -1885,7 +1871,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		CommandName:        info.cmdName,
 		RequestID:          int64(info.requestID),
 		ConnectionID:       info.connID,
-		DurationNanos:      getDuration().Nanoseconds(),
+		DurationNanos:      info.duration.Nanoseconds(),
 		ServerConnectionID: info.serverConnID,
 		ServiceID:          info.serviceID,
 	}
