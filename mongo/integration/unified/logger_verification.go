@@ -8,24 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
-var (
-	errLogLevelRequired     = fmt.Errorf("level is required")
-	errLogComponentRequired = fmt.Errorf("component is required")
-	errLogDataRequired      = fmt.Errorf("data is required")
-	errLogClientRequired    = fmt.Errorf("client is required")
-	errLogMessagesRequired  = fmt.Errorf(" messages is required")
-	errLogDocumentMismatch  = fmt.Errorf("document mismatch")
-	errLogLevelMismatch     = fmt.Errorf("level mismatch")
-	errLogMarshalingFailure = fmt.Errorf("marshaling failure")
-	errLogMessageInvalid    = fmt.Errorf("message is invalid")
-	errLogClientInvalid     = fmt.Errorf("client is invalid")
-	errLogStructureInvalid  = fmt.Errorf("arguments are invalid")
-	errLogClientDuplicate   = fmt.Errorf("lient already exists")
-	errLogClientNotFound    = fmt.Errorf("client not found")
-	errTestCaseRequired     = fmt.Errorf("test case is required")
-	errEntitiesRequired     = fmt.Errorf("entities is required")
-	errLogContextCanceled   = fmt.Errorf("context cancelled before all log messages were verified")
-)
+var errLogDocumentMismatch = fmt.Errorf("document mismatch")
 
 type componentLiteral string
 
@@ -69,7 +52,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// The argument slice must have an even number of elements, otherwise it
 	// would not maintain the key-value structure of the document.
 	if len(args)%2 != 0 {
-		return nil, fmt.Errorf("%w: %v", errLogStructureInvalid, args)
+		return nil, fmt.Errorf("invalid arguments: %v", args)
 	}
 
 	// Create a new document from the arguments.
@@ -85,7 +68,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// logMessage.
 	bytes, err := bson.Marshal(actualD)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errLogMarshalingFailure, err)
+		return nil, fmt.Errorf("failed to marshal: %v", err)
 	}
 
 	logMessage.Data = bson.Raw(bytes)
@@ -93,24 +76,26 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	return logMessage, nil
 }
 
-// validate will validate the expectedLogMessage and return an error if it is invalid.
+// validate will validate the expectedLogMessage and return an error if it is
+// invalid.
 func validateLogMessage(_ context.Context, message *logMessage) error {
 	if message.LevelLiteral == "" {
-		return errLogLevelRequired
+		return fmt.Errorf("level is required")
 	}
 
 	if message.ComponentLiteral == "" {
-		return errLogComponentRequired
+		return fmt.Errorf("component is required")
 	}
 
 	if message.Data == nil {
-		return errLogDataRequired
+		return fmt.Errorf("data is required")
 	}
 
 	return nil
 }
 
-// verifyLogMessagesMatch will verify that the actual log messages match the expected log messages.
+// verifyLogMessagesMatch will verify that the actual log messages match the
+// expected log messages.
 func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	const commandKey = "command"
 
@@ -128,7 +113,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// The levels of the expected log message and the actual log message
 	// must match, upto logger.Level.
 	if levelExp != levelAct {
-		return fmt.Errorf("%w: want %v, got %v", errLogLevelMismatch, levelExp, levelAct)
+		return fmt.Errorf("level mismatch: want %v, got %v", levelExp, levelAct)
 	}
 
 	rawExp := documentToRawValue(exp.Data)
@@ -144,44 +129,45 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	return nil
 }
 
-// clientLogMessages is a struct representing the expected "LogMessages" for a client.
+// clientLogMessages is a struct representing the expected "LogMessages" for a
+// client.
 type clientLogMessages struct {
 	Client      string        `bson:"client"`
 	LogMessages []*logMessage `bson:"messages"`
 }
 
-// validateClientLogMessages will validate a single "clientLogMessages" object and return an error if it is invalid,
-// i.e. not testable.
+// validateClientLogMessages will validate a single "clientLogMessages" object
+// and return an error if it is invalid, i.e. not testable.
 func validateClientLogMessages(ctx context.Context, log *clientLogMessages) error {
 	if log.Client == "" {
-		return errLogClientRequired
+		return fmt.Errorf("client is required")
 	}
 
 	if len(log.LogMessages) == 0 {
-		return errLogMessagesRequired
+		return fmt.Errorf("log messages are required")
 	}
 
 	for _, message := range log.LogMessages {
 		if err := validateLogMessage(ctx, message); err != nil {
-			return fmt.Errorf("%w: %v", errLogMessageInvalid, err)
+			return fmt.Errorf("message is invalid: %v", err)
 		}
 	}
 
 	return nil
 }
 
-// validateExpectLogMessages will validate a slice of "clientLogMessages" objects and return the first error
-// encountered.
+// validateExpectLogMessages will validate a slice of "clientLogMessages"
+// objects and return the first error encountered.
 func validateExpectLogMessages(ctx context.Context, logs []*clientLogMessages) error {
 	seenClientNames := make(map[string]struct{}) // Check for client duplication
 
 	for _, log := range logs {
 		if err := validateClientLogMessages(ctx, log); err != nil {
-			return fmt.Errorf("%w: %v", errLogClientInvalid, err)
+			return fmt.Errorf("client is invalid: %v", err)
 		}
 
 		if _, ok := seenClientNames[log.Client]; ok {
-			return fmt.Errorf("%w: %v", errLogClientDuplicate, log.Client)
+			return fmt.Errorf("duplicate client: %v", log.Client)
 		}
 
 		seenClientNames[log.Client] = struct{}{}
@@ -190,8 +176,8 @@ func validateExpectLogMessages(ctx context.Context, logs []*clientLogMessages) e
 	return nil
 }
 
-// findClientLogMessages will return the first "clientLogMessages" object from a slice of "clientLogMessages" objects
-// that matches the client name.
+// findClientLogMessages will return the first "clientLogMessages" object from a
+// slice of "clientLogMessages" objects that matches the client name.
 func findClientLogMessages(clientName string, logs []*clientLogMessages) *clientLogMessages {
 	for _, client := range logs {
 		if client.Client == clientName {
@@ -202,8 +188,8 @@ func findClientLogMessages(clientName string, logs []*clientLogMessages) *client
 	return nil
 }
 
-// finedClientLogMessagesVolume will return the number of "logMessages" for the first "clientLogMessages" object that
-// matches the client name.
+// finedClientLogMessagesVolume will return the number of "logMessages" for the
+// first "clientLogMessages" object that matches the client name.
 func findClientLogMessagesVolume(clientName string, logs []*clientLogMessages) int {
 	clm := findClientLogMessages(clientName, logs)
 	if clm == nil {
@@ -213,21 +199,22 @@ func findClientLogMessagesVolume(clientName string, logs []*clientLogMessages) i
 	return len(clm.LogMessages)
 }
 
-// logMessageValidator defines the expectation for log messages accross all clients.
+// logMessageValidator defines the expectation for log messages accross all
+// clients.
 type logMessageValidator struct {
 	testCase *TestCase
-	//done     chan struct{} // Channel to signal that the validator is done
-	err chan error // Channel to signal that an error has occurred
+	err      chan error
 }
 
-// newLogMessageValidator will create a new "logMessageValidator" from a test case.
+// newLogMessageValidator will create a new "logMessageValidator" from a test
+// case.
 func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 	if testCase == nil {
-		return nil, errTestCaseRequired
+		return nil, fmt.Errorf("test case is required")
 	}
 
 	if testCase.entities == nil {
-		return nil, errEntitiesRequired
+		return nil, fmt.Errorf("entities are required")
 	}
 
 	validator := &logMessageValidator{
@@ -261,8 +248,8 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 	return expected, actual
 }
 
-// stopLogMessageVerificationWorkers will gracefully validate all log messages receiced by all clients and return the
-// first error encountered.
+// stopLogMessageVerificationWorkers will gracefully validate all log messages
+// receiced by all clients and return the first error encountered.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
 	for i := 0; i < len(validator.testCase.ExpectLogMessages); i++ {
 		select {
@@ -272,17 +259,19 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 				return err
 			}
 		case <-ctx.Done():
-			// This error will likely only happen if the expected log workflow have not been implemented
-			// for a compontent.
-			return fmt.Errorf("%w: %v", errLogContextCanceled, ctx.Err())
+			// This error will likely only happen if the expected
+			// log workflow have not been implemented for a
+			// compontent.
+			return fmt.Errorf("context canceled: %v", ctx.Err())
 		}
 	}
 
 	return nil
 }
 
-// startLogMessageVerificationWorkers will start a goroutine for each client's expected log messages, listingin on the
-// the channel of actual log messages and comparing them to the expected log messages.
+// startLogMessageVerificationWorkers will start a goroutine for each client's
+// expected log messages, listingin on the the channel of actual log messages
+// and comparing them to the expected log messages.
 func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) {
 	expected, actual := validator.expected(ctx)
 	for _, expected := range expected {
