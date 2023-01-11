@@ -219,33 +219,9 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 	}
 
-	// TODO: (GODRIVER-2570) move all this logic to it's own setter function
-	{
-		// Create the logger for the client.
-
-		// If there are no logger options, then create a default logger.
-		if clientOpt.LoggerOptions == nil {
-			clientOpt.LoggerOptions = options.Logger()
-		}
-
-		sink := clientOpt.LoggerOptions.Sink
-		if sink == nil {
-			// Set the default sink to os.Stderr
-		}
-
-		componentLevels := clientOpt.LoggerOptions.ComponentLevels
-		if componentLevels == nil {
-			componentLevels = make(map[options.LogComponent]options.LogLevel)
-		}
-
-		internalComponentLevels := make(map[logger.Component]logger.Level)
-		for component, level := range componentLevels {
-			internalComponentLevels[logger.Component(component)] = logger.Level(level)
-		}
-
-		maxDocumentLength := clientOpt.LoggerOptions.MaxDocumentLength
-		client.logger = logger.New(sink, maxDocumentLength, internalComponentLevels)
-	}
+	// Create a logger for the client and start it's print listener.
+	client.logger = newLogger(clientOpt.LoggerOptions)
+	logger.StartPrintListener(client.logger)
 
 	return client, nil
 }
@@ -853,4 +829,20 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		Crypt:          c.cryptFLE,
 		ServerAPI:      c.serverAPI,
 	}
+}
+
+// newLogger will use the exported LoggerOptions to create an internal logger publish messages using a LogSink.
+func newLogger(opts *options.LoggerOptions) *logger.Logger {
+	// If there are no logger options, then create a default logger.
+	if opts == nil {
+		opts = options.Logger()
+	}
+
+	// Build an internal component-level mapping.
+	componentLevels := make(map[logger.Component]logger.Level)
+	for component, level := range opts.ComponentLevels {
+		componentLevels[logger.Component(component)] = logger.Level(level)
+	}
+
+	return logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 }

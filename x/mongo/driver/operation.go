@@ -1709,7 +1709,7 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 // canLogCommandMessage returns true if the command can be logged.
 func (op Operation) canLogCommandMessage() bool {
-	return op.Logger != nil && op.Logger.Is(logger.DebugLevel, logger.CommandComponent)
+	return op.Logger != nil && op.Logger.Is(logger.DebugLevel, logger.ComponentCommand)
 }
 
 func (op Operation) canPublishStartedEven() bool {

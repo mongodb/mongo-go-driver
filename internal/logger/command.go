@@ -25,7 +25,7 @@ type CommandMessage struct {
 }
 
 func (*CommandMessage) Component() Component {
-	return CommandComponent
+	return ComponentCommand
 }
 
 func (msg *CommandMessage) Message() string {

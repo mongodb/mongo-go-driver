@@ -25,19 +25,19 @@ type LogComponent int
 
 const (
 	// AllLogComponents enables logging for all components.
-	AllLogComponent LogComponent = LogComponent(logger.AllComponent)
+	AllLogComponent LogComponent = LogComponent(logger.ComponentAll)
 
 	// CommandLogComponent enables command monitor logging.
-	CommandLogComponent LogComponent = LogComponent(logger.CommandComponent)
+	CommandLogComponent LogComponent = LogComponent(logger.ComponentCommand)
 
 	// TopologyLogComponent enables topology logging.
-	TopologyLogComponent LogComponent = LogComponent(logger.TopologyComponent)
+	TopologyLogComponent LogComponent = LogComponent(logger.ComponentTopology)
 
 	// ServerSelectionLogComponent enables server selection logging.
-	ServerSelectionLogComponent LogComponent = LogComponent(logger.ServerSelectionComponent)
+	ServerSelectionLogComponent LogComponent = LogComponent(logger.ComponentServerSelection)
 
 	// ConnectionLogComponent enables connection services logging.
-	ConnectionLogComponent LogComponent = LogComponent(logger.ConnectionComponent)
+	ConnectionLogComponent LogComponent = LogComponent(logger.ComponentConnection)
 )
 
 // LogSink is an interface that can be implemented to provide a custom sink for the driver's logs.

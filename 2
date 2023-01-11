@@ -159,7 +159,7 @@ func formatMessage(keysAndValues []interface{}, commandWidth uint) ([]interface{
 		val := keysAndValues[i+1]
 
 		switch key {
-		case "command", "reply":
+		case "command", "reply": // TODO: (GODRIVER-2570) remove these magic strings
 			// Command should be a bson.Raw value.
 			raw, ok := val.(bson.Raw)
 			if !ok {
@@ -256,22 +256,26 @@ func selectLogSink(getSink ...func() LogSink) LogSink {
 // "MONGODB_LOG_ALL" taking priority.
 func getEnvComponentLevels() map[Component]Level {
 	componentLevels := make(map[Component]Level)
-	globalLevel := parseLevel(os.Getenv(string(componentEnvVarAll)))
 
-	for _, envVar := range allComponentEnvVars {
-		if envVar == componentEnvVarAll {
+	globalLevel := parseLevel(os.Getenv(string(allComponentEnv)))
+
+	for _, compLiteral := range AllComponentLiterals() {
+		if compLiteral == AllComponentLiteral {
 			continue
 		}
 
-		level := globalLevel
-		if globalLevel == OffLevel {
-			level = parseLevel(os.Getenv(string(envVar)))
+		var level Level
+		if globalLevel != OffLevel {
+			level = globalLevel
+		} else {
+			level = parseLevel(os.Getenv(string(compLiteral)))
 		}
 
-		componentLevels[envVar.component()] = level
+		componentLevels[compLiteral.Component()] = level
 	}
 
 	return componentLevels
+
 }
 
 // selectComponentLevels returns a new map of LogComponents to LogLevels that is the result of merging the provided
