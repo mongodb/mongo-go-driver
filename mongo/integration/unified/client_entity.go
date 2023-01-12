@@ -186,10 +186,6 @@ func (c *clientEntity) stopListeningForEvents() {
 	c.setRecordEvents(false)
 }
 
-func (c *clientEntity) stopListeningForLogs() {
-	close(c.logQueue)
-}
-
 func (c *clientEntity) isIgnoredEvent(commandName string, eventDoc bson.Raw) bool {
 	// Check if command is in ignoredCommands.
 	if _, ok := c.ignoredCommands[commandName]; ok {
@@ -250,11 +246,11 @@ func (c *clientEntity) numberConnectionsCheckedOut() int32 {
 	return c.numConnsCheckedOut
 }
 
-func (c *clientEntity) addEventsCount(eventType monitoringEventType, count int32) {
+func (c *clientEntity) addEventsCount(eventType monitoringEventType) {
 	c.eventsCountLock.Lock()
 	defer c.eventsCountLock.Unlock()
 
-	c.eventsCount[eventType] += count
+	c.eventsCount[eventType]++
 }
 
 func (c *clientEntity) getEventCount(eventType monitoringEventType) int32 {
@@ -276,7 +272,7 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 		c.started = append(c.started, evt)
 	}
 
-	c.addEventsCount(commandStartedEvent, 1)
+	c.addEventsCount(commandStartedEvent)
 
 	eventListIDs, ok := c.storedEvents[commandStartedEvent]
 	if !ok {
@@ -306,7 +302,7 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 		c.succeeded = append(c.succeeded, evt)
 	}
 
-	c.addEventsCount(commandSucceededEvent, 1)
+	c.addEventsCount(commandSucceededEvent)
 
 	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
 	if !ok {
@@ -335,7 +331,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		c.failed = append(c.failed, evt)
 	}
 
-	c.addEventsCount(commandFailedEvent, 1)
+	c.addEventsCount(commandFailedEvent)
 
 	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
 	if !ok {
@@ -401,7 +397,7 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 		c.pooled = append(c.pooled, evt)
 	}
 
-	c.addEventsCount(eventType, 1)
+	c.addEventsCount(eventType)
 
 	if eventListIDs, ok := c.storedEvents[eventType]; ok {
 		eventBSON := getPoolEventDocument(evt, eventType)
@@ -420,7 +416,7 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
 	}
 
-	c.addEventsCount(serverDescriptionChangedEvent, 1)
+	c.addEventsCount(serverDescriptionChangedEvent)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {

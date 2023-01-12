@@ -308,7 +308,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("error creating logMessageValidator: %v", err)
 	}
 
-	defer logMessageValidator.close()
 	go startLogMessageVerificationWorkers(testCtx, logMessageValidator)
 
 	for _, client := range tc.entities.clients() {

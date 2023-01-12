@@ -21,7 +21,7 @@ func main() {
 		Logger().
 		SetSink(sink).
 		SetMaxDocumentLength(25).
-		SetComponentLevel(options.CommandLogComponent, options.DebugLogLevel)
+		SetComponentLevel(options.LogComponentCommand, options.LogLevelDebug)
 
 	clientOptions := options.
 		Client().

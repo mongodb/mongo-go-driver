@@ -16,7 +16,7 @@ const DiffToInfo = 1
 type Level int
 
 const (
-	// LevelOff supresses logging.
+	// LevelOff suppresses logging.
 	LevelOff Level = iota
 
 	// LevelInfo enables logging of informational messages. These logs are

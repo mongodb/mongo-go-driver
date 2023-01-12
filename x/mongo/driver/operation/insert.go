@@ -295,6 +295,7 @@ func (i *Insert) Timeout(timeout *time.Duration) *Insert {
 	return i
 }
 
+// Logger sets the logger for this operation.
 func (i *Insert) Logger(logger *logger.Logger) *Insert {
 	if i == nil {
 		i = new(Insert)

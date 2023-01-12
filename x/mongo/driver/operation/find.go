@@ -550,6 +550,7 @@ func (f *Find) Timeout(timeout *time.Duration) *Find {
 	return f
 }
 
+// Logger sets the logger for this operation.
 func (f *Find) Logger(logger *logger.Logger) *Find {
 	if f == nil {
 		f = new(Find)

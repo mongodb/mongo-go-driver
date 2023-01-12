@@ -10,22 +10,12 @@ import (
 
 var errLogDocumentMismatch = fmt.Errorf("document mismatch")
 
-type componentLiteral string
-
-const (
-	componentLiteralAll             componentLiteral = "all"
-	componentLiteralCommand         componentLiteral = "command"
-	componentLiteralTopology        componentLiteral = "topology"
-	componentLiteralServerSelection componentLiteral = "serverSelection"
-	componentLiteralConnection      componentLiteral = "connection"
-)
-
 // logMessage is a log message that is expected to be observed by the driver.
 type logMessage struct {
-	LevelLiteral      string           `bson:"level"`
-	ComponentLiteral  componentLiteral `bson:"component"`
-	Data              bson.Raw         `bson:"data"`
-	FailureIsRedacted bool             `bson:"failureIsRedacted"`
+	LevelLiteral      string   `bson:"level"`
+	ComponentLiteral  string   `bson:"component"`
+	Data              bson.Raw `bson:"data"`
+	FailureIsRedacted bool     `bson:"failureIsRedacted"`
 }
 
 // newLogMessage will create a "logMessage" from the level and a slice of
@@ -97,8 +87,6 @@ func validateLogMessage(_ context.Context, message *logMessage) error {
 // verifyLogMessagesMatch will verify that the actual log messages match the
 // expected log messages.
 func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
-	const commandKey = "command"
-
 	if act == nil && exp == nil {
 		return nil
 	}
@@ -176,30 +164,7 @@ func validateExpectLogMessages(ctx context.Context, logs []*clientLogMessages) e
 	return nil
 }
 
-// findClientLogMessages will return the first "clientLogMessages" object from a
-// slice of "clientLogMessages" objects that matches the client name.
-func findClientLogMessages(clientName string, logs []*clientLogMessages) *clientLogMessages {
-	for _, client := range logs {
-		if client.Client == clientName {
-			return client
-		}
-	}
-
-	return nil
-}
-
-// finedClientLogMessagesVolume will return the number of "logMessages" for the
-// first "clientLogMessages" object that matches the client name.
-func findClientLogMessagesVolume(clientName string, logs []*clientLogMessages) int {
-	clm := findClientLogMessages(clientName, logs)
-	if clm == nil {
-		return 0
-	}
-
-	return len(clm.LogMessages)
-}
-
-// logMessageValidator defines the expectation for log messages accross all
+// logMessageValidator defines the expectation for log messages across all
 // clients.
 type logMessageValidator struct {
 	testCase *TestCase
@@ -301,5 +266,3 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 		}(expected)
 	}
 }
-
-func (validator *logMessageValidator) close() {}

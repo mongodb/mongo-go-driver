@@ -38,7 +38,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		name string
 
 		// collectionName is the name to assign the collection for processing the operations. This should be
-		// unique accross test cases.
+		// unique across test cases.
 		collectionName string
 
 		// maxDocumentLength is the maximum document length for a command message.
@@ -145,7 +145,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 					return nil
 				}),
-				nil, // No need to check the sucess of the message.
+				nil, // No need to check the success of the message.
 			},
 		},
 	} {
@@ -184,7 +184,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			// Configure logging with a minimum severity level of "debug" for the "command" component
 			// without explicitly configure the max document length.
 			loggerOpts := options.Logger().SetSink(sink).
-				SetComponentLevel(options.CommandLogComponent, options.DebugLogLevel)
+				SetComponentLevel(options.LogComponentCommand, options.LogLevelDebug)
 
 			if mdl := tcase.maxDocumentLength; mdl != 0 {
 				loggerOpts.SetMaxDocumentLength(mdl)

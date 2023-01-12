@@ -7,13 +7,12 @@ import (
 	"syscall"
 )
 
-const messageKey = "message"
 const jobBufferSize = 100
 const logSinkPathEnvVar = "MONGODB_LOG_PATH"
 const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
 
 // LogSink represents a logging implementation, this interface should be 1-1
-// with the exported "LogSink" interface in the mongo/options pacakge.
+// with the exported "LogSink" interface in the mongo/options package.
 type LogSink interface {
 	// Info logs a non-error message with the given key/value pairs. The
 	// level argument is provided for optional logging.

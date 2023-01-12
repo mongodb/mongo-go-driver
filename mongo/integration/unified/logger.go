@@ -17,7 +17,6 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
-	left      int
 	lastOrder int
 	logQueue  chan orderedLogMessage
 }
@@ -29,10 +28,8 @@ func newLogger(logQueue chan orderedLogMessage) *Logger {
 	}
 }
 
-func (log *Logger) close() {
-	close(log.logQueue)
-}
-
+// Info implements the logger.Sink interface's "Info" method for printing log
+// messages.
 func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	if log.logQueue == nil {
 		return
@@ -57,6 +54,9 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	log.lastOrder++
 }
 
+// Error implements the logger.Sink interface's "Error" method for printing log
+// errors. In this case, if an error occurs we will simply treat it as
+// informational.
 func (log *Logger) Error(_ error, msg string, args ...interface{}) {
 	log.Info(int(logger.LevelInfo), msg, args)
 }
@@ -73,10 +73,10 @@ func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientO
 	}
 
 	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue)).
-		SetComponentLevel(options.CommandLogComponent, wrap(olm.Command)).
-		SetComponentLevel(options.TopologyLogComponent, wrap(olm.Topology)).
-		SetComponentLevel(options.ServerSelectionLogComponent, wrap(olm.ServerSelection)).
-		SetComponentLevel(options.ConnectionLogComponent, wrap(olm.Connection))
+		SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
+		SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
+		SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
+		SetComponentLevel(options.LogComponentconnection, wrap(olm.Connection))
 
 	clientOptions.SetLoggerOptions(loggerOpts)
 
