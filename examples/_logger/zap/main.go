@@ -4,26 +4,28 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+//go:build zap
+
 package main
 
 import (
 	"context"
 	"log"
 
-	"github.com/bombsimon/logrusr/v4"
-	"github.com/sirupsen/logrus"
+	"github.com/go-logr/zapr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 )
 
 func main() {
-	// Create a new logrus logger instance.
-	logger := logrus.StandardLogger()
-	logger.SetLevel(logrus.DebugLevel)
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatalf("error creating zap logger: %w", err)
+	}
 
-	// Create a new sink for logrus using "logrusr".
-	sink := logrusr.New(logger).GetSink()
+	sink := zapr.NewLogger(logger).GetSink()
 
 	// Create a client with our logger options.
 	loggerOptions := options.
