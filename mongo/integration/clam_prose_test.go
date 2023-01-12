@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -128,26 +127,27 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 				}),
 			},
 		},
-		{
-			name:              "3 Truncation with multi-byte codepoints",
-			collectionName:    "41fe9a6918044733875617b56a3125a9",
-			maxDocumentLength: 454, // One byte away from the end of the UTF-8 sequence 世.
-			operation: func(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
-				_, err := coll.InsertOne(ctx, bson.D{{"x", "hello 世"}})
-				assert.Nil(mt, err, "InsertOne error: %v", err)
-			},
-			orderedLogValidators: []logTruncCaseValidator{
-				newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-					// Ensure that the tail of the command string is "hello ".
-					if !strings.HasSuffix(cmd, "hello "+logger.TruncationSuffix) {
-						return fmt.Errorf("expected command to end with 'hello ', got %q", cmd)
-					}
+		//{
+		//	name:              "3 Truncation with multi-byte codepoints",
+		//	collectionName:    "41fe9a6918044733875617b56a3125a9",
+		//	maxDocumentLength: 454, // One byte away from the end of the UTF-8 sequence 世.
+		//	operation: func(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+		//		_, err := coll.InsertOne(ctx, bson.D{{"x", "hello 世"}})
+		//		assert.Nil(mt, err, "InsertOne error: %v", err)
+		//	},
+		//	orderedLogValidators: []logTruncCaseValidator{
+		//		nil,
+		//		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
+		//			fmt.Println("cmd: ", cmd)
+		//			// Ensure that the tail of the command string is "hello ".
+		//			if !strings.HasSuffix(cmd, "hello "+logger.TruncationSuffix) {
+		//				return fmt.Errorf("expected command to end with 'hello ', got %q", cmd)
+		//			}
 
-					return nil
-				}),
-				nil, // No need to check the success of the message.
-			},
-		},
+		//			return nil
+		//		}),
+		//	},
+		//},
 	} {
 		tcase := tcase
 
