@@ -7,7 +7,7 @@
             "subType": "04"
           }
         },
-        "path": "encryptedDecimal128NoPrecision",
+        "path": "encryptedDecimalNoPrecision",
         "bsonType": "decimal",
         "queries": {
           "queryType": "rangePreview",

@@ -2225,8 +2225,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tests := []testcase{
 			{
-				typeStr:  "Decimal128NoPrecision",
-				field:    "encryptedDecimal128NoPrecision",
+				typeStr:  "DecimalNoPrecision",
+				field:    "encryptedDecimalNoPrecision",
 				typeBson: bson.TypeDecimal128,
 				rangeOpts: options.RangeOptions{
 					Sparsity: 1,
@@ -2238,8 +2238,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201)},
 			},
 			{
-				typeStr:  "Decimal128Precision",
-				field:    "encryptedDecimal128Precision",
+				typeStr:  "DecimalPrecision",
+				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
 				rangeOpts: options.RangeOptions{
 					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
@@ -2588,7 +2588,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					checkCursorResults(cursor, test.field, test.zero, test.six)
 				})
 
-				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDecimal128NoPrecision" {
+				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDecimalNoPrecision" {
 					mt.Run("Case 6: encrypting a document greater than the maximum errors", func(mt *mtest.T) {
 						encryptedClient, clientEncryption := testSetup()
 						defer clientEncryption.Close(context.Background())
@@ -2625,7 +2625,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					})
 				}
 
-				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDoublePrecision" && test.field != "encryptedDecimal128NoPrecision" && test.field != "encryptedDecimal128Precision" {
+				if test.field != "encryptedDoubleNoPrecision" && test.field != "encryptedDoublePrecision" && test.field != "encryptedDecimalNoPrecision" && test.field != "encryptedDecimalPrecision" {
 					mt.Run("Case 8: setting precision errors if the type is not a double", func(mt *mtest.T) {
 						encryptedClient, clientEncryption := testSetup()
 						defer clientEncryption.Close(context.Background())
