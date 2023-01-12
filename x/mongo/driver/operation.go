@@ -1785,6 +1785,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         port,
+				ServiceID:          info.serviceID,
 			},
 		})
 	}
@@ -1851,6 +1852,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         port,
+				ServiceID:          info.serviceID,
 			},
 		})
 	}
@@ -1870,6 +1872,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         port,
+				ServiceID:          info.serviceID,
 			},
 		})
 	}

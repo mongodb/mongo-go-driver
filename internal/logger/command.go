@@ -6,6 +6,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // DefaultMaxDocumentLength is the default maximum number of bytes that can be
@@ -37,6 +38,7 @@ type CommandMessage struct {
 	ServerConnectionID *int32
 	ServerHost         string
 	ServerPort         string
+	ServiceID          *primitive.ObjectID
 }
 
 func (*CommandMessage) Component() Component {
@@ -65,9 +67,16 @@ func serializeKeysAndValues(msg CommandMessage) ([]interface{}, error) {
 
 	keysAndValues = append(keysAndValues, "serverPort", port)
 
+	// Add the "serverConnectionId" if it is not nil.
 	if msg.ServerConnectionID != nil {
 		keysAndValues = append(keysAndValues,
 			"serverConnectionId", *msg.ServerConnectionID)
+	}
+
+	// Add the "serviceId" if it is not nil.
+	if msg.ServiceID != nil {
+		keysAndValues = append(keysAndValues,
+			"serviceId", msg.ServiceID.Hex())
 	}
 
 	return keysAndValues, nil

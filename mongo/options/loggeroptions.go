@@ -1,8 +1,6 @@
 package options
 
 import (
-	"io"
-
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -11,13 +9,12 @@ type LogLevel int
 
 const (
 	// LogLevelInfo enables logging of informational messages. These logs
-	// are High-level information about normal driver behavior. Example:
-	// MongoClient creation or close.
+	// are High-level information about normal driver behavior.
 	LogLevelInfo LogLevel = LogLevel(logger.LevelInfo)
 
 	// LogLevelDebug enables logging of debug messages. These logs can be
 	// voluminous and are intended for detailed information that may be
-	// helpful when debugging an application. Example: A command starting.
+	// helpful when debugging an application.
 	LogLevelDebug LogLevel = LogLevel(logger.LevelDebug)
 )
 
@@ -62,10 +59,6 @@ type LoggerOptions struct {
 	// Sink is the LogSink that will be used to log messages. If this is
 	// nil, the driver will use the standard logging library.
 	Sink LogSink
-
-	// Output is the writer to write logs to. If nil, the default is
-	// os.Stderr. Output is ignored if Sink is set.
-	Output io.Writer
 
 	// MaxDocumentLength is the maximum length of a document to be logged.
 	// If the underlying document is larger than this value, it will be
