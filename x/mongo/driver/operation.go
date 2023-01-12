@@ -1773,7 +1773,6 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	// If logging is enabled for the command component at the debug level, log the command response.
 	if op.canLogCommandMessage() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
-		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
 			Command:      getCmdCopy(),
@@ -1785,7 +1784,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
-				ServerPort:         int32(portInt),
+				ServerPort:         port,
 			},
 		})
 	}
@@ -1840,7 +1839,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	// If logging is enabled for the command component at the debug level, log the command success.
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
-		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
 			Duration: info.duration,
@@ -1852,7 +1850,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
-				ServerPort:         int32(portInt),
+				ServerPort:         port,
 			},
 		})
 	}
@@ -1860,7 +1858,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	// If logging is enabled for the command component at the debug level, log the command failure.
 	if op.canLogCommandMessage() && !info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
-		portInt, _ := strconv.Atoi(port)
 
 		op.Logger.Print(logger.LevelDebug, &logger.CommandFailedMessage{
 			Duration: info.duration,
@@ -1872,7 +1869,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
-				ServerPort:         int32(portInt),
+				ServerPort:         port,
 			},
 		})
 	}

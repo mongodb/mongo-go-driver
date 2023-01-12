@@ -22,6 +22,7 @@ var (
 		"load-balancers",
 		"collection-management",
 		"command-monitoring",
+		"command-monitoring/logging",
 		"sessions",
 		"retryable-writes/unified",
 		"client-side-encryption/unified",

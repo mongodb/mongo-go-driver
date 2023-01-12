@@ -34,5 +34,5 @@ var componentEnvVarMap = map[string]Component{
 type ComponentMessage interface {
 	Component() Component
 	Message() string
-	Serialize(maxDocumentLength uint) []interface{}
+	Serialize(maxDocumentLength uint) ([]interface{}, error)
 }

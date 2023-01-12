@@ -103,8 +103,14 @@ func StartPrintListener(logger *Logger) {
 				return
 			}
 
-			sink.Info(int(level)-DiffToInfo, msg.Message(),
-				msg.Serialize(logger.MaxDocumentLength)...)
+			kv, err := msg.Serialize(logger.MaxDocumentLength)
+			if err != nil {
+				sink.Error(err, "error serializing message")
+
+				return
+			}
+
+			sink.Info(int(level)-DiffToInfo, msg.Message(), kv...)
 		}
 	}()
 }

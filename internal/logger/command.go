@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"strconv"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,7 +36,7 @@ type CommandMessage struct {
 	RequestID          int64
 	ServerConnectionID *int32
 	ServerHost         string
-	ServerPort         int32
+	ServerPort         string
 }
 
 func (*CommandMessage) Component() Component {
@@ -46,7 +47,7 @@ func (msg *CommandMessage) Message() string {
 	return msg.MessageLiteral
 }
 
-func serializeKeysAndValues(msg CommandMessage) []interface{} {
+func serializeKeysAndValues(msg CommandMessage) ([]interface{}, error) {
 	keysAndValues := []interface{}{
 		"commandName", msg.Name,
 		"driverConnectionId", msg.DriverConnectionID,
@@ -54,15 +55,22 @@ func serializeKeysAndValues(msg CommandMessage) []interface{} {
 		"operationId", msg.OperationID,
 		"requestId", msg.RequestID,
 		"serverHost", msg.ServerHost,
-		"serverPort", msg.ServerPort,
 	}
+
+	// Convert the ServerPort into an integer.
+	port, err := strconv.ParseInt(msg.ServerPort, 0, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	keysAndValues = append(keysAndValues, "serverPort", port)
 
 	if msg.ServerConnectionID != nil {
 		keysAndValues = append(keysAndValues,
 			"serverConnectionId", *msg.ServerConnectionID)
 	}
 
-	return keysAndValues
+	return keysAndValues, nil
 }
 
 type CommandStartedMessage struct {
@@ -72,11 +80,16 @@ type CommandStartedMessage struct {
 	DatabaseName string
 }
 
-func (msg *CommandStartedMessage) Serialize(maxDocLen uint) []interface{} {
-	return append(serializeKeysAndValues(msg.CommandMessage),
+func (msg *CommandStartedMessage) Serialize(maxDocLen uint) ([]interface{}, error) {
+	kv, err := serializeKeysAndValues(msg.CommandMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(kv,
 		"message", msg.MessageLiteral,
 		"command", formatMessage(msg.Command, maxDocLen),
-		"databaseName", msg.DatabaseName)
+		"databaseName", msg.DatabaseName), nil
 }
 
 type CommandSucceededMessage struct {
@@ -86,11 +99,16 @@ type CommandSucceededMessage struct {
 	Reply    bson.Raw
 }
 
-func (msg *CommandSucceededMessage) Serialize(maxDocLen uint) []interface{} {
-	return append(serializeKeysAndValues(msg.CommandMessage),
+func (msg *CommandSucceededMessage) Serialize(maxDocLen uint) ([]interface{}, error) {
+	kv, err := serializeKeysAndValues(msg.CommandMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(kv,
 		"message", msg.MessageLiteral,
 		"durationMS", msg.Duration/time.Millisecond,
-		"reply", formatMessage(msg.Reply, maxDocLen))
+		"reply", formatMessage(msg.Reply, maxDocLen)), nil
 }
 
 type CommandFailedMessage struct {
@@ -100,11 +118,16 @@ type CommandFailedMessage struct {
 	Failure  string
 }
 
-func (msg *CommandFailedMessage) Serialize(_ uint) []interface{} {
-	return append(serializeKeysAndValues(msg.CommandMessage),
+func (msg *CommandFailedMessage) Serialize(_ uint) ([]interface{}, error) {
+	kv, err := serializeKeysAndValues(msg.CommandMessage)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(kv,
 		"message", msg.MessageLiteral,
 		"durationMS", msg.Duration/time.Millisecond,
-		"failure", msg.Failure)
+		"failure", msg.Failure), nil
 }
 
 func truncate(str string, width uint) string {

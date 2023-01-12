@@ -22,6 +22,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 	mt := mtest.New(t, mtest.NewOptions().
 		MinServerVersion(minServerVersion42).
+		Topologies(mtest.ReplicaSet).
 		CreateClient(false))
 
 	defer mt.Close()
