@@ -114,14 +114,18 @@ type finishedInformation struct {
 	duration      time.Duration
 }
 
-// success returns true if there was no command error or the command error is a "WriteCommandError".
+// success returns true if there was no command error or the command error is a
+// "WriteCommandError". Commands that executed on the server and return a status
+// of { ok: 1.0 } are considered successful commands and MUST generate a
+// CommandSucceededEvent and "command succeeded" log message. Commands that have
+// write errors are included since the actual command did succeed, only writes
+// failed.
 func (info finishedInformation) success() bool {
-	success := info.cmdErr == nil
 	if _, ok := info.cmdErr.(WriteCommandError); ok {
-		success = true
+		return true
 	}
 
-	return success
+	return info.cmdErr == nil
 }
 
 // ResponseInfo contains the context required to parse a server response.

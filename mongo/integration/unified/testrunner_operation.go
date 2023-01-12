@@ -314,6 +314,8 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 			}
 
 		}
+
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 

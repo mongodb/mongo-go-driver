@@ -162,7 +162,7 @@ func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.Run
 	t.Helper()
 
 	runOnRequirements, testCases, err := parseTestFile(testJSON, opts...)
-	assert.Nil(t, err, "error parsing test file: %v", err)
+	assert.NoError(t, err, "error parsing test file")
 
 	return runOnRequirements, testCases
 }
@@ -332,14 +332,19 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	// Create a context with a deadline to use for log message validation. This will prevent any blocking from
-	// test cases with N messages where only N - K (0 < K < N) messages are observed.
-	lmvCtx, cancelLmvCtx := context.WithDeadline(testCtx, time.Now().Add(logMessageValidatorTimeout))
-	defer cancelLmvCtx()
+	{
+		// Create a context with a deadline to use for log message
+		// validation. This will prevent any blocking from test cases
+		// with N messages where only N - K (0 < K < N) messages are
+		// observed.
+		ctx, cancel := context.WithTimeout(testCtx, logMessageValidatorTimeout)
+		defer cancel()
 
-	// For each client, verify that all expected log messages were received.
-	if err := stopLogMessageVerificationWorkers(lmvCtx, logMessageValidator); err != nil {
-		return fmt.Errorf("error verifying log messages: %v", err)
+		// For each client, verify that all expected log messages were
+		// received.
+		if err := stopLogMessageVerificationWorkers(ctx, logMessageValidator); err != nil {
+			return fmt.Errorf("error verifying log messages: %w", err)
+		}
 	}
 
 	return nil
