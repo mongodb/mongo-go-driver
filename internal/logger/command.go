@@ -33,7 +33,7 @@ type CommandMessage struct {
 	Name               string
 	OperationID        int32
 	RequestID          int64
-	ServerConnectionID int32
+	ServerConnectionID *int32
 	ServerHost         string
 	ServerPort         int32
 }
@@ -47,16 +47,22 @@ func (msg *CommandMessage) Message() string {
 }
 
 func serializeKeysAndValues(msg CommandMessage) []interface{} {
-	return []interface{}{
+	keysAndValues := []interface{}{
 		"commandName", msg.Name,
 		"driverConnectionId", msg.DriverConnectionID,
 		"message", msg.MessageLiteral,
 		"operationId", msg.OperationID,
 		"requestId", msg.RequestID,
-		"serverConnectionId", msg.ServerConnectionID,
 		"serverHost", msg.ServerHost,
 		"serverPort", msg.ServerPort,
 	}
+
+	if msg.ServerConnectionID != nil {
+		keysAndValues = append(keysAndValues,
+			"serverConnectionId", *msg.ServerConnectionID)
+	}
+
+	return keysAndValues
 }
 
 type CommandStartedMessage struct {

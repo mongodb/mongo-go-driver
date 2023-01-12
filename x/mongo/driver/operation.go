@@ -1775,11 +1775,6 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 		portInt, _ := strconv.Atoi(port)
 
-		var serverConnectionID int32
-		if serverConnID := info.serverConnID; serverConnID != nil {
-			serverConnectionID = *serverConnID
-		}
-
 		op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
 			Command:      getCmdCopy(),
 			DatabaseName: op.Database,
@@ -1788,7 +1783,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				MessageLiteral:     logger.CommandMessageStartedDefault,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
-				ServerConnectionID: serverConnectionID,
+				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         int32(portInt),
 			},
@@ -1842,12 +1837,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		return nil
 	}
 
-	// TODO: (GODRIVER-2570) might be worth creating an info method to handle this, since there is repetition.
-	var serverConnectionID int32
-	if serverConnID := info.serverConnID; serverConnID != nil {
-		serverConnectionID = *serverConnID
-	}
-
 	// If logging is enabled for the command component at the debug level, log the command success.
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
@@ -1861,7 +1850,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				MessageLiteral:     logger.CommandMessageSucceededDefault,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
-				ServerConnectionID: serverConnectionID,
+				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         int32(portInt),
 			},
@@ -1881,7 +1870,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				MessageLiteral:     logger.CommandMessageFailedDefault,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
-				ServerConnectionID: serverConnectionID,
+				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         int32(portInt),
 			},
