@@ -112,7 +112,7 @@ func truncate(str string, width uint) string {
 	// Check if the last byte is at the beginning of a multi-byte character.
 	// If it is, then remove the last byte.
 	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
-		return newStr[:len(newStr)-1]
+		return newStr[:len(newStr)-1] + TruncationSuffix
 	}
 
 	// Check if the last byte is in the middle of a multi-byte character. If
@@ -120,7 +120,7 @@ func truncate(str string, width uint) string {
 	if newStr[len(newStr)-1]&0xC0 == 0x80 {
 		for i := len(newStr) - 1; i >= 0; i-- {
 			if newStr[i]&0xC0 == 0xC0 {
-				return newStr[:i]
+				return newStr[:i] + TruncationSuffix
 			}
 		}
 	}

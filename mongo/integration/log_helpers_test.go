@@ -84,7 +84,7 @@ func findLogValue(mt *mtest.T, key string, values ...interface{}) interface{} {
 
 type logTruncCaseValidator func(values ...interface{}) error
 
-func newLogTruncCaseValidator(mt *mtest.T, commandName string, cond func(int) bool) logTruncCaseValidator {
+func newLogTruncCaseValidator(mt *mtest.T, commandName string, cond func(string) error) logTruncCaseValidator {
 	mt.Helper()
 
 	return func(values ...interface{}) error {
@@ -99,9 +99,8 @@ func newLogTruncCaseValidator(mt *mtest.T, commandName string, cond func(int) bo
 			return fmt.Errorf("command is not a string")
 		}
 
-		cmdLen := len(cmdStr)
-		if !cond(cmdLen) {
-			return fmt.Errorf("expected %q length %d", commandName, cmdLen)
+		if err := cond(cmdStr); err != nil {
+			return err
 		}
 
 		return nil

@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -73,15 +74,30 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 				assert.Nil(mt, err, "Find error: %v", err)
 			},
 			orderedLogValidators: []logTruncCaseValidator{
-				newLogTruncCaseValidator(mt, "command", func(actual int) bool {
-					return actual == defaultLengthWithSuffix
+				newLogTruncCaseValidator(mt, "command", func(cmd string) error {
+					if len(cmd) != defaultLengthWithSuffix {
+						return fmt.Errorf("expected command to be %d bytes, got %d",
+							defaultLengthWithSuffix, len(cmd))
+					}
+
+					return nil
 				}),
-				newLogTruncCaseValidator(mt, "reply", func(actual int) bool {
-					return actual <= defaultLengthWithSuffix
+				newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
+					if len(cmd) > defaultLengthWithSuffix {
+						return fmt.Errorf("expected reply to be less than %d bytes, got %d",
+							defaultLengthWithSuffix, len(cmd))
+					}
+
+					return nil
 				}),
 				nil,
-				newLogTruncCaseValidator(mt, "reply", func(actual int) bool {
-					return actual == defaultLengthWithSuffix
+				newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
+					if len(cmd) != defaultLengthWithSuffix {
+						return fmt.Errorf("expected reply to be %d bytes, got %d",
+							defaultLengthWithSuffix, len(cmd))
+					}
+
+					return nil
 				}),
 			},
 		},
@@ -94,11 +110,21 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 				assert.Nil(mt, result.Err(), "RunCommand error: %v", result.Err())
 			},
 			orderedLogValidators: []logTruncCaseValidator{
-				newLogTruncCaseValidator(mt, "command", func(actual int) bool {
-					return actual == 5+len(logger.TruncationSuffix)
+				newLogTruncCaseValidator(mt, "command", func(cmd string) error {
+					if len(cmd) != 5+len(logger.TruncationSuffix) {
+						return fmt.Errorf("expected command to be %d bytes, got %d",
+							5+len(logger.TruncationSuffix), len(cmd))
+					}
+
+					return nil
 				}),
-				newLogTruncCaseValidator(mt, "reply", func(actual int) bool {
-					return actual == 5+len(logger.TruncationSuffix)
+				newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
+					if len(cmd) != 5+len(logger.TruncationSuffix) {
+						return fmt.Errorf("expected reply to be %d bytes, got %d",
+							5+len(logger.TruncationSuffix), len(cmd))
+					}
+
+					return nil
 				}),
 			},
 		},
@@ -111,8 +137,13 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 			},
 			orderedLogValidators: []logTruncCaseValidator{
-				newLogTruncCaseValidator(mt, "command", func(actual int) bool {
-					return actual == 452 // 454 - 2 (length of two bytes in the UTF-8 sequence 世)
+				newLogTruncCaseValidator(mt, "command", func(cmd string) error {
+					// Ensure that the tail of the command string is "hello ".
+					if !strings.HasSuffix(cmd, "hello "+logger.TruncationSuffix) {
+						return fmt.Errorf("expected command to end with 'hello ', got %q", cmd)
+					}
+
+					return nil
 				}),
 				nil, // No need to check the sucess of the message.
 			},
