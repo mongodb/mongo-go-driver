@@ -2331,6 +2331,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, test := range tests {
 			mt.Run(test.typeStr, func(mt *mtest.T) {
+				if test.typeStr == "DecimalNoPrecision" && mtest.ClusterTopologyKind() != mtest.ReplicaSet {
+					mt.Skipf("Skipping DecimalNoPrecision tests on a non ReplicaSet topology. DecimalNoPrecision queries are expected to take a long time and may exceed the default mongos timeout")
+				}
+
 				// Test Setup ... begin
 				encryptedFields := readJSONFile(mt, fmt.Sprintf("range-encryptedFields-%v.json", test.typeStr))
 				key1Document := readJSONFile(mt, "key1-document.json")

@@ -2,7 +2,8 @@
 runOn:
   - minServerVersion: "6.2.0"
     # FLE 2 Encrypted collections are not supported on standalone.
-    topology: [ "replicaset", "sharded", "load-balanced" ]
+    # Tests for Decimal (without precision) must only run against a replica set. Decimal (without precision) queries are expected to take a long time and may exceed the default mongos timeout.
+    topology: [ "replicaset" ]
 database_name: &database_name "default"
 collection_name: &collection_name "default"
 data: []
