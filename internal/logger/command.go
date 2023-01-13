@@ -4,8 +4,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -85,7 +83,7 @@ func serializeKeysAndValues(msg CommandMessage) ([]interface{}, error) {
 type CommandStartedMessage struct {
 	CommandMessage
 
-	Command      bson.Raw
+	Command      string
 	DatabaseName string
 }
 
@@ -105,7 +103,7 @@ type CommandSucceededMessage struct {
 	CommandMessage
 
 	Duration time.Duration
-	Reply    bson.Raw
+	Reply    string
 }
 
 func (msg *CommandSucceededMessage) Serialize(maxDocLen uint) ([]interface{}, error) {
@@ -127,7 +125,7 @@ type CommandFailedMessage struct {
 	Failure  string
 }
 
-func (msg *CommandFailedMessage) Serialize(_ uint) ([]interface{}, error) {
+func (msg *CommandFailedMessage) Serialize(maxDocLen uint) ([]interface{}, error) {
 	kv, err := serializeKeysAndValues(msg.CommandMessage)
 	if err != nil {
 		return nil, err
@@ -136,7 +134,7 @@ func (msg *CommandFailedMessage) Serialize(_ uint) ([]interface{}, error) {
 	return append(kv,
 		"message", msg.MessageLiteral,
 		"durationMS", msg.Duration/time.Millisecond,
-		"failure", msg.Failure), nil
+		"failure", formatMessage(msg.Failure, maxDocLen)), nil
 }
 
 func truncate(str string, width uint) string {
@@ -172,14 +170,10 @@ func truncate(str string, width uint) string {
 
 // formatMessage formats a BSON document for logging. The document is truncated
 // to the given "commandWidth".
-func formatMessage(msg bson.Raw, commandWidth uint) string {
-	str := msg.String()
-	if len(str) == 0 {
-		return bson.RawValue{
-			Type:  bsontype.EmbeddedDocument,
-			Value: []byte{0x05, 0x00, 0x00, 0x00, 0x00},
-		}.String()
+func formatMessage(msg string, commandWidth uint) string {
+	if len(msg) == 0 {
+		return "{}"
 	}
 
-	return truncate(str, commandWidth)
+	return truncate(msg, commandWidth)
 }

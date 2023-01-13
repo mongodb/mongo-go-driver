@@ -126,6 +126,26 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 				}),
 			},
 		},
+		{
+			name:              "2 Explicitly configured truncation limit for failures",
+			collectionName:    "aff43dfcaa1a4014b58aaa9606f5bd44",
+			maxDocumentLength: 5,
+			operation: func(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+				result := coll.Database().RunCommand(ctx, bson.D{{"notARealCommand", true}})
+				assert.NotNil(mt, result.Err(), "expected RunCommand error, got: %v", result.Err())
+			},
+			orderedLogValidators: []logTruncCaseValidator{
+				nil,
+				newLogTruncCaseValidator(mt, "failure", func(cmd string) error {
+					if len(cmd) != 5+len(logger.TruncationSuffix) {
+						return fmt.Errorf("expected reply to be %d bytes, got %d",
+							5+len(logger.TruncationSuffix), len(cmd))
+					}
+
+					return nil
+				}),
+			},
+		},
 		//{
 		//	name:              "3 Truncation with multi-byte codepoints",
 		//	collectionName:    "41fe9a6918044733875617b56a3125a9",

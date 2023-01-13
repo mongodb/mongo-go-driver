@@ -1785,7 +1785,7 @@ func logCommandMessageStarted(op Operation, info startedInformation) {
 	}
 
 	op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
-		Command:        redactStartedInformationCmd(op, info),
+		Command:        redactStartedInformationCmd(op, info).String(),
 		DatabaseName:   op.Database,
 		CommandMessage: msg,
 	})
@@ -1795,6 +1795,7 @@ func logCommandMessageStarted(op Operation, info startedInformation) {
 // an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
 // no events are published.
 func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
+	// If logging is enabled for the command component at the debug level, log the command response.
 	if op.canLogCommandMessage() {
 		logCommandMessageStarted(op, info)
 	}
@@ -1829,7 +1830,7 @@ func redactFinishedInformationResponse(op Operation, info finishedInformation) b
 		return bson.Raw(info.response)
 	}
 
-	return nil
+	return bson.Raw{}
 }
 
 func logCommandMessageFromFinishedInfo(op Operation, info finishedInformation) logger.CommandMessage {
@@ -1849,7 +1850,7 @@ func logCommandMessageFromFinishedInfo(op Operation, info finishedInformation) l
 func logCommandSucceededMessage(op Operation, info finishedInformation) {
 	op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
 		Duration:       info.duration,
-		Reply:          redactFinishedInformationResponse(op, info),
+		Reply:          redactFinishedInformationResponse(op, info).String(),
 		CommandMessage: logCommandMessageFromFinishedInfo(op, info),
 	})
 }
