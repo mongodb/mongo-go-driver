@@ -74,7 +74,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 
 // validate will validate the expectedLogMessage and return an error if it is
 // invalid.
-func validateLogMessage(_ context.Context, message *logMessage) error {
+func validateLogMessage(message *logMessage) error {
 	if message.LevelLiteral == "" {
 		return fmt.Errorf("level is required")
 	}
@@ -142,7 +142,7 @@ func validateClientLogMessages(ctx context.Context, log *clientLogMessages) erro
 	}
 
 	for _, message := range log.LogMessages {
-		if err := validateLogMessage(ctx, message); err != nil {
+		if err := validateLogMessage(message); err != nil {
 			return fmt.Errorf("message is invalid: %v", err)
 		}
 	}
@@ -190,7 +190,7 @@ func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 
 	validator := &logMessageValidator{
 		testCase: testCase,
-		err:      make(chan error, len(testCase.entities.clients())),
+		err:      make(chan error, 1),
 	}
 
 	return validator, nil
@@ -233,7 +233,7 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 			// This error will likely only happen if the expected
 			// log workflow have not been implemented for a
 			// compontent.
-			return fmt.Errorf("context canceled: %v", ctx.Err())
+			return fmt.Errorf("context error: %v", ctx.Err())
 		}
 	}
 
@@ -265,8 +265,6 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 
 					continue
 				}
-
-				validator.err <- nil
 			}
 
 		}(expected)

@@ -67,9 +67,9 @@ func (logger Logger) Close() {
 	//close(logger.jobs)
 }
 
-// Is will return true if the given LogLevel is enabled for the given
-// LogComponent.
-func (logger Logger) Is(level Level, component Component) bool {
+// LevelComponentEnabled will return true if the given LogLevel is enabled for
+// the given LogComponent.
+func (logger Logger) LevelComponentEnabled(level Level, component Component) bool {
 	return logger.ComponentLevels[component] >= level
 }
 
@@ -92,7 +92,7 @@ func StartPrintListener(logger *Logger) {
 
 			// If the level is not enabled for the component, then
 			// skip the message.
-			if !logger.Is(level, msg.Component()) {
+			if !logger.LevelComponentEnabled(level, msg.Component()) {
 				return
 			}
 

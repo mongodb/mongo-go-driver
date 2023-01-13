@@ -9,7 +9,6 @@ package integration
 import (
 	"context"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -24,18 +23,11 @@ import (
 func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 	t.Parallel()
 
-	const minServerVersion42 = "4.2"
-
 	mt := mtest.New(t, mtest.NewOptions().
-		MinServerVersion(minServerVersion42).
 		Topologies(mtest.ReplicaSet).
 		CreateClient(false))
 
 	defer mt.Close()
-
-	// inc is used to ensure parallel tests don't use the same client name.
-	inc := 0
-	incMutex := &sync.Mutex{}
 
 	defaultLengthWithSuffix := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
 
@@ -160,11 +152,6 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 		mt.Run(tcase.name, func(mt *mtest.T) {
 			mt.Parallel()
-
-			incMutex.Lock()
-			inc++
-
-			incMutex.Unlock()
 
 			const deadline = 1 * time.Second
 			ctx := context.Background()

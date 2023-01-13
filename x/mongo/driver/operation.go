@@ -1742,61 +1742,66 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 // canLogCommandMessage returns true if the command can be logged.
 func (op Operation) canLogCommandMessage() bool {
-	return op.Logger != nil && op.Logger.Is(logger.LevelDebug, logger.ComponentCommand)
+	return op.Logger != nil && op.Logger.LevelComponentEnabled(logger.LevelDebug, logger.ComponentCommand)
 }
 
 func (op Operation) canPublishStartedEven() bool {
 	return op.CommandMonitor != nil && op.CommandMonitor.Started != nil
 }
 
+func redactStartedInformationCmd(op Operation, info startedInformation) bson.Raw {
+	var cmdCopy bson.Raw
+
+	// Make a copy of the command. Redact if the command is security
+	// sensitive and cannot be monitored. If there was a type 1 payload for
+	// the current batch, convert it to a BSON array
+	if !info.redacted {
+		cmdCopy = make([]byte, len(info.cmd))
+		copy(cmdCopy, info.cmd)
+
+		if info.documentSequenceIncluded {
+			// remove 0 byte at end
+			cmdCopy = cmdCopy[:len(info.cmd)-1]
+			cmdCopy = op.addBatchArray(cmdCopy)
+
+			// add back 0 byte and update length
+			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
+		}
+	}
+
+	return cmdCopy
+}
+
+func logCommandMessageStarted(op Operation, info startedInformation) {
+	host, port, _ := net.SplitHostPort(info.serverAddress.String())
+	msg := logger.CommandMessage{
+		MessageLiteral:     logger.CommandMessageStartedDefault,
+		Name:               info.cmdName,
+		RequestID:          int64(info.requestID),
+		ServerConnectionID: info.serverConnID,
+		ServerHost:         host,
+		ServerPort:         port,
+		ServiceID:          info.serviceID,
+	}
+
+	op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
+		Command:        redactStartedInformationCmd(op, info),
+		DatabaseName:   op.Database,
+		CommandMessage: msg,
+	})
+}
+
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
 // an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
 // no events are published.
 func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
-	var cmdCopy bson.Raw
-
-	var getCmdCopy = func() bson.Raw {
-		if cmdCopy != nil {
-			return cmdCopy
-		}
-
-		// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
-		// If there was a type 1 payload for the current batch, convert it to a BSON array.
-		if !info.redacted {
-			cmdCopy = make([]byte, len(info.cmd))
-			copy(cmdCopy, info.cmd)
-			if info.documentSequenceIncluded {
-				cmdCopy = cmdCopy[:len(info.cmd)-1] // remove 0 byte at end
-				cmdCopy = op.addBatchArray(cmdCopy)
-				cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0) // add back 0 byte and update length
-			}
-		}
-		return cmdCopy
-	}
-
-	// If logging is enabled for the command component at the debug level, log the command response.
 	if op.canLogCommandMessage() {
-		host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-		op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
-			Command:      getCmdCopy(),
-			DatabaseName: op.Database,
-
-			CommandMessage: logger.CommandMessage{
-				MessageLiteral:     logger.CommandMessageStartedDefault,
-				Name:               info.cmdName,
-				RequestID:          int64(info.requestID),
-				ServerConnectionID: info.serverConnID,
-				ServerHost:         host,
-				ServerPort:         port,
-				ServiceID:          info.serviceID,
-			},
-		})
+		logCommandMessageStarted(op, info)
 	}
 
 	if op.canPublishStartedEven() {
 		started := &event.CommandStartedEvent{
-			Command:            getCmdCopy(),
+			Command:            redactStartedInformationCmd(op, info),
 			DatabaseName:       op.Database,
 			CommandName:        info.cmdName,
 			RequestID:          int64(info.requestID),
@@ -1819,66 +1824,53 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 		(success || op.CommandMonitor.Failed != nil)
 }
 
+func redactFinishedInformationResponse(op Operation, info finishedInformation) bson.Raw {
+	if !info.redacted {
+		return bson.Raw(info.response)
+	}
+
+	return nil
+}
+
+func logCommandMessageFromFinishedInfo(op Operation, info finishedInformation) logger.CommandMessage {
+	host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+	return logger.CommandMessage{
+		MessageLiteral:     logger.CommandMessageSucceededDefault,
+		Name:               info.cmdName,
+		RequestID:          int64(info.requestID),
+		ServerConnectionID: info.serverConnID,
+		ServerHost:         host,
+		ServerPort:         port,
+		ServiceID:          info.serviceID,
+	}
+}
+
+func logCommandSucceededMessage(op Operation, info finishedInformation) {
+	op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
+		Duration:       info.duration,
+		Reply:          redactFinishedInformationResponse(op, info),
+		CommandMessage: logCommandMessageFromFinishedInfo(op, info),
+	})
+}
+
+func logCommandFailedMessage(op Operation, info finishedInformation) {
+	op.Logger.Print(logger.LevelDebug, &logger.CommandFailedMessage{
+		Duration:       info.duration,
+		Failure:        info.cmdErr.Error(),
+		CommandMessage: logCommandMessageFromFinishedInfo(op, info),
+	})
+}
+
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
-	// rawResponse is the raw response from the server.
-	var rawResponse bson.Raw
-
-	// getRawResponse is a closure that returns the raw response from the server. It is used to lazy load the
-	// rawResponse variable.
-	var getRawResponse = func() bson.Raw {
-		if rawResponse != nil {
-			return rawResponse
-		}
-
-		if !info.redacted {
-			rawResponse = bson.Raw(info.response)
-
-			return rawResponse
-		}
-
-		return nil
-	}
-
-	// If logging is enabled for the command component at the debug level, log the command success.
 	if op.canLogCommandMessage() && info.success() {
-		host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-		op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
-			Duration: info.duration,
-			Reply:    getRawResponse(),
-
-			CommandMessage: logger.CommandMessage{
-				MessageLiteral:     logger.CommandMessageSucceededDefault,
-				Name:               info.cmdName,
-				RequestID:          int64(info.requestID),
-				ServerConnectionID: info.serverConnID,
-				ServerHost:         host,
-				ServerPort:         port,
-				ServiceID:          info.serviceID,
-			},
-		})
+		logCommandSucceededMessage(op, info)
 	}
 
-	// If logging is enabled for the command component at the debug level, log the command failure.
 	if op.canLogCommandMessage() && !info.success() {
-		host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-		op.Logger.Print(logger.LevelDebug, &logger.CommandFailedMessage{
-			Duration: info.duration,
-			Failure:  info.cmdErr.Error(),
-
-			CommandMessage: logger.CommandMessage{
-				MessageLiteral:     logger.CommandMessageFailedDefault,
-				Name:               info.cmdName,
-				RequestID:          int64(info.requestID),
-				ServerConnectionID: info.serverConnID,
-				ServerHost:         host,
-				ServerPort:         port,
-				ServiceID:          info.serviceID,
-			},
-		})
+		logCommandFailedMessage(op, info)
 	}
 
 	// If the finished event cannot be published, return early.
@@ -1897,7 +1889,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	if info.success() {
 		successEvent := &event.CommandSucceededEvent{
-			Reply:                getRawResponse(),
+			Reply:                redactFinishedInformationResponse(op, info),
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)
