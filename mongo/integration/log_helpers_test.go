@@ -28,7 +28,7 @@ func newTestLogSink(ctx context.Context, mt *mtest.T, bufferSize int, validator 
 
 	sink := &testLogSink{
 		logs:       make(chan func() (int, string, []interface{}), bufferSize),
-		errsCh:     make(chan error, 1),
+		errsCh:     make(chan error, bufferSize),
 		bufferSize: bufferSize,
 	}
 
