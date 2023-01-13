@@ -41,20 +41,9 @@ type Logger struct {
 // then the constructor will the respective default values.
 func New(sink LogSink, maxDocLen uint, compLevels map[Component]Level) *Logger {
 	return &Logger{
-		ComponentLevels: selectComponentLevels(
-			func() map[Component]Level { return compLevels },
-			getEnvComponentLevels,
-		),
-
-		MaxDocumentLength: selectMaxDocumentLength(
-			func() uint { return maxDocLen },
-			getEnvMaxDocumentLength,
-		),
-
-		Sink: selectLogSink(
-			func() LogSink { return sink },
-			getEnvLogSink,
-		),
+		ComponentLevels:   selectedComponentLevels(compLevels),
+		MaxDocumentLength: selectMaxDocumentLength(maxDocLen),
+		Sink:              selectLogSink(sink),
 
 		jobs: make(chan job, jobBufferSize),
 	}
@@ -115,30 +104,21 @@ func StartPrintListener(logger *Logger) {
 	}()
 }
 
-// getEnvMaxDocumentLength will attempt to get the value of
-// "MONGODB_LOG_MAX_DOCUMENT_LENGTH" from the environment, and then parse it as
-// an unsigned integer. If the environment variable is not set, then this
-// function will return 0.
-func getEnvMaxDocumentLength() uint {
-	max := os.Getenv(maxDocumentLengthEnvVar)
-	if max == "" {
-		return 0
+// selectMaxDocumentLength will return the integer value of the first non-zero
+// function, with the user-defined function taking priority over the environment
+// variables. For the environment, the function will attempt to get the value of
+// "MONGODB_LOG_MAX_DOCUMENT_LENGTH" and parse it as an unsigned integer. If the
+// environment variable is not set, then this function will return 0.
+func selectMaxDocumentLength(maxDocLen uint) uint {
+	if maxDocLen != 0 {
+		return maxDocLen
 	}
 
-	maxUint, err := strconv.ParseUint(max, 10, 32)
-	if err != nil {
-		return 0
-	}
-
-	return uint(maxUint)
-}
-
-// selectMaxDocumentLength will return the first non-zero result of the getter
-// functions.
-func selectMaxDocumentLength(getLen ...func() uint) uint {
-	for _, get := range getLen {
-		if len := get(); len != 0 {
-			return len
+	maxDocLenEnv := os.Getenv(maxDocumentLengthEnvVar)
+	if maxDocLenEnv != "" {
+		maxDocLenEnvInt, err := strconv.ParseUint(maxDocLenEnv, 10, 32)
+		if err == nil {
+			return uint(maxDocLenEnvInt)
 		}
 	}
 
@@ -152,9 +132,14 @@ const (
 	logSinkPathStdErr logSinkPath = "stderr"
 )
 
-// getEnvLogsink will check the environment for LogSink specifications. If none
-// are found, then a LogSink with an stderr writer will be returned.
-func getEnvLogSink() LogSink {
+// selectLogSink will return the first non-nil LogSink, with the user-defined
+// LogSink taking precedence over the environment-defined LogSink. If no LogSink
+// is defined, then this function will return a LogSink that writes to stderr.
+func selectLogSink(sink LogSink) LogSink {
+	if sink != nil {
+		return sink
+	}
+
 	path := os.Getenv(logSinkPathEnvVar)
 	lowerPath := strings.ToLower(path)
 
@@ -170,60 +155,42 @@ func getEnvLogSink() LogSink {
 		return newOSSink(os.NewFile(uintptr(syscall.Stdout), path))
 	}
 
-	return nil
-}
-
-// selectLogSink will select the first non-nil LogSink from the given LogSinks.
-func selectLogSink(getSink ...func() LogSink) LogSink {
-	for _, getSink := range getSink {
-		if sink := getSink(); sink != nil {
-			return sink
-		}
-	}
-
 	return newOSSink(os.Stderr)
 }
 
-// getEnvComponentLevels returns a component-to-level mapping defined by the
-// environment variables, with "MONGODB_LOG_ALL" taking priority.
-func getEnvComponentLevels() map[Component]Level {
-	componentLevels := make(map[Component]Level)
+// selectComponentLevels returns a new map of LogComponents to LogLevels that is
+// the result of merging the user-defined data with the environment, with the
+// user-defined data taking priority.
+func selectedComponentLevels(componentLevels map[Component]Level) map[Component]Level {
+	selected := make(map[Component]Level)
 
-	// If the "MONGODB_LOG_ALL" environment variable is set, then set the
-	// level for all components to the value of the environment variable.
+	// Determine if the "MONGODB_LOG_ALL" environment variable is set.
+	var globalEnvLevel *Level
 	if all := os.Getenv(mongoDBLogAllEnvVar); all != "" {
 		level := ParseLevel(all)
-		for _, component := range componentEnvVarMap {
-			componentLevels[component] = level
-		}
-
-		return componentLevels
+		globalEnvLevel = &level
 	}
 
-	// Otherwise, set the level for each component to the value of the
-	// environment variable.
 	for envVar, component := range componentEnvVarMap {
-		componentLevels[component] = ParseLevel(os.Getenv(envVar))
-	}
+		// If the component already has a level, then skip it.
+		if _, ok := componentLevels[component]; ok {
+			selected[component] = componentLevels[component]
 
-	return componentLevels
-}
-
-// selectComponentLevels returns a new map of LogComponents to LogLevels that is
-// the result of merging the provided maps. The maps are merged in order, with
-// the earlier maps taking priority.
-func selectComponentLevels(getters ...func() map[Component]Level) map[Component]Level {
-	selected := make(map[Component]Level)
-	set := make(map[Component]struct{})
-
-	for _, getComponentLevels := range getters {
-		for component, level := range getComponentLevels() {
-			if _, ok := set[component]; !ok {
-				selected[component] = level
-			}
-
-			set[component] = struct{}{}
+			continue
 		}
+
+		// If the "MONGODB_LOG_ALL" environment variable is set, then
+		// set the level for the component to the value of the
+		// environment variable.
+		if globalEnvLevel != nil {
+			selected[component] = *globalEnvLevel
+
+			continue
+		}
+
+		// Otherwise, set the level for the component to the value of
+		// the environment variable.
+		selected[component] = ParseLevel(os.Getenv(envVar))
 	}
 
 	return selected

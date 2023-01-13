@@ -140,6 +140,10 @@ func (msg *CommandFailedMessage) Serialize(_ uint) ([]interface{}, error) {
 }
 
 func truncate(str string, width uint) string {
+	if width == 0 {
+		return ""
+	}
+
 	if len(str) <= int(width) {
 		return str
 	}

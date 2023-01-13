@@ -190,7 +190,7 @@ func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 
 	validator := &logMessageValidator{
 		testCase: testCase,
-		err:      make(chan error, 1),
+		err:      make(chan error, len(testCase.entities.clients())),
 	}
 
 	return validator, nil
@@ -265,6 +265,8 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 
 					continue
 				}
+
+				validator.err <- nil
 			}
 
 		}(expected)
