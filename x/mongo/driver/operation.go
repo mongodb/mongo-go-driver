@@ -1825,7 +1825,7 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 		(success || op.CommandMonitor.Failed != nil)
 }
 
-func redactFinishedInformationResponse(op Operation, info finishedInformation) bson.Raw {
+func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	if !info.redacted {
 		return bson.Raw(info.response)
 	}
@@ -1833,7 +1833,7 @@ func redactFinishedInformationResponse(op Operation, info finishedInformation) b
 	return bson.Raw{}
 }
 
-func logCommandMessageFromFinishedInfo(op Operation, info finishedInformation) logger.CommandMessage {
+func logCommandMessageFromFinishedInfo(info finishedInformation) logger.CommandMessage {
 	host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
 	return logger.CommandMessage{
@@ -1847,19 +1847,19 @@ func logCommandMessageFromFinishedInfo(op Operation, info finishedInformation) l
 	}
 }
 
-func logCommandSucceededMessage(op Operation, info finishedInformation) {
-	op.Logger.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
+func logCommandSucceededMessage(log logger.Logger, info finishedInformation) {
+	log.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
 		Duration:       info.duration,
-		Reply:          redactFinishedInformationResponse(op, info).String(),
-		CommandMessage: logCommandMessageFromFinishedInfo(op, info),
+		Reply:          redactFinishedInformationResponse(info).String(),
+		CommandMessage: logCommandMessageFromFinishedInfo(info),
 	})
 }
 
-func logCommandFailedMessage(op Operation, info finishedInformation) {
-	op.Logger.Print(logger.LevelDebug, &logger.CommandFailedMessage{
+func logCommandFailedMessage(log logger.Logger, info finishedInformation) {
+	log.Print(logger.LevelDebug, &logger.CommandFailedMessage{
 		Duration:       info.duration,
 		Failure:        info.cmdErr.Error(),
-		CommandMessage: logCommandMessageFromFinishedInfo(op, info),
+		CommandMessage: logCommandMessageFromFinishedInfo(info),
 	})
 }
 
@@ -1867,11 +1867,11 @@ func logCommandFailedMessage(op Operation, info finishedInformation) {
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
 	if op.canLogCommandMessage() && info.success() {
-		logCommandSucceededMessage(op, info)
+		logCommandSucceededMessage(*op.Logger, info)
 	}
 
 	if op.canLogCommandMessage() && !info.success() {
-		logCommandFailedMessage(op, info)
+		logCommandFailedMessage(*op.Logger, info)
 	}
 
 	// If the finished event cannot be published, return early.
@@ -1890,7 +1890,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	if info.success() {
 		successEvent := &event.CommandSucceededEvent{
-			Reply:                redactFinishedInformationResponse(op, info),
+			Reply:                redactFinishedInformationResponse(info),
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)

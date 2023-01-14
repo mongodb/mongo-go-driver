@@ -132,7 +132,7 @@ type clientLogMessages struct {
 
 // validateClientLogMessages will validate a single "clientLogMessages" object
 // and return an error if it is invalid, i.e. not testable.
-func validateClientLogMessages(ctx context.Context, log *clientLogMessages) error {
+func validateClientLogMessages(log *clientLogMessages) error {
 	if log.Client == "" {
 		return fmt.Errorf("client is required")
 	}
@@ -152,11 +152,11 @@ func validateClientLogMessages(ctx context.Context, log *clientLogMessages) erro
 
 // validateExpectLogMessages will validate a slice of "clientLogMessages"
 // objects and return the first error encountered.
-func validateExpectLogMessages(ctx context.Context, logs []*clientLogMessages) error {
+func validateExpectLogMessages(logs []*clientLogMessages) error {
 	seenClientNames := make(map[string]struct{}) // Check for client duplication
 
 	for _, log := range logs {
-		if err := validateClientLogMessages(ctx, log); err != nil {
+		if err := validateClientLogMessages(log); err != nil {
 			return fmt.Errorf("client is invalid: %v", err)
 		}
 

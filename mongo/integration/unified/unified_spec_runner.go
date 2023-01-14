@@ -221,7 +221,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	testCtx := newTestContext(context.Background(), tc.entities)
 
 	// Validate the ExpectLogMessages.
-	if err := validateExpectLogMessages(testCtx, tc.ExpectLogMessages); err != nil {
+	if err := validateExpectLogMessages(tc.ExpectLogMessages); err != nil {
 		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
 	}
 
