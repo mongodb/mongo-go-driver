@@ -762,6 +762,12 @@ func TestConnection(t *testing.T) {
 			if !cmp.Equal(got, want) {
 				t.Errorf("LocalAddresses do not match. got %v; want %v", got, want)
 			}
+
+			want = (*int32)(nil)
+			got = conn.ServerConnectionID()
+			if !cmp.Equal(got, want) {
+				t.Errorf("ServerConnectionIDs do not match. got %v; want %v", got, want)
+			}
 		})
 
 		t.Run("pinning", func(t *testing.T) {
