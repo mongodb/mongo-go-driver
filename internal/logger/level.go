@@ -30,17 +30,30 @@ const (
 	LevelDebug
 )
 
+const (
+	levelLiteralOff       = "off"
+	levelLiteralEmergency = "emergency"
+	levelLiteralAlert     = "alert"
+	levelLiteralCritical  = "critical"
+	levelLiteralError     = "error"
+	levelLiteralWarning   = "warning"
+	levelLiteralNotice    = "notice"
+	levelLiteralInfo      = "info"
+	levelLiteralDebug     = "debug"
+	levelLiteralTrace     = "trace"
+)
+
 var LevelLiteralMap = map[string]Level{
-	"off":       LevelOff,
-	"emergency": LevelInfo,
-	"alert":     LevelInfo,
-	"critical":  LevelInfo,
-	"error":     LevelInfo,
-	"warn":      LevelInfo,
-	"notice":    LevelInfo,
-	"info":      LevelInfo,
-	"debug":     LevelDebug,
-	"trace":     LevelDebug,
+	levelLiteralOff:       LevelOff,
+	levelLiteralEmergency: LevelInfo,
+	levelLiteralAlert:     LevelInfo,
+	levelLiteralCritical:  LevelInfo,
+	levelLiteralError:     LevelInfo,
+	levelLiteralWarning:   LevelInfo,
+	levelLiteralNotice:    LevelInfo,
+	levelLiteralInfo:      LevelInfo,
+	levelLiteralDebug:     LevelDebug,
+	levelLiteralTrace:     LevelDebug,
 }
 
 // ParseLevel will check if the given string is a valid environment variable

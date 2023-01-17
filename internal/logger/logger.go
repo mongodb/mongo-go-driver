@@ -4,10 +4,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 )
 
-const jobBufferSize = 100
 const logSinkPathEnvVar = "MONGODB_LOG_PATH"
 const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
 
@@ -32,7 +32,7 @@ type Logger struct {
 	ComponentLevels   map[Component]Level // Log levels for each component.
 	Sink              LogSink             // LogSink for log printing.
 	MaxDocumentLength uint                // Command truncation width.
-	jobs              chan job            // Channel of logs to print.
+	printLock         sync.Mutex
 }
 
 // New will construct a new logger. If any of the given options are the
@@ -41,74 +41,59 @@ type Logger struct {
 // then the constructor will the respective default values.
 func New(sink LogSink, maxDocLen uint, compLevels map[Component]Level) *Logger {
 	return &Logger{
-		ComponentLevels:   selectedComponentLevels(compLevels),
+		ComponentLevels:   selectComponentLevels(compLevels),
 		MaxDocumentLength: selectMaxDocumentLength(maxDocLen),
 		Sink:              selectLogSink(sink),
-
-		jobs: make(chan job, jobBufferSize),
+		printLock:         sync.Mutex{},
 	}
 
-}
-
-// Close will close the logger and stop the printer goroutine.
-func (logger Logger) Close() {
-	// TODO: this is causing test failures
-	//close(logger.jobs)
 }
 
 // LevelComponentEnabled will return true if the given LogLevel is enabled for
 // the given LogComponent.
-func (logger Logger) LevelComponentEnabled(level Level, component Component) bool {
+func (logger *Logger) LevelComponentEnabled(level Level, component Component) bool {
 	return logger.ComponentLevels[component] >= level
 }
 
-// Print will print the given message to the configured LogSink. Once the buffer
-// is full, conflicting messages will be dropped.
+// Print will synchronously print the given message to the configured LogSink.
+// This method is thread-safe. If the LogSink is nil, then this method will do
+// nothing. Consideration to make this method asynchronous was made, but it was
+// decided that determining the correct buffer size would be difficult and that
+// dropping messages would be undesirable. Future work could be done to make
+// this method asynchronous, see buffer management in libraries such as log4j.
 func (logger *Logger) Print(level Level, msg ComponentMessage) {
-	select {
-	case logger.jobs <- job{level, msg}:
-	default:
+	logger.printLock.Lock()
+	defer logger.printLock.Unlock()
+
+	// If the level is not enabled for the component, then
+	// skip the message.
+	if !logger.LevelComponentEnabled(level, msg.Component()) {
+		return
 	}
-}
 
-// StartPrintListener will start a goroutine that will listen for log messages
-// and attempt to print them to the configured LogSink.
-func StartPrintListener(logger *Logger) {
-	go func() {
-		for job := range logger.jobs {
-			level := job.level
-			msg := job.msg
+	sink := logger.Sink
 
-			// If the level is not enabled for the component, then
-			// skip the message.
-			if !logger.LevelComponentEnabled(level, msg.Component()) {
-				return
-			}
+	// If the sink is nil, then skip the message.
+	if sink == nil {
+		return
+	}
 
-			sink := logger.Sink
+	kv, err := msg.Serialize(logger.MaxDocumentLength)
+	if err != nil {
+		sink.Error(err, "error serializing message")
 
-			// If the sink is nil, then skip the message.
-			if sink == nil {
-				return
-			}
+		return
+	}
 
-			kv, err := msg.Serialize(logger.MaxDocumentLength)
-			if err != nil {
-				sink.Error(err, "error serializing message")
-
-				return
-			}
-
-			sink.Info(int(level)-DiffToInfo, msg.Message(), kv...)
-		}
-	}()
+	sink.Info(int(level)-DiffToInfo, msg.Message(), kv...)
 }
 
 // selectMaxDocumentLength will return the integer value of the first non-zero
 // function, with the user-defined function taking priority over the environment
 // variables. For the environment, the function will attempt to get the value of
 // "MONGODB_LOG_MAX_DOCUMENT_LENGTH" and parse it as an unsigned integer. If the
-// environment variable is not set, then this function will return 0.
+// environment variable is not set or is not an unsigned integer, then this
+// function will return the default max document length.
 func selectMaxDocumentLength(maxDocLen uint) uint {
 	if maxDocLen != 0 {
 		return maxDocLen
@@ -125,11 +110,9 @@ func selectMaxDocumentLength(maxDocLen uint) uint {
 	return DefaultMaxDocumentLength
 }
 
-type logSinkPath string
-
 const (
-	logSinkPathStdOut logSinkPath = "stdout"
-	logSinkPathStdErr logSinkPath = "stderr"
+	logSinkPathStdout = "stdout"
+	logSinkPathStderr = "stderr"
 )
 
 // selectLogSink will return the first non-nil LogSink, with the user-defined
@@ -143,11 +126,11 @@ func selectLogSink(sink LogSink) LogSink {
 	path := os.Getenv(logSinkPathEnvVar)
 	lowerPath := strings.ToLower(path)
 
-	if lowerPath == string(logSinkPathStdErr) {
+	if lowerPath == string(logSinkPathStderr) {
 		return newOSSink(os.Stderr)
 	}
 
-	if lowerPath == string(logSinkPathStdOut) {
+	if lowerPath == string(logSinkPathStdout) {
 		return newOSSink(os.Stdout)
 	}
 
@@ -161,7 +144,7 @@ func selectLogSink(sink LogSink) LogSink {
 // selectComponentLevels returns a new map of LogComponents to LogLevels that is
 // the result of merging the user-defined data with the environment, with the
 // user-defined data taking priority.
-func selectedComponentLevels(componentLevels map[Component]Level) map[Component]Level {
+func selectComponentLevels(componentLevels map[Component]Level) map[Component]Level {
 	selected := make(map[Component]Level)
 
 	// Determine if the "MONGODB_LOG_ALL" environment variable is set.

@@ -221,7 +221,6 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 
 	// Create a logger for the client and start it's print listener.
 	client.logger = newLogger(clientOpt.LoggerOptions)
-	logger.StartPrintListener(client.logger)
 
 	return client, nil
 }
@@ -284,9 +283,6 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
-	// Close the logger at the end of this function to ensure that all log messages have been written.
-	defer c.logger.Close()
-
 	if ctx == nil {
 		ctx = context.Background()
 	}

@@ -4,8 +4,6 @@ package logger
 // logged against. A LogLevel can be configured on a per-component basis.
 type Component int
 
-const mongoDBLogAllEnvVar = "MONGODB_LOG_ALL"
-
 const (
 	// ComponentAll enables logging for all components.
 	ComponentAll Component = iota
@@ -23,12 +21,20 @@ const (
 	ComponentConnection
 )
 
+const (
+	mongoDBLogAllEnvVar             = "MONGODB_LOG_ALL"
+	mongoDBLogCommandEnvVar         = "MONGODB_LOG_COMMAND"
+	mongoDBLogTopologyEnvVar        = "MONGODB_LOG_TOPOLOGY"
+	mongoDBLogServerSelectionEnvVar = "MONGODB_LOG_SERVER_SELECTION"
+	mongoDBLogConnectionEnvVar      = "MONGODB_LOG_CONNECTION"
+)
+
 var componentEnvVarMap = map[string]Component{
-	mongoDBLogAllEnvVar:            ComponentAll,
-	"MONGODB_LOG_COMMAND":          ComponentCommand,
-	"MONGODB_LOG_TOPOLOGY":         ComponentTopology,
-	"MONGODB_LOG_SERVER_SELECTION": ComponentServerSelection,
-	"MONGODB_LOG_CONNECTION":       ComponentConnection,
+	mongoDBLogAllEnvVar:             ComponentAll,
+	mongoDBLogCommandEnvVar:         ComponentCommand,
+	mongoDBLogTopologyEnvVar:        ComponentTopology,
+	mongoDBLogServerSelectionEnvVar: ComponentServerSelection,
+	mongoDBLogConnectionEnvVar:      ComponentConnection,
 }
 
 type ComponentMessage interface {
