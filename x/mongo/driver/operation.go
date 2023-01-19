@@ -1745,7 +1745,7 @@ func (op Operation) canLogCommandMessage() bool {
 	return op.Logger != nil && op.Logger.LevelComponentEnabled(logger.LevelDebug, logger.ComponentCommand)
 }
 
-func (op Operation) canPublishStartedEven() bool {
+func (op Operation) canPublishStartedEvent() bool {
 	return op.CommandMonitor != nil && op.CommandMonitor.Started != nil
 }
 
@@ -1800,7 +1800,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 		logCommandMessageStarted(op, info)
 	}
 
-	if op.canPublishStartedEven() {
+	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
 			Command:            redactStartedInformationCmd(op, info),
 			DatabaseName:       op.Database,
@@ -1833,11 +1833,10 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	return bson.Raw{}
 }
 
-func logCommandMessageFromFinishedInfo(info finishedInformation, msg string) logger.CommandMessage {
+func logCommandMessageFromFinishedInfo(info finishedInformation) *logger.CommandMessage {
 	host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-	return logger.CommandMessage{
-		MessageLiteral:     msg,
+	return &logger.CommandMessage{
 		Name:               info.cmdName,
 		RequestID:          int64(info.requestID),
 		ServerConnectionID: info.serverConnID,
@@ -1848,18 +1847,24 @@ func logCommandMessageFromFinishedInfo(info finishedInformation, msg string) log
 }
 
 func logCommandSucceededMessage(log *logger.Logger, info finishedInformation) {
+	msg := logCommandMessageFromFinishedInfo(info)
+	msg.MessageLiteral = logger.CommandMessageSucceededDefault
+
 	log.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
 		Duration:       info.duration,
 		Reply:          redactFinishedInformationResponse(info).String(),
-		CommandMessage: logCommandMessageFromFinishedInfo(info, logger.CommandMessageSucceededDefault),
+		CommandMessage: *msg,
 	})
 }
 
 func logCommandFailedMessage(log *logger.Logger, info finishedInformation) {
+	msg := logCommandMessageFromFinishedInfo(info)
+	msg.MessageLiteral = logger.CommandMessageFailedDefault
+
 	log.Print(logger.LevelDebug, &logger.CommandFailedMessage{
 		Duration:       info.duration,
 		Failure:        info.cmdErr.Error(),
-		CommandMessage: logCommandMessageFromFinishedInfo(info, logger.CommandMessageFailedDefault),
+		CommandMessage: *msg,
 	})
 }
 

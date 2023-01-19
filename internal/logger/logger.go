@@ -4,7 +4,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 )
 
@@ -32,7 +31,6 @@ type Logger struct {
 	ComponentLevels   map[Component]Level // Log levels for each component.
 	Sink              LogSink             // LogSink for log printing.
 	MaxDocumentLength uint                // Command truncation width.
-	printLock         sync.Mutex
 }
 
 // New will construct a new logger. If any of the given options are the
@@ -44,7 +42,6 @@ func New(sink LogSink, maxDocLen uint, compLevels map[Component]Level) *Logger {
 		ComponentLevels:   selectComponentLevels(compLevels),
 		MaxDocumentLength: selectMaxDocumentLength(maxDocLen),
 		Sink:              selectLogSink(sink),
-		printLock:         sync.Mutex{},
 	}
 
 }
@@ -62,9 +59,6 @@ func (logger *Logger) LevelComponentEnabled(level Level, component Component) bo
 // dropping messages would be undesirable. Future work could be done to make
 // this method asynchronous, see buffer management in libraries such as log4j.
 func (logger *Logger) Print(level Level, msg ComponentMessage) {
-	logger.printLock.Lock()
-	defer logger.printLock.Unlock()
-
 	// If the level is not enabled for the component, then
 	// skip the message.
 	if !logger.LevelComponentEnabled(level, msg.Component()) {

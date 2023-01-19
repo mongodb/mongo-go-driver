@@ -220,19 +220,19 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 }
 
 // stopLogMessageVerificationWorkers will gracefully validate all log messages
-// receiced by all clients and return the first error encountered.
+// received by all clients and return the first error encountered.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
-	// Count the number of LogMessage over all of the ExpectedLoggMessages.
-	// We need to wait for this many messages to be received before we can
-	// verify that the expected messages match the actual messages.
-	expectedCount := 0
+	// Count the number of LogMessage objects on each ExpectedLogMessages.
+	// This will give us the number of "actual" log messages we expect to
+	// receive from each client. That is we want Σ (1 + len(messages)) for
+	// over all clients.
+	messageCard := 0
 	for _, clientLogMessages := range validator.testCase.ExpectLogMessages {
-		expectedCount += len(clientLogMessages.LogMessages)
+		messageCard += len(clientLogMessages.LogMessages)
 	}
 
-	for i := 0; i < expectedCount; i++ {
+	for i := 0; i < messageCard; i++ {
 		select {
-		//case <-validator.done:
 		case err := <-validator.err:
 			if err != nil {
 				return err
@@ -240,7 +240,8 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 		case <-ctx.Done():
 			// This error will likely only happen if the expected
 			// log workflow have not been implemented for a
-			// compontent.
+			// compontent. That is, the number of actual log
+			// messages is less than the cardinality of messages.
 			return fmt.Errorf("context error: %v", ctx.Err())
 		}
 	}
@@ -249,8 +250,8 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 }
 
 // startLogMessageVerificationWorkers will start a goroutine for each client's
-// expected log messages, listingin on the the channel of actual log messages
-// and comparing them to the expected log messages.
+// expected log messages, listening to the channel of actual log messages and
+// comparing them to the expected log messages.
 func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) {
 	expected, actual := validator.expected(ctx)
 	fmt.Println("expected: ", expected[0].LogMessages)
