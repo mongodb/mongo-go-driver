@@ -93,22 +93,34 @@ functions:
           go version
           go env
 
+          # TODO(GODRIVER-2676): use libmongocrypt 1.7.0 once it is released.
+          LIBMONGOCRYPT_TAG="1.7.0-alpha1"
           # Install libmongocrypt based on OS.
-          export LIBMONGOCRYPT_EXTRA_CMAKE_FLAGS="-DBUILD_VERSION=1.7.0-pre"
-          git clone https://github.com/vector-of-bool/libmongocrypt --branch decimal128
-          cd libmongocrypt
-          git checkout $LIBMONGOCRYPT_GITREF
-          cd ..
-          ./libmongocrypt/.evergreen/compile.sh
-          
           if [ "Windows_NT" = "$OS" ]; then
-             echo "setting up build for Windows ... begin"
              mkdir -p c:/libmongocrypt/include
              mkdir -p c:/libmongocrypt/bin
-             cp $(pwd)/install/libmongocrypt/bin/* c:/libmongocrypt/bin
-             cp $(pwd)/install/libmongocrypt/include/mongocrypt/*.h c:/libmongocrypt/include
+             echo "fetching build for Windows ... begin"
+             mkdir libmongocrypt-all
+             cd libmongocrypt-all
+             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
+             # TODO(GODRIVER-2676): replace this URL once libmongocrypt 1.7.0 is released with the following:
+             # curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             # There is no tag URL for libmongocrypt pre-releases.
+             LIBMONGOCRYPT_COMMIT=2cd2f77ae806a3a4c12750b39b0be92b0ca3b2c1
+             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/master/$LIBMONGOCRYPT_COMMIT/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+             tar -xf libmongocrypt-all.tar.gz
+             cd ..
+             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
+             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
              export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-             echo "setting up build for Windows ... end"
+             rm -rf libmongocrypt-all
+             echo "fetching build for Windows ... end"
+          else
+            git clone https://github.com/mongodb/libmongocrypt
+            cd libmongocrypt
+            git checkout $LIBMONGOCRYPT_TAG
+            cd ..
+            ./libmongocrypt/.evergreen/compile.sh
           fi
 
           cat <<EOT > expansion.yml
