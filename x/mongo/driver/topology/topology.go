@@ -23,6 +23,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -105,6 +106,8 @@ type Topology struct {
 	servers       map[address.Address]*Server
 
 	id primitive.ObjectID
+
+	logger *logger.Logger
 }
 
 var _ driver.Deployment = &Topology{}

@@ -41,6 +41,12 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		return
 	}
 
+	fmt.Println("")
+	fmt.Println("level: ", level)
+	fmt.Println("msg: ", msg)
+	fmt.Println("args: ", args)
+	fmt.Println("")
+
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
 	level = level + logger.DiffToInfo

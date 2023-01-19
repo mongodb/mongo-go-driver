@@ -208,7 +208,15 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 
 	// Cursor operations
 	case "close":
-		return newEmptyResult(), executeClose(ctx, op)
+		if cursor, err := entities(ctx).cursor(op.Object); err == nil {
+			return newEmptyResult(), executeCloseCursor(ctx, cursor)
+		}
+
+		if clientEntity, err := entities(ctx).client(op.Object); err == nil {
+			return newEmptyResult(), executeCloseClient(clientEntity)
+		}
+
+		return nil, fmt.Errorf("failed to find a cursor or client named %q", op.Object)
 	case "iterateOnce":
 		return executeIterateOnce(ctx, op)
 	case "iterateUntilDocumentOrError":

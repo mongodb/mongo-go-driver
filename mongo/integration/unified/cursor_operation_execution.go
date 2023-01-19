@@ -13,14 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func executeClose(ctx context.Context, operation *operation) error {
-	cursor, err := entities(ctx).cursor(operation.Object)
-	if err != nil {
-		return err
-	}
-
+func executeCloseCursor(ctx context.Context, cursor cursor) error {
 	// Per the spec, we ignore all errors from Close.
 	_ = cursor.Close(ctx)
+
 	return nil
 }
 

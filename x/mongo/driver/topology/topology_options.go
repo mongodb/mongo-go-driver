@@ -62,7 +62,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	var connOpts []ConnectionOption
 	var serverOpts []ServerOption
 
-	cfgp := new(Config)
+	cfgp := &Config{}
 
 	// Set the default "ServerSelectionTimeout" to 30 seconds.
 	cfgp.ServerSelectionTimeout = defaultServerSelectionTimeout
@@ -330,6 +330,13 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		connOpts = append(
 			connOpts,
 			WithConnectionLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
+		)
+	}
+
+	if co.LoggerOptions != nil {
+		serverOpts = append(
+			serverOpts,
+			WithLoggerOptions(func() *options.LoggerOptions { return co.LoggerOptions }),
 		)
 	}
 

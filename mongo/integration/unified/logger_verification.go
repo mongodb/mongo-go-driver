@@ -222,7 +222,15 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 // stopLogMessageVerificationWorkers will gracefully validate all log messages
 // receiced by all clients and return the first error encountered.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
-	for i := 0; i < len(validator.testCase.ExpectLogMessages); i++ {
+	// Count the number of LogMessage over all of the ExpectedLoggMessages.
+	// We need to wait for this many messages to be received before we can
+	// verify that the expected messages match the actual messages.
+	expectedCount := 0
+	for _, clientLogMessages := range validator.testCase.ExpectLogMessages {
+		expectedCount += len(clientLogMessages.LogMessages)
+	}
+
+	for i := 0; i < expectedCount; i++ {
 		select {
 		//case <-validator.done:
 		case err := <-validator.err:
@@ -245,6 +253,7 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 // and comparing them to the expected log messages.
 func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) {
 	expected, actual := validator.expected(ctx)
+	fmt.Println("expected: ", expected[0].LogMessages)
 	for _, expected := range expected {
 		if expected == nil {
 			continue

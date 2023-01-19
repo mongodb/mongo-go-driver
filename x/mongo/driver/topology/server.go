@@ -176,12 +176,15 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		MaxIdleTime:      cfg.poolMaxIdleTime,
 		MaintainInterval: cfg.poolMaintainInterval,
 		PoolMonitor:      cfg.poolMonitor,
+		Logger:           cfg.logger,
 		handshakeErrFn:   s.ProcessHandshakeError,
 	}
 
 	connectionOpts := copyConnectionOpts(cfg.connectionOpts)
 	s.pool = newPool(pc, connectionOpts...)
 	s.publishServerOpeningEvent(s.address)
+
+	fmt.Println("pool created")
 
 	return s
 }

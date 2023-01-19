@@ -9,12 +9,14 @@ package topology
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
@@ -73,6 +75,7 @@ type poolConfig struct {
 	MaxIdleTime      time.Duration
 	MaintainInterval time.Duration
 	PoolMonitor      *event.PoolMonitor
+	Logger           *logger.Logger
 	handshakeErrFn   func(error, uint64, *primitive.ObjectID)
 }
 
@@ -91,6 +94,7 @@ type pool struct {
 	maxSize       uint64
 	maxConnecting uint64
 	monitor       *event.PoolMonitor
+	logger        *logger.Logger
 
 	// handshakeErrFn is used to handle any errors that happen during connection establishment and
 	// handshaking.
@@ -165,6 +169,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		maxSize:               config.MaxPoolSize,
 		maxConnecting:         maxConnecting,
 		monitor:               config.PoolMonitor,
+		logger:                config.Logger,
 		handshakeErrFn:        config.handshakeErrFn,
 		connOpts:              connOpts,
 		generation:            newPoolGenerationMap(),
@@ -200,6 +205,23 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	if maintainInterval > 0 {
 		pool.backgroundDone.Add(1)
 		go pool.maintain(ctx, pool.backgroundDone)
+	}
+
+	if pool.logger != nil {
+		host, port, _ := net.SplitHostPort(pool.address.String())
+		connectionMsg := logger.ConnectionMessage{
+			MessageLiteral: logger.ConnectionMessagePoolCreatedDefault,
+			ServerHost:     host,
+			ServerPort:     port,
+		}
+
+		pool.logger.Print(logger.LevelDebug, &logger.PoolCreatedMessage{
+			ConnectionMessage: connectionMsg,
+			MaxIdleTime:       config.MaxIdleTime,
+			MinPoolSize:       config.MinPoolSize,
+			MaxPoolSize:       config.MaxPoolSize,
+			MaxConnecting:     config.MaxConnecting,
+		})
 	}
 
 	if pool.monitor != nil {
@@ -246,6 +268,7 @@ func (p *pool) ready() error {
 	}
 
 	if p.monitor != nil {
+		fmt.Println("pool is ready")
 		p.monitor.Event(&event.PoolEvent{
 			Type:    event.PoolReady,
 			Address: p.address.String(),
