@@ -219,7 +219,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		}
 	}
 
-	// Create a logger for the client and start it's print listener.
+	// Create a logger for the client.
 	client.logger = newLogger(clientOpt.LoggerOptions)
 
 	return client, nil
@@ -827,7 +827,8 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 	}
 }
 
-// newLogger will use the exported LoggerOptions to create an internal logger publish messages using a LogSink.
+// newLogger will use the exported LoggerOptions to create an internal logger
+// and publish messages using a LogSink.
 func newLogger(opts *options.LoggerOptions) *logger.Logger {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {

@@ -46,7 +46,7 @@ func main() {
 
 	defer client.Disconnect(context.TODO())
 
-	// Make a databse request to test our logging solution
+	// Make a database request to test our logging solution
 	coll := client.Database("test").Collection("test")
 
 	_, err = coll.InsertOne(context.TODO(), bson.D{{"Alice", "123"}})
