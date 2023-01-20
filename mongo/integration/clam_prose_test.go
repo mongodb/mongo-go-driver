@@ -81,8 +81,6 @@ func clamDefaultTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
 func clamExplicitTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
 	mt.Helper()
 
-	assert.Nil(mt, true, "expected error, got nil")
-
 	result := coll.Database().RunCommand(ctx, bson.D{{"hello", true}})
 	assert.Nil(mt, result.Err(), "RunCommand error: %v", result.Err())
 }
