@@ -221,6 +221,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 			MinPoolSize:       config.MinPoolSize,
 			MaxPoolSize:       config.MaxPoolSize,
 			MaxConnecting:     config.MaxConnecting,
+			WaitQueueSize:     pool.newConnWait.len() + pool.idleConnWait.len(),
 		})
 	}
 

@@ -81,6 +81,17 @@ type PoolCreatedMessage struct {
 	// MaxConnecting is the maxConnecting value for this pool. This field
 	// is only required to include if the user specified a value.
 	MaxConnecting uint64
+
+	// WaitQueueTimeout is the waitQueueTimeoutMS value for this pool. For
+	// the Go Driver this value is connection timeout. This field is only
+	// required to include if the user specified a value.
+	waitQueueTimeout time.Duration
+
+	// WaitQueueSize is the waitQueueSize value for this pool. For the Go
+	// Driver this value is the sum of idle and new connections. See the
+	// "wantConnQueue" in the "x/mongo/driver/topology" package for more
+	// information concerning wait queues.
+	WaitQueueSize int
 }
 
 func (msg *PoolCreatedMessage) Serialize(_ uint) ([]interface{}, error) {
@@ -103,6 +114,14 @@ func (msg *PoolCreatedMessage) Serialize(_ uint) ([]interface{}, error) {
 
 	if msg.MaxConnecting > 0 {
 		keysAndValues = append(keysAndValues, "maxConnecting", int(msg.MaxConnecting))
+	}
+
+	if msg.waitQueueTimeout > 0 {
+		keysAndValues = append(keysAndValues, "waitQueueTimeoutMS", int(msg.waitQueueTimeout/time.Millisecond))
+	}
+
+	if msg.WaitQueueSize > 0 {
+		keysAndValues = append(keysAndValues, "waitQueueSize", msg.WaitQueueSize)
 	}
 
 	return keysAndValues, nil
