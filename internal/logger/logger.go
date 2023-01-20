@@ -53,10 +53,7 @@ func (logger *Logger) LevelComponentEnabled(level Level, component Component) bo
 }
 
 // Print will synchronously print the given message to the configured LogSink.
-// This method is thread-safe. If the LogSink is nil, then this method will do
-// nothing. Consideration to make this method asynchronous was made, but it was
-// decided that determining the correct buffer size would be difficult and that
-// dropping messages would be undesirable. Future work could be done to make
+// If the LogSink is nil, then this method will do nothing. Future work could be done to make
 // this method asynchronous, see buffer management in libraries such as log4j.
 func (logger *Logger) Print(level Level, msg ComponentMessage) {
 	// If the level is not enabled for the component, then
