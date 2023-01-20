@@ -53,10 +53,7 @@ func (logger *Logger) LevelComponentEnabled(level Level, component Component) bo
 }
 
 // Print will synchronously print the given message to the configured LogSink.
-// This method is thread-safe. If the LogSink is nil, then this method will do
-// nothing. Consideration to make this method asynchronous was made, but it was
-// decided that determining the correct buffer size would be difficult and that
-// dropping messages would be undesirable. Future work could be done to make
+// If the LogSink is nil, then this method will do nothing. Future work could be done to make
 // this method asynchronous, see buffer management in libraries such as log4j.
 func (logger *Logger) Print(level Level, msg ComponentMessage) {
 	// If the level is not enabled for the component, then
@@ -171,4 +168,48 @@ func selectComponentLevels(componentLevels map[Component]Level) map[Component]Le
 	}
 
 	return selected
+}
+
+// truncate will truncate a string to the given width, appending "..." to the
+// end of the string if it is truncated. This routine is safe for multi-byte
+// characters.
+func truncate(str string, width uint) string {
+	if width == 0 {
+		return ""
+	}
+
+	if len(str) <= int(width) {
+		return str
+	}
+
+	// Truncate the byte slice of the string to the given width.
+	newStr := str[:width]
+
+	// Check if the last byte is at the beginning of a multi-byte character.
+	// If it is, then remove the last byte.
+	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
+		return newStr[:len(newStr)-1] + TruncationSuffix
+	}
+
+	// Check if the last byte is in the middle of a multi-byte character. If
+	// it is, then step back until we find the beginning of the character.
+	if newStr[len(newStr)-1]&0xC0 == 0x80 {
+		for i := len(newStr) - 1; i >= 0; i-- {
+			if newStr[i]&0xC0 == 0xC0 {
+				return newStr[:i] + TruncationSuffix
+			}
+		}
+	}
+
+	return newStr + TruncationSuffix
+}
+
+// formatMessage formats a BSON document for logging. The document is truncated
+// to the given width.
+func formatMessage(msg string, width uint) string {
+	if len(msg) == 0 {
+		return "{}"
+	}
+
+	return truncate(msg, width)
 }

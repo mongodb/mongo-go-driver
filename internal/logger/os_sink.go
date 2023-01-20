@@ -9,6 +9,9 @@ type osSink struct {
 	log *log.Logger
 }
 
+// Compiile-time check to ensure osSink implements the LogSink interface.
+var _ LogSink = &osSink{}
+
 func newOSSink(out io.Writer) *osSink {
 	return &osSink{
 		log: log.New(out, "", log.LstdFlags),

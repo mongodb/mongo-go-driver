@@ -30,8 +30,6 @@ func BenchmarkLogger(b *testing.B) {
 }
 
 func TestSelectMaxDocumentLength(t *testing.T) {
-	t.Parallel()
-
 	for _, tcase := range []struct {
 		name     string
 		arg      uint
@@ -68,8 +66,6 @@ func TestSelectMaxDocumentLength(t *testing.T) {
 		tcase := tcase
 
 		t.Run(tcase.name, func(t *testing.T) {
-			t.Parallel()
-
 			for k, v := range tcase.env {
 				os.Setenv(k, v)
 			}
@@ -83,8 +79,6 @@ func TestSelectMaxDocumentLength(t *testing.T) {
 }
 
 func TestSelectLogSink(t *testing.T) {
-	t.Parallel()
-
 	for _, tcase := range []struct {
 		name     string
 		arg      LogSink
@@ -121,8 +115,6 @@ func TestSelectLogSink(t *testing.T) {
 		tcase := tcase
 
 		t.Run(tcase.name, func(t *testing.T) {
-			t.Parallel()
-
 			for k, v := range tcase.env {
 				os.Setenv(k, v)
 			}
@@ -136,8 +128,6 @@ func TestSelectLogSink(t *testing.T) {
 }
 
 func TestSelectedComponentLevels(t *testing.T) {
-	t.Parallel()
-
 	for _, tcase := range []struct {
 		name     string
 		arg      map[Component]Level
@@ -210,4 +200,52 @@ func TestSelectedComponentLevels(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTruncate(t *testing.T) {
+	t.Parallel()
+
+	for _, tcase := range []struct {
+		name     string
+		arg      string
+		width    uint
+		expected string
+	}{
+		{
+			name:     "empty",
+			arg:      "",
+			width:    0,
+			expected: "",
+		},
+		{
+			name:     "short",
+			arg:      "foo",
+			width:    DefaultMaxDocumentLength,
+			expected: "foo",
+		},
+		{
+			name:     "long",
+			arg:      "foo bar baz",
+			width:    9,
+			expected: "foo bar b...",
+		},
+		{
+			name:     "multi-byte",
+			arg:      "你好",
+			width:    4,
+			expected: "你...",
+		},
+	} {
+		tcase := tcase
+
+		t.Run(tcase.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := truncate(tcase.arg, tcase.width)
+			if actual != tcase.expected {
+				t.Errorf("expected %q, got %q", tcase.expected, actual)
+			}
+		})
+	}
+
 }

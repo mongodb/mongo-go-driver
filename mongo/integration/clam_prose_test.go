@@ -20,6 +20,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var ErrInvalidTruncation = fmt.Errorf("invalid truncation")
+
+func clamTruncErr(mt *mtest.T, op string, want, got int) error {
+	return fmt.Errorf("%w: expected length %s %d, got %d", ErrInvalidTruncation, op, want, got)
+}
+
 func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
 	mt.Helper()
 
@@ -43,39 +49,46 @@ func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Colle
 	assert.Nil(mt, err, "Find error: %v", err)
 }
 
-func clamDefaultTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
+func clamDefaultTruncLimitLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
-	defaultLengthWithSuffix := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
+	const cmd = "command"
+	const rpl = "reply"
 
-	return []logTruncCaseValidator{
-		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-			if len(cmd) != defaultLengthWithSuffix {
-				return fmt.Errorf("expected command to be %d bytes, got %d",
-					defaultLengthWithSuffix, len(cmd))
-			}
+	expTruncLen := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
+	validators := make([]truncValidator, 4)
 
-			return nil
-		}),
-		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) > defaultLengthWithSuffix {
-				return fmt.Errorf("expected reply to be less than %d bytes, got %d",
-					defaultLengthWithSuffix, len(cmd))
-			}
+	// Insert started.
+	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
 
-			return nil
-		}),
-		nil,
-		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) != defaultLengthWithSuffix {
-				return fmt.Errorf("expected reply to be %d bytes, got %d",
-					defaultLengthWithSuffix, len(cmd))
-			}
+		return nil
+	})
 
-			return nil
-		}),
-	}
+	// Insert succeeded.
+	validators[1] = newTruncValidator(mt, rpl, func(cmd string) error {
+		if len(cmd) > expTruncLen {
+			clamTruncErr(mt, "<=", expTruncLen, len(cmd))
+		}
 
+		return nil
+	})
+
+	// Find started, nothing to validate.
+	validators[2] = nil
+
+	// Find succeeded.
+	validators[3] = newTruncValidator(mt, rpl, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
+
+		return nil
+	})
+
+	return validators
 }
 
 func clamExplicitTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
@@ -85,27 +98,34 @@ func clamExplicitTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Coll
 	assert.Nil(mt, result.Err(), "RunCommand error: %v", result.Err())
 }
 
-func clamExplicitTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
+func clamExplicitTruncLimitLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
-	return []logTruncCaseValidator{
-		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-			if len(cmd) != 5+len(logger.TruncationSuffix) {
-				return fmt.Errorf("expected command to be %d bytes, got %d",
-					5+len(logger.TruncationSuffix), len(cmd))
-			}
+	const cmd = "command"
+	const rpl = "reply"
 
-			return nil
-		}),
-		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) != 5+len(logger.TruncationSuffix) {
-				return fmt.Errorf("expected reply to be %d bytes, got %d",
-					5+len(logger.TruncationSuffix), len(cmd))
-			}
+	expTruncLen := len(logger.TruncationSuffix) + 5
+	validators := make([]truncValidator, 2)
 
-			return nil
-		}),
-	}
+	// Hello started.
+	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
+
+		return nil
+	})
+
+	// Hello succeeded.
+	validators[1] = newTruncValidator(mt, rpl, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
+
+		return nil
+	})
+
+	return validators
 }
 
 func clamExplicitTruncLimitFailOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
@@ -115,21 +135,84 @@ func clamExplicitTruncLimitFailOp(ctx context.Context, mt *mtest.T, coll *mongo.
 	assert.NotNil(mt, result.Err(), "expected RunCommand error, got: %v", result.Err())
 }
 
-func clamExplicitTruncLimitLogsFail(mt *mtest.T) []logTruncCaseValidator {
+func clamExplicitTruncLimitFailLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
-	return []logTruncCaseValidator{
-		nil,
-		newLogTruncCaseValidator(mt, "failure", func(cmd string) error {
-			if len(cmd) != 5+len(logger.TruncationSuffix) {
-				return fmt.Errorf("expected reply to be %d bytes, got %d",
-					5+len(logger.TruncationSuffix), len(cmd))
-			}
+	const fail = "failure"
 
-			return nil
-		}),
+	expTruncLen := len(logger.TruncationSuffix) + 5
+	validators := make([]truncValidator, 2)
+
+	// Hello started, nothing to validate.
+	validators[0] = nil
+
+	// Hello failed.
+	validators[1] = newTruncValidator(mt, fail, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
+
+		return nil
+	})
+
+	return validators
+}
+
+// clamMultiByteTrunc runs an operation to insert a very large document with the
+// multi-byte character "界" repeated a large number of times. This repetition
+// is done to categorically ensure that the truncation point is made somewhere
+// within the multi-byte character. For example a typical insertion reply may
+// look something like this:
+//
+// {"insert": "setuptest","ordered": true,"lsid": {"id": ...
+//
+// We have no control over how the "header" portion of this reply is formatted.
+// Over time the server might support newer fields or change the formatting of
+// existing fields. This means that the truncation point could be anywhere in
+// the "header" portion of the reply. A large document lowers the likelihood of
+// the truncation point being in the "header" portion of the reply.
+func clamMultiByteTrunc(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+	mt.Helper()
+
+	const multiByteCharStrLen = 50_000
+	const strToRepeat = "界"
+
+	// Repeat the string "strToRepeat" "multiByteCharStrLen" times.
+	multiByteCharStr := ""
+	for i := 0; i < multiByteCharStrLen; i++ {
+		multiByteCharStr += strToRepeat
 	}
 
+	_, err := coll.InsertOne(ctx, bson.D{{"x", multiByteCharStr}})
+	assert.Nil(mt, err, "InsertOne error: %v", err)
+}
+
+func clamMultiByteTruncLogs(mt *mtest.T) []truncValidator {
+	mt.Helper()
+
+	const cmd = "command"
+	const strToRepeat = "界"
+
+	validators := make([]truncValidator, 2)
+
+	// Insert started.
+	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
+
+		// Remove the suffix from the command string.
+		cmd = cmd[:len(cmd)-len(logger.TruncationSuffix)]
+
+		// Get the last 3 bytes of the command string.
+		last3Bytes := cmd[len(cmd)-3:]
+
+		// Make sure the last 3 bytes are the multi-byte character.
+		if last3Bytes != strToRepeat {
+			return fmt.Errorf("expected last 3 bytes to be %q, got %q", strToRepeat, last3Bytes)
+		}
+
+		return nil
+	})
+
+	return validators
 }
 
 func TestCommandLoggingAndMonitoringProse(t *testing.T) {
@@ -156,13 +239,17 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		// LogSink. The order here matters, the first log will be
 		// validated by the 0th validator, the second log will be
 		// validated by the 1st validator, etc.
-		orderedLogValidators []logTruncCaseValidator
+		orderedLogValidators []truncValidator
 
 		// operation is the operation to perform on the collection that
 		// will result in log propagation. The logs created by
 		// "operation" will be validated against the
 		// "orderedLogValidators."
 		operation func(context.Context, *mtest.T, *mongo.Collection)
+
+		// Setup is a function that will be run before the test case.
+		// Operations performed in this function will not be logged.
+		setup func(context.Context, *mtest.T, *mongo.Collection)
 	}{
 		{
 			name:                 "1 Default truncation limit",
@@ -182,7 +269,36 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			collectionName:       "aff43dfcaa1a4014b58aaa9606f5bd44",
 			maxDocumentLength:    5,
 			operation:            clamExplicitTruncLimitFailOp,
-			orderedLogValidators: clamExplicitTruncLimitLogsFail(mt),
+			orderedLogValidators: clamExplicitTruncLimitFailLogs(mt),
+		},
+
+		// The third test case is to ensure that a truncation point made
+		// within a multi-byte character is handled correctly. The
+		// chosen multi-byte character for this test is "界" (U+754C).
+		// This character is repeated a large number of times (50,000).
+		// We need to run this test 3 times to ensure that the
+		// truncation occurs at a middle point within the multi-byte
+		// character at least once (at most twice).
+		{
+			name:                 "3.1 Truncation with multi-byte codepoints",
+			collectionName:       "5ed6d1b7-e358-438a-b067-e1d1dd10fee1",
+			maxDocumentLength:    20_000,
+			operation:            clamMultiByteTrunc,
+			orderedLogValidators: clamMultiByteTruncLogs(mt),
+		},
+		{
+			name:                 "3.2 Truncation with multi-byte codepoints",
+			collectionName:       "5ed6d1b7-e358-438a-b067-e1d1dd10fee1",
+			maxDocumentLength:    20_001,
+			operation:            clamMultiByteTrunc,
+			orderedLogValidators: clamMultiByteTruncLogs(mt),
+		},
+		{
+			name:                 "3.3 Truncation with multi-byte codepoints",
+			collectionName:       "5ed6d1b7-e358-438a-b067-e1d1dd10fee1",
+			maxDocumentLength:    20_002,
+			operation:            clamMultiByteTrunc,
+			orderedLogValidators: clamMultiByteTruncLogs(mt),
 		},
 	} {
 		tcase := tcase
@@ -190,8 +306,40 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		mt.Run(tcase.name, func(mt *mtest.T) {
 			mt.Parallel()
 
-			const deadline = 1 * time.Second
+			const deadline = 5 * time.Second
 			ctx := context.Background()
+
+			// Before the test case, we need to see if there is a
+			// setup function to run.
+			if tcase.setup != nil {
+				clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
+
+				// Create a context with a deadline so that the
+				// test setup doesn't hang forever.
+				ctx, cancel := context.WithTimeout(ctx, deadline)
+				defer cancel()
+
+				client, err := mongo.Connect(ctx, clientOpts)
+				assert.Nil(mt, err, "Connect error in setup: %v", err)
+
+				coll := mt.CreateCollection(mtest.Collection{
+					Name:   tcase.collectionName,
+					Client: client,
+				}, false)
+
+				tcase.setup(ctx, mt, coll)
+			}
+
+			// If there is no operation, then we don't need to run
+			// the test case.
+			if tcase.operation == nil {
+				return
+			}
+
+			// If there are no log validators, then we should error.
+			if len(tcase.orderedLogValidators) == 0 {
+				mt.Fatalf("no log validators provided")
+			}
 
 			sinkCtx, sinkCancel := context.WithDeadline(ctx, time.Now().Add(deadline))
 			defer sinkCancel()
