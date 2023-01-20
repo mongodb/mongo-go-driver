@@ -20,6 +20,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var ErrInvalidTruncation = fmt.Errorf("invalid truncation")
+
+func clamTruncErr(mt *mtest.T, op string, want, got int) error {
+	return fmt.Errorf("%w: expected length %s %d, got %d", ErrInvalidTruncation, op, want, got)
+}
+
 func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
 	mt.Helper()
 
@@ -46,30 +52,28 @@ func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Colle
 func clamDefaultTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
 	mt.Helper()
 
-	defaultLengthWithSuffix := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
+	expTruncLen := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
 
 	return []logTruncCaseValidator{
 		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-			if len(cmd) != defaultLengthWithSuffix {
-				return fmt.Errorf("expected command to be %d bytes, got %d",
-					defaultLengthWithSuffix, len(cmd))
+
+			if len(cmd) != expTruncLen {
+				clamTruncErr(mt, "=", expTruncLen, len(cmd))
 			}
 
 			return nil
 		}),
 		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) > defaultLengthWithSuffix {
-				return fmt.Errorf("expected reply to be less than %d bytes, got %d",
-					defaultLengthWithSuffix, len(cmd))
+			if len(cmd) > expTruncLen {
+				clamTruncErr(mt, "<=", expTruncLen, len(cmd))
 			}
 
 			return nil
 		}),
 		nil,
 		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) != defaultLengthWithSuffix {
-				return fmt.Errorf("expected reply to be %d bytes, got %d",
-					defaultLengthWithSuffix, len(cmd))
+			if len(cmd) != expTruncLen {
+				clamTruncErr(mt, "=", expTruncLen, len(cmd))
 			}
 
 			return nil
@@ -88,19 +92,19 @@ func clamExplicitTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Coll
 func clamExplicitTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
 	mt.Helper()
 
+	expTruncLen := len(logger.TruncationSuffix) + 5
+
 	return []logTruncCaseValidator{
 		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-			if len(cmd) != 5+len(logger.TruncationSuffix) {
-				return fmt.Errorf("expected command to be %d bytes, got %d",
-					5+len(logger.TruncationSuffix), len(cmd))
+			if len(cmd) != expTruncLen {
+				return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 			}
 
 			return nil
 		}),
 		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) != 5+len(logger.TruncationSuffix) {
-				return fmt.Errorf("expected reply to be %d bytes, got %d",
-					5+len(logger.TruncationSuffix), len(cmd))
+			if len(cmd) != expTruncLen {
+				return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 			}
 
 			return nil
@@ -118,12 +122,13 @@ func clamExplicitTruncLimitFailOp(ctx context.Context, mt *mtest.T, coll *mongo.
 func clamExplicitTruncLimitFailLogs(mt *mtest.T) []logTruncCaseValidator {
 	mt.Helper()
 
+	expTruncLen := len(logger.TruncationSuffix) + 5
+
 	return []logTruncCaseValidator{
 		nil,
 		newLogTruncCaseValidator(mt, "failure", func(cmd string) error {
-			if len(cmd) != 5+len(logger.TruncationSuffix) {
-				return fmt.Errorf("expected reply to be %d bytes, got %d",
-					5+len(logger.TruncationSuffix), len(cmd))
+			if len(cmd) != expTruncLen {
+				return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 			}
 
 			return nil
