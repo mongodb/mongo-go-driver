@@ -115,7 +115,7 @@ func clamExplicitTruncLimitFailOp(ctx context.Context, mt *mtest.T, coll *mongo.
 	assert.NotNil(mt, result.Err(), "expected RunCommand error, got: %v", result.Err())
 }
 
-func clamExplicitTruncLimitLogsFail(mt *mtest.T) []logTruncCaseValidator {
+func clamExplicitTruncLimitFailLogs(mt *mtest.T) []logTruncCaseValidator {
 	mt.Helper()
 
 	return []logTruncCaseValidator{
@@ -130,6 +130,59 @@ func clamExplicitTruncLimitLogsFail(mt *mtest.T) []logTruncCaseValidator {
 		}),
 	}
 
+}
+
+// clamMultiByteTrunc runs an operation to insert a very large document with the
+// multi-byte character "界" repeated a large number of times. This repetition
+// is done to categorically ensure that the truncation point is made somewhere
+// within the multi-byte character. For example a typical insertion reply may
+// look something like this:
+//
+// {"insert": "setuptest","ordered": true,"lsid": {"id": ...
+//
+// We have no control over how the "header" portion of this reply is formatted.
+// Over time the server might support newer fields or change the formatting of
+// existing fields. This means that the truncation point could be anywhere in
+// the "header" portion of the reply. A large document lowers the likelihood of
+// the truncation point being in the "header" portion of the reply.
+func clamMultiByteTrunc(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
+	mt.Helper()
+
+	const multiByteCharStrLen = 50_000
+	const strToRepeat = "界"
+
+	// Repeat the string "strToRepeat" "multiByteCharStrLen" times.
+	multiByteCharStr := ""
+	for i := 0; i < multiByteCharStrLen; i++ {
+		multiByteCharStr += strToRepeat
+	}
+
+	_, err := coll.InsertOne(ctx, bson.D{{"x", multiByteCharStr}})
+	assert.Nil(mt, err, "InsertOne error: %v", err)
+}
+
+func clamMultiByteTruncLogs(mt *mtest.T) []logTruncCaseValidator {
+	mt.Helper()
+
+	const strToRepeat = "界"
+
+	return []logTruncCaseValidator{
+		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
+			// Remove the suffix from the command string.
+			cmd = cmd[:len(cmd)-len(logger.TruncationSuffix)]
+
+			// Get the last 3 bytes of the command string.
+			last3Bytes := cmd[len(cmd)-3:]
+
+			// Make sure the last 3 bytes are the multi-byte character.
+			if last3Bytes != strToRepeat {
+				return fmt.Errorf("expected last 3 bytes to be %q, got %q", strToRepeat, last3Bytes)
+			}
+
+			return nil
+		}),
+		nil,
+	}
 }
 
 func TestCommandLoggingAndMonitoringProse(t *testing.T) {
@@ -163,6 +216,10 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		// "operation" will be validated against the
 		// "orderedLogValidators."
 		operation func(context.Context, *mtest.T, *mongo.Collection)
+
+		// Setup is a function that will be run before the test case.
+		// Operations performed in this function will not be logged.
+		setup func(context.Context, *mtest.T, *mongo.Collection)
 	}{
 		{
 			name:                 "1 Default truncation limit",
@@ -182,7 +239,36 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			collectionName:       "aff43dfcaa1a4014b58aaa9606f5bd44",
 			maxDocumentLength:    5,
 			operation:            clamExplicitTruncLimitFailOp,
-			orderedLogValidators: clamExplicitTruncLimitLogsFail(mt),
+			orderedLogValidators: clamExplicitTruncLimitFailLogs(mt),
+		},
+
+		// The third test case is to ensure that a truncation point made
+		// within a multi-byte character is handled correctly. The
+		// chosen multi-byte character for this test is "界" (U+754C).
+		// This character is repeated a large number of times (50,000).
+		// We need to run this test 3 times to ensure that the
+		// truncation occurs at a middle point within the multi-byte
+		// character at least once (at most twice).
+		{
+			name:                 "3.1 Truncation with multi-byte codepoints",
+			collectionName:       "5ed6d1b7-e358-438a-b067-e1d1dd10fee1",
+			maxDocumentLength:    20_000,
+			operation:            clamMultiByteTrunc,
+			orderedLogValidators: clamMultiByteTruncLogs(mt),
+		},
+		{
+			name:                 "3.2 Truncation with multi-byte codepoints",
+			collectionName:       "5ed6d1b7-e358-438a-b067-e1d1dd10fee1",
+			maxDocumentLength:    20_001,
+			operation:            clamMultiByteTrunc,
+			orderedLogValidators: clamMultiByteTruncLogs(mt),
+		},
+		{
+			name:                 "3.3 Truncation with multi-byte codepoints",
+			collectionName:       "5ed6d1b7-e358-438a-b067-e1d1dd10fee1",
+			maxDocumentLength:    20_002,
+			operation:            clamMultiByteTrunc,
+			orderedLogValidators: clamMultiByteTruncLogs(mt),
 		},
 	} {
 		tcase := tcase
@@ -190,8 +276,40 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		mt.Run(tcase.name, func(mt *mtest.T) {
 			mt.Parallel()
 
-			const deadline = 1 * time.Second
+			const deadline = 5 * time.Second
 			ctx := context.Background()
+
+			// Before the test case, we need to see if there is a
+			// setup function to run.
+			if tcase.setup != nil {
+				clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
+
+				// Create a context with a deadline so that the
+				// test setup doesn't hang forever.
+				ctx, cancel := context.WithTimeout(ctx, deadline)
+				defer cancel()
+
+				client, err := mongo.Connect(ctx, clientOpts)
+				assert.Nil(mt, err, "Connect error in setup: %v", err)
+
+				coll := mt.CreateCollection(mtest.Collection{
+					Name:   tcase.collectionName,
+					Client: client,
+				}, false)
+
+				tcase.setup(ctx, mt, coll)
+			}
+
+			// If there is no operation, then we don't need to run
+			// the test case.
+			if tcase.operation == nil {
+				return
+			}
+
+			// If there are no log validators, then we should error.
+			if len(tcase.orderedLogValidators) == 0 {
+				mt.Fatalf("no log validators provided")
+			}
 
 			sinkCtx, sinkCancel := context.WithDeadline(ctx, time.Now().Add(deadline))
 			defer sinkCancel()

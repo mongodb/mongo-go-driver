@@ -239,6 +239,8 @@ func TestTruncate(t *testing.T) {
 		tcase := tcase
 
 		t.Run(tcase.name, func(t *testing.T) {
+			t.Parallel()
+
 			actual := truncate(tcase.arg, tcase.width)
 			if actual != tcase.expected {
 				t.Errorf("expected %q, got %q", tcase.expected, actual)
