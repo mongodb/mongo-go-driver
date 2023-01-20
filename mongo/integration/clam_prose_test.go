@@ -49,37 +49,46 @@ func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Colle
 	assert.Nil(mt, err, "Find error: %v", err)
 }
 
-func clamDefaultTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
+func clamDefaultTruncLimitLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
+	const cmd = "command"
+	const rpl = "reply"
+
 	expTruncLen := len(logger.TruncationSuffix) + logger.DefaultMaxDocumentLength
+	validators := make([]truncValidator, 4)
 
-	return []logTruncCaseValidator{
-		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
+	// Insert started.
+	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
 
-			if len(cmd) != expTruncLen {
-				clamTruncErr(mt, "=", expTruncLen, len(cmd))
-			}
+		return nil
+	})
 
-			return nil
-		}),
-		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) > expTruncLen {
-				clamTruncErr(mt, "<=", expTruncLen, len(cmd))
-			}
+	// Insert succeeded.
+	validators[1] = newTruncValidator(mt, rpl, func(cmd string) error {
+		if len(cmd) > expTruncLen {
+			clamTruncErr(mt, "<=", expTruncLen, len(cmd))
+		}
 
-			return nil
-		}),
-		nil,
-		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) != expTruncLen {
-				clamTruncErr(mt, "=", expTruncLen, len(cmd))
-			}
+		return nil
+	})
 
-			return nil
-		}),
-	}
+	// Find started, nothing to validate.
+	validators[2] = nil
 
+	// Find succeeded.
+	validators[3] = newTruncValidator(mt, rpl, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
+
+		return nil
+	})
+
+	return validators
 }
 
 func clamExplicitTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
@@ -89,27 +98,34 @@ func clamExplicitTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Coll
 	assert.Nil(mt, result.Err(), "RunCommand error: %v", result.Err())
 }
 
-func clamExplicitTruncLimitLogs(mt *mtest.T) []logTruncCaseValidator {
+func clamExplicitTruncLimitLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
+	const cmd = "command"
+	const rpl = "reply"
+
 	expTruncLen := len(logger.TruncationSuffix) + 5
+	validators := make([]truncValidator, 2)
 
-	return []logTruncCaseValidator{
-		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-			if len(cmd) != expTruncLen {
-				return clamTruncErr(mt, "=", expTruncLen, len(cmd))
-			}
+	// Hello started.
+	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
 
-			return nil
-		}),
-		newLogTruncCaseValidator(mt, "reply", func(cmd string) error {
-			if len(cmd) != expTruncLen {
-				return clamTruncErr(mt, "=", expTruncLen, len(cmd))
-			}
+		return nil
+	})
 
-			return nil
-		}),
-	}
+	// Hello succeeded.
+	validators[1] = newTruncValidator(mt, rpl, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
+
+		return nil
+	})
+
+	return validators
 }
 
 func clamExplicitTruncLimitFailOp(ctx context.Context, mt *mtest.T, coll *mongo.Collection) {
@@ -119,22 +135,27 @@ func clamExplicitTruncLimitFailOp(ctx context.Context, mt *mtest.T, coll *mongo.
 	assert.NotNil(mt, result.Err(), "expected RunCommand error, got: %v", result.Err())
 }
 
-func clamExplicitTruncLimitFailLogs(mt *mtest.T) []logTruncCaseValidator {
+func clamExplicitTruncLimitFailLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
+	const fail = "failure"
+
 	expTruncLen := len(logger.TruncationSuffix) + 5
+	validators := make([]truncValidator, 2)
 
-	return []logTruncCaseValidator{
-		nil,
-		newLogTruncCaseValidator(mt, "failure", func(cmd string) error {
-			if len(cmd) != expTruncLen {
-				return clamTruncErr(mt, "=", expTruncLen, len(cmd))
-			}
+	// Hello started, nothing to validate.
+	validators[0] = nil
 
-			return nil
-		}),
-	}
+	// Hello failed.
+	validators[1] = newTruncValidator(mt, fail, func(cmd string) error {
+		if len(cmd) != expTruncLen {
+			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+		}
 
+		return nil
+	})
+
+	return validators
 }
 
 // clamMultiByteTrunc runs an operation to insert a very large document with the
@@ -166,28 +187,32 @@ func clamMultiByteTrunc(ctx context.Context, mt *mtest.T, coll *mongo.Collection
 	assert.Nil(mt, err, "InsertOne error: %v", err)
 }
 
-func clamMultiByteTruncLogs(mt *mtest.T) []logTruncCaseValidator {
+func clamMultiByteTruncLogs(mt *mtest.T) []truncValidator {
 	mt.Helper()
 
+	const cmd = "command"
 	const strToRepeat = "界"
 
-	return []logTruncCaseValidator{
-		newLogTruncCaseValidator(mt, "command", func(cmd string) error {
-			// Remove the suffix from the command string.
-			cmd = cmd[:len(cmd)-len(logger.TruncationSuffix)]
+	validators := make([]truncValidator, 2)
 
-			// Get the last 3 bytes of the command string.
-			last3Bytes := cmd[len(cmd)-3:]
+	// Insert started.
+	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
 
-			// Make sure the last 3 bytes are the multi-byte character.
-			if last3Bytes != strToRepeat {
-				return fmt.Errorf("expected last 3 bytes to be %q, got %q", strToRepeat, last3Bytes)
-			}
+		// Remove the suffix from the command string.
+		cmd = cmd[:len(cmd)-len(logger.TruncationSuffix)]
 
-			return nil
-		}),
-		nil,
-	}
+		// Get the last 3 bytes of the command string.
+		last3Bytes := cmd[len(cmd)-3:]
+
+		// Make sure the last 3 bytes are the multi-byte character.
+		if last3Bytes != strToRepeat {
+			return fmt.Errorf("expected last 3 bytes to be %q, got %q", strToRepeat, last3Bytes)
+		}
+
+		return nil
+	})
+
+	return validators
 }
 
 func TestCommandLoggingAndMonitoringProse(t *testing.T) {
@@ -214,7 +239,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		// LogSink. The order here matters, the first log will be
 		// validated by the 0th validator, the second log will be
 		// validated by the 1st validator, etc.
-		orderedLogValidators []logTruncCaseValidator
+		orderedLogValidators []truncValidator
 
 		// operation is the operation to perform on the collection that
 		// will result in log propagation. The logs created by

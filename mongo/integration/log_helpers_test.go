@@ -88,15 +88,20 @@ func findLogValue(mt *mtest.T, key string, values ...interface{}) interface{} {
 	return nil
 }
 
-type logTruncCaseValidator func(values ...interface{}) error
+type truncValidator func(values ...interface{}) error
 
-func newLogTruncCaseValidator(mt *mtest.T, commandName string, cond func(string) error) logTruncCaseValidator {
+// newTruncValidator will return a logger validator for validating truncated
+// messages. It takes the key for the portion of the document to validate
+// (e.g. "command" for started events, "reply" for finished events, etc), and
+// returns an anonymous function that can be used to validate the truncated
+// message.
+func newTruncValidator(mt *mtest.T, key string, cond func(string) error) truncValidator {
 	mt.Helper()
 
 	return func(values ...interface{}) error {
-		cmd := findLogValue(mt, commandName, values...)
+		cmd := findLogValue(mt, key, values...)
 		if cmd == nil {
-			return fmt.Errorf("%q not found in keys and values", commandName)
+			return fmt.Errorf("%q not found in keys and values", key)
 		}
 
 		cmdStr, ok := cmd.(string)
