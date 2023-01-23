@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
-var errLogDocumentMismatch = fmt.Errorf("document mismatch")
+var ErrLoggerVerification = fmt.Errorf("logger verification failed")
 
 // logMessage is a log message that is expected to be observed by the driver.
 type logMessage struct {
@@ -48,7 +48,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// The argument slice must have an even number of elements, otherwise it
 	// would not maintain the key-value structure of the document.
 	if len(args)%2 != 0 {
-		return nil, fmt.Errorf("invalid arguments: %v", args)
+		return nil, fmt.Errorf("%w: invalid arguments: %v", ErrLoggerVerification, args)
 	}
 
 	// Create a new document from the arguments.
@@ -64,7 +64,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// logMessage.
 	bytes, err := bson.Marshal(actualD)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal: %v", err)
+		return nil, fmt.Errorf("%w: failed to marshal: %v", ErrLoggerVerification, err)
 	}
 
 	logMessage.Data = bson.Raw(bytes)
@@ -76,15 +76,15 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 // invalid.
 func validateLogMessage(message *logMessage) error {
 	if message.LevelLiteral == "" {
-		return fmt.Errorf("level is required")
+		return fmt.Errorf("%w: level is required", ErrLoggerVerification)
 	}
 
 	if message.ComponentLiteral == "" {
-		return fmt.Errorf("component is required")
+		return fmt.Errorf("%w: component is required", ErrLoggerVerification)
 	}
 
 	if message.Data == nil {
-		return fmt.Errorf("data is required")
+		return fmt.Errorf("%w: data is required", ErrLoggerVerification)
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	}
 
 	if act == nil || exp == nil {
-		return errLogDocumentMismatch
+		return fmt.Errorf("%w: document mismatch", ErrLoggerVerification)
 	}
 
 	levelExp := logger.ParseLevel(exp.LevelLiteral)
@@ -107,7 +107,8 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// The levels of the expected log message and the actual log message
 	// must match, upto logger.Level.
 	if levelExp != levelAct {
-		return fmt.Errorf("level mismatch: want %v, got %v", levelExp, levelAct)
+		return fmt.Errorf("%w: level mismatch: want %v, got %v",
+			ErrLoggerVerification, levelExp, levelAct)
 	}
 
 	rawExp := documentToRawValue(exp.Data)
@@ -117,7 +118,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// are a number of unrequired fields that may not be present on the
 	// expected document.
 	if err := verifyValuesMatch(ctx, rawExp, rawAct, true); err != nil {
-		return fmt.Errorf("%w: %v", errLogDocumentMismatch, err)
+		return fmt.Errorf("%w: document length mismatch: %v", ErrLoggerVerification, err)
 	}
 
 	return nil
@@ -134,16 +135,16 @@ type clientLogMessages struct {
 // and return an error if it is invalid, i.e. not testable.
 func validateClientLogMessages(log *clientLogMessages) error {
 	if log.Client == "" {
-		return fmt.Errorf("client is required")
+		return fmt.Errorf("%w: client is required", ErrLoggerVerification)
 	}
 
 	if len(log.LogMessages) == 0 {
-		return fmt.Errorf("log messages are required")
+		return fmt.Errorf("%w: log messages are required", ErrLoggerVerification)
 	}
 
 	for _, message := range log.LogMessages {
 		if err := validateLogMessage(message); err != nil {
-			return fmt.Errorf("message is invalid: %v", err)
+			return fmt.Errorf("%w: message is invalid: %v", ErrLoggerVerification, err)
 		}
 	}
 
@@ -157,11 +158,11 @@ func validateExpectLogMessages(logs []*clientLogMessages) error {
 
 	for _, log := range logs {
 		if err := validateClientLogMessages(log); err != nil {
-			return fmt.Errorf("client is invalid: %v", err)
+			return fmt.Errorf("%w: client is invalid: %v", ErrLoggerVerification, err)
 		}
 
 		if _, ok := seenClientNames[log.Client]; ok {
-			return fmt.Errorf("duplicate client: %v", log.Client)
+			return fmt.Errorf("%w: duplicate client: %v", ErrLoggerVerification, log.Client)
 		}
 
 		seenClientNames[log.Client] = struct{}{}
@@ -181,11 +182,11 @@ type logMessageValidator struct {
 // case.
 func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 	if testCase == nil {
-		return nil, fmt.Errorf("test case is required")
+		return nil, fmt.Errorf("%w: test case is required", ErrLoggerVerification)
 	}
 
 	if testCase.entities == nil {
-		return nil, fmt.Errorf("entities are required")
+		return nil, fmt.Errorf("%w: entities are required", ErrLoggerVerification)
 	}
 
 	validator := &logMessageValidator{
@@ -221,11 +222,17 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 
 // stopLogMessageVerificationWorkers will gracefully validate all log messages
 // received by all clients and return the first error encountered.
+//
+// Unfortunately, there is currently no way to communicate to a client entity
+// constructor how many messages are expected to be received. Because of this,
+// the LogSink assigned to each client has no way of knowing when to close the
+// log queue. Therefore, it is the responsbility of this function to ensure that
+// all log messages are received and validated: N errors for N log messages.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
 	// Count the number of LogMessage objects on each ExpectedLogMessages.
 	// This will give us the number of "actual" log messages we expect to
-	// receive from each client. That is we want Σ (1 + len(messages)) for
-	// over all clients.
+	// receive from each client. That is, we want Σ (1 + len(messages))
+	// over  all clients.
 	messageCard := 0
 	for _, clientLogMessages := range validator.testCase.ExpectLogMessages {
 		messageCard += len(clientLogMessages.LogMessages)
@@ -242,7 +249,7 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 			// log workflow have not been implemented for a
 			// compontent. That is, the number of actual log
 			// messages is less than the cardinality of messages.
-			return fmt.Errorf("context error: %v", ctx.Err())
+			return fmt.Errorf("%w: context error: %v", ErrLoggerVerification, ctx.Err())
 		}
 	}
 

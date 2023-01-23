@@ -835,7 +835,15 @@ func newLogger(opts *options.LoggerOptions) *logger.Logger {
 		opts = options.Logger()
 	}
 
-	// Build an internal component-level mapping.
+	// If there are no component-level options and the environment does not
+	// contain component variables, then do nothing.
+	if (opts.ComponentLevels == nil || len(opts.ComponentLevels) == 0) &&
+		!logger.EnvHasComponentVariables() {
+
+		return nil
+	}
+
+	// Otherwise, collect the component-level options and create a logger.
 	componentLevels := make(map[logger.Component]logger.Level)
 	for component, level := range opts.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)

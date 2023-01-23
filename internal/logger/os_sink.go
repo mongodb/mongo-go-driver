@@ -67,10 +67,6 @@ func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
 		kvMap["failure"])
 }
 
-func logCommandDropped(log *log.Logger) {
-	log.Println(CommandMessageDroppedDefault)
-}
-
 func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	kvMap := make(map[string]interface{})
 	for i := 0; i < len(keysAndValues); i += 2 {
@@ -84,8 +80,6 @@ func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 		logCommandMessageSucceeded(osSink.log, kvMap)
 	case CommandMessageFailedDefault:
 		logCommandMessageFailed(osSink.log, kvMap)
-	case CommandMessageDroppedDefault:
-		logCommandDropped(osSink.log)
 	}
 }
 

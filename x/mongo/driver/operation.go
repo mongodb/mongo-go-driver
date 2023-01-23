@@ -137,6 +137,104 @@ type ResponseInfo struct {
 	CurrentIndex          int
 }
 
+func redactStartedInformationCmd(op Operation, info startedInformation) bson.Raw {
+	var cmdCopy bson.Raw
+
+	// Make a copy of the command. Redact if the command is security
+	// sensitive and cannot be monitored. If there was a type 1 payload for
+	// the current batch, convert it to a BSON array
+	if !info.redacted {
+		cmdCopy = make([]byte, len(info.cmd))
+		copy(cmdCopy, info.cmd)
+
+		if info.documentSequenceIncluded {
+			// remove 0 byte at end
+			cmdCopy = cmdCopy[:len(info.cmd)-1]
+			cmdCopy = op.addBatchArray(cmdCopy)
+
+			// add back 0 byte and update length
+			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
+		}
+	}
+
+	return cmdCopy
+}
+
+func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
+	if !info.redacted {
+		return bson.Raw(info.response)
+	}
+
+	return bson.Raw{}
+}
+
+func logCommandMessageStarted(op Operation, info startedInformation) {
+	log := op.Logger
+	host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+	redactedCmd := redactStartedInformationCmd(op, info).String()
+	formattedCmd := logger.FormatMessage(redactedCmd, log.MaxDocumentLength)
+
+	log.Print(logger.LevelDebug,
+		logger.ComponentCommand,
+		logger.CommandMessageStartedDefault,
+		logger.SerializeCommand(logger.Command{
+			Message:            logger.CommandMessageStartedDefault,
+			Name:               info.cmdName,
+			RequestID:          int64(info.requestID),
+			ServerConnectionID: info.serverConnID,
+			ServerHost:         host,
+			ServerPort:         port,
+			ServiceID:          info.serviceID,
+		},
+			"command", formattedCmd,
+			"databaseName", op.Database,
+			"message", logger.CommandMessageStartedDefault)...)
+
+}
+
+func logCommandSucceededMessage(log *logger.Logger, info finishedInformation) {
+	host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+	redactedReply := redactFinishedInformationResponse(info).String()
+	formattedReply := logger.FormatMessage(redactedReply, log.MaxDocumentLength)
+
+	log.Print(logger.LevelDebug,
+		logger.ComponentCommand,
+		logger.CommandMessageSucceededDefault,
+		logger.SerializeCommand(logger.Command{
+			Message:            logger.CommandMessageSucceededDefault,
+			Name:               info.cmdName,
+			RequestID:          int64(info.requestID),
+			ServerConnectionID: info.serverConnID,
+			ServerHost:         host,
+			ServerPort:         port,
+			ServiceID:          info.serviceID,
+		},
+			"durationMS", info.duration.Milliseconds(),
+			"reply", formattedReply)...)
+
+}
+
+func logCommandFailedMessage(log *logger.Logger, info finishedInformation) {
+	host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+	log.Print(logger.LevelDebug,
+		logger.ComponentCommand,
+		logger.CommandMessageFailedDefault,
+		logger.SerializeCommand(logger.Command{
+			Message:            logger.CommandMessageFailedDefault,
+			Name:               info.cmdName,
+			RequestID:          int64(info.requestID),
+			ServerConnectionID: info.serverConnID,
+			ServerHost:         host,
+			ServerPort:         port,
+			ServiceID:          info.serviceID,
+		},
+			"durationMS", info.duration.Milliseconds(),
+			"failure", info.cmdErr.Error())...)
+}
+
 // Operation is used to execute an operation. It contains all of the common code required to
 // select a server, transform an operation into a command, write the command to a connection from
 // the selected server, read a response from that connection, process the response, and potentially
@@ -1749,48 +1847,6 @@ func (op Operation) canPublishStartedEvent() bool {
 	return op.CommandMonitor != nil && op.CommandMonitor.Started != nil
 }
 
-func redactStartedInformationCmd(op Operation, info startedInformation) bson.Raw {
-	var cmdCopy bson.Raw
-
-	// Make a copy of the command. Redact if the command is security
-	// sensitive and cannot be monitored. If there was a type 1 payload for
-	// the current batch, convert it to a BSON array
-	if !info.redacted {
-		cmdCopy = make([]byte, len(info.cmd))
-		copy(cmdCopy, info.cmd)
-
-		if info.documentSequenceIncluded {
-			// remove 0 byte at end
-			cmdCopy = cmdCopy[:len(info.cmd)-1]
-			cmdCopy = op.addBatchArray(cmdCopy)
-
-			// add back 0 byte and update length
-			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
-		}
-	}
-
-	return cmdCopy
-}
-
-func logCommandMessageStarted(op Operation, info startedInformation) {
-	host, port, _ := net.SplitHostPort(info.serverAddress.String())
-	msg := logger.CommandMessage{
-		MessageLiteral:     logger.CommandMessageStartedDefault,
-		Name:               info.cmdName,
-		RequestID:          int64(info.requestID),
-		ServerConnectionID: info.serverConnID,
-		ServerHost:         host,
-		ServerPort:         port,
-		ServiceID:          info.serviceID,
-	}
-
-	op.Logger.Print(logger.LevelDebug, &logger.CommandStartedMessage{
-		Command:        redactStartedInformationCmd(op, info).String(),
-		DatabaseName:   op.Database,
-		CommandMessage: msg,
-	})
-}
-
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
 // an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
 // no events are published.
@@ -1823,49 +1879,6 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 	return op.CommandMonitor != nil &&
 		(!success || op.CommandMonitor.Succeeded != nil) &&
 		(success || op.CommandMonitor.Failed != nil)
-}
-
-func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
-	if !info.redacted {
-		return bson.Raw(info.response)
-	}
-
-	return bson.Raw{}
-}
-
-func logCommandMessageFromFinishedInfo(info finishedInformation) *logger.CommandMessage {
-	host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-	return &logger.CommandMessage{
-		Name:               info.cmdName,
-		RequestID:          int64(info.requestID),
-		ServerConnectionID: info.serverConnID,
-		ServerHost:         host,
-		ServerPort:         port,
-		ServiceID:          info.serviceID,
-	}
-}
-
-func logCommandSucceededMessage(log *logger.Logger, info finishedInformation) {
-	msg := logCommandMessageFromFinishedInfo(info)
-	msg.MessageLiteral = logger.CommandMessageSucceededDefault
-
-	log.Print(logger.LevelDebug, &logger.CommandSucceededMessage{
-		Duration:       info.duration,
-		Reply:          redactFinishedInformationResponse(info).String(),
-		CommandMessage: *msg,
-	})
-}
-
-func logCommandFailedMessage(log *logger.Logger, info finishedInformation) {
-	msg := logCommandMessageFromFinishedInfo(info)
-	msg.MessageLiteral = logger.CommandMessageFailedDefault
-
-	log.Print(logger.LevelDebug, &logger.CommandFailedMessage{
-		Duration:       info.duration,
-		Failure:        info.cmdErr.Error(),
-		CommandMessage: *msg,
-	})
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command

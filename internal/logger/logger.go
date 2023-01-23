@@ -5,7 +5,24 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// DefaultMaxDocumentLength is the default maximum number of bytes that can be
+// logged for a stringified BSON document.
+const DefaultMaxDocumentLength = 1000
+
+const (
+	CommandMessageFailedDefault    = "Command failed"
+	CommandMessageStartedDefault   = "Command started"
+	CommandMessageSucceededDefault = "Command succeeded"
+)
+
+// TruncationSuffix are trailling ellipsis "..." appended to a message to
+// indicate to the user that truncation occurred. This constant does not count
+// toward the max document length.
+const TruncationSuffix = "..."
 
 const logSinkPathEnvVar = "MONGODB_LOG_PATH"
 const maxDocumentLengthEnvVar = "MONGODB_LOG_MAX_DOCUMENT_LENGTH"
@@ -19,11 +36,6 @@ type LogSink interface {
 
 	// Error logs an error, with the given message and key/value pairs.
 	Error(err error, msg string, keysAndValues ...interface{})
-}
-
-type job struct {
-	level Level
-	msg   ComponentMessage
 }
 
 // Logger represents the configuration for the internal logger.
@@ -55,28 +67,30 @@ func (logger *Logger) LevelComponentEnabled(level Level, component Component) bo
 // Print will synchronously print the given message to the configured LogSink.
 // If the LogSink is nil, then this method will do nothing. Future work could be done to make
 // this method asynchronous, see buffer management in libraries such as log4j.
-func (logger *Logger) Print(level Level, msg ComponentMessage) {
+func (logger *Logger) Print(level Level, component Component, msg string, keysAndValues ...interface{}) {
 	// If the level is not enabled for the component, then
 	// skip the message.
-	if !logger.LevelComponentEnabled(level, msg.Component()) {
+	if !logger.LevelComponentEnabled(level, component) {
 		return
 	}
-
-	sink := logger.Sink
 
 	// If the sink is nil, then skip the message.
-	if sink == nil {
+	if logger.Sink == nil {
 		return
 	}
 
-	kv, err := msg.Serialize(logger.MaxDocumentLength)
-	if err != nil {
-		sink.Error(err, "error serializing message")
+	logger.Sink.Info(int(level)-DiffToInfo, msg, keysAndValues...)
+}
 
+// Error logs an error, with the given message and key/value pairs.
+// It functions similarly to Print, but may have unique behavior, and should be
+// preferred for logging errors.
+func (logger *Logger) Error(err error, msg string, keysAndValues ...interface{}) {
+	if logger.Sink == nil {
 		return
 	}
 
-	sink.Info(int(level)-DiffToInfo, msg.Message(), kv...)
+	logger.Sink.Error(err, msg, keysAndValues...)
 }
 
 // selectMaxDocumentLength will return the integer value of the first non-zero
@@ -204,12 +218,56 @@ func truncate(str string, width uint) string {
 	return newStr + TruncationSuffix
 }
 
-// formatMessage formats a BSON document for logging. The document is truncated
+// FormatMessage formats a BSON document for logging. The document is truncated
 // to the given width.
-func formatMessage(msg string, width uint) string {
+func FormatMessage(msg string, width uint) string {
 	if len(msg) == 0 {
 		return "{}"
 	}
 
 	return truncate(msg, width)
+}
+
+type Command struct {
+	DriverConnectionID int32
+	Name               string
+	Message            string
+	OperationID        int32
+	RequestID          int64
+	ServerConnectionID *int32
+	ServerHost         string
+	ServerPort         string
+	ServiceID          *primitive.ObjectID
+}
+
+func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
+	// Initialize the boilerplate keys and values.
+	keysAndValues := append([]interface{}{
+		"commandName", cmd.Name,
+		"driverConnectionId", cmd.DriverConnectionID,
+		"message", cmd.Message,
+		"operationId", cmd.OperationID,
+		"requestId", cmd.RequestID,
+		"serverHost", cmd.ServerHost,
+	}, extraKeysAndValues...)
+
+	// Add the optionsl keys and values
+	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
+	if err == nil {
+		keysAndValues = append(keysAndValues, "serverPort", port)
+	}
+
+	// Add the "serverConnectionId" if it is not nil.
+	if cmd.ServerConnectionID != nil {
+		keysAndValues = append(keysAndValues,
+			"serverConnectionId", *cmd.ServerConnectionID)
+	}
+
+	// Add the "serviceId" if it is not nil.
+	if cmd.ServiceID != nil {
+		keysAndValues = append(keysAndValues,
+			"serviceId", cmd.ServiceID.Hex())
+	}
+
+	return keysAndValues
 }

@@ -41,26 +41,28 @@ const (
 	// LogComponentServerSelection enables server selection logging.
 	LogComponentServerSelection LogComponent = LogComponent(logger.ComponentServerSelection)
 
-	// LogComponentconnection enables connection services logging.
+	// LogComponentConnection enables connection services logging.
 	LogComponentconnection LogComponent = LogComponent(logger.ComponentConnection)
 )
 
 // LogSink is an interface that can be implemented to provide a custom sink for
 // the driver's logs.
 type LogSink interface {
-	Info(int, string, ...interface{})
-	Error(error, string, ...interface{})
-}
+	// Info logs a non-error message with the given key/value pairs. This
+	// method will only be called if the provided level has been defined
+	// for a component in the LoggerOptions.
+	Info(level int, message string, keysAndValues ...interface{})
 
-// ComponentLevels is a map of LogComponent to LogLevel.
-type ComponentLevels map[LogComponent]LogLevel
+	// Error logs an error message with the given key/value pairs
+	Error(err error, message string, keysAndValues ...interface{})
+}
 
 // LoggerOptions represent options used to configure Logging in the Go Driver.
 type LoggerOptions struct {
 	// ComponentLevels is a map of LogComponent to LogLevel. The LogLevel
 	// for a given LogComponent will be used to determine if a log message
 	// should be logged.
-	ComponentLevels ComponentLevels
+	ComponentLevels map[LogComponent]LogLevel
 
 	// Sink is the LogSink that will be used to log messages. If this is
 	// nil, the driver will use the standard logging library.
@@ -75,7 +77,7 @@ type LoggerOptions struct {
 // Logger creates a new LoggerOptions instance.
 func Logger() *LoggerOptions {
 	return &LoggerOptions{
-		ComponentLevels: ComponentLevels{},
+		ComponentLevels: map[LogComponent]LogLevel{},
 	}
 }
 

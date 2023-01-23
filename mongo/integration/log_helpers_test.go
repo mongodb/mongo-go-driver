@@ -45,7 +45,7 @@ func newTestLogSink(ctx context.Context, mt *mtest.T, bufferSize int, validator 
 
 			level, msg, args := log()
 			if err := validator(order, level, msg, args...); err != nil {
-				sink.errsCh <- fmt.Errorf("invalid log at position %d, level %d, and msg %q: %v", order,
+				sink.errsCh <- fmt.Errorf("invalid log at position %d, level %d, and msg %q: %w", order,
 					level, msg, err)
 			}
 

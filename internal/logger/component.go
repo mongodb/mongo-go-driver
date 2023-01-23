@@ -1,5 +1,7 @@
 package logger
 
+import "os"
+
 // Component is an enumeration representing the "components" which can be
 // logged against. A LogLevel can be configured on a per-component basis.
 type Component int
@@ -37,8 +39,14 @@ var componentEnvVarMap = map[string]Component{
 	mongoDBLogConnectionEnvVar:      ComponentConnection,
 }
 
-type ComponentMessage interface {
-	Component() Component
-	Message() string
-	Serialize(maxDocumentLength uint) ([]interface{}, error)
+// EnvHasComponentVariables returns true if the environment contains any of the
+// component environment variables.
+func EnvHasComponentVariables() bool {
+	for envVar := range componentEnvVarMap {
+		if os.Getenv(envVar) != "" {
+			return true
+		}
+	}
+
+	return false
 }
