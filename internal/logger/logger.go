@@ -5,8 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // DefaultMaxDocumentLength is the default maximum number of bytes that can be
@@ -226,48 +224,4 @@ func FormatMessage(msg string, width uint) string {
 	}
 
 	return truncate(msg, width)
-}
-
-type Command struct {
-	DriverConnectionID int32
-	Name               string
-	Message            string
-	OperationID        int32
-	RequestID          int64
-	ServerConnectionID *int32
-	ServerHost         string
-	ServerPort         string
-	ServiceID          *primitive.ObjectID
-}
-
-func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
-	// Initialize the boilerplate keys and values.
-	keysAndValues := append([]interface{}{
-		"commandName", cmd.Name,
-		"driverConnectionId", cmd.DriverConnectionID,
-		"message", cmd.Message,
-		"operationId", cmd.OperationID,
-		"requestId", cmd.RequestID,
-		"serverHost", cmd.ServerHost,
-	}, extraKeysAndValues...)
-
-	// Add the optionsl keys and values
-	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
-	if err == nil {
-		keysAndValues = append(keysAndValues, "serverPort", port)
-	}
-
-	// Add the "serverConnectionId" if it is not nil.
-	if cmd.ServerConnectionID != nil {
-		keysAndValues = append(keysAndValues,
-			"serverConnectionId", *cmd.ServerConnectionID)
-	}
-
-	// Add the "serviceId" if it is not nil.
-	if cmd.ServiceID != nil {
-		keysAndValues = append(keysAndValues,
-			"serviceId", cmd.ServiceID.Hex())
-	}
-
-	return keysAndValues
 }
