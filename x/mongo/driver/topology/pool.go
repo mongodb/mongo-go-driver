@@ -133,6 +133,37 @@ func (p *pool) getState() int {
 	return p.state
 }
 
+func logPoolCreatedMessage(pool pool, config poolConfig) {
+	if pool.logger == nil {
+		return
+	}
+
+	host, port, _ := net.SplitHostPort(pool.address.String())
+
+	pool.logger.Print(logger.LevelDebug,
+		logger.ComponentConnection,
+		logger.ConnectionMessagePoolCreatedDefault,
+		logger.SerializeConnection(logger.Connection{
+			Message:    logger.ConnectionMessagePoolCreatedDefault,
+			ServerHost: host,
+			ServerPort: port,
+		},
+			"message", logger.ConnectionMessagePoolCreatedDefault)...)
+	//connectionMsg := logger.ConnectionMessage{
+	//	MessageLiteral: logger.ConnectionMessagePoolCreatedDefault,
+	//	ServerHost:     host,
+	//	ServerPort:     port,
+	//}
+
+	//pool.logger.Print(logger.LevelDebug, &logger.PoolCreatedMessage{
+	//	ConnectionMessage: connectionMsg,
+	//	MaxIdleTime:       config.MaxIdleTime,
+	//	MinPoolSize:       config.MinPoolSize,
+	//	MaxPoolSize:       config.MaxPoolSize,
+	//	MaxConnecting:     config.MaxConnecting,
+	//})
+}
+
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
 func connectionPerished(conn *connection) (string, bool) {
 	switch {

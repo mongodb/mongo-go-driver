@@ -68,6 +68,8 @@ type Command struct {
 	ServiceID          *primitive.ObjectID
 }
 
+// SerializeCommand serializes a CommandMessage into a slice of keys and values
+// that can be passed to a logger.
 func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := append([]interface{}{
@@ -95,6 +97,39 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 	if cmd.ServiceID != nil {
 		keysAndValues = append(keysAndValues,
 			"serviceId", cmd.ServiceID.Hex())
+	}
+
+	return keysAndValues
+}
+
+// ConnectionMessage contains data that all connection log messages MUST contain.
+type Connection struct {
+	// Message is the literal message to be logged defining the underlying
+	// event.
+	Message string
+
+	// ServerHost is the hostname, IP address, or Unix domain socket path
+	// for the endpoint the pool is for.
+	ServerHost string
+
+	// Port is the port for the endpoint the pool is for. If the user does
+	// not specify a port and the default (27017) is used, the driver
+	// SHOULD include it here.
+	ServerPort string
+}
+
+// SerializeConnection serializes a ConnectionMessage into a slice of keys
+// and values that can be passed to a logger.
+func SerializeConnection(conn Connection, extraKeysAndValues ...[]interface{}) []interface{} {
+	keysAndValues := []interface{}{
+		"message", conn.Message,
+		"serverHost", conn.ServerHost,
+	}
+
+	// Convert the ServerPort into an integer.
+	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)
+	if err == nil {
+		keysAndValues = append(keysAndValues, "serverPort", port)
 	}
 
 	return keysAndValues
