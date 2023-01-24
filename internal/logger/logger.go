@@ -130,18 +130,18 @@ func selectLogSink(sink LogSink) LogSink {
 	lowerPath := strings.ToLower(path)
 
 	if lowerPath == string(logSinkPathStderr) {
-		return newOSSink(os.Stderr)
+		return NewIOSink(os.Stderr)
 	}
 
 	if lowerPath == string(logSinkPathStdout) {
-		return newOSSink(os.Stdout)
+		return NewIOSink(os.Stdout)
 	}
 
 	if path != "" {
-		return newOSSink(os.NewFile(uintptr(syscall.Stdout), path))
+		return NewIOSink(os.NewFile(uintptr(syscall.Stdout), path))
 	}
 
-	return newOSSink(os.Stderr)
+	return NewIOSink(os.Stderr)
 }
 
 // selectComponentLevels returns a new map of LogComponents to LogLevels that is
