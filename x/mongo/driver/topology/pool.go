@@ -133,35 +133,23 @@ func (p *pool) getState() int {
 	return p.state
 }
 
-func logPoolCreatedMessage(pool pool, config poolConfig) {
-	if pool.logger == nil {
-		return
-	}
+func mustLogPoolMessage(pool *pool) bool {
+	return pool.logger != nil && pool.logger.LevelComponentEnabled(
+		logger.LevelDebug, logger.ComponentConnection)
+}
 
+func logPoolMessage(pool *pool, component logger.Component, msg string, keysAndValues ...interface{}) {
 	host, port, _ := net.SplitHostPort(pool.address.String())
 
 	pool.logger.Print(logger.LevelDebug,
-		logger.ComponentConnection,
-		logger.ConnectionMessagePoolCreatedDefault,
+		component,
+		msg,
 		logger.SerializeConnection(logger.Connection{
-			Message:    logger.ConnectionMessagePoolCreatedDefault,
+			Message:    msg,
 			ServerHost: host,
 			ServerPort: port,
-		},
-			"message", logger.ConnectionMessagePoolCreatedDefault)...)
-	//connectionMsg := logger.ConnectionMessage{
-	//	MessageLiteral: logger.ConnectionMessagePoolCreatedDefault,
-	//	ServerHost:     host,
-	//	ServerPort:     port,
-	//}
+		}, keysAndValues...)...)
 
-	//pool.logger.Print(logger.LevelDebug, &logger.PoolCreatedMessage{
-	//	ConnectionMessage: connectionMsg,
-	//	MaxIdleTime:       config.MaxIdleTime,
-	//	MinPoolSize:       config.MinPoolSize,
-	//	MaxPoolSize:       config.MaxPoolSize,
-	//	MaxConnecting:     config.MaxConnecting,
-	//})
 }
 
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
@@ -238,22 +226,14 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		go pool.maintain(ctx, pool.backgroundDone)
 	}
 
-	if pool.logger != nil {
-		host, port, _ := net.SplitHostPort(pool.address.String())
-		connectionMsg := logger.ConnectionMessage{
-			MessageLiteral: logger.ConnectionMessagePoolCreatedDefault,
-			ServerHost:     host,
-			ServerPort:     port,
-		}
-
-		pool.logger.Print(logger.LevelDebug, &logger.PoolCreatedMessage{
-			ConnectionMessage: connectionMsg,
-			MaxIdleTime:       config.MaxIdleTime,
-			MinPoolSize:       config.MinPoolSize,
-			MaxPoolSize:       config.MaxPoolSize,
-			MaxConnecting:     config.MaxConnecting,
-			WaitQueueSize:     pool.newConnWait.len() + pool.idleConnWait.len(),
-		})
+	if mustLogPoolMessage(pool) {
+		logPoolMessage(pool,
+			logger.ComponentConnection,
+			logger.ConnectionPoolCreated,
+			"maxIdleTime", config.MaxIdleTime,
+			"minPoolSize", config.MinPoolSize,
+			"maxPoolSize", config.MaxPoolSize,
+			"maxConnecting", config.MaxConnecting)
 	}
 
 	if pool.monitor != nil {
@@ -297,6 +277,10 @@ func (p *pool) ready() error {
 	select {
 	case p.maintainReady <- struct{}{}:
 	default:
+	}
+
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p, logger.ComponentConnection, logger.ConnectionPoolReady)
 	}
 
 	if p.monitor != nil {
@@ -761,6 +745,13 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 		p.createConnectionsCond.L.Unlock()
 	}
 
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p,
+			logger.ComponentConnection,
+			logger.ConnectionPoolCleared,
+			"serviceId", serviceID)
+	}
+
 	if sendEvent && p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:      event.PoolCleared,
@@ -884,6 +875,13 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			continue
 		}
 
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionPoolCreated,
+				"driverConnectionId", conn.poolID)
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionCreated,
@@ -911,6 +909,13 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			_ = p.removeConnection(conn, event.ReasonError)
 			_ = p.closeConnection(conn)
 			continue
+		}
+
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionPoolCreated,
+				"driverConnectionId", conn.poolID)
 		}
 
 		if p.monitor != nil {

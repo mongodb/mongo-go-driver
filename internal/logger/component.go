@@ -7,6 +7,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+const (
+	CommandFailed         = "Command failed"
+	CommandStarted        = "Command started"
+	CommandSucceeded      = "Command succeeded"
+	ConnectionPoolCreated = "Connection pool created"
+	ConnectionPoolReady   = "Connection pool ready"
+	ConnectionPoolCleared = "Connection pool cleared"
+	ConnectionCreated     = "Connection created"
+	ConnectionReady       = "Connection ready"
+)
+
 // Component is an enumeration representing the "components" which can be
 // logged against. A LogLevel can be configured on a per-component basis.
 type Component int
@@ -120,11 +131,11 @@ type Connection struct {
 
 // SerializeConnection serializes a ConnectionMessage into a slice of keys
 // and values that can be passed to a logger.
-func SerializeConnection(conn Connection, extraKeysAndValues ...[]interface{}) []interface{} {
-	keysAndValues := []interface{}{
+func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
+	keysAndValues := append([]interface{}{
 		"message", conn.Message,
 		"serverHost", conn.ServerHost,
-	}
+	}, extraKeysAndValues...)
 
 	// Convert the ServerPort into an integer.
 	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)

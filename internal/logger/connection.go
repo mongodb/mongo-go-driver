@@ -5,9 +5,7 @@ import (
 	"time"
 )
 
-const (
-	ConnectionMessagePoolCreatedDefault = "Connection pool created"
-)
+const ()
 
 // ConnectionMessage contains data that all connection log messages MUST contain.
 type ConnectionMessage struct {

@@ -177,9 +177,9 @@ func logCommandMessageStarted(op Operation, info startedInformation) {
 
 	log.Print(logger.LevelDebug,
 		logger.ComponentCommand,
-		logger.CommandMessageStartedDefault,
+		logger.CommandStarted,
 		logger.SerializeCommand(logger.Command{
-			Message:            logger.CommandMessageStartedDefault,
+			Message:            logger.CommandStarted,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			ServerConnectionID: info.serverConnID,
@@ -189,7 +189,7 @@ func logCommandMessageStarted(op Operation, info startedInformation) {
 		},
 			"command", formattedCmd,
 			"databaseName", op.Database,
-			"message", logger.CommandMessageStartedDefault)...)
+			"message", logger.CommandStarted)...)
 
 }
 
@@ -201,9 +201,9 @@ func logCommandSucceededMessage(log *logger.Logger, info finishedInformation) {
 
 	log.Print(logger.LevelDebug,
 		logger.ComponentCommand,
-		logger.CommandMessageSucceededDefault,
+		logger.CommandSucceeded,
 		logger.SerializeCommand(logger.Command{
-			Message:            logger.CommandMessageSucceededDefault,
+			Message:            logger.CommandSucceeded,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			ServerConnectionID: info.serverConnID,
@@ -221,9 +221,9 @@ func logCommandFailedMessage(log *logger.Logger, info finishedInformation) {
 
 	log.Print(logger.LevelDebug,
 		logger.ComponentCommand,
-		logger.CommandMessageFailedDefault,
+		logger.CommandFailed,
 		logger.SerializeCommand(logger.Command{
-			Message:            logger.CommandMessageFailedDefault,
+			Message:            logger.CommandFailed,
 			Name:               info.cmdName,
 			RequestID:          int64(info.requestID),
 			ServerConnectionID: info.serverConnID,

@@ -11,12 +11,6 @@ import (
 // logged for a stringified BSON document.
 const DefaultMaxDocumentLength = 1000
 
-const (
-	CommandMessageFailedDefault    = "Command failed"
-	CommandMessageStartedDefault   = "Command started"
-	CommandMessageSucceededDefault = "Command succeeded"
-)
-
 // TruncationSuffix are trailling ellipsis "..." appended to a message to
 // indicate to the user that truncation occurred. This constant does not count
 // toward the max document length.
