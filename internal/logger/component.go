@@ -7,6 +7,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+const (
+	CommandFailed    = "Command failed"
+	CommandStarted   = "Command started"
+	CommandSucceeded = "Command succeeded"
+)
+
 // Component is an enumeration representing the "components" which can be
 // logged against. A LogLevel can be configured on a per-component basis.
 type Component int

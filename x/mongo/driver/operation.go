@@ -168,73 +168,6 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	return bson.Raw{}
 }
 
-func logCommandMessageStarted(op Operation, info startedInformation) {
-	log := op.Logger
-	host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-	redactedCmd := redactStartedInformationCmd(op, info).String()
-	formattedCmd := logger.FormatMessage(redactedCmd, log.MaxDocumentLength)
-
-	log.Print(logger.LevelDebug,
-		logger.ComponentCommand,
-		logger.CommandMessageStartedDefault,
-		logger.SerializeCommand(logger.Command{
-			Message:            logger.CommandMessageStartedDefault,
-			Name:               info.cmdName,
-			RequestID:          int64(info.requestID),
-			ServerConnectionID: info.serverConnID,
-			ServerHost:         host,
-			ServerPort:         port,
-			ServiceID:          info.serviceID,
-		},
-			"command", formattedCmd,
-			"databaseName", op.Database,
-			"message", logger.CommandMessageStartedDefault)...)
-
-}
-
-func logCommandSucceededMessage(log *logger.Logger, info finishedInformation) {
-	host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-	redactedReply := redactFinishedInformationResponse(info).String()
-	formattedReply := logger.FormatMessage(redactedReply, log.MaxDocumentLength)
-
-	log.Print(logger.LevelDebug,
-		logger.ComponentCommand,
-		logger.CommandMessageSucceededDefault,
-		logger.SerializeCommand(logger.Command{
-			Message:            logger.CommandMessageSucceededDefault,
-			Name:               info.cmdName,
-			RequestID:          int64(info.requestID),
-			ServerConnectionID: info.serverConnID,
-			ServerHost:         host,
-			ServerPort:         port,
-			ServiceID:          info.serviceID,
-		},
-			"durationMS", info.duration.Milliseconds(),
-			"reply", formattedReply)...)
-
-}
-
-func logCommandFailedMessage(log *logger.Logger, info finishedInformation) {
-	host, port, _ := net.SplitHostPort(info.serverAddress.String())
-
-	log.Print(logger.LevelDebug,
-		logger.ComponentCommand,
-		logger.CommandMessageFailedDefault,
-		logger.SerializeCommand(logger.Command{
-			Message:            logger.CommandMessageFailedDefault,
-			Name:               info.cmdName,
-			RequestID:          int64(info.requestID),
-			ServerConnectionID: info.serverConnID,
-			ServerHost:         host,
-			ServerPort:         port,
-			ServiceID:          info.serviceID,
-		},
-			"durationMS", info.duration.Milliseconds(),
-			"failure", info.cmdErr.Error())...)
-}
-
 // Operation is used to execute an operation. It contains all of the common code required to
 // select a server, transform an operation into a command, write the command to a connection from
 // the selected server, read a response from that connection, process the response, and potentially
@@ -1853,7 +1786,26 @@ func (op Operation) canPublishStartedEvent() bool {
 func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
 	// If logging is enabled for the command component at the debug level, log the command response.
 	if op.canLogCommandMessage() {
-		logCommandMessageStarted(op, info)
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+		redactedCmd := redactStartedInformationCmd(op, info).String()
+		formattedCmd := logger.FormatMessage(redactedCmd, op.Logger.MaxDocumentLength)
+
+		op.Logger.Print(logger.LevelDebug,
+			logger.ComponentCommand,
+			logger.CommandStarted,
+			logger.SerializeCommand(logger.Command{
+				Message:            logger.CommandStarted,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: info.serverConnID,
+				ServerHost:         host,
+				ServerPort:         port,
+				ServiceID:          info.serviceID,
+			},
+				"command", formattedCmd,
+				"databaseName", op.Database)...)
+
 	}
 
 	if op.canPublishStartedEvent() {
@@ -1885,11 +1837,44 @@ func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
 	if op.canLogCommandMessage() && info.success() {
-		logCommandSucceededMessage(op.Logger, info)
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+		redactedReply := redactFinishedInformationResponse(info).String()
+		formattedReply := logger.FormatMessage(redactedReply, op.Logger.MaxDocumentLength)
+
+		op.Logger.Print(logger.LevelDebug,
+			logger.ComponentCommand,
+			logger.CommandSucceeded,
+			logger.SerializeCommand(logger.Command{
+				Message:            logger.CommandSucceeded,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: info.serverConnID,
+				ServerHost:         host,
+				ServerPort:         port,
+				ServiceID:          info.serviceID,
+			},
+				"durationMS", info.duration.Milliseconds(),
+				"reply", formattedReply)...)
 	}
 
 	if op.canLogCommandMessage() && !info.success() {
-		logCommandFailedMessage(op.Logger, info)
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+		op.Logger.Print(logger.LevelDebug,
+			logger.ComponentCommand,
+			logger.CommandFailed,
+			logger.SerializeCommand(logger.Command{
+				Message:            logger.CommandFailed,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: info.serverConnID,
+				ServerHost:         host,
+				ServerPort:         port,
+				ServiceID:          info.serviceID,
+			},
+				"durationMS", info.duration.Milliseconds(),
+				"failure", info.cmdErr.Error())...)
 	}
 
 	// If the finished event cannot be published, return early.

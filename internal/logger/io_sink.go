@@ -77,11 +77,11 @@ func (osSink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	}
 
 	switch msg {
-	case CommandMessageStartedDefault:
+	case CommandStarted:
 		logCommandMessageStarted(osSink.log, kvMap)
-	case CommandMessageSucceededDefault:
+	case CommandSucceeded:
 		logCommandMessageSucceeded(osSink.log, kvMap)
-	case CommandMessageFailedDefault:
+	case CommandFailed:
 		logCommandMessageFailed(osSink.log, kvMap)
 	}
 }
