@@ -88,7 +88,7 @@ func TestSelectLogSink(t *testing.T) {
 		{
 			name:     "default",
 			arg:      nil,
-			expected: newOSSink(os.Stderr),
+			expected: NewIOSink(os.Stderr),
 		},
 		{
 			name:     "non-nil",
@@ -98,7 +98,7 @@ func TestSelectLogSink(t *testing.T) {
 		{
 			name:     "stdout",
 			arg:      nil,
-			expected: newOSSink(os.Stdout),
+			expected: NewIOSink(os.Stdout),
 			env: map[string]string{
 				logSinkPathEnvVar: logSinkPathStdout,
 			},
@@ -106,7 +106,7 @@ func TestSelectLogSink(t *testing.T) {
 		{
 			name:     "stderr",
 			arg:      nil,
-			expected: newOSSink(os.Stderr),
+			expected: NewIOSink(os.Stderr),
 			env: map[string]string{
 				logSinkPathEnvVar: logSinkPathStderr,
 			},
