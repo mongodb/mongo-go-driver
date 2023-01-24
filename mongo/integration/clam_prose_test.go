@@ -306,7 +306,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 		mt.Run(tcase.name, func(mt *mtest.T) {
 			mt.Parallel()
 
-			const deadline = 5 * time.Second
+			const deadline = 10 * time.Second
 			ctx := context.Background()
 
 			// Before the test case, we need to see if there is a

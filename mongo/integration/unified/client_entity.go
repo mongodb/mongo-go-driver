@@ -86,17 +86,20 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	clientOpts := options.Client().ApplyURI(uri)
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
-			return nil, fmt.Errorf("error parsing URI options: %v", err)
+			return nil, fmt.Errorf("error parsing URI options: %w", err)
 		}
 	}
 
-	// TODO: add explanation
+	// If we are expecting to observe log messages as part of the test, we
+	// need to create a log queue with a generous buffer size. At the
+	// moment, there is no clear way to determine the number of log messages
+	// that will (1) be expected by the test case, and (2) actually occur.
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
 		// We buffer the logQueue to avoid blocking the logger goroutine.
 		entity.logQueue = make(chan orderedLogMessage, clientEntityLogQueueSize)
 
 		if err := setLoggerClientOptions(entity, clientOpts, olm); err != nil {
-			return nil, fmt.Errorf("error setting logger options: %v", err)
+			return nil, fmt.Errorf("error setting logger options: %w", err)
 		}
 	}
 
@@ -160,7 +163,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
-		return nil, fmt.Errorf("error creating mongo.Client: %v", err)
+		return nil, fmt.Errorf("error creating mongo.Client: %w", err)
 	}
 
 	entity.Client = client
@@ -466,7 +469,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 	if wcSet {
 		converted, err := wc.toWriteConcernOption()
 		if err != nil {
-			return fmt.Errorf("error creating write concern: %v", err)
+			return fmt.Errorf("error creating write concern: %w", err)
 		}
 		clientOpts.SetWriteConcern(converted)
 	}

@@ -76,6 +76,12 @@ func (log *Logger) Error(_ error, msg string, args ...interface{}) {
 // setLoggerClientOptions sets the logger options for the client entity using
 // client options and the observeLogMessages configuration.
 func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientOptions, olm *observeLogMessages) error {
+	// There are no automated tests for truncation. Given that, setting the
+	// "MaxDocumentLength" to 10_000 will ensure that the default truncation
+	// length does not interfere with tests with commands/replies that
+	// exceed the default truncation length.
+	const maxDocumentLength = 10_000
+
 	if olm == nil {
 		return fmt.Errorf("observeLogMessages is nil")
 	}
@@ -84,11 +90,13 @@ func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientO
 		return options.LogLevel(logger.ParseLevel(str))
 	}
 
-	loggerOpts := options.Logger().SetSink(newLogger(entity.logQueue)).
+	loggerOpts := options.Logger().
 		SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
 		SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
 		SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
-		SetComponentLevel(options.LogComponentconnection, wrap(olm.Connection))
+		SetComponentLevel(options.LogComponentconnection, wrap(olm.Connection)).
+		SetMaxDocumentLength(maxDocumentLength).
+		SetSink(newLogger(entity.logQueue))
 
 	clientOptions.SetLoggerOptions(loggerOpts)
 

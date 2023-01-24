@@ -5,15 +5,18 @@ import (
 	"log"
 )
 
-type osSink struct {
+// IOSink writes to an io.Writer using the standard library logging solution and
+// is the default sink for the logger, with the default IO being os.Stderr.
+type IOSink struct {
 	log *log.Logger
 }
 
 // Compiile-time check to ensure osSink implements the LogSink interface.
-var _ LogSink = &osSink{}
+var _ LogSink = &IOSink{}
 
-func newOSSink(out io.Writer) *osSink {
-	return &osSink{
+// NewIOSink will create a new IOSink that writes to the provided io.Writer.
+func NewIOSink(out io.Writer) *IOSink {
+	return &IOSink{
 		log: log.New(out, "", log.LstdFlags),
 	}
 }
@@ -67,11 +70,7 @@ func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
 		kvMap["failure"])
 }
 
-func logCommandDropped(log *log.Logger) {
-	log.Println(CommandMessageDroppedDefault)
-}
-
-func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
+func (osSink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	kvMap := make(map[string]interface{})
 	for i := 0; i < len(keysAndValues); i += 2 {
 		kvMap[keysAndValues[i].(string)] = keysAndValues[i+1]
@@ -84,11 +83,9 @@ func (osSink *osSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 		logCommandMessageSucceeded(osSink.log, kvMap)
 	case CommandMessageFailedDefault:
 		logCommandMessageFailed(osSink.log, kvMap)
-	case CommandMessageDroppedDefault:
-		logCommandDropped(osSink.log)
 	}
 }
 
-func (osSink *osSink) Error(err error, msg string, kv ...interface{}) {
+func (osSink *IOSink) Error(err error, msg string, kv ...interface{}) {
 	osSink.Info(0, msg, kv...)
 }
