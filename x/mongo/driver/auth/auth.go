@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -61,7 +60,6 @@ type HandshakeOptions struct {
 	ClusterClock          *session.ClusterClock
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
-	HTTPClient            *http.Client
 }
 
 type authHandshaker struct {
@@ -132,7 +130,6 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 			ClusterClock:  ah.options.ClusterClock,
 			HandshakeInfo: ah.handshakeInfo,
 			ServerAPI:     ah.options.ServerAPI,
-			HTTPClient:    ah.options.HTTPClient,
 		}
 
 		if err := ah.authenticate(ctx, cfg); err != nil {
@@ -177,7 +174,6 @@ type Config struct {
 	ClusterClock  *session.ClusterClock
 	HandshakeInfo driver.HandshakeInformation
 	ServerAPI     *driver.ServerAPIOptions
-	HTTPClient    *http.Client
 }
 
 // Authenticator handles authenticating a connection.

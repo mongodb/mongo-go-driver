@@ -8,181 +8,115 @@ package creds
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/awsv4"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/endpointcreds"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sts"
+	"go.mongodb.org/mongo-driver/internal/uuid"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
-
-type ecsResponse struct {
-	AccessKeyID     string `json:"AccessKeyId"`
-	SecretAccessKey string `json:"SecretAccessKey"`
-	Token           string `json:"Token"`
-}
 
 const (
-	awsRelativeURI     = "http://169.254.170.2/"
-	awsEC2URI          = "http://169.254.169.254/"
-	awsEC2RolePath     = "latest/meta-data/iam/security-credentials/"
-	awsEC2TokenPath    = "latest/api/token"
-	defaultHTTPTimeout = 10 * time.Second
+	awsRelativeURI = "http://169.254.170.2/"
+	expiryWindow   = 5 * time.Minute
 )
 
-// AwsCredentials contains AWS credential fields.
-type AwsCredentials struct {
-	Username string
-	Password string
-	Token    string
+// AwsCredentialProvider wraps AWS credentials.
+type AwsCredentialProvider struct {
+	Value *credentials.Credentials
 }
 
-// ValidateAndMakeCredentials validates credential fields and packs them into awsv4.StaticProvider.
-func (ac AwsCredentials) ValidateAndMakeCredentials() (*awsv4.StaticProvider, error) {
-	if ac.Username != "" && ac.Password == "" {
-		return nil, errors.New("ACCESS_KEY_ID is set, but SECRET_ACCESS_KEY is missing")
+// NewAwsCredentialProvider generates new AwsCredentialProvider
+func NewAwsCredentialProvider(v credentials.Value) (AwsCredentialProvider, error) {
+	getProvider := func(providers []credentials.Provider) AwsCredentialProvider {
+		return AwsCredentialProvider{credentials.NewChainCredentials(providers)}
 	}
-	if ac.Username == "" && ac.Password != "" {
-		return nil, errors.New("SECRET_ACCESS_KEY is set, but ACCESS_KEY_ID is missing")
+
+	providers := []credentials.Provider{
+		&credentials.StaticProvider{Value: v},
+		&credentials.EnvProvider{},
 	}
-	if ac.Username == "" && ac.Password == "" && ac.Token != "" {
-		return nil, errors.New("AWS_SESSION_TOKEN is set, but ACCESS_KEY_ID and SECRET_ACCESS_KEY are missing")
+
+	sess, err := session.NewSession()
+	if err != nil {
+		return getProvider(providers), err
 	}
-	if ac.Username != "" || ac.Password != "" || ac.Token != "" {
-		return &awsv4.StaticProvider{Value: awsv4.Value{
-			AccessKeyID:     ac.Username,
-			SecretAccessKey: ac.Password,
-			SessionToken:    ac.Token,
-		}}, nil
+
+	// Generate Web Identity Role provider.
+	if provider, err := getRoleProvider(sess); err != nil {
+		return getProvider(providers), err
+	} else if provider != nil {
+		providers = append(providers, provider)
+	}
+
+	// Generate ECS provider.
+	if relativeEcsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"); len(relativeEcsURI) > 0 {
+		fullURI := awsRelativeURI + relativeEcsURI
+		providers = append(
+			providers,
+			endpointcreds.NewProviderClient(*sess.Config, sess.Handlers, fullURI,
+				func(p *endpointcreds.Provider) {
+					p.ExpiryWindow = expiryWindow
+				},
+			),
+		)
+	}
+
+	// Generate EC2 Role provider.
+	providers = append(providers, &ec2rolecreds.EC2RoleProvider{
+		Client:       ec2metadata.New(sess),
+		ExpiryWindow: expiryWindow,
+	})
+
+	return getProvider(providers), nil
+}
+
+// getRoleProvider generates Web Identity Role provider.
+func getRoleProvider(p client.ConfigProvider) (credentials.Provider, error) {
+	roleArn := os.Getenv("AWS_ROLE_ARN")
+	tokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+	if tokenFile != "" && roleArn == "" {
+		return nil, errors.New("AWS_WEB_IDENTITY_TOKEN_FILE is set, but AWS_ROLE_ARN is missing")
+	}
+	if tokenFile == "" && roleArn != "" {
+		return nil, errors.New("AWS_ROLE_ARN is set, but AWS_WEB_IDENTITY_TOKEN_FILE is missing")
+	}
+	if tokenFile != "" && roleArn != "" {
+		sessionName := os.Getenv("AWS_ROLE_SESSION_NAME")
+		if sessionName == "" {
+			// Use a UUID if the RoleSessionName is not given.
+			id, err := uuid.New()
+			if err != nil {
+				return nil, err
+			}
+			sessionName = id.String()
+		}
+		svc := sts.New(p)
+		provider := stscreds.NewWebIdentityRoleProvider(svc, roleArn, sessionName, tokenFile)
+		return provider, nil
 	}
 	return nil, nil
 }
 
-// AwsCredentialProvider provides AWS credentials.
-type AwsCredentialProvider struct {
-	HTTPClient *http.Client
-}
-
-func executeAWSHTTPRequest(ctx context.Context, httpClient *http.Client, req *http.Request) ([]byte, error) {
-	ctx, cancel := context.WithTimeout(ctx, defaultHTTPTimeout)
-	defer cancel()
-	resp, err := httpClient.Do(req.WithContext(ctx))
+// GetCredentialsDoc generates AWS credentials.
+func (p AwsCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
+	creds, err := p.Value.GetWithContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	return ioutil.ReadAll(resp.Body)
-}
-
-// getEC2Credentials generates EC2 credentials.
-func (p *AwsCredentialProvider) getEC2Credentials(ctx context.Context) (*awsv4.StaticProvider, error) {
-	// get token
-	req, err := http.NewRequest(http.MethodPut, awsEC2URI+awsEC2TokenPath, nil)
-	if err != nil {
-		return nil, err
+	builder := bsoncore.NewDocumentBuilder().
+		AppendString("accessKeyId", creds.AccessKeyID).
+		AppendString("secretAccessKey", creds.SecretAccessKey)
+	if token := creds.SessionToken; len(token) > 0 {
+		builder.AppendString("sessionToken", token)
 	}
-	const defaultEC2TTLSeconds = "30"
-	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", defaultEC2TTLSeconds)
-
-	token, err := executeAWSHTTPRequest(ctx, p.HTTPClient, req)
-	if err != nil {
-		return nil, err
-	}
-	if len(token) == 0 {
-		return nil, errors.New("unable to retrieve token from EC2 metadata")
-	}
-	tokenStr := string(token)
-
-	// get role name
-	req, err = http.NewRequest(http.MethodGet, awsEC2URI+awsEC2RolePath, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-aws-ec2-metadata-token", tokenStr)
-
-	role, err := executeAWSHTTPRequest(ctx, p.HTTPClient, req)
-	if err != nil {
-		return nil, err
-	}
-	if len(role) == 0 {
-		return nil, errors.New("unable to retrieve role_name from EC2 metadata")
-	}
-
-	// get credentials
-	pathWithRole := awsEC2URI + awsEC2RolePath + string(role)
-	req, err = http.NewRequest(http.MethodGet, pathWithRole, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-aws-ec2-metadata-token", tokenStr)
-	creds, err := executeAWSHTTPRequest(ctx, p.HTTPClient, req)
-	if err != nil {
-		return nil, err
-	}
-
-	var es2Resp ecsResponse
-	err = json.Unmarshal(creds, &es2Resp)
-	if err != nil {
-		return nil, err
-	}
-	return AwsCredentials{
-		Username: es2Resp.AccessKeyID,
-		Password: es2Resp.SecretAccessKey,
-		Token:    es2Resp.Token,
-	}.ValidateAndMakeCredentials()
-}
-
-// GetCredentials generates AWS credentials.
-func (p *AwsCredentialProvider) GetCredentials(ctx context.Context) (*awsv4.StaticProvider, error) {
-	// Credentials from environment variables
-	ac := AwsCredentials{
-		Username: os.Getenv("AWS_ACCESS_KEY_ID"),
-		Password: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		Token:    os.Getenv("AWS_SESSION_TOKEN"),
-	}
-
-	creds, err := ac.ValidateAndMakeCredentials()
-	if creds != nil || err != nil {
-		return creds, err
-	}
-
-	// Credentials from ECS metadata
-	relativeEcsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
-	if len(relativeEcsURI) > 0 {
-		fullURI := awsRelativeURI + relativeEcsURI
-
-		req, err := http.NewRequest(http.MethodGet, fullURI, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		body, err := executeAWSHTTPRequest(ctx, p.HTTPClient, req)
-		if err != nil {
-			return nil, err
-		}
-
-		var espResp ecsResponse
-		err = json.Unmarshal(body, &espResp)
-		if err != nil {
-			return nil, err
-		}
-		ac.Username = espResp.AccessKeyID
-		ac.Password = espResp.SecretAccessKey
-		ac.Token = espResp.Token
-
-		creds, err = ac.ValidateAndMakeCredentials()
-		if creds != nil || err != nil {
-			return creds, err
-		}
-	}
-
-	// Credentials from EC2 metadata
-	creds, err = p.getEC2Credentials(context.Background())
-	if creds == nil && err == nil {
-		return nil, errors.New("unable to get credentials")
-	}
-	return creds, err
+	return builder.Build(), nil
 }

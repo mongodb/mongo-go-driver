@@ -8,10 +8,9 @@ package auth
 
 import (
 	"context"
-	"errors"
 
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/awsv4"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -21,54 +20,28 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != "$external" {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
+	provider, err := creds.NewAwsCredentialProvider(credentials.Value{
+		AccessKeyID:     cred.Username,
+		SecretAccessKey: cred.Password,
+		SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
+	})
 	return &MongoDBAWSAuthenticator{
-		source:       cred.Source,
-		username:     cred.Username,
-		password:     cred.Password,
-		sessionToken: cred.Props["AWS_SESSION_TOKEN"],
-	}, nil
+		source:      cred.Source,
+		credentials: provider.Value,
+	}, err
 }
 
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
-	source       string
-	username     string
-	password     string
-	sessionToken string
-}
-
-type mongoDBAWSAuthenticator struct {
-	creds.AwsCredentials
-	creds.AwsCredentialProvider
-}
-
-// GetCredentials gets AWS credentials.
-func (a *mongoDBAWSAuthenticator) getCredentials(ctx context.Context) (*awsv4.StaticProvider, error) {
-	c, err := a.AwsCredentials.ValidateAndMakeCredentials()
-	if c != nil || err != nil {
-		return c, err
-	}
-	return a.AwsCredentialProvider.GetCredentials(ctx)
+	source      string
+	credentials *credentials.Credentials
 }
 
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	httpClient := cfg.HTTPClient
-	if httpClient == nil {
-		return errors.New("cfg.HTTPClient must not be nil")
-	}
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
-			provider: &mongoDBAWSAuthenticator{
-				AwsCredentials: creds.AwsCredentials{
-					Username: a.username,
-					Password: a.password,
-					Token:    a.sessionToken,
-				},
-				AwsCredentialProvider: creds.AwsCredentialProvider{
-					HTTPClient: httpClient,
-				},
-			},
+			credentials: a.credentials,
 		},
 	}
 	err := ConductSaslConversation(ctx, cfg, a.source, adapter)
