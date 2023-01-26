@@ -57,7 +57,7 @@ func TestClientSideEncryptionSpec(t *testing.T) {
 		t.Run(fileName, func(t *testing.T) {
 			re := regexp.MustCompile(`fle2\-Range\-.*\-Correctness`)
 			if re.Match([]byte(fileName)) {
-				t.Skipf("Skipping test on macOS due to slow runtime.")
+				t.Skipf("skipping test on macOS due to slow runtime")
 			}
 			if fileName == "kmipKMS.json" && "" == os.Getenv("KMS_MOCK_SERVERS_RUNNING") {
 				t.Skipf("Skipping test as KMS_MOCK_SERVERS_RUNNING is not set")
