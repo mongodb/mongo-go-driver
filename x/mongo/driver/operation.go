@@ -1861,6 +1861,8 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && !info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
+		formattedReply := logger.FormatMessage(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
+
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
 			logger.CommandFailed,
@@ -1874,7 +1876,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServiceID:          info.serviceID,
 			},
 				"durationMS", info.duration.Milliseconds(),
-				"failure", info.cmdErr.Error())...)
+				"failure", formattedReply)...)
 	}
 
 	// If the finished event cannot be published, return early.

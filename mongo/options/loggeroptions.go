@@ -42,7 +42,7 @@ const (
 	LogComponentServerSelection LogComponent = LogComponent(logger.ComponentServerSelection)
 
 	// LogComponentConnection enables connection services logging.
-	LogComponentconnection LogComponent = LogComponent(logger.ComponentConnection)
+	LogComponentConnection LogComponent = LogComponent(logger.ComponentConnection)
 )
 
 // LogSink is an interface that can be implemented to provide a custom sink for

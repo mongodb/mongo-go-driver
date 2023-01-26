@@ -11,7 +11,7 @@ type IOSink struct {
 	log *log.Logger
 }
 
-// Compiile-time check to ensure osSink implements the LogSink interface.
+// Compile-time check to ensure osSink implements the LogSink interface.
 var _ LogSink = &IOSink{}
 
 // NewIOSink will create a new IOSink that writes to the provided io.Writer.

@@ -88,7 +88,7 @@ func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientO
 		SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
 		SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
 		SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
-		SetComponentLevel(options.LogComponentconnection, wrap(olm.Connection)).
+		SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 		SetMaxDocumentLength(maxDocumentLength).
 		SetSink(newLogger(entity.logQueue))
 

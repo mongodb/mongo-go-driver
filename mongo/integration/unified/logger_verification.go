@@ -14,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
+// ErrLoggerVerification is use to wrap errors associated with validating the
+// correctness of logs while testing operations.
 var ErrLoggerVerification = fmt.Errorf("logger verification failed")
 
 // logMessage is a log message that is expected to be observed by the driver.

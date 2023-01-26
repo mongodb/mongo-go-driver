@@ -85,7 +85,7 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 		"serverHost", cmd.ServerHost,
 	}, extraKeysAndValues...)
 
-	// Add the optionsl keys and values
+	// Add the optional keys and values.
 	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
 	if err == nil {
 		keysAndValues = append(keysAndValues, "serverPort", port)
