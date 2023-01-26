@@ -48,7 +48,7 @@ type clientEntity struct {
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
-	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store i
+	storedEvents   map[monitoringEventType][]string // maps an entity type to a slice of entityIDs for entities that store it.
 	eventsCount    map[monitoringEventType]int32
 
 	eventsCountLock sync.RWMutex
