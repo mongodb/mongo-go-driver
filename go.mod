@@ -8,7 +8,10 @@ retract (
 	[v1.6.0, v1.6.1] // Contains data race bug in background connection establishment.
 )
 
+replace github.com/aws/aws-sdk-go => ./x/mongo/driver/auth/vendor/aws-sdk-go/
+
 require (
+	github.com/aws/aws-sdk-go v1.34.28
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.5.2
