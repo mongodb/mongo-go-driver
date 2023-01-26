@@ -46,13 +46,13 @@ type cmapEvent struct {
 	ConnectionReadyEvent *struct{} `bson:"connectionReadyEvent"`
 
 	ConnectionClosedEvent *struct {
-		Reason *string `bson:"reason"`
+		Reason *event.Reason `bson:"reason"`
 	} `bson:"connectionClosedEvent"`
 
 	ConnectionCheckedOutEvent *struct{} `bson:"connectionCheckedOutEvent"`
 
 	ConnectionCheckOutFailedEvent *struct {
-		Reason *string `bson:"reason"`
+		Reason *event.Reason `bson:"reason"`
 	} `bson:"connectionCheckOutFailedEvent"`
 
 	ConnectionCheckedInEvent *struct{} `bson:"connectionCheckedInEvent"`

@@ -374,7 +374,7 @@ func getPoolEventDocument(evt *event.PoolEvent, eventType monitoringEventType) b
 		bsonBuilder.AppendDocument("poolOptions", optionsDoc)
 	}
 	if evt.Reason != "" {
-		bsonBuilder.AppendString("reason", evt.Reason)
+		bsonBuilder.AppendString("reason", string(evt.Reason))
 	}
 	if evt.ServiceID != nil {
 		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())

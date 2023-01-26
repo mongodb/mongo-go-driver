@@ -152,18 +152,33 @@ func logPoolMessage(pool *pool, component logger.Component, msg string, keysAndV
 
 }
 
+type reason struct {
+	loggerConn logger.Reason
+	event      event.Reason
+}
+
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
-func connectionPerished(conn *connection) (string, bool) {
+func connectionPerished(conn *connection) (reason, bool) {
 	switch {
 	case conn.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
-		return event.ReasonError, true
+		return reason{
+			loggerConn: logger.ReasonConnectionClosedError,
+			event:      event.ReasonError,
+		}, true
 	case conn.idleTimeoutExpired():
-		return event.ReasonIdle, true
+		return reason{
+			loggerConn: logger.ReasonConnectionClosedIdle,
+			event:      event.ReasonIdle,
+		}, true
 	case conn.pool.stale(conn):
-		return event.ReasonStale, true
+		return reason{
+			loggerConn: logger.ReasonConnectionClosedStale,
+			event:      event.ReasonStale,
+		}, true
 	}
-	return "", false
+
+	return reason{}, false
 }
 
 // newPool creates a new pool. It will use the provided options when creating connections.
@@ -284,7 +299,6 @@ func (p *pool) ready() error {
 	}
 
 	if p.monitor != nil {
-		fmt.Println("pool is ready")
 		p.monitor.Event(&event.PoolEvent{
 			Type:    event.PoolReady,
 			Address: p.address.String(),
@@ -381,8 +395,17 @@ func (p *pool) close(ctx context.Context) {
 	// Now that we're not holding any locks, remove all of the connections we collected from the
 	// pool.
 	for _, conn := range conns {
-		_ = p.removeConnection(conn, event.ReasonPoolClosed)
+		_ = p.removeConnection(conn, reason{
+			loggerConn: logger.ReasonConnectionClosedPoolClosed,
+			event:      event.ReasonPoolClosed,
+		})
 		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
+	}
+
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p,
+			logger.ComponentConnection,
+			logger.ConnectionPoolClosed)
 	}
 
 	if p.monitor != nil {
@@ -416,6 +439,12 @@ func (p *pool) unpinConnectionFromTransaction() {
 // ready, checkOut returns an error.
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
 func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p,
+			logger.ComponentConnection,
+			logger.ConnectionCheckoutStarted)
+	}
+
 	// TODO(CSOT): If a Timeout was specified at any level, respect the Timeout is server selection, connection
 	// TODO checkout.
 	if p.monitor != nil {
@@ -434,6 +463,14 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	switch p.state {
 	case poolClosed:
 		p.stateMu.RUnlock()
+
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionCheckoutFailed,
+				"reason", event.ReasonPoolClosed)
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -445,6 +482,14 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	case poolPaused:
 		err := poolClearedError{err: p.lastClearErr, address: p.address}
 		p.stateMu.RUnlock()
+
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionCheckoutFailed,
+				"reason", event.ReasonConnectionErrored)
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -479,6 +524,13 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		p.stateMu.RUnlock()
 
 		if w.err != nil {
+			if mustLogPoolMessage(p) {
+				logPoolMessage(p,
+					logger.ComponentConnection,
+					logger.ConnectionCheckoutFailed,
+					"reason", event.ReasonConnectionErrored)
+			}
+
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
 					Type:    event.GetFailed,
@@ -489,6 +541,13 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			return nil, w.err
 		}
 
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionCheckedOut,
+				"driverConnectionId", w.conn.poolID)
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
@@ -496,6 +555,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				ConnectionID: w.conn.poolID,
 			})
 		}
+
 		return w.conn, nil
 	}
 
@@ -508,6 +568,13 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	select {
 	case <-w.ready:
 		if w.err != nil {
+			if mustLogPoolMessage(p) {
+				logPoolMessage(p,
+					logger.ComponentConnection,
+					logger.ConnectionCheckoutFailed,
+					"reason", event.ReasonConnectionErrored)
+			}
+
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
 					Type:    event.GetFailed,
@@ -515,7 +582,15 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 					Reason:  event.ReasonConnectionErrored,
 				})
 			}
+
 			return nil, w.err
+		}
+
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionCheckedOut,
+				"driverConnectionId", w.conn.poolID)
 		}
 
 		if p.monitor != nil {
@@ -527,6 +602,13 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return w.conn, nil
 	case <-ctx.Done():
+		if mustLogPoolMessage(p) {
+			logPoolMessage(p,
+				logger.ComponentConnection,
+				logger.ConnectionCheckoutFailed,
+				"reason", event.ReasonTimedOut)
+		}
+
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
 				Type:    event.GetFailed,
@@ -534,6 +616,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Reason:  event.ReasonTimedOut,
 			})
 		}
+
 		return nil, WaitQueueTimeoutError{
 			Wrapped:                      ctx.Err(),
 			PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
@@ -568,7 +651,7 @@ func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint
 }
 
 // removeConnection removes a connection from the pool and emits a "ConnectionClosed" event.
-func (p *pool) removeConnection(conn *connection, reason string) error {
+func (p *pool) removeConnection(conn *connection, reason reason) error {
 	if conn == nil {
 		return nil
 	}
@@ -598,12 +681,21 @@ func (p *pool) removeConnection(conn *connection, reason string) error {
 		p.generation.removeConnection(conn.desc.ServiceID)
 	}
 
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p,
+			logger.ComponentConnection,
+			logger.ConnectionClosed,
+			"driverConnectionId", conn.poolID,
+			"reason", reason.loggerConn)
+
+	}
+
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionClosed,
 			Address:      p.address.String(),
 			ConnectionID: conn.poolID,
-			Reason:       reason,
+			Reason:       reason.event,
 		})
 	}
 
@@ -618,6 +710,13 @@ func (p *pool) checkIn(conn *connection) error {
 	}
 	if conn.pool != p {
 		return ErrWrongPool
+	}
+
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p,
+			logger.ComponentConnection,
+			logger.ConnectionCheckedIn,
+			"driverConnectionId", conn.poolID)
 	}
 
 	if p.monitor != nil {
@@ -658,7 +757,11 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	}
 
 	if conn.pool.getState() == poolClosed {
-		_ = p.removeConnection(conn, event.ReasonPoolClosed)
+		_ = p.removeConnection(conn, reason{
+			loggerConn: logger.ReasonConnectionClosedPoolClosed,
+			event:      event.ReasonPoolClosed,
+		})
+
 		go func() {
 			_ = p.closeConnection(conn)
 		}()
@@ -878,7 +981,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		if mustLogPoolMessage(p) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
-				logger.ConnectionPoolCreated,
+				logger.ConnectionCreated,
 				"driverConnectionId", conn.poolID)
 		}
 
@@ -906,7 +1009,10 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 				p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
 			}
 
-			_ = p.removeConnection(conn, event.ReasonError)
+			_ = p.removeConnection(conn, reason{
+				loggerConn: logger.ReasonConnectionClosedError,
+				event:      event.ReasonError,
+			})
 			_ = p.closeConnection(conn)
 			continue
 		}
@@ -914,7 +1020,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		if mustLogPoolMessage(p) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
-				logger.ConnectionPoolCreated,
+				logger.ConnectionReady,
 				"driverConnectionId", conn.poolID)
 		}
 

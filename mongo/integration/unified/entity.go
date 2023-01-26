@@ -409,6 +409,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 			// Client will be closed in clientEncryption.Close()
 			continue
 		}
+
 		if err := client.Disconnect(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}

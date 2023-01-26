@@ -8,14 +8,29 @@ import (
 )
 
 const (
-	CommandFailed         = "Command failed"
-	CommandStarted        = "Command started"
-	CommandSucceeded      = "Command succeeded"
-	ConnectionPoolCreated = "Connection pool created"
-	ConnectionPoolReady   = "Connection pool ready"
-	ConnectionPoolCleared = "Connection pool cleared"
-	ConnectionCreated     = "Connection created"
-	ConnectionReady       = "Connection ready"
+	CommandFailed             = "Command failed"
+	CommandStarted            = "Command started"
+	CommandSucceeded          = "Command succeeded"
+	ConnectionPoolCreated     = "Connection pool created"
+	ConnectionPoolReady       = "Connection pool ready"
+	ConnectionPoolCleared     = "Connection pool cleared"
+	ConnectionPoolClosed      = "Connection pool closed"
+	ConnectionCreated         = "Connection created"
+	ConnectionReady           = "Connection ready"
+	ConnectionClosed          = "Connection closed"
+	ConnectionCheckoutStarted = "Connection checkout started"
+	ConnectionCheckoutFailed  = "Connection checkout failed"
+	ConnectionCheckedOut      = "Connection checked out"
+	ConnectionCheckedIn       = "Connection checked in"
+)
+
+type Reason string
+
+const (
+	ReasonConnectionClosedStale      Reason = "Connection became stale because the pool was cleared"
+	ReasonConnectionClosedIdle       Reason = "Connection has been available but unused for longer than the configured max idle time"
+	ReasonConnectionClosedError      Reason = "An error occurred while using the connection"
+	ReasonConnectionClosedPoolClosed Reason = "Connection pool was closed"
 )
 
 // Component is an enumeration representing the "components" which can be

@@ -184,8 +184,6 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.pool = newPool(pc, connectionOpts...)
 	s.publishServerOpeningEvent(s.address)
 
-	fmt.Println("pool created")
-
 	return s
 }
 

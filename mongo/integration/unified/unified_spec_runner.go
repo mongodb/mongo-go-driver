@@ -343,7 +343,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		// For each client, verify that all expected log messages were
 		// received.
 		if err := stopLogMessageVerificationWorkers(ctx, logMessageValidator); err != nil {
-			return fmt.Errorf("error verifying log messages: %w", err)
+			return err
 		}
 	}
 
