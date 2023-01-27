@@ -444,6 +444,10 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
 		case "loadBalanced":
 			clientOpts.SetLoadBalanced(value.(bool))
+		case "maxIdleTimeMS":
+			clientOpts.SetMaxConnIdleTime(time.Duration(value.(int32)) * time.Millisecond)
+		case "minPoolSize":
+			clientOpts.SetMinPoolSize(uint64(value.(int32)))
 		case "maxPoolSize":
 			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
 		case "readConcernLevel":

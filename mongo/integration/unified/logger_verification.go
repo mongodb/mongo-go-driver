@@ -14,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
+// ErrLoggerVerification is use to wrap errors associated with validating the
+// correctness of logs while testing operations.
 var ErrLoggerVerification = fmt.Errorf("logger verification failed")
 
 // logMessage is a log message that is expected to be observed by the driver.
@@ -141,8 +143,7 @@ func validateExpectLogMessages(logs []*clientLogMessages) error {
 // clients.
 type logMessageValidator struct {
 	testCase    *TestCase
-	err         error
-	done        chan struct{}
+	err         chan error
 	cardinality int
 }
 
@@ -167,7 +168,9 @@ func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 		validator.cardinality += len(clientLogMessages.LogMessages)
 	}
 
-	validator.done = make(chan struct{}, validator.cardinality)
+	validator.err = make(chan error, validator.cardinality)
+
+	fmt.Println("cardinality: ", validator.cardinality)
 
 	return validator, nil
 }
@@ -204,31 +207,25 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 // log queue. Therefore, it is the responsbility of this function to ensure that
 // all log messages are received and validated: N errors for N log messages.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
-	var ctxDeadlineExceededError error
 	for i := 0; i < validator.cardinality; i++ {
 		select {
-		case <-validator.done:
+		case err := <-validator.err:
+			if err != nil {
+				return err
+			}
 		case <-ctx.Done():
-			ctxDeadlineExceededError = fmt.Errorf("%w: context error: %v",
-				ErrLoggerVerification, ctx.Err())
+			// This error will likely only happen if the expected
+			// log workflow have not been implemented for a
+			// compontent. That is, the number of actual log
+			// messages is less than the cardinality of messages.
+			return fmt.Errorf("%w: context error: %v", ErrLoggerVerification, ctx.Err())
 		}
-	}
-
-	// First check to see if we have any errors from validating log
-	// messages.
-	if validator.err != nil {
-		return fmt.Errorf("%w:  %v", ErrLoggerVerification, validator.err)
-	}
-
-	// If we have a context deadline exceeded error, return it.
-	if ctxDeadlineExceededError != nil {
-		return fmt.Errorf("%w:  %v", ErrLoggerVerification, ctxDeadlineExceededError)
 	}
 
 	return nil
 }
 
-// verifyLogMessagesMatch will verify that the actual log message match the
+// verifyLogMessagesMatch will verify that the actual log messages match the
 // expected log messages.
 func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	if act == nil && exp == nil {
@@ -236,7 +233,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	}
 
 	if act == nil || exp == nil {
-		return fmt.Errorf("document mismatch")
+		return fmt.Errorf("%w: document mismatch", ErrLoggerVerification)
 	}
 
 	levelExp := logger.ParseLevel(exp.LevelLiteral)
@@ -245,7 +242,8 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// The levels of the expected log message and the actual log message
 	// must match, upto logger.Level.
 	if levelExp != levelAct {
-		return fmt.Errorf("level mismatch: want %v, got %v", levelExp, levelAct)
+		return fmt.Errorf("%w: level mismatch: want %v, got %v",
+			ErrLoggerVerification, levelExp, levelAct)
 	}
 
 	rawExp := documentToRawValue(exp.Data)
@@ -255,7 +253,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// are a number of unrequired fields that may not be present on the
 	// expected document.
 	if err := verifyValuesMatch(ctx, rawExp, rawAct, true); err != nil {
-		return fmt.Errorf("data mismatch: %v", err)
+		return fmt.Errorf("%w: document length mismatch: %v", ErrLoggerVerification, err)
 	}
 
 	return nil
@@ -264,59 +262,30 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 // startLogMessageVerificationWorkers will start a goroutine for each client's
 // expected log messages, listening to the channel of actual log messages and
 // comparing them to the expected log messages.
-//
-// When validating the logs, it could be the case that there are more "actual"
-// logs being queued than "expected" logs. For example, the Go Driver closes
-// sessions when the client is disconnected, which triggers three extra checkout
-// logs. In this case, a unified test will result in |actual| = |expected| + 3.
-// This verification function will ignore the extra logs and assume that the
-// expected messages are a "ordered subset" of the actual messages.
 func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) {
 	expected, actual := validator.expected(ctx)
-
 	for _, expected := range expected {
 		if expected == nil {
 			continue
 		}
 
 		go func(expected *clientLogMessages) {
-			// In good faith, if the message is not valid then we increment the offset in
-			// case the next message is the one that we expect.
-			offset := 1
-
-			for act := range actual[expected.Client] {
-				position := act.order - offset
-				exp := expected.LogMessages[position]
-
-				err := verifyLogMessagesMatch(ctx, exp, act.logMessage)
-				if err != nil {
-					// Only return the first error unless a more accurate error
-					// occurs.
-					if validator.err == nil {
-						validator.err = err
-					}
-
-					// Attempt to capture a more accurate error message by
-					// comparing the underlying messages and log levels.
-					expectedMsg := exp.Data.Lookup("message").StringValue()
-					actualMsg := act.logMessage.Data.Lookup("message").StringValue()
-
-					expectedLevel := exp.LevelLiteral
-					actualLevel := act.logMessage.LevelLiteral
-
-					if expectedLevel == actualLevel && expectedMsg == actualMsg {
-						validator.err = fmt.Errorf("error for message %q with level %q: %w",
-							expectedMsg, expectedLevel, err)
-					}
-
-					offset++
+			for actual := range actual[expected.Client] {
+				expectedmessage := expected.LogMessages[actual.order-1]
+				if expectedmessage == nil {
+					validator.err <- nil
 
 					continue
 				}
 
-				// If the message is valid, we reset the err.
-				validator.err = nil
-				validator.done <- struct{}{}
+				err := verifyLogMessagesMatch(ctx, expectedmessage, actual.logMessage)
+				if err != nil {
+					validator.err <- err
+
+					continue
+				}
+
+				validator.err <- nil
 			}
 
 		}(expected)

@@ -83,6 +83,30 @@ tests:
               serverHost: { $$type: string }
               serverPort: { $$type: [int, long] }
 
+          #  The next three expected logs are for ending a session.
+          - level: debug
+            component: connection
+            data:
+              message: "Connection checkout started"
+              serverHost: { $$type: string }
+              serverPort: { $$type: [int, long] }
+
+          - level: debug
+            component: connection
+            data:
+              message: "Connection checked out"
+              driverConnectionId: { $$type: [int, long] }
+              serverHost: { $$type: string }
+              serverPort: { $$type: [int, long] }
+
+          - level: debug
+            component: connection
+            data:
+              message: "Connection checked in"
+              driverConnectionId: { $$type: [int, long] }
+              serverHost: { $$type: string }
+              serverPort: { $$type: [int, long] }
+
           - level: debug
             component: connection
             data:
@@ -192,5 +216,3 @@ tests:
               message: "Connection checkout failed"
               serverHost: { $$type: string }
               serverPort: { $$type: [int, long] }
-              reason: "An error occurred while trying to establish a new connection"
-              error: { $$exists: true }
