@@ -21,7 +21,7 @@ func NewIOSink(out io.Writer) *IOSink {
 	}
 }
 
-func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
+func logCommandStartedMessage(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q started on database %q using a connection with " +
 		"server-generated ID %d to %s:%d. The requestID is %d and " +
 		"the operation ID is %d. Command: %s"
@@ -38,7 +38,7 @@ func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 
 }
 
-func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
+func logCommandSucceededMessage(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q succeeded in %d ms using server-generated ID " +
 		"%d to %s:%d. The requestID is %d and the operation ID is " +
 		"%d. Command reply: %s"
@@ -54,7 +54,7 @@ func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
 		kvMap["reply"])
 }
 
-func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
+func logCommandFailedMessage(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q failed in %d ms using a connection with " +
 		"server-generated ID %d to %s:%d. The requestID is %d and " +
 		"the operation ID is %d. Error: %s"
@@ -70,6 +70,20 @@ func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
 		kvMap["failure"])
 }
 
+func logPoolCreatedMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection pool created for %s:%d using options " +
+		"maxIdleTimeMS=%d, minPoolSize=%d, maxPoolSize=%d, " +
+		"maxConnecting=%d"
+
+	log.Printf(format,
+		kvMap["serverHost"],
+		kvMap["serverPort"],
+		kvMap["maxIdleTimeMS"],
+		kvMap["minPoolSize"],
+		kvMap["maxPoolSize"],
+		kvMap["maxConnecting"])
+}
+
 func (osSink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	kvMap := make(map[string]interface{})
 	for i := 0; i < len(keysAndValues); i += 2 {
@@ -78,11 +92,13 @@ func (osSink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 
 	switch msg {
 	case CommandStarted:
-		logCommandMessageStarted(osSink.log, kvMap)
+		logCommandStartedMessage(osSink.log, kvMap)
 	case CommandSucceeded:
-		logCommandMessageSucceeded(osSink.log, kvMap)
+		logCommandSucceededMessage(osSink.log, kvMap)
 	case CommandFailed:
-		logCommandMessageFailed(osSink.log, kvMap)
+		logCommandFailedMessage(osSink.log, kvMap)
+	case ConnectionPoolCreated:
+		logPoolCreatedMessage(osSink.log, kvMap)
 	}
 }
 

@@ -245,7 +245,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		logPoolMessage(pool,
 			logger.ComponentConnection,
 			logger.ConnectionPoolCreated,
-			"maxIdleTime", config.MaxIdleTime,
+			"maxIdleTimeMS", config.MaxIdleTime.Milliseconds(),
 			"minPoolSize", config.MinPoolSize,
 			"maxPoolSize", config.MaxPoolSize,
 			"maxConnecting", config.MaxConnecting)
