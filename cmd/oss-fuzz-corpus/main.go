@@ -15,17 +15,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type TestCase struct {
+type testCase struct {
 	Description  string                `json:"description"`
 	BsonType     string                `json:"bson_type"`
 	TestKey      *string               `json:"test_key"`
-	Valid        []ValidityTestCase    `json:"valid"`
-	DecodeErrors []DecodeErrorTestCase `json:"decodeErrors"`
-	ParseErrors  []ParseErrorTestCase  `json:"parseErrors"`
+	Valid        []validityTestCase    `json:"valid"`
+	DecodeErrors []decodeErrorTestCase `json:"decodeErrors"`
+	ParseErrors  []parseErrorTestCase  `json:"parseErrors"`
 	Deprecated   *bool                 `json:"deprecated"`
 }
 
-type ValidityTestCase struct {
+type validityTestCase struct {
 	Description       string  `json:"description"`
 	CanonicalBson     string  `json:"canonical_bson"`
 	CanonicalExtJSON  string  `json:"canonical_extjson"`
@@ -37,12 +37,12 @@ type ValidityTestCase struct {
 	Lossy             *bool   `json:"lossy"`
 }
 
-type DecodeErrorTestCase struct {
+type decodeErrorTestCase struct {
 	Description string `json:"description"`
 	Bson        string `json:"bson"`
 }
 
-type ParseErrorTestCase struct {
+type parseErrorTestCase struct {
 	Description string `json:"description"`
 	String      string `json:"string"`
 }
@@ -119,7 +119,7 @@ func SeedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string
 
 // seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
 // corpus.
-func SeedTestCase(zw *zip.Writer, tcase *TestCase) {
+func SeedTestCase(zw *zip.Writer, tcase *testCase) {
 	for _, vtc := range tcase.Valid {
 		SeedExtJSON(zw, vtc.CanonicalExtJSON, "canonical", vtc.Description)
 
@@ -166,7 +166,7 @@ func main() {
 			log.Fatalf("failed to open file %q: %v", filePath, err)
 		}
 
-		var tcase TestCase
+		var tcase testCase
 		if err := json.NewDecoder(file).Decode(&tcase); err != nil {
 			log.Fatal(err)
 		}
