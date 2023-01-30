@@ -25,9 +25,13 @@ func BenchmarkLogger(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 
-		logger := New(mockLogSink{}, 0, map[Component]Level{
+		logger, err := New(mockLogSink{}, 0, map[Component]Level{
 			ComponentCommand: LevelDebug,
 		})
+
+		if err != nil {
+			b.Fatal(err)
+		}
 
 		for i := 0; i < b.N; i++ {
 			logger.Print(LevelInfo, ComponentCommand, "foo", "bar", "baz")
@@ -125,7 +129,7 @@ func TestSelectLogSink(t *testing.T) {
 				os.Setenv(k, v)
 			}
 
-			actual := selectLogSink(tcase.arg)
+			actual, _, _ := selectLogSink(tcase.arg)
 			if !reflect.DeepEqual(actual, tcase.expected) {
 				t.Errorf("expected %+v, got %+v", tcase.expected, actual)
 			}
