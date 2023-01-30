@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // orderedLogMessage is logMessage with a "order" field representing the order
@@ -25,12 +24,18 @@ type orderedLogMessage struct {
 type Logger struct {
 	lastOrder int
 	logQueue  chan orderedLogMessage
+	bufSize   int
 }
 
-func newLogger(logQueue chan orderedLogMessage) *Logger {
+func newLogger(olm *observeLogMessages, bufSize int) *Logger {
+	if olm == nil {
+		return nil
+	}
+
 	return &Logger{
-		lastOrder: 0,
-		logQueue:  logQueue,
+		lastOrder: 1,
+		logQueue:  make(chan orderedLogMessage, bufSize),
+		bufSize:   bufSize,
 	}
 }
 
@@ -41,7 +46,19 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		return
 	}
 
+	defer func() { log.lastOrder++ }()
+
+	//fmt.Println("lastOrder: ", log.lastOrder)
+	//fmt.Println("bufSize: ", log.bufSize)
+
+	// If the order is greater than the buffer size, simply return
+	if log.lastOrder > log.bufSize {
+		return
+	}
+
 	fmt.Println("")
+	fmt.Println("order: ", log.lastOrder)
+	fmt.Println("buffer size: ", log.bufSize)
 	fmt.Println("level: ", level)
 	fmt.Println("msg: ", msg)
 	fmt.Println("args: ", args)
@@ -63,7 +80,11 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		logMessage: logMessage,
 	}
 
-	log.lastOrder++
+	// If the order has reached the buffer size, then close the channel and
+	// return.
+	if log.lastOrder == log.bufSize {
+		close(log.logQueue)
+	}
 }
 
 // Error implements the logger.Sink interface's "Error" method for printing log
@@ -71,34 +92,4 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 // informational.
 func (log *Logger) Error(_ error, msg string, args ...interface{}) {
 	log.Info(int(logger.LevelInfo), msg, args)
-}
-
-// setLoggerClientOptions sets the logger options for the client entity using
-// client options and the observeLogMessages configuration.
-func setLoggerClientOptions(entity *clientEntity, clientOptions *options.ClientOptions, olm *observeLogMessages) error {
-	// There are no automated tests for truncation. Given that, setting the
-	// "MaxDocumentLength" to 10_000 will ensure that the default truncation
-	// length does not interfere with tests with commands/replies that
-	// exceed the default truncation length.
-	const maxDocumentLength = 10_000
-
-	if olm == nil {
-		return fmt.Errorf("observeLogMessages is nil")
-	}
-
-	wrap := func(str string) options.LogLevel {
-		return options.LogLevel(logger.ParseLevel(str))
-	}
-
-	loggerOpts := options.Logger().
-		SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
-		SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
-		SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
-		SetComponentLevel(options.LogComponentconnection, wrap(olm.Connection)).
-		SetMaxDocumentLength(maxDocumentLength).
-		SetSink(newLogger(entity.logQueue))
-
-	clientOptions.SetLoggerOptions(loggerOpts)
-
-	return nil
 }

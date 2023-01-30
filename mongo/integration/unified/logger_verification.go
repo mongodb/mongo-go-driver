@@ -139,12 +139,21 @@ func validateExpectLogMessages(logs []*clientLogMessages) error {
 	return nil
 }
 
+func countExpectedLogMessages(exp []*clientLogMessages) int {
+	count := 0
+	for _, log := range exp {
+		count += len(log.LogMessages)
+	}
+
+	return count
+}
+
 // logMessageValidator defines the expectation for log messages across all
 // clients.
 type logMessageValidator struct {
-	testCase    *TestCase
-	err         chan error
-	cardinality int
+	testCase                *TestCase
+	err                     chan error
+	expectedLogMessageCount int
 }
 
 // newLogMessageValidator will create a new "logMessageValidator" from a test
@@ -158,19 +167,13 @@ func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 		return nil, fmt.Errorf("%w: entities are required", ErrLoggerVerification)
 	}
 
-	validator := &logMessageValidator{testCase: testCase}
+	expectedLogMessageCount := countExpectedLogMessages(testCase.ExpectLogMessages)
 
-	// Count the number of LogMessage objects on each ExpectedLogMessages.
-	// This will give us the minimal number of log messages we expect to
-	// receive from each client. That is, we want Σ (1 + len(messages))
-	// over all clients.
-	for _, clientLogMessages := range testCase.ExpectLogMessages {
-		validator.cardinality += len(clientLogMessages.LogMessages)
+	validator := &logMessageValidator{
+		testCase:                testCase,
+		err:                     make(chan error, expectedLogMessageCount),
+		expectedLogMessageCount: expectedLogMessageCount,
 	}
-
-	validator.err = make(chan error, validator.cardinality)
-
-	fmt.Println("cardinality: ", validator.cardinality)
 
 	return validator, nil
 }
@@ -207,7 +210,8 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 // log queue. Therefore, it is the responsbility of this function to ensure that
 // all log messages are received and validated: N errors for N log messages.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
-	for i := 0; i < validator.cardinality; i++ {
+	for i := 0; i < validator.expectedLogMessageCount; i++ {
+		fmt.Println("waiting for log message: ", i)
 		select {
 		case err := <-validator.err:
 			if err != nil {
@@ -269,9 +273,10 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 			continue
 		}
 
+		// Create one go routine per client.
 		go func(expected *clientLogMessages) {
 			for actual := range actual[expected.Client] {
-				expectedmessage := expected.LogMessages[actual.order-1]
+				expectedmessage := expected.LogMessages[actual.order-2]
 				if expectedmessage == nil {
 					validator.err <- nil
 
@@ -281,13 +286,10 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 				err := verifyLogMessagesMatch(ctx, expectedmessage, actual.logMessage)
 				if err != nil {
 					validator.err <- err
-
-					continue
 				}
 
 				validator.err <- nil
 			}
-
 		}(expected)
 	}
 }

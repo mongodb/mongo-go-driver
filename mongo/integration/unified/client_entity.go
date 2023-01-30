@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -25,7 +26,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const clientEntityLogQueueSize = 100
+// There are no automated tests for truncation. Given that, setting the
+// "MaxDocumentLength" to 10_000 will ensure that the default truncation
+// length does not interfere with tests with commands/replies that
+// exceed the default truncation length.
+const defaultMaxDocumentLen = 10_000
 
 // Security-sensitive commands that should be ignored in command monitoring by default.
 var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslContinue", "getnonce",
@@ -95,12 +100,25 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	// moment, there is no clear way to determine the number of log messages
 	// that will (1) be expected by the test case, and (2) actually occur.
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
-		// We buffer the logQueue to avoid blocking the logger goroutine.
-		entity.logQueue = make(chan orderedLogMessage, clientEntityLogQueueSize)
+		clientLogger := newLogger(olm, expectedLogMessageCount(ctx))
 
-		if err := setLoggerClientOptions(entity, clientOpts, olm); err != nil {
-			return nil, fmt.Errorf("error setting logger options: %w", err)
+		wrap := func(str string) options.LogLevel {
+			return options.LogLevel(logger.ParseLevel(str))
 		}
+
+		// Assign the log queue to the entity so that it can be used to
+		// retrieve log messages.
+		entity.logQueue = clientLogger.logQueue
+
+		// Update the client options to add the clientLogger.
+		clientOpts.LoggerOptions = options.Logger().
+			SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
+			SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
+			SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
+			SetComponentLevel(options.LogComponentconnection, wrap(olm.Connection)).
+			SetMaxDocumentLength(defaultMaxDocumentLen).
+			SetSink(clientLogger)
+
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
