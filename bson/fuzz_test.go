@@ -10,9 +10,7 @@ import (
 	"testing"
 )
 
-func FuzzDecode(f *testing.F) {
-	seedBSONCorpus(f)
-
+func fuzz(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		for _, typ := range []func() interface{}{
 			func() interface{} { return new(D) },
@@ -37,4 +35,9 @@ func FuzzDecode(f *testing.F) {
 			}
 		}
 	})
+}
+
+func FuzzDecode(f *testing.F) {
+	seedBSONCorpus(f)
+	fuzz(f)
 }

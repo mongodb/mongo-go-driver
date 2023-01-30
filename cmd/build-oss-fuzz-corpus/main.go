@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2023-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package main
 
 import (
@@ -12,7 +18,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type testCase struct {
@@ -47,9 +52,6 @@ type parseErrorTestCase struct {
 	String      string `json:"string"`
 }
 
-//	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
-type D = primitive.D
-
 const dataDir = "testdata/bson-corpus/"
 
 func FindJSONFilesInDir(dir string) ([]string, error) {
@@ -72,8 +74,8 @@ func FindJSONFilesInDir(dir string) ([]string, error) {
 }
 
 // jsonToNative decodes the extended JSON string (ej) into a native Document
-func jsonToNative(ej, ejType, testDesc string) (D, error) {
-	var doc D
+func jsonToNative(ej, ejType, testDesc string) (bson.D, error) {
+	var doc bson.D
 	if err := bson.UnmarshalExtJSON([]byte(ej), ejType != "relaxed", &doc); err != nil {
 		return nil, fmt.Errorf("%s: decoding %s extended JSON: %w", testDesc, ejType, err)
 	}
@@ -96,7 +98,7 @@ func jsonToBytes(ej, ejType, testDesc string) ([]byte, error) {
 }
 
 // seedExtJSON will add the byte representation of the "extJSON" string to the fuzzer's coprus.
-func SeedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string) {
+func seedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string) {
 	jbytes, err := jsonToBytes(extJSON, extJSONType, desc)
 	if err != nil {
 		log.Fatalf("failed to convert JSON to bytes: %v", err)
@@ -119,34 +121,34 @@ func SeedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string
 
 // seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
 // corpus.
-func SeedTestCase(zw *zip.Writer, tcase *testCase) {
+func seedTestCase(zw *zip.Writer, tcase *testCase) {
 	for _, vtc := range tcase.Valid {
-		SeedExtJSON(zw, vtc.CanonicalExtJSON, "canonical", vtc.Description)
+		seedExtJSON(zw, vtc.CanonicalExtJSON, "canonical", vtc.Description)
 
 		// Seed the relaxed extended JSON.
 		if vtc.RelaxedExtJSON != nil {
-			SeedExtJSON(zw, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
+			seedExtJSON(zw, *vtc.RelaxedExtJSON, "relaxed", vtc.Description)
 		}
 
 		// Seed the degenerate extended JSON.
 		if vtc.DegenerateExtJSON != nil {
-			SeedExtJSON(zw, *vtc.DegenerateExtJSON, "degenerate", vtc.Description)
+			seedExtJSON(zw, *vtc.DegenerateExtJSON, "degenerate", vtc.Description)
 		}
 
 		// Seed the converted extended JSON.
 		if vtc.ConvertedExtJSON != nil {
-			SeedExtJSON(zw, *vtc.ConvertedExtJSON, "converted", vtc.Description)
+			seedExtJSON(zw, *vtc.ConvertedExtJSON, "converted", vtc.Description)
 		}
 	}
 }
 
 func main() {
-	corpus_out := os.Args[1]
-	if !strings.HasSuffix(corpus_out, ".zip") {
-		log.Fatalf("Expected command line: %s %s", os.Args[0], "<corpus_output>.zip")
+	corpus_seed := os.Args[1]
+	if !strings.HasSuffix(corpus_seed, ".zip") {
+		log.Fatalf("Expected command line: %s %s", os.Args[0], "<corpus_seed>.zip")
 	}
 
-	zip_file, err := os.Create(corpus_out)
+	zip_file, err := os.Create(corpus_seed)
 	if err != nil {
 		log.Fatalf("Failed creating file: %s", err)
 	}
@@ -171,7 +173,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		SeedTestCase(zip_writer, &tcase)
+		seedTestCase(zip_writer, &tcase)
 	}
 
 	if err := zip_writer.Close(); err != nil {

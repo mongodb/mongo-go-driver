@@ -8,7 +8,7 @@ FUZZTIME=10m
 cd $PROJECT_DIRECTORY
 
 # Get all go test files that contain a fuzz test.
-FILES=$(grep -r --include='**_test.go' --files-with-matches 'func Fuzz' .)
+FILES=$(grep -r --include='**_test.go' --exclude='oss_**' --files-with-matches 'func Fuzz' .)
 
 # For each file, run all of the fuzz tests in sequence, each for -fuzztime=FUZZTIME.
 for FILE in ${FILES}
@@ -35,7 +35,7 @@ do
 			done
 		fi
 
-		go test ${PARENTDIR} -run=${FUNC} -fuzz=${FUNC} -fuzztime=${FUZZTIME} || true
+		go test ${PARENTDIR} -run=^${FUNC}$ -fuzz=^${FUNC}$ -fuzztime=${FUZZTIME} || true
 
 		# Check if any new corpus files were generated for the fuzzer. If there are new corpus files, move them
 		# to $PROJECT_DIRECTORY/fuzz/$FUNC/* so they can be tarred up and uploaded to S3.
