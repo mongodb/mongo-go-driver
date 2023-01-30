@@ -7,8 +7,6 @@
 package unified
 
 import (
-	"fmt"
-
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -48,21 +46,10 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 
 	defer func() { log.lastOrder++ }()
 
-	//fmt.Println("lastOrder: ", log.lastOrder)
-	//fmt.Println("bufSize: ", log.bufSize)
-
 	// If the order is greater than the buffer size, simply return
 	if log.lastOrder > log.bufSize {
 		return
 	}
-
-	fmt.Println("")
-	fmt.Println("order: ", log.lastOrder)
-	fmt.Println("buffer size: ", log.bufSize)
-	fmt.Println("level: ", level)
-	fmt.Println("msg: ", msg)
-	fmt.Println("args: ", args)
-	fmt.Println("")
 
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.

@@ -238,7 +238,7 @@ func Teardown() error {
 			return fmt.Errorf("error dropping test database: %v", err)
 		}
 	}
-	fmt.Println("Teardown is occuring")
+
 	if err := testContext.client.Disconnect(context.Background()); err != nil {
 		return fmt.Errorf("error disconnecting test client: %v", err)
 	}

@@ -224,8 +224,13 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
 	}
 
-	testCtx := newTestContext(context.Background(), tc.entities,
-		countExpectedLogMessages(tc.ExpectLogMessages))
+	// Count the number of expected log messages over all clients.
+	expectedLogCount := 0
+	for _, clientLog := range tc.ExpectLogMessages {
+		expectedLogCount += len(clientLog.LogMessages)
+	}
+
+	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount)
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already

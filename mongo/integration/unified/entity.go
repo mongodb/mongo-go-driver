@@ -291,7 +291,6 @@ func (em *EntityMap) cursor(id string) (cursor, error) {
 }
 
 func (em *EntityMap) client(id string) (*clientEntity, error) {
-	fmt.Println("all clients: ", em.clientEntities)
 	client, ok := em.clientEntities[id]
 	if !ok {
 		return nil, newEntityNotFoundError("client", id)
@@ -394,7 +393,6 @@ func (em *EntityMap) Iterations(id string) (int32, error) {
 
 // close disposes of the session and client entities associated with this map.
 func (em *EntityMap) close(ctx context.Context) []error {
-	fmt.Println("after close")
 	for _, sess := range em.sessions {
 		sess.EndSession(ctx)
 	}
@@ -412,11 +410,9 @@ func (em *EntityMap) close(ctx context.Context) []error {
 			continue
 		}
 
-		fmt.Printf("client: %+v\n", client)
-
-		//if err := client.Disconnect(ctx); err != nil {
-		//	errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
-		//}
+		if err := client.Disconnect(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
+		}
 	}
 
 	for id, clientEncryption := range em.clientEncryptionEntities {
