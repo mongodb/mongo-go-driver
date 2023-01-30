@@ -142,9 +142,9 @@ func validateExpectLogMessages(logs []*clientLogMessages) error {
 // logMessageValidator defines the expectation for log messages across all
 // clients.
 type logMessageValidator struct {
-	testCase    *TestCase
-	err         chan error
-	cardinality int
+	testCase                *TestCase
+	err                     map[string]chan error
+	expectedLogMessageCount int
 }
 
 // newLogMessageValidator will create a new "logMessageValidator" from a test
@@ -159,16 +159,12 @@ func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 	}
 
 	validator := &logMessageValidator{testCase: testCase}
+	validator.err = make(map[string]chan error)
 
-	// Count the number of LogMessage objects on each ExpectedLogMessages.
-	// This will give us the minimal number of log messages we expect to
-	// receive from each client. That is, we want Σ (1 + len(messages))
-	// over all clients.
-	for _, clientLogMessages := range testCase.ExpectLogMessages {
-		validator.cardinality += len(clientLogMessages.LogMessages)
+	for _, elm := range testCase.ExpectLogMessages {
+		validator.err[elm.Client] = make(chan error, 1)
+		validator.expectedLogMessageCount += len(elm.LogMessages)
 	}
-
-	validator.err = make(chan error, validator.cardinality)
 
 	return validator, nil
 }
@@ -198,25 +194,19 @@ func (validator *logMessageValidator) expected(ctx context.Context) ([]*clientLo
 
 // stopLogMessageVerificationWorkers will gracefully validate all log messages
 // received by all clients and return the first error encountered.
-//
-// Unfortunately, there is currently no way to communicate to a client entity
-// constructor how many messages are expected to be received. Because of this,
-// the LogSink assigned to each client has no way of knowing when to close the
-// log queue. Therefore, it is the responsbility of this function to ensure that
-// all log messages are received and validated: N errors for N log messages.
 func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
-	for i := 0; i < validator.cardinality; i++ {
+	// Listen for each client's error, if any. If the context deadtline is
+	// exceeded, return an error.
+	for clientName, errChan := range validator.err {
 		select {
-		case err := <-validator.err:
+		case err := <-errChan:
 			if err != nil {
-				return err
+				return fmt.Errorf("%w: client %q: %v",
+					ErrLoggerVerification, clientName, err)
 			}
 		case <-ctx.Done():
-			// This error will likely only happen if the expected
-			// log workflow have not been implemented for a
-			// compontent. That is, the number of actual log
-			// messages is less than the cardinality of messages.
-			return fmt.Errorf("%w: context error: %v", ErrLoggerVerification, ctx.Err())
+			return fmt.Errorf("%w: context error: %v",
+				ErrLoggerVerification, ctx.Err())
 		}
 	}
 
@@ -257,6 +247,27 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	return nil
 }
 
+func (validator *logMessageValidator) validate(ctx context.Context, exp *clientLogMessages,
+	queue <-chan orderedLogMessage) {
+	for actual := range queue {
+		actMsg := actual.logMessage
+		expMsg := exp.LogMessages[actual.order-2]
+
+		if expMsg == nil {
+			continue
+		}
+
+		err := verifyLogMessagesMatch(ctx, expMsg, actMsg)
+		if err != nil {
+			validator.err[exp.Client] <- fmt.Errorf(
+				"%w: for client %q on message %d: %v",
+				ErrLoggerVerification, exp.Client, actual.order, err)
+		}
+	}
+
+	close(validator.err[exp.Client])
+}
+
 // startLogMessageVerificationWorkers will start a goroutine for each client's
 // expected log messages, listening to the channel of actual log messages and
 // comparing them to the expected log messages.
@@ -267,25 +278,6 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 			continue
 		}
 
-		go func(expected *clientLogMessages) {
-			for actual := range actual[expected.Client] {
-				expectedmessage := expected.LogMessages[actual.order-1]
-				if expectedmessage == nil {
-					validator.err <- nil
-
-					continue
-				}
-
-				err := verifyLogMessagesMatch(ctx, expectedmessage, actual.logMessage)
-				if err != nil {
-					validator.err <- err
-
-					continue
-				}
-
-				validator.err <- nil
-			}
-
-		}(expected)
+		go validator.validate(ctx, expected, actual[expected.Client])
 	}
 }

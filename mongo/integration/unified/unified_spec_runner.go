@@ -218,12 +218,17 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
-	testCtx := newTestContext(context.Background(), tc.entities)
-
 	// Validate the ExpectLogMessages.
 	if err := validateExpectLogMessages(tc.ExpectLogMessages); err != nil {
 		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
 	}
+	// Count the number of expected log messages over all clients.
+	expectedLogCount := 0
+	for _, clientLog := range tc.ExpectLogMessages {
+		expectedLogCount += len(clientLog.LogMessages)
+	}
+
+	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount)
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
