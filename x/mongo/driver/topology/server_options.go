@@ -213,6 +213,9 @@ func WithLoggerOptions(fn func() *options.LoggerOptions) ServerOption {
 			componentLevels[logger.Component(component)] = logger.Level(level)
 		}
 
-		cfg.logger = logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
+		// TODO: This should be built woutside of the optional functions.
+		// TODO: The optional functions should only take the things required
+		// TODO: to build it, like components and levels.
+		cfg.logger, _ = logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 	}
 }

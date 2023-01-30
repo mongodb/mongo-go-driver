@@ -223,7 +223,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	if err := validateExpectLogMessages(tc.ExpectLogMessages); err != nil {
 		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
 	}
-
 	// Count the number of expected log messages over all clients.
 	expectedLogCount := 0
 	for _, clientLog := range tc.ExpectLogMessages {

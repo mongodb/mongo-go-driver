@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -344,4 +345,81 @@ func TestRaw(t *testing.T) {
 			})
 		}
 	})
+}
+
+func BenchmarkRawString(b *testing.B) {
+	// Create 1KiB and 128B strings to exercise the string-heavy call paths in
+	// the "Raw.String" method.
+	var buf strings.Builder
+	for i := 0; i < 128; i++ {
+		buf.WriteString("abcdefgh")
+	}
+	str1k := buf.String()
+	str128 := str1k[:128]
+
+	cases := []struct {
+		description string
+		value       interface{}
+	}{
+		{
+			description: "string",
+			value:       D{{Key: "key", Value: str128}},
+		},
+		{
+			description: "integer",
+			value:       D{{Key: "key", Value: int64(1234567890)}},
+		},
+		{
+			description: "float",
+			value:       D{{Key: "key", Value: float64(1234567890.123456789)}},
+		},
+		{
+			description: "nested document",
+			value: D{{
+				Key: "key",
+				Value: D{{
+					Key: "key",
+					Value: D{{
+						Key:   "key",
+						Value: str128,
+					}},
+				}},
+			}},
+		},
+		{
+			description: "array of strings",
+			value: D{{
+				Key:   "key",
+				Value: []string{str128, str128, str128, str128},
+			}},
+		},
+		{
+			description: "mixed struct",
+			value: struct {
+				Key1 struct {
+					Nested string
+				}
+				Key2 string
+				Key3 int64
+				Key4 float64
+			}{
+				Key1: struct{ Nested string }{Nested: str1k},
+				Key2: str1k,
+				Key3: 1234567890,
+				Key4: 1234567890.123456789,
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		b.Run(tc.description, func(b *testing.B) {
+			bs, err := Marshal(tc.value)
+			require.NoError(b, err)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = Raw(bs).String()
+			}
+		})
+	}
 }

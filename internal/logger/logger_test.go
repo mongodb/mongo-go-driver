@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2023-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package logger
 
 import (
@@ -19,9 +25,13 @@ func BenchmarkLogger(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 
-		logger := New(mockLogSink{}, 0, map[Component]Level{
+		logger, err := New(mockLogSink{}, 0, map[Component]Level{
 			ComponentCommand: LevelDebug,
 		})
+
+		if err != nil {
+			b.Fatal(err)
+		}
 
 		for i := 0; i < b.N; i++ {
 			logger.Print(LevelInfo, ComponentCommand, "foo", "bar", "baz")
@@ -119,7 +129,7 @@ func TestSelectLogSink(t *testing.T) {
 				os.Setenv(k, v)
 			}
 
-			actual := selectLogSink(tcase.arg)
+			actual, _, _ := selectLogSink(tcase.arg)
 			if !reflect.DeepEqual(actual, tcase.expected) {
 				t.Errorf("expected %+v, got %+v", tcase.expected, actual)
 			}

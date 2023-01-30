@@ -1,10 +1,16 @@
+// Copyright (C) MongoDB, Inc. 2023-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package logger
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"syscall"
 )
 
 // DefaultMaxDocumentLength is the default maximum number of bytes that can be
@@ -35,19 +41,37 @@ type Logger struct {
 	ComponentLevels   map[Component]Level // Log levels for each component.
 	Sink              LogSink             // LogSink for log printing.
 	MaxDocumentLength uint                // Command truncation width.
+	logFile           *os.File            // File to write logs to.
 }
 
 // New will construct a new logger. If any of the given options are the
 // zero-value of the argument type, then the constructor will attempt to
 // source the data from the environment. If the environment has not been set,
 // then the constructor will the respective default values.
-func New(sink LogSink, maxDocLen uint, compLevels map[Component]Level) *Logger {
-	return &Logger{
+func New(sink LogSink, maxDocLen uint, compLevels map[Component]Level) (*Logger, error) {
+	logger := &Logger{
 		ComponentLevels:   selectComponentLevels(compLevels),
 		MaxDocumentLength: selectMaxDocumentLength(maxDocLen),
-		Sink:              selectLogSink(sink),
 	}
 
+	sink, logFile, err := selectLogSink(sink)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Sink = sink
+	logger.logFile = logFile
+
+	return logger, nil
+}
+
+// Close will close the logger's log file, if it exists.
+func (logger *Logger) Close() error {
+	if logger.logFile != nil {
+		return logger.logFile.Close()
+	}
+
+	return nil
 }
 
 // LevelComponentEnabled will return true if the given LogLevel is enabled for
@@ -115,27 +139,32 @@ const (
 // selectLogSink will return the first non-nil LogSink, with the user-defined
 // LogSink taking precedence over the environment-defined LogSink. If no LogSink
 // is defined, then this function will return a LogSink that writes to stderr.
-func selectLogSink(sink LogSink) LogSink {
+func selectLogSink(sink LogSink) (LogSink, *os.File, error) {
 	if sink != nil {
-		return sink
+		return sink, nil, nil
 	}
 
 	path := os.Getenv(logSinkPathEnvVar)
 	lowerPath := strings.ToLower(path)
 
 	if lowerPath == string(logSinkPathStderr) {
-		return NewIOSink(os.Stderr)
+		return NewIOSink(os.Stderr), nil, nil
 	}
 
 	if lowerPath == string(logSinkPathStdout) {
-		return NewIOSink(os.Stdout)
+		return NewIOSink(os.Stdout), nil, nil
 	}
 
 	if path != "" {
-		return NewIOSink(os.NewFile(uintptr(syscall.Stdout), path))
+		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to open log file: %v", err)
+		}
+
+		return NewIOSink(logFile), logFile, nil
 	}
 
-	return NewIOSink(os.Stderr)
+	return NewIOSink(os.Stderr), nil, nil
 }
 
 // selectComponentLevels returns a new map of LogComponents to LogLevels that is

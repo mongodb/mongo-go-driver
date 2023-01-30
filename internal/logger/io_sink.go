@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2023-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package logger
 
 import (
@@ -11,7 +17,7 @@ type IOSink struct {
 	log *log.Logger
 }
 
-// Compiile-time check to ensure osSink implements the LogSink interface.
+// Compile-time check to ensure osSink implements the LogSink interface.
 var _ LogSink = &IOSink{}
 
 // NewIOSink will create a new IOSink that writes to the provided io.Writer.

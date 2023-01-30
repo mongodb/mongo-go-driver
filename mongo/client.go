@@ -220,7 +220,10 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	// Create a logger for the client.
-	client.logger = newLogger(clientOpt.LoggerOptions)
+	client.logger, err = newLogger(clientOpt.LoggerOptions)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidLoggerOptions, err)
+	}
 
 	return client, nil
 }
@@ -283,6 +286,10 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	if c.logger != nil {
+		defer c.logger.Close()
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -829,7 +836,7 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 
 // newLogger will use the exported LoggerOptions to create an internal logger
 // and publish messages using a LogSink.
-func newLogger(opts *options.LoggerOptions) *logger.Logger {
+func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {
 		opts = options.Logger()
@@ -840,7 +847,7 @@ func newLogger(opts *options.LoggerOptions) *logger.Logger {
 	if (opts.ComponentLevels == nil || len(opts.ComponentLevels) == 0) &&
 		!logger.EnvHasComponentVariables() {
 
-		return nil
+		return nil, nil
 	}
 
 	// Otherwise, collect the component-level options and create a logger.

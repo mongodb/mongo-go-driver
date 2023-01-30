@@ -23,6 +23,8 @@ import (
 var ErrInvalidTruncation = fmt.Errorf("invalid truncation")
 
 func clamTruncErr(mt *mtest.T, op string, want, got int) error {
+	mt.Helper()
+
 	return fmt.Errorf("%w: expected length %s %d, got %d", ErrInvalidTruncation, op, want, got)
 }
 
@@ -61,7 +63,7 @@ func clamDefaultTruncLimitLogs(mt *mtest.T) []truncValidator {
 	// Insert started.
 	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
 		if len(cmd) != expTruncLen {
-			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+			return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 		}
 
 		return nil
@@ -70,7 +72,7 @@ func clamDefaultTruncLimitLogs(mt *mtest.T) []truncValidator {
 	// Insert succeeded.
 	validators[1] = newTruncValidator(mt, rpl, func(cmd string) error {
 		if len(cmd) > expTruncLen {
-			clamTruncErr(mt, "<=", expTruncLen, len(cmd))
+			return clamTruncErr(mt, "<=", expTruncLen, len(cmd))
 		}
 
 		return nil
@@ -82,7 +84,7 @@ func clamDefaultTruncLimitLogs(mt *mtest.T) []truncValidator {
 	// Find succeeded.
 	validators[3] = newTruncValidator(mt, rpl, func(cmd string) error {
 		if len(cmd) != expTruncLen {
-			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+			return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 		}
 
 		return nil
@@ -110,7 +112,7 @@ func clamExplicitTruncLimitLogs(mt *mtest.T) []truncValidator {
 	// Hello started.
 	validators[0] = newTruncValidator(mt, cmd, func(cmd string) error {
 		if len(cmd) != expTruncLen {
-			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+			return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 		}
 
 		return nil
@@ -119,7 +121,7 @@ func clamExplicitTruncLimitLogs(mt *mtest.T) []truncValidator {
 	// Hello succeeded.
 	validators[1] = newTruncValidator(mt, rpl, func(cmd string) error {
 		if len(cmd) != expTruncLen {
-			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+			return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 		}
 
 		return nil
@@ -149,7 +151,7 @@ func clamExplicitTruncLimitFailLogs(mt *mtest.T) []truncValidator {
 	// Hello failed.
 	validators[1] = newTruncValidator(mt, fail, func(cmd string) error {
 		if len(cmd) != expTruncLen {
-			clamTruncErr(mt, "=", expTruncLen, len(cmd))
+			return clamTruncErr(mt, "=", expTruncLen, len(cmd))
 		}
 
 		return nil
