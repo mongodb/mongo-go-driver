@@ -488,6 +488,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetMinPoolSize(uint64(value.(int32)))
 		case "maxPoolSize":
 			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
+		case "maxConnecting":
+			clientOpts.SetMaxConnecting(uint64(value.(int32)))
 		case "readConcernLevel":
 			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
 		case "retryReads":
@@ -501,6 +503,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			wcSet = true
 		case "waitQueueTimeoutMS":
 			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
+		case "waitQueueSize":
+			return newSkipTestError("the waitQueueSize client option is not supported")
 		case "timeoutMS":
 			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		default:

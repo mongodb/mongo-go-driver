@@ -224,7 +224,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 
 	// MaxConIdleTime
 	if co.MaxConnIdleTime != nil {
-		connOpts = append(connOpts, WithIdleTimeout(
+		serverOpts = append(serverOpts, WithConnectionPoolMaxIdleTime(
 			func(time.Duration) time.Duration { return *co.MaxConnIdleTime },
 		))
 	}
