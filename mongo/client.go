@@ -834,8 +834,8 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 	}
 }
 
-// newLogger will use the exported LoggerOptions to create an internal logger
-// and publish messages using a LogSink.
+// newLogger will use the LoggerOptions to create an internal logger and publish
+// messages using a LogSink.
 func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {

@@ -33,20 +33,18 @@ func clamDefaultTruncLimitOp(ctx context.Context, mt *mtest.T, coll *mongo.Colle
 
 	const documentsSize = 100
 
-	// Construct an array of docs containing the
-	// document {"x" : "y"} repeated "documentSize"
-	// times.
+	// Construct an array of docs containing the document {"x" : "y"}
+	// repeated "documentSize" times.
 	docs := []interface{}{}
 	for i := 0; i < documentsSize; i++ {
 		docs = append(docs, bson.D{{"x", "y"}})
 	}
 
-	// Insert docs to a collection via insertMany.
+	// Insert docs to a the collection.
 	_, err := coll.InsertMany(ctx, docs)
 	assert.Nil(mt, err, "InsertMany error: %v", err)
 
-	// Run find() on the collection where the
-	// document was inserted.
+	// Run find() on the collection.
 	_, err = coll.Find(ctx, bson.D{})
 	assert.Nil(mt, err, "Find error: %v", err)
 }

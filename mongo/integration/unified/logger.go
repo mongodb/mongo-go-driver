@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
-// orderedLogMessage is logMessage with a "order" field representing the order
-// in which the log message was observed.
+// orderedLogMessage is a logMessage with an "order" field representing the
+// order in which the log message was observed.
 type orderedLogMessage struct {
 	*logMessage
 	order int
@@ -46,7 +46,8 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 
 	defer func() { log.lastOrder++ }()
 
-	// If the order is greater than the buffer size, simply return
+	// If the order is greater than the buffer size, we must return. This
+	// would indicate that the logQueue channel has been closed.
 	if log.lastOrder > log.bufSize {
 		return
 	}
@@ -67,8 +68,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		logMessage: logMessage,
 	}
 
-	// If the order has reached the buffer size, then close the channel and
-	// return.
+	// If the order has reached the buffer size, then close the channe.
 	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}

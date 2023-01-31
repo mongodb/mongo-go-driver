@@ -15,7 +15,7 @@ type LogLevel int
 
 const (
 	// LogLevelInfo enables logging of informational messages. These logs
-	// are High-level information about normal driver behavior.
+	// are high-level information about normal driver behavior.
 	LogLevelInfo LogLevel = LogLevel(logger.LevelInfo)
 
 	// LogLevelDebug enables logging of debug messages. These logs can be

@@ -68,18 +68,23 @@ func EnvHasComponentVariables() bool {
 	return false
 }
 
+// Command is a struct defining common fields that must be included in all
+// commands.
 type Command struct {
-	DriverConnectionID int32
-	Name               string
-	Message            string
-	OperationID        int32
-	RequestID          int64
-	ServerConnectionID *int32
-	ServerHost         string
-	ServerPort         string
-	ServiceID          *primitive.ObjectID
+	DriverConnectionID int32               // Driver's ID for the connection
+	Name               string              // Command name
+	Message            string              // Message associated with the command
+	OperationID        int32               // Driver-generated operation ID
+	RequestID          int64               // Driver-generated request ID
+	ServerConnectionID *int32              // Server's ID for the connection used for the command
+	ServerHost         string              // Hostname or IP address for the server
+	ServerPort         string              // Port for the server
+	ServiceID          *primitive.ObjectID // ID for the command  in load balancer mode
 }
 
+// SerializeCommand takes a command and a variable number of key-value pairs and
+// returns a slice of interface{} that can be passed to the logger for
+// structured logging.
 func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := append([]interface{}{

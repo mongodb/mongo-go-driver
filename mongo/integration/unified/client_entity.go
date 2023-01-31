@@ -95,10 +95,6 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 
-	// If we are expecting to observe log messages as part of the test, we
-	// need to create a log queue with a generous buffer size. At the
-	// moment, there is no clear way to determine the number of log messages
-	// that will (1) be expected by the test case, and (2) actually occur.
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
 		clientLogger := newLogger(olm, expectedLogMessageCount(ctx))
 
