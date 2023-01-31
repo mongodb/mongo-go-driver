@@ -23,14 +23,17 @@ const (
 	failPointsKey ctxKey = "test-failpoints"
 	// targetedFailPointsKey is used to store a map from a fail point name to the host on which the fail point is set.
 	targetedFailPointsKey ctxKey = "test-targeted-failpoints"
+	// expectedLogMessageCountKey is used to store the number of log messages expected to be received by the test runner.
+	expectedLogMessageCountKey ctxKey = "test-expected-log-message-count"
 )
 
 // newTestContext creates a new Context derived from ctx with values initialized to store the state required for test
 // execution.
-func newTestContext(ctx context.Context, entityMap *EntityMap) context.Context {
+func newTestContext(ctx context.Context, entityMap *EntityMap, expectedLogMessageCount int) context.Context {
 	ctx = context.WithValue(ctx, entitiesKey, entityMap)
 	ctx = context.WithValue(ctx, failPointsKey, make(map[string]*mongo.Client))
 	ctx = context.WithValue(ctx, targetedFailPointsKey, make(map[string]string))
+	ctx = context.WithValue(ctx, expectedLogMessageCountKey, expectedLogMessageCount)
 	return ctx
 }
 
@@ -64,4 +67,8 @@ func targetedFailPoints(ctx context.Context) map[string]string {
 
 func entities(ctx context.Context) *EntityMap {
 	return ctx.Value(entitiesKey).(*EntityMap)
+}
+
+func expectedLogMessageCount(ctx context.Context) int {
+	return ctx.Value(expectedLogMessageCountKey).(int)
 }

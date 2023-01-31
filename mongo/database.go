@@ -181,7 +181,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
 		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.client.timeout), sess, nil
+		Timeout(db.client.timeout).Logger(db.client.logger), sess, nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read

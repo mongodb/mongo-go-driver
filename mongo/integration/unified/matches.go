@@ -25,10 +25,18 @@ type keyPathCtxKey struct{}
 // test can contain extra keys. For example, if the expected document is {x: 1}, the document {x: 1, y: 1} would match
 // if the value for this key is true.
 type extraKeysAllowedCtxKey struct{}
+type extraKeysAllowedRootMatchCtxKey struct{}
 
 func makeMatchContext(ctx context.Context, keyPath string, extraKeysAllowed bool) context.Context {
 	ctx = context.WithValue(ctx, keyPathCtxKey{}, keyPath)
-	return context.WithValue(ctx, extraKeysAllowedCtxKey{}, extraKeysAllowed)
+	ctx = context.WithValue(ctx, extraKeysAllowedCtxKey{}, extraKeysAllowed)
+
+	// The Root Match Context should be persisted once set.
+	if _, ok := ctx.Value(extraKeysAllowedRootMatchCtxKey{}).(bool); !ok {
+		ctx = context.WithValue(ctx, extraKeysAllowedRootMatchCtxKey{}, extraKeysAllowed)
+	}
+
+	return ctx
 }
 
 // verifyValuesMatch compares the provided BSON values and returns an error if they do not match. If the values are
@@ -212,6 +220,8 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 	assertionElem := assertionDoc.Index(0)
 	assertion := assertionElem.Key()
 	assertionVal := assertionElem.Value()
+	extraKeysAllowed := ctx.Value(extraKeysAllowedCtxKey{}).(bool)
+	extraKeysRootMatchAllowed := ctx.Value(extraKeysAllowedRootMatchCtxKey{}).(bool)
 
 	switch assertion {
 	case "$$exists":
@@ -291,6 +301,26 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 			return fmt.Errorf("expected numeric value %d to be less than or equal %d", actualInt64, expectedInt64)
 		}
 		return nil
+	case "$$matchAsDocument":
+		var actualDoc bson.Raw
+		str, ok := actual.StringValueOK()
+		if !ok {
+			return fmt.Errorf("expected value to be a string but got a %s", actual.Type)
+		}
+
+		if err := bson.UnmarshalExtJSON([]byte(str), true, &actualDoc); err != nil {
+			return fmt.Errorf("error unmarshalling string as document: %v", err)
+		}
+
+		if err := verifyValuesMatch(ctx, assertionVal, documentToRawValue(actualDoc), extraKeysAllowed); err != nil {
+			return fmt.Errorf("error matching $$matchAsRoot assertion: %v", err)
+		}
+	case "$$matchAsRoot":
+		// Treat the actual value as a root-level document that can have extra keys that are not subject to
+		// the matching rules.
+		if err := verifyValuesMatch(ctx, assertionVal, actual, extraKeysRootMatchAllowed); err != nil {
+			return fmt.Errorf("error matching $$matchAsRoot assertion: %v", err)
+		}
 	default:
 		return fmt.Errorf("unrecognized special matching assertion %q", assertion)
 	}

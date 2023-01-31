@@ -108,6 +108,7 @@ type ClientOptions struct {
 	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
+	LoggerOptions            *LoggerOptions
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -580,6 +581,14 @@ func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 	return c
 }
 
+// SetLoggerOptions specifies a LoggerOptions containing options for
+// configuring a logger.
+func (c *ClientOptions) SetLoggerOptions(opts *LoggerOptions) *ClientOptions {
+	c.LoggerOptions = opts
+
+	return c
+}
+
 // SetMaxConnIdleTime specifies the maximum amount of time that a connection will remain idle in a connection pool
 // before it is removed from the pool and closed. This can also be set through the "maxIdleTimeMS" URI option (e.g.
 // "maxIdleTimeMS=10000"). The default is 0, meaning a connection can remain unused indefinitely.
@@ -1000,6 +1009,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.cs != nil {
 			c.cs = opt.cs
+		}
+		if opt.LoggerOptions != nil {
+			c.LoggerOptions = opt.LoggerOptions
 		}
 	}
 

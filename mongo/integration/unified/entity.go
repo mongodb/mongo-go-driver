@@ -36,6 +36,13 @@ type storeEventsAsEntitiesConfig struct {
 	Events      []string `bson:"events"`
 }
 
+type observeLogMessages struct {
+	Command         string `bson:"command"`
+	Topology        string `bson:"topology"`
+	ServerSelection string `bson:"serverSelection"`
+	Connection      string `bson:"connection"`
+}
+
 // entityOptions represents all options that can be used to configure an entity. Because there are multiple entity
 // types, only a subset of the options that this type contains apply to any given entity.
 type entityOptions struct {
@@ -50,6 +57,9 @@ type entityOptions struct {
 	ObserveSensitiveCommands *bool                         `bson:"observeSensitiveCommands"`
 	StoreEventsAsEntities    []storeEventsAsEntitiesConfig `bson:"storeEventsAsEntities"`
 	ServerAPIOptions         *serverAPIOptions             `bson:"serverApi"`
+
+	// Options for logger entities.
+	ObserveLogMessages *observeLogMessages `bson:"observeLogMessages"`
 
 	// Options for database entities.
 	DatabaseName    string                 `bson:"databaseName"`
@@ -71,6 +81,7 @@ type entityOptions struct {
 
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
 }
+
 type clientEncryptionOpts struct {
 	KeyVaultClient    string              `bson:"keyVaultClient"`
 	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
