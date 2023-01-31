@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//go:build logrus
+//go:build customlog
 
 package main
 
@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -31,7 +30,7 @@ func (logger CustomLogger) Error(err error, msg string, keysAndValues ...interfa
 }
 
 func main() {
-	sink := CustomLogger{os.Stdout}
+	//sink := CustomLogger{os.Stdout}
 
 	// Create a client with our logger options.
 	loggerOptions := options.
@@ -43,9 +42,12 @@ func main() {
 	clientOptions := options.
 		Client().
 		ApplyURI("mongodb://localhost:27017").
-		SetLoggerOptions(loggerOptions)
+		SetMinPoolSize(1).
+		SetMaxPoolSize(5).
+		SetMaxConnIdleTime(10_000)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
+
 	if err != nil {
 		log.Fatalf("error connecting to MongoDB: %v", err)
 	}

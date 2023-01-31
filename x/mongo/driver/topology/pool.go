@@ -245,10 +245,10 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		logPoolMessage(pool,
 			logger.ComponentConnection,
 			logger.ConnectionPoolCreated,
-			"maxIdleTimeMS", config.MaxIdleTime.Milliseconds(),
-			"minPoolSize", config.MinPoolSize,
-			"maxPoolSize", config.MaxPoolSize,
-			"maxConnecting", config.MaxConnecting)
+			logger.KeyMaxIdleTimeMS, config.MaxIdleTime.Milliseconds(),
+			logger.KeyMinPoolSize, config.MinPoolSize,
+			logger.KeyMaxPoolSize, config.MaxPoolSize,
+			logger.KeyMaxConnecting, config.MaxConnecting)
 	}
 
 	if pool.monitor != nil {
@@ -468,7 +468,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
 				logger.ConnectionCheckoutFailed,
-				"reason", event.ReasonPoolClosed)
+				logger.KeyReason, event.ReasonPoolClosed)
 		}
 
 		if p.monitor != nil {
@@ -528,7 +528,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				logPoolMessage(p,
 					logger.ComponentConnection,
 					logger.ConnectionCheckoutFailed,
-					"reason", event.ReasonConnectionErrored)
+					logger.KeyReason, event.ReasonConnectionErrored)
 			}
 
 			if p.monitor != nil {
@@ -545,7 +545,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
 				logger.ConnectionCheckedOut,
-				"driverConnectionId", w.conn.poolID)
+				logger.KeyDriverConnectionID, w.conn.poolID)
 		}
 
 		if p.monitor != nil {
@@ -572,7 +572,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				logPoolMessage(p,
 					logger.ComponentConnection,
 					logger.ConnectionCheckoutFailed,
-					"reason", event.ReasonConnectionErrored)
+					logger.KeyReason, event.ReasonConnectionErrored)
 			}
 
 			if p.monitor != nil {
@@ -590,7 +590,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
 				logger.ConnectionCheckedOut,
-				"driverConnectionId", w.conn.poolID)
+				logger.KeyDriverConnectionID, w.conn.poolID)
 		}
 
 		if p.monitor != nil {
@@ -606,7 +606,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
 				logger.ConnectionCheckoutFailed,
-				"reason", event.ReasonTimedOut)
+				logger.KeyReason, event.ReasonTimedOut)
 		}
 
 		if p.monitor != nil {
@@ -685,8 +685,8 @@ func (p *pool) removeConnection(conn *connection, reason reason) error {
 		logPoolMessage(p,
 			logger.ComponentConnection,
 			logger.ConnectionClosed,
-			"driverConnectionId", conn.poolID,
-			"reason", reason.loggerConn)
+			logger.KeyDriverConnectionID, conn.poolID,
+			logger.KeyReason, reason.loggerConn)
 
 	}
 
@@ -716,7 +716,7 @@ func (p *pool) checkIn(conn *connection) error {
 		logPoolMessage(p,
 			logger.ComponentConnection,
 			logger.ConnectionCheckedIn,
-			"driverConnectionId", conn.poolID)
+			logger.KeyDriverConnectionID, conn.poolID)
 	}
 
 	if p.monitor != nil {
@@ -852,7 +852,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 		logPoolMessage(p,
 			logger.ComponentConnection,
 			logger.ConnectionPoolCleared,
-			"serviceId", serviceID)
+			logger.KeyServiceID, serviceID)
 	}
 
 	if sendEvent && p.monitor != nil {
@@ -982,7 +982,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
 				logger.ConnectionCreated,
-				"driverConnectionId", conn.poolID)
+				logger.KeyDriverConnectionID, conn.poolID)
 		}
 
 		if p.monitor != nil {
@@ -1021,7 +1021,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			logPoolMessage(p,
 				logger.ComponentConnection,
 				logger.ConnectionReady,
-				"driverConnectionId", conn.poolID)
+				logger.KeyDriverConnectionID, conn.poolID)
 		}
 
 		if p.monitor != nil {

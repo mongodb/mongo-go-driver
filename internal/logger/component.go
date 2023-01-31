@@ -30,6 +30,28 @@ const (
 	ConnectionCheckedIn       = "Connection checked in"
 )
 
+const (
+	KeyCommand            = "command"
+	KeyCommandName        = "commandName"
+	KeyDatabaseName       = "databaseName"
+	KeyDriverConnectionID = "driverConnectionId"
+	KeyDurationMS         = "durationMS"
+	KeyError              = "error"
+	KeyFailure            = "failure"
+	KeyMaxConnecting      = "maxConnecting"
+	KeyMaxIdleTimeMS      = "maxIdleTimeMS"
+	KeyMaxPoolSize        = "maxPoolSize"
+	KeyMinPoolSize        = "minPoolSize"
+	KeyOperationID        = "operationId"
+	KeyReason             = "reason"
+	KeyReply              = "reply"
+	KeyRequestID          = "requestId"
+	KeyServerConnectionID = "serverConnectionId"
+	KeyServerHost         = "serverHost"
+	KeyServerPort         = "serverPort"
+	KeyServiceID          = "serviceId"
+)
+
 type Reason string
 
 const (
@@ -88,47 +110,50 @@ func EnvHasComponentVariables() bool {
 	return false
 }
 
+// Command is a struct defining common fields that must be included in all
+// commands.
 type Command struct {
-	DriverConnectionID int32
-	Name               string
-	Message            string
-	OperationID        int32
-	RequestID          int64
-	ServerConnectionID *int32
-	ServerHost         string
-	ServerPort         string
-	ServiceID          *primitive.ObjectID
+	DriverConnectionID int32               // Driver's ID for the connection
+	Name               string              // Command name
+	Message            string              // Message associated with the command
+	OperationID        int32               // Driver-generated operation ID
+	RequestID          int64               // Driver-generated request ID
+	ServerConnectionID *int32              // Server's ID for the connection used for the command
+	ServerHost         string              // Hostname or IP address for the server
+	ServerPort         string              // Port for the server
+	ServiceID          *primitive.ObjectID // ID for the command  in load balancer mode
 }
 
-// SerializeCommand serializes a CommandMessage into a slice of keys and values
-// that can be passed to a logger.
+// SerializeCommand takes a command and a variable number of key-value pairs and
+// returns a slice of interface{} that can be passed to the logger for
+// structured logging.
 func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := append([]interface{}{
-		"commandName", cmd.Name,
-		"driverConnectionId", cmd.DriverConnectionID,
+		KeyCommandName, cmd.Name,
+		KeyDriverConnectionID, cmd.DriverConnectionID,
 		"message", cmd.Message,
-		"operationId", cmd.OperationID,
-		"requestId", cmd.RequestID,
-		"serverHost", cmd.ServerHost,
+		KeyOperationID, cmd.OperationID,
+		KeyRequestID, cmd.RequestID,
+		KeyServerHost, cmd.ServerHost,
 	}, extraKeysAndValues...)
 
 	// Add the optional keys and values.
 	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
 	if err == nil {
-		keysAndValues = append(keysAndValues, "serverPort", port)
+		keysAndValues = append(keysAndValues, KeyServerPort, port)
 	}
 
 	// Add the "serverConnectionId" if it is not nil.
 	if cmd.ServerConnectionID != nil {
 		keysAndValues = append(keysAndValues,
-			"serverConnectionId", *cmd.ServerConnectionID)
+			KeyServerConnectionID, *cmd.ServerConnectionID)
 	}
 
 	// Add the "serviceId" if it is not nil.
 	if cmd.ServiceID != nil {
 		keysAndValues = append(keysAndValues,
-			"serviceId", cmd.ServiceID.Hex())
+			KeyServiceID, cmd.ServiceID.Hex())
 	}
 
 	return keysAndValues
@@ -155,13 +180,13 @@ type Connection struct {
 func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
 	keysAndValues := append([]interface{}{
 		"message", conn.Message,
-		"serverHost", conn.ServerHost,
+		KeyServerHost, conn.ServerHost,
 	}, extraKeysAndValues...)
 
 	// Convert the ServerPort into an integer.
 	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)
 	if err == nil {
-		keysAndValues = append(keysAndValues, "serverPort", port)
+		keysAndValues = append(keysAndValues, KeyServerPort, port)
 	}
 
 	return keysAndValues

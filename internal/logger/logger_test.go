@@ -40,6 +40,8 @@ func BenchmarkLogger(b *testing.B) {
 }
 
 func TestSelectMaxDocumentLength(t *testing.T) {
+	t.Parallel()
+
 	for _, tcase := range []struct {
 		name     string
 		arg      uint
@@ -77,7 +79,7 @@ func TestSelectMaxDocumentLength(t *testing.T) {
 
 		t.Run(tcase.name, func(t *testing.T) {
 			for k, v := range tcase.env {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			actual := selectMaxDocumentLength(tcase.arg)
@@ -89,6 +91,8 @@ func TestSelectMaxDocumentLength(t *testing.T) {
 }
 
 func TestSelectLogSink(t *testing.T) {
+	t.Parallel()
+
 	for _, tcase := range []struct {
 		name     string
 		arg      LogSink
@@ -126,7 +130,7 @@ func TestSelectLogSink(t *testing.T) {
 
 		t.Run(tcase.name, func(t *testing.T) {
 			for k, v := range tcase.env {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			actual, _, _ := selectLogSink(tcase.arg)
@@ -138,6 +142,8 @@ func TestSelectLogSink(t *testing.T) {
 }
 
 func TestSelectedComponentLevels(t *testing.T) {
+	t.Parallel()
+
 	for _, tcase := range []struct {
 		name     string
 		arg      map[Component]Level
@@ -199,7 +205,7 @@ func TestSelectedComponentLevels(t *testing.T) {
 
 		t.Run(tcase.name, func(t *testing.T) {
 			for k, v := range tcase.env {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			actual := selectComponentLevels(tcase.arg)

@@ -306,8 +306,8 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	// Create a validator for log messages and start the workers that will
-	// observe log messages as they occur operationally.
+	// Create a validator for log messages and start the workers that will observe log messages as they occur
+	// operationally.
 	logMessageValidator, err := newLogMessageValidator(tc)
 	if err != nil {
 		return fmt.Errorf("error creating logMessageValidator: %v", err)
@@ -348,7 +348,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		// For each client, verify that all expected log messages were
 		// received.
 		if err := stopLogMessageVerificationWorkers(ctx, logMessageValidator); err != nil {
-			return err
+			return fmt.Errorf("error verifying log messages: %w", err)
 		}
 	}
 

@@ -33,14 +33,14 @@ func logCommandStartedMessage(log *log.Logger, kvMap map[string]interface{}) {
 		"the operation ID is %d. Command: %s"
 
 	log.Printf(format,
-		kvMap["commandName"],
-		kvMap["databaseName"],
-		kvMap["serverConnectionId"],
-		kvMap["serverHost"],
-		kvMap["serverPort"],
-		kvMap["requestId"],
-		kvMap["operationId"],
-		kvMap["command"])
+		kvMap[KeyCommandName],
+		kvMap[KeyDatabaseName],
+		kvMap[KeyServerConnectionID],
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyRequestID],
+		kvMap[KeyOperationID],
+		kvMap[KeyCommand])
 
 }
 
@@ -50,14 +50,14 @@ func logCommandSucceededMessage(log *log.Logger, kvMap map[string]interface{}) {
 		"%d. Command reply: %s"
 
 	log.Printf(format,
-		kvMap["commandName"],
-		kvMap["duration"],
-		kvMap["serverConnectionId"],
-		kvMap["serverHost"],
-		kvMap["serverPort"],
-		kvMap["requestId"],
-		kvMap["operationId"],
-		kvMap["reply"])
+		kvMap[KeyCommandName],
+		kvMap[KeyDurationMS],
+		kvMap[KeyServerConnectionID],
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyRequestID],
+		kvMap[KeyOperationID],
+		kvMap[KeyReply])
 }
 
 func logCommandFailedMessage(log *log.Logger, kvMap map[string]interface{}) {
@@ -66,14 +66,14 @@ func logCommandFailedMessage(log *log.Logger, kvMap map[string]interface{}) {
 		"the operation ID is %d. Error: %s"
 
 	log.Printf(format,
-		kvMap["commandName"],
-		kvMap["duration"],
-		kvMap["serverConnectionID"],
-		kvMap["serverHost"],
-		kvMap["serverPort"],
-		kvMap["requestId"],
-		kvMap["operationId"],
-		kvMap["failure"])
+		kvMap[KeyCommandName],
+		kvMap[KeyDurationMS],
+		kvMap[KeyServerConnectionID],
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyRequestID],
+		kvMap[KeyOperationID],
+		kvMap[KeyFailure])
 }
 
 func logPoolCreatedMessage(log *log.Logger, kvMap map[string]interface{}) {
@@ -82,12 +82,104 @@ func logPoolCreatedMessage(log *log.Logger, kvMap map[string]interface{}) {
 		"maxConnecting=%d"
 
 	log.Printf(format,
-		kvMap["serverHost"],
-		kvMap["serverPort"],
-		kvMap["maxIdleTimeMS"],
-		kvMap["minPoolSize"],
-		kvMap["maxPoolSize"],
-		kvMap["maxConnecting"])
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyMaxIdleTimeMS],
+		kvMap[KeyMinPoolSize],
+		kvMap[KeyMaxPoolSize],
+		kvMap[KeyMaxConnecting])
+}
+
+func logPoolReadyMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection pool ready for %s:%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort])
+}
+
+func logPoolClearedMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection pool for %s:%d cleared for serviceId %s"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyServiceID])
+}
+
+func logPoolClosedMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection pool closed for %s:%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort])
+}
+
+func logConnectionCreatedMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection created: address=%s:%d, driver-generated ID=%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyDriverConnectionID])
+}
+
+func logConnectionReadyMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection ready: address=%s:%d, driver-generated ID=%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyDriverConnectionID])
+}
+
+func logConnectionClosedMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection closed: address=%s:%d, driver-generated ID=%d. " +
+		"Reason: %s. Error: %s"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyDriverConnectionID],
+		kvMap[KeyReason],
+		kvMap[KeyError])
+}
+
+func logConnectionCheckoutStartedMessage(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Checkout started for connection to %s:%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort])
+}
+
+func logConnectionCheckoutFailed(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Checkout failed for connection to %s:%d. Reason: %s. " +
+		"Error: %s"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyReason],
+		kvMap[KeyError])
+}
+
+func logConnectionCheckedOut(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection checked out: address=%s:%d, driver-generated ID=%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyDriverConnectionID])
+}
+
+func logConnectionCheckedIn(log *log.Logger, kvMap map[string]interface{}) {
+	format := "Connection checked in: address=%s:%d, driver-generated ID=%d"
+
+	log.Printf(format,
+		kvMap[KeyServerHost],
+		kvMap[KeyServerPort],
+		kvMap[KeyDriverConnectionID])
 }
 
 func (osSink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
@@ -96,16 +188,22 @@ func (osSink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 		kvMap[keysAndValues[i].(string)] = keysAndValues[i+1]
 	}
 
-	switch msg {
-	case CommandStarted:
-		logCommandStartedMessage(osSink.log, kvMap)
-	case CommandSucceeded:
-		logCommandSucceededMessage(osSink.log, kvMap)
-	case CommandFailed:
-		logCommandFailedMessage(osSink.log, kvMap)
-	case ConnectionPoolCreated:
-		logPoolCreatedMessage(osSink.log, kvMap)
-	}
+	map[string]func(*log.Logger, map[string]interface{}){
+		CommandStarted:            logCommandStartedMessage,
+		CommandSucceeded:          logCommandSucceededMessage,
+		CommandFailed:             logCommandFailedMessage,
+		ConnectionPoolCreated:     logPoolCreatedMessage,
+		ConnectionPoolReady:       logPoolReadyMessage,
+		ConnectionPoolCleared:     logPoolClearedMessage,
+		ConnectionPoolClosed:      logPoolClosedMessage,
+		ConnectionCreated:         logConnectionCreatedMessage,
+		ConnectionReady:           logConnectionReadyMessage,
+		ConnectionClosed:          logConnectionClosedMessage,
+		ConnectionCheckoutStarted: logConnectionCheckoutStartedMessage,
+		ConnectionCheckoutFailed:  logConnectionCheckoutFailed,
+		ConnectionCheckedOut:      logConnectionCheckedOut,
+		ConnectionCheckedIn:       logConnectionCheckedIn,
+	}[msg](osSink.log, kvMap)
 }
 
 func (osSink *IOSink) Error(err error, msg string, kv ...interface{}) {

@@ -582,7 +582,7 @@ func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 }
 
 // SetLoggerOptions specifies a LoggerOptions containing options for
-// configuring the logger. See the
+// configuring a logger.
 func (c *ClientOptions) SetLoggerOptions(opts *LoggerOptions) *ClientOptions {
 	c.LoggerOptions = opts
 

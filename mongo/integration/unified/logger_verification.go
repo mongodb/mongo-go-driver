@@ -14,9 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
-// ErrLoggerVerification is use to wrap errors associated with validating the
+// errLoggerVerification is use to wrap errors associated with validating the
 // correctness of logs while testing operations.
-var ErrLoggerVerification = fmt.Errorf("logger verification failed")
+var errLoggerVerification = fmt.Errorf("logger verification failed")
 
 // logMessage is a log message that is expected to be observed by the driver.
 type logMessage struct {
@@ -50,7 +50,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// The argument slice must have an even number of elements, otherwise it
 	// would not maintain the key-value structure of the document.
 	if len(args)%2 != 0 {
-		return nil, fmt.Errorf("%w: invalid arguments: %v", ErrLoggerVerification, args)
+		return nil, fmt.Errorf("%w: invalid arguments: %v", errLoggerVerification, args)
 	}
 
 	// Create a new document from the arguments.
@@ -66,7 +66,7 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	// logMessage.
 	bytes, err := bson.Marshal(actualD)
 	if err != nil {
-		return nil, fmt.Errorf("%w: failed to marshal: %v", ErrLoggerVerification, err)
+		return nil, fmt.Errorf("%w: failed to marshal: %v", errLoggerVerification, err)
 	}
 
 	logMessage.Data = bson.Raw(bytes)
@@ -78,15 +78,15 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 // invalid.
 func validateLogMessage(message *logMessage) error {
 	if message.LevelLiteral == "" {
-		return fmt.Errorf("%w: level is required", ErrLoggerVerification)
+		return fmt.Errorf("%w: level is required", errLoggerVerification)
 	}
 
 	if message.ComponentLiteral == "" {
-		return fmt.Errorf("%w: component is required", ErrLoggerVerification)
+		return fmt.Errorf("%w: component is required", errLoggerVerification)
 	}
 
 	if message.Data == nil {
-		return fmt.Errorf("%w: data is required", ErrLoggerVerification)
+		return fmt.Errorf("%w: data is required", errLoggerVerification)
 	}
 
 	return nil
@@ -103,16 +103,16 @@ type clientLogMessages struct {
 // and return an error if it is invalid, i.e. not testable.
 func validateClientLogMessages(log *clientLogMessages) error {
 	if log.Client == "" {
-		return fmt.Errorf("%w: client is required", ErrLoggerVerification)
+		return fmt.Errorf("%w: client is required", errLoggerVerification)
 	}
 
 	if len(log.LogMessages) == 0 {
-		return fmt.Errorf("%w: log messages are required", ErrLoggerVerification)
+		return fmt.Errorf("%w: log messages are required", errLoggerVerification)
 	}
 
 	for _, message := range log.LogMessages {
 		if err := validateLogMessage(message); err != nil {
-			return fmt.Errorf("%w: message is invalid: %v", ErrLoggerVerification, err)
+			return fmt.Errorf("%w: message is invalid: %v", errLoggerVerification, err)
 		}
 	}
 
@@ -126,11 +126,11 @@ func validateExpectLogMessages(logs []*clientLogMessages) error {
 
 	for _, log := range logs {
 		if err := validateClientLogMessages(log); err != nil {
-			return fmt.Errorf("%w: client is invalid: %v", ErrLoggerVerification, err)
+			return fmt.Errorf("%w: client is invalid: %v", errLoggerVerification, err)
 		}
 
 		if _, ok := seenClientNames[log.Client]; ok {
-			return fmt.Errorf("%w: duplicate client: %v", ErrLoggerVerification, log.Client)
+			return fmt.Errorf("%w: duplicate client: %v", errLoggerVerification, log.Client)
 		}
 
 		seenClientNames[log.Client] = struct{}{}
@@ -151,11 +151,11 @@ type logMessageValidator struct {
 // case.
 func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 	if testCase == nil {
-		return nil, fmt.Errorf("%w: test case is required", ErrLoggerVerification)
+		return nil, fmt.Errorf("%w: test case is required", errLoggerVerification)
 	}
 
 	if testCase.entities == nil {
-		return nil, fmt.Errorf("%w: entities are required", ErrLoggerVerification)
+		return nil, fmt.Errorf("%w: entities are required", errLoggerVerification)
 	}
 
 	validator := &logMessageValidator{testCase: testCase}
@@ -202,11 +202,11 @@ func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessag
 		case err := <-errChan:
 			if err != nil {
 				return fmt.Errorf("%w: client %q: %v",
-					ErrLoggerVerification, clientName, err)
+					errLoggerVerification, clientName, err)
 			}
 		case <-ctx.Done():
 			return fmt.Errorf("%w: context error: %v",
-				ErrLoggerVerification, ctx.Err())
+				errLoggerVerification, ctx.Err())
 		}
 	}
 
@@ -221,7 +221,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	}
 
 	if act == nil || exp == nil {
-		return fmt.Errorf("%w: document mismatch", ErrLoggerVerification)
+		return fmt.Errorf("%w: document mismatch", errLoggerVerification)
 	}
 
 	levelExp := logger.ParseLevel(exp.LevelLiteral)
@@ -231,7 +231,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// must match, upto logger.Level.
 	if levelExp != levelAct {
 		return fmt.Errorf("%w: level mismatch: want %v, got %v",
-			ErrLoggerVerification, levelExp, levelAct)
+			errLoggerVerification, levelExp, levelAct)
 	}
 
 	rawExp := documentToRawValue(exp.Data)
@@ -241,7 +241,7 @@ func verifyLogMessagesMatch(ctx context.Context, exp, act *logMessage) error {
 	// are a number of unrequired fields that may not be present on the
 	// expected document.
 	if err := verifyValuesMatch(ctx, rawExp, rawAct, true); err != nil {
-		return fmt.Errorf("%w: document length mismatch: %v", ErrLoggerVerification, err)
+		return fmt.Errorf("%w: document length mismatch: %v", errLoggerVerification, err)
 	}
 
 	return nil
@@ -261,7 +261,7 @@ func (validator *logMessageValidator) validate(ctx context.Context, exp *clientL
 		if err != nil {
 			validator.err[exp.Client] <- fmt.Errorf(
 				"%w: for client %q on message %d: %v",
-				ErrLoggerVerification, exp.Client, actual.order, err)
+				errLoggerVerification, exp.Client, actual.order, err)
 		}
 	}
 
