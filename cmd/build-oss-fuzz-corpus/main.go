@@ -142,19 +142,9 @@ func seedTestCase(zw *zip.Writer, tcase *testCase) {
 	}
 }
 
-func main() {
-	corpus_seed := os.Args[1]
-	if !strings.HasSuffix(corpus_seed, ".zip") {
-		log.Fatalf("Expected command line: %s %s", os.Args[0], "<corpus_seed>.zip")
-	}
-
-	zip_file, err := os.Create(corpus_seed)
-	if err != nil {
-		log.Fatalf("Failed creating file: %s", err)
-	}
-
-	zip_writer := zip.NewWriter(zip_file)
-
+// seedBSONCorpus will unmarshal the data from "testdata/bson-corpus" into a slice of "testCase" structs and then
+// marshal the "*_extjson" field of each "validityTestCase" into a slice of bytes to seed the fuzz corpus.
+func seedBSONCorpus(zw *zip.Writer) {
 	fileNames, err := FindJSONFilesInDir(dataDir)
 	if err != nil {
 		log.Fatalf("failed to find JSON files in directory %q: %v", dataDir, err)
@@ -173,14 +163,35 @@ func main() {
 			log.Fatal(err)
 		}
 
-		seedTestCase(zip_writer, &tcase)
+		seedTestCase(zw, &tcase)
 	}
+}
+
+// This cmd generates and adds slice of bytes to files with sha1 hash name, and zip them as a <fuzzer_name>_seed_corpus.zip,
+// which is used later by oss-fuzz as seed corpus, This is done because as of now oss-fuzz does not support go native t.Add()
+// method.
+func main() {
+	seed_corpus := os.Args[1]
+	if !strings.HasSuffix(seed_corpus, ".zip") {
+		log.Fatalln("Expected command line:", os.Args[0], "<seed_corpus>.zip")
+	}
+
+	zip_file, err := os.Create(seed_corpus)
+	if err != nil {
+		log.Fatalf("Failed creating file: %s", err)
+	}
+
+	defer func() {
+		err := zip_file.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	zip_writer := zip.NewWriter(zip_file)
+	seedBSONCorpus(zip_writer)
 
 	if err := zip_writer.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := zip_file.Close(); err != nil {
 		log.Fatal(err)
 	}
 }
