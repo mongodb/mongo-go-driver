@@ -111,9 +111,10 @@ func (sr *SingleResult) setRdrContents() error {
 	return ErrNoDocuments
 }
 
-// Err returns the error from the operation that created this SingleResult. If the operation was successful but did not
-// return any documents, Err will return ErrNoDocuments. If the operation was successful and returned a document, Err
-// will return nil.
+// Err provides a way to check for query errors without calling Decode. Err returns the error, if
+// any, that was encountered while running the operation. If the operation was successful but did
+// not return any documents, Err returns ErrNoDocuments. If this error is not nil, this error will
+// also be returned from Decode.
 func (sr *SingleResult) Err() error {
 	sr.err = sr.setRdrContents()
 
