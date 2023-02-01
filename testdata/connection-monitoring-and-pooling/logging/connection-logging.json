@@ -480,6 +480,10 @@
                     "int",
                     "long"
                   ]
+                },
+                "reason": "An error occurred while trying to establish a new connection",
+                "error": {
+                  "$$exists": true
                 }
               }
             }

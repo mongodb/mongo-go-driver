@@ -216,3 +216,5 @@ tests:
               message: "Connection checkout failed"
               serverHost: { $$type: string }
               serverPort: { $$type: [int, long] }
+              reason: "An error occurred while trying to establish a new connection"
+              error: { $$exists: true }
