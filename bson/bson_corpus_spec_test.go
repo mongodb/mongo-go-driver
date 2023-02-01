@@ -28,25 +28,6 @@ import (
 
 const dataDir = "../testdata/bson-corpus/"
 
-func findJSONFilesInDir(dir string) ([]string, error) {
-	files := make([]string, 0)
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() || path.Ext(entry.Name()) != ".json" {
-			continue
-		}
-
-		files = append(files, entry.Name())
-	}
-
-	return files, nil
-}
-
 // seedExtJSON will add the byte representation of the "extJSON" string to the fuzzer's coprus.
 func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
 	jbytes, err := JsonToBytes(extJSON, extJSONType, desc)
@@ -83,7 +64,7 @@ func seedTestCase(f *testing.F, tcase *TestCase) {
 // seedBSONCorpus will unmarshal the data from "testdata/bson-corpus" into a slice of "testCase" structs and then
 // marshal the "*_extjson" field of each "validityTestCase" into a slice of bytes to seed the fuzz corpus.
 func seedBSONCorpus(f *testing.F) {
-	fileNames, err := findJSONFilesInDir(dataDir)
+	fileNames, err := FindJSONFilesInDir(dataDir)
 	if err != nil {
 		f.Fatalf("failed to find JSON files in directory %q: %v", dataDir, err)
 	}
@@ -395,7 +376,7 @@ func runTest(t *testing.T, file string) {
 }
 
 func Test_BsonCorpus(t *testing.T) {
-	jsonFiles, err := findJSONFilesInDir(dataDir)
+	jsonFiles, err := FindJSONFilesInDir(dataDir)
 	if err != nil {
 		t.Fatalf("error finding JSON files in %s: %v", dataDir, err)
 	}
