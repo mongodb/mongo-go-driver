@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -198,24 +197,8 @@ func WithServerLoadBalanced(fn func(bool) bool) ServerOption {
 }
 
 // WithLogger configures the logger for the server to use.
-func WithLoggerOptions(fn func() *options.LoggerOptions) ServerOption {
+func WithLogger(fn func() *logger.Logger) ServerOption {
 	return func(cfg *serverConfig) {
-		opts := fn()
-
-		// If there are no logger options, then create a default logger.
-		if opts == nil {
-			opts = options.Logger()
-		}
-
-		// Build an internal component-level mapping.
-		componentLevels := make(map[logger.Component]logger.Level)
-		for component, level := range opts.ComponentLevels {
-			componentLevels[logger.Component(component)] = logger.Level(level)
-		}
-
-		// TODO: This should be built woutside of the optional functions.
-		// TODO: The optional functions should only take the things required
-		// TODO: to build it, like components and levels.
-		cfg.logger, _ = logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
+		cfg.logger = fn()
 	}
 }

@@ -8,11 +8,13 @@ package topology
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -333,10 +335,25 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		)
 	}
 
-	if co.LoggerOptions != nil {
+	if opts := co.LoggerOptions; opts != nil {
+		if opts == nil {
+			opts = options.Logger()
+		}
+
+		// Build an internal component-level mapping.
+		componentLevels := make(map[logger.Component]logger.Level)
+		for component, level := range opts.ComponentLevels {
+			componentLevels[logger.Component(component)] = logger.Level(level)
+		}
+
+		log, err := logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
+		if err != nil {
+			return nil, fmt.Errorf("error creating logger: %v", err)
+		}
+
 		serverOpts = append(
 			serverOpts,
-			WithLoggerOptions(func() *options.LoggerOptions { return co.LoggerOptions }),
+			WithLogger(func() *logger.Logger { return log }),
 		)
 	}
 

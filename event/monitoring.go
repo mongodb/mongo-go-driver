@@ -63,6 +63,7 @@ type CommandMonitor struct {
 	Failed    func(context.Context, *CommandFailedEvent)
 }
 
+// Reason represents the reason a connection was closed.
 type Reason string
 
 // strings for pool command monitoring reasons

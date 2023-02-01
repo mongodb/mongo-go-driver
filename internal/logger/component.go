@@ -52,6 +52,7 @@ const (
 	KeyServiceID          = "serviceId"
 )
 
+// Reason represents why a connection was closed.
 type Reason string
 
 const (
@@ -159,20 +160,11 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 	return keysAndValues
 }
 
-// ConnectionMessage contains data that all connection log messages MUST contain.
+// Connection contains data that all connection log messages MUST contain.
 type Connection struct {
-	// Message is the literal message to be logged defining the underlying
-	// event.
-	Message string
-
-	// ServerHost is the hostname, IP address, or Unix domain socket path
-	// for the endpoint the pool is for.
-	ServerHost string
-
-	// Port is the port for the endpoint the pool is for. If the user does
-	// not specify a port and the default (27017) is used, the driver
-	// SHOULD include it here.
-	ServerPort string
+	Message    string // Message associated with the connection
+	ServerHost string // Hostname or IP address for the server
+	ServerPort string // Port for the server
 }
 
 // SerializeConnection serializes a ConnectionMessage into a slice of keys

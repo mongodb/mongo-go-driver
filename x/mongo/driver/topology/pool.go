@@ -138,11 +138,11 @@ func mustLogPoolMessage(pool *pool) bool {
 		logger.LevelDebug, logger.ComponentConnection)
 }
 
-func logPoolMessage(pool *pool, component logger.Component, msg string, keysAndValues ...interface{}) {
+func logPoolMessage(pool *pool, msg string, keysAndValues ...interface{}) {
 	host, port, _ := net.SplitHostPort(pool.address.String())
 
 	pool.logger.Print(logger.LevelDebug,
-		component,
+		logger.ComponentConnection,
 		msg,
 		logger.SerializeConnection(logger.Connection{
 			Message:    msg,
@@ -243,7 +243,6 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 
 	if mustLogPoolMessage(pool) {
 		logPoolMessage(pool,
-			logger.ComponentConnection,
 			logger.ConnectionPoolCreated,
 			logger.KeyMaxIdleTimeMS, config.MaxIdleTime.Milliseconds(),
 			logger.KeyMinPoolSize, config.MinPoolSize,
@@ -295,7 +294,7 @@ func (p *pool) ready() error {
 	}
 
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p, logger.ComponentConnection, logger.ConnectionPoolReady)
+		logPoolMessage(p, logger.ConnectionPoolReady)
 	}
 
 	if p.monitor != nil {
@@ -403,9 +402,7 @@ func (p *pool) close(ctx context.Context) {
 	}
 
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p,
-			logger.ComponentConnection,
-			logger.ConnectionPoolClosed)
+		logPoolMessage(p, logger.ConnectionPoolClosed)
 	}
 
 	if p.monitor != nil {
@@ -440,9 +437,7 @@ func (p *pool) unpinConnectionFromTransaction() {
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
 func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p,
-			logger.ComponentConnection,
-			logger.ConnectionCheckoutStarted)
+		logPoolMessage(p, logger.ConnectionCheckoutStarted)
 	}
 
 	// TODO(CSOT): If a Timeout was specified at any level, respect the Timeout is server selection, connection
@@ -465,9 +460,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		p.stateMu.RUnlock()
 
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionCheckoutFailed,
+			logPoolMessage(p, logger.ConnectionCheckoutFailed,
 				logger.KeyReason, event.ReasonPoolClosed)
 		}
 
@@ -484,10 +477,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		p.stateMu.RUnlock()
 
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionCheckoutFailed,
-				"reason", event.ReasonConnectionErrored)
+			logPoolMessage(p, logger.ConnectionCheckoutFailed,
+				logger.KeyReason, event.ReasonConnectionErrored)
 		}
 
 		if p.monitor != nil {
@@ -525,9 +516,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if w.err != nil {
 			if mustLogPoolMessage(p) {
-				logPoolMessage(p,
-					logger.ComponentConnection,
-					logger.ConnectionCheckoutFailed,
+				logPoolMessage(p, logger.ConnectionCheckoutFailed,
 					logger.KeyReason, event.ReasonConnectionErrored)
 			}
 
@@ -542,9 +531,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionCheckedOut,
+			logPoolMessage(p, logger.ConnectionCheckedOut,
 				logger.KeyDriverConnectionID, w.conn.poolID)
 		}
 
@@ -569,9 +556,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	case <-w.ready:
 		if w.err != nil {
 			if mustLogPoolMessage(p) {
-				logPoolMessage(p,
-					logger.ComponentConnection,
-					logger.ConnectionCheckoutFailed,
+				logPoolMessage(p, logger.ConnectionCheckoutFailed,
 					logger.KeyReason, event.ReasonConnectionErrored)
 			}
 
@@ -587,9 +572,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionCheckedOut,
+			logPoolMessage(p, logger.ConnectionCheckedOut,
 				logger.KeyDriverConnectionID, w.conn.poolID)
 		}
 
@@ -603,9 +586,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		return w.conn, nil
 	case <-ctx.Done():
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionCheckoutFailed,
+			logPoolMessage(p, logger.ConnectionCheckoutFailed,
 				logger.KeyReason, event.ReasonTimedOut)
 		}
 
@@ -682,9 +663,7 @@ func (p *pool) removeConnection(conn *connection, reason reason) error {
 	}
 
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p,
-			logger.ComponentConnection,
-			logger.ConnectionClosed,
+		logPoolMessage(p, logger.ConnectionClosed,
 			logger.KeyDriverConnectionID, conn.poolID,
 			logger.KeyReason, reason.loggerConn)
 
@@ -713,9 +692,7 @@ func (p *pool) checkIn(conn *connection) error {
 	}
 
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p,
-			logger.ComponentConnection,
-			logger.ConnectionCheckedIn,
+		logPoolMessage(p, logger.ConnectionCheckedIn,
 			logger.KeyDriverConnectionID, conn.poolID)
 	}
 
@@ -849,9 +826,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 	}
 
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p,
-			logger.ComponentConnection,
-			logger.ConnectionPoolCleared,
+		logPoolMessage(p, logger.ConnectionPoolCleared,
 			logger.KeyServiceID, serviceID)
 	}
 
@@ -979,9 +954,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionCreated,
+			logPoolMessage(p, logger.ConnectionCreated,
 				logger.KeyDriverConnectionID, conn.poolID)
 		}
 
@@ -1018,9 +991,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		if mustLogPoolMessage(p) {
-			logPoolMessage(p,
-				logger.ComponentConnection,
-				logger.ConnectionReady,
+			logPoolMessage(p, logger.ConnectionReady,
 				logger.KeyDriverConnectionID, conn.poolID)
 		}
 

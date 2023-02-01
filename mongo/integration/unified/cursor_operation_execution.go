@@ -14,10 +14,7 @@ import (
 )
 
 func executeCloseCursor(ctx context.Context, cursor cursor) error {
-	// Per the spec, we ignore all errors from Close.
-	_ = cursor.Close(ctx)
-
-	return nil
+	return cursor.Close(ctx)
 }
 
 func executeIterateOnce(ctx context.Context, operation *operation) (*operationResult, error) {

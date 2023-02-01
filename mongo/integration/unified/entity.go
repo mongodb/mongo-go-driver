@@ -27,7 +27,7 @@ var (
 	// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
 	ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
 
-	// ErrNoEntityFound is returned when an entity is not found in an
+	// ErrEntityNotFound is returned when an entity is not found in an
 	// EntityMap hash.
 	ErrEntityNotFound = errors.New("entity not found")
 )
