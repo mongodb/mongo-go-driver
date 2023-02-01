@@ -26,38 +26,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/require"
 )
 
-type testCase struct {
-	Description  string                `json:"description"`
-	BsonType     string                `json:"bson_type"`
-	TestKey      *string               `json:"test_key"`
-	Valid        []validityTestCase    `json:"valid"`
-	DecodeErrors []decodeErrorTestCase `json:"decodeErrors"`
-	ParseErrors  []parseErrorTestCase  `json:"parseErrors"`
-	Deprecated   *bool                 `json:"deprecated"`
-}
-
-type validityTestCase struct {
-	Description       string  `json:"description"`
-	CanonicalBson     string  `json:"canonical_bson"`
-	CanonicalExtJSON  string  `json:"canonical_extjson"`
-	RelaxedExtJSON    *string `json:"relaxed_extjson"`
-	DegenerateBSON    *string `json:"degenerate_bson"`
-	DegenerateExtJSON *string `json:"degenerate_extjson"`
-	ConvertedBSON     *string `json:"converted_bson"`
-	ConvertedExtJSON  *string `json:"converted_extjson"`
-	Lossy             *bool   `json:"lossy"`
-}
-
-type decodeErrorTestCase struct {
-	Description string `json:"description"`
-	Bson        string `json:"bson"`
-}
-
-type parseErrorTestCase struct {
-	Description string `json:"description"`
-	String      string `json:"string"`
-}
-
 const dataDir = "../testdata/bson-corpus/"
 
 func findJSONFilesInDir(dir string) ([]string, error) {
@@ -81,7 +49,7 @@ func findJSONFilesInDir(dir string) ([]string, error) {
 
 // seedExtJSON will add the byte representation of the "extJSON" string to the fuzzer's coprus.
 func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) {
-	jbytes, err := jsonToBytes(extJSON, extJSONType, desc)
+	jbytes, err := JsonToBytes(extJSON, extJSONType, desc)
 	if err != nil {
 		f.Fatalf("failed to convert JSON to bytes: %v", err)
 	}
@@ -91,7 +59,7 @@ func seedExtJSON(f *testing.F, extJSON string, extJSONType string, desc string) 
 
 // seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
 // corpus.
-func seedTestCase(f *testing.F, tcase *testCase) {
+func seedTestCase(f *testing.F, tcase *TestCase) {
 	for _, vtc := range tcase.Valid {
 		seedExtJSON(f, vtc.CanonicalExtJSON, "canonical", vtc.Description)
 
@@ -128,7 +96,7 @@ func seedBSONCorpus(f *testing.F) {
 			f.Fatalf("failed to open file %q: %v", filePath, err)
 		}
 
-		var tcase testCase
+		var tcase TestCase
 		if err := json.NewDecoder(file).Decode(&tcase); err != nil {
 			f.Fatal(err)
 		}
@@ -255,30 +223,6 @@ func nativeToBSON(t *testing.T, cB []byte, doc D, testDesc, bType, docSrcDesc st
 	}
 }
 
-// jsonToNative decodes the extended JSON string (ej) into a native Document
-func jsonToNative(ej, ejType, testDesc string) (D, error) {
-	var doc D
-	if err := UnmarshalExtJSON([]byte(ej), ejType != "relaxed", &doc); err != nil {
-		return nil, fmt.Errorf("%s: decoding %s extended JSON: %w", testDesc, ejType, err)
-	}
-	return doc, nil
-}
-
-// jsonToBytes decodes the extended JSON string (ej) into canonical BSON and then encodes it into a byte slice.
-func jsonToBytes(ej, ejType, testDesc string) ([]byte, error) {
-	native, err := jsonToNative(ej, ejType, testDesc)
-	if err != nil {
-		return nil, err
-	}
-
-	b, err := Marshal(native)
-	if err != nil {
-		return nil, fmt.Errorf("%s: encoding %s BSON: %w", testDesc, ejType, err)
-	}
-
-	return b, nil
-}
-
 // nativeToJSON encodes the native Document (doc) into an extended JSON string
 func nativeToJSON(t *testing.T, ej string, doc D, testDesc, ejType, ejShortName, docSrcDesc string) {
 	actualEJ, err := MarshalExtJSON(doc, ejType != "relaxed", true)
@@ -301,7 +245,7 @@ func runTest(t *testing.T, file string) {
 	testName := "bson_corpus--" + file
 
 	t.Run(testName, func(t *testing.T) {
-		var test testCase
+		var test TestCase
 		require.NoError(t, json.Unmarshal(content, &test))
 
 		t.Run("valid", func(t *testing.T) {
