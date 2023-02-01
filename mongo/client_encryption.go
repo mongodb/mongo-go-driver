@@ -77,7 +77,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts *options.CreateCollectionOptions,
-	kmsProvider string, dkOpts *options.DataKeyOptions) (*Collection, bson.M, error) {
+	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
 	if createOpts == nil {
 		return nil, nil, errors.New("nil CreateCollectionOptions")
 	}
@@ -111,6 +111,10 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 				if f, ok := field.(bson.M); !ok {
 					continue
 				} else if v, ok := f["keyId"]; ok && v == nil {
+					dkOpts := options.DataKey()
+					if masterKey != nil {
+						dkOpts.SetMasterKey(masterKey)
+					}
 					keyid, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
 					if err != nil {
 						createOpts.EncryptedFields = m
