@@ -163,17 +163,17 @@ func connectionPerished(conn *connection) (reason, bool) {
 	case conn.closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
 		return reason{
-			loggerConn: logger.ReasonConnectionClosedError,
+			loggerConn: logger.ReasonConnClosedError,
 			event:      event.ReasonError,
 		}, true
 	case conn.idleTimeoutExpired():
 		return reason{
-			loggerConn: logger.ReasonConnectionClosedIdle,
+			loggerConn: logger.ReasonConnClosedIdle,
 			event:      event.ReasonIdle,
 		}, true
 	case conn.pool.stale(conn):
 		return reason{
-			loggerConn: logger.ReasonConnectionClosedStale,
+			loggerConn: logger.ReasonConnClosedStale,
 			event:      event.ReasonStale,
 		}, true
 	}
@@ -395,9 +395,9 @@ func (p *pool) close(ctx context.Context) {
 	// pool.
 	for _, conn := range conns {
 		_ = p.removeConnection(conn, reason{
-			loggerConn: logger.ReasonConnectionClosedPoolClosed,
+			loggerConn: logger.ReasonConnClosedPoolClosed,
 			event:      event.ReasonPoolClosed,
-		})
+		}, nil)
 		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
 	}
 
@@ -461,7 +461,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if mustLogPoolMessage(p) {
 			logPoolMessage(p, logger.ConnectionCheckoutFailed,
-				logger.KeyReason, event.ReasonPoolClosed)
+				logger.KeyReason, logger.ReasonConnCheckoutFailedPoolClosed)
 		}
 
 		if p.monitor != nil {
@@ -478,7 +478,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if mustLogPoolMessage(p) {
 			logPoolMessage(p, logger.ConnectionCheckoutFailed,
-				logger.KeyReason, event.ReasonConnectionErrored)
+				logger.KeyReason, logger.ReasonConnCheckoutFailedError)
 		}
 
 		if p.monitor != nil {
@@ -517,7 +517,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		if w.err != nil {
 			if mustLogPoolMessage(p) {
 				logPoolMessage(p, logger.ConnectionCheckoutFailed,
-					logger.KeyReason, event.ReasonConnectionErrored)
+					logger.KeyReason, logger.ReasonConnCheckoutFailedError)
 			}
 
 			if p.monitor != nil {
@@ -557,7 +557,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		if w.err != nil {
 			if mustLogPoolMessage(p) {
 				logPoolMessage(p, logger.ConnectionCheckoutFailed,
-					logger.KeyReason, event.ReasonConnectionErrored)
+					logger.KeyReason, logger.ReasonConnCheckoutFailedError,
+					logger.KeyError, w.err.Error())
 			}
 
 			if p.monitor != nil {
@@ -587,7 +588,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	case <-ctx.Done():
 		if mustLogPoolMessage(p) {
 			logPoolMessage(p, logger.ConnectionCheckoutFailed,
-				logger.KeyReason, event.ReasonTimedOut)
+				logger.KeyReason, logger.ReasonConnCheckoutFailedTimout)
 		}
 
 		if p.monitor != nil {
@@ -632,7 +633,7 @@ func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint
 }
 
 // removeConnection removes a connection from the pool and emits a "ConnectionClosed" event.
-func (p *pool) removeConnection(conn *connection, reason reason) error {
+func (p *pool) removeConnection(conn *connection, reason reason, err error) error {
 	if conn == nil {
 		return nil
 	}
@@ -663,10 +664,17 @@ func (p *pool) removeConnection(conn *connection, reason reason) error {
 	}
 
 	if mustLogPoolMessage(p) {
-		logPoolMessage(p, logger.ConnectionClosed,
+		keysAndValues := []interface{}{
 			logger.KeyDriverConnectionID, conn.poolID,
-			logger.KeyReason, reason.loggerConn)
+			logger.KeyReason, reason.loggerConn,
+		}
 
+		// If an error is provided, log it.
+		if err != nil {
+			keysAndValues = append(keysAndValues, logger.KeyError, err.Error())
+		}
+
+		logPoolMessage(p, logger.ConnectionClosed, keysAndValues...)
 	}
 
 	if p.monitor != nil {
@@ -726,7 +734,7 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	conn.bumpIdleDeadline()
 
 	if reason, perished := connectionPerished(conn); perished {
-		_ = p.removeConnection(conn, reason)
+		_ = p.removeConnection(conn, reason, nil)
 		go func() {
 			_ = p.closeConnection(conn)
 		}()
@@ -735,9 +743,9 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 
 	if conn.pool.getState() == poolClosed {
 		_ = p.removeConnection(conn, reason{
-			loggerConn: logger.ReasonConnectionClosedPoolClosed,
+			loggerConn: logger.ReasonConnClosedPoolClosed,
 			event:      event.ReasonPoolClosed,
-		})
+		}, nil)
 
 		go func() {
 			_ = p.closeConnection(conn)
@@ -807,7 +815,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			w.tryDeliver(nil, pcErr)
+			//w.tryDeliver(nil, pcErr)
 		}
 		p.idleMu.Unlock()
 
@@ -857,7 +865,7 @@ func (p *pool) getOrQueueForIdleConn(w *wantConn) bool {
 		}
 
 		if reason, perished := connectionPerished(conn); perished {
-			_ = conn.pool.removeConnection(conn, reason)
+			_ = conn.pool.removeConnection(conn, reason, nil)
 			go func() {
 				_ = conn.pool.closeConnection(conn)
 			}()
@@ -970,8 +978,6 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
 		err := conn.connect(ctx)
 		if err != nil {
-			w.tryDeliver(nil, err)
-
 			// If there's an error connecting the new connection, call the handshake error handler
 			// that implements the SDAM handshake error handling logic. This must be called after
 			// delivering the connection error to the waiting wantConn. If it's called before, the
@@ -983,10 +989,14 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			}
 
 			_ = p.removeConnection(conn, reason{
-				loggerConn: logger.ReasonConnectionClosedError,
+				loggerConn: logger.ReasonConnClosedError,
 				event:      event.ReasonError,
-			})
+			}, err)
+
 			_ = p.closeConnection(conn)
+
+			w.tryDeliver(nil, err)
+
 			continue
 		}
 
@@ -1113,7 +1123,7 @@ func (p *pool) removePerishedConns() {
 		if reason, perished := connectionPerished(conn); perished {
 			p.idleConns[i] = nil
 
-			_ = p.removeConnection(conn, reason)
+			_ = p.removeConnection(conn, reason, nil)
 			go func() {
 				_ = p.closeConnection(conn)
 			}()

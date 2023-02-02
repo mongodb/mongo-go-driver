@@ -260,8 +260,7 @@ func (validator *logMessageValidator) validate(ctx context.Context, exp *clientL
 		err := verifyLogMessagesMatch(ctx, expMsg, actMsg)
 		if err != nil {
 			validator.err[exp.Client] <- fmt.Errorf(
-				"%w: for client %q on message %d: %v",
-				errLoggerVerification, exp.Client, actual.order, err)
+				"for client %q on message %d: %w", exp.Client, actual.order, err)
 		}
 	}
 

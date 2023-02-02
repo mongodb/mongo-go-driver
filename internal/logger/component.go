@@ -56,10 +56,13 @@ const (
 type Reason string
 
 const (
-	ReasonConnectionClosedStale      Reason = "Connection became stale because the pool was cleared"
-	ReasonConnectionClosedIdle       Reason = "Connection has been available but unused for longer than the configured max idle time"
-	ReasonConnectionClosedError      Reason = "An error occurred while using the connection"
-	ReasonConnectionClosedPoolClosed Reason = "Connection pool was closed"
+	ReasonConnClosedStale              Reason = "Connection became stale because the pool was cleared"
+	ReasonConnClosedIdle               Reason = "Connection has been available but unused for longer than the configured max idle time"
+	ReasonConnClosedError              Reason = "An error occurred while using the connection"
+	ReasonConnClosedPoolClosed         Reason = "Connection pool was closed"
+	ReasonConnCheckoutFailedTimout     Reason = "Wait queue timeout elapsed without a connection becoming available"
+	ReasonConnCheckoutFailedError      Reason = "An error occurred while trying to establish a new connection"
+	ReasonConnCheckoutFailedPoolClosed Reason = "Connection pool was closed"
 )
 
 // Component is an enumeration representing the "components" which can be
