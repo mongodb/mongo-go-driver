@@ -841,6 +841,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
 		err := conn.connect(ctx)
 		if err != nil {
+			w.readyMu.Lock()
 			w.tryDeliver(nil, err)
 
 			// If there's an error connecting the new connection, call the handshake error handler
@@ -855,6 +856,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 			_ = p.removeConnection(conn, event.ReasonError)
 			_ = p.closeConnection(conn)
+			w.readyMu.Unlock()
 			continue
 		}
 
@@ -1006,7 +1008,8 @@ func compact(arr []*connection) []*connection {
 // other and use wantConn to coordinate and agree about the winning outcome.
 // Based on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1174-1240
 type wantConn struct {
-	ready chan struct{}
+	readyMu sync.Mutex // Guards ready
+	ready   chan struct{}
 
 	mu   sync.Mutex // Guards conn, err
 	conn *connection
@@ -1043,7 +1046,14 @@ func (w *wantConn) tryDeliver(conn *connection, err error) bool {
 	if w.conn == nil && w.err == nil {
 		panic("x/mongo/driver/topology: internal error: misuse of tryDeliver")
 	}
-	close(w.ready)
+
+	go func() {
+		w.readyMu.Lock()
+		defer w.readyMu.Unlock()
+
+		close(w.ready)
+	}()
+
 	return true
 }
 
