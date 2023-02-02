@@ -720,29 +720,31 @@ func TestOperation(t *testing.T) {
 }
 
 func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {
-	idx, wm := wiremessage.AppendHeaderStart(nil, 0, wiremessage.CurrentRequestID()+1, wiremessage.OpMsg)
+	const reqid int32 = 0
+	idx, wm := bsoncore.ReserveLength(nil)
+	wm = bsoncore.AppendInt32(wm, reqid, wiremessage.CurrentRequestID()+1, int32(wiremessage.OpMsg))
 	var flags wiremessage.MsgFlag
 	if moreToCome {
 		flags = wiremessage.MoreToCome
 	}
-	wm = wiremessage.AppendMsgFlags(wm, flags)
-	wm = wiremessage.AppendMsgSectionType(wm, wiremessage.SingleDocument)
+	wm = bsoncore.AppendInt32(wm, int32(flags))
+	wm = bsoncore.AppendBytes(wm, byte(wiremessage.SingleDocument))
 	wm = bsoncore.AppendDocument(wm, response)
 	return bsoncore.UpdateLength(wm, idx, int32(len(wm)))
 }
 
 func assertExhaustAllowedSet(t *testing.T, wm []byte, expected bool) {
 	t.Helper()
-	_, _, _, _, wm, ok := wiremessage.ReadHeader(wm)
+	_, wm, ok := bsoncore.ReadBytes(wm, 16)
 	if !ok {
 		t.Fatal("could not read wm header")
 	}
-	flags, wm, ok := wiremessage.ReadMsgFlags(wm)
+	flags, _, ok := bsoncore.ReadInt32(wm)
 	if !ok {
 		t.Fatal("could not read wm flags")
 	}
 
-	actual := flags&wiremessage.ExhaustAllowed > 0
+	actual := wiremessage.MsgFlag(flags)&wiremessage.ExhaustAllowed > 0
 	assert.Equal(t, expected, actual, "expected exhaustAllowed set %v, got %v", expected, actual)
 }
 

@@ -38,7 +38,11 @@ func getReceivedMessageParser(opcode wiremessage.OpCode) (receivedMsgParseFn, bo
 
 func parseReceivedMessage(wm []byte) (*ReceivedMessage, error) {
 	// Re-assign the wire message to "remaining" so "wm" continues to point to the entire message after parsing.
-	_, _, responseTo, opcode, remaining, ok := wiremessage.ReadHeader(wm)
+	hdr, remaining, ok := bsoncore.ReadBytes(wm, 16)
+	if !ok {
+		return nil, errors.New("failed to read wiremessage header")
+	}
+	_, _, responseTo, opcode, ok := wiremessage.ParseHeader(hdr)
 	if !ok {
 		return nil, errors.New("failed to read wiremessage header")
 	}
@@ -60,21 +64,21 @@ func parseReceivedMessage(wm []byte) (*ReceivedMessage, error) {
 func parseOpReply(wm []byte) (*ReceivedMessage, error) {
 	var ok bool
 
-	if _, wm, ok = wiremessage.ReadReplyFlags(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read reply flags")
 	}
-	if _, wm, ok = wiremessage.ReadReplyCursorID(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt64(wm); !ok {
 		return nil, errors.New("failed to read cursor ID")
 	}
-	if _, wm, ok = wiremessage.ReadReplyStartingFrom(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read starting from")
 	}
-	if _, wm, ok = wiremessage.ReadReplyNumberReturned(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read number returned")
 	}
 
 	var replyDocuments []bsoncore.Document
-	replyDocuments, wm, ok = wiremessage.ReadReplyDocuments(wm)
+	replyDocuments, _, ok = bsoncore.ReadReplyDocuments(wm)
 	if !ok {
 		return nil, errors.New("failed to read reply documents")
 	}
@@ -92,7 +96,7 @@ func parseReceivedOpMsg(wm []byte) (*ReceivedMessage, error) {
 	var ok bool
 	var err error
 
-	if _, wm, ok = wiremessage.ReadMsgFlags(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read flags")
 	}
 
@@ -100,7 +104,7 @@ func parseReceivedOpMsg(wm []byte) (*ReceivedMessage, error) {
 		return nil, fmt.Errorf("error verifying section type for response document: %v", err)
 	}
 
-	response, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
+	response, _, ok := bsoncore.ReadDocument(wm)
 	if !ok {
 		return nil, errors.New("failed to read response document")
 	}

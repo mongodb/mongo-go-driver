@@ -47,32 +47,36 @@ func TestCreateAuthenticator(t *testing.T) {
 }
 
 func compareResponses(t *testing.T, wm []byte, expectedPayload bsoncore.Document, dbName string) {
-	_, _, _, opcode, wm, ok := wiremessage.ReadHeader(wm)
+	hdr, wm, ok := bsoncore.ReadBytes(wm, 16)
 	if !ok {
-		t.Fatalf("wiremessage is too short to unmarshal")
+		t.Fatalf("wiremessage is too short to unmarshal header")
+	}
+	_, _, _, opcode, ok := wiremessage.ParseHeader(hdr)
+	if !ok {
+		t.Fatalf("wiremessage is too short to unmarshal header")
 	}
 	var actualPayload bsoncore.Document
 	switch opcode {
 	case wiremessage.OpQuery:
-		_, wm, ok := wiremessage.ReadQueryFlags(wm)
+		_, wm, ok := bsoncore.ReadInt32(wm)
 		if !ok {
-			t.Fatalf("wiremessage is too short to unmarshal")
+			t.Fatalf("wiremessage is too short to unmarshal queryFlags")
 		}
-		_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
+		_, wm, ok = bsoncore.ReadCString(wm)
 		if !ok {
-			t.Fatalf("wiremessage is too short to unmarshal")
+			t.Fatalf("wiremessage is too short to unmarshal fullCollectionName")
 		}
-		_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
+		_, wm, ok = bsoncore.ReadInt32(wm)
 		if !ok {
-			t.Fatalf("wiremessage is too short to unmarshal")
+			t.Fatalf("wiremessage is too short to unmarshal numberToSkip")
 		}
-		_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
+		_, wm, ok = bsoncore.ReadInt32(wm)
 		if !ok {
-			t.Fatalf("wiremessage is too short to unmarshal")
+			t.Fatalf("wiremessage is too short to unmarshal numberToReturn")
 		}
-		actualPayload, _, ok = wiremessage.ReadQueryQuery(wm)
+		actualPayload, _, ok = bsoncore.ReadDocument(wm)
 		if !ok {
-			t.Fatalf("wiremessage is too short to unmarshal")
+			t.Fatalf("wiremessage is too short to unmarshal document")
 		}
 	case wiremessage.OpMsg:
 		// Append the $db field.
@@ -91,27 +95,27 @@ func compareResponses(t *testing.T, wm []byte, expectedPayload bsoncore.Document
 		}
 		expectedPayload = bsoncore.BuildDocumentFromElements(nil, bslc...)
 
-		_, wm, ok := wiremessage.ReadMsgFlags(wm)
+		_, wm, ok := bsoncore.ReadInt32(wm)
 		if !ok {
-			t.Fatalf("wiremessage is too short to unmarshal")
+			t.Fatalf("wiremessage is too short to unmarshal flags")
 		}
 	loop:
 		for {
-			var stype wiremessage.SectionType
-			stype, wm, ok = wiremessage.ReadMsgSectionType(wm)
+			var secType byte
+			secType, wm, ok = bsoncore.ReadByte(wm)
 			if !ok {
-				t.Fatalf("wiremessage is too short to unmarshal")
+				t.Fatalf("wiremessage is too short to unmarshal type")
 				break
 			}
-			switch stype {
+			switch stype := wiremessage.SectionType(secType); stype {
 			case wiremessage.DocumentSequence:
-				_, _, wm, ok = wiremessage.ReadMsgSectionDocumentSequence(wm)
+				_, _, wm, ok = bsoncore.ReadMsgSectionDocumentSequence(wm)
 				if !ok {
 					t.Fatalf("wiremessage is too short to unmarshal")
 					break loop
 				}
 			case wiremessage.SingleDocument:
-				actualPayload, wm, ok = wiremessage.ReadMsgSectionSingleDocument(wm)
+				actualPayload, _, ok = bsoncore.ReadDocument(wm)
 				if !ok {
 					t.Fatalf("wiremessage is too short to unmarshal")
 				}

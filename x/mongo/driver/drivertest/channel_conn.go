@@ -88,11 +88,18 @@ func (c *ChannelConn) Stale() bool {
 // MakeReply creates an OP_REPLY wiremessage from a BSON document
 func MakeReply(doc bsoncore.Document) []byte {
 	var dst []byte
-	idx, dst := wiremessage.AppendHeaderStart(dst, 10, 9, wiremessage.OpReply)
-	dst = wiremessage.AppendReplyFlags(dst, 0)
-	dst = wiremessage.AppendReplyCursorID(dst, 0)
-	dst = wiremessage.AppendReplyStartingFrom(dst, 0)
-	dst = wiremessage.AppendReplyNumberReturned(dst, 1)
+	idx, dst := bsoncore.ReserveLength(dst)
+	dst = bsoncore.AppendInt32(dst,
+		10,                         // reqid
+		9,                          // respto
+		int32(wiremessage.OpReply), // opcode
+		0,                          // reply flag
+	)
+	dst = bsoncore.AppendInt64(dst, 0) // reply cursor ID
+	dst = bsoncore.AppendInt32(dst,
+		0, // reply starting from
+		1, // reply number returned
+	)
 	dst = append(dst, doc...)
 	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
 }
@@ -100,29 +107,29 @@ func MakeReply(doc bsoncore.Document) []byte {
 // GetCommandFromQueryWireMessage returns the command sent in an OP_QUERY wire message.
 func GetCommandFromQueryWireMessage(wm []byte) (bsoncore.Document, error) {
 	var ok bool
-	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	_, wm, ok = bsoncore.ReadBytes(wm, 16)
 	if !ok {
 		return nil, errors.New("could not read header")
 	}
-	_, wm, ok = wiremessage.ReadQueryFlags(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		return nil, errors.New("could not read flags")
 	}
-	_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
+	_, wm, ok = bsoncore.ReadCString(wm)
 	if !ok {
 		return nil, errors.New("could not read fullCollectionName")
 	}
-	_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		return nil, errors.New("could not read numberToSkip")
 	}
-	_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		return nil, errors.New("could not read numberToReturn")
 	}
 
 	var query bsoncore.Document
-	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	query, _, ok = bsoncore.ReadDocument(wm)
 	if !ok {
 		return nil, errors.New("could not read query")
 	}
@@ -132,21 +139,21 @@ func GetCommandFromQueryWireMessage(wm []byte) (bsoncore.Document, error) {
 // GetCommandFromMsgWireMessage returns the command document sent in an OP_MSG wire message.
 func GetCommandFromMsgWireMessage(wm []byte) (bsoncore.Document, error) {
 	var ok bool
-	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	_, wm, ok = bsoncore.ReadBytes(wm, 16)
 	if !ok {
 		return nil, errors.New("could not read header")
 	}
 
-	_, wm, ok = wiremessage.ReadMsgFlags(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		return nil, errors.New("could not read flags")
 	}
-	_, wm, ok = wiremessage.ReadMsgSectionType(wm)
+	_, wm, ok = bsoncore.ReadByte(wm)
 	if !ok {
 		return nil, errors.New("could not read section type")
 	}
 
-	cmdDoc, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)
+	cmdDoc, _, ok := bsoncore.ReadDocument(wm)
 	if !ok {
 		return nil, errors.New("could not read command document")
 	}

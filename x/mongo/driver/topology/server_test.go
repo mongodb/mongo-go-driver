@@ -35,7 +35,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 type channelNetConnDialer struct{}
@@ -982,28 +981,28 @@ func TestServer(t *testing.T) {
 
 func includesMetadata(t *testing.T, wm []byte) bool {
 	var ok bool
-	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	_, wm, ok = bsoncore.ReadBytes(wm, 16)
 	if !ok {
 		t.Fatal("could not read header")
 	}
-	_, wm, ok = wiremessage.ReadQueryFlags(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		t.Fatal("could not read flags")
 	}
-	_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
+	_, wm, ok = bsoncore.ReadCString(wm)
 	if !ok {
 		t.Fatal("could not read fullCollectionName")
 	}
-	_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		t.Fatal("could not read numberToSkip")
 	}
-	_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
+	_, wm, ok = bsoncore.ReadInt32(wm)
 	if !ok {
 		t.Fatal("could not read numberToReturn")
 	}
 	var query bsoncore.Document
-	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	query, _, ok = bsoncore.ReadDocument(wm)
 	if !ok {
 		t.Fatal("could not read query")
 	}

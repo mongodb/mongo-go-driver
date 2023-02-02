@@ -429,7 +429,7 @@ func TestAppend(t *testing.T) {
 			got := results[0].Interface().([]byte)
 			want := tc.expected
 			if !bytes.Equal(got, want) {
-				t.Errorf("Did not receive expected bytes. got %v; want %v", got, want)
+				t.Errorf("%s: Did not receive expected bytes. got %v; want %v", tc.name, got, want)
 			}
 		})
 	}
@@ -448,25 +448,25 @@ func TestRead(t *testing.T) {
 	}{
 		{
 			"ReadType/not enough bytes",
-			ReadType,
+			ReadByte,
 			[]byte{},
-			[]interface{}{bsontype.Type(0), []byte{}, false},
+			[]interface{}{byte(0), []byte{}, false},
 		},
 		{
 			"ReadType/success",
-			ReadType,
+			ReadByte,
 			[]byte{0x0A},
-			[]interface{}{bsontype.Null, []byte{}, true},
+			[]interface{}{byte(10), []byte{}, true},
 		},
 		{
-			"ReadKey/not enough bytes",
-			ReadKey,
+			"ReadCString/not enough bytes",
+			ReadCString,
 			[]byte{},
 			[]interface{}{"", []byte{}, false},
 		},
 		{
-			"ReadKey/success",
-			ReadKey,
+			"ReadCString/success",
+			ReadCString,
 			[]byte{'f', 'o', 'o', 'b', 'a', 'r', 0x00},
 			[]interface{}{"foobar", []byte{}, true},
 		},
@@ -841,7 +841,7 @@ func TestRead(t *testing.T) {
 				got := results[idx].Interface()
 				want := tc.expected[idx]
 				if !cmp.Equal(got, want, cmp.Comparer(compareDecimal128)) {
-					t.Errorf("Result %d does not match. got %v; want %v", idx, got, want)
+					t.Errorf("%s: Result %d does not match. got %v; want %v", tc.name, idx, got, want)
 				}
 			}
 		})
@@ -885,7 +885,7 @@ func TestBuild(t *testing.T) {
 			t.Run("BuildDocumentFromElements", func(t *testing.T) {
 				got := BuildDocumentFromElements(nil, tc.elems...)
 				if !bytes.Equal(got, tc.want) {
-					t.Errorf("Documents do not match. got %v; want %v", got, tc.want)
+					t.Errorf("%s: Documents do not match. got %v; want %v", tc.name, got, tc.want)
 				}
 			})
 		})

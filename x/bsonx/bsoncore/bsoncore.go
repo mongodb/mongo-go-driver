@@ -27,8 +27,11 @@ const (
 	invalidRegexPanicMsg = "BSON regex values cannot contain null bytes"
 )
 
+// AppendBytes will append bytes to dst and return the extended buffer.
+func AppendBytes(dst []byte, b ...byte) []byte { return append(dst, b...) }
+
 // AppendType will append t to dst and return the extended buffer.
-func AppendType(dst []byte, t bsontype.Type) []byte { return append(dst, byte(t)) }
+func AppendType(dst []byte, t bsontype.Type) []byte { return AppendBytes(dst, byte(t)) }
 
 // AppendKey will append key to dst and return the extended buffer.
 func AppendKey(dst []byte, key string) []byte { return append(dst, key+nullTerminator...) }
@@ -48,38 +51,29 @@ func AppendHeader(dst []byte, t bsontype.Type, key string) []byte {
 
 // TODO(skriptble): All of the Read* functions should return src resliced to start just after what was read.
 
-// ReadType will return the first byte of the provided []byte as a type. If
-// there is no available byte, false is returned.
-func ReadType(src []byte) (bsontype.Type, []byte, bool) {
+// ReadByte will return the first byte of the provided []byte.
+// If there is no available byte, false is returned.
+func ReadByte(src []byte) (byte, []byte, bool) {
 	if len(src) < 1 {
 		return 0, src, false
 	}
-	return bsontype.Type(src[0]), src[1:], true
+	return src[0], src[1:], true
 }
-
-// ReadKey will read a key from src. The 0x00 byte will not be present
-// in the returned string. If there are not enough bytes available, false is
-// returned.
-func ReadKey(src []byte) (string, []byte, bool) { return readcstring(src) }
-
-// ReadKeyBytes will read a key from src as bytes. The 0x00 byte will
-// not be present in the returned string. If there are not enough bytes
-// available, false is returned.
-func ReadKeyBytes(src []byte) ([]byte, []byte, bool) { return readcstringbytes(src) }
 
 // ReadHeader will read a type byte and a key from src. If both of these
 // values cannot be read, false is returned.
 func ReadHeader(src []byte) (t bsontype.Type, key string, rem []byte, ok bool) {
-	t, rem, ok = ReadType(src)
+	var b byte
+	b, rem, ok = ReadByte(src)
 	if !ok {
 		return 0, "", src, false
 	}
-	key, rem, ok = ReadKey(rem)
+	key, rem, ok = ReadCString(rem)
 	if !ok {
 		return 0, "", src, false
 	}
 
-	return t, key, rem, true
+	return bsontype.Type(b), key, rem, true
 }
 
 // ReadHeaderBytes will read a type and a key from src and the remainder of the bytes
@@ -158,21 +152,16 @@ func ReadDouble(src []byte) (float64, []byte, bool) {
 	return math.Float64frombits(bits), src, true
 }
 
-// AppendString will append s to dst and return the extended buffer.
-func AppendString(dst []byte, s string) []byte {
-	return appendstring(dst, s)
+// AppendCString will append a 0x00 terminated string to dst and return the extended buffer.
+func AppendCString(b []byte, s string) []byte {
+	b = append(b, s...)
+	return append(b, 0x00)
 }
 
 // AppendStringElement will append a BSON string element using key and val to dst
 // and return the extended buffer.
 func AppendStringElement(dst []byte, key, val string) []byte {
 	return AppendString(AppendHeader(dst, bsontype.String, key), val)
-}
-
-// ReadString will read a string from src. If there are not enough bytes it
-// will return false.
-func ReadString(src []byte) (string, []byte, bool) {
-	return readstring(src)
 }
 
 // AppendDocumentStart reserves a document's length and returns the index where the length begins.
@@ -183,14 +172,6 @@ func AppendDocumentStart(dst []byte) (index int32, b []byte) {
 	// TODO start index, adding the null byte, calculating the length, and filling in the length at the start of the
 	// TODO document.
 	return ReserveLength(dst)
-}
-
-// AppendDocumentStartInline functions the same as AppendDocumentStart but takes a pointer to the
-// index int32 which allows this function to be used inline.
-func AppendDocumentStartInline(dst []byte, index *int32) []byte {
-	idx, doc := AppendDocumentStart(dst)
-	*index = idx
-	return doc
 }
 
 // AppendDocumentElementStart writes a document element header and then reserves the length bytes.
@@ -248,6 +229,53 @@ var BuildDocumentFromElements = BuildDocument
 // will return false.
 func ReadDocument(src []byte) (doc Document, rem []byte, ok bool) { return readLengthBytes(src) }
 
+// ReadReplyDocuments reads as many documents as possible from src
+func ReadReplyDocuments(src []byte) (docs []Document, rem []byte, ok bool) {
+	rem = src
+	for {
+		var doc Document
+		doc, rem, ok = ReadDocument(rem)
+		if !ok {
+			break
+		}
+
+		docs = append(docs, doc)
+	}
+
+	return docs, rem, true
+}
+
+// ReadMsgSectionDocumentSequence reads an identifier and document sequence from src and returns the document sequence
+// data parsed into a slice of BSON documents.
+func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []Document, rem []byte, ok bool) {
+	length, rem, ok := ReadInt32(src)
+	if !ok || int(length) > len(src) {
+		return "", nil, rem, false
+	}
+
+	rem, ret := rem[:length-4], rem[length-4:] // reslice so we can just iterate a loop later
+
+	identifier, rem, ok = ReadCString(rem)
+	if !ok {
+		return "", nil, rem, false
+	}
+
+	docs = make([]Document, 0)
+	var doc Document
+	for {
+		doc, rem, ok = ReadDocument(rem)
+		if !ok {
+			break
+		}
+		docs = append(docs, doc)
+	}
+	if len(rem) > 0 {
+		return "", nil, append(rem, ret...), false
+	}
+
+	return identifier, docs, ret, true
+}
+
 // AppendArrayStart appends the length bytes to an array and then returns the index of the start
 // of those length bytes.
 func AppendArrayStart(dst []byte) (index int32, b []byte) { return ReserveLength(dst) }
@@ -296,7 +324,7 @@ func AppendBinary(dst []byte, subtype byte, b []byte) []byte {
 	if subtype == 0x02 {
 		return appendBinarySubtype2(dst, subtype, b)
 	}
-	dst = append(appendLength(dst, int32(len(b))), subtype)
+	dst = append(appendi32(dst, int32(len(b))), subtype)
 	return append(dst, b...)
 }
 
@@ -330,6 +358,14 @@ func ReadBinary(src []byte) (subtype byte, bin []byte, rem []byte, ok bool) {
 	}
 
 	return subtype, rem[:length], rem[length:], true
+}
+
+// ReadBytes reads the raw message of the given length to dst.
+func ReadBytes(src []byte, length int32) (msg []byte, rem []byte, ok bool) {
+	if len(src) < int(length) {
+		return nil, src, false
+	}
+	return src[:length], src[length:], true
 }
 
 // AppendUndefinedElement will append a BSON undefined element using key to dst
@@ -393,7 +429,7 @@ func AppendDateTimeElement(dst []byte, key string, dt int64) []byte {
 
 // ReadDateTime will read an int64 datetime from src. If there are not enough bytes it
 // will return false.
-func ReadDateTime(src []byte) (int64, []byte, bool) { return readi64(src) }
+func ReadDateTime(src []byte) (int64, []byte, bool) { return ReadInt64(src) }
 
 // AppendTime will append time as a BSON DateTime to dst and return the extended buffer.
 func AppendTime(dst []byte, t time.Time) []byte {
@@ -409,7 +445,7 @@ func AppendTimeElement(dst []byte, key string, t time.Time) []byte {
 // ReadTime will read an time.Time datetime from src. If there are not enough bytes it
 // will return false.
 func ReadTime(src []byte) (time.Time, []byte, bool) {
-	dt, rem, ok := readi64(src)
+	dt, rem, ok := ReadInt64(src)
 	return time.Unix(dt/1e3, dt%1e3*1e6), rem, ok
 }
 
@@ -435,11 +471,11 @@ func AppendRegexElement(dst []byte, key, pattern, options string) []byte {
 // ReadRegex will read a pattern and options from src. If there are not enough bytes it
 // will return false.
 func ReadRegex(src []byte) (pattern, options string, rem []byte, ok bool) {
-	pattern, rem, ok = readcstring(src)
+	pattern, rem, ok = ReadCString(src)
 	if !ok {
 		return "", "", src, false
 	}
-	options, rem, ok = readcstring(rem)
+	options, rem, ok = ReadCString(rem)
 	if !ok {
 		return "", "", src, false
 	}
@@ -448,7 +484,7 @@ func ReadRegex(src []byte) (pattern, options string, rem []byte, ok bool) {
 
 // AppendDBPointer will append ns and oid to dst and return the extended buffer.
 func AppendDBPointer(dst []byte, ns string, oid primitive.ObjectID) []byte {
-	return append(appendstring(dst, ns), oid[:]...)
+	return append(AppendString(dst, ns), oid[:]...)
 }
 
 // AppendDBPointerElement will append a BSON DBPointer element using key, ns,
@@ -460,7 +496,7 @@ func AppendDBPointerElement(dst []byte, key, ns string, oid primitive.ObjectID) 
 // ReadDBPointer will read a ns and oid from src. If there are not enough bytes it
 // will return false.
 func ReadDBPointer(src []byte) (ns string, oid primitive.ObjectID, rem []byte, ok bool) {
-	ns, rem, ok = readstring(src)
+	ns, rem, ok = ReadString(src)
 	if !ok {
 		return "", primitive.ObjectID{}, src, false
 	}
@@ -472,7 +508,7 @@ func ReadDBPointer(src []byte) (ns string, oid primitive.ObjectID, rem []byte, o
 }
 
 // AppendJavaScript will append js to dst and return the extended buffer.
-func AppendJavaScript(dst []byte, js string) []byte { return appendstring(dst, js) }
+func AppendJavaScript(dst []byte, js string) []byte { return AppendString(dst, js) }
 
 // AppendJavaScriptElement will append a BSON JavaScript element using key and
 // js to dst and return the extended buffer.
@@ -482,10 +518,10 @@ func AppendJavaScriptElement(dst []byte, key, js string) []byte {
 
 // ReadJavaScript will read a js string from src. If there are not enough bytes it
 // will return false.
-func ReadJavaScript(src []byte) (js string, rem []byte, ok bool) { return readstring(src) }
+func ReadJavaScript(src []byte) (js string, rem []byte, ok bool) { return ReadString(src) }
 
 // AppendSymbol will append symbol to dst and return the extended buffer.
-func AppendSymbol(dst []byte, symbol string) []byte { return appendstring(dst, symbol) }
+func AppendSymbol(dst []byte, symbol string) []byte { return AppendString(dst, symbol) }
 
 // AppendSymbolElement will append a BSON symbol element using key and symbol to dst
 // and return the extended buffer.
@@ -495,14 +531,14 @@ func AppendSymbolElement(dst []byte, key, symbol string) []byte {
 
 // ReadSymbol will read a symbol string from src. If there are not enough bytes it
 // will return false.
-func ReadSymbol(src []byte) (symbol string, rem []byte, ok bool) { return readstring(src) }
+func ReadSymbol(src []byte) (symbol string, rem []byte, ok bool) { return ReadString(src) }
 
 // AppendCodeWithScope will append code and scope to dst and return the extended buffer.
 func AppendCodeWithScope(dst []byte, code string, scope []byte) []byte {
 	length := int32(4 + 4 + len(code) + 1 + len(scope)) // length of cws, length of code, code, 0x00, scope
-	dst = appendLength(dst, length)
+	dst = appendi32(dst, length)
 
-	return append(appendstring(dst, code), scope...)
+	return append(AppendString(dst, code), scope...)
 }
 
 // AppendCodeWithScopeElement will append a BSON code with scope element using
@@ -520,7 +556,7 @@ func ReadCodeWithScope(src []byte) (code string, scope []byte, rem []byte, ok bo
 		return "", nil, src, false
 	}
 
-	code, rem, ok = readstring(rem)
+	code, rem, ok = ReadString(rem)
 	if !ok {
 		return "", nil, src, false
 	}
@@ -533,7 +569,12 @@ func ReadCodeWithScope(src []byte) (code string, scope []byte, rem []byte, ok bo
 }
 
 // AppendInt32 will append i32 to dst and return the extended buffer.
-func AppendInt32(dst []byte, i32 int32) []byte { return appendi32(dst, i32) }
+func AppendInt32(dst []byte, i32 ...int32) []byte {
+	for _, v := range i32 {
+		dst = appendi32(dst, v)
+	}
+	return dst
+}
 
 // AppendInt32Element will append a BSON int32 element using key and i32 to dst
 // and return the extended buffer.
@@ -578,10 +619,6 @@ func AppendInt64(dst []byte, i64 int64) []byte { return appendi64(dst, i64) }
 func AppendInt64Element(dst []byte, key string, i64 int64) []byte {
 	return AppendInt64(AppendHeader(dst, bsontype.Int64, key), i64)
 }
-
-// ReadInt64 will read an int64 from src. If there are not enough bytes it
-// will return false.
-func ReadInt64(src []byte) (int64, []byte, bool) { return readi64(src) }
 
 // AppendDecimal128 will append d128 to dst and return the extended buffer.
 func AppendDecimal128(dst []byte, d128 primitive.Decimal128) []byte {
@@ -713,8 +750,6 @@ func UpdateLength(dst []byte, index, length int32) []byte {
 	return dst
 }
 
-func appendLength(dst []byte, l int32) []byte { return appendi32(dst, l) }
-
 func appendi32(dst []byte, i32 int32) []byte {
 	return append(dst, byte(i32), byte(i32>>8), byte(i32>>16), byte(i32>>24))
 }
@@ -744,7 +779,9 @@ func appendi64(dst []byte, i64 int64) []byte {
 	)
 }
 
-func readi64(src []byte) (int64, []byte, bool) {
+// ReadInt64 will read an int64 from src. If there are not enough bytes it
+// will return false.
+func ReadInt64(src []byte) (int64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false
 	}
@@ -781,8 +818,10 @@ func readu64(src []byte) (uint64, []byte, bool) {
 	return u64, src[8:], true
 }
 
-// keep in sync with readcstringbytes
-func readcstring(src []byte) (string, []byte, bool) {
+// ReadCString will read a 0x00 terminated string from src.
+// The 0x00 byte will not be present in the returned string.
+// If there are not enough bytes available, false is returned.
+func ReadCString(src []byte) (string, []byte, bool) {
 	idx := bytes.IndexByte(src, 0x00)
 	if idx < 0 {
 		return "", src, false
@@ -790,8 +829,10 @@ func readcstring(src []byte) (string, []byte, bool) {
 	return string(src[:idx]), src[idx+1:], true
 }
 
-// keep in sync with readcstring
-func readcstringbytes(src []byte) ([]byte, []byte, bool) {
+// ReadCStringBytes will read a 0x00 terminated string from src as bytes.
+// The 0x00 byte will not be present in the returned string.
+// If there are not enough bytes available, false is returned.
+func ReadCStringBytes(src []byte) ([]byte, []byte, bool) {
 	idx := bytes.IndexByte(src, 0x00)
 	if idx < 0 {
 		return nil, src, false
@@ -799,14 +840,17 @@ func readcstringbytes(src []byte) ([]byte, []byte, bool) {
 	return src[:idx], src[idx+1:], true
 }
 
-func appendstring(dst []byte, s string) []byte {
+// AppendString will append s to dst and return the extended buffer.
+func AppendString(dst []byte, s string) []byte {
 	l := int32(len(s) + 1)
-	dst = appendLength(dst, l)
+	dst = appendi32(dst, l)
 	dst = append(dst, s...)
 	return append(dst, 0x00)
 }
 
-func readstring(src []byte) (string, []byte, bool) {
+// ReadString will read a string from src. If there are not enough bytes it
+// will return false.
+func ReadString(src []byte) (string, []byte, bool) {
 	l, rem, ok := ReadLength(src)
 	if !ok {
 		return "", src, false
@@ -832,9 +876,9 @@ func readLengthBytes(src []byte) ([]byte, []byte, bool) {
 }
 
 func appendBinarySubtype2(dst []byte, subtype byte, b []byte) []byte {
-	dst = appendLength(dst, int32(len(b)+4)) // The bytes we'll encode need to be 4 larger for the length bytes
+	dst = appendi32(dst, int32(len(b)+4)) // The bytes we'll encode need to be 4 larger for the length bytes
 	dst = append(dst, subtype)
-	dst = appendLength(dst, int32(len(b)))
+	dst = appendi32(dst, int32(len(b)))
 	return append(dst, b...)
 }
 

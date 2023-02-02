@@ -65,9 +65,14 @@ func (c *connection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, err
 	c.responses = c.responses[1:]
 
 	var wmindex int32
-	wmindex, dst = wiremessage.AppendHeaderStart(dst, wiremessage.NextRequestID(), 0, wiremessage.OpMsg)
-	dst = wiremessage.AppendMsgFlags(dst, 0)
-	dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SingleDocument)
+	wmindex, dst = bsoncore.ReserveLength(dst)
+	dst = bsoncore.AppendInt32(dst,
+		wiremessage.NextRequestID(), // reqid
+		0,                           // reqid
+		int32(wiremessage.OpMsg),    // opcode
+		0,                           // msg flag
+	)
+	dst = bsoncore.AppendBytes(dst, byte(wiremessage.SingleDocument))
 	resBytes, _ := bson.Marshal(nextRes)
 	dst = append(dst, resBytes...)
 	dst = bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:])))

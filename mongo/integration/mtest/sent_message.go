@@ -50,7 +50,11 @@ func getSentMessageParser(opcode wiremessage.OpCode) (sentMsgParseFn, bool) {
 
 func parseSentMessage(wm []byte) (*SentMessage, error) {
 	// Re-assign the wire message to "remaining" so "wm" continues to point to the entire message after parsing.
-	_, requestID, _, opcode, remaining, ok := wiremessage.ReadHeader(wm)
+	hdr, remaining, ok := bsoncore.ReadBytes(wm, 16)
+	if !ok {
+		return nil, errors.New("failed to read wiremessage header")
+	}
+	_, requestID, _, opcode, ok := wiremessage.ParseHeader(hdr)
 	if !ok {
 		return nil, errors.New("failed to read wiremessage header")
 	}
@@ -73,20 +77,20 @@ func parseSentMessage(wm []byte) (*SentMessage, error) {
 func parseOpQuery(wm []byte) (*SentMessage, error) {
 	var ok bool
 
-	if _, wm, ok = wiremessage.ReadQueryFlags(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read query flags")
 	}
-	if _, wm, ok = wiremessage.ReadQueryFullCollectionName(wm); !ok {
+	if _, wm, ok = bsoncore.ReadCString(wm); !ok {
 		return nil, errors.New("failed to read full collection name")
 	}
-	if _, wm, ok = wiremessage.ReadQueryNumberToSkip(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read number to skip")
 	}
-	if _, wm, ok = wiremessage.ReadQueryNumberToReturn(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read number to return")
 	}
 
-	query, wm, ok := wiremessage.ReadQueryQuery(wm)
+	query, _, ok := bsoncore.ReadDocument(wm)
 	if !ok {
 		return nil, errors.New("failed to read query")
 	}
@@ -133,11 +137,31 @@ func parseOpQuery(wm []byte) (*SentMessage, error) {
 	return sm, nil
 }
 
+// readMsgSectionRawDocumentSequence reads an identifier and document sequence from src and returns the raw document
+// sequence data.
+func readMsgSectionRawDocumentSequence(src []byte) (data []byte, rem []byte, ok bool) {
+	length, rem, ok := bsoncore.ReadInt32(src)
+	if !ok || int(length) > len(src) {
+		return nil, rem, false
+	}
+
+	// After these assignments, rem will be the data containing the identifier string + the document sequence bytes and
+	// rest will be the rest of the wire message after this document sequence.
+	rem, rest := rem[:length-4], rem[length-4:]
+
+	_, rem, ok = bsoncore.ReadCString(rem)
+	if !ok {
+		return nil, rem, false
+	}
+
+	return rem, rest, true
+}
+
 func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 	var ok bool
 	var err error
 
-	if _, wm, ok = wiremessage.ReadMsgFlags(wm); !ok {
+	if _, wm, ok = bsoncore.ReadInt32(wm); !ok {
 		return nil, errors.New("failed to read flags")
 	}
 
@@ -146,7 +170,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 	}
 
 	var commandDoc bsoncore.Document
-	commandDoc, wm, ok = wiremessage.ReadMsgSectionSingleDocument(wm)
+	commandDoc, wm, ok = bsoncore.ReadDocument(wm)
 	if !ok {
 		return nil, errors.New("failed to read command document")
 	}
@@ -164,7 +188,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 		}
 
 		var data []byte
-		_, data, wm, ok = wiremessage.ReadMsgSectionRawDocumentSequence(wm)
+		data, _, ok = readMsgSectionRawDocumentSequence(wm)
 		if !ok {
 			return nil, errors.New("failed to read document sequence")
 		}

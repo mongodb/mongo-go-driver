@@ -629,14 +629,20 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 	if c.connection.compressor == wiremessage.CompressorNoOp {
 		return append(dst, src...), nil
 	}
-	_, reqid, respto, origcode, rem, ok := wiremessage.ReadHeader(src)
+	hdr, rem, ok := bsoncore.ReadBytes(src, 16)
 	if !ok {
 		return dst, errors.New("wiremessage is too short to compress, less than 16 bytes")
 	}
-	idx, dst := wiremessage.AppendHeaderStart(dst, reqid, respto, wiremessage.OpCompressed)
-	dst = wiremessage.AppendCompressedOriginalOpCode(dst, origcode)
-	dst = wiremessage.AppendCompressedUncompressedSize(dst, int32(len(rem)))
-	dst = wiremessage.AppendCompressedCompressorID(dst, c.connection.compressor)
+	_, reqid, respto, origcode, ok := wiremessage.ParseHeader(hdr)
+	if !ok {
+		return dst, errors.New("wiremessage is too short to compress, less than 16 bytes")
+	}
+	idx, dst := bsoncore.ReserveLength(dst)
+	dst = bsoncore.AppendInt32(dst, reqid, respto, int32(wiremessage.OpCompressed),
+		int32(origcode), // original opCode
+		int32(len(rem)), // uncompressed size
+	)
+	dst = bsoncore.AppendBytes(dst, byte(c.connection.compressor))
 	opts := driver.CompressionOpts{
 		Compressor: c.connection.compressor,
 		ZlibLevel:  c.connection.zliblevel,
@@ -646,7 +652,7 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	dst = wiremessage.AppendCompressedCompressedMessage(dst, compressed)
+	dst = append(dst, compressed...)
 	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:]))), nil
 }
 

@@ -110,22 +110,22 @@ func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	}
 	rem = rem[:length-4]
 
-	var t bsontype.Type
+	var b byte
 	var key string
 	var val bsoncore.Value
 	for {
-		t, rem, ok = bsoncore.ReadType(rem)
+		b, rem, ok = bsoncore.ReadByte(rem)
 		if !ok {
 			return io.EOF
 		}
-		if t == bsontype.Type(0) {
+		if b == 0 {
 			if len(rem) != 0 {
 				return fmt.Errorf("document end byte found before end of document. remaining bytes=%v", rem)
 			}
 			break
 		}
 
-		key, rem, ok = bsoncore.ReadKey(rem)
+		key, rem, ok = bsoncore.ReadCString(rem)
 		if !ok {
 			return fmt.Errorf("invalid key found. remaining bytes=%v", rem)
 		}
@@ -136,6 +136,7 @@ func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 			return err
 		}
 
+		t := bsontype.Type(b)
 		val, rem, ok = bsoncore.ReadValue(rem, t)
 		if !ok {
 			return fmt.Errorf("not enough bytes available to read type. bytes=%d type=%s", len(rem), t)

@@ -17,6 +17,15 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// appendDocumentStartInline functions the same as AppendDocumentStart but takes a pointer to the
+// index int32 which allows this function to be used inline.
+func appendDocumentStartInline(t *testing.T, dst []byte, index *int32) []byte {
+	t.Helper()
+	idx, doc := bsoncore.AppendDocumentStart(dst)
+	*index = idx
+	return doc
+}
+
 func TestCopier(t *testing.T) {
 	t.Run("CopyDocument", func(t *testing.T) {
 		t.Run("ReadDocument Error", func(t *testing.T) {
@@ -419,7 +428,7 @@ func TestCopier(t *testing.T) {
 			var idx int32
 			want, err := bsoncore.AppendDocumentEnd(
 				bsoncore.AppendStringElement(
-					bsoncore.AppendDocumentStartInline(nil, &idx),
+					appendDocumentStartInline(t, nil, &idx),
 					"foo", "bar",
 				),
 				idx,
@@ -445,7 +454,7 @@ func TestCopier(t *testing.T) {
 			var idx int32
 			b, err := bsoncore.AppendDocumentEnd(
 				bsoncore.AppendStringElement(
-					bsoncore.AppendDocumentStartInline(nil, &idx),
+					appendDocumentStartInline(t, nil, &idx),
 					"hello", "world",
 				),
 				idx,
@@ -484,7 +493,7 @@ func TestCopier(t *testing.T) {
 			var idx int32
 			b, err := bsoncore.AppendDocumentEnd(
 				bsoncore.AppendStringElement(
-					bsoncore.AppendDocumentStartInline(nil, &idx),
+					appendDocumentStartInline(t, nil, &idx),
 					"hello", "world",
 				),
 				idx,

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -24,14 +25,14 @@ func copyBytes(original []byte) []byte {
 // It returns the remainder of the wire message and an error if the section type could not be read or was not equal
 // to the expected type.
 func assertMsgSectionType(wm []byte, expected wiremessage.SectionType) ([]byte, error) {
-	var actual wiremessage.SectionType
+	var secType byte
 	var ok bool
 
-	actual, wm, ok = wiremessage.ReadMsgSectionType(wm)
+	secType, wm, ok = bsoncore.ReadByte(wm)
 	if !ok {
 		return wm, errors.New("failed to read section type")
 	}
-	if expected != actual {
+	if actual := wiremessage.SectionType(secType); expected != actual {
 		return wm, fmt.Errorf("unexpected section type %v; expected %v", actual, expected)
 	}
 	return wm, nil
@@ -39,28 +40,29 @@ func assertMsgSectionType(wm []byte, expected wiremessage.SectionType) ([]byte, 
 
 func parseOpCompressed(wm []byte) (wiremessage.OpCode, []byte, error) {
 	// Store the original opcode to forward to another parser later.
-	originalOpcode, wm, ok := wiremessage.ReadCompressedOriginalOpCode(wm)
+	opCode, wm, ok := bsoncore.ReadInt32(wm)
+	originalOpcode := wiremessage.OpCode(opCode)
 	if !ok {
 		return originalOpcode, nil, errors.New("failed to read original opcode")
 	}
 
-	uncompressedSize, wm, ok := wiremessage.ReadCompressedUncompressedSize(wm)
+	uncompressedSize, wm, ok := bsoncore.ReadInt32(wm)
 	if !ok {
 		return originalOpcode, nil, errors.New("failed to read uncompressed size")
 	}
 
-	compressorID, wm, ok := wiremessage.ReadCompressedCompressorID(wm)
+	compressorID, wm, ok := bsoncore.ReadByte(wm)
 	if !ok {
 		return originalOpcode, nil, errors.New("failed to read compressor ID")
 	}
 
-	compressedMsg, wm, ok := wiremessage.ReadCompressedCompressedMessage(wm, int32(len(wm)))
+	compressedMsg, _, ok := bsoncore.ReadBytes(wm, int32(len(wm)))
 	if !ok {
 		return originalOpcode, nil, errors.New("failed to read compressed message")
 	}
 
 	opts := driver.CompressionOpts{
-		Compressor:       compressorID,
+		Compressor:       wiremessage.CompressorID(compressorID),
 		UncompressedSize: uncompressedSize,
 	}
 	decompressed, err := driver.DecompressPayload(compressedMsg, opts)
