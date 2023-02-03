@@ -29,15 +29,18 @@ func NewIOSink(out io.Writer) *IOSink {
 
 func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q started on database %q using a connection with " +
-		"server-generated ID %d to %s:%d. The requestID is %d and " +
-		"the operation ID is %d. Command: %s"
+		"driver-generated ID %q and server-generated ID %d to %s:%d " +
+		"with service ID %q. The requestID is %d and the operation " +
+		"ID is %d. Command: %s"
 
 	log.Printf(format,
 		kvMap["commandName"],
 		kvMap["databaseName"],
+		kvMap["driverConnectionId"],
 		kvMap["serverConnectionId"],
 		kvMap["serverHost"],
 		kvMap["serverPort"],
+		kvMap["serviceId"],
 		kvMap["requestId"],
 		kvMap["operationId"],
 		kvMap["command"])
@@ -45,29 +48,39 @@ func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Command %q succeeded in %d ms using server-generated ID " +
-		"%d to %s:%d. The requestID is %d and the operation ID is " +
-		"%d. Command reply: %s"
+	format := "Command %q succeeded in %d ms using a connection with " +
+		"driver-generated ID %q and server-generated ID %d to %s:%d " +
+		"with service ID %q. The requestID is %d and the operation " +
+		"ID is %d. Command reply: %s"
 
 	log.Printf(format,
 		kvMap["commandName"],
-		kvMap["duration"],
+		kvMap["durationMS"],
+		kvMap["driverConnectionId"],
 		kvMap["serverConnectionId"],
 		kvMap["serverHost"],
 		kvMap["serverPort"],
+		kvMap["serviceId"],
 		kvMap["requestId"],
 		kvMap["operationId"],
 		kvMap["reply"])
 }
 
+/*
+  Command "{{commandName}}" failed in {{durationMS}} ms using a connection with driver-generated ID {{driverConnectionId}} and
+   server-generated ID {{serverConnectionId}} to {{serverHost}}:{{serverPort}} with service ID {{serviceId}}. The requestID is
+   {{requestId}} and the operation ID is {{operationId}}. Error: {{error}}
+*/
+
 func logCommandMessageFailed(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q failed in %d ms using a connection with " +
-		"server-generated ID %d to %s:%d. The requestID is %d and " +
-		"the operation ID is %d. Error: %s"
+		"driver-generated ID %q and server-generated ID %d to %s:%d " +
+		"with service ID %q. The requestID is %d and the operation " +
+		"ID is %d. Error: %s"
 
 	log.Printf(format,
 		kvMap["commandName"],
-		kvMap["duration"],
+		kvMap["durationMS"],
 		kvMap["serverConnectionID"],
 		kvMap["serverHost"],
 		kvMap["serverPort"],

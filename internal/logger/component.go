@@ -104,15 +104,16 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 
 	// Add the "serverConnectionId" if it is not nil.
 	if cmd.ServerConnectionID != nil {
-		keysAndValues = append(keysAndValues,
-			"serverConnectionId", *cmd.ServerConnectionID)
+		keysAndValues = append(keysAndValues, "serverConnectionId", *cmd.ServerConnectionID)
 	}
 
 	// Add the "serviceId" if it is not nil.
+	var serviceIDStr string
 	if cmd.ServiceID != nil {
-		keysAndValues = append(keysAndValues,
-			"serviceId", cmd.ServiceID.Hex())
+		serviceIDStr = cmd.ServiceID.Hex()
 	}
+
+	keysAndValues = append(keysAndValues, "serviceId", serviceIDStr)
 
 	return keysAndValues
 }
