@@ -33,6 +33,11 @@ func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 		"with service ID %q. The requestID is %d and the operation " +
 		"ID is %d. Command: %s"
 
+	var serviceID string
+	if id, ok := kvMap["serviceId"].(string); ok {
+		serviceID = id
+	}
+
 	log.Printf(format,
 		kvMap["commandName"],
 		kvMap["databaseName"],
@@ -40,7 +45,7 @@ func logCommandMessageStarted(log *log.Logger, kvMap map[string]interface{}) {
 		kvMap["serverConnectionId"],
 		kvMap["serverHost"],
 		kvMap["serverPort"],
-		kvMap["serviceId"],
+		serviceID,
 		kvMap["requestId"],
 		kvMap["operationId"],
 		kvMap["command"])
@@ -53,6 +58,11 @@ func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
 		"with service ID %q. The requestID is %d and the operation " +
 		"ID is %d. Command reply: %s"
 
+	var serviceID string
+	if id, ok := kvMap["serviceId"].(string); ok {
+		serviceID = id
+	}
+
 	log.Printf(format,
 		kvMap["commandName"],
 		kvMap["durationMS"],
@@ -60,7 +70,7 @@ func logCommandMessageSucceeded(log *log.Logger, kvMap map[string]interface{}) {
 		kvMap["serverConnectionId"],
 		kvMap["serverHost"],
 		kvMap["serverPort"],
-		kvMap["serviceId"],
+		serviceID,
 		kvMap["requestId"],
 		kvMap["operationId"],
 		kvMap["reply"])
