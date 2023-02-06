@@ -29,15 +29,23 @@ func NewIOSink(out io.Writer) *IOSink {
 
 func logCommandStartedMessage(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q started on database %q using a connection with " +
-		"server-generated ID %d to %s:%d. The requestID is %d and " +
-		"the operation ID is %d. Command: %s"
+		"driver-generated ID %q and server-generated ID %d to %s:%d " +
+		"with service ID %q. The requestID is %d and the operation " +
+		"ID is %d. Command: %s"
+
+	var serviceID string
+	if id, ok := kvMap[KeyServiceID].(string); ok {
+		serviceID = id
+	}
 
 	log.Printf(format,
 		kvMap[KeyCommandName],
 		kvMap[KeyDatabaseName],
+		kvMap[KeyDriverConnectionID],
 		kvMap[KeyServerConnectionID],
 		kvMap[KeyServerHost],
 		kvMap[KeyServerPort],
+		serviceID,
 		kvMap[KeyRequestID],
 		kvMap[KeyOperationID],
 		kvMap[KeyCommand])
@@ -45,16 +53,24 @@ func logCommandStartedMessage(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logCommandSucceededMessage(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Command %q succeeded in %d ms using server-generated ID " +
-		"%d to %s:%d. The requestID is %d and the operation ID is " +
-		"%d. Command reply: %s"
+	format := "Command %q succeeded in %d ms using a connection with " +
+		"driver-generated ID %q and server-generated ID %d to %s:%d " +
+		"with service ID %q. The requestID is %d and the operation " +
+		"ID is %d. Command reply: %s"
+
+	var serviceID string
+	if id, ok := kvMap[KeyServiceID].(string); ok {
+		serviceID = id
+	}
 
 	log.Printf(format,
 		kvMap[KeyCommandName],
 		kvMap[KeyDurationMS],
+		kvMap[KeyDriverConnectionID],
 		kvMap[KeyServerConnectionID],
 		kvMap[KeyServerHost],
 		kvMap[KeyServerPort],
+		serviceID,
 		kvMap[KeyRequestID],
 		kvMap[KeyOperationID],
 		kvMap[KeyReply])
@@ -62,15 +78,23 @@ func logCommandSucceededMessage(log *log.Logger, kvMap map[string]interface{}) {
 
 func logCommandFailedMessage(log *log.Logger, kvMap map[string]interface{}) {
 	format := "Command %q failed in %d ms using a connection with " +
-		"server-generated ID %d to %s:%d. The requestID is %d and " +
-		"the operation ID is %d. Error: %s"
+		"driver-generated ID %q and server-generated ID %d to %s:%d " +
+		"with service ID %q. The requestID is %d and the operation " +
+		"ID is %d. Error: %s"
+
+	var serviceID string
+	if id, ok := kvMap[KeyServiceID].(string); ok {
+		serviceID = id
+	}
 
 	log.Printf(format,
 		kvMap[KeyCommandName],
 		kvMap[KeyDurationMS],
+		kvMap[KeyDriverConnectionID],
 		kvMap[KeyServerConnectionID],
 		kvMap[KeyServerHost],
 		kvMap[KeyServerPort],
+		serviceID,
 		kvMap[KeyRequestID],
 		kvMap[KeyOperationID],
 		kvMap[KeyFailure])

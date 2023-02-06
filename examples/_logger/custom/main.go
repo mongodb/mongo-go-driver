@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -30,7 +31,7 @@ func (logger CustomLogger) Error(err error, msg string, keysAndValues ...interfa
 }
 
 func main() {
-	//sink := CustomLogger{os.Stdout}
+	sink := CustomLogger{os.Stdout}
 
 	// Create a client with our logger options.
 	loggerOptions := options.

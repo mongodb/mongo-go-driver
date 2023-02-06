@@ -1804,6 +1804,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				ServiceID:          info.serviceID,
 			},
 				logger.KeyCommand, formattedCmd,
+				logger.KeyDriverConnectionID, info.connID,
 				logger.KeyDatabaseName, op.Database)...)
 
 	}
@@ -1855,6 +1856,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServiceID:          info.serviceID,
 			},
 				logger.KeyDurationMS, info.duration.Milliseconds(),
+				logger.KeyDriverConnectionID, info.connID,
 				logger.KeyReply, formattedReply)...)
 	}
 
@@ -1876,6 +1878,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServiceID:          info.serviceID,
 			},
 				logger.KeyDurationMS, info.duration.Milliseconds(),
+				logger.KeyDriverConnectionID, info.connID,
 				logger.KeyFailure, formattedReply)...)
 	}
 
