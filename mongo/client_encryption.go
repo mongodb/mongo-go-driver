@@ -75,7 +75,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 
 // CreateEncryptedCollection creates a new collection for Queryable Encryption with the help of automatic generation of new encryption data keys for null keyIds.
 // It returns the created collection and the encrypted fields document used to create it.
-// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
+// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts *options.CreateCollectionOptions,
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
