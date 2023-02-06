@@ -73,8 +73,9 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	return ce, nil
 }
 
-// CreateEncryptedCollection creates a new collection with the help of automatic generation of new encryption data keys for null keyIds.
+// CreateEncryptedCollection creates a new collection for Queryable Encryption with the help of automatic generation of new encryption data keys for null keyIds.
 // It returns the created collection and the encrypted fields document used to create it.
+// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	db *Database, coll string, createOpts *options.CreateCollectionOptions,
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
@@ -228,7 +229,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 // {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
 // $gt may also be $gte. $lt may also be $lte.
 // Only supported for queryType "rangePreview"
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...*options.EncryptOptions) error {
 	transformed := transformExplicitEncryptionOptions(opts...)
 
