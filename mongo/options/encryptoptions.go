@@ -13,13 +13,13 @@ import (
 
 // These constants specify valid values for QueryType
 // QueryType is used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
+// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 const (
 	QueryTypeEquality string = "equality"
 )
 
 // RangeOptions specifies index options for a Queryable Encryption field supporting "rangePreview" queries.
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 type RangeOptions struct {
 	Min       *bson.RawValue
 	Max       *bson.RawValue
@@ -61,7 +61,7 @@ func (e *EncryptOptions) SetKeyAltName(keyAltName string) *EncryptOptions {
 // - Unindexed
 // This is required.
 // Indexed and Unindexed are used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
+// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 	e.Algorithm = algorithm
 	return e
@@ -71,7 +71,7 @@ func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 // This should be one of the following:
 // - equality
 // QueryType is used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
+// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
 	e.QueryType = queryType
 	return e
@@ -79,42 +79,42 @@ func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
 
 // SetContentionFactor specifies the contention factor. It is only valid to set if algorithm is "Indexed".
 // ContentionFactor is used for Queryable Encryption.
-// Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
+// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOptions {
 	e.ContentionFactor = &contentionFactor
 	return e
 }
 
 // SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "rangePreview".
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (e *EncryptOptions) SetRangeOptions(ro RangeOptions) *EncryptOptions {
 	e.RangeOptions = &ro
 	return e
 }
 
 // SetMin sets the range index minimum value.
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptions) SetMin(min bson.RawValue) *RangeOptions {
 	ro.Min = &min
 	return ro
 }
 
 // SetMax sets the range index maximum value.
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptions) SetMax(max bson.RawValue) *RangeOptions {
 	ro.Max = &max
 	return ro
 }
 
 // SetSparsity sets the range index sparsity.
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptions) SetSparsity(sparsity int64) *RangeOptions {
 	ro.Sparsity = sparsity
 	return ro
 }
 
 // SetPrecision sets the range index precision.
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ro *RangeOptions) SetPrecision(precision int32) *RangeOptions {
 	ro.Precision = &precision
 	return ro
