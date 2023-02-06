@@ -83,10 +83,6 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	}
 	ef := createOpts.EncryptedFields
 	if ef == nil {
-		// Otherwise, try to get EncryptedFields from EncryptedFieldsMap.
-		ef = db.getEncryptedFieldsFromMap(coll)
-	}
-	if ef == nil {
 		return nil, nil, errors.New("no EncryptedFields defined for the collection")
 	}
 

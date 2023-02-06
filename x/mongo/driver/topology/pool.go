@@ -815,7 +815,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			if w == nil {
 				break
 			}
-			//w.tryDeliver(nil, pcErr)
+			w.tryDeliver(nil, pcErr)
 		}
 		p.idleMu.Unlock()
 
@@ -1195,8 +1195,8 @@ func (w *wantConn) tryDeliver(conn *connection, err error) bool {
 	}
 
 	go func() {
-		w.readyMu.Lock()
-		defer w.readyMu.Unlock()
+		//w.readyMu.Lock()
+		//defer w.readyMu.Unlock()
 
 		close(w.ready)
 	}()
