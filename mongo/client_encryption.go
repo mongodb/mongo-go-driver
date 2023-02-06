@@ -229,7 +229,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 // {$and: [{$gt: [<fieldpath>, <value1>]}, {$lt: [<fieldpath>, <value2>]}]
 // $gt may also be $gte. $lt may also be $lte.
 // Only supported for queryType "rangePreview"
-// NOTE(kevinAlbs): The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
+// Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
 func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...*options.EncryptOptions) error {
 	transformed := transformExplicitEncryptionOptions(opts...)
 
