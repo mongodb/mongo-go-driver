@@ -20,12 +20,6 @@ import (
 
 // This file contains helpers to execute client operations.
 
-func executeCloseClient(client *clientEntity) error {
-	_ = client.Disconnect(context.Background())
-
-	return nil
-}
-
 func executeCreateChangeStream(ctx context.Context, operation *operation) (*operationResult, error) {
 	var watcher interface {
 		Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)

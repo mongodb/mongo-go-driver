@@ -209,11 +209,15 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	// Cursor operations
 	case "close":
 		if cursor, err := entities(ctx).cursor(op.Object); err == nil {
-			return newEmptyResult(), executeCloseCursor(ctx, cursor)
+			_ = cursor.Close(ctx)
+
+			return newEmptyResult(), nil
 		}
 
 		if clientEntity, err := entities(ctx).client(op.Object); err == nil {
-			return newEmptyResult(), executeCloseClient(clientEntity)
+			_ = clientEntity.Disconnect(context.Background())
+
+			return newEmptyResult(), nil
 		}
 
 		return nil, fmt.Errorf("failed to find a cursor or client named %q", op.Object)

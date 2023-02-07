@@ -13,12 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func executeCloseCursor(ctx context.Context, cursor cursor) error {
-	_ = cursor.Close(ctx)
-
-	return nil
-}
-
 func executeIterateOnce(ctx context.Context, operation *operation) (*operationResult, error) {
 	cursor, err := entities(ctx).cursor(operation.Object)
 	if err != nil {
