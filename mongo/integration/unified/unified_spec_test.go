@@ -23,7 +23,7 @@ var (
 		"collection-management",
 		"command-monitoring",
 		"command-monitoring/logging",
-		//"connection-monitoring-and-pooling/logging",
+		"connection-monitoring-and-pooling/logging",
 		"sessions",
 		"retryable-writes/unified",
 		"client-side-encryption/unified",
