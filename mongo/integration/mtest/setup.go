@@ -98,13 +98,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	clientOpts := options.Client().ApplyURI(uri)
 	testutil.AddTestServerAPIVersion(clientOpts)
 
-	// The client options for the topology should not include logger
-	// options. This will interfere with log testing, which is specific
-	// to a client entity.
-	topologyClientOptions := clientOpts
-	topologyClientOptions.LoggerOptions = nil
-
-	cfg, err := topology.NewConfig(topologyClientOptions, nil)
+	cfg, err := topology.NewConfig(clientOpts, nil)
 	if err != nil {
 		return fmt.Errorf("error constructing topology config: %v", err)
 	}
@@ -238,7 +232,6 @@ func Teardown() error {
 			return fmt.Errorf("error dropping test database: %v", err)
 		}
 	}
-
 	if err := testContext.client.Disconnect(context.Background()); err != nil {
 		return fmt.Errorf("error disconnecting test client: %v", err)
 	}

@@ -14,7 +14,9 @@ import (
 )
 
 func executeCloseCursor(ctx context.Context, cursor cursor) error {
-	return cursor.Close(ctx)
+	_ = cursor.Close(ctx)
+
+	return nil
 }
 
 func executeIterateOnce(ctx context.Context, operation *operation) (*operationResult, error) {

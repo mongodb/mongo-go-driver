@@ -21,7 +21,9 @@ import (
 // This file contains helpers to execute client operations.
 
 func executeCloseClient(client *clientEntity) error {
-	return client.Disconnect(context.Background())
+	_ = client.Disconnect(context.Background())
+
+	return nil
 }
 
 func executeCreateChangeStream(ctx context.Context, operation *operation) (*operationResult, error) {

@@ -559,7 +559,6 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 }
 
 func executeCreateFindCursor(ctx context.Context, operation *operation) (*operationResult, error) {
-	fmt.Println("executeCreateFindCursor")
 	result, err := createFindCursor(ctx, operation)
 	if err != nil {
 		return nil, err
