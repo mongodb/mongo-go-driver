@@ -75,69 +75,11 @@ func newLogMessage(level int, args ...interface{}) (*logMessage, error) {
 	return logMessage, nil
 }
 
-// validate will validate the expectedLogMessage and return an error if it is
-// invalid.
-func validateLogMessage(message *logMessage) error {
-	if message.LevelLiteral == "" {
-		return fmt.Errorf("%w: level is required", errLoggerVerification)
-	}
-
-	if message.ComponentLiteral == "" {
-		return fmt.Errorf("%w: component is required", errLoggerVerification)
-	}
-
-	if message.Data == nil {
-		return fmt.Errorf("%w: data is required", errLoggerVerification)
-	}
-
-	return nil
-}
-
 // clientLogMessages is a struct representing the expected "LogMessages" for a
 // client.
 type clientLogMessages struct {
 	Client      string        `bson:"client"`
 	LogMessages []*logMessage `bson:"messages"`
-}
-
-// validateClientLogMessages will validate a single "clientLogMessages" object
-// and return an error if it is invalid, i.e. not testable.
-func validateClientLogMessages(log *clientLogMessages) error {
-	if log.Client == "" {
-		return fmt.Errorf("%w: client is required", errLoggerVerification)
-	}
-
-	if len(log.LogMessages) == 0 {
-		return fmt.Errorf("%w: log messages are required", errLoggerVerification)
-	}
-
-	for _, message := range log.LogMessages {
-		if err := validateLogMessage(message); err != nil {
-			return fmt.Errorf("%w: message is invalid: %v", errLoggerVerification, err)
-		}
-	}
-
-	return nil
-}
-
-// validateExpectLogMessages will validate a slice of "clientLogMessages"
-// objects and return the first error encountered.
-func validateExpectLogMessages(logs []*clientLogMessages) error {
-	seenClientNames := make(map[string]struct{}) // Check for client duplication
-
-	for _, log := range logs {
-		if err := validateClientLogMessages(log); err != nil {
-			return fmt.Errorf("%w: client is invalid: %v", errLoggerVerification, err)
-		}
-
-		if _, ok := seenClientNames[log.Client]; ok {
-			return fmt.Errorf("%w: duplicate client: %v", errLoggerVerification, log.Client)
-		}
-
-		seenClientNames[log.Client] = struct{}{}
-	}
-
-	return nil
 }
 
 // logMessageValidator defines the expectation for log messages across all
@@ -150,14 +92,6 @@ type logMessageValidator struct {
 // newLogMessageValidator will create a new "logMessageValidator" from a test
 // case.
 func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
-	if testCase == nil {
-		return nil, fmt.Errorf("%w: test case is required", errLoggerVerification)
-	}
-
-	if testCase.entities == nil {
-		return nil, fmt.Errorf("%w: entities are required", errLoggerVerification)
-	}
-
 	validator := &logMessageValidator{testCase: testCase}
 	validator.clientErrs = make(map[string]chan error)
 
@@ -178,25 +112,6 @@ func logQueue(ctx context.Context, exp *clientLogMessages) <-chan orderedLogMess
 	}
 
 	return clientEntity.logQueue
-}
-
-// stopLogMessageVerificationWorkers will gracefully validate all log messages
-// received by all clients and return the first error encountered.
-func stopLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) error {
-	// Listen for each client's error, if any. If the context deadtline is
-	// exceeded, return an error.
-	for clientName, errChan := range validator.clientErrs {
-		select {
-		case err := <-errChan:
-			if err != nil {
-				return fmt.Errorf("%w: client %q: %v", errLoggerVerification, clientName, err)
-			}
-		case <-ctx.Done():
-			return fmt.Errorf("%w: context error: %v", errLoggerVerification, ctx.Err())
-		}
-	}
-
-	return nil
 }
 
 // verifyLogMatch will verify that the actual log match the expected log.
@@ -252,6 +167,7 @@ func isUnorderedLog(log *logMessage) bool {
 }
 
 type logQueues struct {
+	expected  *clientLogMessages
 	ordered   <-chan *logMessage
 	unordered <-chan *logMessage
 }
@@ -283,15 +199,16 @@ func partitionLogQueue(ctx context.Context, exp *clientLogMessages) logQueues {
 	}()
 
 	return logQueues{
+		expected:  exp,
 		ordered:   orderedLogCh,
 		unordered: unorderedLogCh,
 	}
 }
 
-func matchOrderedLogs(ctx context.Context, exp *clientLogMessages, logs *logQueues) <-chan error {
+func matchOrderedLogs(ctx context.Context, logs logQueues) <-chan error {
 	// Remove all of the unordered log messages from the expected.
-	expLogMessages := make([]*logMessage, 0, len(exp.LogMessages))
-	for _, log := range exp.LogMessages {
+	expLogMessages := make([]*logMessage, 0, len(logs.expected.LogMessages))
+	for _, log := range logs.expected.LogMessages {
 		if !isUnorderedLog(log) {
 			expLogMessages = append(expLogMessages, log)
 		}
@@ -321,10 +238,10 @@ func matchOrderedLogs(ctx context.Context, exp *clientLogMessages, logs *logQueu
 	return errs
 }
 
-func matchUnordered(ctx context.Context, exp *clientLogMessages, logs *logQueues) <-chan error {
-	unordered := make(map[*logMessage]struct{}, len(exp.LogMessages))
+func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
+	unordered := make(map[*logMessage]struct{}, len(logs.expected.LogMessages))
 
-	for _, log := range exp.LogMessages {
+	for _, log := range logs.expected.LogMessages {
 		if isUnorderedLog(log) {
 			unordered[log] = struct{}{}
 		}
@@ -362,12 +279,12 @@ func matchUnordered(ctx context.Context, exp *clientLogMessages, logs *logQueues
 	return errs
 }
 
-// startLogMessageVerificationWorkers will start a goroutine for each client's
-// expected log messages, listening to the channel of actual log messages and
-// comparing them to the expected log messages.
-func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessageValidator) {
+// startLogValidators will start a goroutine for each client's expected log
+// messages, listening to the channel of actual log messages and comparing them
+// to the expected log messages.
+func startLogValidators(ctx context.Context, validator *logMessageValidator) {
 	for _, expected := range validator.testCase.ExpectLogMessages {
-		logQueues := partitionLogQueue(ctx, expected)
+		logs := partitionLogQueue(ctx, expected)
 
 		wg := &sync.WaitGroup{}
 		wg.Add(2)
@@ -375,17 +292,13 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 		go func(expected *clientLogMessages) {
 			defer wg.Done()
 
-			if err := <-matchOrderedLogs(ctx, expected, &logQueues); err != nil {
-				validator.clientErrs[expected.Client] <- err
-			}
+			validator.clientErrs[expected.Client] <- <-matchOrderedLogs(ctx, logs)
 		}(expected)
 
 		go func(expected *clientLogMessages) {
 			defer wg.Done()
 
-			if err := <-matchUnordered(ctx, expected, &logQueues); err != nil {
-				validator.clientErrs[expected.Client] <- err
-			}
+			validator.clientErrs[expected.Client] <- <-matchUnorderedLogs(ctx, logs)
 		}(expected)
 
 		go func(expected *clientLogMessages) {
@@ -394,4 +307,25 @@ func startLogMessageVerificationWorkers(ctx context.Context, validator *logMessa
 			close(validator.clientErrs[expected.Client])
 		}(expected)
 	}
+}
+
+func stopLogValidatorsErr(clientName string, err error) error {
+	return fmt.Errorf("%w: %s: %v", errLoggerVerification, clientName, err)
+}
+
+// stopLogValidators will gracefully validate all log messages received by all
+// clients and return the first error encountered.
+func stopLogValidators(ctx context.Context, validator *logMessageValidator) error {
+	for clientName, errChan := range validator.clientErrs {
+		select {
+		case err := <-errChan:
+			if err != nil {
+				return stopLogValidatorsErr(clientName, err)
+			}
+		case <-ctx.Done():
+			return stopLogValidatorsErr(clientName, ctx.Err())
+		}
+	}
+
+	return nil
 }
