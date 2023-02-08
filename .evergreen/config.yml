@@ -2115,7 +2115,7 @@ axes:
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-18"
+      - id: "windows-64-go-1-19"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
@@ -2123,12 +2123,12 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.19"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1604-64-go-1-18"
+      - id: "ubuntu1604-64-go-1-19"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
           GO_DIST: "/opt/golang/go1.19"
-      - id: "osx-go-1-18"
+      - id: "macos11-go-1-19"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
@@ -2139,7 +2139,7 @@ axes:
   - id: os-ssl-40
     display_name: OS
     values:
-      - id: "windows-64-go-1-18"
+      - id: "windows-64-go-1-19"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
@@ -2147,12 +2147,12 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.19"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1804-64-go-1-18"
+      - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-build
         variables:
           GO_DIST: "/opt/golang/go1.19"
-      - id: "osx-go-1-18"
+      - id: "macos11-go-1-19"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
@@ -2163,7 +2163,7 @@ axes:
   - id: ocsp-rhel-70
     display_name: OS
     values:
-      - id: "rhel70-go-1-18"
+      - id: "rhel70-go-1-19"
         display_name: "RHEL 7.0"
         run_on: rhel70-build
         variables:
@@ -2172,7 +2172,7 @@ axes:
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsMulti-small-go-1-18"
+      - id: "windows-64-vsMulti-small-go-1-19"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vsMulti-small
@@ -2180,12 +2180,12 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.19"
           SKIP_ECS_AUTH_TEST: true
-      - id: "ubuntu1804-64-go-1-18"
+      - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
           GO_DIST: "/opt/golang/go1.19"
-      - id: "osx-go-1-18"
+      - id: "macos11-go-1-19"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
@@ -2409,14 +2409,14 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-18"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-19"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-18"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-19"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2424,7 +2424,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["osx-go-1-18"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["macos11-go-1-19"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2432,7 +2432,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "race-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
@@ -2444,32 +2444,32 @@ buildvariants:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
     # The LB software is only available on Ubuntu 18.04, so we don't test on all OSes.
-    matrix_spec: { version: ["5.0", "6.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { version: ["5.0", "6.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
-    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "Serverless ${os-ssl-40}"
     tasks:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
 
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
