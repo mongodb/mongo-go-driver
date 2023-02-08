@@ -2121,19 +2121,19 @@ axes:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.19"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1604-64-go-1-18"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
 
   # OSes that require >= 4.0 for SSL
   - id: os-ssl-40
@@ -2145,19 +2145,19 @@ axes:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.19"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1804-64-go-1-18"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-build
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
 
   # OCSP linux tasks need to run against this OS since stapling is disabled on Ubuntu 18.04 (SERVER-51364)
   - id: ocsp-rhel-70
@@ -2167,7 +2167,7 @@ axes:
         display_name: "RHEL 7.0"
         run_on: rhel70-build
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
 
   - id: os-aws-auth
     display_name: OS
@@ -2178,19 +2178,19 @@ axes:
           - windows-64-vsMulti-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.19"
           SKIP_ECS_AUTH_TEST: true
       - id: "ubuntu1804-64-go-1-18"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
       - id: "osx-go-1-18"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.18"
+          GO_DIST: "/opt/golang/go1.19"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
 
@@ -2338,7 +2338,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - name: ".static-analysis"
 
@@ -2347,7 +2347,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - name: ".performance"
 
@@ -2356,7 +2356,7 @@ buildvariants:
     run_on:
       - ubuntu1804-test
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - name: ".compile-check"
 
@@ -2365,7 +2365,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - name: "atlas-test"
 
@@ -2374,7 +2374,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2480,7 +2480,7 @@ buildvariants:
     run_on:
       - debian11-small
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2491,7 +2491,7 @@ buildvariants:
     run_on:
       - debian11-small
     expansions:
-      GO_DIST: "/opt/golang/go1.18"
+      GO_DIST: "/opt/golang/go1.19"
     tasks:
       - testawskms-task
       - testawskms-fail-task
