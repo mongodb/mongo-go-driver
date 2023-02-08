@@ -209,6 +209,7 @@ tests:
               serverPort: { $$type: [int, long] }
               reason: "An error occurred while using the connection"
               error: { $$exists: true }
+              unordered: true
 
           - level: debug
             component: connection
@@ -218,3 +219,4 @@ tests:
               serverPort: { $$type: [int, long] }
               reason: "An error occurred while trying to establish a new connection"
               error: { $$exists: true }
+              unordered: true

@@ -41,6 +41,7 @@ const (
 	KeyMaxConnecting      = "maxConnecting"
 	KeyMaxIdleTimeMS      = "maxIdleTimeMS"
 	KeyMaxPoolSize        = "maxPoolSize"
+	KeyMessage            = "message"
 	KeyMinPoolSize        = "minPoolSize"
 	KeyOperationID        = "operationId"
 	KeyReason             = "reason"
@@ -136,7 +137,7 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 	keysAndValues := append([]interface{}{
 		KeyCommandName, cmd.Name,
 		KeyDriverConnectionID, cmd.DriverConnectionID,
-		"message", cmd.Message,
+		KeyMessage, cmd.Message,
 		KeyOperationID, cmd.OperationID,
 		KeyRequestID, cmd.RequestID,
 		KeyServerHost, cmd.ServerHost,
@@ -172,7 +173,7 @@ type Connection struct {
 // and values that can be passed to a logger.
 func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
 	keysAndValues := append([]interface{}{
-		"message", conn.Message,
+		KeyMessage, conn.Message,
 		KeyServerHost, conn.ServerHost,
 	}, extraKeysAndValues...)
 

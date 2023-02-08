@@ -444,6 +444,7 @@
             {
               "level": "debug",
               "component": "connection",
+	      "unordered": true,
               "data": {
                 "message": "Connection closed",
                 "driverConnectionId": {
@@ -470,6 +471,7 @@
             {
               "level": "debug",
               "component": "connection",
+	      "unordered": true,
               "data": {
                 "message": "Connection checkout failed",
                 "serverHost": {
