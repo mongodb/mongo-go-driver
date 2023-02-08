@@ -89,9 +89,8 @@ type logMessageValidator struct {
 	clientErrs map[string]chan error
 }
 
-// newLogMessageValidator will create a new "logMessageValidator" from a test
-// case.
-func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
+// newLogMessageValidator will create a new logMessageValidator.
+func newLogMessageValidator(testCase *TestCase) *logMessageValidator {
 	validator := &logMessageValidator{testCase: testCase}
 	validator.clientErrs = make(map[string]chan error)
 
@@ -100,7 +99,7 @@ func newLogMessageValidator(testCase *TestCase) (*logMessageValidator, error) {
 		validator.clientErrs[exp.Client] = make(chan error)
 	}
 
-	return validator, nil
+	return validator
 }
 
 func logQueue(ctx context.Context, exp *clientLogMessages) <-chan orderedLogMessage {

@@ -301,13 +301,9 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	// Create a validator for log messages and start the workers that will observe log messages as they occur
-	// operationally.
-	logMessageValidator, err := newLogMessageValidator(tc)
-	if err != nil {
-		return fmt.Errorf("error creating logMessageValidator: %v", err)
-	}
-
+	// Create a validator for log messages and start the workers that will
+	// observe log messages as they occur operationally.
+	logMessageValidator := newLogMessageValidator(tc)
 	go startLogValidators(testCtx, logMessageValidator)
 
 	for _, client := range tc.entities.clients() {
