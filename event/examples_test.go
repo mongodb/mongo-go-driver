@@ -32,12 +32,20 @@ func ExampleCommandMonitor() {
 				startedCommands[evt.RequestID],
 				evt.Reply,
 			)
+			// Delete the elements of the closure collection immediately after use,
+			// otherwise you will experience a memory leak.
+			// The same goes for using concurrent map like sync.Map
+			delete(startedCommands, evt.RequestID)
 		},
 		Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
 			log.Printf("Command: %v Failure: %v\n",
 				startedCommands[evt.RequestID],
 				evt.Failure,
 			)
+			// Delete the elements of the closure collection immediately after use,
+			// otherwise you will experience a memory leak.
+			// The same goes for using concurrent map like sync.Map
+			delete(startedCommands, evt.RequestID)
 		},
 	}
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(cmdMonitor)
