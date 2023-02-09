@@ -21,36 +21,12 @@ import (
 
 const dataDir = "testdata/bson-corpus/"
 
-type testCase struct {
-	Description  string                `json:"description"`
-	BsonType     string                `json:"bson_type"`
-	TestKey      *string               `json:"test_key"`
-	Valid        []validityTestCase    `json:"valid"`
-	DecodeErrors []decodeErrorTestCase `json:"decodeErrors"`
-	ParseErrors  []parseErrorTestCase  `json:"parseErrors"`
-	Deprecated   *bool                 `json:"deprecated"`
-}
-
 type validityTestCase struct {
 	Description       string  `json:"description"`
-	CanonicalBson     string  `json:"canonical_bson"`
 	CanonicalExtJSON  string  `json:"canonical_extjson"`
 	RelaxedExtJSON    *string `json:"relaxed_extjson"`
-	DegenerateBSON    *string `json:"degenerate_bson"`
 	DegenerateExtJSON *string `json:"degenerate_extjson"`
-	ConvertedBSON     *string `json:"converted_bson"`
 	ConvertedExtJSON  *string `json:"converted_extjson"`
-	Lossy             *bool   `json:"lossy"`
-}
-
-type decodeErrorTestCase struct {
-	Description string `json:"description"`
-	Bson        string `json:"bson"`
-}
-
-type parseErrorTestCase struct {
-	Description string `json:"description"`
-	String      string `json:"string"`
 }
 
 func findJSONFilesInDir(dir string) ([]string, error) {
@@ -118,8 +94,8 @@ func seedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string
 
 // seedTestCase will add the byte representation for each "extJSON" string of each valid test case to the fuzzer's
 // corpus.
-func seedTestCase(zw *zip.Writer, tcase *testCase) {
-	for _, vtc := range tcase.Valid {
+func seedTestCase(zw *zip.Writer, tcase []*validityTestCase) {
+	for _, vtc := range tcase {
 		seedExtJSON(zw, vtc.CanonicalExtJSON, "canonical", vtc.Description)
 
 		// Seed the relaxed extended JSON.
@@ -155,12 +131,15 @@ func seedBSONCorpus(zw *zip.Writer) {
 			log.Fatalf("failed to open file %q: %v", filePath, err)
 		}
 
-		var tcase testCase
-		if err := json.NewDecoder(file).Decode(&tcase); err != nil {
+		tc := struct {
+			Valid []*validityTestCase `json:"valid"`
+		}{}
+
+		if err := json.NewDecoder(file).Decode(&tc); err != nil {
 			log.Fatalf("failed to decode file %q: %v", filePath, err)
 		}
 
-		seedTestCase(zw, &tcase)
+		seedTestCase(zw, tc.Valid)
 	}
 }
 
