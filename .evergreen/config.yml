@@ -2112,16 +2112,17 @@ axes:
           VERSION: "latest"
 
   # OSes that require >= 3.2 for SSL
+  # TODO(GODRIVER-2754): Update Windows to VS2019 and update Go to 1.19.
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-19"
+      - id: "windows-64-go-1-18"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.19"
+          GO_DIST: "C:\\golang\\go1.18"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1604-64-go-1-19"
         display_name: "Ubuntu 16.04"
@@ -2136,16 +2137,17 @@ axes:
           GO_DIST: "/opt/golang/go1.19"
 
   # OSes that require >= 4.0 for SSL
+  # TODO(GODRIVER-2754): Update Windows to VS2019 and update Go to 1.19.
   - id: os-ssl-40
     display_name: OS
     values:
-      - id: "windows-64-go-1-19"
+      - id: "windows-64-go-1-18"
         display_name: "Windows 64-bit"
         run_on:
           - windows-64-vs2017-test
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.19"
+          GO_DIST: "C:\\golang\\go1.18"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
@@ -2169,16 +2171,17 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.19"
 
+  # TODO(GODRIVER-2754): Update Windows to VS2019 and update Go to 1.19.
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vsMulti-small-go-1-19"
+      - id: "windows-64-vs2017-small-go-1-19"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vsMulti-small
+          - windows-64-vs2017-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.19"
+          GO_DIST: "C:\\golang\\go1.18"
           SKIP_ECS_AUTH_TEST: true
       - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
@@ -2416,7 +2419,7 @@ buildvariants:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-19"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-18"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
