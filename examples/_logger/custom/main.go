@@ -43,9 +43,7 @@ func main() {
 	clientOptions := options.
 		Client().
 		ApplyURI("mongodb://localhost:27017").
-		SetMinPoolSize(1).
-		SetMaxPoolSize(5).
-		SetMaxConnIdleTime(10_000)
+		SetLoggerOptions(loggerOptions)
 
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 

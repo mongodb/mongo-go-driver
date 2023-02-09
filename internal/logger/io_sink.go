@@ -123,7 +123,7 @@ func logPoolReadyMessage(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logPoolClearedMessage(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Connection pool for %s:%d cleared for serviceId %s"
+	format := "Connection pool for %s:%d cleared for serviceId %q"
 
 	log.Printf(format,
 		kvMap[KeyServerHost],
@@ -140,7 +140,7 @@ func logPoolClosedMessage(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logConnectionCreatedMessage(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Connection created: address=%s:%d, driver-generated ID=%d"
+	format := "Connection created: address=%s:%d, driver-generated ID=%q"
 
 	log.Printf(format,
 		kvMap[KeyServerHost],
@@ -149,7 +149,7 @@ func logConnectionCreatedMessage(log *log.Logger, kvMap map[string]interface{}) 
 }
 
 func logConnectionReadyMessage(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Connection ready: address=%s:%d, driver-generated ID=%d"
+	format := "Connection ready: address=%s:%d, driver-generated ID=%q"
 
 	log.Printf(format,
 		kvMap[KeyServerHost],
@@ -158,7 +158,7 @@ func logConnectionReadyMessage(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logConnectionClosedMessage(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Connection closed: address=%s:%d, driver-generated ID=%d. " +
+	format := "Connection closed: address=%s:%d, driver-generated ID=%q. " +
 		"Reason: %s. Error: %s"
 
 	log.Printf(format,
@@ -189,7 +189,7 @@ func logConnectionCheckoutFailed(log *log.Logger, kvMap map[string]interface{}) 
 }
 
 func logConnectionCheckedOut(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Connection checked out: address=%s:%d, driver-generated ID=%d"
+	format := "Connection checked out: address=%s:%d, driver-generated ID=%q"
 
 	log.Printf(format,
 		kvMap[KeyServerHost],
@@ -198,7 +198,7 @@ func logConnectionCheckedOut(log *log.Logger, kvMap map[string]interface{}) {
 }
 
 func logConnectionCheckedIn(log *log.Logger, kvMap map[string]interface{}) {
-	format := "Connection checked in: address=%s:%d, driver-generated ID=%d"
+	format := "Connection checked in: address=%s:%d, driver-generated ID=%q"
 
 	log.Printf(format,
 		kvMap[KeyServerHost],
