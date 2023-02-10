@@ -171,6 +171,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			ServerAPI:     serverAPI,
 			LoadBalanced:  loadBalanced,
 			ClusterClock:  clock,
+			HTTPClient:    co.HTTPClient,
 		}
 
 		if mechanism == "" {
