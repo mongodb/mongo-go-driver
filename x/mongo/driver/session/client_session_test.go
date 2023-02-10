@@ -286,11 +286,11 @@ func TestClientSession(t *testing.T) {
 }
 
 func TestImplicitClientSession(t *testing.T) {
-        t.Parallel()
-        
+	t.Parallel()
+
 	t.Run("causal consistency is false", func(t *testing.T) {
-	    t.Parallel()
-	    
+		t.Parallel()
+
 		id, err := uuid.New()
 		require.NoError(t, err)
 
