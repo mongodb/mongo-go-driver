@@ -8,9 +8,11 @@ package auth
 
 import (
 	"context"
+	"errors"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
+	awscredproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/aws_credential_providers"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -20,28 +22,36 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != "$external" {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
 	}
-	provider, err := creds.NewAwsCredentialProvider(credentials.Value{
-		AccessKeyID:     cred.Username,
-		SecretAccessKey: cred.Password,
-		SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
-	})
 	return &MongoDBAWSAuthenticator{
-		source:      cred.Source,
-		credentials: provider.Value,
-	}, err
+		source: cred.Source,
+		credentials: &awscredproviders.StaticProvider{
+			Value: credentials.Value{
+				ProviderName:    cred.Source,
+				AccessKeyID:     cred.Username,
+				SecretAccessKey: cred.Password,
+				SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
+			},
+		},
+	}, nil
 }
 
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
 	source      string
-	credentials *credentials.Credentials
+	credentials *awscredproviders.StaticProvider
 }
 
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+	httpClient := cfg.HTTPClient
+	if httpClient == nil {
+		return errors.New("cfg.HTTPClient must not be nil")
+	}
+	providers := []credentials.Provider{a.credentials}
+	providers = append(providers, creds.NewAwsCredentialProvider(httpClient).Providers...)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
-			credentials: a.credentials,
+			credentials: credentials.NewChainCredentials(providers),
 		},
 	}
 	err := ConductSaslConversation(ctx, cfg, a.source, adapter)

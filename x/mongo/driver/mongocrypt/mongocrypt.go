@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -70,11 +69,7 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		kmsProviders["gcp"] = creds.NewGcpCredentialProvider(opts.HTTPClient)
 	}
 	if needsKmsProvider(opts.KmsProviders, "aws") {
-		provider, err := creds.NewAwsCredentialProvider(credentials.Value{})
-		if err != nil {
-			return nil, err
-		}
-		kmsProviders["aws"] = awsCredentialProvider{provider}
+		kmsProviders["aws"] = awsCredentialProvider{creds.NewAwsCredentialProvider(opts.HTTPClient)}
 	}
 	crypt := &MongoCrypt{
 		wrapped:      wrapped,

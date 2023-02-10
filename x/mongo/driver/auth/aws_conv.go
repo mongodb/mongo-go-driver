@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	v4signer "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
+	v4signer "go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/signer/v4"
 )
 
 type clientState int
