@@ -20,8 +20,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
-// AssumeRoleProviderName provides a name of assume role provider
-const AssumeRoleProviderName = "AssumeRoleProvider"
+const (
+	// AssumeRoleProviderName provides a name of assume role provider
+	AssumeRoleProviderName = "AssumeRoleProvider"
+
+	stsURI = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
+)
 
 // An AssumeRoleProvider retrieves credentials for assume role with web identity.
 type AssumeRoleProvider struct {
@@ -41,10 +45,7 @@ func NewAssumeRoleProvider(httpClient *http.Client, expiryWindow time.Duration) 
 
 // RetrieveWithContext retrieves the keys from the AWS service.
 func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
-	const (
-		stsURI             = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
-		defaultHTTPTimeout = 10 * time.Second
-	)
+	const defaultHTTPTimeout = 10 * time.Second
 
 	v := credentials.Value{ProviderName: AssumeRoleProviderName}
 
@@ -110,16 +111,14 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 	if err != nil {
 		return v, err
 	}
-	v, err = (&StaticProvider{credentials.Value{
-		AccessKeyID:     stsResp.Response.Result.Credentials.AccessKeyID,
-		SecretAccessKey: stsResp.Response.Result.Credentials.SecretAccessKey,
-		SessionToken:    stsResp.Response.Result.Credentials.Token,
-	}}).Retrieve()
-	if err == nil {
-		sec := int64(stsResp.Response.Result.Credentials.Expiration)
-		a.expiration = time.Unix(sec, 0).Add(-a.expiryWindow)
+	v.AccessKeyID = stsResp.Response.Result.Credentials.AccessKeyID
+	v.SecretAccessKey = stsResp.Response.Result.Credentials.SecretAccessKey
+	v.SessionToken = stsResp.Response.Result.Credentials.Token
+	if !v.HasKeys() {
+		return v, errors.New("failed to retrieve web identity keys")
 	}
-	v.ProviderName = AssumeRoleProviderName
+	sec := int64(stsResp.Response.Result.Credentials.Expiration)
+	a.expiration = time.Unix(sec, 0).Add(-a.expiryWindow)
 
 	return v, err
 }

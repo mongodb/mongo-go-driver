@@ -18,8 +18,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
-// EcsProviderName provides a name of ECS provider
-const EcsProviderName = "EcsProvider"
+const (
+	// EcsProviderName provides a name of ECS provider
+	EcsProviderName = "EcsProvider"
+
+	awsRelativeURI = "http://169.254.170.2/"
+)
 
 // An EcsProvider retrieves credentials from ECS metadata.
 type EcsProvider struct {
@@ -39,10 +43,7 @@ func NewEcsProvider(httpClient *http.Client, expiryWindow time.Duration) *EcsPro
 
 // RetrieveWithContext retrieves the keys from the AWS service.
 func (e *EcsProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
-	const (
-		awsRelativeURI     = "http://169.254.170.2/"
-		defaultHTTPTimeout = 10 * time.Second
-	)
+	const defaultHTTPTimeout = 10 * time.Second
 
 	v := credentials.Value{ProviderName: EcsProviderName}
 
@@ -80,15 +81,14 @@ func (e *EcsProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 	if err != nil {
 		return v, err
 	}
-	v, err = (&StaticProvider{credentials.Value{
-		AccessKeyID:     espResp.AccessKeyID,
-		SecretAccessKey: espResp.SecretAccessKey,
-		SessionToken:    espResp.Token,
-	}}).Retrieve()
-	if err == nil {
-		e.expiration = espResp.Expiration.Add(-e.expiryWindow)
+
+	v.AccessKeyID = espResp.AccessKeyID
+	v.SecretAccessKey = espResp.SecretAccessKey
+	v.SessionToken = espResp.Token
+	if !v.HasKeys() {
+		return v, errors.New("failed to retrieve ECS keys")
 	}
-	v.ProviderName = EcsProviderName
+	e.expiration = espResp.Expiration.Add(-e.expiryWindow)
 
 	return v, err
 }

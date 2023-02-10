@@ -19,25 +19,36 @@ const StaticProviderName = "StaticProvider"
 // and will never expire.
 type StaticProvider struct {
 	credentials.Value
+
+	verified bool
+	err      error
+}
+
+func verify(v credentials.Value) error {
+	if !v.HasKeys() {
+		return errors.New("failed to retrieve ACCESS_KEY_ID and SECRET_ACCESS_KEY")
+	}
+	if v.AccessKeyID != "" && v.SecretAccessKey == "" {
+		return errors.New("ACCESS_KEY_ID is set, but SECRET_ACCESS_KEY is missing")
+	}
+	if v.AccessKeyID == "" && v.SecretAccessKey != "" {
+		return errors.New("SECRET_ACCESS_KEY is set, but ACCESS_KEY_ID is missing")
+	}
+	if v.AccessKeyID == "" && v.SecretAccessKey == "" && v.SessionToken != "" {
+		return errors.New("AWS_SESSION_TOKEN is set, but ACCESS_KEY_ID and SECRET_ACCESS_KEY are missing")
+	}
+	return nil
+
 }
 
 // Retrieve returns the credentials or error if the credentials are invalid.
 func (s *StaticProvider) Retrieve() (credentials.Value, error) {
-	v := s.Value
-	v.ProviderName = StaticProviderName
-	if !v.HasKeys() {
-		return v, errors.New("ACCESS_KEY_ID and SECRET_ACCESS_KEY are missing")
+	if !s.verified {
+		s.err = verify(s.Value)
+		s.Value.ProviderName = StaticProviderName
+		s.verified = true
 	}
-	if v.AccessKeyID != "" && v.SecretAccessKey == "" {
-		return v, errors.New("ACCESS_KEY_ID is set, but SECRET_ACCESS_KEY is missing")
-	}
-	if v.AccessKeyID == "" && v.SecretAccessKey != "" {
-		return v, errors.New("SECRET_ACCESS_KEY is set, but ACCESS_KEY_ID is missing")
-	}
-	if v.AccessKeyID == "" && v.SecretAccessKey == "" && v.SessionToken != "" {
-		return v, errors.New("AWS_SESSION_TOKEN is set, but ACCESS_KEY_ID and SECRET_ACCESS_KEY are missing")
-	}
-	return v, nil
+	return s.Value, s.err
 }
 
 // IsExpired returns if the credentials are expired.

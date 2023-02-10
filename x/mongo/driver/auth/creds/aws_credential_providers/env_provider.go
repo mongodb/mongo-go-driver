@@ -25,17 +25,16 @@ type EnvProvider struct {
 func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	e.retrieved = false
 
-	v, err := (&StaticProvider{credentials.Value{
+	v := credentials.Value{
 		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
 		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
-	}}).Retrieve()
-
+		ProviderName:    EnvProviderName,
+	}
+	err := verify(v)
 	if err == nil {
 		e.retrieved = true
 	}
-
-	v.ProviderName = EnvProviderName
 
 	return v, err
 }
