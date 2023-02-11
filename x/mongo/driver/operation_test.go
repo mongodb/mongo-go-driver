@@ -125,15 +125,15 @@ func TestOperation(t *testing.T) {
 		id, err := uuid.New()
 		noerr(t, err)
 
-		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sess, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 
-		sessStartingTransaction, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sessStartingTransaction, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		err = sessStartingTransaction.StartTransaction(nil)
 		noerr(t, err)
 
-		sessInProgressTransaction, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sessInProgressTransaction, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		err = sessInProgressTransaction.StartTransaction(nil)
 		noerr(t, err)
@@ -269,7 +269,7 @@ func TestOperation(t *testing.T) {
 			id, err := uuid.New()
 			noerr(t, err)
 
-			sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+			sess, err := session.NewClientSession(sessPool, id)
 			noerr(t, err)
 			err = sess.AdvanceClusterTime(older)
 			noerr(t, err)
@@ -364,7 +364,7 @@ func TestOperation(t *testing.T) {
 		id, err := uuid.New()
 		noerr(t, err)
 
-		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sess, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		Operation{Client: sess, Clock: clusterClock}.updateClusterTimes(clustertime)
 
@@ -386,7 +386,7 @@ func TestOperation(t *testing.T) {
 		id, err := uuid.New()
 		noerr(t, err)
 
-		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sess, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		if sess.OperationTime != nil {
 			t.Fatal("OperationTime should not be set on new session.")
