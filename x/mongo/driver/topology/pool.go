@@ -239,17 +239,19 @@ func (p *pool) ready() error {
 	p.state = poolReady
 	p.stateMu.Unlock()
 
-	// Signal maintain() to wake up immediately when marking the pool "ready".
-	select {
-	case p.maintainReady <- struct{}{}:
-	default:
-	}
-
+	// Send event.PoolReady before resuming the maintain() goroutine to guarantee that the
+	// "pool ready" event is always sent before maintain() starts creating connections.
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:    event.PoolReady,
 			Address: p.address.String(),
 		})
+	}
+
+	// Signal maintain() to wake up immediately when marking the pool "ready".
+	select {
+	case p.maintainReady <- struct{}{}:
+	default:
 	}
 
 	return nil
