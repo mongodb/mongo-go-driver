@@ -57,6 +57,9 @@ func (t *StructCodecOptions) SetAllowUnexportedFields(b bool) *StructCodecOption
 }
 
 // MergeStructCodecOptions combines the given *StructCodecOptions into a single *StructCodecOptions in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeStructCodecOptions(opts ...*StructCodecOptions) *StructCodecOptions {
 	s := &StructCodecOptions{
 		OverwriteDuplicatedInlinedFields: &defaultOverwriteDuplicatedInlinedFields,

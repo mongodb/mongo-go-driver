@@ -25,6 +25,9 @@ func (so *SetupOptions) SetURI(uri string) *SetupOptions {
 }
 
 // MergeSetupOptions combines the given *SetupOptions into a single *Options in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeSetupOptions(opts ...*SetupOptions) *SetupOptions {
 	op := NewSetupOptions()
 	for _, opt := range opts {

@@ -27,6 +27,9 @@ func (op *Options) SetRunKillAllSessions(killAllSessions bool) *Options {
 }
 
 // MergeOptions combines the given *Options into a single *Options in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeOptions(opts ...*Options) *Options {
 	op := NewOptions()
 	for _, opt := range opts {
