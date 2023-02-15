@@ -63,7 +63,7 @@ func TestTransactionProse(t *testing.T) {
 		})
 
 		// Assert that only one of the abortTransaction operations
-		// succeeds
+		// succeeds.
 		if abortTransactionCount != 1 {
 			mt.Fatalf("expected abortTransactionCount to be 1, got %d", abortTransactionCount)
 		}
