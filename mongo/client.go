@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -413,6 +414,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		clientSession: sess,
 		client:        c,
 		deployment:    c.deployment,
+		abortMu:       sync.Mutex{},
 	}, nil
 }
 

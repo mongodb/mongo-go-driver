@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -155,6 +156,8 @@ type sessionImpl struct {
 	client              *Client
 	deployment          driver.Deployment
 	didCommitAfterStart bool // true if commit was called after start with no other operations
+
+	abortMu sync.Mutex // guards aborting a transaction.
 }
 
 var _ Session = &sessionImpl{}
@@ -281,6 +284,9 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 
 // AbortTransaction implements the Session interface.
 func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
+	s.abortMu.Lock()
+	defer s.abortMu.Unlock()
+
 	err := s.clientSession.CheckAbortTransaction()
 	if err != nil {
 		return err
