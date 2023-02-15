@@ -17,8 +17,8 @@ func TestTransactionProse(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false))
 	defer mt.Close()
 
-	mt.Run("Abort transactions concurrently", func(mt *mtest.T) {
-		const concurrencyCount = 100
+	mt.Run("Concurrent Abort Transactions on a Load-Balanced Cluster", func(mt *mtest.T) {
+		const threadCount = 100
 
 		// Start a new ClientSession with default options and start a transaction.
 		session, err := mt.Client.StartSession()
@@ -45,7 +45,7 @@ func TestTransactionProse(t *testing.T) {
 			// After the insert operation, concurrently abort the
 			// transaction 100 times.
 			g, _ := errgroup.WithContext(sc)
-			for i := 0; i < concurrencyCount; i++ {
+			for i := 0; i < threadCount; i++ {
 				g.Go(func() error {
 					if err := session.AbortTransaction(sc); err != nil {
 						abortTransactionErrors = append(abortTransactionErrors, err)
@@ -70,13 +70,12 @@ func TestTransactionProse(t *testing.T) {
 
 		// There should be "concurrencyCount - 1" errors in
 		// abortTransactionErrors.
-		if len(abortTransactionErrors) != concurrencyCount-1 {
-			mt.Fatalf("expected %d errors, got %d", concurrencyCount-1, len(abortTransactionErrors))
+		if len(abortTransactionErrors) != threadCount-1 {
+			mt.Fatalf("expected %d errors, got %d", threadCount-1, len(abortTransactionErrors))
 		}
 
 		// Assert that 99 operations raise an error containing the
-		// message "Cannot call abortTransaction after calling
-		// commitTransaction".
+		// message "Cannot call abortTransaction twice".
 		for _, err := range abortTransactionErrors {
 			if !errors.Is(err, xsession.ErrAbortTwice) {
 				mt.Fatalf("expected error %v, got %v", xsession.ErrAbortTwice, err)
