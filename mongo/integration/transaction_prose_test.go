@@ -78,8 +78,8 @@ func TestTransactionProse(t *testing.T) {
 			mt.Fatalf("expected %d errors, got %d", threadCount-1, len(abortTransactionErrors))
 		}
 
-		// Assert that 99 operations raise an error containing the
-		// message "Cannot call abortTransaction twice".
+		// Assert that all successive abort operations raise an error
+		// containing the message "Cannot call abortTransaction twice".
 		for _, err := range abortTransactionErrors {
 			if !errors.Is(err, xsession.ErrAbortTwice) {
 				mt.Fatalf("expected error %v, got %v", xsession.ErrAbortTwice, err)
