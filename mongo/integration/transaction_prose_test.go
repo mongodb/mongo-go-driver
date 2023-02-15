@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"log"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	xsession "go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"golang.org/x/sync/errgroup"
 )
 
 func TestTransactionProse(t *testing.T) {
@@ -26,14 +26,15 @@ func TestTransactionProse(t *testing.T) {
 			log.Fatalf("error starting session: %v", err)
 		}
 
+		ctx := context.Background()
+		defer session.EndSession(ctx)
+
 		if err = session.StartTransaction(); err != nil {
 			log.Fatalf("error starting transaction: %v", err)
 		}
 
 		abortTransactionCount := 0          // number of times abortTransaction was called
 		abortTransactionErrors := []error{} // errors returned by abortTransaction
-
-		ctx := context.Background()
 
 		err = mongo.WithSession(ctx, session, func(sc mongo.SessionContext) error {
 			// Within the transaction, insert a document into a
@@ -44,22 +45,25 @@ func TestTransactionProse(t *testing.T) {
 
 			// After the insert operation, concurrently abort the
 			// transaction 100 times.
-			g, _ := errgroup.WithContext(sc)
+			wg := sync.WaitGroup{}
+			wg.Add(threadCount)
+
 			for i := 0; i < threadCount; i++ {
-				g.Go(func() error {
+				go func() {
+					defer wg.Done()
 					if err := session.AbortTransaction(sc); err != nil {
 						abortTransactionErrors = append(abortTransactionErrors, err)
 
-						return err
+						return
 					}
 
 					abortTransactionCount++
-
-					return nil
-				})
+				}()
 			}
 
-			return g.Wait()
+			wg.Wait()
+
+			return nil
 		})
 
 		// Assert that only one of the abortTransaction operations
@@ -81,7 +85,5 @@ func TestTransactionProse(t *testing.T) {
 				mt.Fatalf("expected error %v, got %v", xsession.ErrAbortTwice, err)
 			}
 		}
-
-		session.EndSession(ctx)
 	})
 }
