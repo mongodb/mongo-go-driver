@@ -36,7 +36,7 @@ func TestTransactionProse(t *testing.T) {
 		abortTransactionCount := 0          // number of times abortTransaction was called
 		abortTransactionErrors := []error{} // errors returned by abortTransaction
 
-		err = mongo.WithSession(ctx, session, func(sc mongo.SessionContext) error {
+		mongo.WithSession(ctx, session, func(sc mongo.SessionContext) error {
 			// Within the transaction, insert a document into a
 			// collection.
 			if _, err := mt.Coll.InsertOne(sc, bson.D{{"x", 1}}); err != nil {
