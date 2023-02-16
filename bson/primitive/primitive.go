@@ -181,8 +181,8 @@ func (tp Timestamp) Compare(tp2 Timestamp) int {
 	return -1
 }
 
-// CompareTimestamp returns an integer comparing two Timestamps, where T is compared first, followed by I.
-// Returns 0 if tp = tp2, 1 if tp > tp2, -1 if tp < tp2.
+// CompareTimestamp compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
+// tp2, it returns +1; if they're the same, it returns 0.
 //
 // Deprecated: Use Timestamp.Compare instead.
 func CompareTimestamp(tp, tp2 Timestamp) int {
