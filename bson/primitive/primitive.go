@@ -164,21 +164,14 @@ func (tp Timestamp) IsZero() bool {
 // Compare compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
 // tp2, it returns +1; if they're the same, it returns 0.
 func (tp Timestamp) Compare(tp2 Timestamp) int {
-	if tp.Equal(tp2) {
+	switch {
+	case tp.Equal(tp2):
 		return 0
-	}
-
-	if tp.T > tp2.T {
-		return 1
-	}
-	if tp.T < tp2.T {
+	case tp.Before(tp2):
 		return -1
+	default:
+		return +1
 	}
-	// Compare I values because T values are equal
-	if tp.I > tp2.I {
-		return 1
-	}
-	return -1
 }
 
 // CompareTimestamp compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
