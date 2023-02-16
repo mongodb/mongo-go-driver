@@ -336,10 +336,6 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 
 	if opts := co.LoggerOptions; opts != nil {
-		if opts == nil {
-			opts = options.Logger()
-		}
-
 		// Build an internal component-level mapping.
 		componentLevels := make(map[logger.Component]logger.Level)
 		for component, level := range opts.ComponentLevels {
@@ -348,7 +344,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 
 		log, err := logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 		if err != nil {
-			return nil, fmt.Errorf("error creating logger: %v", err)
+			return nil, fmt.Errorf("error creating logger: %w", err)
 		}
 
 		serverOpts = append(

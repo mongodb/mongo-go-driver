@@ -62,11 +62,11 @@ var skippedTestDescriptions = map[string]string{
 }
 
 type cmapEvent struct {
-	EventType    string       `json:"type"`
-	Address      interface{}  `json:"address"`
-	ConnectionID uint64       `json:"connectionId"`
-	Options      interface{}  `json:"options"`
-	Reason       event.Reason `json:"reason"`
+	EventType    string      `json:"type"`
+	Address      interface{} `json:"address"`
+	ConnectionID uint64      `json:"connectionId"`
+	Options      interface{} `json:"options"`
+	Reason       string      `json:"reason"`
 }
 
 type poolOptions struct {
@@ -283,7 +283,7 @@ func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *ev
 		validEvent := nextValidEvent(t, actualEvents, ignoreEvents)
 
 		if expectedEvent.EventType != validEvent.Type {
-			var reason event.Reason
+			var reason string
 			if validEvent.Type == "ConnectionCheckOutFailed" {
 				reason = ": " + validEvent.Reason
 			}

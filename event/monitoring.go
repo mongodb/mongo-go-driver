@@ -63,17 +63,14 @@ type CommandMonitor struct {
 	Failed    func(context.Context, *CommandFailedEvent)
 }
 
-// Reason represents the reason a connection was closed.
-type Reason string
-
 // strings for pool command monitoring reasons
 const (
-	ReasonIdle              Reason = "idle"
-	ReasonPoolClosed        Reason = "poolClosed"
-	ReasonStale             Reason = "stale"
-	ReasonConnectionErrored Reason = "connectionError"
-	ReasonTimedOut          Reason = "timeout"
-	ReasonError             Reason = "error"
+	ReasonIdle              = "idle"
+	ReasonPoolClosed        = "poolClosed"
+	ReasonStale             = "stale"
+	ReasonConnectionErrored = "connectionError"
+	ReasonTimedOut          = "timeout"
+	ReasonError             = "error"
 )
 
 // strings for pool command monitoring types
@@ -104,7 +101,7 @@ type PoolEvent struct {
 	Address      string              `json:"address"`
 	ConnectionID uint64              `json:"connectionId"`
 	PoolOptions  *MonitorPoolOptions `json:"options"`
-	Reason       Reason              `json:"reason"`
+	Reason       string              `json:"reason"`
 	// ServiceID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field
 	// can be used to distinguish between individual servers in a load balanced deployment.
 	ServiceID *primitive.ObjectID `json:"serviceId"`

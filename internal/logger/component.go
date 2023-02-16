@@ -53,17 +53,20 @@ const (
 	KeyServiceID          = "serviceId"
 )
 
-// Reason represents why a connection was closed.
-type Reason string
+type KeyValues []interface{}
+
+func (kvs *KeyValues) Add(key string, value interface{}) {
+	*kvs = append(*kvs, key, value)
+}
 
 const (
-	ReasonConnClosedStale              Reason = "Connection became stale because the pool was cleared"
-	ReasonConnClosedIdle               Reason = "Connection has been available but unused for longer than the configured max idle time"
-	ReasonConnClosedError              Reason = "An error occurred while using the connection"
-	ReasonConnClosedPoolClosed         Reason = "Connection pool was closed"
-	ReasonConnCheckoutFailedTimout     Reason = "Wait queue timeout elapsed without a connection becoming available"
-	ReasonConnCheckoutFailedError      Reason = "An error occurred while trying to establish a new connection"
-	ReasonConnCheckoutFailedPoolClosed Reason = "Connection pool was closed"
+	ReasonConnClosedStale              = "Connection became stale because the pool was cleared"
+	ReasonConnClosedIdle               = "Connection has been available but unused for longer than the configured max idle time"
+	ReasonConnClosedError              = "An error occurred while using the connection"
+	ReasonConnClosedPoolClosed         = "Connection pool was closed"
+	ReasonConnCheckoutFailedTimout     = "Wait queue timeout elapsed without a connection becoming available"
+	ReasonConnCheckoutFailedError      = "An error occurred while trying to establish a new connection"
+	ReasonConnCheckoutFailedPoolClosed = "Connection pool was closed"
 )
 
 // Component is an enumeration representing the "components" which can be
