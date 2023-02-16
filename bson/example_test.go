@@ -54,7 +54,7 @@ func ExampleRaw_marshal() {
 	if err != nil {
 		panic(err)
 	}
-	// Convert to a bson.Raw to print the BSON document as Extended JSON.
+	// Print the Extended JSON by converting BSON to bson.Raw.
 	fmt.Println(bson.Raw(b))
 
 	// Output: {"message": "Hello World!","metadata": {"Precomputed": true}}
