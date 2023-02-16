@@ -55,7 +55,7 @@ func ExampleRaw_marshal() {
 		panic(err)
 	}
 	// Print the Extended JSON by converting BSON to bson.Raw.
-	fmt.Println(bson.Raw(b))
+	fmt.Println(bson.Raw(b).String())
 
 	// Output: {"message": "Hello World!","metadata": {"Precomputed": true}}
 }
@@ -130,8 +130,8 @@ func ExampleRawValue_marshal() {
 	if err != nil {
 		panic(err)
 	}
-	// Convert to a bson.Raw to print the BSON document as Extended JSON.
-	fmt.Println(bson.Raw(b))
+	// Print the Extended JSON by converting BSON to bson.Raw.
+	fmt.Println(bson.Raw(b).String())
 
 	// Output: {"message": "Precomputed message!","time": {"$date":{"$numberLong":"1675282389000"}}}
 }
