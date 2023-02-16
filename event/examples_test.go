@@ -32,9 +32,8 @@ func ExampleCommandMonitor() {
 				startedCommands[evt.RequestID],
 				evt.Reply,
 			)
-			// Delete the elements of the closure collection immediately after use,
-			// otherwise you will experience a memory leak.
-			// The same goes for using concurrent map like sync.Map
+
+			// Empty "startedCommands" for the request ID to avoid a memory leak.
 			delete(startedCommands, evt.RequestID)
 		},
 		Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
