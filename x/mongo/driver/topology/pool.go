@@ -709,6 +709,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 			Address:      p.address.String(),
 			ConnectionID: conn.poolID,
 			Reason:       reason.event,
+			Error:        err,
 		})
 	}
 

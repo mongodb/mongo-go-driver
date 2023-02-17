@@ -410,7 +410,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 			continue
 		}
 
-		if err := client.Disconnect(ctx); err != nil {
+		if err := client.disconnect(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}
 	}

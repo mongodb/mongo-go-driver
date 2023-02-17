@@ -51,6 +51,7 @@ const (
 	KeyServerHost         = "serverHost"
 	KeyServerPort         = "serverPort"
 	KeyServiceID          = "serviceId"
+	KeyTimestamp          = "timestamp"
 )
 
 type KeyValues []interface{}

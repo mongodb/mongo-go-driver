@@ -105,6 +105,7 @@ type PoolEvent struct {
 	// ServiceID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field
 	// can be used to distinguish between individual servers in a load balanced deployment.
 	ServiceID *primitive.ObjectID `json:"serviceId"`
+	Error     error               `json:"error"`
 }
 
 // PoolMonitor is a function that allows the user to gain access to events occurring in the pool

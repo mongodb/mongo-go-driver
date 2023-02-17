@@ -215,7 +215,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		}
 
 		if clientEntity, err := entities(ctx).client(op.Object); err == nil {
-			_ = clientEntity.Disconnect(context.Background())
+			_ = clientEntity.disconnect(context.Background())
 
 			return newEmptyResult(), nil
 		}

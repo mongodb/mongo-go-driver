@@ -200,12 +200,12 @@ func getURIForClient(opts *entityOptions) string {
 	}
 }
 
-// Disconnect disconnects the client associated with this entity. It is an
-// idempotent operation, unlike the mongo client's Disconnect method. This
-// property will help avoid unnecessary errors when calling Disconnect on a
+// disconnect disconnects the client associated with this entity. It is an
+// idempotent operation, unlike the mongo client's disconnect method. This
+// property will help avoid unnecessary errors when calling disconnect on a
 // client that has already been disconnected, such as the case when the test
 // runner is required to run the closure as part of an operation.
-func (c *clientEntity) Disconnect(ctx context.Context) error {
+func (c *clientEntity) disconnect(ctx context.Context) error {
 	if c.disconnected {
 		return nil
 	}
