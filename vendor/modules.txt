@@ -16,10 +16,6 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/kr/pretty v0.1.0
-github.com/kr/pretty
-# github.com/kr/text v0.1.0
-github.com/kr/text
 # github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 github.com/montanaflynn/stats
 # github.com/xdg-go/pbkdf2 v1.0.0
