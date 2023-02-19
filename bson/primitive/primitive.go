@@ -197,11 +197,56 @@ type MaxKey struct{}
 type D []E
 
 // Map creates a map from the elements of the D.
-func (d D) Map() M {
-	m := make(M, len(d))
-	for _, e := range d {
-		m[e.Key] = e.Value
+
+func mapByA(doc A) []interface{} {
+	var arr []interface{}
+
+	for _, value := range doc {
+		switch v := value.(type) {
+		case D:
+			m := mapByD(v)
+			arr = append(arr, m)
+			continue
+
+		case A:
+			a := mapByA(v)
+			arr = append(arr, a)
+
+		default:
+			arr = append(arr, v)
+			continue
+		}
 	}
+
+	return arr
+}
+
+func mapByD(d interface{}) M {
+	m := make(map[string]interface{})
+
+	for _, e := range d.(D) {
+		m[e.Key] = e.Value
+
+		switch v := e.Value.(type) {
+		case A:
+			a := mapByA(v)
+			m[e.Key] = a
+			continue
+		case D:
+			newM := mapByD(v)
+			m[e.Key] = newM
+			continue
+		default:
+			m[e.Key] = e.Value
+			continue
+		}
+	}
+
+	return m
+}
+func (d D) Map() M {
+	m := mapByD(d)
+
 	return m
 }
 
