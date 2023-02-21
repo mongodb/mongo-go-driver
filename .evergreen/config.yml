@@ -2236,7 +2236,7 @@ tasks:
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
           export AZUREKMS_PRIVATEKEYPATH=${AZUREKMS_PRIVATEKEYPATH}
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -2542,13 +2542,13 @@ task_groups:
             export AZUREKMS_TENANTID=${AZUREKMS_TENANTID}
             export AZUREKMS_SECRET=${AZUREKMS_SECRET}
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
+            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             echo '${testazurekms_publickey}' > /tmp/testazurekms.pubkey
             export AZUREKMS_PUBLICKEYPATH=/tmp/testazurekms.pubkey
             echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
             export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
             export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
-            echo vars $AZUREKMS_VMNAME_PREFIX $AZUREKMS_DRIVERS_TOOLS
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+            src/go.mongodb.org/mongo-driver/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
           file: testazurekms-expansions.yml
@@ -2559,7 +2559,6 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
     tasks:
       - testazurekms-task
