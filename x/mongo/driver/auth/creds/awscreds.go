@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	awscredproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/aws_credential_providers"
+	credproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/credential_providers"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
@@ -30,10 +30,10 @@ func NewAwsCredentialProvider(httpClient *http.Client) AwsCredentialProvider {
 	var providers []credentials.Provider
 	providers = append(
 		providers,
-		&awscredproviders.EnvProvider{},
-		awscredproviders.NewAssumeRoleProvider(httpClient, expiryWindow),
-		awscredproviders.NewEcsProvider(httpClient, expiryWindow),
-		awscredproviders.NewEc2Provider(httpClient, expiryWindow),
+		&credproviders.EnvProvider{},
+		credproviders.NewAssumeRoleProvider(httpClient, expiryWindow),
+		credproviders.NewEcsProvider(httpClient, expiryWindow),
+		credproviders.NewEc2Provider(httpClient, expiryWindow),
 	)
 
 	return AwsCredentialProvider{providers}

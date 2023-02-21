@@ -11,7 +11,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
-	awscredproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/aws_credential_providers"
+	credproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/credential_providers"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
@@ -24,7 +24,7 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 	}
 	return &MongoDBAWSAuthenticator{
 		source: cred.Source,
-		credentials: &awscredproviders.StaticProvider{
+		credentials: &credproviders.StaticProvider{
 			Value: credentials.Value{
 				ProviderName:    cred.Source,
 				AccessKeyID:     cred.Username,
@@ -38,7 +38,7 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
 	source      string
-	credentials *awscredproviders.StaticProvider
+	credentials *credproviders.StaticProvider
 }
 
 // Auth authenticates the connection.

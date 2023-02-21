@@ -25,17 +25,7 @@ type GcpCredentialProvider struct {
 
 // NewGcpCredentialProvider generates new GcpCredentialProvider
 func NewGcpCredentialProvider(httpClient *http.Client) GcpCredentialProvider {
-	if httpClient == nil {
-		httpClient = internal.DefaultHTTPClient
-	}
 	return GcpCredentialProvider{httpClient}
-}
-
-// Close closes the GcpCredentialProvider
-func (p GcpCredentialProvider) Close() {
-	if p.httpClient == internal.DefaultHTTPClient {
-		internal.CloseIdleHTTPConnections(p.httpClient)
-	}
 }
 
 // GetCredentialsDoc generates GCP credentials.

@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -32,22 +33,10 @@ type kmsProvider interface {
 	GetCredentialsDoc(context.Context) (bsoncore.Document, error)
 }
 
-type kmsProvideCloser interface {
-	kmsProvider
-	Close()
-}
-
-type awsCredentialProvider struct {
-	kmsProvider
-}
-
-func (_ awsCredentialProvider) Close() {
-	// Dummy closer, doing nothing.
-}
-
 type MongoCrypt struct {
 	wrapped      *C.mongocrypt_t
-	kmsProviders map[string]kmsProvideCloser
+	kmsProviders map[string]kmsProvider
+	httpClient   *http.Client
 }
 
 // Version returns the version string for the loaded libmongocrypt, or an empty string
@@ -64,16 +53,24 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if wrapped == nil {
 		return nil, errors.New("could not create new mongocrypt object")
 	}
-	kmsProviders := make(map[string]kmsProvideCloser)
+	httpClient := opts.HTTPClient
+	if httpClient == nil {
+		httpClient = internal.DefaultHTTPClient
+	}
+	kmsProviders := make(map[string]kmsProvider)
 	if needsKmsProvider(opts.KmsProviders, "gcp") {
-		kmsProviders["gcp"] = creds.NewGcpCredentialProvider(opts.HTTPClient)
+		kmsProviders["gcp"] = creds.NewGcpCredentialProvider(httpClient)
 	}
 	if needsKmsProvider(opts.KmsProviders, "aws") {
-		kmsProviders["aws"] = awsCredentialProvider{creds.NewAwsCredentialProvider(opts.HTTPClient)}
+		kmsProviders["aws"] = creds.NewAwsCredentialProvider(httpClient)
+	}
+	if needsKmsProvider(opts.KmsProviders, "azure") {
+		kmsProviders["azure"] = creds.NewAzureCredentialProvider(httpClient)
 	}
 	crypt := &MongoCrypt{
 		wrapped:      wrapped,
 		kmsProviders: kmsProviders,
+		httpClient:   httpClient,
 	}
 
 	// set options in mongocrypt
@@ -384,8 +381,8 @@ func (m *MongoCrypt) CryptSharedLibVersionString() string {
 // Close cleans up any resources associated with the given MongoCrypt instance.
 func (m *MongoCrypt) Close() {
 	C.mongocrypt_destroy(m.wrapped)
-	for _, p := range m.kmsProviders {
-		p.Close()
+	if m.httpClient == internal.DefaultHTTPClient {
+		internal.CloseIdleHTTPConnections(m.httpClient)
 	}
 }
 
@@ -508,7 +505,7 @@ func (m *MongoCrypt) GetKmsProviders(ctx context.Context) (bsoncore.Document, er
 	for k, p := range m.kmsProviders {
 		doc, err := p.GetCredentialsDoc(ctx)
 		if err != nil {
-			return nil, internal.WrapErrorf(err, fmt.Sprintf("unable to retrieve %s credentials", k))
+			return nil, internal.WrapErrorf(err, "unable to retrieve %s credentials", k)
 		}
 		builder.AppendDocument(k, doc)
 	}
