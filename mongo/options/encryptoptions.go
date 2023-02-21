@@ -121,6 +121,9 @@ func (ro *RangeOptions) SetPrecision(precision int32) *RangeOptions {
 }
 
 // MergeEncryptOptions combines the argued EncryptOptions in a last-one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeEncryptOptions(opts ...*EncryptOptions) *EncryptOptions {
 	eo := Encrypt()
 	for _, opt := range opts {

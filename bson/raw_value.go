@@ -26,11 +26,10 @@ var ErrNilContext = errors.New("DecodeContext cannot be nil")
 // ErrNilRegistry is returned when the provided registry is nil.
 var ErrNilRegistry = errors.New("Registry cannot be nil")
 
-// RawValue represents a BSON value in byte form. It can be used to hold unprocessed BSON or to
-// defer processing of BSON. Type is the BSON type of the value and Value are the raw bytes that
-// represent the element.
+// RawValue is a raw encoded BSON value. It can be used to delay BSON value decoding or precompute
+// BSON encoded value. Type is the BSON type of the value and Value is the raw encoded BSON value.
 //
-// This type wraps bsoncore.Value for most of it's functionality.
+// A RawValue must be an individual BSON value. Use the Raw type for full BSON documents.
 type RawValue struct {
 	Type  bsontype.Type
 	Value []byte

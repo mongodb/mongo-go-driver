@@ -20,7 +20,7 @@ type zeroer interface {
 	IsZero() bool
 }
 
-func TestTimestampCompare(t *testing.T) {
+func TestCompareTimestamp(t *testing.T) {
 	testcases := []struct {
 		name     string
 		tp       Timestamp
@@ -38,6 +38,79 @@ func TestTimestampCompare(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result := CompareTimestamp(tc.tp, tc.tp2)
 			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestTimestamp(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		description     string
+		tp              Timestamp
+		tp2             Timestamp
+		expectedAfter   bool
+		expectedBefore  bool
+		expectedEqual   bool
+		expectedCompare int
+	}{
+		{
+			description:     "equal",
+			tp:              Timestamp{T: 12345, I: 67890},
+			tp2:             Timestamp{T: 12345, I: 67890},
+			expectedBefore:  false,
+			expectedAfter:   false,
+			expectedEqual:   true,
+			expectedCompare: 0,
+		},
+		{
+			description:     "T greater than",
+			tp:              Timestamp{T: 12345, I: 67890},
+			tp2:             Timestamp{T: 2345, I: 67890},
+			expectedBefore:  false,
+			expectedAfter:   true,
+			expectedEqual:   false,
+			expectedCompare: 1,
+		},
+		{
+			description:     "I greater than",
+			tp:              Timestamp{T: 12345, I: 67890},
+			tp2:             Timestamp{T: 12345, I: 7890},
+			expectedBefore:  false,
+			expectedAfter:   true,
+			expectedEqual:   false,
+			expectedCompare: 1,
+		},
+		{
+			description:     "T less than",
+			tp:              Timestamp{T: 12345, I: 67890},
+			tp2:             Timestamp{T: 112345, I: 67890},
+			expectedBefore:  true,
+			expectedAfter:   false,
+			expectedEqual:   false,
+			expectedCompare: -1,
+		},
+		{
+			description:     "I less than",
+			tp:              Timestamp{T: 12345, I: 67890},
+			tp2:             Timestamp{T: 12345, I: 167890},
+			expectedBefore:  true,
+			expectedAfter:   false,
+			expectedEqual:   false,
+			expectedCompare: -1,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc // Capture range variable.
+
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.expectedAfter, tc.tp.After(tc.tp2), "expected After results to be the same")
+			assert.Equal(t, tc.expectedBefore, tc.tp.Before(tc.tp2), "expected Before results to be the same")
+			assert.Equal(t, tc.expectedEqual, tc.tp.Equal(tc.tp2), "expected Equal results to be the same")
+			assert.Equal(t, tc.expectedCompare, tc.tp.Compare(tc.tp2), "expected Compare result to be the same")
 		})
 	}
 }

@@ -20,17 +20,23 @@ const defaultDstCap = 256
 var bvwPool = bsonrw.NewBSONValueWriterPool()
 var extjPool = bsonrw.NewExtJSONValueWriterPool()
 
-// Marshaler is an interface implemented by types that can marshal themselves
-// into a BSON document represented as bytes. The bytes returned must be a valid
-// BSON document if the error is nil.
+// Marshaler is the interface implemented by types that can marshal themselves
+// into a valid BSON document.
+//
+// Implementations of Marshaler must return a full BSON document. To create
+// custom BSON marshaling behavior for individual values in a BSON document,
+// implement the ValueMarshaler interface instead.
 type Marshaler interface {
 	MarshalBSON() ([]byte, error)
 }
 
-// ValueMarshaler is an interface implemented by types that can marshal
-// themselves into a BSON value as bytes. The type must be the valid type for
-// the bytes returned. The bytes and byte type together must be valid if the
-// error is nil.
+// ValueMarshaler is the interface implemented by types that can marshal
+// themselves into a valid BSON value. The format of the returned bytes must
+// match the returned type.
+//
+// Implementations of ValueMarshaler must return an individual BSON value. To
+// create custom BSON marshaling behavior for an entire BSON document, implement
+// the Marshaler interface instead.
 type ValueMarshaler interface {
 	MarshalBSONValue() (bsontype.Type, []byte, error)
 }

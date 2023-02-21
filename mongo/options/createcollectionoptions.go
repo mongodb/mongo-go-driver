@@ -234,6 +234,9 @@ func (c *CreateCollectionOptions) SetClusteredIndex(clusteredIndex interface{}) 
 
 // MergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
 // CreateCollectionOptions in a last-one-wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeCreateCollectionOptions(opts ...*CreateCollectionOptions) *CreateCollectionOptions {
 	cc := CreateCollection()
 
@@ -309,6 +312,9 @@ func (c *CreateViewOptions) SetCollation(collation *Collation) *CreateViewOption
 
 // MergeCreateViewOptions combines the given CreateViewOptions instances into a single CreateViewOptions in a
 // last-one-wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeCreateViewOptions(opts ...*CreateViewOptions) *CreateViewOptions {
 	cv := CreateView()
 

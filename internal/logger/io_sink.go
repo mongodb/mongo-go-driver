@@ -9,12 +9,18 @@ package logger
 import (
 	"encoding/json"
 	"io"
+	"sync"
 	"time"
 )
 
 // IOSink writes a JSON-encoded message to the io.Writer.
 type IOSink struct {
 	enc *json.Encoder
+
+	// encMu protects the encoder from concurrent writes. While the logger
+	// itself does not concurrently write to the sink, the sink may be used
+	// concurrently within the driver.
+	encMu sync.Mutex
 }
 
 // Compile-time check to ensure IOSink implements the LogSink interface.
@@ -24,12 +30,16 @@ var _ LogSink = &IOSink{}
 // provided io.Writer.
 func NewIOSink(out io.Writer) *IOSink {
 	return &IOSink{
-		enc: json.NewEncoder(out),
+		enc:   json.NewEncoder(out),
+		encMu: sync.Mutex{},
 	}
 }
 
 // Info will write a JSON-encoded message to the io.Writer.
 func (sink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
+	sink.encMu.Lock()
+	defer sink.encMu.Unlock()
+
 	kvMap := make(map[string]interface{}, len(keysAndValues)/2+2)
 
 	kvMap[KeyTimestamp] = time.Now().UnixNano()
