@@ -121,23 +121,23 @@ func (e *Ec2Provider) getCredentials(ctx context.Context, token string, role str
 	}
 	defer resp.Close()
 
-	var es2Resp struct {
+	var ec2Resp struct {
 		AccessKeyID     string    `json:"AccessKeyId"`
 		SecretAccessKey string    `json:"SecretAccessKey"`
 		Token           string    `json:"Token"`
 		Expiration      time.Time `json:"Expiration"`
 	}
 
-	err = json.NewDecoder(resp).Decode(&es2Resp)
+	err = json.NewDecoder(resp).Decode(&ec2Resp)
 	if err != nil {
 		return v, time.Time{}, err
 	}
 
-	v.AccessKeyID = es2Resp.AccessKeyID
-	v.SecretAccessKey = es2Resp.SecretAccessKey
-	v.SessionToken = es2Resp.Token
+	v.AccessKeyID = ec2Resp.AccessKeyID
+	v.SecretAccessKey = ec2Resp.SecretAccessKey
+	v.SessionToken = ec2Resp.Token
 
-	return v, es2Resp.Expiration, nil
+	return v, ec2Resp.Expiration, nil
 }
 
 // RetrieveWithContext retrieves the keys from the AWS service.
@@ -171,7 +171,7 @@ func (e *Ec2Provider) Retrieve() (credentials.Value, error) {
 	return e.RetrieveWithContext(context.Background())
 }
 
-// IsExpired returns if the credentials have been retrieved.
+// IsExpired returns true if the credentials are expired.
 func (e *Ec2Provider) IsExpired() bool {
 	return e.expiration.Before(time.Now())
 }

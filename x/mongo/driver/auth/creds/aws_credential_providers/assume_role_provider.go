@@ -128,7 +128,7 @@ func (a *AssumeRoleProvider) Retrieve() (credentials.Value, error) {
 	return a.RetrieveWithContext(context.Background())
 }
 
-// IsExpired returns if the credentials have been retrieved.
+// IsExpired returns true if the credentials are expired.
 func (a *AssumeRoleProvider) IsExpired() bool {
 	return a.expiration.Before(time.Now())
 }

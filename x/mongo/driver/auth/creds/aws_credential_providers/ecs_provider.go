@@ -70,25 +70,25 @@ func (e *EcsProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 		return v, fmt.Errorf("response failure: %s", resp.Status)
 	}
 
-	var espResp struct {
+	var escResp struct {
 		AccessKeyID     string    `json:"AccessKeyId"`
 		SecretAccessKey string    `json:"SecretAccessKey"`
 		Token           string    `json:"Token"`
 		Expiration      time.Time `json:"Expiration"`
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&espResp)
+	err = json.NewDecoder(resp.Body).Decode(&escResp)
 	if err != nil {
 		return v, err
 	}
 
-	v.AccessKeyID = espResp.AccessKeyID
-	v.SecretAccessKey = espResp.SecretAccessKey
-	v.SessionToken = espResp.Token
+	v.AccessKeyID = escResp.AccessKeyID
+	v.SecretAccessKey = escResp.SecretAccessKey
+	v.SessionToken = escResp.Token
 	if !v.HasKeys() {
 		return v, errors.New("failed to retrieve ECS keys")
 	}
-	e.expiration = espResp.Expiration.Add(-e.expiryWindow)
+	e.expiration = escResp.Expiration.Add(-e.expiryWindow)
 
 	return v, err
 }
@@ -98,7 +98,7 @@ func (e *EcsProvider) Retrieve() (credentials.Value, error) {
 	return e.RetrieveWithContext(context.Background())
 }
 
-// IsExpired returns if the credentials have been retrieved.
+// IsExpired returns true if the credentials are expired.
 func (e *EcsProvider) IsExpired() bool {
 	return e.expiration.Before(time.Now())
 }
