@@ -23,7 +23,7 @@ type ByteSliceCodec struct {
 var (
 	defaultByteSliceCodec = NewByteSliceCodec()
 
-	_ ValueCodec  = defaultByteSliceCodec
+	_ valueCodec  = defaultByteSliceCodec
 	_ typeDecoder = defaultByteSliceCodec
 )
 

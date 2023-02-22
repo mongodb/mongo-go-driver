@@ -24,7 +24,7 @@ type UIntCodec struct {
 var (
 	defaultUIntCodec = NewUIntCodec()
 
-	_ ValueCodec  = defaultUIntCodec
+	_ valueCodec  = defaultUIntCodec
 	_ typeDecoder = defaultUIntCodec
 )
 

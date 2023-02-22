@@ -29,7 +29,7 @@ type TimeCodec struct {
 var (
 	defaultTimeCodec = NewTimeCodec()
 
-	_ ValueCodec  = defaultTimeCodec
+	_ valueCodec  = defaultTimeCodec
 	_ typeDecoder = defaultTimeCodec
 )
 

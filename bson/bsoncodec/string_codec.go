@@ -23,7 +23,7 @@ type StringCodec struct {
 var (
 	defaultStringCodec = NewStringCodec()
 
-	_ ValueCodec  = defaultStringCodec
+	_ valueCodec  = defaultStringCodec
 	_ typeDecoder = defaultStringCodec
 )
 

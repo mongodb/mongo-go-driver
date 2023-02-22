@@ -23,7 +23,7 @@ type EmptyInterfaceCodec struct {
 var (
 	defaultEmptyInterfaceCodec = NewEmptyInterfaceCodec()
 
-	_ ValueCodec  = defaultEmptyInterfaceCodec
+	_ valueCodec  = defaultEmptyInterfaceCodec
 	_ typeDecoder = defaultEmptyInterfaceCodec
 )
 

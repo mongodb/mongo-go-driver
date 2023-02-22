@@ -147,9 +147,9 @@ func (dc *DecodeContext) DefaultDocumentD() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.D{})
 }
 
-// ValueCodec is the interface that groups the methods to encode and decode
+// valueCodec is the interface that groups the methods to encode and decode
 // values.
-type ValueCodec interface {
+type valueCodec interface {
 	ValueEncoder
 	ValueDecoder
 }

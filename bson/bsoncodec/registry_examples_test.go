@@ -21,8 +21,8 @@ func ExampleRegistry_customEncoder() {
 	// encoding.
 
 	// To register the default encoders and decoders in addition to this custom
-	// one, use bson.NewRegistryBuilder instead.
-	rb := bsoncodec.NewRegistryBuilder()
+	// one, use bson.NewRegistry instead.
+	reg := bsoncodec.NewRegistry()
 	type negatedInt int
 
 	niType := reflect.TypeOf(negatedInt(0))
@@ -50,7 +50,7 @@ func ExampleRegistry_customEncoder() {
 		return vw.WriteInt64(negatedVal)
 	}
 
-	rb.RegisterTypeEncoder(niType, bsoncodec.ValueEncoderFunc(encoder))
+	reg.RegisterTypeEncoder(niType, bsoncodec.ValueEncoderFunc(encoder))
 }
 
 func ExampleRegistry_customDecoder() {
@@ -60,8 +60,8 @@ func ExampleRegistry_customDecoder() {
 	// are non-zero. BSON null values are always considered false.
 
 	// To register the default encoders and decoders in addition to this custom
-	// one, use bson.NewRegistryBuilder instead.
-	rb := bsoncodec.NewRegistryBuilder()
+	// one, use bson.NewRegistry instead.
+	reg := bsoncodec.NewRegistry()
 	type lenientBool bool
 
 	decoder := func(
@@ -121,5 +121,5 @@ func ExampleRegistry_customDecoder() {
 	}
 
 	lbType := reflect.TypeOf(lenientBool(true))
-	rb.RegisterTypeDecoder(lbType, bsoncodec.ValueDecoderFunc(decoder))
+	reg.RegisterTypeDecoder(lbType, bsoncodec.ValueDecoderFunc(decoder))
 }
