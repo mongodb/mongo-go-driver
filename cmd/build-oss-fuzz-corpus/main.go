@@ -11,6 +11,7 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -32,7 +33,7 @@ type validityTestCase struct {
 func findJSONFilesInDir(dir string) ([]string, error) {
 	files := make([]string, 0)
 
-	entries, err := os.ReadDir(dir)
+	entries, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
