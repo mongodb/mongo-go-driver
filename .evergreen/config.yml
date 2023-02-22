@@ -160,7 +160,8 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            # git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            git clone https://github.com/kevinAlbs/drivers-evergreen-tools.git --branch D2411 $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -2220,10 +2221,10 @@ tasks:
           echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
           export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
           tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib/libmongocrypt.*
-          AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=$AZUREKMS_VMNAME: $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
+          AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
           echo "Copying files ... end"
           echo "Untarring file ... begin"
-          AZUREKMS_CMD="tar xf testazurekms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          AZUREKMS_CMD="tar xf /tmp/testazurekms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
           echo "Untarring file ... end"
 
     - command: shell.exec
@@ -2235,7 +2236,8 @@ tasks:
           ${PREPARE_SHELL}
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          export AZUREKMS_PRIVATEKEYPATH=${AZUREKMS_PRIVATEKEYPATH}
+          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
           AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
@@ -2546,9 +2548,10 @@ task_groups:
             echo '${testazurekms_publickey}' > /tmp/testazurekms.pubkey
             export AZUREKMS_PUBLICKEYPATH=/tmp/testazurekms.pubkey
             echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
+            sudo chmod 600 /tmp/testazurekms.prikey
             export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
             export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
-            src/go.mongodb.org/mongo-driver/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
           file: testazurekms-expansions.yml
