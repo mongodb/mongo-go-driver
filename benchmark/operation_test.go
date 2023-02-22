@@ -8,8 +8,6 @@ package benchmark
 
 import (
 	"context"
-	"crypto/rand"
-	"math/big"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -52,12 +50,10 @@ func BenchmarkClientWrite(b *testing.B) {
 
 			b.ResetTimer()
 			b.RunParallel(func(p *testing.PB) {
+				var cnt int
 				for p.Next() {
-					n, err := rand.Int(rand.Reader, big.NewInt(int64(len(teststrings))))
-					if err != nil {
-						b.Fatalf("error in generating random number: %v", err)
-					}
-					_, err = coll.InsertOne(context.Background(), bson.D{{"text", teststrings[n.Int64()]}})
+					cnt = (cnt + 1) % len(teststrings)
+					_, err = coll.InsertOne(context.Background(), bson.D{{"text", teststrings[cnt]}})
 					if err != nil {
 						b.Fatalf("error inserting one document: %v", err)
 					}
@@ -98,16 +94,14 @@ func BenchmarkClientBulkWrite(b *testing.B) {
 
 			b.ResetTimer()
 			b.RunParallel(func(p *testing.PB) {
+				var cnt int
 				for p.Next() {
-					n, err := rand.Int(rand.Reader, big.NewInt(int64(len(teststrings))))
-					if err != nil {
-						b.Fatalf("error in generating random number: %v", err)
-					}
+					cnt = (cnt + 1) % len(teststrings)
 					_, err = coll.BulkWrite(context.Background(), []mongo.WriteModel{
-						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[n.Int64()]}}),
-						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[n.Int64()]}}),
-						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[n.Int64()]}}),
-						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[n.Int64()]}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[cnt]}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[cnt]}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[cnt]}}),
+						mongo.NewInsertOneModel().SetDocument(bson.D{{"text", teststrings[cnt]}}),
 					})
 					if err != nil {
 						b.Fatalf("error inserting one document: %v", err)
@@ -155,13 +149,11 @@ func BenchmarkClientRead(b *testing.B) {
 
 			b.ResetTimer()
 			b.RunParallel(func(p *testing.PB) {
+				var cnt int
 				for p.Next() {
-					n, err := rand.Int(rand.Reader, big.NewInt(2))
-					if err != nil {
-						b.Fatalf("error in generating random number: %v", err)
-					}
+					cnt = (cnt + 1) % len(teststrings)
 					var res bson.D
-					err = coll.FindOne(context.Background(), bson.M{"_id": n.Int64()}).Decode(&res)
+					err = coll.FindOne(context.Background(), bson.M{"_id": cnt}).Decode(&res)
 					if err != nil {
 						b.Errorf("error finding one document: %v", err)
 					}
