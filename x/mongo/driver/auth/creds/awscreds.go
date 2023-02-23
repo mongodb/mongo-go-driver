@@ -22,12 +22,11 @@ const (
 
 // AwsCredentialProvider wraps AWS credentials.
 type AwsCredentialProvider struct {
-	Providers []credentials.Provider
+	Cred *credentials.Credentials
 }
 
 // NewAwsCredentialProvider generates new AwsCredentialProvider
-func NewAwsCredentialProvider(httpClient *http.Client) AwsCredentialProvider {
-	var providers []credentials.Provider
+func NewAwsCredentialProvider(httpClient *http.Client, providers ...credentials.Provider) AwsCredentialProvider {
 	providers = append(
 		providers,
 		&credproviders.EnvProvider{},
@@ -36,12 +35,12 @@ func NewAwsCredentialProvider(httpClient *http.Client) AwsCredentialProvider {
 		credproviders.NewEc2Provider(httpClient, expiryWindow),
 	)
 
-	return AwsCredentialProvider{providers}
+	return AwsCredentialProvider{credentials.NewChainCredentials(providers)}
 }
 
 // GetCredentialsDoc generates AWS credentials.
 func (p AwsCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
-	creds, err := credentials.NewChainCredentials(p.Providers).GetWithContext(ctx)
+	creds, err := p.Cred.GetWithContext(ctx)
 	if err != nil {
 		return nil, err
 	}

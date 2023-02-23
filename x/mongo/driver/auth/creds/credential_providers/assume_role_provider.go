@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/uuid"
@@ -25,6 +24,15 @@ const (
 	AssumeRoleProviderName = "AssumeRoleProvider"
 
 	stsURI = `https://sts.amazonaws.com/?Action=AssumeRoleWithWebIdentity&RoleSessionName=%s&RoleArn=%s&WebIdentityToken=%s&Version=2011-06-15`
+)
+
+var (
+	// AwsRoleArnEnv is the environment variable for AWS_ROLE_ARN
+	AwsRoleArnEnv = EnvVar("AWS_ROLE_ARN")
+	// AwsWebIdentityTokenFileEnv is the environment variable for AWS_WEB_IDENTITY_TOKEN_FILE
+	AwsWebIdentityTokenFileEnv = EnvVar("AWS_WEB_IDENTITY_TOKEN_FILE")
+	// AwsRoleSessionNameEnv is the environment variable for AWS_ROLE_SESSION_NAME
+	AwsRoleSessionNameEnv = EnvVar("AWS_ROLE_SESSION_NAME")
 )
 
 // An AssumeRoleProvider retrieves credentials for assume role with web identity.
@@ -49,8 +57,8 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 
 	v := credentials.Value{ProviderName: AssumeRoleProviderName}
 
-	roleArn := os.Getenv("AWS_ROLE_ARN")
-	tokenFile := os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE")
+	roleArn := AwsRoleArnEnv.Get()
+	tokenFile := AwsWebIdentityTokenFileEnv.Get()
 	if tokenFile == "" && roleArn == "" {
 		return v, errors.New("AWS_WEB_IDENTITY_TOKEN_FILE and AWS_ROLE_ARN are missing")
 	}
@@ -65,7 +73,7 @@ func (a *AssumeRoleProvider) RetrieveWithContext(ctx context.Context) (credentia
 		return v, err
 	}
 
-	sessionName := os.Getenv("AWS_ROLE_SESSION_NAME")
+	sessionName := AwsRoleSessionNameEnv.Get()
 	if sessionName == "" {
 		// Use a UUID if the RoleSessionName is not given.
 		id, err := uuid.New()

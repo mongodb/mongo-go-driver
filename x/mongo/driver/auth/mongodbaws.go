@@ -47,11 +47,10 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	if httpClient == nil {
 		return errors.New("cfg.HTTPClient must not be nil")
 	}
-	providers := []credentials.Provider{a.credentials}
-	providers = append(providers, creds.NewAwsCredentialProvider(httpClient).Providers...)
+	providers := creds.NewAwsCredentialProvider(httpClient, a.credentials)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
-			credentials: credentials.NewChainCredentials(providers),
+			credentials: providers.Cred,
 		},
 	}
 	err := ConductSaslConversation(ctx, cfg, a.source, adapter)

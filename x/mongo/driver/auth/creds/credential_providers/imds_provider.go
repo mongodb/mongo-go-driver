@@ -86,9 +86,8 @@ func (a *AzureProvider) RetrieveWithContext(ctx context.Context) (credentials.Va
 	if err != nil {
 		return v, err
 	}
-	a.expiration = time.Now()
 	if expiration := expiresIn - a.expiryWindow; expiration > 0 {
-		a.expiration = a.expiration.Add(expiration)
+		a.expiration = time.Now().Add(expiration)
 	}
 
 	return v, err

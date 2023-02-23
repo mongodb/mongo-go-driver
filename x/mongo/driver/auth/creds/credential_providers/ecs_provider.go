@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
@@ -23,6 +22,11 @@ const (
 	EcsProviderName = "EcsProvider"
 
 	awsRelativeURI = "http://169.254.170.2/"
+)
+
+var (
+	// AwsContainerCredentialsRelativeURIEnv is the environment variable for AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+	AwsContainerCredentialsRelativeURIEnv = EnvVar("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
 )
 
 // An EcsProvider retrieves credentials from ECS metadata.
@@ -47,7 +51,7 @@ func (e *EcsProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 
 	v := credentials.Value{ProviderName: EcsProviderName}
 
-	relativeEcsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+	relativeEcsURI := AwsContainerCredentialsRelativeURIEnv.Get()
 	if len(relativeEcsURI) == 0 {
 		return v, errors.New("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is missing")
 	}

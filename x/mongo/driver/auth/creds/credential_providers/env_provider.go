@@ -15,6 +15,23 @@ import (
 // EnvProviderName provides a name of Env provider
 const EnvProviderName = "EnvProvider"
 
+var (
+	// AwsAccessKeyIDEnv is the environment variable for AWS_ACCESS_KEY_ID
+	AwsAccessKeyIDEnv = EnvVar("AWS_ACCESS_KEY_ID")
+	// AwsSecretAccessKeyEnv is the environment variable for AWS_SECRET_ACCESS_KEY
+	AwsSecretAccessKeyEnv = EnvVar("AWS_SECRET_ACCESS_KEY")
+	// AwsSessionTokenEnv is the environment variable for AWS_SESSION_TOKEN
+	AwsSessionTokenEnv = EnvVar("AWS_SESSION_TOKEN")
+)
+
+// EnvVar is an environment variable
+type EnvVar string
+
+// Get retrieves the environment variable
+func (ev EnvVar) Get() string {
+	return os.Getenv(string(ev))
+}
+
 // A EnvProvider retrieves credentials from the environment variables of the
 // running process. Environment credentials never expire.
 type EnvProvider struct {
@@ -26,9 +43,9 @@ func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	e.retrieved = false
 
 	v := credentials.Value{
-		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
+		AccessKeyID:     AwsAccessKeyIDEnv.Get(),
+		SecretAccessKey: AwsSecretAccessKeyEnv.Get(),
+		SessionToken:    AwsSessionTokenEnv.Get(),
 		ProviderName:    EnvProviderName,
 	}
 	err := verify(v)
