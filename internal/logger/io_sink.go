@@ -30,16 +30,12 @@ var _ LogSink = &IOSink{}
 // provided io.Writer.
 func NewIOSink(out io.Writer) *IOSink {
 	return &IOSink{
-		enc:   json.NewEncoder(out),
-		encMu: sync.Mutex{},
+		enc: json.NewEncoder(out),
 	}
 }
 
 // Info will write a JSON-encoded message to the io.Writer.
 func (sink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
-	sink.encMu.Lock()
-	defer sink.encMu.Unlock()
-
 	kvMap := make(map[string]interface{}, len(keysAndValues)/2+2)
 
 	kvMap[KeyTimestamp] = time.Now().UnixNano()
@@ -49,7 +45,12 @@ func (sink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 		kvMap[keysAndValues[i].(string)] = keysAndValues[i+1]
 	}
 
-	_ = sink.enc.Encode(kvMap)
+	sink.encMu.Lock()
+	defer sink.encMu.Unlock()
+
+	if err := sink.enc.Encode(kvMap); err != nil {
+		panic(err)
+	}
 }
 
 // Error will write a JSON-encoded error message tot he io.Writer.

@@ -26,10 +26,6 @@ import (
 var (
 	// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
 	ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
-
-	// ErrEntityNotFound is returned when an entity is not found in an
-	// EntityMap hash.
-	ErrEntityNotFound = errors.New("entity not found")
 )
 
 var (
@@ -721,5 +717,5 @@ func (em *EntityMap) verifyEntityDoesNotExist(id string) error {
 }
 
 func newEntityNotFoundError(entityType, entityID string) error {
-	return fmt.Errorf("%w for type %q and ID %q", ErrEntityNotFound, entityType, entityID)
+	return fmt.Errorf("no %s entity found with ID %q", entityType, entityID)
 }
