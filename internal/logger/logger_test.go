@@ -14,8 +14,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-
-	"golang.org/x/sync/errgroup"
 )
 
 type mockLogSink struct{}
@@ -39,44 +37,15 @@ func BenchmarkLogger(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		for i := 0; i < b.N; i++ {
-			logger.Print(LevelInfo, ComponentCommand, "foo", "bar", "baz")
-		}
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				logger.Print(LevelInfo, ComponentCommand, "foo", "bar", "baz")
+			}
+		})
 	})
 }
 
-// mockKeyValues will return a slice of alternating keys and values of the
-// given length and the resulting JSON string.
-func mockKeyValuesB(b *testing.B, length int) KeyValues {
-	b.Helper()
-
-	keysAndValues := KeyValues{}
-	for i := 0; i < length; i++ {
-		keyName := fmt.Sprintf("key%d", i)
-		valueName := fmt.Sprintf("value%d", i)
-
-		keysAndValues.Add(keyName, valueName)
-	}
-
-	return keysAndValues
-}
-
-func BenchmarkIOSinkInfo(b *testing.B) {
-	keysAndValues := mockKeyValuesB(b, 100)
-
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	sink := NewIOSink(bytes.NewBuffer(nil))
-
-	for i := 0; i < b.N; i++ {
-		sink.Info(0, "foo", keysAndValues...)
-	}
-}
-
-func mockKeyValuesT(t *testing.T, length int) (KeyValues, map[string]interface{}) {
-	t.Helper()
-
+func mockKeyValues(length int) (KeyValues, map[string]interface{}) {
 	keysAndValues := KeyValues{}
 	m := map[string]interface{}{}
 
@@ -91,14 +60,19 @@ func mockKeyValuesT(t *testing.T, length int) (KeyValues, map[string]interface{}
 	return keysAndValues, m
 }
 
-type mockIOWriter struct {
-	msgs chan []byte
-}
+func BenchmarkIOSinkInfo(b *testing.B) {
+	keysAndValues, _ := mockKeyValues(10)
 
-func (m *mockIOWriter) Write(p []byte) (n int, err error) {
-	m.msgs <- p
+	b.ReportAllocs()
+	b.ResetTimer()
 
-	return len(p), nil
+	sink := NewIOSink(bytes.NewBuffer(nil))
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			sink.Info(0, "foo", keysAndValues...)
+		}
+	})
 }
 
 func TestIOSinkInfo(t *testing.T) {
@@ -106,50 +80,37 @@ func TestIOSinkInfo(t *testing.T) {
 
 	const threshold = 1000
 
-	mockKeyValues, kvmap := mockKeyValuesT(t, 10)
+	mockKeyValues, kvmap := mockKeyValues(10)
 
-	writer := &mockIOWriter{
-		msgs: make(chan []byte, threshold),
-	}
+	buf := new(bytes.Buffer)
+	sink := NewIOSink(buf)
 
-	egroup := errgroup.Group{}
-	egroup.Go(func() error {
-		for msg := range writer.msgs {
-			// Marshal the bytes into a map.
-			var m map[string]interface{}
-			if err := json.Unmarshal(msg, &m); err != nil {
-				return fmt.Errorf("error unmarshaling JSON: %v", err)
-			}
-
-			delete(m, KeyTimestamp)
-			delete(m, KeyMessage)
-
-			if !reflect.DeepEqual(m, kvmap) {
-				return fmt.Errorf("expected %v, got %v", kvmap, m)
-			}
-		}
-
-		return nil
-	})
-
-	sink := NewIOSink(writer)
-
-	// Spin up 100 go routines that all write mock data to the sink.
 	wg := sync.WaitGroup{}
 	wg.Add(threshold)
 
 	for i := 0; i < threshold; i++ {
 		go func() {
+			defer wg.Done()
+
 			sink.Info(0, "foo", mockKeyValues...)
-			wg.Done()
 		}()
 	}
 
 	wg.Wait()
-	close(writer.msgs)
 
-	if err := egroup.Wait(); err != nil {
-		t.Fatal(err)
+	dec := json.NewDecoder(buf)
+	for dec.More() {
+		var m map[string]interface{}
+		if err := dec.Decode(&m); err != nil {
+			t.Fatalf("error unmarshaling JSON: %v", err)
+		}
+
+		delete(m, KeyTimestamp)
+		delete(m, KeyMessage)
+
+		if !reflect.DeepEqual(m, kvmap) {
+			t.Fatalf("expected %v, got %v", kvmap, m)
+		}
 	}
 }
 

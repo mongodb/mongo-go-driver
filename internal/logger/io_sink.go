@@ -48,9 +48,7 @@ func (sink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	sink.encMu.Lock()
 	defer sink.encMu.Unlock()
 
-	if err := sink.enc.Encode(kvMap); err != nil {
-		panic(err)
-	}
+	_ = sink.enc.Encode(kvMap)
 }
 
 // Error will write a JSON-encoded error message tot he io.Writer.
