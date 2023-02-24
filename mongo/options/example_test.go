@@ -27,17 +27,17 @@ func (logger *CustomLogger) Info(level int, msg string, _ ...interface{}) {
 	logger.mu.Lock()
 	defer logger.mu.Unlock()
 
-	logger.Write([]byte(fmt.Sprintf("level=%d msg=%s\n", level, msg)))
+	fmt.Fprintf(logger, "level=%d msg=%s\n", level, msg)
 }
 
 func (logger *CustomLogger) Error(err error, msg string, _ ...interface{}) {
 	logger.mu.Lock()
 	defer logger.mu.Unlock()
 
-	logger.Write([]byte(fmt.Sprintf("err=%v msg=%s\n", err, msg)))
+	fmt.Fprintf(logger, "err=%v msg=%s\n", err, msg)
 }
 
-func ExampleClientOptions_SetLoggerOptions() {
+func ExampleClientOptions_SetLoggerOptions_customLogger() {
 	buf := bytes.NewBuffer(nil)
 	sink := &CustomLogger{Writer: buf}
 
