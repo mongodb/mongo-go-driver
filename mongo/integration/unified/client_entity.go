@@ -359,7 +359,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", "CommandFailedEvent").
 		AppendDouble("observedAt", getSecondsSinceEpoch()).
-		AppendInt64("duration", int64(evt.Duration)).
+		AppendInt64("durationNanos", evt.Duration.Nanoseconds()).
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
