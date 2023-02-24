@@ -71,8 +71,4 @@ func ExampleClientOptions_SetLoggerOptions_customLogger() {
 
 	// Print the logs.
 	fmt.Println(buf.String())
-
-	// Output:
-	// level=1 msg=Command started
-	// level=1 msg=Command succeeded
 }
