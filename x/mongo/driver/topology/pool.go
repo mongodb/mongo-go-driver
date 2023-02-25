@@ -293,6 +293,10 @@ func (p *pool) ready() error {
 	p.state = poolReady
 	p.stateMu.Unlock()
 
+	if mustLogPoolMessage(p) {
+		logPoolMessage(p, logger.ConnectionPoolReady)
+	}
+
 	// Send event.PoolReady before resuming the maintain() goroutine to guarantee that the
 	// "pool ready" event is always sent before maintain() starts creating connections.
 	if p.monitor != nil {
