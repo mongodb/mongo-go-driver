@@ -1788,8 +1788,9 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				ServerPort:         port,
 				ServiceID:          info.serviceID,
 			},
-				"command", formattedCmd,
-				"databaseName", op.Database)...)
+				logger.KeyCommand, formattedCmd,
+				logger.KeyDriverConnectionID, info.connID,
+				logger.KeyDatabaseName, op.Database)...)
 
 	}
 
@@ -1839,8 +1840,9 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServerPort:         port,
 				ServiceID:          info.serviceID,
 			},
-				"durationMS", info.duration.Milliseconds(),
-				"reply", formattedReply)...)
+				logger.KeyDurationMS, info.duration.Milliseconds(),
+				logger.KeyDriverConnectionID, info.connID,
+				logger.KeyReply, formattedReply)...)
 	}
 
 	if op.canLogCommandMessage() && !info.success() {
@@ -1860,8 +1862,9 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServerPort:         port,
 				ServiceID:          info.serviceID,
 			},
-				"durationMS", info.duration.Milliseconds(),
-				"failure", formattedReply)...)
+				logger.KeyDurationMS, info.duration.Milliseconds(),
+				logger.KeyDriverConnectionID, info.connID,
+				logger.KeyFailure, formattedReply)...)
 	}
 
 	// If the finished event cannot be published, return early.

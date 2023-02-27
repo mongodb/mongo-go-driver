@@ -7,8 +7,12 @@
 package logger
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 )
 
@@ -33,10 +37,81 @@ func BenchmarkLogger(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		for i := 0; i < b.N; i++ {
-			logger.Print(LevelInfo, ComponentCommand, "foo", "bar", "baz")
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				logger.Print(LevelInfo, ComponentCommand, "foo", "bar", "baz")
+			}
+		})
+	})
+}
+
+func mockKeyValues(length int) (KeyValues, map[string]interface{}) {
+	keysAndValues := KeyValues{}
+	m := map[string]interface{}{}
+
+	for i := 0; i < length; i++ {
+		keyName := fmt.Sprintf("key%d", i)
+		valueName := fmt.Sprintf("value%d", i)
+
+		keysAndValues.Add(keyName, valueName)
+		m[keyName] = valueName
+	}
+
+	return keysAndValues, m
+}
+
+func BenchmarkIOSinkInfo(b *testing.B) {
+	keysAndValues, _ := mockKeyValues(10)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	sink := NewIOSink(bytes.NewBuffer(nil))
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			sink.Info(0, "foo", keysAndValues...)
 		}
 	})
+}
+
+func TestIOSinkInfo(t *testing.T) {
+	t.Parallel()
+
+	const threshold = 1000
+
+	mockKeyValues, kvmap := mockKeyValues(10)
+
+	buf := new(bytes.Buffer)
+	sink := NewIOSink(buf)
+
+	wg := sync.WaitGroup{}
+	wg.Add(threshold)
+
+	for i := 0; i < threshold; i++ {
+		go func() {
+			defer wg.Done()
+
+			sink.Info(0, "foo", mockKeyValues...)
+		}()
+	}
+
+	wg.Wait()
+
+	dec := json.NewDecoder(buf)
+	for dec.More() {
+		var m map[string]interface{}
+		if err := dec.Decode(&m); err != nil {
+			t.Fatalf("error unmarshaling JSON: %v", err)
+		}
+
+		delete(m, KeyTimestamp)
+		delete(m, KeyMessage)
+
+		if !reflect.DeepEqual(m, kvmap) {
+			t.Fatalf("expected %v, got %v", kvmap, m)
+		}
+	}
 }
 
 func TestSelectMaxDocumentLength(t *testing.T) {

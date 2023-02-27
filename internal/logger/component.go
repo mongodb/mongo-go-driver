@@ -14,9 +14,60 @@ import (
 )
 
 const (
-	CommandFailed    = "Command failed"
-	CommandStarted   = "Command started"
-	CommandSucceeded = "Command succeeded"
+	CommandFailed             = "Command failed"
+	CommandStarted            = "Command started"
+	CommandSucceeded          = "Command succeeded"
+	ConnectionPoolCreated     = "Connection pool created"
+	ConnectionPoolReady       = "Connection pool ready"
+	ConnectionPoolCleared     = "Connection pool cleared"
+	ConnectionPoolClosed      = "Connection pool closed"
+	ConnectionCreated         = "Connection created"
+	ConnectionReady           = "Connection ready"
+	ConnectionClosed          = "Connection closed"
+	ConnectionCheckoutStarted = "Connection checkout started"
+	ConnectionCheckoutFailed  = "Connection checkout failed"
+	ConnectionCheckedOut      = "Connection checked out"
+	ConnectionCheckedIn       = "Connection checked in"
+)
+
+const (
+	KeyCommand            = "command"
+	KeyCommandName        = "commandName"
+	KeyDatabaseName       = "databaseName"
+	KeyDriverConnectionID = "driverConnectionId"
+	KeyDurationMS         = "durationMS"
+	KeyError              = "error"
+	KeyFailure            = "failure"
+	KeyMaxConnecting      = "maxConnecting"
+	KeyMaxIdleTimeMS      = "maxIdleTimeMS"
+	KeyMaxPoolSize        = "maxPoolSize"
+	KeyMessage            = "message"
+	KeyMinPoolSize        = "minPoolSize"
+	KeyOperationID        = "operationId"
+	KeyReason             = "reason"
+	KeyReply              = "reply"
+	KeyRequestID          = "requestId"
+	KeyServerConnectionID = "serverConnectionId"
+	KeyServerHost         = "serverHost"
+	KeyServerPort         = "serverPort"
+	KeyServiceID          = "serviceId"
+	KeyTimestamp          = "timestamp"
+)
+
+type KeyValues []interface{}
+
+func (kvs *KeyValues) Add(key string, value interface{}) {
+	*kvs = append(*kvs, key, value)
+}
+
+const (
+	ReasonConnClosedStale              = "Connection became stale because the pool was cleared"
+	ReasonConnClosedIdle               = "Connection has been available but unused for longer than the configured max idle time"
+	ReasonConnClosedError              = "An error occurred while using the connection"
+	ReasonConnClosedPoolClosed         = "Connection pool was closed"
+	ReasonConnCheckoutFailedTimout     = "Wait queue timeout elapsed without a connection becoming available"
+	ReasonConnCheckoutFailedError      = "An error occurred while trying to establish a new connection"
+	ReasonConnCheckoutFailedPoolClosed = "Connection pool was closed"
 )
 
 // Component is an enumeration representing the "components" which can be
@@ -87,31 +138,62 @@ type Command struct {
 // structured logging.
 func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
-	keysAndValues := append([]interface{}{
-		"commandName", cmd.Name,
-		"driverConnectionId", cmd.DriverConnectionID,
-		"message", cmd.Message,
-		"operationId", cmd.OperationID,
-		"requestId", cmd.RequestID,
-		"serverHost", cmd.ServerHost,
-	}, extraKeysAndValues...)
+	keysAndValues := KeyValues{
+		KeyCommandName, cmd.Name,
+		KeyDriverConnectionID, cmd.DriverConnectionID,
+		KeyMessage, cmd.Message,
+		KeyOperationID, cmd.OperationID,
+		KeyRequestID, cmd.RequestID,
+		KeyServerHost, cmd.ServerHost,
+	}
 
-	// Add the optional keys and values.
+	// Add the extra keys and values.
+	for i := 0; i < len(extraKeysAndValues); i += 2 {
+		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
+	}
+
 	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
 	if err == nil {
-		keysAndValues = append(keysAndValues, "serverPort", port)
+		keysAndValues.Add(KeyServerPort, port)
 	}
 
 	// Add the "serverConnectionId" if it is not nil.
 	if cmd.ServerConnectionID != nil {
-		keysAndValues = append(keysAndValues,
-			"serverConnectionId", *cmd.ServerConnectionID)
+		keysAndValues.Add(KeyServerConnectionID, *cmd.ServerConnectionID)
 	}
 
 	// Add the "serviceId" if it is not nil.
 	if cmd.ServiceID != nil {
-		keysAndValues = append(keysAndValues,
-			"serviceId", cmd.ServiceID.Hex())
+		keysAndValues.Add(KeyServiceID, cmd.ServiceID.Hex())
+	}
+
+	return keysAndValues
+}
+
+// Connection contains data that all connection log messages MUST contain.
+type Connection struct {
+	Message    string // Message associated with the connection
+	ServerHost string // Hostname or IP address for the server
+	ServerPort string // Port for the server
+}
+
+// SerializeConnection serializes a ConnectionMessage into a slice of keys
+// and values that can be passed to a logger.
+func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
+	// Initialize the boilerplate keys and values.
+	keysAndValues := KeyValues{
+		KeyMessage, conn.Message,
+		KeyServerHost, conn.ServerHost,
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKeysAndValues); i += 2 {
+		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
+	}
+
+	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)
+	if err == nil {
+		keysAndValues.Add(KeyServerPort, port)
 	}
 
 	return keysAndValues

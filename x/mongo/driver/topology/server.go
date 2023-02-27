@@ -176,6 +176,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		MaxIdleTime:      cfg.poolMaxIdleTime,
 		MaintainInterval: cfg.poolMaintainInterval,
 		PoolMonitor:      cfg.poolMonitor,
+		Logger:           cfg.logger,
 		handshakeErrFn:   s.ProcessHandshakeError,
 	}
 

@@ -218,10 +218,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
-	// Validate the ExpectLogMessages.
-	if err := validateExpectLogMessages(tc.ExpectLogMessages); err != nil {
-		return fmt.Errorf("invalid ExpectLogMessages: %v", err)
-	}
 	// Count the number of expected log messages over all clients.
 	expectedLogCount := 0
 	for _, clientLog := range tc.ExpectLogMessages {
@@ -305,14 +301,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
-	// Create a validator for log messages and start the workers that will observe log messages as they occur
-	// operationally.
-	logMessageValidator, err := newLogMessageValidator(tc)
-	if err != nil {
-		return fmt.Errorf("error creating logMessageValidator: %v", err)
-	}
-
-	go startLogMessageVerificationWorkers(testCtx, logMessageValidator)
+	// Create a validator for log messages and start the workers that will
+	// observe log messages as they occur operationally.
+	logMessageValidator := newLogMessageValidator(tc)
+	go startLogValidators(testCtx, logMessageValidator)
 
 	for _, client := range tc.entities.clients() {
 		client.stopListeningForEvents()
@@ -346,7 +338,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 
 		// For each client, verify that all expected log messages were
 		// received.
-		if err := stopLogMessageVerificationWorkers(ctx, logMessageValidator); err != nil {
+		if err := stopLogValidators(ctx, logMessageValidator); err != nil {
 			return fmt.Errorf("error verifying log messages: %w", err)
 		}
 	}

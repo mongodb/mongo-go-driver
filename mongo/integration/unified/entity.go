@@ -23,8 +23,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
-var ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
+var (
+	// ErrEntityMapOpen is returned when a slice entity is accessed while the EntityMap is open
+	ErrEntityMapOpen = errors.New("slices cannot be accessed while EntityMap is open")
+)
 
 var (
 	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
@@ -403,7 +405,8 @@ func (em *EntityMap) close(ctx context.Context) []error {
 			// Client will be closed in clientEncryption.Close()
 			continue
 		}
-		if err := client.Disconnect(ctx); err != nil {
+
+		if err := client.disconnect(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
 		}
 	}

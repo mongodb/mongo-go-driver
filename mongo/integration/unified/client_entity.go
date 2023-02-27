@@ -40,6 +40,7 @@ var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslConti
 // execution.
 type clientEntity struct {
 	*mongo.Client
+	disconnected bool
 
 	recordEvents             atomic.Value
 	started                  []*event.CommandStartedEvent
@@ -197,6 +198,25 @@ func getURIForClient(opts *entityOptions) string {
 	default:
 		return mtest.MultiMongosLoadBalancerURI()
 	}
+}
+
+// disconnect disconnects the client associated with this entity. It is an
+// idempotent operation, unlike the mongo client's disconnect method. This
+// property will help avoid unnecessary errors when calling disconnect on a
+// client that has already been disconnected, such as the case when the test
+// runner is required to run the closure as part of an operation.
+func (c *clientEntity) disconnect(ctx context.Context) error {
+	if c.disconnected {
+		return nil
+	}
+
+	if err := c.Client.Disconnect(ctx); err != nil {
+		return err
+	}
+
+	c.disconnected = true
+
+	return nil
 }
 
 func (c *clientEntity) stopListeningForEvents() {
@@ -458,8 +478,14 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
 		case "loadBalanced":
 			clientOpts.SetLoadBalanced(value.(bool))
+		case "maxIdleTimeMS":
+			clientOpts.SetMaxConnIdleTime(time.Duration(value.(int32)) * time.Millisecond)
+		case "minPoolSize":
+			clientOpts.SetMinPoolSize(uint64(value.(int32)))
 		case "maxPoolSize":
 			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
+		case "maxConnecting":
+			clientOpts.SetMaxConnecting(uint64(value.(int32)))
 		case "readConcernLevel":
 			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
 		case "retryReads":
@@ -473,6 +499,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			wcSet = true
 		case "waitQueueTimeoutMS":
 			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
+		case "waitQueueSize":
+			return newSkipTestError("the waitQueueSize client option is not supported")
 		case "timeoutMS":
 			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		default:
