@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package awscredproviders
+package credproviders
 
 import (
 	"os"
@@ -12,8 +12,25 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
-// EnvProviderName provides a name of Env provider
-const EnvProviderName = "EnvProvider"
+// envProviderName provides a name of Env provider
+const envProviderName = "EnvProvider"
+
+var (
+	// AwsAccessKeyIDEnv is the environment variable for AWS_ACCESS_KEY_ID
+	AwsAccessKeyIDEnv = EnvVar("AWS_ACCESS_KEY_ID")
+	// AwsSecretAccessKeyEnv is the environment variable for AWS_SECRET_ACCESS_KEY
+	AwsSecretAccessKeyEnv = EnvVar("AWS_SECRET_ACCESS_KEY")
+	// AwsSessionTokenEnv is the environment variable for AWS_SESSION_TOKEN
+	AwsSessionTokenEnv = EnvVar("AWS_SESSION_TOKEN")
+)
+
+// EnvVar is an environment variable
+type EnvVar string
+
+// Get retrieves the environment variable
+func (ev EnvVar) Get() string {
+	return os.Getenv(string(ev))
+}
 
 // A EnvProvider retrieves credentials from the environment variables of the
 // running process. Environment credentials never expire.
@@ -26,10 +43,10 @@ func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	e.retrieved = false
 
 	v := credentials.Value{
-		AccessKeyID:     os.Getenv("AWS_ACCESS_KEY_ID"),
-		SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		SessionToken:    os.Getenv("AWS_SESSION_TOKEN"),
-		ProviderName:    EnvProviderName,
+		AccessKeyID:     AwsAccessKeyIDEnv.Get(),
+		SecretAccessKey: AwsSecretAccessKeyEnv.Get(),
+		SessionToken:    AwsSessionTokenEnv.Get(),
+		ProviderName:    envProviderName,
 	}
 	err := verify(v)
 	if err == nil {

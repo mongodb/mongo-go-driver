@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package awscredproviders
+package credproviders
 
 import (
 	"errors"
@@ -12,8 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
-// StaticProviderName provides a name of Static provider
-const StaticProviderName = "StaticProvider"
+// staticProviderName provides a name of Static provider
+const staticProviderName = "StaticProvider"
 
 // A StaticProvider is a set of credentials which are set programmatically,
 // and will never expire.
@@ -45,7 +45,7 @@ func verify(v credentials.Value) error {
 func (s *StaticProvider) Retrieve() (credentials.Value, error) {
 	if !s.verified {
 		s.err = verify(s.Value)
-		s.Value.ProviderName = StaticProviderName
+		s.Value.ProviderName = staticProviderName
 		s.verified = true
 	}
 	return s.Value, s.err

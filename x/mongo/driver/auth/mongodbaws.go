@@ -10,8 +10,8 @@ import (
 	"context"
 	"errors"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/credproviders"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
-	awscredproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/aws_credential_providers"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
@@ -24,7 +24,7 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 	}
 	return &MongoDBAWSAuthenticator{
 		source: cred.Source,
-		credentials: &awscredproviders.StaticProvider{
+		credentials: &credproviders.StaticProvider{
 			Value: credentials.Value{
 				ProviderName:    cred.Source,
 				AccessKeyID:     cred.Username,
@@ -38,7 +38,7 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 // MongoDBAWSAuthenticator uses AWS-IAM credentials over SASL to authenticate a connection.
 type MongoDBAWSAuthenticator struct {
 	source      string
-	credentials *awscredproviders.StaticProvider
+	credentials *credproviders.StaticProvider
 }
 
 // Auth authenticates the connection.
@@ -47,11 +47,10 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	if httpClient == nil {
 		return errors.New("cfg.HTTPClient must not be nil")
 	}
-	providers := []credentials.Provider{a.credentials}
-	providers = append(providers, creds.NewAwsCredentialProvider(httpClient).Providers...)
+	providers := creds.NewAWSCredentialProvider(httpClient, a.credentials)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
-			credentials: credentials.NewChainCredentials(providers),
+			credentials: providers.Cred,
 		},
 	}
 	err := ConductSaslConversation(ctx, cfg, a.source, adapter)

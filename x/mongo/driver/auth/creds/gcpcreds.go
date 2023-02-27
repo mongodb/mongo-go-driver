@@ -18,28 +18,18 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// GcpCredentialProvider provides GCP credentials.
-type GcpCredentialProvider struct {
+// GCPCredentialProvider provides GCP credentials.
+type GCPCredentialProvider struct {
 	httpClient *http.Client
 }
 
-// NewGcpCredentialProvider generates new GcpCredentialProvider
-func NewGcpCredentialProvider(httpClient *http.Client) GcpCredentialProvider {
-	if httpClient == nil {
-		httpClient = internal.DefaultHTTPClient
-	}
-	return GcpCredentialProvider{httpClient}
-}
-
-// Close closes the GcpCredentialProvider
-func (p GcpCredentialProvider) Close() {
-	if p.httpClient == internal.DefaultHTTPClient {
-		internal.CloseIdleHTTPConnections(p.httpClient)
-	}
+// NewGCPCredentialProvider generates new GCPCredentialProvider
+func NewGCPCredentialProvider(httpClient *http.Client) GCPCredentialProvider {
+	return GCPCredentialProvider{httpClient}
 }
 
 // GetCredentialsDoc generates GCP credentials.
-func (p GcpCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
+func (p GCPCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
 	metadataHost := "metadata.google.internal"
 	if envhost := os.Getenv("GCE_METADATA_HOST"); envhost != "" {
 		metadataHost = envhost

@@ -4,14 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package awscredproviders
+package credproviders
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -20,46 +19,38 @@ import (
 )
 
 const (
-	// Ec2ProviderName provides a name of EC2 provider
-	Ec2ProviderName = "Ec2Provider"
+	// ec2ProviderName provides a name of EC2 provider
+	ec2ProviderName = "EC2Provider"
 
 	awsEC2URI       = "http://169.254.169.254/"
 	awsEC2RolePath  = "latest/meta-data/iam/security-credentials/"
 	awsEC2TokenPath = "latest/api/token"
+
+	defaultHTTPTimeout = 10 * time.Second
 )
 
-// An Ec2Provider retrieves credentials from EC2 metadata.
-type Ec2Provider struct {
-	httpClient   *http.Client
-	expiration   time.Time
+// An EC2Provider retrieves credentials from EC2 metadata.
+type EC2Provider struct {
+	httpClient *http.Client
+	expiration time.Time
+
+	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
+	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
+	//
+	// So a ExpiryWindow of 10s would cause calls to IsExpired() to return true
+	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
 
-// NewEc2Provider returns a pointer to an EC2 credential provider.
-func NewEc2Provider(httpClient *http.Client, expiryWindow time.Duration) *Ec2Provider {
-	return &Ec2Provider{
+// NewEC2Provider returns a pointer to an EC2 credential provider.
+func NewEC2Provider(httpClient *http.Client, expiryWindow time.Duration) *EC2Provider {
+	return &EC2Provider{
 		httpClient:   httpClient,
-		expiration:   time.Time{},
 		expiryWindow: expiryWindow,
 	}
 }
 
-func (e *Ec2Provider) executeAWSHTTPRequest(ctx context.Context, req *http.Request) (io.ReadCloser, error) {
-	const defaultHTTPTimeout = 10 * time.Second
-
-	ctx, cancel := context.WithTimeout(ctx, defaultHTTPTimeout)
-	defer cancel()
-	resp, err := e.httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("response failure: %s", resp.Status)
-	}
-	return resp.Body, nil
-}
-
-func (e *Ec2Provider) getToken(ctx context.Context) (string, error) {
+func (e *EC2Provider) getToken(ctx context.Context) (string, error) {
 	req, err := http.NewRequest(http.MethodPut, awsEC2URI+awsEC2TokenPath, nil)
 	if err != nil {
 		return "", err
@@ -67,13 +58,18 @@ func (e *Ec2Provider) getToken(ctx context.Context) (string, error) {
 	const defaultEC2TTLSeconds = "30"
 	req.Header.Set("X-aws-ec2-metadata-token-ttl-seconds", defaultEC2TTLSeconds)
 
-	r, err := e.executeAWSHTTPRequest(ctx, req)
+	ctx, cancel := context.WithTimeout(ctx, defaultHTTPTimeout)
+	defer cancel()
+	resp, err := e.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s %s failed: %s", req.Method, req.URL.String(), resp.Status)
+	}
 
-	token, err := ioutil.ReadAll(r)
+	token, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -83,20 +79,25 @@ func (e *Ec2Provider) getToken(ctx context.Context) (string, error) {
 	return string(token), nil
 }
 
-func (e *Ec2Provider) getRoleName(ctx context.Context, token string) (string, error) {
+func (e *EC2Provider) getRoleName(ctx context.Context, token string) (string, error) {
 	req, err := http.NewRequest(http.MethodGet, awsEC2URI+awsEC2RolePath, nil)
 	if err != nil {
 		return "", err
 	}
 	req.Header.Set("X-aws-ec2-metadata-token", token)
 
-	r, err := e.executeAWSHTTPRequest(ctx, req)
+	ctx, cancel := context.WithTimeout(ctx, defaultHTTPTimeout)
+	defer cancel()
+	resp, err := e.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s %s failed: %s", req.Method, req.URL.String(), resp.Status)
+	}
 
-	role, err := ioutil.ReadAll(r)
+	role, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -106,8 +107,8 @@ func (e *Ec2Provider) getRoleName(ctx context.Context, token string) (string, er
 	return string(role), nil
 }
 
-func (e *Ec2Provider) getCredentials(ctx context.Context, token string, role string) (credentials.Value, time.Time, error) {
-	v := credentials.Value{ProviderName: Ec2ProviderName}
+func (e *EC2Provider) getCredentials(ctx context.Context, token string, role string) (credentials.Value, time.Time, error) {
+	v := credentials.Value{ProviderName: ec2ProviderName}
 
 	pathWithRole := awsEC2URI + awsEC2RolePath + role
 	req, err := http.NewRequest(http.MethodGet, pathWithRole, nil)
@@ -115,11 +116,16 @@ func (e *Ec2Provider) getCredentials(ctx context.Context, token string, role str
 		return v, time.Time{}, err
 	}
 	req.Header.Set("X-aws-ec2-metadata-token", token)
-	resp, err := e.executeAWSHTTPRequest(ctx, req)
+	ctx, cancel := context.WithTimeout(ctx, defaultHTTPTimeout)
+	defer cancel()
+	resp, err := e.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return v, time.Time{}, err
 	}
-	defer resp.Close()
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return v, time.Time{}, fmt.Errorf("%s %s failed: %s", req.Method, req.URL.String(), resp.Status)
+	}
 
 	var ec2Resp struct {
 		AccessKeyID     string    `json:"AccessKeyId"`
@@ -128,7 +134,7 @@ func (e *Ec2Provider) getCredentials(ctx context.Context, token string, role str
 		Expiration      time.Time `json:"Expiration"`
 	}
 
-	err = json.NewDecoder(resp).Decode(&ec2Resp)
+	err = json.NewDecoder(resp.Body).Decode(&ec2Resp)
 	if err != nil {
 		return v, time.Time{}, err
 	}
@@ -141,8 +147,8 @@ func (e *Ec2Provider) getCredentials(ctx context.Context, token string, role str
 }
 
 // RetrieveWithContext retrieves the keys from the AWS service.
-func (e *Ec2Provider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
-	v := credentials.Value{ProviderName: Ec2ProviderName}
+func (e *EC2Provider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+	v := credentials.Value{ProviderName: ec2ProviderName}
 
 	token, err := e.getToken(ctx)
 	if err != nil {
@@ -163,15 +169,15 @@ func (e *Ec2Provider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 	}
 	e.expiration = exp.Add(-e.expiryWindow)
 
-	return v, err
+	return v, nil
 }
 
 // Retrieve retrieves the keys from the AWS service.
-func (e *Ec2Provider) Retrieve() (credentials.Value, error) {
+func (e *EC2Provider) Retrieve() (credentials.Value, error) {
 	return e.RetrieveWithContext(context.Background())
 }
 
 // IsExpired returns true if the credentials are expired.
-func (e *Ec2Provider) IsExpired() bool {
+func (e *EC2Provider) IsExpired() bool {
 	return e.expiration.Before(time.Now())
 }

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package awscredproviders
+package credproviders
 
 import (
 	"context"
@@ -12,42 +12,51 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 const (
-	// EcsProviderName provides a name of ECS provider
-	EcsProviderName = "EcsProvider"
+	// ecsProviderName provides a name of ECS provider
+	ecsProviderName = "ECSProvider"
 
 	awsRelativeURI = "http://169.254.170.2/"
 )
 
-// An EcsProvider retrieves credentials from ECS metadata.
-type EcsProvider struct {
-	httpClient   *http.Client
-	expiration   time.Time
+var (
+	// AwsContainerCredentialsRelativeURIEnv is the environment variable for AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+	AwsContainerCredentialsRelativeURIEnv = EnvVar("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+)
+
+// An ECSProvider retrieves credentials from ECS metadata.
+type ECSProvider struct {
+	httpClient *http.Client
+	expiration time.Time
+
+	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
+	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
+	//
+	// So a ExpiryWindow of 10s would cause calls to IsExpired() to return true
+	// 10 seconds before the credentials are actually expired.
 	expiryWindow time.Duration
 }
 
-// NewEcsProvider returns a pointer to an ECS credential provider.
-func NewEcsProvider(httpClient *http.Client, expiryWindow time.Duration) *EcsProvider {
-	return &EcsProvider{
+// NewECSProvider returns a pointer to an ECS credential provider.
+func NewECSProvider(httpClient *http.Client, expiryWindow time.Duration) *ECSProvider {
+	return &ECSProvider{
 		httpClient:   httpClient,
-		expiration:   time.Time{},
 		expiryWindow: expiryWindow,
 	}
 }
 
 // RetrieveWithContext retrieves the keys from the AWS service.
-func (e *EcsProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
+func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Value, error) {
 	const defaultHTTPTimeout = 10 * time.Second
 
-	v := credentials.Value{ProviderName: EcsProviderName}
+	v := credentials.Value{ProviderName: ecsProviderName}
 
-	relativeEcsURI := os.Getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
+	relativeEcsURI := AwsContainerCredentialsRelativeURIEnv.Get()
 	if len(relativeEcsURI) == 0 {
 		return v, errors.New("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is missing")
 	}
@@ -90,15 +99,15 @@ func (e *EcsProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 	}
 	e.expiration = escResp.Expiration.Add(-e.expiryWindow)
 
-	return v, err
+	return v, nil
 }
 
 // Retrieve retrieves the keys from the AWS service.
-func (e *EcsProvider) Retrieve() (credentials.Value, error) {
+func (e *ECSProvider) Retrieve() (credentials.Value, error) {
 	return e.RetrieveWithContext(context.Background())
 }
 
 // IsExpired returns true if the credentials are expired.
-func (e *EcsProvider) IsExpired() bool {
+func (e *ECSProvider) IsExpired() bool {
 	return e.expiration.Before(time.Now())
 }
