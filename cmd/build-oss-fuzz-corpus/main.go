@@ -4,11 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// Entry point for the MongoDB Go Driver integration into the Google "oss-fuzz" project
+// (https://github.com/google/oss-fuzz).
 package main
 
 import (
 	"archive/zip"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -80,7 +82,9 @@ func seedExtJSON(zw *zip.Writer, extJSON string, extJSONType string, desc string
 		log.Fatalf("failed to convert JSON to bytes: %v", err)
 	}
 
-	zipFile := fmt.Sprintf("%x", sha1.Sum(jbytes))
+	// Use a SHA256 hash of the BSON bytes for the filename. This isn't an oss-fuzz requirement, it
+	// just simplifies file naming.
+	zipFile := fmt.Sprintf("%x", sha256.Sum256(jbytes))
 
 	f, err := zw.Create(zipFile)
 	if err != nil {
