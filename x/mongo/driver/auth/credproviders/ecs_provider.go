@@ -79,25 +79,25 @@ func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 		return v, fmt.Errorf("response failure: %s", resp.Status)
 	}
 
-	var escResp struct {
+	var ecsResp struct {
 		AccessKeyID     string    `json:"AccessKeyId"`
 		SecretAccessKey string    `json:"SecretAccessKey"`
 		Token           string    `json:"Token"`
 		Expiration      time.Time `json:"Expiration"`
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&escResp)
+	err = json.NewDecoder(resp.Body).Decode(&ecsResp)
 	if err != nil {
 		return v, err
 	}
 
-	v.AccessKeyID = escResp.AccessKeyID
-	v.SecretAccessKey = escResp.SecretAccessKey
-	v.SessionToken = escResp.Token
+	v.AccessKeyID = ecsResp.AccessKeyID
+	v.SecretAccessKey = ecsResp.SecretAccessKey
+	v.SessionToken = ecsResp.Token
 	if !v.HasKeys() {
 		return v, errors.New("failed to retrieve ECS keys")
 	}
-	e.expiration = escResp.Expiration.Add(-e.expiryWindow)
+	e.expiration = ecsResp.Expiration.Add(-e.expiryWindow)
 
 	return v, nil
 }
