@@ -8,6 +8,7 @@ package event // import "go.mongodb.org/mongo-driver/event"
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -32,7 +33,9 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
+	// Deprecated: Use Duration instead.
 	DurationNanos int64
+	Duration      time.Duration
 	CommandName   string
 	RequestID     int64
 	ConnectionID  string
@@ -158,7 +161,9 @@ type ServerHeartbeatStartedEvent struct {
 
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
+	// Deprecated: Use Duration instead.
 	DurationNanos int64
+	Duration      time.Duration
 	Reply         description.Server
 	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
 	Awaited       bool   // If this heartbeat was awaitable
@@ -166,7 +171,9 @@ type ServerHeartbeatSucceededEvent struct {
 
 // ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
 type ServerHeartbeatFailedEvent struct {
+	// Deprecated: Use Duration instead.
 	DurationNanos int64
+	Duration      time.Duration
 	Failure       error
 	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
 	Awaited       bool   // If this heartbeat was awaitable
