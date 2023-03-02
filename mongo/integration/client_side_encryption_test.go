@@ -409,9 +409,9 @@ func TestFLE2CreateCollection(t *testing.T) {
 
 	efJSON := `
 	{
-		"escCollection": "encryptedCollection.esc",
-		"eccCollection": "encryptedCollection.ecc",
-		"ecocCollection": "encryptedCollection.ecoc",
+		"escCollection": "enxcol_.encryptedCollection.esc",
+		"eccCollection": "enxcol_.encryptedCollection.ecc",
+		"ecocCollection": "enxcol_.encryptedCollection.ecoc",
 		"fields": [
 		  {
 			"path": "firstName",
@@ -435,11 +435,11 @@ func TestFLE2CreateCollection(t *testing.T) {
 	mt.Run("CreateCollection from encryptedFields", func(mt *mtest.T) {
 		// Drop data and state collections to clean up from a prior test run.
 		{
-			err = mt.DB.Collection("encryptedCollection.esc").Drop(context.Background())
+			err = mt.DB.Collection("enxcol_.encryptedCollection.esc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
-			err = mt.DB.Collection("encryptedCollection.ecc").Drop(context.Background())
+			err = mt.DB.Collection("enxcol_.encryptedCollection.ecc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
-			err = mt.DB.Collection("encryptedCollection.ecoc").Drop(context.Background())
+			err = mt.DB.Collection("enxcol_.encryptedCollection.ecoc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
 			err := mt.DB.Collection("coll").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
@@ -453,17 +453,17 @@ func TestFLE2CreateCollection(t *testing.T) {
 			assert.Nil(mt, err, "error in ListCollectionNames")
 			assert.Equal(mt, got, []string{"coll"}, "expected ['coll'], got: %v", got)
 
-			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection.esc"}})
+			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.esc"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
-			assert.Equal(mt, got, []string{"encryptedCollection.esc"}, "expected ['encryptedCollection.esc'], got: %v", got)
+			assert.Equal(mt, got, []string{"enxcol_.encryptedCollection.esc"}, "expected ['encryptedCollection.esc'], got: %v", got)
 
-			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection.ecc"}})
+			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.ecc"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
-			assert.Equal(mt, got, []string{"encryptedCollection.ecc"}, "expected ['encryptedCollection.ecc'], got: %v", got)
+			assert.Equal(mt, got, []string{"enxcol_.encryptedCollection.ecc"}, "expected ['encryptedCollection.ecc'], got: %v", got)
 
-			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "encryptedCollection.ecoc"}})
+			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.ecoc"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
-			assert.Equal(mt, got, []string{"encryptedCollection.ecoc"}, "expected ['encryptedCollection.ecoc'], got: %v", got)
+			assert.Equal(mt, got, []string{"enxcol_.encryptedCollection.ecoc"}, "expected ['encryptedCollection.ecoc'], got: %v", got)
 
 			indexSpecs, err := mt.DB.Collection("coll").Indexes().ListSpecifications(context.Background())
 			assert.Nil(mt, err, "error in Indexes().ListSpecifications: %v", err)
