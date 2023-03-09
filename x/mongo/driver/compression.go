@@ -64,11 +64,15 @@ func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		}
 		return b.Bytes(), nil
 	case wiremessage.CompressorZstd:
-		encoder, err := getZstdEncoder(zstd.EncoderLevelFromZstd(opts.ZstdLevel))
+		w, err := getZstdEncoder(zstd.EncoderLevelFromZstd(opts.ZstdLevel))
 		if err != nil {
 			return nil, err
 		}
-		return encoder.EncodeAll(in, nil), nil
+		err = w.Close()
+		if err != nil {
+			return nil, err
+		}
+		return w.EncodeAll(in, nil), nil
 	default:
 		return nil, fmt.Errorf("unknown compressor ID %v", opts.Compressor)
 	}
@@ -83,12 +87,13 @@ func DecompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 		uncompressed := make([]byte, opts.UncompressedSize)
 		return snappy.Decode(uncompressed, in)
 	case wiremessage.CompressorZLib:
-		decompressor, err := zlib.NewReader(bytes.NewReader(in))
+		r, err := zlib.NewReader(bytes.NewReader(in))
 		if err != nil {
 			return nil, err
 		}
+		defer r.Close()
 		uncompressed := make([]byte, opts.UncompressedSize)
-		_, err = io.ReadFull(decompressor, uncompressed)
+		_, err = io.ReadFull(r, uncompressed)
 		if err != nil {
 			return nil, err
 		}
