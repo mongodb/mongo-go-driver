@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -83,16 +84,30 @@ func TestDatabase(t *testing.T) {
 		})
 	})
 	t.Run("replace topology error", func(t *testing.T) {
-		db := setupDb("foo")
+		t.Run("ErrClientDisconnected", func(t *testing.T) {
+			db := setupDb("foo")
+			err := db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
+			assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		err := db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+			err = db.Drop(bgCtx)
+			assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		err = db.Drop(bgCtx)
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+			_, err = db.ListCollections(bgCtx, bson.D{})
+			assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+		})
+		t.Run("TransientTransactionError", func(t *testing.T) {
+			var err error
+			client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
+			err = client.Connect(bgCtx)
+			defer client.Disconnect(bgCtx)
+			assert.Nil(t, err, "expected nil, got %v", err)
 
-		_, err = db.ListCollections(bgCtx, bson.D{})
-		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+			err = client.Ping(bgCtx, nil)
+			assert.NotNil(t, err, "expected error, got nil")
+			var serverErr ServerError
+			assert.True(t, errors.As(err, &serverErr), `expected error to implement the "ServerError" interface`)
+			assert.True(t, serverErr.HasErrorLabel("TransientTransactionError"), `expected error to include the "TransientTransactionError" label`)
+		})
 	})
 	t.Run("nil document error", func(t *testing.T) {
 		db := setupDb("foo")
