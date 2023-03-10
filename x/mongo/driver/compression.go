@@ -29,8 +29,7 @@ type CompressionOpts struct {
 var zstdEncoders = &sync.Map{}
 
 func getZstdEncoder(l zstd.EncoderLevel) (*zstd.Encoder, error) {
-	v, ok := zstdEncoders.Load(l)
-	if ok {
+	if v, ok := zstdEncoders.Load(l); ok {
 		return v.(*zstd.Encoder), nil
 	}
 	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(l))
@@ -41,6 +40,50 @@ func getZstdEncoder(l zstd.EncoderLevel) (*zstd.Encoder, error) {
 	return encoder, nil
 }
 
+var zlibEncoders = &sync.Map{}
+
+func getZlibEncoder(l int) (*zlibEncoder, error) {
+	if v, ok := zlibEncoders.Load(l); ok {
+		return v.(*zlibEncoder), nil
+	}
+	b := bytes.NewBuffer(nil)
+	w, err := zlib.NewWriterLevel(b, l)
+	if err != nil {
+		return nil, err
+	}
+	encoder := &zlibEncoder{l: new(sync.Mutex), w: w, b: b}
+	zlibEncoders.Store(l, encoder)
+
+	return encoder, nil
+}
+
+type zlibEncoder struct {
+	l sync.Locker
+	w *zlib.Writer
+	b *bytes.Buffer
+}
+
+func (e *zlibEncoder) Encode(dst, src []byte) ([]byte, error) {
+	e.l.Lock()
+	defer e.l.Unlock()
+
+	defer func() {
+		e.b.Reset()
+		e.w.Reset(e.b)
+	}()
+
+	_, err := e.w.Write(src)
+	if err != nil {
+		return nil, err
+	}
+	err = e.w.Close()
+	if err != nil {
+		return nil, err
+	}
+	dst = append(dst[:0], e.b.Bytes()...)
+	return dst, nil
+}
+
 // CompressPayload takes a byte slice and compresses it according to the options passed
 func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	switch opts.Compressor {
@@ -49,30 +92,17 @@ func CompressPayload(in []byte, opts CompressionOpts) ([]byte, error) {
 	case wiremessage.CompressorSnappy:
 		return snappy.Encode(nil, in), nil
 	case wiremessage.CompressorZLib:
-		var b bytes.Buffer
-		w, err := zlib.NewWriterLevel(&b, opts.ZlibLevel)
+		encoder, err := getZlibEncoder(opts.ZlibLevel)
 		if err != nil {
 			return nil, err
 		}
-		_, err = w.Write(in)
-		if err != nil {
-			return nil, err
-		}
-		err = w.Close()
-		if err != nil {
-			return nil, err
-		}
-		return b.Bytes(), nil
+		return encoder.Encode(nil, in)
 	case wiremessage.CompressorZstd:
-		w, err := getZstdEncoder(zstd.EncoderLevelFromZstd(opts.ZstdLevel))
+		encoder, err := getZstdEncoder(zstd.EncoderLevelFromZstd(opts.ZstdLevel))
 		if err != nil {
 			return nil, err
 		}
-		err = w.Close()
-		if err != nil {
-			return nil, err
-		}
-		return w.EncodeAll(in, nil), nil
+		return encoder.EncodeAll(in, nil), nil
 	default:
 		return nil, fmt.Errorf("unknown compressor ID %v", opts.Compressor)
 	}
