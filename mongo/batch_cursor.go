@@ -35,8 +35,8 @@ type batchCursor interface {
 	// Close closes the cursor.
 	Close(context.Context) error
 
-	// SetBatchSize is a modifier method for modifying the batch size of the
-	// implementing cursor.
+	// The SetBatchSize method is a modifier function used to adjust the
+	// batch size of the cursor that implements it.
 	SetBatchSize(int32)
 }
 
