@@ -308,23 +308,37 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	}.Execute(ctx)
 }
 
+// getMoreBatchSize returns the number of documents that should be returned in
+// the response of a "getMore" operation given the limit, batchSize, and number
+// of documents already returned.
+func (bc *BatchCursor) getMoreBatchSize(ctx context.Context) (int32, error) {
+	gmBatchSize := bc.batchSize
+
+	// Account for legacy operations that don't support setting a limit.
+	if bc.limit != 0 && bc.numReturned+bc.batchSize >= bc.limit {
+		gmBatchSize = bc.limit - bc.numReturned
+		if gmBatchSize <= 0 {
+			err := bc.Close(ctx)
+			if err != nil {
+				return 0, err
+			}
+		}
+	}
+
+	return gmBatchSize, nil
+}
+
 func (bc *BatchCursor) getMore(ctx context.Context) {
 	bc.clearBatch()
 	if bc.id == 0 {
 		return
 	}
 
-	// Required for legacy operations which don't support limit.
-	numToReturn := bc.batchSize
-	if bc.limit != 0 && bc.numReturned+bc.batchSize >= bc.limit {
-		numToReturn = bc.limit - bc.numReturned
-		if numToReturn <= 0 {
-			err := bc.Close(ctx)
-			if err != nil {
-				bc.err = err
-			}
-			return
-		}
+	numToReturn, err := bc.getMoreBatchSize(ctx)
+	if err != nil {
+		bc.err = err
+
+		return
 	}
 
 	bc.err = Operation{
