@@ -19,9 +19,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	v4signer "go.mongodb.org/mongo-driver/internal/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
-	v4signer "go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/signer/v4"
 )
 
 type clientState int

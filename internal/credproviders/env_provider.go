@@ -9,20 +9,11 @@ package credproviders
 import (
 	"os"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
 )
 
 // envProviderName provides a name of Env provider
 const envProviderName = "EnvProvider"
-
-var (
-	// AwsAccessKeyIDEnv is the environment variable for AWS_ACCESS_KEY_ID
-	AwsAccessKeyIDEnv = EnvVar("AWS_ACCESS_KEY_ID")
-	// AwsSecretAccessKeyEnv is the environment variable for AWS_SECRET_ACCESS_KEY
-	AwsSecretAccessKeyEnv = EnvVar("AWS_SECRET_ACCESS_KEY")
-	// AwsSessionTokenEnv is the environment variable for AWS_SESSION_TOKEN
-	AwsSessionTokenEnv = EnvVar("AWS_SESSION_TOKEN")
-)
 
 // EnvVar is an environment variable
 type EnvVar string
@@ -35,7 +26,23 @@ func (ev EnvVar) Get() string {
 // A EnvProvider retrieves credentials from the environment variables of the
 // running process. Environment credentials never expire.
 type EnvProvider struct {
+	AwsAccessKeyIDEnv     EnvVar
+	AwsSecretAccessKeyEnv EnvVar
+	AwsSessionTokenEnv    EnvVar
+
 	retrieved bool
+}
+
+// NewEnvProvider returns a pointer to an ECS credential provider.
+func NewEnvProvider() *EnvProvider {
+	return &EnvProvider{
+		// AwsAccessKeyIDEnv is the environment variable for AWS_ACCESS_KEY_ID
+		AwsAccessKeyIDEnv: EnvVar("AWS_ACCESS_KEY_ID"),
+		// AwsSecretAccessKeyEnv is the environment variable for AWS_SECRET_ACCESS_KEY
+		AwsSecretAccessKeyEnv: EnvVar("AWS_SECRET_ACCESS_KEY"),
+		// AwsSessionTokenEnv is the environment variable for AWS_SESSION_TOKEN
+		AwsSessionTokenEnv: EnvVar("AWS_SESSION_TOKEN"),
+	}
 }
 
 // Retrieve retrieves the keys from the environment.
@@ -43,9 +50,9 @@ func (e *EnvProvider) Retrieve() (credentials.Value, error) {
 	e.retrieved = false
 
 	v := credentials.Value{
-		AccessKeyID:     AwsAccessKeyIDEnv.Get(),
-		SecretAccessKey: AwsSecretAccessKeyEnv.Get(),
-		SessionToken:    AwsSessionTokenEnv.Get(),
+		AccessKeyID:     e.AwsAccessKeyIDEnv.Get(),
+		SecretAccessKey: e.AwsSecretAccessKeyEnv.Get(),
+		SessionToken:    e.AwsSessionTokenEnv.Get(),
 		ProviderName:    envProviderName,
 	}
 	err := verify(v)

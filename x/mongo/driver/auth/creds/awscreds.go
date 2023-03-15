@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/credproviders"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/credproviders"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 const (
@@ -33,7 +33,7 @@ type AWSCredentialProvider struct {
 func NewAWSCredentialProvider(httpClient *http.Client, providers ...credentials.Provider) AWSCredentialProvider {
 	providers = append(
 		providers,
-		&credproviders.EnvProvider{},
+		credproviders.NewEnvProvider(),
 		credproviders.NewAssumeRoleProvider(httpClient, expiryWindow),
 		credproviders.NewECSProvider(httpClient, expiryWindow),
 		credproviders.NewEC2Provider(httpClient, expiryWindow),

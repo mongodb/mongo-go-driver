@@ -18,7 +18,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/credproviders"
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/credproviders"
 )
 
 type pipeTransport struct {
@@ -49,9 +50,7 @@ func TestAwsCredentialProviderCaching(t *testing.T) {
 		param          = "source"
 	)
 
-	credproviders.AwsContainerCredentialsRelativeURIEnv = credproviders.EnvVar(urienv)
 	os.Setenv(urienv, testEndpoint)
-	credproviders.AwsAccessKeyIDEnv = credproviders.EnvVar(keyenv)
 	defer os.Unsetenv(urienv)
 
 	testCases := []struct {
@@ -102,7 +101,12 @@ func TestAwsCredentialProviderCaching(t *testing.T) {
 				},
 			}
 
-			p := NewAWSCredentialProvider(client)
+			env := credproviders.NewEnvProvider()
+			env.AwsAccessKeyIDEnv = credproviders.EnvVar(keyenv)
+			ecs := credproviders.NewECSProvider(client, expiryWindow)
+			ecs.AwsContainerCredentialsRelativeURIEnv = credproviders.EnvVar(urienv)
+
+			p := AWSCredentialProvider{credentials.NewChainCredentials([]credentials.Provider{env, ecs})}
 			var err error
 			_, err = p.GetCredentialsDoc(context.Background())
 			assert.Nil(t, err, "error in GetCredentialsDoc: %v", err)

@@ -10,9 +10,9 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/credproviders"
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/credproviders"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.

@@ -138,37 +138,6 @@ func (c *Credentials) singleRetrieve(ctx context.Context) (creds interface{}, er
 	return creds, err
 }
 
-// Get returns the credentials value, or error if the credentials Value failed
-// to be retrieved.
-//
-// Will return the cached credentials Value if it has not expired. If the
-// credentials Value has expired the Provider's Retrieve() will be called
-// to refresh the credentials.
-//
-// If Credentials.Expire() was called the credentials Value will be force
-// expired, and the next call to Get() will cause them to be refreshed.
-func (c *Credentials) Get() (Value, error) {
-	return c.GetWithContext(context.Background())
-}
-
-// Expire expires the credentials and forces them to be retrieved on the
-// next call to Get().
-//
-// This will override the Provider's expired state, and force Credentials
-// to call the Provider's Retrieve().
-func (c *Credentials) Expire() {
-	c.creds.Store(Value{})
-}
-
-// IsExpired returns if the credentials are no longer valid, and need
-// to be retrieved.
-//
-// If the Credentials were forced to be expired with Expire() this will
-// reflect that override.
-func (c *Credentials) IsExpired() bool {
-	return c.isExpired(c.creds.Load())
-}
-
 // isExpired helper method wrapping the definition of expired credentials.
 func (c *Credentials) isExpired(creds interface{}) bool {
 	return creds == nil || creds.(Value) == Value{} || c.provider.IsExpired()

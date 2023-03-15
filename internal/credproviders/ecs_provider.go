@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
 )
 
 const (
@@ -24,13 +24,10 @@ const (
 	awsRelativeURI = "http://169.254.170.2/"
 )
 
-var (
-	// AwsContainerCredentialsRelativeURIEnv is the environment variable for AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
-	AwsContainerCredentialsRelativeURIEnv = EnvVar("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI")
-)
-
 // An ECSProvider retrieves credentials from ECS metadata.
 type ECSProvider struct {
+	AwsContainerCredentialsRelativeURIEnv EnvVar
+
 	httpClient *http.Client
 	expiration time.Time
 
@@ -45,8 +42,10 @@ type ECSProvider struct {
 // NewECSProvider returns a pointer to an ECS credential provider.
 func NewECSProvider(httpClient *http.Client, expiryWindow time.Duration) *ECSProvider {
 	return &ECSProvider{
-		httpClient:   httpClient,
-		expiryWindow: expiryWindow,
+		// AwsContainerCredentialsRelativeURIEnv is the environment variable for AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+		AwsContainerCredentialsRelativeURIEnv: EnvVar("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"),
+		httpClient:                            httpClient,
+		expiryWindow:                          expiryWindow,
 	}
 }
 
@@ -56,7 +55,7 @@ func (e *ECSProvider) RetrieveWithContext(ctx context.Context) (credentials.Valu
 
 	v := credentials.Value{ProviderName: ecsProviderName}
 
-	relativeEcsURI := AwsContainerCredentialsRelativeURIEnv.Get()
+	relativeEcsURI := e.AwsContainerCredentialsRelativeURIEnv.Get()
 	if len(relativeEcsURI) == 0 {
 		return v, errors.New("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI is missing")
 	}
