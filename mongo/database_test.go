@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 func setupDb(name string, opts ...*options.DatabaseOptions) *Database {
@@ -104,6 +105,9 @@ func TestDatabase(t *testing.T) {
 
 			err = client.Ping(bgCtx, nil)
 			assert.NotNil(t, err, "expected error, got nil")
+			assert.True(t, IsTransientTransactionError(err), `expected error to include the "TransientTransactionError" label`)
+			var sse topology.ServerSelectionError
+			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
 			var serverErr ServerError
 			assert.True(t, errors.As(err, &serverErr), `expected error to implement the "ServerError" interface`)
 			assert.True(t, serverErr.HasErrorLabel("TransientTransactionError"), `expected error to include the "TransientTransactionError" label`)

@@ -83,9 +83,6 @@ func replaceErrors(err error) error {
 
 		return ce
 	}
-	if sse, ok := err.(topology.ServerSelectionError); ok {
-		return ServerSelectionError{sse}
-	}
 	if me, ok := err.(mongocrypt.Error); ok {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
@@ -139,6 +136,15 @@ func IsTimeout(err error) bool {
 		}
 	}
 
+	return false
+}
+
+func IsTransientTransactionError(err error) bool {
+	if le, ok := err.(labeledError); ok {
+		if le.HasErrorLabel(driver.TransientTransactionError) {
+			return true
+		}
+	}
 	return false
 }
 
@@ -228,8 +234,6 @@ type ServerError interface {
 	HasErrorMessage(string) bool
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
-
-	serverError()
 }
 
 var _ ServerError = CommandError{}
@@ -292,9 +296,6 @@ func (e CommandError) IsMaxTimeMSExpiredError() bool {
 	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
 
-// serverError implements the ServerError interface.
-func (e CommandError) serverError() {}
-
 // WriteError is an error that occurred during execution of a write operation. This error type is only returned as part
 // of a WriteException or BulkWriteException.
 type WriteError struct {
@@ -337,9 +338,6 @@ func (we WriteError) HasErrorMessage(message string) bool {
 func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
 	return we.Code == code && strings.Contains(we.Message, message)
 }
-
-// serverError implements the ServerError interface.
-func (we WriteError) serverError() {}
 
 // WriteErrors is a group of write errors that occurred during execution of a write operation.
 type WriteErrors []WriteError
@@ -478,9 +476,6 @@ func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool
 	return false
 }
 
-// serverError implements the ServerError interface.
-func (mwe WriteException) serverError() {}
-
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
 	if wce == nil {
 		return nil
@@ -591,43 +586,6 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 	}
 	return false
 }
-
-// serverError implements the ServerError interface.
-func (bwe BulkWriteException) serverError() {}
-
-// ServerSelectionError is a server selection error encountered running any command
-// besides commitTransaction in a transaction.
-type ServerSelectionError struct {
-	topology.ServerSelectionError
-}
-
-// Unwrap returns the underlying ServerSelectionError.
-func (sse ServerSelectionError) Unwrap() error {
-	return sse.ServerSelectionError
-}
-
-// HasErrorCode always returns false.
-func (sse ServerSelectionError) HasErrorCode(code int) bool {
-	return false
-}
-
-// HasErrorLabel returns true if the specified label is TransientTransactionError.
-func (sse ServerSelectionError) HasErrorLabel(label string) bool {
-	return label == driver.TransientTransactionError
-}
-
-// HasErrorMessage returns true if the specified message is the error message of TransientTransactionError.
-func (sse ServerSelectionError) HasErrorMessage(message string) bool {
-	return message == sse.Error()
-}
-
-// HasErrorCodeWithMessage always returns false.
-func (sse ServerSelectionError) HasErrorCodeWithMessage(code int, message string) bool {
-	return false
-}
-
-// serverError implements the ServerError interface.
-func (sse ServerSelectionError) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different

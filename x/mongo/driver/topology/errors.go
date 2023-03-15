@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // ConnectionError represents a connection error.
@@ -65,6 +66,26 @@ func (e ServerSelectionError) Error() string {
 // Unwrap returns the underlying error.
 func (e ServerSelectionError) Unwrap() error {
 	return e.Wrapped
+}
+
+// HasErrorCode always returns false.
+func (e ServerSelectionError) HasErrorCode(code int) bool {
+	return false
+}
+
+// HasErrorLabel returns true if the specified label is TransientTransactionError.
+func (e ServerSelectionError) HasErrorLabel(label string) bool {
+	return label == driver.TransientTransactionError
+}
+
+// HasErrorMessage returns true if the specified message is the error message of TransientTransactionError.
+func (e ServerSelectionError) HasErrorMessage(message string) bool {
+	return message == e.Error()
+}
+
+// HasErrorCodeWithMessage always returns false.
+func (e ServerSelectionError) HasErrorCodeWithMessage(code int, message string) bool {
+	return false
 }
 
 // WaitQueueTimeoutError represents a timeout when requesting a connection from the pool
