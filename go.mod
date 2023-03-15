@@ -3,6 +3,11 @@ module go.mongodb.org/mongo-driver
 go 1.13
 
 retract (
+	// Retract v1.11.0 through v1.11.2 because they contain a data race bug in
+	// operation memory pooling that may cause undefined behavior when reading
+	// raw BSON responses in error documents. Resolved by GODRIVER-2677.
+	[v1.11.0, v1.11.2]
+
 	v1.10.0 // Contains a possible data corruption bug in RewrapManyDataKey when using libmongocrypt versions less than 1.5.2.
 	[v1.7.0, v1.7.1] // Contains data race bug in background connection establishment.
 	[v1.6.0, v1.6.1] // Contains data race bug in background connection establishment.
