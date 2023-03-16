@@ -129,7 +129,7 @@ func IsTimeout(err error) bool {
 			return ne.Timeout()
 		}
 		//timeout error labels
-		if le, ok := err.(labeledError); ok {
+		if le, ok := err.(LabeledError); ok {
 			if le.HasErrorLabel("NetworkTimeoutError") || le.HasErrorLabel("ExceededTimeLimitError") {
 				return true
 			}
@@ -139,8 +139,9 @@ func IsTimeout(err error) bool {
 	return false
 }
 
+// IsTransientTransactionError returns true if err contains a "TransientTransactionError" label
 func IsTransientTransactionError(err error) bool {
-	if le, ok := err.(labeledError); ok {
+	if le, ok := err.(LabeledError); ok {
 		if le.HasErrorLabel(driver.TransientTransactionError) {
 			return true
 		}
@@ -162,7 +163,7 @@ func unwrap(err error) error {
 // errorHasLabel returns true if err contains the specified label
 func errorHasLabel(err error, label string) bool {
 	for ; err != nil; err = unwrap(err) {
-		if le, ok := err.(labeledError); ok && le.HasErrorLabel(label) {
+		if le, ok := err.(LabeledError); ok && le.HasErrorLabel(label) {
 			return true
 		}
 	}
@@ -216,7 +217,8 @@ func (e MongocryptdError) Unwrap() error {
 	return e.Wrapped
 }
 
-type labeledError interface {
+// LabeledError is an interface for errors with labels.
+type LabeledError interface {
 	error
 	// HasErrorLabel returns true if the error contains the specified label.
 	HasErrorLabel(string) bool
@@ -225,15 +227,15 @@ type labeledError interface {
 // ServerError is the interface implemented by errors returned from the server. Custom implementations of this
 // interface should not be used in production.
 type ServerError interface {
-	error
+	LabeledError
 	// HasErrorCode returns true if the error has the specified code.
 	HasErrorCode(int) bool
-	// HasErrorLabel returns true if the error contains the specified label.
-	HasErrorLabel(string) bool
 	// HasErrorMessage returns true if the error contains the specified message.
 	HasErrorMessage(string) bool
 	// HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
 	HasErrorCodeWithMessage(int, string) bool
+
+	serverError()
 }
 
 var _ ServerError = CommandError{}
@@ -296,6 +298,9 @@ func (e CommandError) IsMaxTimeMSExpiredError() bool {
 	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
 
+// serverError implements the ServerError interface.
+func (e CommandError) serverError() {}
+
 // WriteError is an error that occurred during execution of a write operation. This error type is only returned as part
 // of a WriteException or BulkWriteException.
 type WriteError struct {
@@ -338,6 +343,9 @@ func (we WriteError) HasErrorMessage(message string) bool {
 func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
 	return we.Code == code && strings.Contains(we.Message, message)
 }
+
+// serverError implements the ServerError interface.
+func (we WriteError) serverError() {}
 
 // WriteErrors is a group of write errors that occurred during execution of a write operation.
 type WriteErrors []WriteError
@@ -476,6 +484,9 @@ func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool
 	return false
 }
 
+// serverError implements the ServerError interface.
+func (mwe WriteException) serverError() {}
+
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
 	if wce == nil {
 		return nil
@@ -586,6 +597,9 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 	}
 	return false
 }
+
+// serverError implements the ServerError interface.
+func (bwe BulkWriteException) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different

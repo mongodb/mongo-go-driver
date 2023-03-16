@@ -108,9 +108,9 @@ func TestDatabase(t *testing.T) {
 			assert.True(t, IsTransientTransactionError(err), `expected error to include the "TransientTransactionError" label`)
 			var sse topology.ServerSelectionError
 			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
-			var serverErr ServerError
-			assert.True(t, errors.As(err, &serverErr), `expected error to implement the "ServerError" interface`)
-			assert.True(t, serverErr.HasErrorLabel("TransientTransactionError"), `expected error to include the "TransientTransactionError" label`)
+			var le LabeledError
+			assert.True(t, errors.As(err, &le), `expected error to implement the "ServerError" interface`)
+			assert.True(t, le.HasErrorLabel("TransientTransactionError"), `expected error to include the "TransientTransactionError" label`)
 		})
 	})
 	t.Run("nil document error", func(t *testing.T) {
