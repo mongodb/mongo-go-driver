@@ -22,6 +22,7 @@ var ErrNoDocuments = errors.New("mongo: no documents in result")
 // SingleResult methods will return that error. If the operation did not return any documents, all SingleResult methods
 // will return ErrNoDocuments.
 type SingleResult struct {
+	ctx context.Context
 	err error
 	cur *Cursor
 	rdr bson.Raw
@@ -95,9 +96,9 @@ func (sr *SingleResult) setRdrContents() error {
 	case sr.rdr != nil:
 		return nil
 	case sr.cur != nil:
-		defer sr.cur.Close(context.TODO())
+		defer sr.cur.Close(sr.ctx)
 
-		if !sr.cur.Next(context.TODO()) {
+		if !sr.cur.Next(sr.ctx) {
 			if err := sr.cur.Err(); err != nil {
 				return err
 			}
@@ -119,4 +120,11 @@ func (sr *SingleResult) Err() error {
 	sr.err = sr.setRdrContents()
 
 	return sr.err
+}
+
+// WithContext specifies a context for this SingleResult.
+func (sr *SingleResult) WithContext(ctx context.Context) *SingleResult {
+	sr.ctx = ctx
+
+	return sr
 }
