@@ -8,7 +8,6 @@ package driver
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -31,27 +30,30 @@ func TestBatchCursor(t *testing.T) {
 		assert.Equal(t, size, bc.batchSize, "expected batchSize %v, got %v", size, bc.batchSize)
 	})
 
-	t.Run("getMoreBatchSize", func(t *testing.T) {
+	t.Run("calcGetMoreBatchSize", func(t *testing.T) {
 		t.Parallel()
 
 		for _, tcase := range []struct {
 			name                               string
 			size, limit, numReturned, expected int32
-			expectedError                      error
+			ok                                 bool
 		}{
 			{
 				name:     "empty",
 				expected: 0,
+				ok:       true,
 			},
 			{
 				name:     "batchSize NEQ 0",
 				size:     4,
 				expected: 4,
+				ok:       true,
 			},
 			{
 				name:     "limit NEQ 0",
 				limit:    4,
 				expected: 0,
+				ok:       true,
 			},
 			{
 				name:        "limit NEQ and batchSize + numReturned EQ limit",
@@ -59,6 +61,14 @@ func TestBatchCursor(t *testing.T) {
 				limit:       8,
 				numReturned: 4,
 				expected:    4,
+				ok:          true,
+			},
+			{
+				name:        "limit makes batchSize negative",
+				numReturned: 4,
+				limit:       2,
+				expected:    -2,
+				ok:          false,
 			},
 		} {
 			tcase := tcase
@@ -67,19 +77,17 @@ func TestBatchCursor(t *testing.T) {
 				ctx := context.Background()
 
 				bc := &BatchCursor{
-					limit:     tcase.limit,
-					batchSize: tcase.size,
+					limit:       tcase.limit,
+					batchSize:   tcase.size,
+					numReturned: tcase.numReturned,
 				}
 
 				bc.SetBatchSize(tcase.size)
 
-				size, _, err := bc.getMoreBatchSize(ctx)
-				if !errors.Is(err, tcase.expectedError) {
-					t.Errorf("expected error %v, got %v", tcase.expectedError, err)
-				}
+				size, ok := calcGetMoreBatchSize(ctx, *bc)
 
-				assert.Equal(t, tcase.expected, size, "expected batchSize %v, got %v",
-					tcase.expected, size)
+				assert.Equal(t, tcase.expected, size, "expected batchSize %v, got %v", tcase.expected, size)
+				assert.Equal(t, tcase.ok, ok, "expected ok %v, got %v", tcase.ok, ok)
 			})
 		}
 	})
