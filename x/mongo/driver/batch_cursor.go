@@ -318,13 +318,8 @@ func (bc *BatchCursor) getMoreBatchSize(ctx context.Context) (int32, bool, error
 	if bc.limit != 0 && bc.numReturned+bc.batchSize >= bc.limit {
 		gmBatchSize = bc.limit - bc.numReturned
 		if gmBatchSize <= 0 {
-			err := bc.Close(ctx)
-			if err != nil {
-				return 0, false, err
-			}
+			return gmBatchSize, false, bc.Close(ctx)
 		}
-
-		return gmBatchSize, false, nil
 	}
 
 	return gmBatchSize, true, nil
