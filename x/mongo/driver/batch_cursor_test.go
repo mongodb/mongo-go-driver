@@ -73,7 +73,7 @@ func TestBatchCursor(t *testing.T) {
 
 				bc.SetBatchSize(tcase.size)
 
-				size, err := bc.getMoreBatchSize(ctx)
+				size, _, err := bc.getMoreBatchSize(ctx)
 				if !errors.Is(err, tcase.expectedError) {
 					t.Errorf("expected error %v, got %v", tcase.expectedError, err)
 				}
