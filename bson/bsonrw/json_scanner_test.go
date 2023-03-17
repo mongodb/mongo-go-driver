@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"testing/iotest"
