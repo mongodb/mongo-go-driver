@@ -121,10 +121,3 @@ func (sr *SingleResult) Err() error {
 
 	return sr.err
 }
-
-// WithContext specifies a context for a SingleResult.
-func (sr *SingleResult) WithContext(ctx context.Context) *SingleResult {
-	sr.ctx = ctx
-
-	return sr
-}
