@@ -934,14 +934,21 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
-	// decompress wiremessage
-	opcode, wm, err := op.decompressWireMessage(wm)
-	if err != nil {
-		return nil, err
+	length, _, _, opcode, rem, ok := wiremessage.ReadHeader(wm)
+	if !ok || len(wm) < int(length) {
+		return nil, errors.New("malformed wire message: insufficient bytes")
+	}
+	if opcode == wiremessage.OpCompressed {
+		rawsize := length - 16 // remove header size
+		// decompress wiremessage
+		opcode, rem, err = op.decompressWireMessage(rem[:rawsize])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// decode
-	res, err := op.decodeResult(opcode, wm)
+	res, err := op.decodeResult(opcode, rem)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -998,36 +1005,27 @@ func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, w
 	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
 }
 
-// decompressWireMessage handles decompressing a wiremessage. If the wiremessage
-// is not compressed, this method will return the wiremessage.
+// decompressWireMessage handles decompressing a wiremessage without the header.
 func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, error) {
-	// read the header and ensure this is a compressed wire message
-	length, _, _, opcode, rem, ok := wiremessage.ReadHeader(wm)
-	if !ok || len(wm) < int(length) {
-		return opcode, nil, errors.New("malformed wire message: insufficient bytes")
-	}
-	if opcode != wiremessage.OpCompressed {
-		return opcode, rem, nil
-	}
 	// get the original opcode and uncompressed size
-	opcode, rem, ok = wiremessage.ReadCompressedOriginalOpCode(rem)
+	opcode, rem, ok := wiremessage.ReadCompressedOriginalOpCode(wm)
 	if !ok {
-		return opcode, nil, errors.New("malformed OP_COMPRESSED: missing original opcode")
+		return 0, nil, errors.New("malformed OP_COMPRESSED: missing original opcode")
 	}
 	uncompressedSize, rem, ok := wiremessage.ReadCompressedUncompressedSize(rem)
 	if !ok {
-		return opcode, nil, errors.New("malformed OP_COMPRESSED: missing uncompressed size")
+		return 0, nil, errors.New("malformed OP_COMPRESSED: missing uncompressed size")
 	}
 	// get the compressor ID and decompress the message
 	compressorID, rem, ok := wiremessage.ReadCompressedCompressorID(rem)
 	if !ok {
-		return opcode, nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
+		return 0, nil, errors.New("malformed OP_COMPRESSED: missing compressor ID")
 	}
-	compressedSize := length - 25 // header (16) + original opcode (4) + uncompressed size (4) + compressor ID (1)
+	compressedSize := len(wm) - 9 // original opcode (4) + uncompressed size (4) + compressor ID (1)
 	// return the original wiremessage
-	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, compressedSize)
+	msg, _, ok := wiremessage.ReadCompressedCompressedMessage(rem, int32(compressedSize))
 	if !ok {
-		return opcode, nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
+		return 0, nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
 
 	opts := CompressionOpts{
@@ -1036,7 +1034,7 @@ func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, e
 	}
 	uncompressed, err := DecompressPayload(msg, opts)
 	if err != nil {
-		return opcode, nil, err
+		return 0, nil, err
 	}
 
 	return opcode, uncompressed, nil
@@ -1596,7 +1594,6 @@ func (Operation) canCompress(cmd string) bool {
 }
 
 // decodeOpReply extracts the necessary information from an OP_REPLY wire message.
-// includesHeader: specifies whether or not wm includes the message header
 // Returns the decoded OP_REPLY. If the err field of the returned opReply is non-nil, an error occurred while decoding
 // or validating the response and the other fields are undefined.
 func (Operation) decodeOpReply(wm []byte) opReply {
