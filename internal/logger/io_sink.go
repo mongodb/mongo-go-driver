@@ -51,7 +51,7 @@ func (sink *IOSink) Info(_ int, msg string, keysAndValues ...interface{}) {
 	_ = sink.enc.Encode(kvMap)
 }
 
-// Error will write a JSON-encoded error message tot he io.Writer.
+// Error will write a JSON-encoded error message to the io.Writer.
 func (sink *IOSink) Error(err error, msg string, kv ...interface{}) {
 	kv = append(kv, KeyError, err.Error())
 	sink.Info(0, msg, kv...)
