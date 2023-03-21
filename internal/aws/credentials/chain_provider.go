@@ -5,15 +5,13 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/credentials/chain_provider.go
+// - github.com/aws/aws-sdk-go/blob/v1.44.225/aws/credentials/chain_provider.go
 // See THIRD-PARTY-NOTICES for original license terms
 
 package credentials
 
 import (
-	"errors"
-	"fmt"
-	"strings"
+	"go.mongodb.org/mongo-driver/internal/aws/awserr"
 )
 
 // A ChainProvider will search for a provider which returns credentials
@@ -48,18 +46,19 @@ func NewChainCredentials(providers []Provider) *Credentials {
 // If a provider is found it will be cached and any calls to IsExpired()
 // will return the expired state of the cached provider.
 func (c *ChainProvider) Retrieve() (Value, error) {
-	errs := []string{}
+	var errs = make([]error, 0, len(c.Providers))
 	for _, p := range c.Providers {
 		creds, err := p.Retrieve()
 		if err == nil {
 			c.curr = p
 			return creds, nil
 		}
-		errs = append(errs, fmt.Sprintf("%s: %v", creds.ProviderName, err))
+		errs = append(errs, err)
 	}
 	c.curr = nil
 
-	return Value{}, errors.New(strings.Join(errs, ", "))
+	var err = awserr.NewBatchError("NoCredentialProviders", "no valid providers in chain", errs)
+	return Value{}, err
 }
 
 // IsExpired will returned the expired state of the currently cached provider

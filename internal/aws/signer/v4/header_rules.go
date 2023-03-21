@@ -5,8 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/signer/v4/header_rules.go
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/internal/strings/strings.go
+// - github.com/aws/aws-sdk-go/blob/v1.44.225/aws/signer/v4/header_rules.go
 // See THIRD-PARTY-NOTICES for original license terms
 
 package v4
@@ -41,12 +40,12 @@ func (m mapRule) IsValid(value string) bool {
 	return ok
 }
 
-// denylist is a generic rule for denylisting
-type denylist struct {
+// excludeList is a generic rule for exclude listing
+type excludeList struct {
 	rule
 }
 
-// IsValid for allowlist checks if the value is within the allowlist
-func (d denylist) IsValid(value string) bool {
-	return !d.rule.IsValid(value)
+// IsValid for exclude list checks if the value is within the exclude list
+func (b excludeList) IsValid(value string) bool {
+	return !b.rule.IsValid(value)
 }

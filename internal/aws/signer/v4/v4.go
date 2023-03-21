@@ -5,10 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/request/request.go
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/signer/v4/v4.go
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/signer/v4/uri_path.go
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/types.go
+// - github.com/aws/aws-sdk-go/blob/v1.44.225/aws/signer/v4/v4.go
 // See THIRD-PARTY-NOTICES for original license terms
 
 package v4
@@ -26,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/aws"
 	"go.mongodb.org/mongo-driver/internal/aws/credentials"
 )
 
@@ -43,7 +41,7 @@ const (
 )
 
 var ignoredHeaders = rules{
-	denylist{
+	excludeList{
 		mapRule{
 			authorizationHeader: struct{}{},
 			"User-Agent":        struct{}{},
@@ -55,12 +53,12 @@ var ignoredHeaders = rules{
 // Signer applies AWS v4 signing to given request. Use this to sign requests
 // that need to be signed with AWS V4 Signatures.
 type Signer struct {
+	// The authentication credentials the request will be signed against.
+	// This value must be set to sign requests.
 	Credentials *credentials.Credentials
 }
 
-// NewSigner returns a Signer pointer configured with the credentials and optional
-// option values provided. If not options are provided the Signer will use its
-// default configuration.
+// NewSigner returns a Signer pointer configured with the credentials provided.
 func NewSigner(credentials *credentials.Credentials) *Signer {
 	v4 := &Signer{
 		Credentials: credentials,
@@ -201,31 +199,6 @@ func (ctx *signingCtx) build() error {
 	return nil
 }
 
-// GetSignedRequestSignature attempts to extract the signature of the request.
-// Returning an error if the request is unsigned, or unable to extract the
-// signature.
-func GetSignedRequestSignature(r *http.Request) ([]byte, error) {
-
-	if auth := r.Header.Get(authorizationHeader); len(auth) != 0 {
-		ps := strings.Split(auth, ", ")
-		for _, p := range ps {
-			if idx := strings.Index(p, authHeaderSignatureElem); idx >= 0 {
-				sig := p[len(authHeaderSignatureElem):]
-				if len(sig) == 0 {
-					return nil, fmt.Errorf("invalid request signature authorization header")
-				}
-				return hex.DecodeString(sig)
-			}
-		}
-	}
-
-	if sig := r.URL.Query().Get("X-Amz-Signature"); len(sig) != 0 {
-		return hex.DecodeString(sig)
-	}
-
-	return nil, fmt.Errorf("request not signed")
-}
-
 func (ctx *signingCtx) buildTime() {
 	ctx.Request.Header.Set("X-Amz-Date", formatTime(ctx.Time))
 }
@@ -235,7 +208,7 @@ func (ctx *signingCtx) buildCredentialString() {
 }
 
 func (ctx *signingCtx) buildCanonicalHeaders(r rule, header http.Header) {
-	headers := make([]string, 0, len(header))
+	headers := make([]string, 0, len(header)+1)
 	headers = append(headers, "host")
 	for k, v := range header {
 		if !r.IsValid(k) {
@@ -259,37 +232,25 @@ func (ctx *signingCtx) buildCanonicalHeaders(r rule, header http.Header) {
 
 	ctx.signedHeaders = strings.Join(headers, ";")
 
-	headerValues := make([]string, len(headers))
+	headerItems := make([]string, len(headers))
 	for i, k := range headers {
 		if k == "host" {
 			if ctx.Request.Host != "" {
-				headerValues[i] = "host:" + ctx.Request.Host
+				headerItems[i] = "host:" + ctx.Request.Host
 			} else {
-				headerValues[i] = "host:" + ctx.Request.URL.Host
+				headerItems[i] = "host:" + ctx.Request.URL.Host
 			}
 		} else {
-			headerValues[i] = k + ":" +
-				strings.Join(ctx.SignedHeaderVals[k], ",")
+			headerValues := make([]string, len(ctx.SignedHeaderVals[k]))
+			for i, v := range ctx.SignedHeaderVals[k] {
+				headerValues[i] = strings.TrimSpace(v)
+			}
+			headerItems[i] = k + ":" +
+				strings.Join(headerValues, ",")
 		}
 	}
-	stripExcessSpaces(headerValues)
-	ctx.canonicalHeaders = strings.Join(headerValues, "\n")
-}
-
-func getURIPath(u *url.URL) string {
-	var uri string
-
-	if len(u.Opaque) > 0 {
-		uri = "/" + strings.Join(strings.Split(u.Opaque, "/")[3:], "/")
-	} else {
-		uri = u.EscapedPath()
-	}
-
-	if len(uri) == 0 {
-		uri = "/"
-	}
-
-	return uri
+	stripExcessSpaces(headerItems)
+	ctx.canonicalHeaders = strings.Join(headerItems, "\n")
 }
 
 func (ctx *signingCtx) buildCanonicalString() {
@@ -330,6 +291,9 @@ func (ctx *signingCtx) buildBodyDigest() error {
 		if ctx.Body == nil {
 			hash = emptyStringSHA256
 		} else {
+			if !aws.IsReaderSeekable(ctx.Body) {
+				return fmt.Errorf("cannot use unseekable request body %T, for signed request with body", ctx.Body)
+			}
 			hashBytes, err := makeSha256Reader(ctx.Body)
 			if err != nil {
 				return err
@@ -359,27 +323,6 @@ func hashSHA256(data []byte) []byte {
 	return hash.Sum(nil)
 }
 
-// seekerLen attempts to get the number of bytes remaining at the seeker's
-// current position.  Returns the number of bytes remaining or error.
-func seekerLen(s io.Seeker) (int64, error) {
-	curOffset, err := s.Seek(0, io.SeekCurrent)
-	if err != nil {
-		return 0, err
-	}
-
-	endOffset, err := s.Seek(0, io.SeekEnd)
-	if err != nil {
-		return 0, err
-	}
-
-	_, err = s.Seek(curOffset, io.SeekStart)
-	if err != nil {
-		return 0, err
-	}
-
-	return endOffset - curOffset, nil
-}
-
 func makeSha256Reader(reader io.ReadSeeker) (hashBytes []byte, err error) {
 	hash := sha256.New()
 	start, err := reader.Seek(0, io.SeekCurrent)
@@ -393,7 +336,7 @@ func makeSha256Reader(reader io.ReadSeeker) (hashBytes []byte, err error) {
 
 	// Use CopyN to avoid allocating the 32KB buffer in io.Copy for bodies
 	// smaller than 32KB. Fall back to io.Copy if we fail to determine the size.
-	size, err := seekerLen(reader)
+	size, err := aws.SeekerLen(reader)
 	if err != nil {
 		_, _ = io.Copy(hash, reader)
 	} else {
