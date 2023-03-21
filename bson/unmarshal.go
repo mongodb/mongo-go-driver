@@ -14,18 +14,26 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// Unmarshaler is an interface implemented by types that can unmarshal a BSON
-// document representation of themselves. The BSON bytes can be assumed to be
-// valid. UnmarshalBSON must copy the BSON bytes if it wishes to retain the data
-// after returning.
+// Unmarshaler is the interface implemented by types that can unmarshal a BSON
+// document representation of themselves. The input can be assumed to be a valid
+// encoding of a BSON document. UnmarshalBSON must copy the JSON data if it
+// wishes to retain the data after returning.
+//
+// Unmarshaler is only used to unmarshal full BSON documents. To create custom
+// BSON unmarshaling behavior for individual values in a BSON document,
+// implement the ValueUnmarshaler interface instead.
 type Unmarshaler interface {
 	UnmarshalBSON([]byte) error
 }
 
-// ValueUnmarshaler is an interface implemented by types that can unmarshal a
-// BSON value representation of themselves. The BSON bytes and type can be
-// assumed to be valid. UnmarshalBSONValue must copy the BSON value bytes if it
-// wishes to retain the data after returning.
+// ValueUnmarshaler is the interface implemented by types that can unmarshal a
+// BSON value representation of themselves. The input can be assumed to be a
+// valid encoding of a BSON value. UnmarshalBSONValue must copy the BSON value
+// bytes if it wishes to retain the data after returning.
+//
+// ValueUnmarshaler is only used to unmarshal individual values in a BSON
+// document. To create custom BSON unmarshaling behavior for an entire BSON
+// document, implement the Unmarshaler interface instead.
 type ValueUnmarshaler interface {
 	UnmarshalBSONValue(bsontype.Type, []byte) error
 }

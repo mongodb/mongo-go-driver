@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,6 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -94,19 +97,35 @@ type startedInformation struct {
 	serverConnID             *int32
 	redacted                 bool
 	serviceID                *primitive.ObjectID
+	serverAddress            address.Address
 }
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName      string
-	requestID    int32
-	response     bsoncore.Document
-	cmdErr       error
-	connID       string
-	serverConnID *int32
-	startTime    time.Time
-	redacted     bool
-	serviceID    *primitive.ObjectID
+	cmdName       string
+	requestID     int32
+	response      bsoncore.Document
+	cmdErr        error
+	connID        string
+	serverConnID  *int32
+	redacted      bool
+	serviceID     *primitive.ObjectID
+	serverAddress address.Address
+	duration      time.Duration
+}
+
+// success returns true if there was no command error or the command error is a
+// "WriteCommandError". Commands that executed on the server and return a status
+// of { ok: 1.0 } are considered successful commands and MUST generate a
+// CommandSucceededEvent and "command succeeded" log message. Commands that have
+// write errors are included since the actual command did succeed, only writes
+// failed.
+func (info finishedInformation) success() bool {
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
+		return true
+	}
+
+	return info.cmdErr == nil
 }
 
 // ResponseInfo contains the context required to parse a server response.
@@ -116,6 +135,37 @@ type ResponseInfo struct {
 	Connection            Connection
 	ConnectionDescription description.Server
 	CurrentIndex          int
+}
+
+func redactStartedInformationCmd(op Operation, info startedInformation) bson.Raw {
+	var cmdCopy bson.Raw
+
+	// Make a copy of the command. Redact if the command is security
+	// sensitive and cannot be monitored. If there was a type 1 payload for
+	// the current batch, convert it to a BSON array
+	if !info.redacted {
+		cmdCopy = make([]byte, len(info.cmd))
+		copy(cmdCopy, info.cmd)
+
+		if info.documentSequenceIncluded {
+			// remove 0 byte at end
+			cmdCopy = cmdCopy[:len(info.cmd)-1]
+			cmdCopy = op.addBatchArray(cmdCopy)
+
+			// add back 0 byte and update length
+			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0)
+		}
+	}
+
+	return cmdCopy
+}
+
+func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
+	if !info.redacted {
+		return bson.Raw(info.response)
+	}
+
+	return bson.Raw{}
 }
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -232,6 +282,8 @@ type Operation struct {
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
+
+	Logger *logger.Logger
 
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
@@ -433,10 +485,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		// size to 16MiB because that's the maximum wire message size supported by MongoDB.
 		//
 		// Comment copied from https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
-		if cap(*wm) > 16*1024*1024 {
-			return
+		//
+		// Recycle byte slices that are smaller than 16MiB and at least half occupied.
+		if c := cap(*wm); c < 16*1024*1024 && c/2 < len(*wm) {
+			memoryPool.Put(wm)
 		}
-		memoryPool.Put(wm)
 	}()
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
@@ -463,7 +516,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// Set the server if it has not already been set and the session type is implicit. This will
 			// limit the number of implicit sessions to no greater than an application's maxPoolSize
 			// (ignoring operations that hold on to the session like cursors).
-			if op.Client != nil && op.Client.Server == nil && op.Client.SessionType == session.Implicit {
+			if op.Client != nil && op.Client.Server == nil && op.Client.IsImplicit {
 				if op.Client.Terminated {
 					return fmt.Errorf("unexpected nil session for a terminated implicit session")
 				}
@@ -548,6 +601,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		startedInfo.serverConnID = conn.ServerConnectionID()
+		startedInfo.serverAddress = conn.Description().Addr
+
 		op.publishStartedEvent(ctx, startedInfo)
 
 		// get the moreToCome flag information before we compress
@@ -565,14 +620,16 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:      startedInfo.cmdName,
-			requestID:    startedInfo.requestID,
-			startTime:    time.Now(),
-			connID:       startedInfo.connID,
-			serverConnID: startedInfo.serverConnID,
-			redacted:     startedInfo.redacted,
-			serviceID:    startedInfo.serviceID,
+			cmdName:       startedInfo.cmdName,
+			requestID:     startedInfo.requestID,
+			connID:        startedInfo.connID,
+			serverConnID:  startedInfo.serverConnID,
+			redacted:      startedInfo.redacted,
+			serviceID:     startedInfo.serviceID,
+			serverAddress: desc.Server.Addr,
 		}
+
+		startedTime := time.Now()
 
 		// Check for possible context error. If no context error, check if there's enough time to perform a
 		// round trip before the Context deadline. If ctx is a Timeout Context, use the 90th percentile RTT
@@ -591,11 +648,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		if err == nil {
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
-			var roundTrip = op.roundTrip
+			roundTrip := op.roundTrip
 			if moreToCome {
 				roundTrip = op.moreToComeRoundTrip
 			}
-			res, *wm, err = roundTrip(ctx, conn, *wm)
+			res, err = roundTrip(ctx, conn, *wm)
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -604,6 +661,8 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		finishedInfo.response = res
 		finishedInfo.cmdErr = err
+		finishedInfo.duration = time.Since(startedTime)
+
 		op.publishFinishedEvent(ctx, finishedInfo)
 
 		// prevIndefiniteErrorIsSet is "true" if the "err" variable has been set to the "prevIndefiniteErr" in
@@ -855,18 +914,18 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (result, pooledSlice []byte, err error) {
-	err = conn.WriteWireMessage(ctx, wm)
+func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
+	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, wm, op.networkError(err)
+		return nil, op.networkError(err)
 	}
-	return op.readWireMessage(ctx, conn, wm)
+	return op.readWireMessage(ctx, conn)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []byte) (result, pooledSlice []byte, err error) {
-	wm, err = conn.ReadWireMessage(ctx, wm[:0])
+func (op Operation) readWireMessage(ctx context.Context, conn Connection) (result []byte, err error) {
+	wm, err := conn.ReadWireMessage(ctx, nil)
 	if err != nil {
-		return nil, wm, op.networkError(err)
+		return nil, op.networkError(err)
 	}
 
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
@@ -878,14 +937,11 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	// decompress wiremessage
 	wm, err = op.decompressWireMessage(wm)
 	if err != nil {
-		return nil, wm, err
+		return nil, err
 	}
 
 	// decode
-	b, err := op.decodeResult(wm)
-	// Copy b to extend the lifetime. b may be a subslice of wm. wm will be added back to the memory pool and reused.
-	res := make([]byte, len(b))
-	copy(res, b)
+	res, err := op.decodeResult(wm)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -898,14 +954,14 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection, wm []b
 	}
 
 	if err != nil {
-		return res, wm, err
+		return res, err
 	}
 
 	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
 	if op.Crypt != nil {
 		res, err = op.Crypt.Decrypt(ctx, res)
 	}
-	return res, wm, err
+	return res, err
 }
 
 // networkError wraps the provided error in an Error with label "NetworkError" and, if a transaction
@@ -931,7 +987,7 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) (result, pooledSlice []byte, err error) {
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) (result []byte, err error) {
 	err = conn.WriteWireMessage(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
@@ -939,7 +995,7 @@ func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, w
 		}
 		err = Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}, Wrapped: err}
 	}
-	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), wm, err
+	return bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "ok", 1)), err
 }
 
 // decompressWireMessage handles decompressing a wiremessage. If the wiremessage
@@ -974,26 +1030,13 @@ func (Operation) decompressWireMessage(wm []byte) ([]byte, error) {
 		return nil, errors.New("malformed OP_COMPRESSED: insufficient bytes for compressed wiremessage")
 	}
 
-	// Copy msg, which is a subslice of wm. wm will be used to store the return value of the decompressed message.
-	b := memoryPool.Get().(*[]byte)
-	msglen := len(msg)
-	if len(*b) < msglen {
-		*b = make([]byte, msglen)
-	}
-	copy(*b, msg)
-	defer func() {
-		memoryPool.Put(b)
-	}()
-
-	if l := int(uncompressedSize) + 16; cap(wm) < l {
-		wm = make([]byte, 0, l)
-	}
-	wm = wiremessage.AppendHeader(wm[:0], uncompressedSize+16, reqid, respto, opcode)
+	wm = make([]byte, 0, int(uncompressedSize)+16)
+	wm = wiremessage.AppendHeader(wm, uncompressedSize+16, reqid, respto, opcode)
 	opts := CompressionOpts{
 		Compressor:       compressorID,
 		UncompressedSize: uncompressedSize,
 	}
-	uncompressed, err := DecompressPayload((*b)[0:msglen], opts)
+	uncompressed, err := DecompressPayload(msg, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -1007,8 +1050,8 @@ func (op Operation) createWireMessage(
 	dst []byte,
 	desc description.SelectedServer,
 	maxTimeMS uint64,
-	conn Connection) ([]byte, startedInformation, error) {
-
+	conn Connection,
+) ([]byte, startedInformation, error) {
 	// If topology is not LoadBalanced, API version is not declared, and wire version is unknown
 	// or less than 6, use OP_QUERY. Otherwise, use OP_MSG.
 	if desc.Kind != description.LoadBalanced && op.ServerAPI == nil &&
@@ -1100,8 +1143,8 @@ func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc de
 }
 
 func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, dst []byte, desc description.SelectedServer,
-	conn Connection) ([]byte, startedInformation, error) {
-
+	conn Connection,
+) ([]byte, startedInformation, error) {
 	var info startedInformation
 	var flags wiremessage.MsgFlag
 	var wmindex int32
@@ -1713,76 +1756,139 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 	return err == nil
 }
 
+// canLogCommandMessage returns true if the command can be logged.
+func (op Operation) canLogCommandMessage() bool {
+	return op.Logger != nil && op.Logger.LevelComponentEnabled(logger.LevelDebug, logger.ComponentCommand)
+}
+
+func (op Operation) canPublishStartedEvent() bool {
+	return op.CommandMonitor != nil && op.CommandMonitor.Started != nil
+}
+
 // publishStartedEvent publishes a CommandStartedEvent to the operation's command monitor if possible. If the command is
 // an unacknowledged write, a CommandSucceededEvent will be published as well. If started events are not being monitored,
 // no events are published.
 func (op Operation) publishStartedEvent(ctx context.Context, info startedInformation) {
-	if op.CommandMonitor == nil || op.CommandMonitor.Started == nil {
-		return
+	// If logging is enabled for the command component at the debug level, log the command response.
+	if op.canLogCommandMessage() {
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+		redactedCmd := redactStartedInformationCmd(op, info).String()
+		formattedCmd := logger.FormatMessage(redactedCmd, op.Logger.MaxDocumentLength)
+
+		op.Logger.Print(logger.LevelDebug,
+			logger.ComponentCommand,
+			logger.CommandStarted,
+			logger.SerializeCommand(logger.Command{
+				Message:            logger.CommandStarted,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: info.serverConnID,
+				ServerHost:         host,
+				ServerPort:         port,
+				ServiceID:          info.serviceID,
+			},
+				logger.KeyCommand, formattedCmd,
+				logger.KeyDriverConnectionID, info.connID,
+				logger.KeyDatabaseName, op.Database)...)
+
 	}
 
-	// Make a copy of the command. Redact if the command is security sensitive and cannot be monitored.
-	// If there was a type 1 payload for the current batch, convert it to a BSON array.
-	cmdCopy := bson.Raw{}
-	if !info.redacted {
-		cmdCopy = make([]byte, len(info.cmd))
-		copy(cmdCopy, info.cmd)
-		if info.documentSequenceIncluded {
-			cmdCopy = cmdCopy[:len(info.cmd)-1] // remove 0 byte at end
-			cmdCopy = op.addBatchArray(cmdCopy)
-			cmdCopy, _ = bsoncore.AppendDocumentEnd(cmdCopy, 0) // add back 0 byte and update length
+	if op.canPublishStartedEvent() {
+		started := &event.CommandStartedEvent{
+			Command:            redactStartedInformationCmd(op, info),
+			DatabaseName:       op.Database,
+			CommandName:        info.cmdName,
+			RequestID:          int64(info.requestID),
+			ConnectionID:       info.connID,
+			ServerConnectionID: info.serverConnID,
+			ServiceID:          info.serviceID,
 		}
+		op.CommandMonitor.Started(ctx, started)
 	}
+}
 
-	started := &event.CommandStartedEvent{
-		Command:            cmdCopy,
-		DatabaseName:       op.Database,
-		CommandName:        info.cmdName,
-		RequestID:          int64(info.requestID),
-		ConnectionID:       info.connID,
-		ServerConnectionID: info.serverConnID,
-		ServiceID:          info.serviceID,
-	}
-	op.CommandMonitor.Started(ctx, started)
+// canPublishSucceededEvent returns true if a CommandSucceededEvent can be
+// published for the given command. This is true if the command is not an
+// unacknowledged write and the command monitor is monitoring succeeded events.
+func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
+	success := info.success()
+
+	return op.CommandMonitor != nil &&
+		(!success || op.CommandMonitor.Succeeded != nil) &&
+		(success || op.CommandMonitor.Failed != nil)
 }
 
 // publishFinishedEvent publishes either a CommandSucceededEvent or a CommandFailedEvent to the operation's command
 // monitor if possible. If success/failure events aren't being monitored, no events are published.
 func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInformation) {
-	success := info.cmdErr == nil
-	if _, ok := info.cmdErr.(WriteCommandError); ok {
-		success = true
-	}
-	if op.CommandMonitor == nil || (success && op.CommandMonitor.Succeeded == nil) || (!success && op.CommandMonitor.Failed == nil) {
-		return
+	if op.canLogCommandMessage() && info.success() {
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+		redactedReply := redactFinishedInformationResponse(info).String()
+		formattedReply := logger.FormatMessage(redactedReply, op.Logger.MaxDocumentLength)
+
+		op.Logger.Print(logger.LevelDebug,
+			logger.ComponentCommand,
+			logger.CommandSucceeded,
+			logger.SerializeCommand(logger.Command{
+				Message:            logger.CommandSucceeded,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: info.serverConnID,
+				ServerHost:         host,
+				ServerPort:         port,
+				ServiceID:          info.serviceID,
+			},
+				logger.KeyDurationMS, info.duration.Milliseconds(),
+				logger.KeyDriverConnectionID, info.connID,
+				logger.KeyReply, formattedReply)...)
 	}
 
-	var durationNanos int64
-	var emptyTime time.Time
-	if info.startTime != emptyTime {
-		durationNanos = time.Since(info.startTime).Nanoseconds()
+	if op.canLogCommandMessage() && !info.success() {
+		host, port, _ := net.SplitHostPort(info.serverAddress.String())
+
+		formattedReply := logger.FormatMessage(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
+
+		op.Logger.Print(logger.LevelDebug,
+			logger.ComponentCommand,
+			logger.CommandFailed,
+			logger.SerializeCommand(logger.Command{
+				Message:            logger.CommandFailed,
+				Name:               info.cmdName,
+				RequestID:          int64(info.requestID),
+				ServerConnectionID: info.serverConnID,
+				ServerHost:         host,
+				ServerPort:         port,
+				ServiceID:          info.serviceID,
+			},
+				logger.KeyDurationMS, info.duration.Milliseconds(),
+				logger.KeyDriverConnectionID, info.connID,
+				logger.KeyFailure, formattedReply)...)
+	}
+
+	// If the finished event cannot be published, return early.
+	if !op.canPublishFinishedEvent(info) {
+		return
 	}
 
 	finished := event.CommandFinishedEvent{
 		CommandName:        info.cmdName,
 		RequestID:          int64(info.requestID),
 		ConnectionID:       info.connID,
-		DurationNanos:      durationNanos,
+		Duration:           info.duration,
+		DurationNanos:      info.duration.Nanoseconds(),
 		ServerConnectionID: info.serverConnID,
 		ServiceID:          info.serviceID,
 	}
 
-	if success {
-		res := bson.Raw{}
-		// Only copy the reply for commands that are not security sensitive
-		if !info.redacted {
-			res = bson.Raw(info.response)
-		}
+	if info.success() {
 		successEvent := &event.CommandSucceededEvent{
-			Reply:                res,
+			Reply:                redactFinishedInformationResponse(info),
 			CommandFinishedEvent: finished,
 		}
 		op.CommandMonitor.Succeeded(ctx, successEvent)
+
 		return
 	}
 

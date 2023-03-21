@@ -63,6 +63,9 @@ func (d *DatabaseOptions) SetRegistry(r *bsoncodec.Registry) *DatabaseOptions {
 
 // MergeDatabaseOptions combines the given DatabaseOptions instances into a single DatabaseOptions in a last-one-wins
 // fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeDatabaseOptions(opts ...*DatabaseOptions) *DatabaseOptions {
 	d := Database()
 

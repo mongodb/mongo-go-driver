@@ -23,6 +23,9 @@ func (t *TimeCodecOptions) SetUseLocalTimeZone(b bool) *TimeCodecOptions {
 }
 
 // MergeTimeCodecOptions combines the given *TimeCodecOptions into a single *TimeCodecOptions in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeTimeCodecOptions(opts ...*TimeCodecOptions) *TimeCodecOptions {
 	t := TimeCodec()
 	for _, opt := range opts {
