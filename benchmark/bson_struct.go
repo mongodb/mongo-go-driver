@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) error {
+func BSONFlatStructDecoding(_ context.Context, tm TimerManager, iters int) error {
 	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func BSONFlatStructDecoding(ctx context.Context, tm TimerManager, iters int) err
 	return nil
 }
 
-func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) error {
+func BSONFlatStructEncoding(_ context.Context, tm TimerManager, iters int) error {
 	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func BSONFlatStructEncoding(ctx context.Context, tm TimerManager, iters int) err
 	return nil
 }
 
-func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int) error {
+func BSONFlatStructTagsEncoding(_ context.Context, tm TimerManager, iters int) error {
 	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func BSONFlatStructTagsEncoding(ctx context.Context, tm TimerManager, iters int)
 	return nil
 }
 
-func BSONFlatStructTagsDecoding(ctx context.Context, tm TimerManager, iters int) error {
+func BSONFlatStructTagsDecoding(_ context.Context, tm TimerManager, iters int) error {
 	r, err := loadSourceRaw(getProjectRoot(), perfDataDir, bsonDataDir, flatBSONData)
 	if err != nil {
 		return err

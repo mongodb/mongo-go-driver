@@ -1146,7 +1146,7 @@ func (wfc *writeFailConn) Write([]byte) (int, error) {
 	return 0, errors.New("Write error")
 }
 
-func (wfc *writeFailConn) SetWriteDeadline(t time.Time) error {
+func (wfc *writeFailConn) SetWriteDeadline(time.Time) error {
 	return nil
 }
 

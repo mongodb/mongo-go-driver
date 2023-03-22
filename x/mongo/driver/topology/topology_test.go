@@ -583,7 +583,7 @@ func TestMinPoolSize(t *testing.T) {
 	}
 }
 
-func TestTopology_String_Race(t *testing.T) {
+func TestTopology_String_Race(*testing.T) {
 	ch := make(chan bool)
 	topo := &Topology{
 		servers: make(map[address.Address]*Server),

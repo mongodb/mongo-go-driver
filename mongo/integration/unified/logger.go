@@ -56,7 +56,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	// logging offset.
 	level = level + logger.DiffToInfo
 
-	logMessage, err := newLogMessage(level, args...)
+	logMessage, err := newLogMessage(level, msg, args...)
 	if err != nil {
 		panic(err)
 	}
@@ -77,6 +77,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 // Error implements the logger.Sink interface's "Error" method for printing log
 // errors. In this case, if an error occurs we will simply treat it as
 // informational.
-func (log *Logger) Error(_ error, msg string, args ...interface{}) {
+func (log *Logger) Error(err error, msg string, args ...interface{}) {
+	args = append(args, "error", err)
 	log.Info(int(logger.LevelInfo), msg, args)
 }

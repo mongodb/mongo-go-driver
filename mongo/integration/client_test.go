@@ -42,12 +42,12 @@ type negateCodec struct {
 	ID int64 `bson:"_id"`
 }
 
-func (e *negateCodec) EncodeValue(ectx bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (e *negateCodec) EncodeValue(_ bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	return vw.WriteInt64(val.Int())
 }
 
 // DecodeValue negates the value of ID when reading
-func (e *negateCodec) DecodeValue(ectx bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (e *negateCodec) DecodeValue(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
 	i, err := vr.ReadInt64()
 	if err != nil {
 		return err

@@ -1749,10 +1749,7 @@ func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interfac
 	}
 
 	// Drop the data collection.
-	if err := coll.drop(ctx); err != nil {
-		return err
-	}
-	return nil
+	return coll.drop(ctx)
 }
 
 // drop drops a collection without EncryptedFields.

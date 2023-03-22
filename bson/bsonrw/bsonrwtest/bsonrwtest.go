@@ -572,7 +572,7 @@ func (llvrw *ValueReaderWriter) WriteArray() (bsonrw.ArrayWriter, error) {
 }
 
 // WriteBinary implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteBinary(b []byte) error {
+func (llvrw *ValueReaderWriter) WriteBinary([]byte) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteBinary
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -582,7 +582,7 @@ func (llvrw *ValueReaderWriter) WriteBinary(b []byte) error {
 }
 
 // WriteBinaryWithSubtype implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
+func (llvrw *ValueReaderWriter) WriteBinaryWithSubtype([]byte, byte) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteBinaryWithSubtype
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -602,7 +602,7 @@ func (llvrw *ValueReaderWriter) WriteBoolean(bool) error {
 }
 
 // WriteCodeWithScope implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteCodeWithScope(code string) (bsonrw.DocumentWriter, error) {
+func (llvrw *ValueReaderWriter) WriteCodeWithScope(string) (bsonrw.DocumentWriter, error) {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteCodeWithScope
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -612,7 +612,7 @@ func (llvrw *ValueReaderWriter) WriteCodeWithScope(code string) (bsonrw.Document
 }
 
 // WriteDBPointer implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteDBPointer(ns string, oid primitive.ObjectID) error {
+func (llvrw *ValueReaderWriter) WriteDBPointer(string, primitive.ObjectID) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteDBPointer
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -622,7 +622,7 @@ func (llvrw *ValueReaderWriter) WriteDBPointer(ns string, oid primitive.ObjectID
 }
 
 // WriteDateTime implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteDateTime(dt int64) error {
+func (llvrw *ValueReaderWriter) WriteDateTime(int64) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteDateTime
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -672,7 +672,7 @@ func (llvrw *ValueReaderWriter) WriteInt64(int64) error {
 }
 
 // WriteJavascript implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteJavascript(code string) error {
+func (llvrw *ValueReaderWriter) WriteJavascript(string) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteJavascript
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -722,7 +722,7 @@ func (llvrw *ValueReaderWriter) WriteObjectID(primitive.ObjectID) error {
 }
 
 // WriteRegex implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteRegex(pattern string, options string) error {
+func (llvrw *ValueReaderWriter) WriteRegex(string, string) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteRegex
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -752,7 +752,7 @@ func (llvrw *ValueReaderWriter) WriteDocument() (bsonrw.DocumentWriter, error) {
 }
 
 // WriteSymbol implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteSymbol(symbol string) error {
+func (llvrw *ValueReaderWriter) WriteSymbol(string) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteSymbol
 	if llvrw.ErrAfter == llvrw.Invoked {
@@ -762,7 +762,7 @@ func (llvrw *ValueReaderWriter) WriteSymbol(symbol string) error {
 }
 
 // WriteTimestamp implements the bsonrw.ValueWriter interface.
-func (llvrw *ValueReaderWriter) WriteTimestamp(t uint32, i uint32) error {
+func (llvrw *ValueReaderWriter) WriteTimestamp(uint32, uint32) error {
 	llvrw.checkdepth()
 	llvrw.Invoked = WriteTimestamp
 	if llvrw.ErrAfter == llvrw.Invoked {

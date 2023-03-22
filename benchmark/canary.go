@@ -14,7 +14,7 @@ import (
 //
 // Deprecated: CanaryIncCase has no observable effect, so recent versions of the Go compiler may
 // bypass calls to it in the compiled binary. It should not be used in benchmarks.
-func CanaryIncCase(ctx context.Context, tm TimerManager, iters int) error {
+func CanaryIncCase(context.Context, TimerManager, int) error {
 	return nil
 }
 
@@ -22,6 +22,6 @@ func CanaryIncCase(ctx context.Context, tm TimerManager, iters int) error {
 //
 // Deprecated: GlobalCanaryIncCase has no observable effect, so recent versions of the Go compiler
 // may bypass calls to it in the compiled binary. It should not be used in benchmarks.
-func GlobalCanaryIncCase(ctx context.Context, tm TimerManager, iters int) error {
+func GlobalCanaryIncCase(context.Context, TimerManager, int) error {
 	return nil
 }

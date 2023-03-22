@@ -113,7 +113,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 }
 
 // BooleanEncodeValue is the ValueEncoderFunc for bool types.
-func (dve DefaultValueEncoders) BooleanEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) BooleanEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Bool {
 		return ValueEncoderError{Name: "BooleanEncodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
 	}
@@ -176,7 +176,7 @@ func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.Valu
 }
 
 // FloatEncodeValue is the ValueEncoderFunc for float types.
-func (dve DefaultValueEncoders) FloatEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) FloatEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Float32, reflect.Float64:
 		return vw.WriteDouble(val.Float())
@@ -188,7 +188,7 @@ func (dve DefaultValueEncoders) FloatEncodeValue(ec EncodeContext, vw bsonrw.Val
 // StringEncodeValue is the ValueEncoderFunc for string types.
 //
 // Deprecated: StringEncodeValue is not registered by default. Use StringCodec.EncodeValue instead.
-func (dve DefaultValueEncoders) StringEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) StringEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.String {
 		return ValueEncoderError{
 			Name:     "StringEncodeValue",
@@ -201,7 +201,7 @@ func (dve DefaultValueEncoders) StringEncodeValue(ectx EncodeContext, vw bsonrw.
 }
 
 // ObjectIDEncodeValue is the ValueEncoderFunc for primitive.ObjectID.
-func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) ObjectIDEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tOID {
 		return ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: val}
 	}
@@ -209,7 +209,7 @@ func (dve DefaultValueEncoders) ObjectIDEncodeValue(ec EncodeContext, vw bsonrw.
 }
 
 // Decimal128EncodeValue is the ValueEncoderFunc for primitive.Decimal128.
-func (dve DefaultValueEncoders) Decimal128EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) Decimal128EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDecimal {
 		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: val}
 	}
@@ -237,7 +237,7 @@ func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonr
 }
 
 // URLEncodeValue is the ValueEncoderFunc for url.URL.
-func (dve DefaultValueEncoders) URLEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) URLEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tURL {
 		return ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: val}
 	}
@@ -248,7 +248,7 @@ func (dve DefaultValueEncoders) URLEncodeValue(ec EncodeContext, vw bsonrw.Value
 // TimeEncodeValue is the ValueEncoderFunc for time.TIme.
 //
 // Deprecated: TimeEncodeValue is not registered by default. Use TimeCodec.EncodeValue instead.
-func (dve DefaultValueEncoders) TimeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) TimeEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTime {
 		return ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}
@@ -260,7 +260,7 @@ func (dve DefaultValueEncoders) TimeEncodeValue(ec EncodeContext, vw bsonrw.Valu
 // ByteSliceEncodeValue is the ValueEncoderFunc for []byte.
 //
 // Deprecated: ByteSliceEncodeValue is not registered by default. Use ByteSliceCodec.EncodeValue instead.
-func (dve DefaultValueEncoders) ByteSliceEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) ByteSliceEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
@@ -515,7 +515,7 @@ func (dve DefaultValueEncoders) EmptyInterfaceEncodeValue(ec EncodeContext, vw b
 }
 
 // ValueMarshalerEncodeValue is the ValueEncoderFunc for ValueMarshaler implementations.
-func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement ValueMarshaler
 	switch {
 	case !val.IsValid():
@@ -541,7 +541,7 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(ec EncodeContext, vw b
 }
 
 // MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
-func (dve DefaultValueEncoders) MarshalerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (dve DefaultValueEncoders) MarshalerEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Marshaler
 	switch {
 	case !val.IsValid():
@@ -603,7 +603,7 @@ func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.Val
 }
 
 // JavaScriptEncodeValue is the ValueEncoderFunc for the primitive.JavaScript type.
-func (DefaultValueEncoders) JavaScriptEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) JavaScriptEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tJavaScript {
 		return ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
 	}
@@ -612,7 +612,7 @@ func (DefaultValueEncoders) JavaScriptEncodeValue(ectx EncodeContext, vw bsonrw.
 }
 
 // SymbolEncodeValue is the ValueEncoderFunc for the primitive.Symbol type.
-func (DefaultValueEncoders) SymbolEncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) SymbolEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tSymbol {
 		return ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: val}
 	}
@@ -621,7 +621,7 @@ func (DefaultValueEncoders) SymbolEncodeValue(ectx EncodeContext, vw bsonrw.Valu
 }
 
 // BinaryEncodeValue is the ValueEncoderFunc for Binary.
-func (DefaultValueEncoders) BinaryEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) BinaryEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tBinary {
 		return ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: val}
 	}
@@ -631,7 +631,7 @@ func (DefaultValueEncoders) BinaryEncodeValue(ec EncodeContext, vw bsonrw.ValueW
 }
 
 // UndefinedEncodeValue is the ValueEncoderFunc for Undefined.
-func (DefaultValueEncoders) UndefinedEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) UndefinedEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tUndefined {
 		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: val}
 	}
@@ -640,7 +640,7 @@ func (DefaultValueEncoders) UndefinedEncodeValue(ec EncodeContext, vw bsonrw.Val
 }
 
 // DateTimeEncodeValue is the ValueEncoderFunc for DateTime.
-func (DefaultValueEncoders) DateTimeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) DateTimeEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDateTime {
 		return ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: val}
 	}
@@ -649,7 +649,7 @@ func (DefaultValueEncoders) DateTimeEncodeValue(ec EncodeContext, vw bsonrw.Valu
 }
 
 // NullEncodeValue is the ValueEncoderFunc for Null.
-func (DefaultValueEncoders) NullEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) NullEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tNull {
 		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: val}
 	}
@@ -658,7 +658,7 @@ func (DefaultValueEncoders) NullEncodeValue(ec EncodeContext, vw bsonrw.ValueWri
 }
 
 // RegexEncodeValue is the ValueEncoderFunc for Regex.
-func (DefaultValueEncoders) RegexEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) RegexEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tRegex {
 		return ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: val}
 	}
@@ -669,7 +669,7 @@ func (DefaultValueEncoders) RegexEncodeValue(ec EncodeContext, vw bsonrw.ValueWr
 }
 
 // DBPointerEncodeValue is the ValueEncoderFunc for DBPointer.
-func (DefaultValueEncoders) DBPointerEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) DBPointerEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDBPointer {
 		return ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
 	}
@@ -680,7 +680,7 @@ func (DefaultValueEncoders) DBPointerEncodeValue(ec EncodeContext, vw bsonrw.Val
 }
 
 // TimestampEncodeValue is the ValueEncoderFunc for Timestamp.
-func (DefaultValueEncoders) TimestampEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) TimestampEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTimestamp {
 		return ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
 	}
@@ -691,7 +691,7 @@ func (DefaultValueEncoders) TimestampEncodeValue(ec EncodeContext, vw bsonrw.Val
 }
 
 // MinKeyEncodeValue is the ValueEncoderFunc for MinKey.
-func (DefaultValueEncoders) MinKeyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) MinKeyEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tMinKey {
 		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: val}
 	}
@@ -700,7 +700,7 @@ func (DefaultValueEncoders) MinKeyEncodeValue(ec EncodeContext, vw bsonrw.ValueW
 }
 
 // MaxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
-func (DefaultValueEncoders) MaxKeyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) MaxKeyEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tMaxKey {
 		return ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
 	}
@@ -709,7 +709,7 @@ func (DefaultValueEncoders) MaxKeyEncodeValue(ec EncodeContext, vw bsonrw.ValueW
 }
 
 // CoreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
-func (DefaultValueEncoders) CoreDocumentEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (DefaultValueEncoders) CoreDocumentEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCoreDocument {
 		return ValueEncoderError{Name: "CoreDocumentEncodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
 	}

@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/require"
 )
 
-func TestNew(t *testing.T) {
+func TestNew(*testing.T) {
 	// Ensure that objectid.NewObjectID() doesn't panic.
 	NewObjectID()
 }
