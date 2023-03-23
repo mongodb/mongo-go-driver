@@ -198,7 +198,7 @@ functions:
 
           # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
           # file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
           go install github.com/walle/lll/...@latest
 
   upload-mo-artifacts:
