@@ -311,7 +311,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 // calcGetMoreBatchSize returns the number of documents that should be returned in
 // the response of a "getMore" operation given the limit, batchSize, and number
 // of documents already returned.
-func calcGetMoreBatchSize(ctx context.Context, bc BatchCursor) (int32, bool) {
+func calcGetMoreBatchSize(bc BatchCursor) (int32, bool) {
 	gmBatchSize := bc.batchSize
 
 	// Account for legacy operations that don't support setting a limit.
