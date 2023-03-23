@@ -54,7 +54,7 @@ func parseOpCompressed(wm []byte) (wiremessage.OpCode, []byte, error) {
 		return originalOpcode, nil, errors.New("failed to read compressor ID")
 	}
 
-	compressedMsg, wm, ok := wiremessage.ReadCompressedCompressedMessage(wm, int32(len(wm)))
+	compressedMsg, _, ok := wiremessage.ReadCompressedCompressedMessage(wm, int32(len(wm)))
 	if !ok {
 		return originalOpcode, nil, errors.New("failed to read compressed message")
 	}
