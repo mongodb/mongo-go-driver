@@ -7,7 +7,6 @@
 package driver
 
 import (
-	"context"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -74,7 +73,6 @@ func TestBatchCursor(t *testing.T) {
 			tcase := tcase
 			t.Run(tcase.name, func(t *testing.T) {
 				t.Parallel()
-				ctx := context.Background()
 
 				bc := &BatchCursor{
 					limit:       tcase.limit,
@@ -84,7 +82,7 @@ func TestBatchCursor(t *testing.T) {
 
 				bc.SetBatchSize(tcase.size)
 
-				size, ok := calcGetMoreBatchSize(ctx, *bc)
+				size, ok := calcGetMoreBatchSize(*bc)
 
 				assert.Equal(t, tcase.expected, size, "expected batchSize %v, got %v", tcase.expected, size)
 				assert.Equal(t, tcase.ok, ok, "expected ok %v, got %v", tcase.ok, ok)

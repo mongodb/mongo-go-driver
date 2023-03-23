@@ -331,7 +331,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		return
 	}
 
-	numToReturn, ok := calcGetMoreBatchSize(ctx, *bc)
+	numToReturn, ok := calcGetMoreBatchSize(*bc)
 	if !ok {
 		if err := bc.Close(ctx); err != nil {
 			bc.err = err
