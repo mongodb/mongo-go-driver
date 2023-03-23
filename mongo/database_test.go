@@ -103,13 +103,30 @@ func TestDatabase(t *testing.T) {
 			defer client.Disconnect(bgCtx)
 			assert.Nil(t, err, "expected nil, got %v", err)
 
+			var sse topology.ServerSelectionError
+			var le LabeledError
+
+			// non-transaction
 			err = client.Ping(bgCtx, nil)
 			assert.NotNil(t, err, "expected error, got nil")
-			assert.True(t, IsTransientTransactionError(err), `expected error to include the "TransientTransactionError" label`)
-			var sse topology.ServerSelectionError
 			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
-			var le LabeledError
-			assert.True(t, errors.As(err, &le), `expected error to implement the "ServerError" interface`)
+			if errors.As(err, &le) {
+				assert.False(t, le.HasErrorLabel("TransientTransactionError"), `expected error not to include the "TransientTransactionError" label`)
+			}
+
+			// start a transaction
+			sess, err := client.StartSession()
+			assert.Nil(t, err, "expected nil, got %v", err)
+			defer sess.EndSession(bgCtx)
+
+			sessCtx := NewSessionContext(bgCtx, sess)
+			err = sess.StartTransaction()
+			assert.Nil(t, err, "expected nil, got %v", err)
+
+			err = client.Ping(sessCtx, nil)
+			assert.NotNil(t, err, "expected error, got nil")
+			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
+			assert.True(t, errors.As(err, &le), `expected error to implement the "LabeledError" interface`)
 			assert.True(t, le.HasErrorLabel("TransientTransactionError"), `expected error to include the "TransientTransactionError" label`)
 		})
 	})

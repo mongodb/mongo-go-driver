@@ -139,16 +139,6 @@ func IsTimeout(err error) bool {
 	return false
 }
 
-// IsTransientTransactionError returns true if err contains a "TransientTransactionError" label
-func IsTransientTransactionError(err error) bool {
-	if le, ok := err.(LabeledError); ok {
-		if le.HasErrorLabel(driver.TransientTransactionError) {
-			return true
-		}
-	}
-	return false
-}
-
 // unwrap returns the inner error if err implements Unwrap(), otherwise it returns nil.
 func unwrap(err error) error {
 	u, ok := err.(interface {
