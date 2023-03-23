@@ -112,7 +112,7 @@ func (c *Cursor) ID() int64 { return c.bc.ID() }
 // Next gets the next document for this cursor. It returns true if there were no errors and the cursor has not been
 // exhausted.
 //
-// Next blocks until a document is available or an error occurs. If the context expires, the cursor's error will 
+// Next blocks until a document is available or an error occurs. If the context expires, the cursor's error will
 // be set to ctx.Err(). In case of an error, Next will return false.
 //
 // If Next returns false, subsequent calls will also return false.
