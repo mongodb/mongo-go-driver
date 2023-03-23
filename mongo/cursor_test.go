@@ -86,6 +86,8 @@ func (tbc *testBatchCursor) Close(context.Context) error {
 	return nil
 }
 
+func (tbc *testBatchCursor) SetBatchSize(int32) {}
+
 func TestCursor(t *testing.T) {
 	t.Run("loops until docs available", func(t *testing.T) {})
 	t.Run("returns false on context cancellation", func(t *testing.T) {})
