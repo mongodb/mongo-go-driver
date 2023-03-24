@@ -68,29 +68,6 @@ type labeledError interface {
 	HasErrorLabel(string) bool
 }
 
-// LabeledError wraps the error and implements the interface of mongo.LabeledError for errors with labels.
-type LabeledError struct {
-	error
-	Labels []string
-}
-
-// HasErrorLabel returns true if the error contains the specified label.
-func (e LabeledError) HasErrorLabel(label string) bool {
-	if e.Labels != nil {
-		for _, l := range e.Labels {
-			if l == label {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// Unwrap returns the underlying error.
-func (e LabeledError) Unwrap() error {
-	return e.error
-}
-
 // InvalidOperationError is returned from Validate and indicates that a required field is missing
 // from an instance of Operation.
 type InvalidOperationError struct{ MissingField string }
@@ -344,9 +321,10 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 	if err != nil {
 		if op.Client != nil &&
 			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
-			err = LabeledError{
-				error:  err,
-				Labels: []string{TransientTransactionError},
+			err = Error{
+				Message: err.Error(),
+				Labels:  []string{TransientTransactionError},
+				Wrapped: err,
 			}
 		}
 		return nil, nil, err

@@ -85,36 +85,38 @@ func TestDatabase(t *testing.T) {
 		})
 	})
 	t.Run("replace topology error", func(t *testing.T) {
-		t.Run("ErrClientDisconnected", func(t *testing.T) {
-			db := setupDb("foo")
-			err := db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
-			assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+		db := setupDb("foo")
+		err := db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-			err = db.Drop(bgCtx)
-			assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+		err = db.Drop(bgCtx)
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-			_, err = db.ListCollections(bgCtx, bson.D{})
-			assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
-		})
-		t.Run("TransientTransactionError", func(t *testing.T) {
-			var err error
-			client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
-			err = client.Connect(bgCtx)
-			defer client.Disconnect(bgCtx)
-			assert.Nil(t, err, "expected nil, got %v", err)
+		_, err = db.ListCollections(bgCtx, bson.D{})
+		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+	})
+	t.Run("TransientTransactionError label", func(t *testing.T) {
+		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
+		err := client.Connect(bgCtx)
+		defer client.Disconnect(bgCtx)
+		assert.Nil(t, err, "expected nil, got %v", err)
 
+		t.Run("negative case of non-transaction", func(t *testing.T) {
 			var sse topology.ServerSelectionError
 			var le LabeledError
 
-			// non-transaction
-			err = client.Ping(bgCtx, nil)
+			err := client.Ping(bgCtx, nil)
 			assert.NotNil(t, err, "expected error, got nil")
 			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
 			if errors.As(err, &le) {
 				assert.False(t, le.HasErrorLabel("TransientTransactionError"), `expected error not to include the "TransientTransactionError" label`)
 			}
+		})
 
-			// start a transaction
+		t.Run("positive case of transaction", func(t *testing.T) {
+			var sse topology.ServerSelectionError
+			var le LabeledError
+
 			sess, err := client.StartSession()
 			assert.Nil(t, err, "expected nil, got %v", err)
 			defer sess.EndSession(bgCtx)
