@@ -9,6 +9,7 @@ package operation
 import (
 	"context"
 	"errors"
+	"os"
 	"runtime"
 	"strconv"
 
@@ -21,6 +22,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
+
+const maxHelloCommandSize = 512 //  maximum size (bytes) of a hello command
+const docElementSize = 7        // 7 bytes to append a document element
+const stringElementSize = 7     // 7 bytes to append a string element
+const int32ElementSize = 6      // 6 bytes to append an int32 element
+const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
 type Hello struct {
@@ -113,6 +120,260 @@ func (h *Hello) Result(addr address.Address) description.Server {
 	return description.NewServer(addr, bson.Raw(h.res))
 }
 
+const (
+	// FaaS environment variable names
+	envVarAWSExecutionEnv       = "AWS_EXECUTION_ENV"
+	envVarAWSLambdaRuntimeAPI   = "AWS_LAMBDA_RUNTIME_API"
+	envVarFunctionWorkerRuntime = "FUNCTION_WORKER_RUNTIME"
+	envVarKService              = "K_SERVICE"
+	envVarFunctionName          = "FUNCTION_NAME"
+	envVarVercel                = "VERCEL"
+)
+
+const (
+	// FaaS supprint environment variable names
+	envVarAWSRegion                   = "AWS_REGION"
+	envVarAwsLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
+	envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
+	envVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
+	envVarFunctionRegion              = "FUNCTION_REGION"
+	envVarVercelURL                   = "VERCEL_URL"
+	envVarVercelRegion                = "VERCEL_REGION"
+)
+
+const (
+	// FaaS environment names used by the client
+	envNameAWSLambda = "aws.lambda"
+	envNameAzureFunc = "azure.func"
+	envNameGCPFunc   = "gcp.func"
+	envNameVercel    = "vercel"
+)
+
+// getFaasEnvName parses the FaaS environment variable name and returns the
+// corresponding name used by the client. If none of the variables or variables
+// for multiple names are populated the client.env value MUST be entirely
+// omitted.
+func getFaasEnvName() string {
+	envVars := []string{
+		envVarAWSExecutionEnv,
+		envVarAWSLambdaRuntimeAPI,
+		envVarFunctionWorkerRuntime,
+		envVarKService,
+		envVarFunctionName,
+		envVarVercel,
+	}
+
+	// If none of the variables are populated the client.env value MUST be
+	// entirely omitted.
+	names := make(map[string]struct{})
+
+	for _, envVar := range envVars {
+		if os.Getenv(envVar) == "" {
+			continue
+		}
+
+		var name string
+
+		switch envVar {
+		case envVarAWSExecutionEnv, envVarAWSLambdaRuntimeAPI:
+			name = envNameAWSLambda
+		case envVarFunctionWorkerRuntime:
+			name = envNameAzureFunc
+		case envVarKService, envVarFunctionName:
+			name = envNameGCPFunc
+		case envVarVercel:
+			name = envNameVercel
+		}
+
+		names[name] = struct{}{}
+		if len(names) > 1 {
+			// If multiple names are populated the client.env value
+			// MUST be entirely omitted.
+			names = nil
+
+			break
+		}
+	}
+
+	for name := range names {
+		return name
+	}
+
+	return ""
+}
+
+func appendStringElement(dst []byte, key, value string, maxLen int32) []byte {
+	if int32(len(dst)+len(key)+len(value))+stringElementSize > maxLen {
+		return dst
+	}
+
+	return bsoncore.AppendStringElement(dst, key, value)
+}
+
+func appendInt32Element(dst []byte, key string, value int32, maxLen int32) []byte {
+	if int32(len(dst)+len(key))+int32ElementSize > maxLen {
+		return dst
+	}
+
+	return bsoncore.AppendInt32Element(dst, key, value)
+}
+
+// appendClientAppName appends the application name to dst. It builds the
+// application sub-document key-by-key, checking the length of the document
+// after each key. If the document exceeds the maximum length, the key is
+// omitted and the document is ended and returned.
+func (h *Hello) appendClientAppName(dst []byte, maxLen int32) ([]byte, error) {
+	const key = "application"
+
+	// Do nothing if the dst slice is already too long, taking into account
+	// the size of the embedded document and the "application" key.
+	if int32(len(dst)+len(key))+docElementSize > maxLen {
+		return dst, nil
+	}
+
+	idx, dst := bsoncore.AppendDocumentElementStart(dst, key)
+	dst = appendStringElement(dst, "name", h.appname, maxLen)
+
+	return bsoncore.AppendDocumentEnd(dst, idx)
+}
+
+// appendClientDriver appends the driver metadata to dst. It builds the
+// driver sub-document key-by-key, checking the length of the document
+// after each key. If the document exceeds the maximum length, the key is
+// omitted and the document is ended and returned.
+func (*Hello) appendClientDriver(dst []byte, maxLen int32) ([]byte, error) {
+	const key = "driver"
+
+	// Do nothing if the dst slice is already too long, taking into account
+	// the size of the embedded document and the "driver" key.
+	if int32(len(dst)+len(key))+docElementSize > maxLen {
+		return dst, nil
+	}
+
+	idx, dst := bsoncore.AppendDocumentElementStart(dst, key)
+
+	dst = appendStringElement(dst, "name", driverName, maxLen)
+	dst = appendStringElement(dst, "version", version.Driver, maxLen)
+
+	return bsoncore.AppendDocumentEnd(dst, idx)
+}
+
+// appendClientEnv appends the enviroment metadata to dst. It builds the
+// environment sub-document key-by-key, checking the length of the document
+// after each key. If the document exceeds the maximum length, the key is
+// omitted and the document is ended and returned. If there is no FaaS
+// environment, the env sub-document is omitted.
+func (*Hello) appendClientEnv(dst []byte, maxLen int32) ([]byte, error) {
+	const key = "env"
+	const nameKey = "name"
+
+	name := getFaasEnvName()
+
+	// Do nothing if the dst slice is already too long, taking into account
+	// the size of the embedded document, the "env" key, the "name" key, and
+	// the value of the "name" key.
+	bufNeeded := int32(len(dst) + len(key) + docElementSize +
+		stringElementSize + len(nameKey) + len(name))
+
+	if bufNeeded > maxLen {
+		return dst, nil
+	}
+
+	idx, dst := bsoncore.AppendDocumentElementStart(dst, key)
+	dst = appendStringElement(dst, nameKey, name, maxLen)
+
+	switch name {
+	case envNameAWSLambda:
+		region := os.Getenv(envVarAWSRegion)
+		dst = appendStringElement(dst, "region", region, maxLen)
+
+		memSize := os.Getenv(envVarAwsLambdaFunctionMemorySize)
+		memSizeInt, _ := strconv.Atoi(memSize)
+
+		dst = appendInt32Element(dst, "memory_mb", int32(memSizeInt), maxLen)
+	}
+
+	return bsoncore.AppendDocumentEnd(dst, idx)
+}
+
+// appendClientOS appends the OS metadata to dst. It builds the OS
+// sub-document key-by-key, checking the length of the document after each key.
+// If the document exceeds the maximum length, the key is omitted and the
+// document is ended and returned.
+func (*Hello) appendClientOS(dst []byte, maxLen int32) ([]byte, error) {
+	const key = "os"
+
+	// Do nothing if the dst slice is already too long, taking into account
+	// the size of the embedded document and the "os" key.
+	if int32(len(dst)+len(key))+docElementSize > maxLen {
+		return dst, nil
+	}
+
+	idx, dst := bsoncore.AppendDocumentElementStart(dst, key)
+
+	dst = appendStringElement(dst, "type", runtime.GOOS, maxLen)
+	dst = appendStringElement(dst, "architecture", runtime.GOARCH, maxLen)
+
+	return bsoncore.AppendDocumentEnd(dst, idx)
+}
+
+// appendClient appends the client metadata to dst. It builds the client
+// sub-document key-by-key, checking the length of the document after each key.
+// If the document exceeds the maximum length, the key is omitted and the
+// document is ended and returned.
+func (h *Hello) appendClient(dst []byte, maxLen int32) ([]byte, error) {
+	const key = "client"
+
+	// Do nothing if the dst slice is already too long, taking into account
+	// the size of the embedded document and the "client" key.
+	if int32(len(dst)+len(key))+docElementSize > maxLen {
+		return dst, nil
+	}
+
+	idx, dst := bsoncore.AppendDocumentElementStart(dst, key)
+
+	var err error
+	dst, err = h.appendClientAppName(dst, maxLen)
+	if err != nil {
+		return dst, err
+	}
+
+	dst, err = h.appendClientDriver(dst, maxLen)
+	if err != nil {
+		return dst, err
+	}
+
+	// Collect data required to calculate the osMaxLen.
+
+	faasName := getFaasEnvName()
+	faasNameLen := int32(len(faasName))
+
+	// osMaxLen is the maximum number of bytes that can be used to construct
+	// the os sub-document. Per the specifications, the priority of "os" and
+	// "env" are interleaved such that os.type > env.name > os.* > env.*.
+	// Therefore, if "faasName" is not empty, the maximum length for which
+	// the os sub-document can be constructed must account for the bytes
+	// required to construct an env sub-doc with "name: <faasName>".
+	osMaxLen := maxLen
+	if faasNameLen > 0 {
+		osMaxLen -= docElementSize + stringElementSize + int32(len("name")) + faasNameLen
+	}
+
+	dst, err = h.appendClientOS(dst, osMaxLen)
+	if err != nil {
+		return dst, err
+	}
+
+	dst, err = h.appendClientEnv(dst, maxLen)
+	if err != nil {
+		return dst, err
+	}
+
+	dst = appendStringElement(dst, "platform", runtime.Version(), maxLen)
+
+	return bsoncore.AppendDocumentEnd(dst, idx)
+}
+
 // handshakeCommand appends all necessary command fields as well as client metadata, SASL supported mechs, and compression.
 func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst, err := h.command(dst, desc)
@@ -133,26 +394,10 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 	}
 	dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 
-	// append client metadata
-	idx, dst = bsoncore.AppendDocumentElementStart(dst, "client")
-
-	didx, dst := bsoncore.AppendDocumentElementStart(dst, "driver")
-	dst = bsoncore.AppendStringElement(dst, "name", "mongo-go-driver")
-	dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
-	dst, _ = bsoncore.AppendDocumentEnd(dst, didx)
-
-	didx, dst = bsoncore.AppendDocumentElementStart(dst, "os")
-	dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
-	dst = bsoncore.AppendStringElement(dst, "architecture", runtime.GOARCH)
-	dst, _ = bsoncore.AppendDocumentEnd(dst, didx)
-
-	dst = bsoncore.AppendStringElement(dst, "platform", runtime.Version())
-	if h.appname != "" {
-		didx, dst = bsoncore.AppendDocumentElementStart(dst, "application")
-		dst = bsoncore.AppendStringElement(dst, "name", h.appname)
-		dst, _ = bsoncore.AppendDocumentEnd(dst, didx)
+	dst, err = h.appendClient(dst, maxHelloCommandSize)
+	if err != nil {
+		return dst, err
 	}
-	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
 
 	return dst, nil
 }
@@ -222,7 +467,7 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	err := driver.Operation{
 		Clock:      h.clock,
 		CommandFn:  h.handshakeCommand,
-		Deployment: driver.SingleConnectionDeployment{c},
+		Deployment: driver.SingleConnectionDeployment{C: c},
 		Database:   "admin",
 		ProcessResponseFn: func(info driver.ResponseInfo) error {
 			h.res = info.ServerResponse
