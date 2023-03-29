@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -41,7 +41,7 @@ func (t pipeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.client.Do(req)
 }
 
-func TestAwsCredentialProviderCaching(t *testing.T) {
+func TestAWSCredentialProviderCaching(t *testing.T) {
 	const (
 		urienv         = "TEST_CONTAINER_CREDENTIALS_RELATIVE_URI"
 		keyenv         = "TEST_ACCESS_KEY"
@@ -50,12 +50,11 @@ func TestAwsCredentialProviderCaching(t *testing.T) {
 		param          = "source"
 	)
 
-	os.Setenv(urienv, testEndpoint)
-	defer os.Unsetenv(urienv)
+	t.Setenv(urienv, testEndpoint)
 
 	testCases := []struct {
 		expiration time.Duration
-		reqCount   int
+		reqCount   uint32
 	}{
 		{
 			expiration: 20 * time.Minute,
@@ -72,14 +71,14 @@ func TestAwsCredentialProviderCaching(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("expires in %s", tc.expiration.String()), func(t *testing.T) {
-			var cnt int
+			var cnt uint32
 			// the test server counts the requests and replies mock responses.
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Query().Get(param) != awsRelativeURI+testEndpoint {
 					w.WriteHeader(http.StatusNotFound)
 					return
 				}
-				cnt++
+				atomic.AddUint32(&cnt, 1)
 				t := time.Now().Add(tc.expiration).Format(time.RFC3339)
 				_, err := io.WriteString(w, fmt.Sprintf(`{
 					"AccessKeyId": "id",
@@ -109,10 +108,10 @@ func TestAwsCredentialProviderCaching(t *testing.T) {
 			p := AWSCredentialProvider{credentials.NewChainCredentials([]credentials.Provider{env, ecs})}
 			var err error
 			_, err = p.GetCredentialsDoc(context.Background())
-			assert.Nil(t, err, "error in GetCredentialsDoc: %v", err)
+			assert.NoError(t, err, "error in GetCredentialsDoc")
 			_, err = p.GetCredentialsDoc(context.Background())
-			assert.Nil(t, err, "error in GetCredentialsDoc: %v", err)
-			assert.Equal(t, tc.reqCount, cnt, "expected retrieval count: %d, actual: %d", tc.reqCount, cnt)
+			assert.NoError(t, err, "error in GetCredentialsDoc")
+			assert.Equal(t, tc.reqCount, atomic.LoadUint32(&cnt), "expected and actual credentials retrieval count don't match")
 		})
 	}
 }
