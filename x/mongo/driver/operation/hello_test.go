@@ -1,7 +1,6 @@
 package operation
 
 import (
-	"os"
 	"reflect"
 	"runtime"
 	"testing"
@@ -348,7 +347,7 @@ func TestHelloAppendClientEnv(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			// Set the environment variables.
 			for k, v := range test.env {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			idx, dst := bsoncore.AppendDocumentStart(test.dst)
@@ -395,9 +394,6 @@ func TestHelloAppendClientEnv(t *testing.T) {
 }
 
 func TestParseFaasEnvName(t *testing.T) {
-	// Reset the environment variables.
-	os.Clearenv()
-
 	for _, test := range []struct {
 		name string
 		env  map[string]string
@@ -425,8 +421,8 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "multiple variables",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":       "hello",
-				"FUNCTION_WORKER_RUNTIME": "hello",
+				"AWS_EXECUTION_ENV":        "hello",
+				"FUNCTIONS_WORKER_RUNTIME": "hello",
 			},
 			want: "",
 		},

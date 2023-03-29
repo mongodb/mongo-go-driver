@@ -122,12 +122,12 @@ func (h *Hello) Result(addr address.Address) description.Server {
 
 const (
 	// FaaS environment variable names
-	envVarAWSExecutionEnv       = "AWS_EXECUTION_ENV"
-	envVarAWSLambdaRuntimeAPI   = "AWS_LAMBDA_RUNTIME_API"
-	envVarFunctionWorkerRuntime = "FUNCTION_WORKER_RUNTIME"
-	envVarKService              = "K_SERVICE"
-	envVarFunctionName          = "FUNCTION_NAME"
-	envVarVercel                = "VERCEL"
+	envVarAWSExecutionEnv        = "AWS_EXECUTION_ENV"
+	envVarAWSLambdaRuntimeAPI    = "AWS_LAMBDA_RUNTIME_API"
+	envVarFunctionsWorkerRuntime = "FUNCTIONS_WORKER_RUNTIME"
+	envVarKService               = "K_SERVICE"
+	envVarFunctionName           = "FUNCTION_NAME"
+	envVarVercel                 = "VERCEL"
 )
 
 const (
@@ -157,7 +157,7 @@ func getFaasEnvName() string {
 	envVars := []string{
 		envVarAWSExecutionEnv,
 		envVarAWSLambdaRuntimeAPI,
-		envVarFunctionWorkerRuntime,
+		envVarFunctionsWorkerRuntime,
 		envVarKService,
 		envVarFunctionName,
 		envVarVercel,
@@ -177,7 +177,7 @@ func getFaasEnvName() string {
 		switch envVar {
 		case envVarAWSExecutionEnv, envVarAWSLambdaRuntimeAPI:
 			name = envNameAWSLambda
-		case envVarFunctionWorkerRuntime:
+		case envVarFunctionsWorkerRuntime:
 			name = envNameAzureFunc
 		case envVarKService, envVarFunctionName:
 			name = envNameGCPFunc
