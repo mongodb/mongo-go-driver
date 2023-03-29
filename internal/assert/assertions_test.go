@@ -179,7 +179,7 @@ func (t *bufferT) Errorf(format string, args ...interface{}) {
 	t.buf.WriteString(decorate(fmt.Sprintf(format, args...)))
 }
 
-func TestStringEqual(*testing.T) {
+func TestStringEqual(_ *testing.T) {
 	for _, currCase := range []struct {
 		equalWant  string
 		equalGot   string
@@ -193,7 +193,7 @@ func TestStringEqual(*testing.T) {
 	}
 }
 
-func TestEqualFormatting(*testing.T) {
+func TestEqualFormatting(_ *testing.T) {
 	for _, currCase := range []struct {
 		equalWant  string
 		equalGot   string
@@ -1074,7 +1074,7 @@ Diff:
 	Equal(t, expected, actual)
 }
 
-func TestTimeEqualityErrorFormatting(*testing.T) {
+func TestTimeEqualityErrorFormatting(_ *testing.T) {
 	mockT := new(mockTestingT)
 
 	Equal(mockT, time.Second*2, time.Millisecond)
