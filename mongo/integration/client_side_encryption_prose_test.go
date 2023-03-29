@@ -1559,7 +1559,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
-	runOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	runOpts := mtest.NewOptions().MinServerVersion("7.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("12. explicit encryption", runOpts, func(mt *mtest.T) {
 		// Test Setup ... begin
 		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
@@ -2060,7 +2062,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
 
-	autoKeyRunOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	autoKeyRunOpts := mtest.NewOptions().MinServerVersion("7.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("21. automatic data encryption keys", autoKeyRunOpts, func(mt *mtest.T) {
 		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
 			opts := options.Client().ApplyURI(mtest.ClusterURI())
@@ -2220,7 +2224,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	rangeRunOpts := mtest.NewOptions().MinServerVersion("6.2").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	rangeRunOpts := mtest.NewOptions().MinServerVersion("7.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("22. range explicit encryption", rangeRunOpts, func(mt *mtest.T) {
 		type testcase struct {
 			typeStr       string
