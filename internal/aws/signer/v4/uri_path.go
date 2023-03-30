@@ -5,14 +5,17 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/private/protocol/rest/build.go
+// - github.com/aws/aws-sdk-go/blob/v1.44.225/aws/signer/v4/uri_path.go
+// - github.com/aws/aws-sdk-go/blob/v1.44.225/private/protocol/rest/build.go
 // See THIRD-PARTY-NOTICES for original license terms
 
-package awsv4
+package v4
 
 import (
 	"bytes"
 	"fmt"
+	"net/url"
+	"strings"
 )
 
 // Whether the byte value can be sent without escaping in AWS URLs
@@ -29,6 +32,22 @@ func init() {
 			i == '_' ||
 			i == '~'
 	}
+}
+
+func getURIPath(u *url.URL) string {
+	var uri string
+
+	if len(u.Opaque) > 0 {
+		uri = "/" + strings.Join(strings.Split(u.Opaque, "/")[3:], "/")
+	} else {
+		uri = u.EscapedPath()
+	}
+
+	if len(uri) == 0 {
+		uri = "/"
+	}
+
+	return uri
 }
 
 // EscapePath escapes part of a URL path in Amazon style

@@ -15,15 +15,21 @@ import (
 	"os"
 
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// GcpCredentialProvider provides GCP credentials.
-type GcpCredentialProvider struct {
-	HTTPClient *http.Client
+// GCPCredentialProvider provides GCP credentials.
+type GCPCredentialProvider struct {
+	httpClient *http.Client
 }
 
-// GetCredentials generates GCP credentials.
-func (p *GcpCredentialProvider) GetCredentials(ctx context.Context) (string, error) {
+// NewGCPCredentialProvider generates new GCPCredentialProvider
+func NewGCPCredentialProvider(httpClient *http.Client) GCPCredentialProvider {
+	return GCPCredentialProvider{httpClient}
+}
+
+// GetCredentialsDoc generates GCP credentials.
+func (p GCPCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
 	metadataHost := "metadata.google.internal"
 	if envhost := os.Getenv("GCE_METADATA_HOST"); envhost != "" {
 		metadataHost = envhost
@@ -31,20 +37,20 @@ func (p *GcpCredentialProvider) GetCredentials(ctx context.Context) (string, err
 	url := fmt.Sprintf("http://%s/computeMetadata/v1/instance/service-accounts/default/token", metadataHost)
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
+		return nil, internal.WrapErrorf(err, "unable to retrieve GCP credentials")
 	}
 	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := p.HTTPClient.Do(req.WithContext(ctx))
+	resp, err := p.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials")
+		return nil, internal.WrapErrorf(err, "unable to retrieve GCP credentials")
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
+		return nil, internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading response body")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %s", resp.StatusCode, body)
+		return nil, internal.WrapErrorf(err, "unable to retrieve GCP credentials: expected StatusCode 200, got StatusCode: %v. Response body: %s", resp.StatusCode, body)
 	}
 	var tokenResponse struct {
 		AccessToken string `json:"access_token"`
@@ -52,10 +58,12 @@ func (p *GcpCredentialProvider) GetCredentials(ctx context.Context) (string, err
 	// Attempt to read body as JSON
 	err = json.Unmarshal(body, &tokenResponse)
 	if err != nil {
-		return "", internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON. Response body: %s", body)
+		return nil, internal.WrapErrorf(err, "unable to retrieve GCP credentials: error reading body JSON. Response body: %s", body)
 	}
 	if tokenResponse.AccessToken == "" {
-		return "", fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
+		return nil, fmt.Errorf("unable to retrieve GCP credentials: got unexpected empty accessToken from GCP Metadata Server. Response body: %s", body)
 	}
-	return tokenResponse.AccessToken, nil
+
+	builder := bsoncore.NewDocumentBuilder().AppendString("accessToken", tokenResponse.AccessToken)
+	return builder.Build(), nil
 }

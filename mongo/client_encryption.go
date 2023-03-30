@@ -54,7 +54,8 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		// Explicitly disable loading the crypt_shared library for the Crypt used for
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
 		// have the crypt_shared library installed if they're using ClientEncryption.
-		SetCryptSharedLibDisabled(true))
+		SetCryptSharedLibDisabled(true).
+		SetHTTPClient(ceo.HTTPClient))
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +68,6 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		KeyFn:      kr.cryptKeys,
 		CollInfoFn: cir.cryptCollInfo,
 		TLSConfig:  ceo.TLSConfig,
-		HTTPClient: ceo.HTTPClient,
 	})
 
 	return ce, nil

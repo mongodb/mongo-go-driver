@@ -723,7 +723,12 @@ functions:
               "iam_auth_assume_role_name" : "${iam_auth_assume_role_name}",
               "iam_auth_ec2_instance_account" : "${iam_auth_ec2_instance_account}",
               "iam_auth_ec2_instance_secret_access_key" : "${iam_auth_ec2_instance_secret_access_key}",
-              "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}"
+              "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}",
+              "iam_auth_assume_web_role_name": "${iam_auth_assume_web_role_name}",
+              "iam_web_identity_issuer": "${iam_web_identity_issuer}",
+              "iam_web_identity_rsa_key": "${iam_web_identity_rsa_key}",
+              "iam_web_identity_jwks_uri": "${iam_web_identity_jwks_uri}",
+              "iam_web_identity_token_file": "${iam_web_identity_token_file}"
           }
           EOF
 
@@ -904,6 +909,77 @@ functions:
           EOF
           cat setup.js
           mongo --nodb setup.js aws_e2e_ecs.js
+
+  run-aws-auth-test-with-aws-web-identity-credentials:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
+             echo "This platform does not support the web identity auth test, skipping..."
+             exit 0
+          fi
+          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
+          . ./activate_venv.sh
+          mongo aws_e2e_web_identity.js
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
+             echo "This platform does not support the web identity auth test, skipping..."
+             exit 0
+          fi
+          # DO NOT ECHO WITH XTRACE
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            export AWS_ROLE_ARN="${iam_auth_assume_web_role_name}"
+            export AWS_WEB_IDENTITY_TOKEN_FILE="${iam_web_identity_token_file}"
+            export MONGODB_URI="mongodb://localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
+             echo "This platform does not support the web identity auth test, skipping..."
+             exit 0
+          fi
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        silent: true
+        script: |
+          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
+             echo "This platform does not support the web identity auth test, skipping..."
+             exit 0
+          fi
+          # DO NOT ECHO WITH XTRACE
+          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
+            export AWS_ROLE_ARN="${iam_auth_assume_web_role_name}"
+            export AWS_WEB_IDENTITY_TOKEN_FILE="${iam_web_identity_token_file}"
+            export AWS_ROLE_SESSION_NAME="test"
+            export MONGODB_URI="mongodb://localhost"
+          EOF
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
+             echo "This platform does not support the web identity auth test, skipping..."
+             exit 0
+          fi
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
 
   start-kms-mock-server:
     - command: shell.exec
@@ -1860,6 +1936,7 @@ tasks:
       - func: run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables
       - func: run-aws-auth-test-with-aws-EC2-credentials
       - func: run-aws-ECS-auth-test
+      - func: run-aws-auth-test-with-aws-web-identity-credentials
 
   - name: "test-standalone-versioned-api"
     tags: ["versioned-api"]
@@ -2066,7 +2143,7 @@ tasks:
 
           LD_LIBRARY_PATH=./install/libmongocrypt/lib \
           MONGODB_URI='${atlas_free_tier_uri}' \
-          EXPECT_ERROR='unable to retrieve AWS credentials' \
+          EXPECT_ERROR='unable to retrieve aws credentials' \
             ./testawskms
 
   - name: "test-fuzz"
@@ -2196,6 +2273,7 @@ axes:
           GO_DIST: "/opt/golang/go1.19"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
+          SKIP_WEB_IDENTITY_AUTH_TEST: true
 
 task_groups:
   - name: serverless_task_group

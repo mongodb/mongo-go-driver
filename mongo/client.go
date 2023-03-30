@@ -578,7 +578,8 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetBypassQueryAnalysis(bypassQueryAnalysis).
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
-		SetCryptSharedLibOverridePath(cryptSharedLibPath))
+		SetCryptSharedLibOverridePath(cryptSharedLibPath).
+		SetHTTPClient(opts.HTTPClient))
 	if err != nil {
 		return nil, err
 	}
@@ -622,7 +623,6 @@ func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.Auto
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
 		TLSConfig:            opts.TLSConfig,
-		HTTPClient:           opts.HTTPClient,
 		BypassAutoEncryption: bypass,
 	})
 }

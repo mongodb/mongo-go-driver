@@ -5,10 +5,10 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 //
 // Based on github.com/aws/aws-sdk-go by Amazon.com, Inc. with code from:
-// - github.com/aws/aws-sdk-go/blob/v1.34.28/aws/request/request.go
+// - github.com/aws/aws-sdk-go/blob/v1.44.225/aws/request/request.go
 // See THIRD-PARTY-NOTICES for original license terms
 
-package awsv4
+package v4
 
 import (
 	"net/http"

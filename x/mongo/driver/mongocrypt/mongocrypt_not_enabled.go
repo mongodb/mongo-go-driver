@@ -11,7 +11,6 @@ package mongocrypt
 
 import (
 	"context"
-	"net/http"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
@@ -86,6 +85,6 @@ func (m *MongoCrypt) Close() {
 }
 
 // GetKmsProviders returns the originally configured KMS providers.
-func (m *MongoCrypt) GetKmsProviders(ctx context.Context, httpClient *http.Client) (bsoncore.Document, error) {
+func (m *MongoCrypt) GetKmsProviders(ctx context.Context) (bsoncore.Document, error) {
 	panic(cseNotSupportedMsg)
 }
