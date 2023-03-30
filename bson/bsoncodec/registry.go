@@ -341,7 +341,7 @@ func (r *Registry) RegisterKindDecoder(kind reflect.Kind, dec ValueDecoder) {
 // RegisterInterfaceEncoder should not be called concurrently with any other Registry method.
 func (r *Registry) RegisterInterfaceEncoder(iface reflect.Type, enc ValueEncoder) {
 	if iface.Kind() != reflect.Interface {
-		panicStr := fmt.Sprintf("RegisterInterfaceEncoder expects a type with kind reflect.Interface, "+
+		panicStr := fmt.Errorf("RegisterInterfaceEncoder expects a type with kind reflect.Interface, "+
 			"got type %s with kind %s", iface, iface.Kind())
 		panic(panicStr)
 	}
@@ -364,7 +364,7 @@ func (r *Registry) RegisterInterfaceEncoder(iface reflect.Type, enc ValueEncoder
 // RegisterInterfaceDecoder should not be called concurrently with any other Registry method.
 func (r *Registry) RegisterInterfaceDecoder(iface reflect.Type, dec ValueDecoder) {
 	if iface.Kind() != reflect.Interface {
-		panicStr := fmt.Sprintf("RegisterInterfaceDecoder expects a type with kind reflect.Interface, "+
+		panicStr := fmt.Errorf("RegisterInterfaceDecoder expects a type with kind reflect.Interface, "+
 			"got type %s with kind %s", iface, iface.Kind())
 		panic(panicStr)
 	}
