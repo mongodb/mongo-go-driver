@@ -179,24 +179,26 @@ func TestRegistryBuilder(t *testing.T) {
 				ValueDecoder
 			}
 
-			var arrinstance [12]int
-			arr := reflect.TypeOf(arrinstance)
-			slc := reflect.TypeOf(make([]int, 12))
-			m := reflect.TypeOf(make(map[string]int))
-			strct := reflect.TypeOf(struct{ Foo string }{})
-			ft1 := reflect.PtrTo(reflect.TypeOf(fakeType1{}))
-			ft2 := reflect.TypeOf(fakeType2{})
-			ft3 := reflect.TypeOf(fakeType5(func(string, string) string { return "fakeType5" }))
-			ti1 := reflect.TypeOf((*testInterface1)(nil)).Elem()
-			ti2 := reflect.TypeOf((*testInterface2)(nil)).Elem()
-			ti1Impl := reflect.TypeOf(testInterface1Impl{})
-			ti2Impl := reflect.TypeOf(testInterface2Impl{})
-			ti3 := reflect.TypeOf((*testInterface3)(nil)).Elem()
-			ti3Impl := reflect.TypeOf(testInterface3Impl{})
-			ti3ImplPtr := reflect.TypeOf((*testInterface3Impl)(nil))
-			fc1, fc2 := fakeCodec{num: 1}, fakeCodec{num: 2}
-			fsc, fslcc, fmc := new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
-			pc := NewPointerCodec()
+			var (
+				arrinstance     [12]int
+				arr             = reflect.TypeOf(arrinstance)
+				slc             = reflect.TypeOf(make([]int, 12))
+				m               = reflect.TypeOf(make(map[string]int))
+				strct           = reflect.TypeOf(struct{ Foo string }{})
+				ft1             = reflect.PtrTo(reflect.TypeOf(fakeType1{}))
+				ft2             = reflect.TypeOf(fakeType2{})
+				ft3             = reflect.TypeOf(fakeType5(func(string, string) string { return "fakeType5" }))
+				ti1             = reflect.TypeOf((*testInterface1)(nil)).Elem()
+				ti2             = reflect.TypeOf((*testInterface2)(nil)).Elem()
+				ti1Impl         = reflect.TypeOf(testInterface1Impl{})
+				ti2Impl         = reflect.TypeOf(testInterface2Impl{})
+				ti3             = reflect.TypeOf((*testInterface3)(nil)).Elem()
+				ti3Impl         = reflect.TypeOf(testInterface3Impl{})
+				ti3ImplPtr      = reflect.TypeOf((*testInterface3Impl)(nil))
+				fc1, fc2        = fakeCodec{num: 1}, fakeCodec{num: 2}
+				fsc, fslcc, fmc = new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
+				pc              = NewPointerCodec()
+			)
 
 			reg := NewRegistryBuilder().
 				RegisterTypeEncoder(ft1, fc1).
@@ -348,12 +350,11 @@ func TestRegistryBuilder(t *testing.T) {
 						}
 					})
 					t.Run("Decoder", func(t *testing.T) {
-						var wanterr error
+						wanterr := tc.wanterr
 						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
-						} else {
-							wanterr = tc.wanterr
 						}
+
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
 						if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
 							t.Errorf("Errors did not match. got %v; want %v", goterr, wanterr)
@@ -560,8 +561,6 @@ func TestRegistry(t *testing.T) {
 			t.Run("SliceCodec", func(t *testing.T) {
 				t.Parallel()
 
-				t.Parallel()
-
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
 				reg := NewRegistry()
@@ -575,8 +574,6 @@ func TestRegistry(t *testing.T) {
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
-				t.Parallel()
-
 				t.Parallel()
 
 				codec := fakeCodec{num: 1}
@@ -595,31 +592,31 @@ func TestRegistry(t *testing.T) {
 		t.Run("Lookup", func(t *testing.T) {
 			t.Parallel()
 
-			t.Parallel()
-
 			type Codec interface {
 				ValueEncoder
 				ValueDecoder
 			}
 
-			var arrinstance [12]int
-			arr := reflect.TypeOf(arrinstance)
-			slc := reflect.TypeOf(make([]int, 12))
-			m := reflect.TypeOf(make(map[string]int))
-			strct := reflect.TypeOf(struct{ Foo string }{})
-			ft1 := reflect.PtrTo(reflect.TypeOf(fakeType1{}))
-			ft2 := reflect.TypeOf(fakeType2{})
-			ft3 := reflect.TypeOf(fakeType5(func(string, string) string { return "fakeType5" }))
-			ti1 := reflect.TypeOf((*testInterface1)(nil)).Elem()
-			ti2 := reflect.TypeOf((*testInterface2)(nil)).Elem()
-			ti1Impl := reflect.TypeOf(testInterface1Impl{})
-			ti2Impl := reflect.TypeOf(testInterface2Impl{})
-			ti3 := reflect.TypeOf((*testInterface3)(nil)).Elem()
-			ti3Impl := reflect.TypeOf(testInterface3Impl{})
-			ti3ImplPtr := reflect.TypeOf((*testInterface3Impl)(nil))
-			fc1, fc2 := fakeCodec{num: 1}, fakeCodec{num: 2}
-			fsc, fslcc, fmc := new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
-			pc := NewPointerCodec()
+			var (
+				arrinstance     [12]int
+				arr             = reflect.TypeOf(arrinstance)
+				slc             = reflect.TypeOf(make([]int, 12))
+				m               = reflect.TypeOf(make(map[string]int))
+				strct           = reflect.TypeOf(struct{ Foo string }{})
+				ft1             = reflect.PtrTo(reflect.TypeOf(fakeType1{}))
+				ft2             = reflect.TypeOf(fakeType2{})
+				ft3             = reflect.TypeOf(fakeType5(func(string, string) string { return "fakeType5" }))
+				ti1             = reflect.TypeOf((*testInterface1)(nil)).Elem()
+				ti2             = reflect.TypeOf((*testInterface2)(nil)).Elem()
+				ti1Impl         = reflect.TypeOf(testInterface1Impl{})
+				ti2Impl         = reflect.TypeOf(testInterface2Impl{})
+				ti3             = reflect.TypeOf((*testInterface3)(nil)).Elem()
+				ti3Impl         = reflect.TypeOf(testInterface3Impl{})
+				ti3ImplPtr      = reflect.TypeOf((*testInterface3Impl)(nil))
+				fc1, fc2        = fakeCodec{num: 1}, fakeCodec{num: 2}
+				fsc, fslcc, fmc = new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
+				pc              = NewPointerCodec()
+			)
 
 			reg := NewRegistry()
 			reg.RegisterTypeEncoder(ft1, fc1)
@@ -778,14 +775,11 @@ func TestRegistry(t *testing.T) {
 					t.Run("Decoder", func(t *testing.T) {
 						t.Parallel()
 
-						t.Parallel()
-
-						var wanterr error
+						wanterr := tc.wanterr
 						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
-						} else {
-							wanterr = tc.wanterr
 						}
+
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
 						if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors did not match: got %v, want %v", goterr, wanterr)
@@ -818,8 +812,6 @@ func TestRegistry(t *testing.T) {
 				t.Run("Decoder", func(t *testing.T) {
 					t.Parallel()
 
-					t.Parallel()
-
 					gotDec, err := reg.LookupDecoder(ti3Impl)
 					assert.Nil(t, err, "LookupDecoder error: %v", err)
 
@@ -836,7 +828,6 @@ func TestRegistry(t *testing.T) {
 		})
 	})
 	t.Run("Type Map", func(t *testing.T) {
-		t.Parallel()
 		t.Parallel()
 		reg := NewRegistry()
 		reg.RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(""))

@@ -23,7 +23,9 @@ type StringCodec struct {
 var (
 	defaultStringCodec = NewStringCodec()
 
-	_ valueCodec  = defaultStringCodec
+	// Assert that defaultStringCodec satisfies the typeDecoder interface, which allows it to be
+	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+	// collection.
 	_ typeDecoder = defaultStringCodec
 )
 

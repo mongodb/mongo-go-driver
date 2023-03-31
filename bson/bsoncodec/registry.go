@@ -74,7 +74,7 @@ func NewRegistryBuilder() *RegistryBuilder {
 // RegisterCodec will register the provided ValueCodec for the provided type.
 //
 // Deprecated: Use Registry.RegisterTypeEncoder and Registry.RegisterTypeDecoder instead.
-func (rb *RegistryBuilder) RegisterCodec(t reflect.Type, codec valueCodec) *RegistryBuilder {
+func (rb *RegistryBuilder) RegisterCodec(t reflect.Type, codec ValueCodec) *RegistryBuilder {
 	rb.RegisterTypeEncoder(t, codec)
 	rb.RegisterTypeDecoder(t, codec)
 	return rb
@@ -85,8 +85,8 @@ func (rb *RegistryBuilder) RegisterCodec(t reflect.Type, codec valueCodec) *Regi
 // The type will be used directly, so an encoder can be registered for a type and a different encoder can be registered
 // for a pointer to that type.
 //
-// If the given type is an interface, the encoder will be called when marshalling a type that is that interface. It
-// will not be called when marshalling a non-interface type that implements the interface.
+// If the given type is an interface, the encoder will be called when marshaling a type that is that interface. It
+// will not be called when marshaling a non-interface type that implements the interface.
 //
 // Deprecated: Use Registry.RegisterTypeEncoder instead.
 func (rb *RegistryBuilder) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
@@ -95,7 +95,7 @@ func (rb *RegistryBuilder) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder)
 }
 
 // RegisterHookEncoder will register an encoder for the provided interface type t. This encoder will be called when
-// marshalling a type if the type implements t or a pointer to the type implements t. If the provided type is not
+// marshaling a type if the type implements t or a pointer to the type implements t. If the provided type is not
 // an interface (i.e. t.Kind() != reflect.Interface), this method will panic.
 //
 // Deprecated: Use Registry.RegisterInterfaceEncoder instead.
@@ -109,8 +109,8 @@ func (rb *RegistryBuilder) RegisterHookEncoder(t reflect.Type, enc ValueEncoder)
 // The type will be used directly, so a decoder can be registered for a type and a different decoder can be registered
 // for a pointer to that type.
 //
-// If the given type is an interface, the decoder will be called when unmarshalling into a type that is that interface.
-// It will not be called when unmarshalling into a non-interface type that implements the interface.
+// If the given type is an interface, the decoder will be called when unmarshaling into a type that is that interface.
+// It will not be called when unmarshaling into a non-interface type that implements the interface.
 //
 // Deprecated: Use Registry.RegisterTypeDecoder instead.
 func (rb *RegistryBuilder) RegisterTypeDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
@@ -119,7 +119,7 @@ func (rb *RegistryBuilder) RegisterTypeDecoder(t reflect.Type, dec ValueDecoder)
 }
 
 // RegisterHookDecoder will register an decoder for the provided interface type t. This decoder will be called when
-// unmarshalling into a type if the type implements t or a pointer to the type implements t. If the provided type is not
+// unmarshaling into a type if the type implements t or a pointer to the type implements t. If the provided type is not
 // an interface (i.e. t.Kind() != reflect.Interface), this method will panic.
 //
 // Deprecated: Use Registry.RegisterInterfaceDecoder instead.
@@ -278,8 +278,8 @@ func NewRegistry() *Registry {
 // The type will be used as provided, so an encoder can be registered for a type and a different
 // encoder can be registered for a pointer to that type.
 //
-// If the given type is an interface, the encoder will be called when marshalling a type that is
-// that interface. It will not be called when marshalling a non-interface type that implements the
+// If the given type is an interface, the encoder will be called when marshaling a type that is
+// that interface. It will not be called when marshaling a non-interface type that implements the
 // interface. To get the latter behavior, call RegisterHookEncoder instead.
 //
 // RegisterTypeEncoder should not be called concurrently with any other Registry method.
@@ -292,8 +292,8 @@ func (r *Registry) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder) {
 // The type will be used as provided, so a decoder can be registered for a type and a different
 // decoder can be registered for a pointer to that type.
 //
-// If the given type is an interface, the decoder will be called when unmarshalling into a type that
-// is that interface. It will not be called when unmarshalling into a non-interface type that
+// If the given type is an interface, the decoder will be called when unmarshaling into a type that
+// is that interface. It will not be called when unmarshaling into a non-interface type that
 // implements the interface. To get the latter behavior, call RegisterHookDecoder instead.
 //
 // RegisterTypeDecoder should not be called concurrently with any other Registry method.
@@ -334,7 +334,7 @@ func (r *Registry) RegisterKindDecoder(kind reflect.Kind, dec ValueDecoder) {
 }
 
 // RegisterInterfaceEncoder registers an encoder for the provided interface type iface. This encoder will
-// be called when marshalling a type if the type implements iface or a pointer to the type
+// be called when marshaling a type if the type implements iface or a pointer to the type
 // implements iface. If the provided type is not an interface
 // (i.e. iface.Kind() != reflect.Interface), this method will panic.
 //
@@ -357,7 +357,7 @@ func (r *Registry) RegisterInterfaceEncoder(iface reflect.Type, enc ValueEncoder
 }
 
 // RegisterInterfaceDecoder registers an decoder for the provided interface type iface. This decoder will
-// be called when unmarshalling into a type if the type implements iface or a pointer to the type
+// be called when unmarshaling into a type if the type implements iface or a pointer to the type
 // implements iface. If the provided type is not an interface (i.e. iface.Kind() != reflect.Interface),
 // this method will panic.
 //
