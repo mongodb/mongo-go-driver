@@ -59,10 +59,10 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	}
 	kmsProviders := make(map[string]kmsProvider)
 	if needsKmsProvider(opts.KmsProviders, "gcp") {
-		kmsProviders["gcp"] = creds.NewGcpCredentialProvider(httpClient)
+		kmsProviders["gcp"] = creds.NewGCPCredentialProvider(httpClient)
 	}
 	if needsKmsProvider(opts.KmsProviders, "aws") {
-		kmsProviders["aws"] = creds.NewAwsCredentialProvider(httpClient)
+		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient)
 	}
 	if needsKmsProvider(opts.KmsProviders, "azure") {
 		kmsProviders["azure"] = creds.NewAzureCredentialProvider(httpClient)

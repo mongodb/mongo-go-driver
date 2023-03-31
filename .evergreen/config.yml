@@ -160,8 +160,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            # git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-            git clone https://github.com/kevinAlbs/drivers-evergreen-tools.git --branch D2411 $DRIVERS_TOOLS
+            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -2706,7 +2705,7 @@ buildvariants:
       - name: ".kms-kmip"
 
   - matrix_name: "azure-imds-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-18"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
     display_name: "AZURE IMDS ${os-ssl-40}"
     tasks:
       - name: ".azure-imds"
@@ -2738,14 +2737,3 @@ buildvariants:
     tasks:
       - testawskms-task
       - testawskms-fail-task
-
-  - name: testazurekms-variant
-    display_name: "AZURE KMS"
-    run_on:
-      - debian11-small
-    expansions:
-      GO_DIST: "/opt/golang/go1.18"
-    tasks:
-      - name: testazurekms_task_group
-        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
-      - testazurekms-fail-task
