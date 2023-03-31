@@ -560,6 +560,8 @@ func TestRegistry(t *testing.T) {
 			t.Run("SliceCodec", func(t *testing.T) {
 				t.Parallel()
 
+				t.Parallel()
+
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
 				reg := NewRegistry()
@@ -573,6 +575,8 @@ func TestRegistry(t *testing.T) {
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
+				t.Parallel()
+
 				t.Parallel()
 
 				codec := fakeCodec{num: 1}
@@ -589,6 +593,8 @@ func TestRegistry(t *testing.T) {
 			})
 		})
 		t.Run("Lookup", func(t *testing.T) {
+			t.Parallel()
+
 			t.Parallel()
 
 			type Codec interface {
@@ -772,6 +778,8 @@ func TestRegistry(t *testing.T) {
 					t.Run("Decoder", func(t *testing.T) {
 						t.Parallel()
 
+						t.Parallel()
+
 						var wanterr error
 						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
@@ -810,6 +818,8 @@ func TestRegistry(t *testing.T) {
 				t.Run("Decoder", func(t *testing.T) {
 					t.Parallel()
 
+					t.Parallel()
+
 					gotDec, err := reg.LookupDecoder(ti3Impl)
 					assert.Nil(t, err, "LookupDecoder error: %v", err)
 
@@ -826,6 +836,7 @@ func TestRegistry(t *testing.T) {
 		})
 	})
 	t.Run("Type Map", func(t *testing.T) {
+		t.Parallel()
 		t.Parallel()
 		reg := NewRegistry()
 		reg.RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(""))
