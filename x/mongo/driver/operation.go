@@ -267,6 +267,14 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connection, error) {
 	server, err := op.selectServer(ctx)
 	if err != nil {
+		if op.Client != nil &&
+			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
+			err = Error{
+				Message: err.Error(),
+				Labels:  []string{TransientTransactionError},
+				Wrapped: err,
+			}
+		}
 		return nil, nil, err
 	}
 

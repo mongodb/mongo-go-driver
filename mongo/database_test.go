@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -18,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 func setupDb(name string, opts ...*options.DatabaseOptions) *Database {
@@ -84,7 +86,6 @@ func TestDatabase(t *testing.T) {
 	})
 	t.Run("replace topology error", func(t *testing.T) {
 		db := setupDb("foo")
-
 		err := db.RunCommand(bgCtx, bson.D{{"x", 1}}).Err()
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
@@ -93,6 +94,43 @@ func TestDatabase(t *testing.T) {
 
 		_, err = db.ListCollections(bgCtx, bson.D{})
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
+	})
+	t.Run("TransientTransactionError label", func(t *testing.T) {
+		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
+		err := client.Connect(bgCtx)
+		defer client.Disconnect(bgCtx)
+		assert.Nil(t, err, "expected nil, got %v", err)
+
+		t.Run("negative case of non-transaction", func(t *testing.T) {
+			var sse topology.ServerSelectionError
+			var le LabeledError
+
+			err := client.Ping(bgCtx, nil)
+			assert.NotNil(t, err, "expected error, got nil")
+			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
+			if errors.As(err, &le) {
+				assert.False(t, le.HasErrorLabel("TransientTransactionError"), `expected error not to include the "TransientTransactionError" label`)
+			}
+		})
+
+		t.Run("positive case of transaction", func(t *testing.T) {
+			var sse topology.ServerSelectionError
+			var le LabeledError
+
+			sess, err := client.StartSession()
+			assert.Nil(t, err, "expected nil, got %v", err)
+			defer sess.EndSession(bgCtx)
+
+			sessCtx := NewSessionContext(bgCtx, sess)
+			err = sess.StartTransaction()
+			assert.Nil(t, err, "expected nil, got %v", err)
+
+			err = client.Ping(sessCtx, nil)
+			assert.NotNil(t, err, "expected error, got nil")
+			assert.True(t, errors.As(err, &sse), `expected error to be a "topology.ServerSelectionError"`)
+			assert.True(t, errors.As(err, &le), `expected error to implement the "LabeledError" interface`)
+			assert.True(t, le.HasErrorLabel("TransientTransactionError"), `expected error to include the "TransientTransactionError" label`)
+		})
 	})
 	t.Run("nil document error", func(t *testing.T) {
 		db := setupDb("foo")
