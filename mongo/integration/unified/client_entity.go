@@ -10,12 +10,14 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -24,29 +26,44 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// There are no automated tests for truncation. Given that, setting the
+// "MaxDocumentLength" to 10_000 will ensure that the default truncation
+// length does not interfere with tests with commands/replies that
+// exceed the default truncation length.
+const defaultMaxDocumentLen = 10_000
+
 // Security-sensitive commands that should be ignored in command monitoring by default.
-var securitySensitiveCommands = []string{"authenticate", "saslStart", "saslContinue", "getnonce",
-	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb"}
+var securitySensitiveCommands = []string{
+	"authenticate", "saslStart", "saslContinue", "getnonce",
+	"createUser", "updateUser", "copydbgetnonce", "copydbsaslstart", "copydb",
+}
 
 // clientEntity is a wrapper for a mongo.Client object that also holds additional information required during test
 // execution.
 type clientEntity struct {
 	*mongo.Client
+	disconnected bool
 
 	recordEvents             atomic.Value
 	started                  []*event.CommandStartedEvent
 	succeeded                []*event.CommandSucceededEvent
 	failed                   []*event.CommandFailedEvent
 	pooled                   []*event.PoolEvent
+	serverDescriptionChanged []*event.ServerDescriptionChangedEvent
 	ignoredCommands          map[string]struct{}
 	observeSensitiveCommands *bool
 	numConnsCheckedOut       int32
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
-	storedEvents   map[monitoringEventType][]string // maps an entity type to an array of entityIDs for entities that store it
+	storedEvents   map[monitoringEventType][]string // maps an entity type to a slice of entityIDs for entities that store it.
+	eventsCount    map[monitoringEventType]int32
+
+	eventsCountLock sync.RWMutex
 
 	entityMap *EntityMap
+
+	logQueue chan orderedLogMessage
 }
 
 func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOptions) (*clientEntity, error) {
@@ -65,6 +82,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		ignoredCommands:          ignoredCommands,
 		observedEvents:           make(map[monitoringEventType]struct{}),
 		storedEvents:             make(map[monitoringEventType][]string),
+		eventsCount:              make(map[monitoringEventType]int32),
 		entityMap:                em,
 		observeSensitiveCommands: entityOptions.ObserveSensitiveCommands,
 	}
@@ -76,8 +94,30 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	clientOpts := options.Client().ApplyURI(uri)
 	if entityOptions.URIOptions != nil {
 		if err := setClientOptionsFromURIOptions(clientOpts, entityOptions.URIOptions); err != nil {
-			return nil, fmt.Errorf("error parsing URI options: %v", err)
+			return nil, fmt.Errorf("error parsing URI options: %w", err)
 		}
+	}
+
+	if olm := entityOptions.ObserveLogMessages; olm != nil {
+		clientLogger := newLogger(olm, expectedLogMessageCount(ctx))
+
+		wrap := func(str string) options.LogLevel {
+			return options.LogLevel(logger.ParseLevel(str))
+		}
+
+		// Assign the log queue to the entity so that it can be used to
+		// retrieve log messages.
+		entity.logQueue = clientLogger.logQueue
+
+		// Update the client options to add the clientLogger.
+		clientOpts.LoggerOptions = options.Logger().
+			SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
+			SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
+			SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
+			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
+			SetMaxDocumentLength(defaultMaxDocumentLen).
+			SetSink(clientLogger)
+
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
@@ -98,10 +138,16 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			Succeeded: entity.processSucceededEvent,
 			Failed:    entity.processFailedEvent,
 		}
+
 		poolMonitor := &event.PoolMonitor{
 			Event: entity.processPoolEvent,
 		}
-		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor)
+
+		serverMonitor := &event.ServerMonitor{
+			ServerDescriptionChanged: entity.processServerDescriptionChangedEvent,
+		}
+
+		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor).SetServerMonitor(serverMonitor)
 
 		for _, eventTypeStr := range entityOptions.ObserveEvents {
 			eventType, ok := monitoringEventTypeFromString(eventTypeStr)
@@ -134,7 +180,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
-		return nil, fmt.Errorf("error creating mongo.Client: %v", err)
+		return nil, fmt.Errorf("error creating mongo.Client: %w", err)
 	}
 
 	entity.Client = client
@@ -154,6 +200,25 @@ func getURIForClient(opts *entityOptions) string {
 	default:
 		return mtest.MultiMongosLoadBalancerURI()
 	}
+}
+
+// disconnect disconnects the client associated with this entity. It is an
+// idempotent operation, unlike the mongo client's disconnect method. This
+// property will help avoid unnecessary errors when calling disconnect on a
+// client that has already been disconnected, such as the case when the test
+// runner is required to run the closure as part of an operation.
+func (c *clientEntity) disconnect(ctx context.Context) error {
+	if c.disconnected {
+		return nil
+	}
+
+	if err := c.Client.Disconnect(ctx); err != nil {
+		return err
+	}
+
+	c.disconnected = true
+
+	return nil
 }
 
 func (c *clientEntity) stopListeningForEvents() {
@@ -220,6 +285,20 @@ func (c *clientEntity) numberConnectionsCheckedOut() int32 {
 	return c.numConnsCheckedOut
 }
 
+func (c *clientEntity) addEventsCount(eventType monitoringEventType) {
+	c.eventsCountLock.Lock()
+	defer c.eventsCountLock.Unlock()
+
+	c.eventsCount[eventType]++
+}
+
+func (c *clientEntity) getEventCount(eventType monitoringEventType) int32 {
+	c.eventsCountLock.RLock()
+	defer c.eventsCountLock.RUnlock()
+
+	return c.eventsCount[eventType]
+}
+
 func getSecondsSinceEpoch() float64 {
 	return float64(time.Now().UnixNano()) / float64(time.Second/time.Nanosecond)
 }
@@ -231,6 +310,9 @@ func (c *clientEntity) processStartedEvent(_ context.Context, evt *event.Command
 	if _, ok := c.observedEvents[commandStartedEvent]; ok {
 		c.started = append(c.started, evt)
 	}
+
+	c.addEventsCount(commandStartedEvent)
+
 	eventListIDs, ok := c.storedEvents[commandStartedEvent]
 	if !ok {
 		return
@@ -258,6 +340,9 @@ func (c *clientEntity) processSucceededEvent(_ context.Context, evt *event.Comma
 	if _, ok := c.observedEvents[commandSucceededEvent]; ok {
 		c.succeeded = append(c.succeeded, evt)
 	}
+
+	c.addEventsCount(commandSucceededEvent)
+
 	eventListIDs, ok := c.storedEvents["CommandSucceededEvent"]
 	if !ok {
 		return
@@ -284,6 +369,9 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	if _, ok := c.observedEvents[commandFailedEvent]; ok {
 		c.failed = append(c.failed, evt)
 	}
+
+	c.addEventsCount(commandFailedEvent)
+
 	eventListIDs, ok := c.storedEvents["CommandFailedEvent"]
 	if !ok {
 		return
@@ -291,7 +379,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 	bsonBuilder := bsoncore.NewDocumentBuilder().
 		AppendString("name", "CommandFailedEvent").
 		AppendDouble("observedAt", getSecondsSinceEpoch()).
-		AppendInt64("durationNanos", evt.DurationNanos).
+		AppendInt64("durationNanos", evt.Duration.Nanoseconds()).
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
@@ -347,12 +435,27 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	if _, ok := c.observedEvents[eventType]; ok {
 		c.pooled = append(c.pooled, evt)
 	}
+
+	c.addEventsCount(eventType)
+
 	if eventListIDs, ok := c.storedEvents[eventType]; ok {
 		eventBSON := getPoolEventDocument(evt, eventType)
 		for _, id := range eventListIDs {
 			c.entityMap.appendEventsEntity(id, eventBSON)
 		}
 	}
+}
+
+func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverDescriptionChangedEvent]; ok {
+		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
+	}
+
+	c.addEventsCount(serverDescriptionChangedEvent)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {
@@ -377,8 +480,14 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
 		case "loadBalanced":
 			clientOpts.SetLoadBalanced(value.(bool))
+		case "maxIdleTimeMS":
+			clientOpts.SetMaxConnIdleTime(time.Duration(value.(int32)) * time.Millisecond)
+		case "minPoolSize":
+			clientOpts.SetMinPoolSize(uint64(value.(int32)))
 		case "maxPoolSize":
 			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
+		case "maxConnecting":
+			clientOpts.SetMaxConnecting(uint64(value.(int32)))
 		case "readConcernLevel":
 			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
 		case "retryReads":
@@ -392,6 +501,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			wcSet = true
 		case "waitQueueTimeoutMS":
 			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
+		case "waitQueueSize":
+			return newSkipTestError("the waitQueueSize client option is not supported")
 		case "timeoutMS":
 			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		default:
@@ -402,7 +513,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 	if wcSet {
 		converted, err := wc.toWriteConcernOption()
 		if err != nil {
-			return fmt.Errorf("error creating write concern: %v", err)
+			return fmt.Errorf("error creating write concern: %w", err)
 		}
 		clientOpts.SetWriteConcern(converted)
 	}

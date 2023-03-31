@@ -125,15 +125,15 @@ func TestOperation(t *testing.T) {
 		id, err := uuid.New()
 		noerr(t, err)
 
-		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sess, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 
-		sessStartingTransaction, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sessStartingTransaction, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		err = sessStartingTransaction.StartTransaction(nil)
 		noerr(t, err)
 
-		sessInProgressTransaction, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sessInProgressTransaction, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		err = sessInProgressTransaction.StartTransaction(nil)
 		noerr(t, err)
@@ -179,40 +179,6 @@ func TestOperation(t *testing.T) {
 				got := tc.op.retryable(tc.desc)
 				if got != (tc.want != Type(0)) {
 					t.Errorf("Did not receive expected Type. got %v; want %v", got, tc.want)
-				}
-			})
-		}
-	})
-	t.Run("roundTrip", func(t *testing.T) {
-		testCases := []struct {
-			name    string
-			conn    *mockConnection
-			paramWM []byte // parameter wire message
-			wantWM  []byte // wire message that should be returned
-			wantErr error  // error that should be returned
-		}{
-			{
-				"returns write error",
-				&mockConnection{rWriteErr: errors.New("write error")},
-				nil, nil,
-				Error{Message: "write error", Labels: []string{TransientTransactionError, NetworkError}},
-			},
-			{
-				"returns read error",
-				&mockConnection{rReadErr: errors.New("read error")},
-				nil, nil,
-				Error{Message: "read error", Labels: []string{TransientTransactionError, NetworkError}},
-			},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				gotWM, _, gotErr := Operation{}.roundTrip(context.Background(), tc.conn, tc.paramWM)
-				if !bytes.Equal(gotWM, tc.wantWM) {
-					t.Errorf("Returned wire messages are not equal. got %v; want %v", gotWM, tc.wantWM)
-				}
-				if !cmp.Equal(gotErr, tc.wantErr, cmp.Comparer(compareErrors)) {
-					t.Errorf("Returned error is not equal to expected error. got %v; want %v", gotErr, tc.wantErr)
 				}
 			})
 		}
@@ -269,7 +235,7 @@ func TestOperation(t *testing.T) {
 			id, err := uuid.New()
 			noerr(t, err)
 
-			sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+			sess, err := session.NewClientSession(sessPool, id)
 			noerr(t, err)
 			err = sess.AdvanceClusterTime(older)
 			noerr(t, err)
@@ -364,7 +330,7 @@ func TestOperation(t *testing.T) {
 		id, err := uuid.New()
 		noerr(t, err)
 
-		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sess, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		Operation{Client: sess, Clock: clusterClock}.updateClusterTimes(clustertime)
 
@@ -386,7 +352,7 @@ func TestOperation(t *testing.T) {
 		id, err := uuid.New()
 		noerr(t, err)
 
-		sess, err := session.NewClientSession(sessPool, id, session.Explicit)
+		sess, err := session.NewClientSession(sessPool, id)
 		noerr(t, err)
 		if sess.OperationTime != nil {
 			t.Fatal("OperationTime should not be set on new session.")
@@ -774,7 +740,6 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 type mockConnection struct {
 	// parameters
 	pWriteWM []byte
-	pReadDst []byte
 
 	// returns
 	rWriteErr     error
@@ -804,8 +769,7 @@ func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context, dst []byte) ([]byte, error) {
-	m.pReadDst = dst
+func (m *mockConnection) ReadWireMessage(_ context.Context) ([]byte, error) {
 	return m.rReadWM, m.rReadErr
 }
 

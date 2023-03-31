@@ -10,9 +10,9 @@ import (
 	"context"
 	"errors"
 
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/credproviders"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
-	credproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/credential_providers"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
@@ -47,7 +47,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	if httpClient == nil {
 		return errors.New("cfg.HTTPClient must not be nil")
 	}
-	providers := creds.NewAwsCredentialProvider(httpClient, a.credentials)
+	providers := creds.NewAWSCredentialProvider(httpClient, a.credentials)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
 			credentials: providers.Cred,

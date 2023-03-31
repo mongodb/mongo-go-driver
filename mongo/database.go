@@ -136,11 +136,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	cursorCommand bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
-		if err != nil {
-			return nil, sess, err
-		}
+		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 	}
 
 	err := db.client.validSession(sess)
@@ -181,7 +177,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
 		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.client.timeout), sess, nil
+		Timeout(db.client.timeout).Logger(db.client.logger), sess, nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read
@@ -211,6 +207,7 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	// RunCommand can be used to run a write, thus execute may return a write error
 	_, convErr := processWriteError(err)
 	return &SingleResult{
+		ctx: ctx,
 		err: convErr,
 		rdr: bson.Raw(op.Result()),
 		reg: db.registry,
@@ -265,11 +262,7 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
-		if err != nil {
-			return err
-		}
+		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 		defer sess.EndSession()
 	}
 
@@ -366,10 +359,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 	}
 
 	err = db.client.validSession(sess)
@@ -779,11 +769,7 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Create) error {
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(db.client.sessionPool, db.client.id, session.Implicit)
-		if err != nil {
-			return err
-		}
+		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 		defer sess.EndSession()
 	}
 

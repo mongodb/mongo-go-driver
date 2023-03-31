@@ -59,7 +59,7 @@ type aggregateParams struct {
 }
 
 func closeImplicitSession(sess *session.Client) {
-	if sess != nil && sess.SessionType == session.Implicit {
+	if sess != nil && sess.IsImplicit {
 		sess.EndSession()
 	}
 }
@@ -187,11 +187,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -255,11 +251,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -283,7 +275,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
 	imo := options.MergeInsertManyOptions(opts...)
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
@@ -415,10 +407,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -463,7 +452,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
 	if do.Comment != nil {
 		comment, err := transformValue(coll.registry, do.Comment, true, "comment")
 		if err != nil {
@@ -546,11 +535,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -575,7 +560,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
 		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Logger(coll.client.logger)
 	if uo.Let != nil {
 		let, err := transformBsoncoreDocument(coll.registry, uo.Let, true, "let")
 		if err != nil {
@@ -801,10 +786,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		}
 	}()
 	if sess == nil && a.client.sessionPool != nil {
-		sess, err = session.NewClientSession(a.client.sessionPool, a.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(a.client.sessionPool, a.client.id)
 	}
 	if err = a.client.validSession(sess); err != nil {
 		return nil, err
@@ -950,10 +932,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return 0, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 	if err = coll.client.validSession(sess); err != nil {
@@ -1030,10 +1009,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 
 	var err error
 	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return 0, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -1099,10 +1075,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	sess := sessionFromContext(ctx)
 
 	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -1198,11 +1171,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 	}()
 	if sess == nil && coll.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return nil, err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 	}
 
 	err = coll.client.validSession(sess)
@@ -1223,7 +1192,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime)
+		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 	if fo.AllowDiskUse != nil {
@@ -1393,7 +1362,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
 	cursor, err := coll.Find(ctx, filter, findOpts...)
-	return &SingleResult{cur: cursor, reg: coll.registry, err: replaceErrors(err)}
+	return &SingleResult{ctx: ctx, cur: cursor, reg: coll.registry, err: replaceErrors(err)}
 }
 
 func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult {
@@ -1404,10 +1373,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	sess := sessionFromContext(ctx)
 	var err error
 	if sess == nil && coll.client.sessionPool != nil {
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return &SingleResult{err: err}
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 
@@ -1447,7 +1413,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		return &SingleResult{err: err}
 	}
 
-	return &SingleResult{rdr: bson.Raw(op.Result().Value), reg: coll.registry}
+	return &SingleResult{ctx: ctx, rdr: bson.Raw(op.Result().Value), reg: coll.registry}
 }
 
 // FindOneAndDelete executes a findAndModify command to delete at most one document in the collection. and returns the
@@ -1797,11 +1763,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 
 	sess := sessionFromContext(ctx)
 	if sess == nil && coll.client.sessionPool != nil {
-		var err error
-		sess, err = session.NewClientSession(coll.client.sessionPool, coll.client.id, session.Implicit)
-		if err != nil {
-			return err
-		}
+		sess = session.NewImplicitClientSession(coll.client.sessionPool, coll.client.id)
 		defer sess.EndSession()
 	}
 

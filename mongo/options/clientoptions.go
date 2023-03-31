@@ -108,6 +108,7 @@ type ClientOptions struct {
 	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
+	LoggerOptions            *LoggerOptions
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -580,6 +581,14 @@ func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
 	return c
 }
 
+// SetLoggerOptions specifies a LoggerOptions containing options for
+// configuring a logger.
+func (c *ClientOptions) SetLoggerOptions(opts *LoggerOptions) *ClientOptions {
+	c.LoggerOptions = opts
+
+	return c
+}
+
 // SetMaxConnIdleTime specifies the maximum amount of time that a connection will remain idle in a connection pool
 // before it is removed from the pool and closed. This can also be set through the "maxIdleTimeMS" URI option (e.g.
 // "maxIdleTimeMS=10000"). The default is 0, meaning a connection can remain unused indefinitely.
@@ -867,6 +876,9 @@ func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 	c := Client()
 
@@ -1000,6 +1012,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.cs != nil {
 			c.cs = opt.cs
+		}
+		if opt.LoggerOptions != nil {
+			c.LoggerOptions = opt.LoggerOptions
 		}
 	}
 

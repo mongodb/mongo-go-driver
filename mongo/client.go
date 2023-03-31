@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -67,6 +68,7 @@ type Client struct {
 	sessionPool    *session.Pool
 	timeout        *time.Duration
 	httpClient     *http.Client
+	logger         *logger.Logger
 
 	// client-side encryption fields
 	keyVaultClientFLE  *Client
@@ -216,6 +218,13 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			return nil, replaceErrors(err)
 		}
 	}
+
+	// Create a logger for the client.
+	client.logger, err = newLogger(clientOpt.LoggerOptions)
+	if err != nil {
+		return nil, fmt.Errorf("invalid logger options: %w", err)
+	}
+
 	return client, nil
 }
 
@@ -277,6 +286,10 @@ func (c *Client) Connect(ctx context.Context) error {
 // or write operations. If this method returns with no errors, all connections
 // associated with this Client have been closed.
 func (c *Client) Disconnect(ctx context.Context) error {
+	if c.logger != nil {
+		defer c.logger.Close()
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -387,7 +400,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		coreOpts.Snapshot = sopts.Snapshot
 	}
 
-	sess, err := session.NewClientSession(c.sessionPool, c.id, session.Explicit, coreOpts)
+	sess, err := session.NewClientSession(c.sessionPool, c.id, coreOpts)
 	if err != nil {
 		return nil, replaceErrors(err)
 	}
@@ -648,10 +661,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 	if sess == nil && c.sessionPool != nil {
-		sess, err = session.NewClientSession(c.sessionPool, c.id, session.Implicit)
-		if err != nil {
-			return ListDatabasesResult{}, err
-		}
+		sess = session.NewImplicitClientSession(c.sessionPool, c.id)
 		defer sess.EndSession()
 	}
 
@@ -819,4 +829,29 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 		Crypt:          c.cryptFLE,
 		ServerAPI:      c.serverAPI,
 	}
+}
+
+// newLogger will use the LoggerOptions to create an internal logger and publish
+// messages using a LogSink.
+func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
+	// If there are no logger options, then create a default logger.
+	if opts == nil {
+		opts = options.Logger()
+	}
+
+	// If there are no component-level options and the environment does not
+	// contain component variables, then do nothing.
+	if (opts.ComponentLevels == nil || len(opts.ComponentLevels) == 0) &&
+		!logger.EnvHasComponentVariables() {
+
+		return nil, nil
+	}
+
+	// Otherwise, collect the component-level options and create a logger.
+	componentLevels := make(map[logger.Component]logger.Level)
+	for component, level := range opts.ComponentLevels {
+		componentLevels[logger.Component(component)] = logger.Level(level)
+	}
+
+	return logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
 }

@@ -13,6 +13,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -27,6 +28,8 @@ var (
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
 	}
+
+	logMessageValidatorTimeout = 10 * time.Millisecond
 )
 
 const (
@@ -35,12 +38,13 @@ const (
 
 // TestCase holds and runs a unified spec test case
 type TestCase struct {
-	Description       string             `bson:"description"`
-	RunOnRequirements []mtest.RunOnBlock `bson:"runOnRequirements"`
-	SkipReason        *string            `bson:"skipReason"`
-	Operations        []*operation       `bson:"operations"`
-	ExpectedEvents    []*expectedEvents  `bson:"expectEvents"`
-	Outcome           []*collectionData  `bson:"outcome"`
+	Description       string               `bson:"description"`
+	RunOnRequirements []mtest.RunOnBlock   `bson:"runOnRequirements"`
+	SkipReason        *string              `bson:"skipReason"`
+	Operations        []*operation         `bson:"operations"`
+	ExpectedEvents    []*expectedEvents    `bson:"expectEvents"`
+	ExpectLogMessages []*clientLogMessages `bson:"expectLogMessages"`
+	Outcome           []*collectionData    `bson:"outcome"`
 
 	initialData     []*collectionData
 	createEntities  []map[string]*entityOptions
@@ -133,11 +137,11 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 	}
 }
 
-// ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+func parseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase, error) {
 	var testFile TestFile
-	err := bson.UnmarshalExtJSON(testJSON, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSON error: %v", err)
+	if err := bson.UnmarshalExtJSON(testJSON, false, &testFile); err != nil {
+		return nil, nil, err
+	}
 
 	op := MergeOptions(opts...)
 	for _, testCase := range testFile.TestCases {
@@ -148,7 +152,18 @@ func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.Run
 		testCase.loopDone = make(chan struct{})
 		testCase.killAllSessions = *op.RunKillAllSessions
 	}
-	return testFile.RunOnRequirements, testFile.TestCases
+
+	return testFile.RunOnRequirements, testFile.TestCases, nil
+}
+
+// ParseTestFile create an array of TestCases from the testJSON json blob
+func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+	t.Helper()
+
+	runOnRequirements, testCases, err := parseTestFile(testJSON, opts...)
+	assert.NoError(t, err, "error parsing test file")
+
+	return runOnRequirements, testCases
 }
 
 // GetEntities returns a pointer to the EntityMap for the TestCase. This should not be called until after
@@ -203,7 +218,13 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
-	testCtx := newTestContext(context.Background(), tc.entities)
+	// Count the number of expected log messages over all clients.
+	expectedLogCount := 0
+	for _, clientLog := range tc.ExpectLogMessages {
+		expectedLogCount += len(clientLog.LogMessages)
+	}
+
+	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount)
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
@@ -280,6 +301,11 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		}
 	}
 
+	// Create a validator for log messages and start the workers that will
+	// observe log messages as they occur operationally.
+	logMessageValidator := newLogMessageValidator(tc)
+	go startLogValidators(testCtx, logMessageValidator)
+
 	for _, client := range tc.entities.clients() {
 		client.stopListeningForEvents()
 	}
@@ -301,6 +327,22 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 				collData.namespace(), idx, err)
 		}
 	}
+
+	{
+		// Create a context with a deadline to use for log message
+		// validation. This will prevent any blocking from test cases
+		// with N messages where only N - K (0 < K < N) messages are
+		// observed.
+		ctx, cancel := context.WithTimeout(testCtx, logMessageValidatorTimeout)
+		defer cancel()
+
+		// For each client, verify that all expected log messages were
+		// received.
+		if err := stopLogValidators(ctx, logMessageValidator); err != nil {
+			return fmt.Errorf("error verifying log messages: %w", err)
+		}
+	}
+
 	return nil
 }
 

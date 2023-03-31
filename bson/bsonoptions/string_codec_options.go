@@ -26,6 +26,9 @@ func (t *StringCodecOptions) SetDecodeObjectIDAsHex(b bool) *StringCodecOptions 
 }
 
 // MergeStringCodecOptions combines the given *StringCodecOptions into a single *StringCodecOptions in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeStringCodecOptions(opts ...*StringCodecOptions) *StringCodecOptions {
 	s := &StringCodecOptions{&defaultDecodeOIDAsHex}
 	for _, opt := range opts {

@@ -11,35 +11,39 @@ import (
 	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/credproviders"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	credproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/credential_providers"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 const (
+	// expiryWindow will allow the credentials to trigger refreshing prior to the credentials actually expiring.
+	// This is beneficial so expiring credentials do not cause request to fail unexpectedly due to exceptions.
+	//
+	// Set an early expiration of 5 minutes before the credentials are actually expired.
 	expiryWindow = 5 * time.Minute
 )
 
-// AwsCredentialProvider wraps AWS credentials.
-type AwsCredentialProvider struct {
+// AWSCredentialProvider wraps AWS credentials.
+type AWSCredentialProvider struct {
 	Cred *credentials.Credentials
 }
 
-// NewAwsCredentialProvider generates new AwsCredentialProvider
-func NewAwsCredentialProvider(httpClient *http.Client, providers ...credentials.Provider) AwsCredentialProvider {
+// NewAWSCredentialProvider generates new AWSCredentialProvider
+func NewAWSCredentialProvider(httpClient *http.Client, providers ...credentials.Provider) AWSCredentialProvider {
 	providers = append(
 		providers,
-		&credproviders.EnvProvider{},
+		credproviders.NewEnvProvider(),
 		credproviders.NewAssumeRoleProvider(httpClient, expiryWindow),
-		credproviders.NewEcsProvider(httpClient, expiryWindow),
-		credproviders.NewEc2Provider(httpClient, expiryWindow),
+		credproviders.NewECSProvider(httpClient, expiryWindow),
+		credproviders.NewEC2Provider(httpClient, expiryWindow),
 	)
 
-	return AwsCredentialProvider{credentials.NewChainCredentials(providers)}
+	return AWSCredentialProvider{credentials.NewChainCredentials(providers)}
 }
 
 // GetCredentialsDoc generates AWS credentials.
-func (p AwsCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
+func (p AWSCredentialProvider) GetCredentialsDoc(ctx context.Context) (bsoncore.Document, error) {
 	creds, err := p.Cred.GetWithContext(ctx)
 	if err != nil {
 		return nil, err

@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/credproviders"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	credproviders "go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds/credential_providers"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/aws/credentials"
 )
 
 // AzureCredentialProvider provides Azure credentials.
