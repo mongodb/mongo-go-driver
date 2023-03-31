@@ -2737,3 +2737,14 @@ buildvariants:
     tasks:
       - testawskms-task
       - testawskms-fail-task
+
+  - name: testazurekms-variant
+    display_name: "AZURE KMS"
+    run_on:
+      - debian11-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.19"
+    tasks:
+      - name: testazurekms_task_group
+        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - testazurekms-fail-task
