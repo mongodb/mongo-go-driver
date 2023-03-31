@@ -112,13 +112,13 @@ func TestRegistryBuilder(t *testing.T) {
 				rb.RegisterDefaultEncoder(reflect.Map, codec)
 				reg := rb.Build()
 				if reg.kindEncoders[reflect.Map] != codec {
-					t.Errorf("Did not properly set the map codec. got %v; want %v", reg.kindEncoders[reflect.Map], codec)
+					t.Errorf("map codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Map], codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Map, codec2)
 				reg = rb.Build()
 				if reg.kindEncoders[reflect.Map] != codec2 {
-					t.Errorf("Did not properly set the map codec. got %v; want %v", reg.kindEncoders[reflect.Map], codec2)
+					t.Errorf("map codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Map], codec2)
 				}
 			})
 			t.Run("StructCodec", func(t *testing.T) {
@@ -129,13 +129,13 @@ func TestRegistryBuilder(t *testing.T) {
 				rb.RegisterDefaultEncoder(reflect.Struct, codec)
 				reg := rb.Build()
 				if reg.kindEncoders[reflect.Struct] != codec {
-					t.Errorf("Did not properly set the struct codec. got %v; want %v", reg.kindEncoders[reflect.Struct], codec)
+					t.Errorf("struct codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Struct], codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Struct, codec2)
 				reg = rb.Build()
 				if reg.kindEncoders[reflect.Struct] != codec2 {
-					t.Errorf("Did not properly set the struct codec. got %v; want %v", reg.kindEncoders[reflect.Struct], codec2)
+					t.Errorf("struct codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Struct], codec2)
 				}
 			})
 			t.Run("SliceCodec", func(t *testing.T) {
@@ -146,13 +146,13 @@ func TestRegistryBuilder(t *testing.T) {
 				rb.RegisterDefaultEncoder(reflect.Slice, codec)
 				reg := rb.Build()
 				if reg.kindEncoders[reflect.Slice] != codec {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Slice], codec)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Slice], codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Slice, codec2)
 				reg = rb.Build()
 				if reg.kindEncoders[reflect.Slice] != codec2 {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Slice], codec2)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Slice], codec2)
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
@@ -163,13 +163,13 @@ func TestRegistryBuilder(t *testing.T) {
 				rb.RegisterDefaultEncoder(reflect.Array, codec)
 				reg := rb.Build()
 				if reg.kindEncoders[reflect.Array] != codec {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Array], codec)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Array], codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Array, codec2)
 				reg = rb.Build()
 				if reg.kindEncoders[reflect.Array] != codec2 {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Array], codec2)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Array], codec2)
 				}
 			})
 		})
@@ -432,9 +432,15 @@ func TestRegistryBuilder(t *testing.T) {
 }
 
 func TestRegistry(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Register", func(t *testing.T) {
+		t.Parallel()
+
 		fc1, fc2, fc3, fc4 := new(fakeCodec), new(fakeCodec), new(fakeCodec), new(fakeCodec)
 		t.Run("interface", func(t *testing.T) {
+			t.Parallel()
+
 			var t1f *testInterface1
 			var t2f *testInterface2
 			var t4f *testInterface4
@@ -455,10 +461,12 @@ func TestRegistry(t *testing.T) {
 			}
 			got := reg.interfaceEncoders
 			if !cmp.Equal(got, want, cmp.AllowUnexported(interfaceValueEncoder{}, fakeCodec{}), cmp.Comparer(typeComparer)) {
-				t.Errorf("The registered interfaces are not correct. got %v; want %v", got, want)
+				t.Errorf("registered interfaces are not correct: got %v, want %v", got, want)
 			}
 		})
 		t.Run("type", func(t *testing.T) {
+			t.Parallel()
+
 			ft1, ft2, ft4 := fakeType1{}, fakeType2{}, fakeType4{}
 			reg := NewRegistry()
 			reg.RegisterTypeEncoder(reflect.TypeOf(ft1), fc1)
@@ -479,7 +487,7 @@ func TestRegistry(t *testing.T) {
 				wantT, wantC := s.t, s.c
 				gotC, exists := got[wantT]
 				if !exists {
-					t.Errorf("Did not find type in the type registry: %v", wantT)
+					t.Errorf("type missing in registry: %v", wantT)
 				}
 				if !cmp.Equal(gotC, wantC, cmp.AllowUnexported(fakeCodec{})) {
 					t.Errorf("Codecs did not match. got %#v; want %#v", gotC, wantC)
@@ -487,6 +495,8 @@ func TestRegistry(t *testing.T) {
 			}
 		})
 		t.Run("kind", func(t *testing.T) {
+			t.Parallel()
+
 			k1, k2, k4 := reflect.Struct, reflect.Slice, reflect.Map
 			reg := NewRegistry()
 			reg.RegisterKindEncoder(k1, fc1)
@@ -507,68 +517,80 @@ func TestRegistry(t *testing.T) {
 				wantK, wantC := s.k, s.c
 				gotC, exists := got[wantK]
 				if !exists {
-					t.Errorf("Did not find kind in the kind registry: %v", wantK)
+					t.Errorf("type missing in registry: %v", wantK)
 				}
 				if !cmp.Equal(gotC, wantC, cmp.AllowUnexported(fakeCodec{})) {
-					t.Errorf("Codecs did not match. got %#v; want %#v", gotC, wantC)
+					t.Errorf("codecs did not match: got %#v, want %#v", gotC, wantC)
 				}
 			}
 		})
 		t.Run("RegisterDefault", func(t *testing.T) {
+			t.Parallel()
+
 			t.Run("MapCodec", func(t *testing.T) {
+				t.Parallel()
+
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Map, codec)
 				if reg.kindEncoders[reflect.Map] != codec {
-					t.Errorf("Did not properly set the map codec. got %v; want %v", reg.kindEncoders[reflect.Map], codec)
+					t.Errorf("map codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Map], codec)
 				}
 				reg.RegisterKindEncoder(reflect.Map, codec2)
 				if reg.kindEncoders[reflect.Map] != codec2 {
-					t.Errorf("Did not properly set the map codec. got %v; want %v", reg.kindEncoders[reflect.Map], codec2)
+					t.Errorf("map codec properly set: got %v, want %v", reg.kindEncoders[reflect.Map], codec2)
 				}
 			})
 			t.Run("StructCodec", func(t *testing.T) {
+				t.Parallel()
+
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Struct, codec)
 				if reg.kindEncoders[reflect.Struct] != codec {
-					t.Errorf("Did not properly set the struct codec. got %v; want %v", reg.kindEncoders[reflect.Struct], codec)
+					t.Errorf("struct codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Struct], codec)
 				}
 				reg.RegisterKindEncoder(reflect.Struct, codec2)
 				if reg.kindEncoders[reflect.Struct] != codec2 {
-					t.Errorf("Did not properly set the struct codec. got %v; want %v", reg.kindEncoders[reflect.Struct], codec2)
+					t.Errorf("struct codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Struct], codec2)
 				}
 			})
 			t.Run("SliceCodec", func(t *testing.T) {
+				t.Parallel()
+
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Slice, codec)
 				if reg.kindEncoders[reflect.Slice] != codec {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Slice], codec)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Slice], codec)
 				}
 				reg.RegisterKindEncoder(reflect.Slice, codec2)
 				if reg.kindEncoders[reflect.Slice] != codec2 {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Slice], codec2)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Slice], codec2)
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
+				t.Parallel()
+
 				codec := fakeCodec{num: 1}
 				codec2 := fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Array, codec)
 				if reg.kindEncoders[reflect.Array] != codec {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Array], codec)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Array], codec)
 				}
 				reg.RegisterKindEncoder(reflect.Array, codec2)
 				if reg.kindEncoders[reflect.Array] != codec2 {
-					t.Errorf("Did not properly set the slice codec. got %v; want %v", reg.kindEncoders[reflect.Array], codec2)
+					t.Errorf("slice codec not properly set: got %v, want %v", reg.kindEncoders[reflect.Array], codec2)
 				}
 			})
 		})
 		t.Run("Lookup", func(t *testing.T) {
+			t.Parallel()
+
 			type Codec interface {
 				ValueEncoder
 				ValueDecoder
@@ -731,17 +753,25 @@ func TestRegistry(t *testing.T) {
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
 			comparepc := func(pc1, pc2 *PointerCodec) bool { return true }
 			for _, tc := range testCases {
+				tc := tc
+
 				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+
 					t.Run("Encoder", func(t *testing.T) {
+						t.Parallel()
+
 						gotcodec, goterr := reg.LookupEncoder(tc.t)
 						if !cmp.Equal(goterr, tc.wanterr, cmp.Comparer(compareErrors)) {
-							t.Errorf("Errors did not match. got %v; want %v", goterr, tc.wanterr)
+							t.Errorf("errors did not match: got %v, want %v", goterr, tc.wanterr)
 						}
 						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
-							t.Errorf("Codecs did not match. got %v; want %v", gotcodec, tc.wantcodec)
+							t.Errorf("codecs did not match: got %v, want %v", gotcodec, tc.wantcodec)
 						}
 					})
 					t.Run("Decoder", func(t *testing.T) {
+						t.Parallel()
+
 						var wanterr error
 						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
@@ -750,11 +780,10 @@ func TestRegistry(t *testing.T) {
 						}
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
 						if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
-							t.Errorf("Errors did not match. got %v; want %v", goterr, wanterr)
+							t.Errorf("errors did not match: got %v, want %v", goterr, wanterr)
 						}
 						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
-							t.Errorf("Codecs did not match. got %v; want %v", gotcodec, tc.wantcodec)
-							t.Errorf("Codecs did not match. got %T; want %T", gotcodec, tc.wantcodec)
+							t.Errorf("codecs did not match: got %v: want %v", gotcodec, tc.wantcodec)
 						}
 					})
 				})
@@ -762,7 +791,10 @@ func TestRegistry(t *testing.T) {
 			// lookup a type whose pointer implements an interface and expect that the registered hook is
 			// returned
 			t.Run("interface implementation with hook (pointer)", func(t *testing.T) {
+				t.Parallel()
+
 				t.Run("Encoder", func(t *testing.T) {
+					t.Parallel()
 					gotEnc, err := reg.LookupEncoder(ti3Impl)
 					assert.Nil(t, err, "LookupEncoder error: %v", err)
 
@@ -776,6 +808,8 @@ func TestRegistry(t *testing.T) {
 					}
 				})
 				t.Run("Decoder", func(t *testing.T) {
+					t.Parallel()
+
 					gotDec, err := reg.LookupDecoder(ti3Impl)
 					assert.Nil(t, err, "LookupDecoder error: %v", err)
 
@@ -792,6 +826,7 @@ func TestRegistry(t *testing.T) {
 		})
 	})
 	t.Run("Type Map", func(t *testing.T) {
+		t.Parallel()
 		reg := NewRegistry()
 		reg.RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(""))
 		reg.RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0)))
@@ -802,24 +837,24 @@ func TestRegistry(t *testing.T) {
 		got, err := reg.LookupTypeMapEntry(bsontype.String)
 		noerr(t, err)
 		if got != want {
-			t.Errorf("Did not get expected type. got %v; want %v", got, want)
+			t.Errorf("unexpected type: got %v, want %v", got, want)
 		}
 
 		want = reflect.TypeOf(int(0))
 		got, err = reg.LookupTypeMapEntry(bsontype.Int32)
 		noerr(t, err)
 		if got != want {
-			t.Errorf("Did not get expected type. got %v; want %v", got, want)
+			t.Errorf("unexpected type: got %v, want %v", got, want)
 		}
 
 		want = nil
 		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
 		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
 		if err != wanterr {
-			t.Errorf("Did not get expected error. got %v; want %v", err, wanterr)
+			t.Errorf("unexpected error: got %v, want %v", err, wanterr)
 		}
 		if got != want {
-			t.Errorf("Did not get expected type. got %v; want %v", got, want)
+			t.Errorf("unexpected error: got %v, want %v", got, want)
 		}
 	})
 }
