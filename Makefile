@@ -124,6 +124,10 @@ evg-test-kmip:
 evg-test-kms:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
 
+.PHONY: evg-test-azure
+evg-test-azure:
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionProse/Azure_IMDS_Credentials
+
 .PHONY: evg-test-load-balancers
 evg-test-load-balancers:
 	# Load balancer should be tested with all unified tests as well as tests in the following
@@ -170,13 +174,9 @@ evg-test-versioned-api:
 		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST_PKG >> test.suite ; \
 	done
 
-.PHONY: build-gcpkms-test
-build-gcpkms-test:
-	go build $(BUILD_TAGS) ./cmd/testgcpkms
-
-.PHONY: build-awskms-test
-build-awskms-test:
-	go build $(BUILD_TAGS) ./cmd/testawskms
+.PHONY: build-kms-test
+build-kms-test:
+	go build $(BUILD_TAGS) ./cmd/testkms
 
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark

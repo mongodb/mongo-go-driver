@@ -64,6 +64,9 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if needsKmsProvider(opts.KmsProviders, "aws") {
 		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient)
 	}
+	if needsKmsProvider(opts.KmsProviders, "azure") {
+		kmsProviders["azure"] = creds.NewAzureCredentialProvider(httpClient)
+	}
 	crypt := &MongoCrypt{
 		wrapped:      wrapped,
 		kmsProviders: kmsProviders,
