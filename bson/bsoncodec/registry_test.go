@@ -105,8 +105,8 @@ func TestRegistryBuilder(t *testing.T) {
 		})
 		t.Run("RegisterDefault", func(t *testing.T) {
 			t.Run("MapCodec", func(t *testing.T) {
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				rb := NewRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Map, codec)
@@ -122,8 +122,8 @@ func TestRegistryBuilder(t *testing.T) {
 				}
 			})
 			t.Run("StructCodec", func(t *testing.T) {
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				rb := NewRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Struct, codec)
@@ -139,8 +139,8 @@ func TestRegistryBuilder(t *testing.T) {
 				}
 			})
 			t.Run("SliceCodec", func(t *testing.T) {
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				rb := NewRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Slice, codec)
@@ -156,8 +156,8 @@ func TestRegistryBuilder(t *testing.T) {
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				rb := NewRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Array, codec)
@@ -195,7 +195,7 @@ func TestRegistryBuilder(t *testing.T) {
 				ti3             = reflect.TypeOf((*testInterface3)(nil)).Elem()
 				ti3Impl         = reflect.TypeOf(testInterface3Impl{})
 				ti3ImplPtr      = reflect.TypeOf((*testInterface3Impl)(nil))
-				fc1, fc2        = fakeCodec{num: 1}, fakeCodec{num: 2}
+				fc1, fc2        = &fakeCodec{num: 1}, &fakeCodec{num: 2}
 				fsc, fslcc, fmc = new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
 				pc              = NewPointerCodec()
 			)
@@ -531,8 +531,8 @@ func TestRegistry(t *testing.T) {
 			t.Run("MapCodec", func(t *testing.T) {
 				t.Parallel()
 
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Map, codec)
 				if reg.kindEncoders[reflect.Map] != codec {
@@ -546,8 +546,8 @@ func TestRegistry(t *testing.T) {
 			t.Run("StructCodec", func(t *testing.T) {
 				t.Parallel()
 
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Struct, codec)
 				if reg.kindEncoders[reflect.Struct] != codec {
@@ -561,8 +561,8 @@ func TestRegistry(t *testing.T) {
 			t.Run("SliceCodec", func(t *testing.T) {
 				t.Parallel()
 
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Slice, codec)
 				if reg.kindEncoders[reflect.Slice] != codec {
@@ -576,8 +576,8 @@ func TestRegistry(t *testing.T) {
 			t.Run("ArrayCodec", func(t *testing.T) {
 				t.Parallel()
 
-				codec := fakeCodec{num: 1}
-				codec2 := fakeCodec{num: 2}
+				codec := &fakeCodec{num: 1}
+				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Array, codec)
 				if reg.kindEncoders[reflect.Array] != codec {
@@ -613,7 +613,7 @@ func TestRegistry(t *testing.T) {
 				ti3             = reflect.TypeOf((*testInterface3)(nil)).Elem()
 				ti3Impl         = reflect.TypeOf(testInterface3Impl{})
 				ti3ImplPtr      = reflect.TypeOf((*testInterface3Impl)(nil))
-				fc1, fc2        = fakeCodec{num: 1}, fakeCodec{num: 2}
+				fc1, fc2        = &fakeCodec{num: 1}, &fakeCodec{num: 2}
 				fsc, fslcc, fmc = new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
 				pc              = NewPointerCodec()
 			)
@@ -865,16 +865,22 @@ type fakeType1 struct{}
 type fakeType2 struct{}
 type fakeType4 struct{}
 type fakeType5 func(string, string) string
-type fakeStructCodec struct{ fakeCodec }
-type fakeSliceCodec struct{ fakeCodec }
-type fakeMapCodec struct{ fakeCodec }
+type fakeStructCodec struct{ *fakeCodec }
+type fakeSliceCodec struct{ *fakeCodec }
+type fakeMapCodec struct{ *fakeCodec }
 
-type fakeCodec struct{ num int }
+type fakeCodec struct {
+	// num is used to differentiate fakeCodec instances and to force Go to allocate a new value in
+	// memory for every fakeCodec. If fakeCodec were an empty struct, Go may use the same pointer
+	// for every instance of fakeCodec, making comparisons between pointers to instances of
+	// fakeCodec sometimes meaningless.
+	num int
+}
 
-func (fc fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, reflect.Value) error {
+func (*fakeCodec) EncodeValue(EncodeContext, bsonrw.ValueWriter, reflect.Value) error {
 	return nil
 }
-func (fc fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, reflect.Value) error {
+func (*fakeCodec) DecodeValue(DecodeContext, bsonrw.ValueReader, reflect.Value) error {
 	return nil
 }
 
