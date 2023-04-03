@@ -799,7 +799,7 @@ func BenchmarkClientMetadata(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := encodeClientMetadata(h, maxHelloCommandSize)
+			_, err := encodeClientMetadata(h, maxClientMetadataSize)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -809,21 +809,19 @@ func BenchmarkClientMetadata(b *testing.B) {
 
 func FuzzEncodeClientMetadata(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte, appname string) {
-		// If b is already create than "maxHelloCommandSize" bytes, then
-		// appending the client will cause an error.
-		if len(b) > maxHelloCommandSize {
+		if len(b) > maxClientMetadataSize {
 			return
 		}
 
 		h := &Hello{appname: appname}
 
-		dst, err := encodeClientMetadata(h, maxHelloCommandSize)
+		dst, err := encodeClientMetadata(h, maxClientMetadataSize)
 		if err != nil {
 			t.Fatalf("error appending client: %v", err)
 		}
 
-		if len(dst) > maxHelloCommandSize {
-			t.Fatalf("appended client is too large: %d > %d / %d", len(dst), len(b), maxHelloCommandSize)
+		if len(dst) > maxClientMetadataSize {
+			t.Fatalf("appended client is too large: %d > %d / %d", len(dst), len(b), maxClientMetadataSize)
 		}
 	})
 }

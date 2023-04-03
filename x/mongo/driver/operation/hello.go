@@ -23,11 +23,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-const maxHelloCommandSize = 512 //  maximum size (bytes) of a hello command
-const documentSize = 5          // 5 bytes to start and end a document
-const embeddedDocumentSize = 7  // 7 bytes to append a document element
-const stringElementSize = 7     // 7 bytes to append a string element
-const int32ElementSize = 6      // 6 bytes to append an int32 element
+const maxClientMetadataSize = 512 //  maximum size (bytes) of a hello command
+const documentSize = 5            // 5 bytes to start and end a document
+const embeddedDocumentSize = 7    // 7 bytes to append a document element
+const stringElementSize = 7       // 7 bytes to append a string element
+const int32ElementSize = 6        // 6 bytes to append an int32 element
 const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
@@ -566,7 +566,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 	}
 	dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 
-	clientMetadata, err := encodeClientMetadata(h, maxHelloCommandSize)
+	clientMetadata, err := encodeClientMetadata(h, maxClientMetadataSize)
 	if err != nil {
 		return dst, err
 	}
