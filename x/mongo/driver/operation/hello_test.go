@@ -33,11 +33,11 @@ func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D,
 	assert.True(t, areEqual, "got %v, want %v", gotElems, wantElems)
 }
 
-func encodeWithCallback(t *testing.T, dst []byte, cb func([]byte) ([]byte, error)) bsoncore.Document {
+func encodeWithCallback(t *testing.T, cb func([]byte) ([]byte, error)) bsoncore.Document {
 	t.Helper()
 
 	var err error
-	idx, dst := bsoncore.AppendDocumentStart(dst)
+	idx, dst := bsoncore.AppendDocumentStart(nil)
 
 	dst, err = cb(dst)
 	assert.Nil(t, err, "error appending client metadata: %v", err)
@@ -59,6 +59,7 @@ func addMaxLenStringElem(key, name string) func() int32 {
 	}
 }
 
+//nolint:unparam
 func addMaxLenInt32Elem(key string, val int32) func() int32 {
 	return func() int32 {
 		return int32(int32ElementSize + len(key))
@@ -74,12 +75,6 @@ func addMaxLenBuf(subtract int32) func() int32 {
 func addMaxLenEmbeddedDocument(key string) func() int32 {
 	return func() int32 {
 		return int32(embeddedDocumentSize + len(key))
-	}
-}
-
-func addMaxLenDocument() func() int32 {
-	return func() int32 {
-		return documentSize
 	}
 }
 
@@ -150,7 +145,7 @@ func TestAppendClientAppName(t *testing.T) {
 				return dst, err
 			}
 
-			got := encodeWithCallback(t, nil, cb)
+			got := encodeWithCallback(t, cb)
 			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}
@@ -253,7 +248,7 @@ func TestAppendClientDriver(t *testing.T) {
 				return dst, err
 			}
 
-			got := encodeWithCallback(t, nil, cb)
+			got := encodeWithCallback(t, cb)
 			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}
@@ -590,7 +585,7 @@ func TestAppendClientEnv(t *testing.T) {
 				return dst, err
 			}
 
-			got := encodeWithCallback(t, nil, cb)
+			got := encodeWithCallback(t, cb)
 			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}
@@ -684,7 +679,7 @@ func TestAppendClientOS(t *testing.T) {
 				return dst, err
 			}
 
-			got := encodeWithCallback(t, nil, cb)
+			got := encodeWithCallback(t, cb)
 			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}
@@ -731,13 +726,10 @@ func TestAppendClientPlatform(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			cb := func(dst []byte) ([]byte, error) {
-				var err error
-				_, dst, err = appendClientPlatform(dst, test.maxLen)
-
-				return dst, err
+				return appendClientPlatform(dst, test.maxLen), nil
 			}
 
-			got := encodeWithCallback(t, nil, cb)
+			got := encodeWithCallback(t, cb)
 			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}

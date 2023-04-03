@@ -322,7 +322,7 @@ func appendClientDriver(dst []byte, maxLen int32) (int32, []byte, error) {
 	return bytesWritten, dst, nil
 }
 
-// appendClientEnv appends the enviroment metadata to dst. It builds the
+// appendClientEnv appends the environment metadata to dst. It builds the
 // environment sub-document key-by-key, checking the length of the document
 // after each key. If the document exceeds the maximum length, the key is
 // omitted and the document is ended and returned. If there is no FaaS
@@ -365,12 +365,14 @@ func appendClientEnv(dst []byte, maxLen int32) (int32, []byte, error) {
 			return n
 		}
 
-		memInt, err := strconv.Atoi(mem)
+		memInt64, err := strconv.ParseInt(mem, 10, 32)
 		if err != nil {
 			return n
 		}
 
-		n, dst = appendInt32Element(dst, "memory_mb", int32(memInt), maxLen)
+		memInt32 := int32(memInt64)
+
+		n, dst = appendInt32Element(dst, "memory_mb", memInt32, maxLen)
 		return n
 	}
 
@@ -395,8 +397,11 @@ func appendClientEnv(dst []byte, maxLen int32) (int32, []byte, error) {
 
 		timeout := os.Getenv(envVarFunctionTimeoutSec)
 		if timeout != "" {
-			timeoutInt, _ := strconv.Atoi(timeout)
-			_, dst = appendInt32Element(dst, "timeout_sec", int32(timeoutInt), maxLen)
+			timeoutInt64, err := strconv.ParseInt(timeout, 10, 32)
+			if err == nil {
+				timeoutInt32 := int32(timeoutInt64)
+				_, dst = appendInt32Element(dst, "timeout_sec", timeoutInt32, maxLen)
+			}
 		}
 	case envNameVercel:
 		maxLen -= addRegion(envVarVercelRegion)
@@ -463,18 +468,15 @@ func appendClientOS(dst []byte, maxLen int32) (int32, []byte, error) {
 
 // appendClientPlatform appends the platform metadata to dst. If the document
 // exceeds the maximum length, the platform is omitted.
-func appendClientPlatform(dst []byte, maxLen int32) (int32, []byte, error) {
+func appendClientPlatform(dst []byte, maxLen int32) []byte {
 	const key = "platform"
-	originalLen := len(dst)
-
 	if int32(len(key))+stringElementSize > maxLen {
-		return 0, dst, nil
+		return dst
 	}
 
 	_, dst = appendStringElement(dst, key, runtime.Version(), maxLen)
 
-	bytesWritten := len(dst) - originalLen
-	return int32(bytesWritten), dst, nil
+	return dst
 }
 
 // encodeClientMetadata encodes the client metadata into a BSON document. maxLen
@@ -489,7 +491,7 @@ func encodeClientMetadata(h *Hello, maxLen int32) ([]byte, error) {
 		return dst[:0], nil
 	}
 
-	maxLen -= 1 // Account for the null byte at the end of the document.
+	maxLen-- // Account for the null byte at the end of the document.
 
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 	maxLen -= int32(len(dst))
@@ -525,10 +527,7 @@ func encodeClientMetadata(h *Hello, maxLen int32) ([]byte, error) {
 
 	maxLen -= n
 
-	n, dst, err = appendClientPlatform(dst, maxLen)
-	if err != nil {
-		return dst, err
-	}
+	dst = appendClientPlatform(dst, maxLen)
 
 	//dst = appendStringElement(dst, "platform", runtime.Version(), maxLen)
 	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
