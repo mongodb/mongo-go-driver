@@ -112,8 +112,8 @@ func (c *Cursor) ID() int64 { return c.bc.ID() }
 // Next gets the next document for this cursor. It returns true if there were no errors and the cursor has not been
 // exhausted.
 //
-// Next blocks until a document is available, an error occurs, or ctx expires. If ctx expires, the
-// error will be set to ctx.Err(). In an error case, Next will return false.
+// Next blocks until a document is available or an error occurs. If the context expires, the cursor's error will
+// be set to ctx.Err(). In case of an error, Next will return false.
 //
 // If Next returns false, subsequent calls will also return false.
 func (c *Cursor) Next(ctx context.Context) bool {
@@ -125,7 +125,7 @@ func (c *Cursor) Next(ctx context.Context) bool {
 // Next. See https://www.mongodb.com/docs/manual/core/tailable-cursors/ for more information about tailable cursors.
 //
 // TryNext returns false if the cursor is exhausted, an error occurs when getting results from the server, the next
-// document is not yet available, or ctx expires. If ctx expires, the error will be set to ctx.Err().
+// document is not yet available, or ctx expires. If the context  expires, the cursor's error will be set to ctx.Err().
 //
 // If TryNext returns false and an error occurred or the cursor has been exhausted (i.e. c.Err() != nil || c.ID() == 0),
 // subsequent attempts will also return false. Otherwise, it is safe to call TryNext again until a document is
@@ -309,6 +309,14 @@ func (c *Cursor) closeImplicitSession() {
 	if c.clientSession != nil && c.clientSession.IsImplicit {
 		c.clientSession.EndSession()
 	}
+}
+
+// SetBatchSize sets the number of documents to fetch from the database with
+// each iteration of the cursor's "Next" method. Note that some operations set
+// an initial cursor batch size, so this setting only affects subsequent
+// document batches fetched from the database.
+func (c *Cursor) SetBatchSize(batchSize int32) {
+	c.bc.SetBatchSize(batchSize)
 }
 
 // BatchCursorFromCursor returns a driver.BatchCursor for the given Cursor. If there is no underlying

@@ -1362,7 +1362,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
 	cursor, err := coll.Find(ctx, filter, findOpts...)
-	return &SingleResult{cur: cursor, reg: coll.registry, err: replaceErrors(err)}
+	return &SingleResult{ctx: ctx, cur: cursor, reg: coll.registry, err: replaceErrors(err)}
 }
 
 func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult {
@@ -1413,7 +1413,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		return &SingleResult{err: err}
 	}
 
-	return &SingleResult{rdr: bson.Raw(op.Result().Value), reg: coll.registry}
+	return &SingleResult{ctx: ctx, rdr: bson.Raw(op.Result().Value), reg: coll.registry}
 }
 
 // FindOneAndDelete executes a findAndModify command to delete at most one document in the collection. and returns the

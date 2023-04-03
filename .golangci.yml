@@ -94,10 +94,6 @@ issues:
       linters:
         - revive
         - errcheck
-    # Disable unused code linters for the copy/pasted "awsv4" package.
-    - path: x/mongo/driver/auth/internal/awsv4
-      linters:
-        - unused
     # Disable "unused" linter for code files that depend on the "mongocrypt.MongoCrypt" type because
     # the linter build doesn't work correctly with CGO enabled. As a result, all calls to a
     # "mongocrypt.MongoCrypt" API appear to always panic (see mongocrypt_not_enabled.go), leading

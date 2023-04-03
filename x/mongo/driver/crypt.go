@@ -11,12 +11,10 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
@@ -43,7 +41,6 @@ type CryptOptions struct {
 	KeyFn                KeyRetrieverFn
 	MarkFn               MarkCommandFn
 	TLSConfig            map[string]*tls.Config
-	HTTPClient           *http.Client
 	BypassAutoEncryption bool
 	BypassQueryAnalysis  bool
 }
@@ -83,7 +80,6 @@ type crypt struct {
 	keyFn      KeyRetrieverFn
 	markFn     MarkCommandFn
 	tlsConfig  map[string]*tls.Config
-	httpClient *http.Client
 
 	bypassAutoEncryption bool
 }
@@ -96,11 +92,7 @@ func NewCrypt(opts *CryptOptions) Crypt {
 		keyFn:                opts.KeyFn,
 		markFn:               opts.MarkFn,
 		tlsConfig:            opts.TLSConfig,
-		httpClient:           opts.HTTPClient,
 		bypassAutoEncryption: opts.BypassAutoEncryption,
-	}
-	if c.httpClient == nil {
-		c.httpClient = internal.DefaultHTTPClient
 	}
 	return c
 }
@@ -258,9 +250,6 @@ func (c *crypt) DecryptExplicit(ctx context.Context, subtype byte, data []byte) 
 // Close cleans up any resources associated with the Crypt instance.
 func (c *crypt) Close() {
 	c.mongoCrypt.Close()
-	if c.httpClient == internal.DefaultHTTPClient {
-		internal.CloseIdleHTTPConnections(c.httpClient)
-	}
 }
 
 func (c *crypt) BypassAutoEncryption() bool {
@@ -421,7 +410,7 @@ func (c *crypt) decryptKey(kmsCtx *mongocrypt.KmsContext) error {
 }
 
 func (c *crypt) provideKmsProviders(ctx context.Context, cryptCtx *mongocrypt.Context) error {
-	kmsProviders, err := c.mongoCrypt.GetKmsProviders(ctx, c.httpClient)
+	kmsProviders, err := c.mongoCrypt.GetKmsProviders(ctx)
 	if err != nil {
 		return err
 	}

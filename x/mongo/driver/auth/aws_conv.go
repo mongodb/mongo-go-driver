@@ -19,8 +19,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	v4signer "go.mongodb.org/mongo-driver/internal/aws/signer/v4"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/awsv4"
 )
 
 type clientState int
@@ -33,12 +34,10 @@ const (
 )
 
 type awsConversation struct {
-	state    clientState
-	valid    bool
-	nonce    []byte
-	provider interface {
-		getCredentials(ctx context.Context) (*awsv4.StaticProvider, error)
-	}
+	state       clientState
+	valid       bool
+	nonce       []byte
+	credentials *credentials.Credentials
 }
 
 type serverMessage struct {
@@ -148,7 +147,7 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	creds, err := ac.provider.getCredentials(context.Background())
+	creds, err := ac.credentials.GetWithContext(context.Background())
 	if err != nil {
 		return nil, err
 	}
@@ -162,14 +161,14 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	req.Header.Set("Content-Length", "43")
 	req.Host = sm.Host
 	req.Header.Set("X-Amz-Date", currentTime.Format(amzDateFormat))
-	if len(creds.Value.SessionToken) > 0 {
-		req.Header.Set("X-Amz-Security-Token", creds.Value.SessionToken)
+	if len(creds.SessionToken) > 0 {
+		req.Header.Set("X-Amz-Security-Token", creds.SessionToken)
 	}
 	req.Header.Set("X-MongoDB-Server-Nonce", base64.StdEncoding.EncodeToString(sm.Nonce.Data))
 	req.Header.Set("X-MongoDB-GS2-CB-Flag", "n")
 
 	// Create signer with credentials
-	signer := awsv4.NewSigner(creds)
+	signer := v4signer.NewSigner(ac.credentials)
 
 	// Get signed header
 	_, err = signer.Sign(req, strings.NewReader(body), "sts", region, currentTime)
@@ -181,8 +180,8 @@ func (ac *awsConversation) finalMsg(s1 []byte) ([]byte, error) {
 	idx, msg := bsoncore.AppendDocumentStart(nil)
 	msg = bsoncore.AppendStringElement(msg, "a", req.Header.Get("Authorization"))
 	msg = bsoncore.AppendStringElement(msg, "d", req.Header.Get("X-Amz-Date"))
-	if len(creds.Value.SessionToken) > 0 {
-		msg = bsoncore.AppendStringElement(msg, "t", creds.Value.SessionToken)
+	if len(creds.SessionToken) > 0 {
+		msg = bsoncore.AppendStringElement(msg, "t", creds.SessionToken)
 	}
 	msg, _ = bsoncore.AppendDocumentEnd(msg, idx)
 

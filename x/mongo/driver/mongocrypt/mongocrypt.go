@@ -29,9 +29,14 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
+type kmsProvider interface {
+	GetCredentialsDoc(context.Context) (bsoncore.Document, error)
+}
+
 type MongoCrypt struct {
 	wrapped      *C.mongocrypt_t
-	kmsProviders bsoncore.Document
+	kmsProviders map[string]kmsProvider
+	httpClient   *http.Client
 }
 
 // Version returns the version string for the loaded libmongocrypt, or an empty string
@@ -48,9 +53,21 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if wrapped == nil {
 		return nil, errors.New("could not create new mongocrypt object")
 	}
+	httpClient := opts.HTTPClient
+	if httpClient == nil {
+		httpClient = internal.DefaultHTTPClient
+	}
+	kmsProviders := make(map[string]kmsProvider)
+	if needsKmsProvider(opts.KmsProviders, "gcp") {
+		kmsProviders["gcp"] = creds.NewGCPCredentialProvider(httpClient)
+	}
+	if needsKmsProvider(opts.KmsProviders, "aws") {
+		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient)
+	}
 	crypt := &MongoCrypt{
 		wrapped:      wrapped,
-		kmsProviders: opts.KmsProviders,
+		kmsProviders: kmsProviders,
+		httpClient:   httpClient,
 	}
 
 	// set options in mongocrypt
@@ -361,6 +378,9 @@ func (m *MongoCrypt) CryptSharedLibVersionString() string {
 // Close cleans up any resources associated with the given MongoCrypt instance.
 func (m *MongoCrypt) Close() {
 	C.mongocrypt_destroy(m.wrapped)
+	if m.httpClient == internal.DefaultHTTPClient {
+		internal.CloseIdleHTTPConnections(m.httpClient)
+	}
 }
 
 // RewrapDataKeyContext create a Context to use for rewrapping a data key.
@@ -477,34 +497,14 @@ func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
 }
 
 // GetKmsProviders returns the originally configured KMS providers.
-func (m *MongoCrypt) GetKmsProviders(ctx context.Context, httpClient *http.Client) (bsoncore.Document, error) {
+func (m *MongoCrypt) GetKmsProviders(ctx context.Context) (bsoncore.Document, error) {
 	builder := bsoncore.NewDocumentBuilder()
-
-	if needsKmsProvider(m.kmsProviders, "gcp") {
-		// "gcp" KMS provider is an empty document.
-		// Attempt to fetch from GCP Instance Metadata server.
-		p := creds.GcpCredentialProvider{HTTPClient: httpClient}
-		token, err := p.GetCredentials(ctx)
+	for k, p := range m.kmsProviders {
+		doc, err := p.GetCredentialsDoc(ctx)
 		if err != nil {
-			return nil, err
+			return nil, internal.WrapErrorf(err, "unable to retrieve %s credentials", k)
 		}
-		builder.StartDocument("gcp").
-			AppendString("accessToken", token).
-			FinishDocument()
-	}
-	if needsKmsProvider(m.kmsProviders, "aws") {
-		p := creds.AwsCredentialProvider{HTTPClient: httpClient}
-		provider, err := p.GetCredentials(ctx)
-		if err != nil {
-			return nil, internal.WrapErrorf(err, "unable to retrieve AWS credentials")
-		}
-		builder.StartDocument("aws").
-			AppendString("accessKeyId", provider.Value.AccessKeyID).
-			AppendString("secretAccessKey", provider.Value.SecretAccessKey)
-		if len(provider.Value.SessionToken) > 0 {
-			builder.AppendString("sessionToken", provider.Value.SessionToken)
-		}
-		builder.FinishDocument()
+		builder.AppendDocument(k, doc)
 	}
 	return builder.Build(), nil
 }
