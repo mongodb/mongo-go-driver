@@ -1094,7 +1094,7 @@ func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc de
 		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
-	dst, err = op.CommandFn(dst, desc)
+	dst, err = op.CommandFn(dst, desc) // { hello: 1, helloOk: true, client: {}
 	if err != nil {
 		return dst, info, err
 	}

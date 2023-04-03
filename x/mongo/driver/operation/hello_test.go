@@ -6,389 +6,739 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const bytesToStartDocument = 4
+func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D, maxLen int32) {
+	t.Helper()
 
-func TestHelloAppend(t *testing.T) {
+	tooLarge := len(got)-documentSize > int(maxLen)
+	assert.False(t, tooLarge, "got document is too large: %v", got)
+
+	wantBytes, err := bson.Marshal(wantD)
+	assert.Nil(t, err, "error marshaling want document: %v", err)
+
+	want := bsoncore.Document(wantBytes)
+
+	wantElems, err := want.Elements()
+	assert.Nil(t, err, "error getting elements from want document: %v", err)
+
+	// Compare element by element.
+	gotElems, err := got.Elements()
+	assert.Nil(t, err, "error getting elements from got document: %v", err)
+
+	areEqual := reflect.DeepEqual(gotElems, wantElems)
+	assert.True(t, areEqual, "got %v, want %v", gotElems, wantElems)
+}
+
+func encodeWithCallback(t *testing.T, dst []byte, cb func([]byte) ([]byte, error)) bsoncore.Document {
+	t.Helper()
+
+	var err error
+	idx, dst := bsoncore.AppendDocumentStart(dst)
+
+	dst, err = cb(dst)
+	assert.Nil(t, err, "error appending client metadata: %v", err)
+
+	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+	assert.Nil(t, err, "error appending document end: %v", err)
+
+	got, _, ok := bsoncore.ReadDocument(dst)
+	assert.True(t, ok, "error reading document")
+
+	return got
+}
+
+func addMaxLenStringElem(key, name string) func() int32 {
+	return func() int32 {
+		return int32(stringElementSize +
+			len(key) +
+			len(name))
+	}
+}
+
+func addMaxLenInt32Elem(key string, val int32) func() int32 {
+	return func() int32 {
+		return int32(int32ElementSize + len(key))
+	}
+}
+
+func addMaxLenBuf(subtract int32) func() int32 {
+	return func() int32 {
+		return subtract
+	}
+}
+
+func addMaxLenEmbeddedDocument(key string) func() int32 {
+	return func() int32 {
+		return int32(embeddedDocumentSize + len(key))
+	}
+}
+
+func addMaxLenDocument() func() int32 {
+	return func() int32 {
+		return documentSize
+	}
+}
+
+func calcMaxLen(fn ...func() int32) int32 {
+	var total int32
+	for _, f := range fn {
+		total += f()
+	}
+
+	return total
+}
+
+func TestAppendClientAppName(t *testing.T) {
 	t.Parallel()
 
-	for _, test := range []struct {
-		name  string
-		hello *Hello
-		fn    func(dst []byte, max int32) ([]byte, error)
-		dst   []byte
-		max   int32
-		want  bson.D
+	calcMaxLenAppName := func(name string, buf int32) int32 {
+		return calcMaxLen(
+			addMaxLenEmbeddedDocument("application"),
+			addMaxLenStringElem("name", name),
+			addMaxLenBuf(buf))
+	}
+
+	tests := []struct {
+		name    string
+		appname string
+		maxLen  int32
+		want    bson.D
 	}{
 		{
-			name: "appname empty",
-			fn:   (&Hello{}).appendClientAppName,
-			max:  bytesToStartDocument,
-			want: bson.D{},
+			name:   "empty",
+			maxLen: 0,
+			want:   bson.D{},
 		},
 		{
-			name: "appname with 1 less than enough space for name",
-			fn:   (&Hello{appname: "foo"}).appendClientAppName,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("application") +
-				stringElementSize +
-				len("name") +
-				len("foo") - 1),
-			want: bson.D{{Key: "application", Value: bson.D{}}},
+			name:   "1 less than enough space",
+			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("application"), addMaxLenBuf(-1)),
+			want:   bson.D{},
 		},
 		{
-			name: "appname with exact amount of space",
-			fn:   (&Hello{appname: "foo"}).appendClientAppName,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("application") +
-				stringElementSize +
-				len("name") +
-				len("foo")),
-			want: bson.D{{Key: "application", Value: bson.D{
-				{Key: "name", Value: "foo"},
-			}}},
+			name:    "1 less than enough space for name",
+			appname: "foo",
+			maxLen:  calcMaxLenAppName("foo", -1),
+			want:    bson.D{{Key: "application", Value: bson.D{}}},
 		},
 		{
-			name: "appname with more than enough space",
-			fn:   (&Hello{appname: "foo"}).appendClientAppName,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("application") +
-				stringElementSize +
-				len("name") +
-				len("foo") + 1),
-			want: bson.D{{Key: "application", Value: bson.D{
-				{Key: "name", Value: "foo"},
-			}}},
+			name:    "exact amount of space for name",
+			appname: "foo",
+			maxLen:  calcMaxLenAppName("foo", 0),
+			want:    bson.D{{Key: "application", Value: bson.D{{Key: "name", Value: "foo"}}}},
 		},
 		{
-			name: "driver empty",
-			fn:   (&Hello{}).appendClientDriver,
-			max:  bytesToStartDocument,
-			want: bson.D{},
+			name:    "1 more than enough space for name",
+			appname: "foo",
+			maxLen:  calcMaxLenAppName("foo", 1),
+			want:    bson.D{{Key: "application", Value: bson.D{{Key: "name", Value: "foo"}}}},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			cb := func(dst []byte) ([]byte, error) {
+				var err error
+				_, dst, err = appendClientAppName(dst, test.appname, test.maxLen)
+
+				return dst, err
+			}
+
+			got := encodeWithCallback(t, nil, cb)
+			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
+		})
+	}
+}
+
+func TestAppendClientDriver(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		hello  *Hello
+		maxLen int32
+		want   bson.D
+	}{
+		{
+			name:   "empty",
+			hello:  &Hello{},
+			maxLen: 0,
+			want:   bson.D{},
 		},
 		{
-			name: "driver with 1 less than enough space for name",
-			fn:   (&Hello{}).appendClientDriver,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("driver") +
-				stringElementSize +
-				len("name") +
-				len(driverName) - 1),
+			name:   "1 less than enough space",
+			hello:  &Hello{},
+			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("driver"), addMaxLenBuf(-1)),
+			want:   bson.D{},
+		},
+		{
+			name:  "1 less than enough space for name",
+			hello: &Hello{},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("driver"),
+				addMaxLenStringElem("name", driverName),
+				addMaxLenBuf(-1)),
 			want: bson.D{{Key: "driver", Value: bson.D{}}},
 		},
 		{
-			name: "driver with exact amount of space for name",
-			fn:   (&Hello{}).appendClientDriver,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("driver") +
-				stringElementSize +
-				len("name") +
-				len(driverName)),
-			want: bson.D{{Key: "driver", Value: bson.D{
-				{Key: "name", Value: driverName},
-			}}},
+			name:  "exact amount of space for name",
+			hello: &Hello{},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("driver"),
+				addMaxLenStringElem("name", driverName)),
+			want: bson.D{{Key: "driver", Value: bson.D{{Key: "name", Value: driverName}}}},
 		},
 		{
-			name: "driver with more than enough space for name",
-			fn:   (&Hello{}).appendClientDriver,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("driver") +
-				stringElementSize +
-				len("name") +
-				len(driverName) + 1),
-			want: bson.D{{Key: "driver", Value: bson.D{
-				{Key: "name", Value: driverName},
-			}}},
+			name:  "1 more than enough space for name",
+			hello: &Hello{},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("driver"),
+				addMaxLenStringElem("name", driverName),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "driver", Value: bson.D{{Key: "name", Value: driverName}}}},
 		},
 		{
-			name: "driver with 1 less than enough space for version",
-			fn:   (&Hello{}).appendClientDriver,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("driver") +
-				stringElementSize +
-				len("name") +
-				len(driverName) +
-				stringElementSize +
-				len("version") +
-				len(version.Driver) - 1),
-			want: bson.D{{Key: "driver", Value: bson.D{
-				{Key: "name", Value: driverName},
-			}}},
+			name:  "1 less than enough space for version",
+			hello: &Hello{},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("driver"),
+				addMaxLenStringElem("name", driverName),
+				addMaxLenStringElem("version", version.Driver),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "driver", Value: bson.D{{Key: "name", Value: driverName}}}},
 		},
 		{
-			name: "driver with exact amount of space for version",
-			fn:   (&Hello{}).appendClientDriver,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("driver") +
-				stringElementSize +
-				len("name") +
-				len(driverName) +
-				stringElementSize +
-				len("version") +
-				len(version.Driver)),
+			name:  "exact amount of space for version",
+			hello: &Hello{},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("driver"),
+				addMaxLenStringElem("name", driverName),
+				addMaxLenStringElem("version", version.Driver)),
 			want: bson.D{{Key: "driver", Value: bson.D{
 				{Key: "name", Value: driverName},
 				{Key: "version", Value: version.Driver},
 			}}},
 		},
 		{
-			name: "driver with more than enough space for version",
-			fn:   (&Hello{}).appendClientDriver,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("driver") +
-				stringElementSize +
-				len("name") +
-				len(driverName) +
-				stringElementSize +
-				len("version") +
-				len(version.Driver) + 1),
+			name:  "1 more than enough space for version",
+			hello: &Hello{},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("driver"),
+				addMaxLenStringElem("name", driverName),
+				addMaxLenStringElem("version", version.Driver),
+				addMaxLenBuf(1)),
 			want: bson.D{{Key: "driver", Value: bson.D{
 				{Key: "name", Value: driverName},
 				{Key: "version", Value: version.Driver},
 			}}},
 		},
-		{
-			name: "driver with more than enough space",
-			fn:   (&Hello{}).appendClientDriver,
-			max:  512,
-			want: bson.D{
-				{Key: "driver", Value: bson.D{
-					{Key: "name", Value: driverName},
-					{Key: "version", Value: version.Driver},
-				}},
-			},
-		},
-		{
-			name: "env empty",
-			fn:   (&Hello{}).appendClientEnv,
-			max:  bytesToStartDocument,
-			want: bson.D{},
-		},
-		{
-			name: "os empty",
-			fn:   (&Hello{}).appendClientOS,
-			max:  bytesToStartDocument,
-			want: bson.D{},
-		},
-		{
-			name: "os without elements",
-			fn:   (&Hello{}).appendClientOS,
-			max: int32(docElementSize +
-				bytesToStartDocument +
-				len("os")),
-			want: bson.D{{Key: "os", Value: bson.D{}}},
-		},
-		{
-			name: "os with type",
-			fn:   (&Hello{}).appendClientOS,
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("os") +
-				stringElementSize +
-				len("type") +
-				len(runtime.GOOS)),
-			want: bson.D{
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-				}},
-			},
-		},
-		{
-			name: "os with all elements",
-			fn:   (&Hello{}).appendClientOS,
-			max:  512,
-			want: bson.D{
-				{Key: "os", Value: bson.D{
-					{Key: "type", Value: runtime.GOOS},
-					{Key: "architecture", Value: runtime.GOARCH},
-				}},
-			},
-		},
-	} {
+	}
+
+	for _, test := range tests {
 		test := test
 
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			idx, dst := bsoncore.AppendDocumentStart(test.dst)
+			cb := func(dst []byte) ([]byte, error) {
+				var err error
+				_, dst, err = appendClientDriver(dst, test.maxLen)
 
-			// Append the client metadata using the provided
-			// function.
-			dst, err := test.fn(dst, test.max)
-			if err != nil {
-				t.Fatalf("error appending client metadata: %v", err)
+				return dst, err
 			}
 
-			dst, err = bsoncore.AppendDocumentEnd(dst, idx)
-			if err != nil {
-				t.Fatalf("error appending document end: %v", err)
-			}
-
-			got, _, ok := bsoncore.ReadDocument(dst)
-			if !ok {
-				t.Fatalf("error reading document")
-			}
-
-			wantBytes, err := bson.Marshal(test.want)
-			if err != nil {
-				t.Fatalf("error marshaling want document: %v", err)
-			}
-
-			want := bsoncore.Document(wantBytes)
-
-			// Get all of the want keys as a set.
-			wantKeySet := make(map[string]struct{})
-
-			wantElems, err := want.Elements()
-			if err != nil {
-				t.Fatalf("error getting elements from want document: %v", err)
-			}
-
-			for _, wantElem := range wantElems {
-				wantKeySet[wantElem.Key()] = struct{}{}
-			}
-
-			// Compare element by element.
-			gotElems, err := got.Elements()
-			if err != nil {
-				t.Fatalf("error getting elements from got document: %v", err)
-			}
-
-			if !reflect.DeepEqual(gotElems, wantElems) {
-				t.Errorf("got %v, want %v", gotElems, wantElems)
-			}
+			got := encodeWithCallback(t, nil, cb)
+			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}
-
 }
 
-func TestHelloAppendClientEnv(t *testing.T) {
-	for _, test := range []struct {
-		name  string
-		hello *Hello
-		env   map[string]string
-		dst   []byte
-		max   int32
-		want  bson.D
+func TestAppendClientEnv(t *testing.T) {
+	tests := []struct {
+		name   string
+		maxLen int32
+		want   bson.D
+		env    map[string]string
 	}{
 		{
-			name:  "empty",
-			hello: &Hello{},
-			env:   map[string]string{},
-			max:   bytesToStartDocument,
-			want:  bson.D{},
+			name:   "empty",
+			maxLen: 0,
+			want:   bson.D{},
 		},
 		{
-			name:  "aws with 1 less than enough space for name",
-			hello: &Hello{},
+			name:   "1 less than enough space",
+			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("env"), addMaxLenBuf(-1)),
+			want:   bson.D{},
+		},
+		{
+			name:   "exact amount of space",
+			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("env")),
+			want:   bson.D{},
+		},
+		{
+			name: "1 less than enough space for aws name",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
-				"AWS_REGION":                      "us-east-2",
-				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 			},
-			max: int32(bytesToStartDocument +
-				docElementSize - 1 +
-				len("env") +
-				stringElementSize +
-				len("name") +
-				len(envNameAWSLambda) - 1),
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenBuf(-1)),
 			want: bson.D{},
 		},
 		{
-			name:  "aws with exact space for name",
-			hello: &Hello{},
+			name: "exact amount of space for aws name",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
-				"AWS_REGION":                      "us-east-2",
-				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 			},
-			max: int32(bytesToStartDocument +
-				docElementSize +
-				len("env") +
-				stringElementSize +
-				len("name") +
-				len(envNameAWSLambda)),
-			want: bson.D{
-				{Key: "env", Value: bson.D{
-					{Key: "name", Value: envNameAWSLambda},
-				}},
-			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda)),
+			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
 		},
 		{
-			name:  "aws with all elements",
-			hello: &Hello{},
+			name: "1 more than enough space for aws name",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
-				"AWS_REGION":                      "us-east-2",
-				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 			},
-			max: 512,
-			want: bson.D{
-				{Key: "env", Value: bson.D{
-					{Key: "name", Value: envNameAWSLambda},
-					{Key: "region", Value: "us-east-2"},
-					{Key: "memory_mb", Value: 1024},
-				}},
-			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
 		},
-	} {
+		{
+			name: "exact amount of space for aws name but not env",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda)),
+			want: bson.D{},
+		},
+		{
+			name: "1 less than enough space for aws name and memory_mb",
+			env: map[string]string{
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "1024",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
+		},
+		{
+			name: "exact amount of space for aws name and memory_mb",
+			env: map[string]string{
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "1024",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenInt32Elem("memory_mb", 1024)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAWSLambda},
+				{Key: "memory_mb", Value: int32(1024)},
+			}}},
+		},
+		{
+			name: "1 more than enough space for aws name and memory_mb",
+			env: map[string]string{
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "1024",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAWSLambda},
+				{Key: "memory_mb", Value: int32(1024)},
+			}}},
+		},
+		{
+			name: "1 less than enough space for aws name, memory_mb, and region",
+			env: map[string]string{
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "1024",
+				envVarAWSRegion:                   "us-east-1",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenStringElem("region", "us-east-1"),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAWSLambda},
+				{Key: "memory_mb", Value: int32(1024)},
+			}}},
+		},
+		{
+			name: "exact amount of space for aws name, memory_mb, and region",
+			env: map[string]string{
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "1024",
+				envVarAWSRegion:                   "us-east-1",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenStringElem("region", "us-east-1")),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAWSLambda},
+				{Key: "memory_mb", Value: int32(1024)},
+				{Key: "region", Value: "us-east-1"},
+			}}},
+		},
+		{
+			name: "1 more than enough space for aws name, memory_mb, and region",
+			env: map[string]string{
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "1024",
+				envVarAWSRegion:                   "us-east-1",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAWSLambda),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenStringElem("region", "us-east-1"),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAWSLambda},
+				{Key: "memory_mb", Value: int32(1024)},
+				{Key: "region", Value: "us-east-1"},
+			}}},
+		},
+		{
+			name: "1 less than enouch for gcp name",
+			env: map[string]string{
+				envVarKService: "gcp",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenBuf(-1)),
+			want: bson.D{},
+		},
+		{
+			name: "exact amount of space for gcp name",
+			env: map[string]string{
+				envVarKService: "gcp",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+			}}},
+		},
+		{
+			name: "1 more than enough space for gcp name",
+			env: map[string]string{
+				envVarKService: "gcp",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+			}}},
+		},
+		{
+			name: "1 less than enough space for gcp name and memory_mb",
+			env: map[string]string{
+				envVarKService:         "gcp",
+				envVarFunctionMemoryMB: "1024",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+			}}},
+		},
+		{
+			name: "exact amount of space for gcp name and memory_mb",
+			env: map[string]string{
+				envVarKService:         "gcp",
+				envVarFunctionMemoryMB: "1024",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenInt32Elem("memory_mb", 1024)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+				{Key: "memory_mb", Value: int32(1024)},
+			}}},
+		},
+		{
+			name: "1 more than enough space for gcp name and memory_mb",
+			env: map[string]string{
+				envVarKService:         "gcp",
+				envVarFunctionMemoryMB: "1024",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+				{Key: "memory_mb", Value: int32(1024)},
+			}}},
+		},
+		{
+			name: "1 less than enough space for gcp name, memory_mb, and region",
+			env: map[string]string{
+				envVarKService:         "gcp",
+				envVarFunctionMemoryMB: "1024",
+				envVarFunctionRegion:   "us-east-1",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenStringElem("region", "us-east-1"),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+				{Key: "memory_mb", Value: int32(1024)},
+			}}},
+		},
+		{
+			name: "exact amount of space for gcp name, memory_mb, and region",
+			env: map[string]string{
+				envVarKService:         "gcp",
+				envVarFunctionMemoryMB: "1024",
+				envVarFunctionRegion:   "us-east-1",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameGCPFunc),
+				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenStringElem("region", "us-east-1")),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameGCPFunc},
+				{Key: "memory_mb", Value: int32(1024)},
+				{Key: "region", Value: "us-east-1"},
+			}}},
+		},
+		{
+			name: "1 less than enough for azure name",
+			env: map[string]string{
+				envVarFunctionsWorkerRuntime: "node",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAzureFunc),
+				addMaxLenBuf(-1)),
+			want: bson.D{},
+		},
+		{
+			name: "exact amount of space for azure name",
+			env: map[string]string{
+				envVarFunctionsWorkerRuntime: "node",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAzureFunc)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAzureFunc},
+			}}},
+		},
+		{
+			name: "1 more than enough space for azure name",
+			env: map[string]string{
+				envVarFunctionsWorkerRuntime: "node",
+			},
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("env"),
+				addMaxLenStringElem("name", envNameAzureFunc),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "env", Value: bson.D{
+				{Key: "name", Value: envNameAzureFunc},
+			}}},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
 		t.Run(test.name, func(t *testing.T) {
-			// Set the environment variables.
 			for k, v := range test.env {
 				t.Setenv(k, v)
 			}
 
-			idx, dst := bsoncore.AppendDocumentStart(test.dst)
+			cb := func(dst []byte) ([]byte, error) {
+				var err error
+				_, dst, err = appendClientEnv(dst, test.maxLen)
 
-			dst, err := test.hello.appendClientEnv(dst, test.max)
-			if err != nil {
-				t.Fatalf("error appending client metadata: %v", err)
+				return dst, err
 			}
 
-			dst, err = bsoncore.AppendDocumentEnd(dst, idx)
-			if err != nil {
-				t.Fatalf("error appending document end: %v", err)
+			got := encodeWithCallback(t, nil, cb)
+			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
+		})
+	}
+}
+
+func TestAppendClientOS(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		maxLen int32
+		want   bson.D
+	}{
+		{
+			name:   "empty",
+			maxLen: 0,
+			want:   bson.D{},
+		},
+		{
+			name: "1 less than enough space for os type",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("os"),
+				addMaxLenStringElem("type", runtime.GOOS),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "os", Value: bson.D{}}},
+		},
+		{
+			name: "exact amount of space for os type",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("os"),
+				addMaxLenStringElem("type", runtime.GOOS)),
+			want: bson.D{{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+			}}},
+		},
+		{
+			name: "1 more than enough space for os type",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("os"),
+				addMaxLenStringElem("type", runtime.GOOS),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+			}}},
+		},
+		{
+			name: "1 less than enough space for os architecture",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("os"),
+				addMaxLenStringElem("type", runtime.GOOS),
+				addMaxLenStringElem("architecture", runtime.GOARCH),
+				addMaxLenBuf(-1)),
+			want: bson.D{{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+			}}},
+		},
+		{
+			name: "exact amount of space for os architecture",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("os"),
+				addMaxLenStringElem("type", runtime.GOOS),
+				addMaxLenStringElem("architecture", runtime.GOARCH)),
+			want: bson.D{{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+				{Key: "architecture", Value: runtime.GOARCH},
+			}}},
+		},
+		{
+			name: "1 more than enough space for os architecture",
+			maxLen: calcMaxLen(
+				addMaxLenEmbeddedDocument("os"),
+				addMaxLenStringElem("type", runtime.GOOS),
+				addMaxLenStringElem("architecture", runtime.GOARCH),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "os", Value: bson.D{
+				{Key: "type", Value: runtime.GOOS},
+				{Key: "architecture", Value: runtime.GOARCH},
+			}}},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			cb := func(dst []byte) ([]byte, error) {
+				var err error
+				_, dst, err = appendClientOS(dst, test.maxLen)
+
+				return dst, err
 			}
 
-			got, _, ok := bsoncore.ReadDocument(dst)
-			if !ok {
-				t.Fatalf("error reading document")
+			got := encodeWithCallback(t, nil, cb)
+			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
+		})
+	}
+}
+
+func TestAppendClientPlatform(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		maxLen int32
+		want   bson.D
+	}{
+		{
+			name:   "empty",
+			maxLen: 0,
+			want:   bson.D{},
+		},
+		{
+			name: "1 less than enough space for platform",
+			maxLen: calcMaxLen(
+				addMaxLenStringElem("platform", runtime.Version()),
+				addMaxLenBuf(-1)),
+			want: bson.D{},
+		},
+		{
+			name: "exact amount of space for platform",
+			maxLen: calcMaxLen(
+				addMaxLenStringElem("platform", runtime.Version())),
+			want: bson.D{{Key: "platform", Value: runtime.Version()}},
+		},
+		{
+			name: "1 more than enough space for platform",
+			maxLen: calcMaxLen(
+				addMaxLenStringElem("platform", runtime.Version()),
+				addMaxLenBuf(1)),
+			want: bson.D{{Key: "platform", Value: runtime.Version()}},
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+			cb := func(dst []byte) ([]byte, error) {
+				var err error
+				_, dst, err = appendClientPlatform(dst, test.maxLen)
+
+				return dst, err
 			}
 
-			wantBytes, err := bson.Marshal(test.want)
-			if err != nil {
-				t.Fatalf("error marshaling want document: %v", err)
-			}
-
-			want := bsoncore.Document(wantBytes)
-
-			// Get all of the want keys as a set.
-			wantElems, err := want.Elements()
-			if err != nil {
-				t.Fatalf("error getting elements from want document: %v", err)
-			}
-
-			// Compare element by element.
-			gotElems, err := got.Elements()
-			if err != nil {
-				t.Fatalf("error getting elements from got document: %v", err)
-			}
-
-			if !reflect.DeepEqual(gotElems, wantElems) {
-				t.Errorf("got %v, want %v", gotElems, wantElems)
-			}
+			got := encodeWithCallback(t, nil, cb)
+			assertAppendClientMaxLen(t, got, test.want, test.maxLen)
 		})
 	}
 }
@@ -441,4 +791,39 @@ func TestParseFaasEnvName(t *testing.T) {
 			}
 		})
 	}
+}
+
+func BenchmarkClientMetadata(b *testing.B) {
+	h := &Hello{}
+	b.ReportAllocs()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := encodeClientMetadata(h, maxHelloCommandSize)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func FuzzEncodeClientMetadata(f *testing.F) {
+	f.Fuzz(func(t *testing.T, b []byte, appname string) {
+		// If b is already create than "maxHelloCommandSize" bytes, then
+		// appending the client will cause an error.
+		if len(b) > maxHelloCommandSize {
+			return
+		}
+
+		h := &Hello{appname: appname}
+
+		dst, err := encodeClientMetadata(h, maxHelloCommandSize)
+		if err != nil {
+			t.Fatalf("error appending client: %v", err)
+		}
+
+		if len(dst) > maxHelloCommandSize {
+			t.Fatalf("appended client is too large: %d > %d / %d", len(dst), len(b), maxHelloCommandSize)
+		}
+	})
 }
