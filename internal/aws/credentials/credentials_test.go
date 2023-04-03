@@ -137,7 +137,7 @@ func (*MockProvider) Retrieve() (Value, error) {
 	return Value{}, nil
 }
 
-func TestCredentialsIsExpired_Race(t *testing.T) {
+func TestCredentialsIsExpired_Race(_ *testing.T) {
 	creds := NewChainCredentials([]Provider{&MockProvider{}})
 
 	starter := make(chan struct{})
