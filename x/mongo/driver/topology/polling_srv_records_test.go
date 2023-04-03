@@ -75,7 +75,7 @@ func (r *mockResolver) LookupSRV(service, proto, name string) (string, []*net.SR
 	return str, addresses, err
 }
 
-func (r *mockResolver) LookupTXT(name string) ([]string, error) { return nil, nil }
+func (r *mockResolver) LookupTXT(string) ([]string, error) { return nil, nil }
 
 var srvPollingTests = []struct {
 	name            string

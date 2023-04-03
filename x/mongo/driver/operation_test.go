@@ -724,7 +724,7 @@ type mockDeployment struct {
 	}
 }
 
-func (m *mockDeployment) SelectServer(ctx context.Context, desc description.ServerSelector) (Server, error) {
+func (m *mockDeployment) SelectServer(_ context.Context, desc description.ServerSelector) (Server, error) {
 	m.params.selector = desc
 	return m.returns.server, m.returns.err
 }

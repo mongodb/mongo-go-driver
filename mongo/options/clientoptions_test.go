@@ -796,7 +796,7 @@ type testDialer struct {
 	Num int
 }
 
-func (testDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+func (testDialer) DialContext(context.Context, string, string) (net.Conn, error) {
 	return nil, nil
 }
 

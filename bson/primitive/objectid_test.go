@@ -18,11 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/require"
 )
 
-func TestNew(t *testing.T) {
-	// Ensure that objectid.NewObjectID() doesn't panic.
-	NewObjectID()
-}
-
 func TestString(t *testing.T) {
 	id := NewObjectID()
 	require.Contains(t, id.String(), id.Hex())

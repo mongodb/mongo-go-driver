@@ -33,6 +33,8 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 	copy(b, wm)
 	select {
 	case c.Written <- b:
+	case <-ctx.Done():
+		return ctx.Err()
 	default:
 		c.WriteErr = errors.New("could not write wiremessage to written channel")
 	}
@@ -47,6 +49,7 @@ func (c *ChannelConn) ReadWireMessage(ctx context.Context) ([]byte, error) {
 	case wm = <-c.ReadResp:
 	case err = <-c.ReadErr:
 	case <-ctx.Done():
+		err = ctx.Err()
 	}
 	return wm, err
 }

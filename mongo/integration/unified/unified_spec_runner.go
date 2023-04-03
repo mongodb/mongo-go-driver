@@ -374,8 +374,5 @@ func disableFailPointWithClient(ctx context.Context, fpName string, client *mong
 		{"configureFailPoint", fpName},
 		{"mode", "off"},
 	}
-	if err := client.Database("admin").RunCommand(ctx, cmd).Err(); err != nil {
-		return err
-	}
-	return nil
+	return client.Database("admin").RunCommand(ctx, cmd).Err()
 }
