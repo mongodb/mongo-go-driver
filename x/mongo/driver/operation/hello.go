@@ -132,7 +132,7 @@ const (
 )
 
 const (
-	// FaaS supprint environment variable names
+	// FaaS environment variable names
 	envVarAWSRegion                   = "AWS_REGION"
 	envVarAWSLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
 	envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
