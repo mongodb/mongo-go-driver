@@ -267,10 +267,16 @@ func (rv RawValue) Int32OK() (int32, bool) { return convertToCoreValue(rv).Int32
 
 // AsInt32 returns a BSON number as an int32. If the BSON type is not a numeric one, this method
 // will panic.
+//
+// Deprecated: Use AsInt64 instead. If an int32 is required, convert the returned value to an int32
+// and perform any required overflow/underflow checking.
 func (rv RawValue) AsInt32() int32 { return convertToCoreValue(rv).AsInt32() }
 
 // AsInt32OK is the same as AsInt32, except that it returns a boolean instead of
 // panicking.
+//
+// Deprecated: Use AsInt64OK instead. If an int32 is required, convert the returned value to an
+// int32 and perform any required overflow/underflow checking.
 func (rv RawValue) AsInt32OK() (int32, bool) { return convertToCoreValue(rv).AsInt32OK() }
 
 // Timestamp returns the BSON timestamp value the Value represents. It panics if the value is a
