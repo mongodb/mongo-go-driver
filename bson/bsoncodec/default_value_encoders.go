@@ -58,10 +58,14 @@ func encodeElement(ec EncodeContext, dw bsonrw.DocumentWriter, e primitive.E) er
 
 // DefaultValueEncoders is a namespace type for the default ValueEncoders used
 // when creating a registry.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 type DefaultValueEncoders struct{}
 
 // RegisterDefaultEncoders will register the encoder methods attached to DefaultValueEncoders with
 // the provided RegistryBuilder.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 	if rb == nil {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
@@ -113,6 +117,8 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 }
 
 // BooleanEncodeValue is the ValueEncoderFunc for bool types.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) BooleanEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Bool {
 		return ValueEncoderError{Name: "BooleanEncodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
@@ -125,6 +131,8 @@ func fitsIn32Bits(i int64) bool {
 }
 
 // IntEncodeValue is the ValueEncoderFunc for int types.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Int8, reflect.Int16, reflect.Int32:
@@ -176,6 +184,8 @@ func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.Valu
 }
 
 // FloatEncodeValue is the ValueEncoderFunc for float types.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) FloatEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Float32, reflect.Float64:
@@ -201,6 +211,8 @@ func (dve DefaultValueEncoders) StringEncodeValue(_ EncodeContext, vw bsonrw.Val
 }
 
 // ObjectIDEncodeValue is the ValueEncoderFunc for primitive.ObjectID.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) ObjectIDEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tOID {
 		return ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: val}
@@ -209,6 +221,8 @@ func (dve DefaultValueEncoders) ObjectIDEncodeValue(_ EncodeContext, vw bsonrw.V
 }
 
 // Decimal128EncodeValue is the ValueEncoderFunc for primitive.Decimal128.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) Decimal128EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDecimal {
 		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: val}
@@ -217,6 +231,8 @@ func (dve DefaultValueEncoders) Decimal128EncodeValue(_ EncodeContext, vw bsonrw
 }
 
 // JSONNumberEncodeValue is the ValueEncoderFunc for json.Number.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tJSONNumber {
 		return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
@@ -237,6 +253,8 @@ func (dve DefaultValueEncoders) JSONNumberEncodeValue(ec EncodeContext, vw bsonr
 }
 
 // URLEncodeValue is the ValueEncoderFunc for url.URL.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) URLEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tURL {
 		return ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: val}
@@ -343,6 +361,8 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 }
 
 // ArrayEncodeValue is the ValueEncoderFunc for array types.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Array {
 		return ValueEncoderError{Name: "ArrayEncodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: val}
@@ -515,6 +535,8 @@ func (dve DefaultValueEncoders) EmptyInterfaceEncodeValue(ec EncodeContext, vw b
 }
 
 // ValueMarshalerEncodeValue is the ValueEncoderFunc for ValueMarshaler implementations.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement ValueMarshaler
 	switch {
@@ -541,6 +563,8 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(_ EncodeContext, vw bs
 }
 
 // MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) MarshalerEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Marshaler
 	switch {
@@ -567,6 +591,8 @@ func (dve DefaultValueEncoders) MarshalerEncodeValue(_ EncodeContext, vw bsonrw.
 }
 
 // ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Proxy
 	switch {
@@ -603,6 +629,8 @@ func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw bsonrw.Val
 }
 
 // JavaScriptEncodeValue is the ValueEncoderFunc for the primitive.JavaScript type.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) JavaScriptEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tJavaScript {
 		return ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
@@ -612,6 +640,8 @@ func (DefaultValueEncoders) JavaScriptEncodeValue(_ EncodeContext, vw bsonrw.Val
 }
 
 // SymbolEncodeValue is the ValueEncoderFunc for the primitive.Symbol type.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) SymbolEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tSymbol {
 		return ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: val}
@@ -621,6 +651,8 @@ func (DefaultValueEncoders) SymbolEncodeValue(_ EncodeContext, vw bsonrw.ValueWr
 }
 
 // BinaryEncodeValue is the ValueEncoderFunc for Binary.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) BinaryEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tBinary {
 		return ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: val}
@@ -631,6 +663,8 @@ func (DefaultValueEncoders) BinaryEncodeValue(_ EncodeContext, vw bsonrw.ValueWr
 }
 
 // UndefinedEncodeValue is the ValueEncoderFunc for Undefined.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) UndefinedEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tUndefined {
 		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: val}
@@ -640,6 +674,8 @@ func (DefaultValueEncoders) UndefinedEncodeValue(_ EncodeContext, vw bsonrw.Valu
 }
 
 // DateTimeEncodeValue is the ValueEncoderFunc for DateTime.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) DateTimeEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDateTime {
 		return ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: val}
@@ -649,6 +685,8 @@ func (DefaultValueEncoders) DateTimeEncodeValue(_ EncodeContext, vw bsonrw.Value
 }
 
 // NullEncodeValue is the ValueEncoderFunc for Null.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) NullEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tNull {
 		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: val}
@@ -658,6 +696,8 @@ func (DefaultValueEncoders) NullEncodeValue(_ EncodeContext, vw bsonrw.ValueWrit
 }
 
 // RegexEncodeValue is the ValueEncoderFunc for Regex.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) RegexEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tRegex {
 		return ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: val}
@@ -669,6 +709,8 @@ func (DefaultValueEncoders) RegexEncodeValue(_ EncodeContext, vw bsonrw.ValueWri
 }
 
 // DBPointerEncodeValue is the ValueEncoderFunc for DBPointer.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) DBPointerEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDBPointer {
 		return ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
@@ -680,6 +722,8 @@ func (DefaultValueEncoders) DBPointerEncodeValue(_ EncodeContext, vw bsonrw.Valu
 }
 
 // TimestampEncodeValue is the ValueEncoderFunc for Timestamp.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) TimestampEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTimestamp {
 		return ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
@@ -691,6 +735,8 @@ func (DefaultValueEncoders) TimestampEncodeValue(_ EncodeContext, vw bsonrw.Valu
 }
 
 // MinKeyEncodeValue is the ValueEncoderFunc for MinKey.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) MinKeyEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tMinKey {
 		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: val}
@@ -700,6 +746,8 @@ func (DefaultValueEncoders) MinKeyEncodeValue(_ EncodeContext, vw bsonrw.ValueWr
 }
 
 // MaxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) MaxKeyEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tMaxKey {
 		return ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
@@ -709,6 +757,8 @@ func (DefaultValueEncoders) MaxKeyEncodeValue(_ EncodeContext, vw bsonrw.ValueWr
 }
 
 // CoreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (DefaultValueEncoders) CoreDocumentEncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCoreDocument {
 		return ValueEncoderError{Name: "CoreDocumentEncodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
@@ -720,6 +770,8 @@ func (DefaultValueEncoders) CoreDocumentEncodeValue(_ EncodeContext, vw bsonrw.V
 }
 
 // CodeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with all default value encoders registered.
 func (dve DefaultValueEncoders) CodeWithScopeEncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCodeWithScope {
 		return ValueEncoderError{Name: "CodeWithScopeEncodeValue", Types: []reflect.Type{tCodeWithScope}, Received: val}
