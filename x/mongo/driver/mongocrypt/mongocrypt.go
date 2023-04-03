@@ -69,7 +69,9 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	}
 
 	// Enable Queryable Encryption V2 protocol.
-	C.mongocrypt_setopt_fle2v2(wrapped, true)
+	if !C.mongocrypt_setopt_fle2v2(wrapped, true) {
+		return nil, crypt.createErrorFromStatus()
+	}
 
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.
