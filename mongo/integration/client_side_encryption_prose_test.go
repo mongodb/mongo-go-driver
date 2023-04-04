@@ -81,7 +81,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		},
 	}
 
-	runOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.Run("1. custom key material test", func(mt *mtest.T) {
 		const (
 			dkCollection = "datakeys"
@@ -1560,7 +1559,14 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	runOpts := mtest.NewOptions().MinServerVersion("7.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("12. explicit encryption", runOpts, func(mt *mtest.T) {
+		if mtest.Serverless() {
+			// Skip tests if running against serverless, as capped collections are banned.
+			mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
+		}
 		// Test Setup ... begin
 		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
 		key1Document := readJSONFile(mt, "key1-document.json")
@@ -2060,8 +2066,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 		})
 
-	autoKeyRunOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
-	mt.RunOpts("21. automatic data encryption keys", autoKeyRunOpts, func(mt *mtest.T) {
+	// qeRunOpts are requirements for Queryable Encryption.
+	qeRunOpts := mtest.NewOptions().MinServerVersion("7.0").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
+	mt.RunOpts("21. automatic data encryption keys", qeRunOpts, func(mt *mtest.T) {
+		if mtest.Serverless() {
+			// Skip tests if running against serverless, as capped collections are banned.
+			mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
+		}
 		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
 			opts := options.Client().ApplyURI(mtest.ClusterURI())
 			client, err := mongo.Connect(context.Background(), opts)
@@ -2220,8 +2233,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	rangeRunOpts := mtest.NewOptions().MinServerVersion("6.2").Topologies(mtest.ReplicaSet, mtest.Sharded, mtest.LoadBalanced, mtest.ShardedReplicaSet)
-	mt.RunOpts("22. range explicit encryption", rangeRunOpts, func(mt *mtest.T) {
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
+	mt.RunOpts("22. range explicit encryption", qeRunOpts, func(mt *mtest.T) {
+		if mtest.Serverless() {
+			// Skip tests if running against serverless, as capped collections are banned.
+			mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
+		}
 		type testcase struct {
 			typeStr       string
 			field         string
