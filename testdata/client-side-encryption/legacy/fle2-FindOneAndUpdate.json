@@ -1,6 +1,7 @@
 {
   "runOn": [
     {
+      "maxServerVersion": "6.2.99",
       "minServerVersion": "6.0.0",
       "topology": [
         "replicaset",

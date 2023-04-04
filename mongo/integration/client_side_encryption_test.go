@@ -477,6 +477,7 @@ func TestFLE2DocsExample(t *testing.T) {
 	// FLE 2 is not supported on Standalone topology.
 	mtOpts := mtest.NewOptions().
 		MinServerVersion("6.0").
+		MaxServerVersion("6.2.99").
 		Enterprise(true).
 		CreateClient(false).
 		Topologies(mtest.ReplicaSet,

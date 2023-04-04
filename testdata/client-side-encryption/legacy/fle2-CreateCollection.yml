@@ -1,6 +1,8 @@
 # This test requires libmongocrypt 1.5.0-alpha2.
 runOn:
-  - minServerVersion: "6.0.0"
+  - maxServerVersion: "6.2.99"
+    # Do not test on server version >= 6.3.0. Server version >= 6.3.0 includes backwards breaking changes to FLE2 protocol. Refer: DRIVERS-2435
+    minServerVersion: "6.0.0"
     # FLE 2 Encrypted collections are not supported on standalone.
     topology: [ "replicaset", "sharded", "load-balanced" ]
     
