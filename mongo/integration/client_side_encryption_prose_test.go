@@ -78,7 +78,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		},
 	}
 
-	runOpts := mtest.NewOptions().MinServerVersion("6.0").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.Run("1. custom key material test", func(mt *mtest.T) {
 		const (
 			dkCollection = "datakeys"
@@ -1534,6 +1533,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			})
 		}
 	})
+	runOpts := mtest.NewOptions().MinServerVersion("6.0").MaxServerVersion("6.2.99").Topologies(mtest.ReplicaSet, mtest.LoadBalanced, mtest.ShardedReplicaSet)
 	mt.RunOpts("12. explicit encryption", runOpts, func(mt *mtest.T) {
 		// Test Setup ... begin
 		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
