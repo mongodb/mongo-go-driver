@@ -16,6 +16,8 @@ import (
 )
 
 // StringCodec is the Codec used for string values.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the StringCodec registered.
 type StringCodec struct {
 	DecodeObjectIDAsHex bool
 }
@@ -30,6 +32,8 @@ var (
 )
 
 // NewStringCodec returns a StringCodec with options opts.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the StringCodec registered.
 func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
 	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
 	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}
@@ -48,7 +52,7 @@ func (sc *StringCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val r
 	return vw.WriteString(val.String())
 }
 
-func (sc *StringCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -70,9 +74,10 @@ func (sc *StringCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t refl
 		if err != nil {
 			return emptyValue, err
 		}
-		if sc.DecodeObjectIDAsHex {
+		if sc.DecodeObjectIDAsHex || dc.ObjectIDAsHexString {
 			str = oid.Hex()
 		} else {
+			// TODO(GODRIVER-2796): Return an error here instead of decoding to a garbled string.
 			byteArray := [12]byte(oid)
 			str = string(byteArray[:])
 		}

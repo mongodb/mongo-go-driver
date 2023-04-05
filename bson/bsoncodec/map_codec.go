@@ -20,6 +20,8 @@ import (
 var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the MapCodec registered.
 type MapCodec struct {
 	DecodeZerosMap         bool
 	EncodeNilAsEmpty       bool
@@ -43,6 +45,8 @@ type KeyUnmarshaler interface {
 }
 
 // NewMapCodec returns a MapCodec with options opts.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the MapCodec registered.
 func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	mapOpt := bsonoptions.MergeMapCodecOptions(opts...)
 
@@ -65,7 +69,7 @@ func (mc *MapCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val ref
 		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
-	if val.IsNil() && !mc.EncodeNilAsEmpty {
+	if val.IsNil() && !mc.EncodeNilAsEmpty && !ec.NilMapAsEmpty {
 		// If we have a nil map but we can't WriteNull, that means we're probably trying to encode
 		// to a TopLevel document. We can't currently tell if this is what actually happened, but if
 		// there's a deeper underlying problem, the error will also be returned from WriteDocument,
@@ -98,7 +102,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 
 	keys := val.MapKeys()
 	for _, key := range keys {
-		keyStr, err := mc.encodeKey(key)
+		keyStr, err := mc.encodeKey(key, ec.MapKeysWithStringer)
 		if err != nil {
 			return err
 		}
@@ -209,8 +213,8 @@ func clearMap(m reflect.Value) {
 	}
 }
 
-func (mc *MapCodec) encodeKey(val reflect.Value) (string, error) {
-	if mc.EncodeKeysWithStringer {
+func (mc *MapCodec) encodeKey(val reflect.Value, encodeKeysWithStringer bool) (string, error) {
+	if mc.EncodeKeysWithStringer || encodeKeysWithStringer {
 		return fmt.Sprint(val), nil
 	}
 

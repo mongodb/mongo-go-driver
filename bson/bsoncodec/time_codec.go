@@ -22,6 +22,8 @@ const (
 )
 
 // TimeCodec is the Codec used for time.Time values.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the TimeCodec registered.
 type TimeCodec struct {
 	UseLocalTimeZone bool
 }
@@ -35,6 +37,8 @@ var (
 )
 
 // NewTimeCodec returns a TimeCodec with options opts.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the TimeCodec registered.
 func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) *TimeCodec {
 	timeOpt := bsonoptions.MergeTimeCodecOptions(opts...)
 

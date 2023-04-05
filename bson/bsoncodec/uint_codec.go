@@ -17,6 +17,8 @@ import (
 )
 
 // UIntCodec is the Codec used for uint values.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the UIntCodec registered.
 type UIntCodec struct {
 	EncodeToMinSize bool
 }
@@ -30,6 +32,8 @@ var (
 )
 
 // NewUIntCodec returns a UIntCodec with options opts.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the UIntCodec registered.
 func NewUIntCodec(opts ...*bsonoptions.UIntCodecOptions) *UIntCodec {
 	uintOpt := bsonoptions.MergeUIntCodecOptions(opts...)
 
@@ -49,7 +53,7 @@ func (uic *UIntCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val r
 		u64 := val.Uint()
 
 		// If ec.MinSize or if encodeToMinSize is true for a non-uint64 value we should write val as an int32
-		useMinSize := ec.MinSize || (uic.EncodeToMinSize && val.Kind() != reflect.Uint64)
+		useMinSize := (ec.IntMinSize || ec.MinSize) || (uic.EncodeToMinSize && val.Kind() != reflect.Uint64)
 
 		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))
@@ -87,7 +91,7 @@ func (uic *UIntCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t refl
 		if err != nil {
 			return emptyValue, err
 		}
-		if !dc.Truncate && math.Floor(f64) != f64 {
+		if !(dc.AllowTruncatingDoubles || dc.Truncate) && math.Floor(f64) != f64 {
 			return emptyValue, errCannotTruncate
 		}
 		if f64 > float64(math.MaxInt64) {

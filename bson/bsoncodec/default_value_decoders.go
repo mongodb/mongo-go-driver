@@ -277,7 +277,7 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr bsonrw.ValueReade
 		if err != nil {
 			return emptyValue, err
 		}
-		if !dc.Truncate && math.Floor(f64) != f64 {
+		if !(dc.AllowTruncatingDoubles || dc.Truncate) && math.Floor(f64) != f64 {
 			return emptyValue, errCannotTruncate
 		}
 		if f64 > float64(math.MaxInt64) {
@@ -384,7 +384,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 		if err != nil {
 			return err
 		}
-		if !dc.Truncate && math.Floor(f64) != f64 {
+		if !(dc.AllowTruncatingDoubles || dc.Truncate) && math.Floor(f64) != f64 {
 			return errors.New("UintDecodeValue can only truncate float64 to an integer type when truncation is enabled")
 		}
 		if f64 > float64(math.MaxInt64) {
@@ -444,7 +444,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr bsonrw.Valu
 	return nil
 }
 
-func (dvd DefaultValueDecoders) floatDecodeType(ec DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	var f float64
 	var err error
 	switch vrType := vr.Type(); vrType {
@@ -487,7 +487,7 @@ func (dvd DefaultValueDecoders) floatDecodeType(ec DecodeContext, vr bsonrw.Valu
 
 	switch t.Kind() {
 	case reflect.Float32:
-		if !ec.Truncate && float64(float32(f)) != f {
+		if !(dc.AllowTruncatingDoubles || dc.Truncate) && float64(float32(f)) != f {
 			return emptyValue, errCannotTruncate
 		}
 

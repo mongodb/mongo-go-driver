@@ -119,13 +119,63 @@ func (vde ValueDecoderError) Error() string {
 // value.
 type EncodeContext struct {
 	*Registry
+
+	// IntMinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16,
+	// int32, or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent
+	// the integer value.
+	//
+	// Deprecated: Use IntMinSize instead.
 	MinSize bool
+
+	// AllowUnexportedFields, if true, instructs encoders to marshal values from unexported struct
+	// fields.
+	AllowUnexportedFields bool
+
+	// ErrorOnInlineDuplicates, if true, instructs encoders to return an error if there is a
+	// duplicate field in the marshaled BSON when the "inline" struct tag option is set.
+	ErrorOnInlineDuplicates bool
+
+	// IntMinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16,
+	// int32, or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent
+	// the integer value.
+	IntMinSize bool
+
+	// MapKeysWithStringer, if true, instructs encoders to convert Go map keys to BSON document
+	// field name strings using fmt.Sprintf() instead of the default string conversion logic.
+	MapKeysWithStringer bool
+
+	// NilMapAsEmpty, if true, instructs encoders to marshal nil Go maps as empty BSON documents
+	// instead of BSON null.
+	NilMapAsEmpty bool
+
+	// NilSliceAsEmpty, if true, instructs encoders to marshal nil Go slices as empty BSON arrays
+	// instead of BSON null.
+	NilSliceAsEmpty bool
+
+	// NilByteSliceAsEmpty, if true, instructs encoders to marshal nil Go byte slices as empty BSON
+	// binary values instead of BSON null.
+	NilByteSliceAsEmpty bool
+
+	// OmitDefaultStruct, if true, instructs encoders to consider the zero value for a struct (e.g.
+	// MyStruct{}) as empty and omit it from the marshaled BSON when the "omitempty" struct tag
+	// option is set.
+	OmitDefaultStruct bool
+
+	// UseJSONStructTags, if true, instructs encoders to fall back to using the "json" struct tag if
+	// a "bson" struct tag is not specified.
+	UseJSONStructTags bool
 }
 
 // DecodeContext is the contextual information required for a Codec to decode a
 // value.
 type DecodeContext struct {
 	*Registry
+
+	// Truncate allows truncating the fractional part of BSON floating point values when decoding
+	// them into a Go integer value. The default is false, which returns an error when attempting to
+	// decode BSON floating point values with a fractional part into a Go integer.
+	//
+	// Deprecated: Use AllowTruncatingFloats instead.
 	Truncate bool
 
 	// Ancestor is the type of a containing document. This is mainly used to determine what type
@@ -141,6 +191,30 @@ type DecodeContext struct {
 	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
 	// error. DocumentType overrides the Ancestor field.
 	defaultDocumentType reflect.Type
+
+	// AllowTruncatingDoubles, if true, instructs decoders to truncate the fractional part of BSON
+	// "double" values when attempting to unmarshal them into a Go integer struct field. The
+	// truncation logic does not apply to BSON "decimal128" values.
+	AllowTruncatingDoubles bool
+
+	// AllowUnexportedFields, if true, instructs decoders to unmarshal values into unexported struct fields.
+	AllowUnexportedFields bool
+
+	// BinaryAsSlice, if true, instructs decoders to unmarshal BSON binary field values that are the
+	// "Generic" or "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
+	BinaryAsSlice bool
+
+	// UseJSONStructTags, if true, instructs decoders to fall back to using the "json" struct tag if
+	// a "bson" struct tag is not specified.
+	UseJSONStructTags bool
+
+	// ZeroMaps, if true, instructs decoders to delete any existing values from Go maps in the
+	// destination value passed to Decode before unmarshaling BSON documents into them.
+	ZeroMaps bool
+
+	// ZeroStructs, if true, instructs decoders to delete any existing values from Go structs in the
+	// destination value passed to Decode before unmarshaling BSON documents into them.
+	ZeroStructs bool
 }
 
 // DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as

@@ -82,24 +82,78 @@ func (e *Encoder) Encode(val interface{}) error {
 	return encoder.EncodeValue(e.ec, e.vw, reflect.ValueOf(val))
 }
 
-// Reset will reset the state of the encoder, using the same *EncodeContext used in
+// Reset will reset the state of the Encoder, using the same *EncodeContext used in
 // the original construction but using vw.
 func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
 	e.vw = vw
 	return nil
 }
 
-// SetRegistry replaces the current registry of the encoder with r.
+// SetRegistry replaces the current registry of the Encoder with r.
 func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
 	e.ec.Registry = r
 	return nil
 }
 
-// SetContext replaces the current EncodeContext of the encoder with er.
+// SetContext replaces the current EncodeContext of the encoder with ec.
 //
 // Deprecated: Use the Encoder configuration methods set the desired behavior of the encoder
 // instead.
 func (e *Encoder) SetContext(ec bsoncodec.EncodeContext) error {
 	e.ec = ec
 	return nil
+}
+
+// AllowUnexportedFields causes the Encoder to marshal values from unexported struct fields.
+func (e *Encoder) AllowUnexportedFields() {
+	e.ec.AllowUnexportedFields = true
+}
+
+// ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in
+// the marshaled BSON when the "inline" struct tag option is set.
+func (e *Encoder) ErrorOnInlineDuplicates() {
+	e.ec.ErrorOnInlineDuplicates = true
+}
+
+// IntMinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, or int64) as
+// the minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
+func (e *Encoder) IntMinSize() {
+	e.ec.IntMinSize = true
+	e.ec.MinSize = true
+}
+
+// MapKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name strings
+// using fmt.Sprintf() instead of the default string conversion logic.
+func (e *Encoder) MapKeysWithStringer() {
+	e.ec.MapKeysWithStringer = true
+}
+
+// NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON
+// null.
+func (e *Encoder) NilMapAsEmpty() {
+	e.ec.NilMapAsEmpty = true
+}
+
+// NilSliceAsEmpty causes the Encoder to marshal nil Go slices as empty BSON arrays instead of BSON
+// null.
+func (e *Encoder) NilSliceAsEmpty() {
+	e.ec.NilSliceAsEmpty = true
+}
+
+// NilByteSliceAsEmpty causes the Encoder to marshal nil Go byte slices as empty BSON binary values
+// instead of BSON null.
+func (e *Encoder) NilByteSliceAsEmpty() {
+	e.ec.NilByteSliceAsEmpty = true
+}
+
+// OmitDefaultStruct causes the Encoder to consider the zero value for a struct (e.g. MyStruct{}) as
+// empty and omit it from the marshaled BSON when the "omitempty" struct tag option is set.
+func (e *Encoder) OmitDefaultStruct() {
+	e.ec.OmitDefaultStruct = true
+}
+
+// UseJSONStructTags causes the Encoder to fall back to using the "json" struct tag if a "bson"
+// struct tag is not specified.
+func (e *Encoder) UseJSONStructTags() {
+	e.ec.UseJSONStructTags = true
 }

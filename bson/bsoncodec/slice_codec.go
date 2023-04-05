@@ -19,11 +19,15 @@ import (
 var defaultSliceCodec = NewSliceCodec()
 
 // SliceCodec is the Codec used for slice values.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the SliceCodec registered.
 type SliceCodec struct {
 	EncodeNilAsEmpty bool
 }
 
 // NewSliceCodec returns a MapCodec with options opts.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the SliceCodec registered.
 func NewSliceCodec(opts ...*bsonoptions.SliceCodecOptions) *SliceCodec {
 	sliceOpt := bsonoptions.MergeSliceCodecOptions(opts...)
 
@@ -40,7 +44,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val re
 		return ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
-	if val.IsNil() && !sc.EncodeNilAsEmpty {
+	if val.IsNil() && !sc.EncodeNilAsEmpty && !ec.NilSliceAsEmpty {
 		return vw.WriteNull()
 	}
 

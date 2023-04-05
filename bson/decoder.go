@@ -145,3 +145,40 @@ func (d *Decoder) DefaultDocumentM() {
 func (d *Decoder) DefaultDocumentD() {
 	d.defaultDocumentD = true
 }
+
+// AllowTruncatingDoubles causes the Decoder to truncate the fractional part of BSON "double" values
+// when attempting to unmarshal them into a Go integer struct field. The truncation logic does not
+// apply to BSON "decimal128" values.
+func (d *Decoder) AllowTruncatingDoubles() {
+	d.dc.AllowTruncatingDoubles = true
+	d.dc.Truncate = true
+}
+
+// AllowUnexportedFields causes the Decoder to unmarshal values into unexported struct fields.
+func (d *Decoder) AllowUnexportedFields() {
+	d.dc.AllowUnexportedFields = true
+}
+
+// BinaryAsSlice causes the Decoder to unmarshal BSON binary field values that are the "Generic" or
+// "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
+func (d *Decoder) BinaryAsSlice() {
+	d.dc.BinaryAsSlice = true
+}
+
+// UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"
+// struct tag is not specified.
+func (d *Decoder) UseJSONStructTags() {
+	d.dc.UseJSONStructTags = true
+}
+
+// ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value
+// passed to Decode before unmarshaling BSON documents into them.
+func (d *Decoder) ZeroMaps() {
+	d.dc.ZeroMaps = true
+}
+
+// ZeroStructs causes the Decoder to delete any existing values from Go structs in the destination
+// value passed to Decode before unmarshaling BSON documents into them.
+func (d *Decoder) ZeroStructs() {
+	d.dc.ZeroStructs = true
+}

@@ -14,11 +14,15 @@ import (
 )
 
 // ArrayCodec is the Codec used for bsoncore.Array values.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the ArrayCodec registered.
 type ArrayCodec struct{}
 
 var defaultArrayCodec = NewArrayCodec()
 
 // NewArrayCodec returns an ArrayCodec.
+//
+// Deprecated: Use bson.NewRegistry to get a registry with the ArrayCodec registered.
 func NewArrayCodec() *ArrayCodec {
 	return &ArrayCodec{}
 }
