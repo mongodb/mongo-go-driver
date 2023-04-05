@@ -339,8 +339,10 @@ func TestRaw(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
+			tc := tc // Capture range variable.
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
+
 				reader, err := ReadDocument(tc.ioReader)
 				require.Equal(t, err, tc.err)
 				require.True(t, bytes.Equal(tc.bsonReader, reader))
