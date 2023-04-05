@@ -265,6 +265,7 @@ func TestRaw(t *testing.T) {
 		}
 	})
 	t.Run("ReadDocument", func(t *testing.T) {
+		t.Parallel()
 		testCases := []struct {
 			name       string
 			ioReader   io.Reader
@@ -339,6 +340,7 @@ func TestRaw(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 				reader, err := ReadDocument(tc.ioReader)
 				require.Equal(t, err, tc.err)
 				require.True(t, bytes.Equal(tc.bsonReader, reader))
