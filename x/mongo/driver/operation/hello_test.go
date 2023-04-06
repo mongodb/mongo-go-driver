@@ -63,7 +63,7 @@ func addMaxLenStringElem(key, name string) func() int {
 }
 
 //nolint:unparam
-func addMaxLenInt32Elem(key string, val int) func() int {
+func addMaxLenInt32Elem(key string) func() int {
 	return func() int {
 		return int32ElementSize + len(key)
 	}
@@ -335,7 +335,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenBuf(-1)),
 			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
 		},
@@ -348,7 +348,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb", 1024)),
+				addMaxLenInt32Elem("memory_mb")),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -363,7 +363,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenBuf(1)),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
@@ -380,7 +380,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenStringElem("region", "us-east-1"),
 				addMaxLenBuf(-1)),
 			want: bson.D{{Key: "env", Value: bson.D{
@@ -398,7 +398,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenStringElem("region", "us-east-1")),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
@@ -416,7 +416,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenStringElem("region", "us-east-1"),
 				addMaxLenBuf(1)),
 			want: bson.D{{Key: "env", Value: bson.D{
@@ -470,7 +470,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenBuf(-1)),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
@@ -485,7 +485,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb", 1024)),
+				addMaxLenInt32Elem("memory_mb")),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -500,7 +500,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenBuf(1)),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
@@ -517,7 +517,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenStringElem("region", "us-east-1"),
 				addMaxLenBuf(-1)),
 			want: bson.D{{Key: "env", Value: bson.D{
@@ -535,7 +535,7 @@ func TestAppendClientEnv(t *testing.T) {
 			maxLen: calcMaxLen(
 				addMaxLenEmbeddedDocument("env"),
 				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb", 1024),
+				addMaxLenInt32Elem("memory_mb"),
 				addMaxLenStringElem("region", "us-east-1")),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
