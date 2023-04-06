@@ -353,6 +353,8 @@ const doubleSpace = "  "
 func stripExcessSpaces(vals []string) {
 	var j, k, l, m, spaces int
 	for i, str := range vals {
+		// revive:disable:empty-block
+
 		// Trim trailing spaces
 		for j = len(str) - 1; j >= 0 && str[j] == ' '; j-- {
 		}
@@ -360,6 +362,9 @@ func stripExcessSpaces(vals []string) {
 		// Trim leading spaces
 		for k = 0; k < j && str[k] == ' '; k++ {
 		}
+
+		// revive:enable:empty-block
+
 		str = str[k : j+1]
 
 		// Strip multiple spaces.

@@ -22,11 +22,19 @@ var ErrNilReader = errors.New("nil reader")
 // A Raw must be a full BSON document. Use the RawValue type for individual BSON values.
 type Raw []byte
 
-// NewFromIOReader reads in a document from the given io.Reader and constructs a Raw from
-// it.
-func NewFromIOReader(r io.Reader) (Raw, error) {
+// ReadDocument reads a BSON document from the io.Reader and returns it as a bson.Raw. If the
+// reader contains multiple BSON documents, only the first document is read.
+func ReadDocument(r io.Reader) (Raw, error) {
 	doc, err := bsoncore.NewDocumentFromReader(r)
 	return Raw(doc), err
+}
+
+// NewFromIOReader reads a BSON document from the io.Reader and returns it as a bson.Raw. If the
+// reader contains multiple BSON documents, only the first document is read.
+//
+// Deprecated: Use ReadDocument instead.
+func NewFromIOReader(r io.Reader) (Raw, error) {
+	return ReadDocument(r)
 }
 
 // Validate validates the document. This method only validates the first document in

@@ -179,7 +179,7 @@ func (t *bufferT) Errorf(format string, args ...interface{}) {
 	t.buf.WriteString(decorate(fmt.Sprintf(format, args...)))
 }
 
-func TestStringEqual(t *testing.T) {
+func TestStringEqual(_ *testing.T) {
 	for _, currCase := range []struct {
 		equalWant  string
 		equalGot   string
@@ -193,7 +193,7 @@ func TestStringEqual(t *testing.T) {
 	}
 }
 
-func TestEqualFormatting(t *testing.T) {
+func TestEqualFormatting(_ *testing.T) {
 	for _, currCase := range []struct {
 		equalWant  string
 		equalGot   string
@@ -1074,7 +1074,7 @@ Diff:
 	Equal(t, expected, actual)
 }
 
-func TestTimeEqualityErrorFormatting(t *testing.T) {
+func TestTimeEqualityErrorFormatting(_ *testing.T) {
 	mockT := new(mockTestingT)
 
 	Equal(mockT, time.Second*2, time.Millisecond)
@@ -1140,7 +1140,7 @@ func (m *mockTestingT) Errorf(format string, args ...interface{}) {
 type mockFailNowTestingT struct {
 }
 
-func (m *mockFailNowTestingT) Errorf(format string, args ...interface{}) {}
+func (m *mockFailNowTestingT) Errorf(string, ...interface{}) {}
 
 func (m *mockFailNowTestingT) FailNow() {}
 

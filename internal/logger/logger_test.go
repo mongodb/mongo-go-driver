@@ -18,8 +18,8 @@ import (
 
 type mockLogSink struct{}
 
-func (mockLogSink) Info(level int, msg string, keysAndValues ...interface{})  {}
-func (mockLogSink) Error(err error, msg string, keysAndValues ...interface{}) {}
+func (mockLogSink) Info(int, string, ...interface{})    {}
+func (mockLogSink) Error(error, string, ...interface{}) {}
 
 func BenchmarkLogger(b *testing.B) {
 	b.ReportAllocs()

@@ -51,8 +51,8 @@ type connection struct {
 
 var _ driver.Connection = &connection{}
 
-// WriteWireMessage is a no-op operation.
-func (c *connection) WriteWireMessage(_ context.Context, wm []byte) error {
+// WriteWireMessage is a no-op.
+func (c *connection) WriteWireMessage(context.Context, []byte) error {
 	return nil
 }
 

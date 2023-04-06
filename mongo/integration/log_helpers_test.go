@@ -69,6 +69,7 @@ func (sink *testLogSink) Info(level int, msg string, keysAndValues ...interface{
 }
 
 func (sink *testLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
+	keysAndValues = append(keysAndValues, "error", err)
 	sink.Info(int(logger.LevelInfo), msg, keysAndValues)
 }
 
@@ -110,10 +111,6 @@ func newTruncValidator(mt *mtest.T, key string, cond func(string) error) truncVa
 			return fmt.Errorf("command is not a string")
 		}
 
-		if err := cond(cmdStr); err != nil {
-			return err
-		}
-
-		return nil
+		return cond(cmdStr)
 	}
 }

@@ -95,7 +95,7 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.7.0"
+          LIBMONGOCRYPT_TAG="1.8.0-alpha0"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
@@ -198,7 +198,7 @@ functions:
 
           # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
           # file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
           go install github.com/walle/lll/...@latest
 
   upload-mo-artifacts:
@@ -258,6 +258,7 @@ functions:
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
           REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
           LOAD_BALANCER=${LOAD_BALANCER} \
+          ENABLE_featureFlagFLE2ProtocolVersion2=ON \
           sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
