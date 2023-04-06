@@ -463,7 +463,7 @@ func appendClientPlatform(dst []byte, maxLen int) []byte {
 // then an empty byte slice is returned. If there is not enough space to encode
 // a document, the document is truncated and returned.
 //
-// This function attemps to build the following document, prioritizing upto the
+// This function attempts to build the following document, prioritizing upto the
 // givien order:
 //
 //	{
