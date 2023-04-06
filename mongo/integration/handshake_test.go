@@ -38,12 +38,12 @@ func TestHandshakeProse(t *testing.T) {
 			}},
 		}
 
+		elems = append(elems, bson.E{Key: "platform", Value: runtime.Version()})
+
 		// If env is empty, don't include it in the metadata.
 		if env != nil && !reflect.DeepEqual(env, bson.D{}) {
 			elems = append(elems, bson.E{Key: "env", Value: env})
 		}
-
-		elems = append(elems, bson.E{Key: "platform", Value: runtime.Version()})
 
 		return elems
 	}

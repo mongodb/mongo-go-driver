@@ -11,10 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D, maxLen int32) {
+const documentSize = 5         // 5 bytes to start and end a document
+const embeddedDocumentSize = 7 // 7 bytes to append a document element
+const stringElementSize = 7    // 7 bytes to append a string element
+const int32ElementSize = 6     // 6 bytes to append an int32 element
+
+func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D, maxLen int) {
 	t.Helper()
 
-	tooLarge := len(got)-documentSize > int(maxLen)
+	tooLarge := len(got)-documentSize > maxLen
 	assert.False(t, tooLarge, "got document is too large: %v", got)
 
 	wantBytes, err := bson.Marshal(wantD)
@@ -33,13 +38,13 @@ func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D,
 	assert.True(t, areEqual, "got %v, want %v", gotElems, wantElems)
 }
 
-func encodeWithCallback(t *testing.T, cb func([]byte) ([]byte, error)) bsoncore.Document {
+func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bsoncore.Document {
 	t.Helper()
 
 	var err error
 	idx, dst := bsoncore.AppendDocumentStart(nil)
 
-	dst, err = cb(dst)
+	dst, err = cb(len(dst), dst)
 	assert.Nil(t, err, "error appending client metadata: %v", err)
 
 	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
@@ -51,35 +56,33 @@ func encodeWithCallback(t *testing.T, cb func([]byte) ([]byte, error)) bsoncore.
 	return got
 }
 
-func addMaxLenStringElem(key, name string) func() int32 {
-	return func() int32 {
-		return int32(stringElementSize +
-			len(key) +
-			len(name))
+func addMaxLenStringElem(key, name string) func() int {
+	return func() int {
+		return stringElementSize + len(key) + len(name)
 	}
 }
 
 //nolint:unparam
-func addMaxLenInt32Elem(key string, val int32) func() int32 {
-	return func() int32 {
-		return int32(int32ElementSize + len(key))
+func addMaxLenInt32Elem(key string, val int) func() int {
+	return func() int {
+		return int32ElementSize + len(key)
 	}
 }
 
-func addMaxLenBuf(subtract int32) func() int32 {
-	return func() int32 {
+func addMaxLenBuf(subtract int) func() int {
+	return func() int {
 		return subtract
 	}
 }
 
-func addMaxLenEmbeddedDocument(key string) func() int32 {
-	return func() int32 {
-		return int32(embeddedDocumentSize + len(key))
+func addMaxLenEmbeddedDocument(key string) func() int {
+	return func() int {
+		return embeddedDocumentSize + len(key)
 	}
 }
 
-func calcMaxLen(fn ...func() int32) int32 {
-	var total int32
+func calcMaxLen(fn ...func() int) int {
+	var total int
 	for _, f := range fn {
 		total += f()
 	}
@@ -90,7 +93,7 @@ func calcMaxLen(fn ...func() int32) int32 {
 func TestAppendClientAppName(t *testing.T) {
 	t.Parallel()
 
-	calcMaxLenAppName := func(name string, buf int32) int32 {
+	calcMaxLenAppName := func(name string, buf int) int {
 		return calcMaxLen(
 			addMaxLenEmbeddedDocument("application"),
 			addMaxLenStringElem("name", name),
@@ -100,7 +103,7 @@ func TestAppendClientAppName(t *testing.T) {
 	tests := []struct {
 		name    string
 		appname string
-		maxLen  int32
+		maxLen  int
 		want    bson.D
 	}{
 		{
@@ -117,7 +120,7 @@ func TestAppendClientAppName(t *testing.T) {
 			name:    "1 less than enough space for name",
 			appname: "foo",
 			maxLen:  calcMaxLenAppName("foo", -1),
-			want:    bson.D{{Key: "application", Value: bson.D{}}},
+			want:    bson.D{},
 		},
 		{
 			name:    "exact amount of space for name",
@@ -138,9 +141,13 @@ func TestAppendClientAppName(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			cb := func(dst []byte) ([]byte, error) {
+			cb := func(n int, dst []byte) ([]byte, error) {
+				// Buffer the maxLen by the number of bytes
+				// written so far.
+				maxLen := test.maxLen + n
+
 				var err error
-				_, dst, err = appendClientAppName(dst, test.appname, test.maxLen)
+				dst, err = appendClientAppName(dst, maxLen, test.appname)
 
 				return dst, err
 			}
@@ -157,7 +164,7 @@ func TestAppendClientDriver(t *testing.T) {
 	tests := []struct {
 		name   string
 		hello  *Hello
-		maxLen int32
+		maxLen int
 		want   bson.D
 	}{
 		{
@@ -179,7 +186,7 @@ func TestAppendClientDriver(t *testing.T) {
 				addMaxLenEmbeddedDocument("driver"),
 				addMaxLenStringElem("name", driverName),
 				addMaxLenBuf(-1)),
-			want: bson.D{{Key: "driver", Value: bson.D{}}},
+			want: bson.D{},
 		},
 		{
 			name:  "exact amount of space for name",
@@ -241,9 +248,13 @@ func TestAppendClientDriver(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			cb := func(dst []byte) ([]byte, error) {
+			cb := func(n int, dst []byte) ([]byte, error) {
+				// Buffer the maxLen by the number of bytes
+				// written so far.
+				maxLen := test.maxLen + n
+
 				var err error
-				_, dst, err = appendClientDriver(dst, test.maxLen)
+				dst, err = appendClientDriver(dst, maxLen)
 
 				return dst, err
 			}
@@ -257,7 +268,7 @@ func TestAppendClientDriver(t *testing.T) {
 func TestAppendClientEnv(t *testing.T) {
 	tests := []struct {
 		name   string
-		maxLen int32
+		maxLen int
 		want   bson.D
 		env    map[string]string
 	}{
@@ -578,9 +589,13 @@ func TestAppendClientEnv(t *testing.T) {
 				t.Setenv(k, v)
 			}
 
-			cb := func(dst []byte) ([]byte, error) {
+			cb := func(n int, dst []byte) ([]byte, error) {
+				// Buffer the maxLen by the number of bytes
+				// written so far.
+				maxLen := test.maxLen + n
+
 				var err error
-				_, dst, err = appendClientEnv(dst, test.maxLen)
+				dst, err = appendClientEnv(dst, maxLen)
 
 				return dst, err
 			}
@@ -596,7 +611,7 @@ func TestAppendClientOS(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		maxLen int32
+		maxLen int
 		want   bson.D
 	}{
 		{
@@ -610,7 +625,7 @@ func TestAppendClientOS(t *testing.T) {
 				addMaxLenEmbeddedDocument("os"),
 				addMaxLenStringElem("type", runtime.GOOS),
 				addMaxLenBuf(-1)),
-			want: bson.D{{Key: "os", Value: bson.D{}}},
+			want: bson.D{},
 		},
 		{
 			name: "exact amount of space for os type",
@@ -672,9 +687,11 @@ func TestAppendClientOS(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			cb := func(dst []byte) ([]byte, error) {
+			cb := func(n int, dst []byte) ([]byte, error) {
+				maxLen := test.maxLen + n
+
 				var err error
-				_, dst, err = appendClientOS(dst, test.maxLen)
+				dst, err = appendClientOS(dst, maxLen)
 
 				return dst, err
 			}
@@ -690,7 +707,7 @@ func TestAppendClientPlatform(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		maxLen int32
+		maxLen int
 		want   bson.D
 	}{
 		{
@@ -725,8 +742,10 @@ func TestAppendClientPlatform(t *testing.T) {
 
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			cb := func(dst []byte) ([]byte, error) {
-				return appendClientPlatform(dst, test.maxLen), nil
+			cb := func(n int, dst []byte) ([]byte, error) {
+				maxLen := test.maxLen + n
+
+				return appendClientPlatform(dst, maxLen), nil
 			}
 
 			got := encodeWithCallback(t, cb)
