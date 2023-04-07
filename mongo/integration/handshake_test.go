@@ -159,8 +159,7 @@ func TestHandshakeProse(t *testing.T) {
 					hello = "hello"
 				}
 
-				assert.Equal(mt, pair.CommandName, hello, "expected command name %s at index %d, got %s", hello, idx,
-					pair.CommandName)
+				assert.Equal(mt, pair.CommandName, hello, "expected and actual command name at index %d are different", idx)
 
 				sent := pair.Sent
 
