@@ -489,17 +489,14 @@ func appendClientPlatform(dst []byte, maxLen int) []byte {
 //		        url: "<string>"
 //		}
 //	}
-func encodeClientMetadata(h *Hello, maxLen int) ([]byte, error) {
+func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
 	dst := make([]byte, 0, maxLen)
-	if h == nil {
-		return dst[:0], nil
-	}
 
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 	bytesLeft := maxLen - 1 // -1 for the null byte at the end of the document
 
 	var err error
-	dst, err = appendClientAppName(dst, bytesLeft, h.appname)
+	dst, err = appendClientAppName(dst, bytesLeft, appname)
 	if err != nil {
 		return dst, err
 	}
@@ -556,7 +553,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 	}
 	dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 
-	clientMetadata, err := encodeClientMetadata(h, maxClientMetadataSize)
+	clientMetadata, err := encodeClientMetadata(h.appname, maxClientMetadataSize)
 	if err != nil {
 		return dst, err
 	}

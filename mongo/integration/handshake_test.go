@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -147,7 +148,7 @@ func TestHandshakeProse(t *testing.T) {
 
 			// Ping the server to ensure the handshake has completed.
 			err := mt.Client.Ping(context.Background(), nil)
-			assert.Nil(mt, err, "Ping error: %v", err)
+			require.NoError(mt, err, "Ping error: %v", err)
 
 			messages := mt.GetProxiedMessages()
 
@@ -165,25 +166,23 @@ func TestHandshakeProse(t *testing.T) {
 
 				// Lookup the "client" field in the command document.
 				clientVal, err := sent.Command.LookupErr("client")
-				assert.Nil(mt, err, "expected command %s at index %d to contain client field", sent.Command, idx)
+				require.NoError(mt, err, "expected command %s at index %d to contain client field", sent.Command, idx)
 
 				got, ok := clientVal.DocumentOK()
-				assert.True(mt, ok, "expected client field to be a document, got %T", clientVal)
+				require.True(mt, ok, "expected client field to be a document, got %T", clientVal)
 
 				wantBytes, err := bson.Marshal(test.want)
-				assert.Nil(mt, err, "Marshal error for %v: %v", test.want, err)
+				require.NoError(mt, err, "error marshaling want document: %v", err)
 
 				want := bsoncore.Document(wantBytes)
 
 				wantElems, err := want.Elements()
-				assert.Nil(mt, err, "error getting elements from want document: %v", err)
+				require.NoError(mt, err, "error getting elements from want document: %v", err)
 
 				gotElems, err := got.Elements()
-				assert.Nil(mt, err, "error getting elements from got document: %v", err)
+				require.NoError(mt, err, "error getting elements from got document: %v", err)
 
-				if !reflect.DeepEqual(wantElems, gotElems) {
-					mt.Errorf("expected %v, got %v", wantElems, gotElems)
-				}
+				assert.Equal(mt, wantElems, gotElems, "expected and actual client metadata at index %d are different", idx)
 			}
 		})
 	}

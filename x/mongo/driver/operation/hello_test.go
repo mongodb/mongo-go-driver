@@ -1,12 +1,12 @@
 package operation
 
 import (
-	"reflect"
 	"runtime"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -20,22 +20,13 @@ func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D,
 	t.Helper()
 
 	tooLarge := len(got)-documentSize > maxLen
-	assert.False(t, tooLarge, "got document is too large: %v", got)
+	require.False(t, tooLarge, "got document is too large: %v", got)
 
-	wantBytes, err := bson.Marshal(wantD)
-	assert.Nil(t, err, "error marshaling want document: %v", err)
+	var gotD bson.D
+	err := bson.Unmarshal(got, &gotD)
+	require.NoError(t, err, "error unmarshaling got document: %v", err)
 
-	want := bsoncore.Document(wantBytes)
-
-	wantElems, err := want.Elements()
-	assert.Nil(t, err, "error getting elements from want document: %v", err)
-
-	// Compare element by element.
-	gotElems, err := got.Elements()
-	assert.Nil(t, err, "error getting elements from got document: %v", err)
-
-	areEqual := reflect.DeepEqual(gotElems, wantElems)
-	assert.True(t, areEqual, "got %v, want %v", gotElems, wantElems)
+	assert.Equal(t, wantD, gotD, "got %v, want %v", gotD, wantD)
 }
 
 func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bsoncore.Document {
@@ -45,13 +36,13 @@ func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bson
 	idx, dst := bsoncore.AppendDocumentStart(nil)
 
 	dst, err = cb(len(dst), dst)
-	assert.Nil(t, err, "error appending client metadata: %v", err)
+	require.NoError(t, err, "error appending client metadata: %v", err)
 
 	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
-	assert.Nil(t, err, "error appending document end: %v", err)
+	require.NoError(t, err, "error appending document end: %v", err)
 
 	got, _, ok := bsoncore.ReadDocument(dst)
-	assert.True(t, ok, "error reading document")
+	require.True(t, ok, "error reading document: %v", got)
 
 	return got
 }
@@ -582,8 +573,6 @@ func TestAppendClientEnv(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
-
 		t.Run(test.name, func(t *testing.T) {
 			for k, v := range test.env {
 				t.Setenv(k, v)
@@ -805,12 +794,11 @@ func TestParseFaasEnvName(t *testing.T) {
 }
 
 func BenchmarkClientMetadata(b *testing.B) {
-	h := &Hello{}
 	b.ReportAllocs()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := encodeClientMetadata(h, maxClientMetadataSize)
+			_, err := encodeClientMetadata("foo", maxClientMetadataSize)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -824,15 +812,31 @@ func FuzzEncodeClientMetadata(f *testing.F) {
 			return
 		}
 
-		h := &Hello{appname: appname}
-
-		dst, err := encodeClientMetadata(h, maxClientMetadataSize)
+		_, err := encodeClientMetadata(appname, maxClientMetadataSize)
 		if err != nil {
 			t.Fatalf("error appending client: %v", err)
 		}
 
-		if len(dst) > maxClientMetadataSize {
-			t.Fatalf("appended client is too large: %d > %d / %d", len(dst), len(b), maxClientMetadataSize)
+		_, err = appendClientAppName(b, maxClientMetadataSize, appname)
+		if err != nil {
+			t.Fatalf("error appending client app name: %v", err)
 		}
+
+		_, err = appendClientDriver(b, maxClientMetadataSize)
+		if err != nil {
+			t.Fatalf("error appending client driver: %v", err)
+		}
+
+		_, err = appendClientEnv(b, maxClientMetadataSize)
+		if err != nil {
+			t.Fatalf("error appending client env: %v", err)
+		}
+
+		_, err = appendClientOS(b, maxClientMetadataSize)
+		if err != nil {
+			t.Fatalf("error appending client os: %v", err)
+		}
+
+		appendClientPlatform(b, maxClientMetadataSize)
 	})
 }
