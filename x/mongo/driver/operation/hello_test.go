@@ -84,13 +84,6 @@ func calcMaxLen(fn ...func() int) int {
 func TestAppendClientAppName(t *testing.T) {
 	t.Parallel()
 
-	calcMaxLenAppName := func(name string, buf int) int {
-		return calcMaxLen(
-			addMaxLenEmbeddedDocument("application"),
-			addMaxLenStringElem("name", name),
-			addMaxLenBuf(buf))
-	}
-
 	tests := []struct {
 		name    string
 		appname string
@@ -103,27 +96,66 @@ func TestAppendClientAppName(t *testing.T) {
 			want:   bson.D{},
 		},
 		{
-			name:   "1 less than enough space",
-			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("application"), addMaxLenBuf(-1)),
-			want:   bson.D{},
+			name: "1 less than enough space",
+			//maxLen: calcMaxLen(addMaxLenEmbeddedDocument("application"), addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
+			want: bson.D{},
 		},
 		{
 			name:    "1 less than enough space for name",
 			appname: "foo",
-			maxLen:  calcMaxLenAppName("foo", -1),
-			want:    bson.D{},
+			//maxLen:  calcMaxLenAppName("foo", -1),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
+				dst = bsoncore.AppendStringElement(dst, "name", "foo")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
+			want: bson.D{},
 		},
 		{
 			name:    "exact amount of space for name",
 			appname: "foo",
-			maxLen:  calcMaxLenAppName("foo", 0),
-			want:    bson.D{{Key: "application", Value: bson.D{{Key: "name", Value: "foo"}}}},
+			//maxLen:  calcMaxLenAppName("foo", 0),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
+				dst = bsoncore.AppendStringElement(dst, "name", "foo")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
+			want: bson.D{{Key: "application", Value: bson.D{{Key: "name", Value: "foo"}}}},
 		},
 		{
 			name:    "1 more than enough space for name",
 			appname: "foo",
-			maxLen:  calcMaxLenAppName("foo", 1),
-			want:    bson.D{{Key: "application", Value: bson.D{{Key: "name", Value: "foo"}}}},
+			//maxLen:  calcMaxLenAppName("foo", 1),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
+				dst = bsoncore.AppendStringElement(dst, "name", "foo")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
+			want: bson.D{{Key: "application", Value: bson.D{{Key: "name", Value: "foo"}}}},
 		},
 	}
 
