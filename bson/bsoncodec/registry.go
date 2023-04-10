@@ -283,8 +283,8 @@ func NewRegistry() *Registry {
 // interface. To get the latter behavior, call RegisterHookEncoder instead.
 //
 // RegisterTypeEncoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder) {
-	r.typeEncoders[t] = enc
+func (r *Registry) RegisterTypeEncoder(valueType reflect.Type, enc ValueEncoder) {
+	r.typeEncoders[valueType] = enc
 }
 
 // RegisterTypeDecoder registers the provided ValueDecoder for the provided type.
@@ -297,8 +297,8 @@ func (r *Registry) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder) {
 // implements the interface. To get the latter behavior, call RegisterHookDecoder instead.
 //
 // RegisterTypeDecoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterTypeDecoder(t reflect.Type, dec ValueDecoder) {
-	r.typeDecoders[t] = dec
+func (r *Registry) RegisterTypeDecoder(valueType reflect.Type, dec ValueDecoder) {
+	r.typeDecoders[valueType] = dec
 }
 
 // RegisterKindEncoder registers the provided ValueEncoder for the provided kind.
@@ -405,65 +405,65 @@ func (r *Registry) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) {
 //
 // If no encoder is found, an error of type ErrNoEncoder is returned. LookupEncoder is safe for
 // concurrent use by multiple goroutines after all codecs and encoders are registered.
-func (r *Registry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
+func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	r.mu.RLock()
-	enc, found := r.lookupTypeEncoder(t)
+	enc, found := r.lookupTypeEncoder(valueType)
 	r.mu.RUnlock()
 	if found {
 		if enc == nil {
-			return nil, ErrNoEncoder{Type: t}
+			return nil, ErrNoEncoder{Type: valueType}
 		}
 		return enc, nil
 	}
 
-	enc, found = r.lookupInterfaceEncoder(t, true)
+	enc, found = r.lookupInterfaceEncoder(valueType, true)
 	if found {
 		r.mu.Lock()
-		r.typeEncoders[t] = enc
+		r.typeEncoders[valueType] = enc
 		r.mu.Unlock()
 		return enc, nil
 	}
 
-	if t == nil {
+	if valueType == nil {
 		r.mu.Lock()
-		r.typeEncoders[t] = nil
+		r.typeEncoders[valueType] = nil
 		r.mu.Unlock()
-		return nil, ErrNoEncoder{Type: t}
+		return nil, ErrNoEncoder{Type: valueType}
 	}
 
-	enc, found = r.kindEncoders[t.Kind()]
+	enc, found = r.kindEncoders[valueType.Kind()]
 	if !found {
 		r.mu.Lock()
-		r.typeEncoders[t] = nil
+		r.typeEncoders[valueType] = nil
 		r.mu.Unlock()
-		return nil, ErrNoEncoder{Type: t}
+		return nil, ErrNoEncoder{Type: valueType}
 	}
 
 	r.mu.Lock()
-	r.typeEncoders[t] = enc
+	r.typeEncoders[valueType] = enc
 	r.mu.Unlock()
 	return enc, nil
 }
 
-func (r *Registry) lookupTypeEncoder(t reflect.Type) (ValueEncoder, bool) {
-	enc, found := r.typeEncoders[t]
+func (r *Registry) lookupTypeEncoder(valueType reflect.Type) (ValueEncoder, bool) {
+	enc, found := r.typeEncoders[valueType]
 	return enc, found
 }
 
-func (r *Registry) lookupInterfaceEncoder(t reflect.Type, allowAddr bool) (ValueEncoder, bool) {
-	if t == nil {
+func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool) (ValueEncoder, bool) {
+	if valueType == nil {
 		return nil, false
 	}
 	for _, ienc := range r.interfaceEncoders {
-		if t.Implements(ienc.i) {
+		if valueType.Implements(ienc.i) {
 			return ienc.ve, true
 		}
-		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(ienc.i) {
+		if allowAddr && valueType.Kind() != reflect.Ptr && reflect.PtrTo(valueType).Implements(ienc.i) {
 			// if *t implements an interface, this will catch if t implements an interface further
 			// ahead in interfaceEncoders
-			defaultEnc, found := r.lookupInterfaceEncoder(t, false)
+			defaultEnc, found := r.lookupInterfaceEncoder(valueType, false)
 			if !found {
-				defaultEnc = r.kindEncoders[t.Kind()]
+				defaultEnc = r.kindEncoders[valueType.Kind()]
 			}
 			return newCondAddrEncoder(ienc.ve, defaultEnc), true
 		}
@@ -484,59 +484,59 @@ func (r *Registry) lookupInterfaceEncoder(t reflect.Type, allowAddr bool) (Value
 //
 // If no decoder is found, an error of type ErrNoDecoder is returned. LookupDecoder is safe for
 // concurrent use by multiple goroutines after all codecs and decoders are registered.
-func (r *Registry) LookupDecoder(t reflect.Type) (ValueDecoder, error) {
-	if t == nil {
+func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
+	if valueType == nil {
 		return nil, ErrNilType
 	}
-	decodererr := ErrNoDecoder{Type: t}
+	decodererr := ErrNoDecoder{Type: valueType}
 	r.mu.RLock()
-	dec, found := r.lookupTypeDecoder(t)
+	dec, found := r.lookupTypeDecoder(valueType)
 	r.mu.RUnlock()
 	if found {
 		if dec == nil {
-			return nil, ErrNoDecoder{Type: t}
+			return nil, ErrNoDecoder{Type: valueType}
 		}
 		return dec, nil
 	}
 
-	dec, found = r.lookupInterfaceDecoder(t, true)
+	dec, found = r.lookupInterfaceDecoder(valueType, true)
 	if found {
 		r.mu.Lock()
-		r.typeDecoders[t] = dec
+		r.typeDecoders[valueType] = dec
 		r.mu.Unlock()
 		return dec, nil
 	}
 
-	dec, found = r.kindDecoders[t.Kind()]
+	dec, found = r.kindDecoders[valueType.Kind()]
 	if !found {
 		r.mu.Lock()
-		r.typeDecoders[t] = nil
+		r.typeDecoders[valueType] = nil
 		r.mu.Unlock()
 		return nil, decodererr
 	}
 
 	r.mu.Lock()
-	r.typeDecoders[t] = dec
+	r.typeDecoders[valueType] = dec
 	r.mu.Unlock()
 	return dec, nil
 }
 
-func (r *Registry) lookupTypeDecoder(t reflect.Type) (ValueDecoder, bool) {
-	dec, found := r.typeDecoders[t]
+func (r *Registry) lookupTypeDecoder(valueType reflect.Type) (ValueDecoder, bool) {
+	dec, found := r.typeDecoders[valueType]
 	return dec, found
 }
 
-func (r *Registry) lookupInterfaceDecoder(t reflect.Type, allowAddr bool) (ValueDecoder, bool) {
+func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool) (ValueDecoder, bool) {
 	for _, idec := range r.interfaceDecoders {
-		if t.Implements(idec.i) {
+		if valueType.Implements(idec.i) {
 			return idec.vd, true
 		}
-		if allowAddr && t.Kind() != reflect.Ptr && reflect.PtrTo(t).Implements(idec.i) {
+		if allowAddr && valueType.Kind() != reflect.Ptr && reflect.PtrTo(valueType).Implements(idec.i) {
 			// if *t implements an interface, this will catch if t implements an interface further
 			// ahead in interfaceDecoders
-			defaultDec, found := r.lookupInterfaceDecoder(t, false)
+			defaultDec, found := r.lookupInterfaceDecoder(valueType, false)
 			if !found {
-				defaultDec = r.kindDecoders[t.Kind()]
+				defaultDec = r.kindDecoders[valueType.Kind()]
 			}
 			return newCondAddrDecoder(idec.vd, defaultDec), true
 		}
