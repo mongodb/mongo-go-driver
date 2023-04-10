@@ -92,6 +92,8 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 }
 
 // IsValidObjectID returns true if the provided hex string represents a valid ObjectID and false if not.
+//
+// Deprecated: Use ObjectIDFromHex and check the error instead.
 func IsValidObjectID(s string) bool {
 	_, err := ObjectIDFromHex(s)
 	return err == nil

@@ -140,6 +140,8 @@ func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 
 // AcknowledgedValue returns true if a BSON RawValue for a write concern represents an acknowledged write concern.
 // The element's value must be a document representing a write concern.
+//
+// Deprecated: AcknowledgedValue will not be supported in Go Driver 2.0.
 func AcknowledgedValue(rawv bson.RawValue) bool {
 	doc, ok := bsoncore.Value{Type: rawv.Type, Data: rawv.Value}.DocumentOK()
 	if !ok {
