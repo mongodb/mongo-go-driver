@@ -10,7 +10,6 @@ func TestMergeChangeStreamOptions(t *testing.T) {
 	t.Parallel()
 
 	fullDocumentP := func(x FullDocument) *FullDocument { return &x }
-	fullDocumentP := func(x FullDocument) *FullDocument { return &x }
 	int32P := func(x int32) *int32 { return &x }
 
 	testCases := []struct {
