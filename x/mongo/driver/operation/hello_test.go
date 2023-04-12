@@ -47,10 +47,6 @@ func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bson
 	return got
 }
 
-func lenStringElem(key, name string) int {
-	return stringElementSize + len(key) + len(name)
-}
-
 func TestAppendClientAppName(t *testing.T) {
 	t.Parallel()
 
@@ -940,19 +936,25 @@ func TestAppendClientPlatform(t *testing.T) {
 			want:   bson.D{},
 		},
 		{
-			name:   "1 less than enough space for platform",
-			maxLen: lenStringElem("platform", runtime.Version()) - 1,
-			want:   bson.D{},
+			name: "1 less than enough space for platform",
+			maxLen: func() int {
+				return len(bsoncore.AppendStringElement(nil, "platform", runtime.Version())) - 1
+			}(),
+			want: bson.D{},
 		},
 		{
-			name:   "exact amount of space for platform",
-			maxLen: lenStringElem("platform", runtime.Version()),
-			want:   bson.D{{Key: "platform", Value: runtime.Version()}},
+			name: "exact amount of space for platform",
+			maxLen: func() int {
+				return len(bsoncore.AppendStringElement(nil, "platform", runtime.Version()))
+			}(),
+			want: bson.D{{Key: "platform", Value: runtime.Version()}},
 		},
 		{
-			name:   "1 more than enough space for platform",
-			maxLen: lenStringElem("platform", runtime.Version()) + 1,
-			want:   bson.D{{Key: "platform", Value: runtime.Version()}},
+			name: "1 more than enough space for platform",
+			maxLen: func() int {
+				return len(bsoncore.AppendStringElement(nil, "platform", runtime.Version())) + 1
+			}(),
+			want: bson.D{{Key: "platform", Value: runtime.Version()}},
 		},
 	}
 
