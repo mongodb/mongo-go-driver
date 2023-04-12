@@ -90,6 +90,11 @@ test-race:
 test-short:
 	go test $(BUILD_TAGS) -timeout 60s -short -p 1 ./...
 
+### Local FaaS targets. ###
+.PHONY: build-aws-lambda
+build-aws-lambda:
+	$(MAKE) -C cmd/testfaas/testawslambda/ build
+
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
 build-aws-ecs-test:
