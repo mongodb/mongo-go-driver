@@ -47,38 +47,8 @@ func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bson
 	return got
 }
 
-func addMaxLenStringElem(key, name string) func() int {
-	return func() int {
-		return stringElementSize + len(key) + len(name)
-	}
-}
-
-//nolint:unparam
-func addMaxLenInt32Elem(key string) func() int {
-	return func() int {
-		return int32ElementSize + len(key)
-	}
-}
-
-func addMaxLenBuf(subtract int) func() int {
-	return func() int {
-		return subtract
-	}
-}
-
-func addMaxLenEmbeddedDocument(key string) func() int {
-	return func() int {
-		return embeddedDocumentSize + len(key)
-	}
-}
-
-func calcMaxLen(fn ...func() int) int {
-	var total int
-	for _, f := range fn {
-		total += f()
-	}
-
-	return total
+func lenStringElem(key, name string) int {
+	return stringElementSize + len(key) + len(name)
 }
 
 func TestAppendClientAppName(t *testing.T) {
@@ -97,7 +67,6 @@ func TestAppendClientAppName(t *testing.T) {
 		},
 		{
 			name: "1 less than enough space",
-			//maxLen: calcMaxLen(addMaxLenEmbeddedDocument("application"), addMaxLenBuf(-1)),
 			maxLen: func() int {
 				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
 
@@ -112,7 +81,6 @@ func TestAppendClientAppName(t *testing.T) {
 		{
 			name:    "1 less than enough space for name",
 			appname: "foo",
-			//maxLen:  calcMaxLenAppName("foo", -1),
 			maxLen: func() int {
 				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
 				dst = bsoncore.AppendStringElement(dst, "name", "foo")
@@ -128,7 +96,6 @@ func TestAppendClientAppName(t *testing.T) {
 		{
 			name:    "exact amount of space for name",
 			appname: "foo",
-			//maxLen:  calcMaxLenAppName("foo", 0),
 			maxLen: func() int {
 				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
 				dst = bsoncore.AppendStringElement(dst, "name", "foo")
@@ -144,7 +111,6 @@ func TestAppendClientAppName(t *testing.T) {
 		{
 			name:    "1 more than enough space for name",
 			appname: "foo",
-			//maxLen:  calcMaxLenAppName("foo", 1),
 			maxLen: func() int {
 				idx, dst := bsoncore.AppendDocumentElementStart(nil, "application")
 				dst = bsoncore.AppendStringElement(dst, "name", "foo")
@@ -197,54 +163,94 @@ func TestAppendClientDriver(t *testing.T) {
 			want:   bson.D{},
 		},
 		{
-			name:   "1 less than enough space",
-			hello:  &Hello{},
-			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("driver"), addMaxLenBuf(-1)),
-			want:   bson.D{},
+			name:  "1 less than enough space",
+			hello: &Hello{},
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
+			want: bson.D{},
 		},
 		{
 			name:  "1 less than enough space for name",
 			hello: &Hello{},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("driver"),
-				addMaxLenStringElem("name", driverName),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+				dst = bsoncore.AppendStringElement(dst, "name", driverName)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{},
 		},
 		{
 			name:  "exact amount of space for name",
 			hello: &Hello{},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("driver"),
-				addMaxLenStringElem("name", driverName)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+				dst = bsoncore.AppendStringElement(dst, "name", driverName)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "driver", Value: bson.D{{Key: "name", Value: driverName}}}},
 		},
 		{
 			name:  "1 more than enough space for name",
 			hello: &Hello{},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("driver"),
-				addMaxLenStringElem("name", driverName),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+				dst = bsoncore.AppendStringElement(dst, "name", driverName)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "driver", Value: bson.D{{Key: "name", Value: driverName}}}},
 		},
 		{
 			name:  "1 less than enough space for version",
 			hello: &Hello{},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("driver"),
-				addMaxLenStringElem("name", driverName),
-				addMaxLenStringElem("version", version.Driver),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+				dst = bsoncore.AppendStringElement(dst, "name", driverName)
+				dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "driver", Value: bson.D{{Key: "name", Value: driverName}}}},
 		},
 		{
 			name:  "exact amount of space for version",
 			hello: &Hello{},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("driver"),
-				addMaxLenStringElem("name", driverName),
-				addMaxLenStringElem("version", version.Driver)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+				dst = bsoncore.AppendStringElement(dst, "name", driverName)
+				dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "driver", Value: bson.D{
 				{Key: "name", Value: driverName},
 				{Key: "version", Value: version.Driver},
@@ -253,11 +259,17 @@ func TestAppendClientDriver(t *testing.T) {
 		{
 			name:  "1 more than enough space for version",
 			hello: &Hello{},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("driver"),
-				addMaxLenStringElem("name", driverName),
-				addMaxLenStringElem("version", version.Driver),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "driver")
+				dst = bsoncore.AppendStringElement(dst, "name", driverName)
+				dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "driver", Value: bson.D{
 				{Key: "name", Value: driverName},
 				{Key: "version", Value: version.Driver},
@@ -301,24 +313,46 @@ func TestAppendClientEnv(t *testing.T) {
 			want:   bson.D{},
 		},
 		{
-			name:   "1 less than enough space",
-			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("env"), addMaxLenBuf(-1)),
-			want:   bson.D{},
+			name: "1 less than enough space",
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
+			want: bson.D{},
 		},
 		{
-			name:   "exact amount of space",
-			maxLen: calcMaxLen(addMaxLenEmbeddedDocument("env")),
-			want:   bson.D{},
+			name: "exact amount of space",
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
+			want: bson.D{},
 		},
 		{
 			name: "1 less than enough space for aws name",
 			env: map[string]string{
 				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{},
 		},
 		{
@@ -326,9 +360,16 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
 		},
 		{
@@ -336,17 +377,30 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
 		},
 		{
 			name: "exact amount of space for aws name but not env",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{},
 		},
 		{
@@ -355,11 +409,17 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
 				envVarAWSLambdaFunctionMemorySize: "1024",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{{Key: "name", Value: envNameAWSLambda}}}},
 		},
 		{
@@ -368,10 +428,17 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
 				envVarAWSLambdaFunctionMemorySize: "1024",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb")),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -383,11 +450,17 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
 				envVarAWSLambdaFunctionMemorySize: "1024",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -400,12 +473,18 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarAWSLambdaFunctionMemorySize: "1024",
 				envVarAWSRegion:                   "us-east-1",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenStringElem("region", "us-east-1"),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+				dst = bsoncore.AppendStringElement(dst, "region", "us-east-1")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -418,11 +497,18 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarAWSLambdaFunctionMemorySize: "1024",
 				envVarAWSRegion:                   "us-east-1",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenStringElem("region", "us-east-1")),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+				dst = bsoncore.AppendStringElement(dst, "region", "us-east-1")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -436,12 +522,18 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarAWSLambdaFunctionMemorySize: "1024",
 				envVarAWSRegion:                   "us-east-1",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAWSLambda),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenStringElem("region", "us-east-1"),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAWSLambda)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+				dst = bsoncore.AppendStringElement(dst, "region", "us-east-1")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAWSLambda},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -453,10 +545,16 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarKService: "gcp",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{},
 		},
 		{
@@ -464,9 +562,16 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarKService: "gcp",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 			}}},
@@ -476,10 +581,16 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarKService: "gcp",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 			}}},
@@ -490,11 +601,17 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarKService:         "gcp",
 				envVarFunctionMemoryMB: "1024",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 			}}},
@@ -505,10 +622,17 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarKService:         "gcp",
 				envVarFunctionMemoryMB: "1024",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb")),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -520,11 +644,17 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarKService:         "gcp",
 				envVarFunctionMemoryMB: "1024",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) + 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -537,12 +667,18 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarFunctionMemoryMB: "1024",
 				envVarFunctionRegion:   "us-east-1",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenStringElem("region", "us-east-1"),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+				dst = bsoncore.AppendStringElement(dst, "region", "us-east-1")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -555,11 +691,18 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarFunctionMemoryMB: "1024",
 				envVarFunctionRegion:   "us-east-1",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameGCPFunc),
-				addMaxLenInt32Elem("memory_mb"),
-				addMaxLenStringElem("region", "us-east-1")),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameGCPFunc)
+				dst = bsoncore.AppendInt32Element(dst, "memory_mb", 1024)
+				dst = bsoncore.AppendStringElement(dst, "region", "us-east-1")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameGCPFunc},
 				{Key: "memory_mb", Value: int32(1024)},
@@ -571,10 +714,16 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarFunctionsWorkerRuntime: "node",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAzureFunc),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAzureFunc)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{},
 		},
 		{
@@ -582,9 +731,16 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarFunctionsWorkerRuntime: "node",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAzureFunc)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAzureFunc)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAzureFunc},
 			}}},
@@ -594,10 +750,17 @@ func TestAppendClientEnv(t *testing.T) {
 			env: map[string]string{
 				envVarFunctionsWorkerRuntime: "node",
 			},
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("env"),
-				addMaxLenStringElem("name", envNameAzureFunc),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "env")
+				dst = bsoncore.AppendStringElement(dst, "name", envNameAzureFunc)
+				dst = bsoncore.AppendStringElement(dst, "extra", "extra")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "env", Value: bson.D{
 				{Key: "name", Value: envNameAzureFunc},
 			}}},
@@ -642,48 +805,81 @@ func TestAppendClientOS(t *testing.T) {
 		},
 		{
 			name: "1 less than enough space for os type",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("os"),
-				addMaxLenStringElem("type", runtime.GOOS),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "os")
+				dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{},
 		},
 		{
 			name: "exact amount of space for os type",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("os"),
-				addMaxLenStringElem("type", runtime.GOOS)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "os")
+				dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "os", Value: bson.D{
 				{Key: "type", Value: runtime.GOOS},
 			}}},
 		},
 		{
 			name: "1 more than enough space for os type",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("os"),
-				addMaxLenStringElem("type", runtime.GOOS),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "os")
+				dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+				dst = bsoncore.AppendStringElement(dst, "extra", "extra")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "os", Value: bson.D{
 				{Key: "type", Value: runtime.GOOS},
 			}}},
 		},
 		{
 			name: "1 less than enough space for os architecture",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("os"),
-				addMaxLenStringElem("type", runtime.GOOS),
-				addMaxLenStringElem("architecture", runtime.GOARCH),
-				addMaxLenBuf(-1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "os")
+				dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+				dst = bsoncore.AppendStringElement(dst, "architecture", runtime.GOARCH)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "os", Value: bson.D{
 				{Key: "type", Value: runtime.GOOS},
 			}}},
 		},
 		{
 			name: "exact amount of space for os architecture",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("os"),
-				addMaxLenStringElem("type", runtime.GOOS),
-				addMaxLenStringElem("architecture", runtime.GOARCH)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "os")
+				dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+				dst = bsoncore.AppendStringElement(dst, "architecture", runtime.GOARCH)
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst)
+			}(),
 			want: bson.D{{Key: "os", Value: bson.D{
 				{Key: "type", Value: runtime.GOOS},
 				{Key: "architecture", Value: runtime.GOARCH},
@@ -691,11 +887,18 @@ func TestAppendClientOS(t *testing.T) {
 		},
 		{
 			name: "1 more than enough space for os architecture",
-			maxLen: calcMaxLen(
-				addMaxLenEmbeddedDocument("os"),
-				addMaxLenStringElem("type", runtime.GOOS),
-				addMaxLenStringElem("architecture", runtime.GOARCH),
-				addMaxLenBuf(1)),
+			maxLen: func() int {
+				idx, dst := bsoncore.AppendDocumentElementStart(nil, "os")
+				dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+				dst = bsoncore.AppendStringElement(dst, "architecture", runtime.GOARCH)
+				dst = bsoncore.AppendStringElement(dst, "extra", "extra")
+
+				var err error
+				dst, err = bsoncore.AppendDocumentEnd(dst, idx)
+				require.NoError(t, err, "error appending document end: %v", err)
+
+				return len(dst) - 1
+			}(),
 			want: bson.D{{Key: "os", Value: bson.D{
 				{Key: "type", Value: runtime.GOOS},
 				{Key: "architecture", Value: runtime.GOARCH},
@@ -737,24 +940,19 @@ func TestAppendClientPlatform(t *testing.T) {
 			want:   bson.D{},
 		},
 		{
-			name: "1 less than enough space for platform",
-			maxLen: calcMaxLen(
-				addMaxLenStringElem("platform", runtime.Version()),
-				addMaxLenBuf(-1)),
-			want: bson.D{},
+			name:   "1 less than enough space for platform",
+			maxLen: lenStringElem("platform", runtime.Version()) - 1,
+			want:   bson.D{},
 		},
 		{
-			name: "exact amount of space for platform",
-			maxLen: calcMaxLen(
-				addMaxLenStringElem("platform", runtime.Version())),
-			want: bson.D{{Key: "platform", Value: runtime.Version()}},
+			name:   "exact amount of space for platform",
+			maxLen: lenStringElem("platform", runtime.Version()),
+			want:   bson.D{{Key: "platform", Value: runtime.Version()}},
 		},
 		{
-			name: "1 more than enough space for platform",
-			maxLen: calcMaxLen(
-				addMaxLenStringElem("platform", runtime.Version()),
-				addMaxLenBuf(1)),
-			want: bson.D{{Key: "platform", Value: runtime.Version()}},
+			name:   "1 more than enough space for platform",
+			maxLen: lenStringElem("platform", runtime.Version()) + 1,
+			want:   bson.D{{Key: "platform", Value: runtime.Version()}},
 		},
 	}
 
