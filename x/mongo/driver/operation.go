@@ -266,6 +266,8 @@ type Operation struct {
 	// no events will be reported.
 	CommandMonitor *event.CommandMonitor
 
+	CommandInterceptor *event.CommandInterceptor
+
 	// Crypt specifies a Crypt object to use for automatic client side encryption and decryption.
 	Crypt Crypt
 
@@ -600,6 +602,13 @@ func (op Operation) Execute(ctx context.Context) error {
 		*wm, startedInfo, err = op.createWireMessage(ctx, (*wm)[:0], desc, maxTimeMS, conn)
 		if err != nil {
 			return err
+		}
+
+		// If a query interceptor is present, allow it to check the operation and short circuit with an error
+		if op.CommandInterceptor != nil {
+			if err := op.CommandInterceptor.Process(ctx, wm); err != nil {
+				return err
+			}
 		}
 
 		// set extra data and send event if possible

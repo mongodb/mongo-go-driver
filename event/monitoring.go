@@ -66,6 +66,10 @@ type CommandMonitor struct {
 	Failed    func(context.Context, *CommandFailedEvent)
 }
 
+type CommandInterceptor struct {
+	Process func(context.Context, *[]byte) error
+}
+
 // strings for pool command monitoring reasons
 const (
 	ReasonIdle              = "idle"

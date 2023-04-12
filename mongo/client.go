@@ -63,6 +63,7 @@ type Client struct {
 	writeConcern   *writeconcern.WriteConcern
 	registry       *bsoncodec.Registry
 	monitor        *event.CommandMonitor
+	interceptor    *event.CommandInterceptor
 	serverAPI      *driver.ServerAPIOptions
 	serverMonitor  *event.ServerMonitor
 	sessionPool    *session.Pool
@@ -147,6 +148,10 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	// Monitor
 	if clientOpt.Monitor != nil {
 		client.monitor = clientOpt.Monitor
+	}
+	// Interceptor
+	if clientOpt.Interceptor != nil {
+		client.interceptor = clientOpt.Interceptor
 	}
 	// ServerMonitor
 	if clientOpt.ServerMonitor != nil {

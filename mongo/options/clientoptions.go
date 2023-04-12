@@ -106,6 +106,7 @@ type ClientOptions struct {
 	HeartbeatInterval        *time.Duration
 	Hosts                    []string
 	HTTPClient               *http.Client
+	Interceptor              *event.CommandInterceptor
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
 	LoggerOptions            *LoggerOptions
@@ -632,6 +633,11 @@ func (c *ClientOptions) SetPoolMonitor(m *event.PoolMonitor) *ClientOptions {
 // information about the structure of the monitor and events that can be received.
 func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
 	c.Monitor = m
+	return c
+}
+
+func (c *ClientOptions) SetInterceptor(i *event.CommandInterceptor) *ClientOptions {
+	c.Interceptor = i
 	return c
 }
 

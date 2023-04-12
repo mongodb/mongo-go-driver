@@ -8,6 +8,7 @@ package mtest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -723,6 +724,77 @@ func (t *T) createTestClient() {
 	}
 	if err := t.Client.Connect(context.Background()); err != nil {
 		t.Fatalf("error connecting client: %v", err)
+	}
+}
+
+func (t *T) testCommandInterceptor() {
+	clientOpts := t.clientOpts
+	if clientOpts == nil {
+		// default opts
+		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
+	}
+	// set ServerAPIOptions to latest version if required
+	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
+	}
+
+	circuitTripped := false
+	// Setup interceptor
+	clientOpts.SetInterceptor(&event.CommandInterceptor{
+		Process: func(_ context.Context, raw *[]byte) error {
+			if circuitTripped {
+				return errors.New("Circuit has been tripped")
+			}
+			return nil
+		},
+	})
+
+	var err error
+	switch t.clientType {
+	case Pinned:
+		// pin to first mongos
+		pinnedHostList := []string{testContext.connString.Hosts[0]}
+		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
+	case Mock:
+		// clear pool monitor to avoid configuration error
+		clientOpts.PoolMonitor = nil
+		t.mockDeployment = newMockDeployment()
+		clientOpts.Deployment = t.mockDeployment
+		t.Client, err = mongo.NewClient(clientOpts)
+	case Proxy:
+		t.proxyDialer = newProxyDialer()
+		clientOpts.SetDialer(t.proxyDialer)
+
+		// After setting the Dialer, fall-through to the Default case to apply the correct URI
+		fallthrough
+	case Default:
+		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
+		// specified.
+		var uriOpts *options.ClientOptions
+		if clientOpts.Deployment == nil {
+			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
+			// deployment.
+			uriOpts = options.Client().ApplyURI(testContext.connString.Original)
+		}
+
+		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
+		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
+	}
+	if err != nil {
+		t.Fatalf("error creating client: %v", err)
+	}
+	if err := t.Client.Connect(context.Background()); err != nil {
+		t.Fatalf("error connecting client: %v", err)
+	}
+	_, err = t.Client.Database(t.dbName).Collection(t.collName).CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		t.Fatalf("error while counting documents: %v", err)
+	}
+	circuitTripped = true
+	_, err = t.Client.Database(t.dbName).Collection(t.collName).CountDocuments(context.Background(), bson.M{})
+	if err == nil || err.Error() != "Circuit has been tripped2" {
+		t.Fatalf("expected error from circuit breaker, got: %v", err)
 	}
 }
 
