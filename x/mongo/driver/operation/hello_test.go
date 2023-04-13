@@ -11,10 +11,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const documentSize = 5         // 5 bytes to start and end a document
-
 func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D, maxLen int) {
 	t.Helper()
+
+	const documentSize = 5 // 5 bytes to start and end a document
 
 	tooLarge := len(got)-documentSize > maxLen
 	require.False(t, tooLarge, "got document is too large: %v", got)
