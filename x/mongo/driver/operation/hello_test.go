@@ -12,9 +12,6 @@ import (
 )
 
 const documentSize = 5         // 5 bytes to start and end a document
-const embeddedDocumentSize = 7 // 7 bytes to append a document element
-const stringElementSize = 7    // 7 bytes to append a string element
-const int32ElementSize = 6     // 6 bytes to append an int32 element
 
 func assertAppendClientMaxLen(t *testing.T, got bsoncore.Document, wantD bson.D, maxLen int) {
 	t.Helper()
