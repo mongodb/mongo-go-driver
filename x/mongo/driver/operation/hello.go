@@ -378,7 +378,8 @@ func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
 	truncatePlatform := false
 
 retry:
-	idx, dst := bsoncore.AppendDocumentStart(dst)
+	var idx int32
+	idx, dst = bsoncore.AppendDocumentStart(dst)
 
 	var err error
 	dst, err = appendClientAppName(dst, appname)
