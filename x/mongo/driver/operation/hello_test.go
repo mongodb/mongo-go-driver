@@ -551,6 +551,59 @@ func TestEncodeClientMetadata(t *testing.T) {
 	})
 }
 
+func TestParseFaasEnvName(t *testing.T) {
+	clearTestEnv(t)
+
+	tests := []struct {
+		name string
+		env  map[string]string
+		want string
+	}{
+		{
+			name: "no env",
+			want: "",
+		},
+		{
+			name: "one aws",
+			env: map[string]string{
+				"AWS_EXECUTION_ENV": "hello",
+			},
+			want: "aws.lambda",
+		},
+		{
+			name: "both aws options",
+			env: map[string]string{
+				"AWS_EXECUTION_ENV":      "hello",
+				"AWS_LAMBDA_RUNTIME_API": "hello",
+			},
+			want: "aws.lambda",
+		},
+		{
+			name: "multiple variables",
+			env: map[string]string{
+				"AWS_EXECUTION_ENV":        "hello",
+				"FUNCTIONS_WORKER_RUNTIME": "hello",
+			},
+			want: "",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			for key, value := range test.env {
+				t.Setenv(key, value)
+			}
+
+			got := getFaasEnvName()
+			if got != test.want {
+				t.Errorf("parseFaasEnvName(%s) = %s, want %s", test.name, got, test.want)
+			}
+		})
+	}
+}
+
 func BenchmarkClientMetadata(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
