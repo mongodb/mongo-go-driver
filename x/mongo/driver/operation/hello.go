@@ -204,127 +204,36 @@ func getFaasEnvName() string {
 	return ""
 }
 
-// appendWithMaxLen appends the "dst" slice using the provided function. If the
-// length of the resulting slice is greater than maxLen, the original slice is
-// returned. Otherwise, the new slice is returned.
-func appendWithMaxLen(dst []byte, maxLen int, fn func([]byte) []byte) []byte {
-	origLen := len(dst)
-
-	dst = fn(dst)
-	if len(dst) > maxLen {
-		return dst[:origLen]
-	}
-
-	return dst
-}
-
-func appendSubDocument(dst []byte, maxLen int, key string, fns []func([]byte) []byte) ([]byte, error) {
-	if dst == nil || maxLen <= 0 || len(fns) == 0 {
-		return dst, nil
-	}
-
-	bytesLeft := maxLen - 1 // -1 for the null byte to end the sub doc.
-	originalLen := len(dst)
-
+// appendClientAppName appends the application metadata to the dst. It is the
+// responsibility of the caller to check that this appending does cause dst to
+// exceed any size limitations.
+func appendClientAppName(dst []byte, name string) ([]byte, error) {
 	var idx int32
-	dst = appendWithMaxLen(dst, bytesLeft, func(dst []byte) []byte {
-		idx, dst = bsoncore.AppendDocumentElementStart(dst, key)
+	idx, dst = bsoncore.AppendDocumentElementStart(dst, "application")
 
-		return dst
-	})
+	dst = bsoncore.AppendStringElement(dst, "name", name)
 
-	// If the sub-document is too large then continuing will corrupt the
-	// document so return the original slice.
-	if len(dst) == originalLen {
-		return dst, nil
-	}
-
-	emptySize := len(dst) // Size of the sub-document if it is empty.
-
-	for _, fn := range fns {
-		if fn == nil {
-			continue
-		}
-
-		dst = appendWithMaxLen(dst, bytesLeft, fn)
-	}
-
-	// If the driver sub doc is empty, truncate and return the original
-	// slice.
-	if len(dst) == emptySize {
-		return dst[:originalLen], nil
-	}
-
-	var err error
-
-	// End the driver sub-document.
-	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
-	if err != nil {
-		return dst, err
-	}
-
-	return dst, nil
+	return bsoncore.AppendDocumentEnd(dst, idx)
 }
 
-// appendClientAppName appends the application name to dst. If appending the
-// application name would cause the length of the document to exceed maxLen,
-// the original dst slice is returned.
-func appendClientAppName(dst []byte, maxLen int, name string) ([]byte, error) {
-	if dst == nil || maxLen <= 0 {
-		return dst, nil
-	}
+// appendClientDriver appends the driver metadata to dst. It is the
+// responsibility of the caller to check that this appending does not cause dst
+// to exceed any size limitations.
+func appendClientDriver(dst []byte) ([]byte, error) {
+	var idx int32
+	idx, dst = bsoncore.AppendDocumentElementStart(dst, "driver")
 
-	const appNameKey = "application"
-	var err error
+	dst = bsoncore.AppendStringElement(dst, "name", driverName)
+	dst = bsoncore.AppendStringElement(dst, "version", version.Driver)
 
-	dst, err = appendSubDocument(dst, maxLen, appNameKey, []func([]byte) []byte{
-		func(dst []byte) []byte {
-			const nameKey = "name"
-
-			return bsoncore.AppendStringElement(dst, nameKey, name)
-		},
-	})
-
-	return dst, err
+	return bsoncore.AppendDocumentEnd(dst, idx)
 }
 
-// appendClientDriver appends the driver metadata to dst. If appending the
-// driver metadata would cause the length of the document to exceed maxLen,
-// the original dst slice is returned. If only an empty driver sub-document
-// could be appended, the original dst slice is returned.
-func appendClientDriver(dst []byte, maxLen int) ([]byte, error) {
-	if dst == nil || maxLen <= 0 {
-		return dst, nil
-	}
-
-	const appNameKey = "driver"
-	var err error
-
-	dst, err = appendSubDocument(dst, maxLen, appNameKey, []func([]byte) []byte{
-		func(dst []byte) []byte {
-			const key = "name"
-
-			return bsoncore.AppendStringElement(dst, key, driverName)
-		},
-		func(dst []byte) []byte {
-			const key = "version"
-
-			return bsoncore.AppendStringElement(dst, key, version.Driver)
-		},
-	})
-
-	return dst, err
-}
-
-// appendClientEnv appends the environment metadata to dst. If appending the
-// environment metadata would cause the length of the document to exceed
-// maxLen, the original dst slice is returned. If only an empty environment
-// sub-document could be appended, the original dst slice is returned. The
-// "env" sub-document must contain a non-empty "name" field, so if the
-// environment variable responsible for setting the name is not set, the
-// original dst slice is returned.
-func appendClientEnv(dst []byte, maxLen int) ([]byte, error) {
-	if dst == nil || maxLen <= 0 {
+// appendClientEnv appends the environment metadata to dst. It is the
+// responsibility of the caller to check that this appending does not cause dst
+// to exceed any size limitations.
+func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
+	if omitDoc {
 		return dst, nil
 	}
 
@@ -333,129 +242,99 @@ func appendClientEnv(dst []byte, maxLen int) ([]byte, error) {
 		return dst, nil
 	}
 
-	addMem := func(envVar string) func([]byte) []byte {
+	var idx int32
+
+	idx, dst = bsoncore.AppendDocumentElementStart(dst, "env")
+	dst = bsoncore.AppendStringElement(dst, "name", name)
+
+	addMem := func(envVar string) []byte {
 		mem := os.Getenv(envVar)
 		if mem == "" {
-			return nil
+			return dst
 		}
 
 		memInt64, err := strconv.ParseInt(mem, 10, 32)
 		if err != nil {
-			return nil
+			return dst
 		}
 
 		memInt32 := int32(memInt64)
 
-		return func(dst []byte) []byte {
-			const key = "memory_mb"
-
-			return bsoncore.AppendInt32Element(dst, key, memInt32)
-		}
+		return bsoncore.AppendInt32Element(dst, "memory_mb", memInt32)
 	}
 
-	addRegion := func(envVar string) func([]byte) []byte {
+	addRegion := func(envVar string) []byte {
 		region := os.Getenv(envVar)
 		if region == "" {
-			return nil
+			return dst
 		}
 
-		return func(dst []byte) []byte {
-			key := "region"
-
-			return bsoncore.AppendStringElement(dst, key, region)
-		}
+		return bsoncore.AppendStringElement(dst, "region", region)
 	}
 
-	addTimeout := func(envVar string) func([]byte) []byte {
+	addTimeout := func(envVar string) []byte {
 		timeout := os.Getenv(envVar)
 		if timeout == "" {
-			return nil
+			return dst
 		}
 
 		timeoutInt64, err := strconv.ParseInt(timeout, 10, 32)
 		if err != nil {
-			return nil
+			return dst
 		}
 
 		timeoutInt32 := int32(timeoutInt64)
-		return func(dst []byte) []byte {
-			key := "timeout_sec"
-
-			return bsoncore.AppendInt32Element(dst, key, timeoutInt32)
-		}
+		return bsoncore.AppendInt32Element(dst, "timeout_sec", timeoutInt32)
 	}
 
-	addURL := func(envVar string) func([]byte) []byte {
+	addURL := func(envVar string) []byte {
 		url := os.Getenv(envVar)
 		if url == "" {
-			return nil
+			return dst
 		}
 
-		return func(dst []byte) []byte {
-			return bsoncore.AppendStringElement(dst, "url", url)
+		return bsoncore.AppendStringElement(dst, "url", url)
+	}
+
+	if !omitNonName {
+		switch name {
+		case envNameAWSLambda:
+			dst = addMem(envVarAWSLambdaFunctionMemorySize)
+			dst = addRegion(envVarAWSRegion)
+		case envNameGCPFunc:
+			dst = addMem(envVarFunctionMemoryMB)
+			dst = addRegion(envVarFunctionRegion)
+			dst = addTimeout(envVarFunctionTimeoutSec)
+		case envNameVercel:
+			dst = addRegion(envVarVercelRegion)
+			dst = addURL(envVarVercelURL)
 		}
 	}
 
-	fns := []func([]byte) []byte{
-		func(dst []byte) []byte {
-			return bsoncore.AppendStringElement(dst, "name", name)
-		},
-	}
-
-	switch name {
-	case envNameAWSLambda:
-		fns = append(fns, addMem(envVarAWSLambdaFunctionMemorySize))
-		fns = append(fns, addRegion(envVarAWSRegion))
-	case envNameGCPFunc:
-		fns = append(fns, addMem(envVarFunctionMemoryMB))
-		fns = append(fns, addRegion(envVarFunctionRegion))
-		fns = append(fns, addTimeout(envVarFunctionTimeoutSec))
-	case envNameVercel:
-		fns = append(fns, addRegion(envVarVercelRegion))
-		fns = append(fns, addURL(envVarVercelURL))
-	}
-
-	const envKey = "env"
-	return appendSubDocument(dst, maxLen, envKey, fns)
+	return bsoncore.AppendDocumentEnd(dst, idx)
 }
 
-// appendClientOS appends the OS metadata to dst. If the document exceeds the
-// maximum length, the OS is omitted.
-func appendClientOS(dst []byte, maxLen int) ([]byte, error) {
-	if dst == nil || maxLen <= 0 {
-		return dst, nil
+// appendClientOS appends the OS metadata to dst. It is the responsibilty of the
+// caller to check that this appending does not cause dst to exceed any size
+// limitations.
+func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
+	var idx int32
+
+	idx, dst = bsoncore.AppendDocumentElementStart(dst, "os")
+
+	dst = bsoncore.AppendStringElement(dst, "type", runtime.GOOS)
+	if !omitNonType {
+		dst = bsoncore.AppendStringElement(dst, "architecture", runtime.GOARCH)
 	}
 
-	const osKey = "os"
-	var err error
-
-	dst, err = appendSubDocument(dst, maxLen, osKey, []func([]byte) []byte{
-		func(dst []byte) []byte {
-			const key = "type"
-
-			return bsoncore.AppendStringElement(dst, key, runtime.GOOS)
-		},
-		func(dst []byte) []byte {
-			const key = "architecture"
-
-			return bsoncore.AppendStringElement(dst, key, runtime.GOARCH)
-		},
-	})
-
-	return dst, err
+	return bsoncore.AppendDocumentEnd(dst, idx)
 }
 
-// appendClientPlatform appends the platform metadata to dst. If the document
-// exceeds the maximum length, the platform is omitted.
-func appendClientPlatform(dst []byte, maxLen int) []byte {
-	if dst == nil || maxLen <= 0 {
-		return dst
-	}
-
-	const platformKey = "platform"
-	return appendWithMaxLen(dst, maxLen, func(dst []byte) []byte {
-		return bsoncore.AppendStringElement(dst, platformKey, runtime.Version())
-	})
+// appendClientPlatform appends the platform metadata to dst. It is the
+// responsibilty of the caller to check that this appending does not cause dst
+// to exceed any size limitations.
+func appendClientPlatform(dst []byte) []byte {
+	return bsoncore.AppendStringElement(dst, "platform", runtime.Version())
 }
 
 // encodeClientMetadata encodes the client metadata into a BSON document. maxLen
@@ -492,30 +371,40 @@ func appendClientPlatform(dst []byte, maxLen int) []byte {
 func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
 	dst := make([]byte, 0, maxLen)
 
+	omitEnvDoc := false
+	omitEnvNonName := false
+	omitOSNonType := false
+	omitEnvDocument := false
+	truncatePlatform := false
+
+retry:
 	idx, dst := bsoncore.AppendDocumentStart(dst)
-	bytesLeft := maxLen - 1 // -1 for the null byte at the end of the document
 
 	var err error
-	dst, err = appendClientAppName(dst, bytesLeft, appname)
+	dst, err = appendClientAppName(dst, appname)
 	if err != nil {
 		return dst, err
 	}
 
-	dst, err = appendClientDriver(dst, bytesLeft)
+	dst, err = appendClientDriver(dst)
 	if err != nil {
 		return dst, err
 	}
 
-	dst, err = appendClientOS(dst, bytesLeft)
+	dst, err = appendClientOS(dst, omitOSNonType)
 	if err != nil {
 		return dst, err
 	}
 
-	dst = appendClientPlatform(dst, bytesLeft)
+	if !truncatePlatform {
+		dst = appendClientPlatform(dst)
+	}
 
-	dst, err = appendClientEnv(dst, bytesLeft)
-	if err != nil {
-		return dst, err
+	if !omitEnvDocument {
+		dst, err = appendClientEnv(dst, omitEnvNonName, omitEnvDoc)
+		if err != nil {
+			return dst, err
+		}
 	}
 
 	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
@@ -523,10 +412,42 @@ func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
 		return dst, err
 	}
 
-	// If the final "dst" slice is somehow greater than the maximum length,
-	// then return an empty slice. This should never happen, but the server
-	// may error if the document exceeds the maximum length.
 	if len(dst) > maxLen {
+		// Implementors SHOULD cumulatively update fields in the
+		// following order until the document is under the size limit
+		//
+		//    1. Omit fields from ``env`` except ``env.name``
+		//    2. Omit fields from ``os`` except ``os.type``
+		//    3. Omit the ``env`` document entirely
+		//    4. Truncate ``platform``
+		dst = dst[:0]
+
+		if !omitEnvNonName {
+			omitEnvNonName = true
+
+			goto retry
+		}
+
+		if !omitOSNonType {
+			omitOSNonType = true
+
+			goto retry
+		}
+
+		if !omitEnvDoc {
+			omitEnvDoc = true
+
+			goto retry
+		}
+
+		if !truncatePlatform {
+			truncatePlatform = true
+
+			goto retry
+		}
+
+		// There is nothing left to update. Return an empty slice to
+		// tell caller not to append a `client` document.
 		return dst[:0], nil
 	}
 

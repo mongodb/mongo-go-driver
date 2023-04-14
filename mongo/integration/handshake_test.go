@@ -179,14 +179,7 @@ func TestHandshakeProse(t *testing.T) {
 				require.NoError(mt, err, "error marshaling want document: %v", err)
 
 				want := bsoncore.Document(wantBytes)
-
-				wantElems, err := want.Elements()
-				require.NoError(mt, err, "error getting elements from want document: %v", err)
-
-				gotElems, err := got.Elements()
-				require.NoError(mt, err, "error getting elements from got document: %v", err)
-
-				assert.Equal(mt, wantElems, gotElems, "expected and actual client metadata at index %d are different", idx)
+				assert.Equal(mt, want, got, "want: %v, got: %v", want, got)
 			}
 		})
 	}
