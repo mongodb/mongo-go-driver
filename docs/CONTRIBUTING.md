@@ -97,7 +97,7 @@ The following are the prequisites for running the AWS Lambda tests locally:
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 2. [Docker](https://www.docker.com/products/docker-desktop/)
 
-To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function:
+Local testing requires exporting the "MONGODB_URI" environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function run the following make target:
 
 ```
 make build-aws-lambda

@@ -1105,6 +1105,31 @@ functions:
         script: |
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
+
+  run-deployed-aws-lambda-tests:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${LAMBDA_AWS_ROLE_ARN}
+    - command: subprocess.exec
+      params:
+        working_dir: src
+        binary: bash
+        args:
+          - .evergreen/run-deployed-lambda-aws-tests.sh
+        env:
+          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/cmd/testfaas/testawslambda
+          DRIVERS_TOOLS: ${DRIVERS_TOOLS}
+          DRIVERS_ATLAS_PUBLIC_API_KEY: ${DRIVERS_ATLAS_PUBLIC_API_KEY}
+          DRIVERS_ATLAS_PRIVATE_API_KEY: ${DRIVERS_ATLAS_PRIVATE_API_KEY}
+          DRIVERS_ATLAS_LAMBDA_USER: ${DRIVERS_ATLAS_LAMBDA_USER}
+          DRIVERS_ATLAS_LAMBDA_PASSWORD: ${DRIVERS_ATLAS_LAMBDA_PASSWORD}
+          DRIVERS_ATLAS_GROUP_ID: ${DRIVERS_ATLAS_GROUP_ID}
+          LAMBDA_STACK_NAME: dbx-go-lambda
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -2152,6 +2177,14 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
 
+  - name: "test-deployed-lambda"
+    tags:
+      - latest
+      - lambda
+    commands:
+      - func: install dependencies
+      - func: run deployed aws lambda tests
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -2230,6 +2263,11 @@ axes:
       - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-build
+        variables:
+          GO_DIST: "/opt/golang/go1.19"
+      - id: "ubuntu2004-64-go-1-19"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-build
         variables:
           GO_DIST: "/opt/golang/go1.19"
       - id: "macos11-go-1-19"
@@ -2556,6 +2594,7 @@ buildvariants:
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
+
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"

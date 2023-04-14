@@ -93,6 +93,7 @@ test-short:
 ### Local FaaS targets. ###
 .PHONY: build-aws-lambda
 build-aws-lambda:
+	$(if $(MONGODB_URI),,$(error MONGODB_URI is not set))
 	$(MAKE) -C cmd/testfaas/testawslambda/ build
 
 ### Evergreen specific targets. ###
