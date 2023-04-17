@@ -147,7 +147,7 @@ func TestAppendClientEnv(t *testing.T) {
 			want: []byte(`{}`),
 		},
 		{
-			name:          "emtpy with omit",
+			name:          "empty with omit",
 			omitEnvFields: true,
 			want:          []byte(`{}`),
 		},
@@ -438,7 +438,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		assertDocsEqual(t, got, want)
 	})
 
-	t.Run("env is ommitted sub env.name", func(t *testing.T) {
+	t.Run("env is omitted sub env.name", func(t *testing.T) {
 		// Calculate the full length of a bsoncore.Document.
 		temp, err := encodeClientMetadata("foo", maxClientMetadataSize)
 		require.NoError(t, err, "error constructing template: %v", err)
@@ -457,7 +457,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		assertDocsEqual(t, got, want)
 	})
 
-	t.Run("os is ommitted sub os.type", func(t *testing.T) {
+	t.Run("os is omitted sub os.type", func(t *testing.T) {
 		// Calculate the full length of a bsoncore.Document.
 		temp, err := encodeClientMetadata("foo", maxClientMetadataSize)
 		require.NoError(t, err, "error constructing template: %v", err)

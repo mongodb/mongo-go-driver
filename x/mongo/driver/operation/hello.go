@@ -314,7 +314,7 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 	return bsoncore.AppendDocumentEnd(dst, idx)
 }
 
-// appendClientOS appends the OS metadata to dst. It is the responsibilty of the
+// appendClientOS appends the OS metadata to dst. It is the responsibility of the
 // caller to check that this appending does not cause dst to exceed any size
 // limitations.
 func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
@@ -331,7 +331,7 @@ func appendClientOS(dst []byte, omitNonType bool) ([]byte, error) {
 }
 
 // appendClientPlatform appends the platform metadata to dst. It is the
-// responsibilty of the caller to check that this appending does not cause dst
+// responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
 func appendClientPlatform(dst []byte) []byte {
 	return bsoncore.AppendStringElement(dst, "platform", runtime.Version())
