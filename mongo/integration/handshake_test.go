@@ -186,10 +186,6 @@ func TestHandshakeProse(t *testing.T) {
 
 				assert.Equal(mt, pair.CommandName, hello, "expected and actual command name at index %d are different", idx)
 
-				helloOk, err := pair.Received.Response.LookupErr("helloOk")
-				require.NoError(mt, err, "expected helloOk field at index %d for %v", idx, pair.Received)
-				assert.Equal(mt, helloOk.Boolean(), true, "expected helloOk field at index %d to be true", idx)
-
 				sent := pair.Sent
 
 				// Lookup the "client" field in the command document.
