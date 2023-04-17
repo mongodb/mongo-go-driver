@@ -49,6 +49,32 @@ func TestHandshakeProse(t *testing.T) {
 		return elems
 	}
 
+	const (
+		envVarAWSExecutionEnv             = "AWS_EXECUTION_ENV"
+		envVarAWSRegion                   = "AWS_REGION"
+		envVarAWSLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
+		envVarFunctionsWorkerRuntime      = "FUNCTIONS_WORKER_RUNTIME"
+		envVarKService                    = "K_SERVICE"
+		envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
+		envVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
+		envVarFunctionRegion              = "FUNCTION_REGION"
+		envVarVercel                      = "VERCEL"
+		envVarVercelRegion                = "VERCEL_REGION"
+	)
+
+	// Resest the environment variables to avoid environment namespace
+	// collision.
+	t.Setenv(envVarAWSExecutionEnv, "")
+	t.Setenv(envVarFunctionsWorkerRuntime, "")
+	t.Setenv(envVarKService, "")
+	t.Setenv(envVarVercel, "")
+	t.Setenv(envVarAWSRegion, "")
+	t.Setenv(envVarAWSLambdaFunctionMemorySize, "")
+	t.Setenv(envVarFunctionMemoryMB, "")
+	t.Setenv(envVarFunctionTimeoutSec, "")
+	t.Setenv(envVarFunctionRegion, "")
+	t.Setenv(envVarVercelRegion, "")
+
 	for _, test := range []struct {
 		name string
 		env  map[string]string
@@ -57,9 +83,9 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "valid AWS",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
-				"AWS_REGION":                      "us-east-2",
-				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSRegion:                   "us-east-2",
+				envVarAWSLambdaFunctionMemorySize: "1024",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
@@ -70,7 +96,7 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "valid Azure",
 			env: map[string]string{
-				"FUNCTIONS_WORKER_RUNTIME": "node",
+				envVarFunctionsWorkerRuntime: "node",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "azure.func"},
@@ -79,10 +105,10 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "valid GCP",
 			env: map[string]string{
-				"K_SERVICE":            "servicename",
-				"FUNCTION_MEMORY_MB":   "1024",
-				"FUNCTION_TIMEOUT_SEC": "60",
-				"FUNCTION_REGION":      "us-central1",
+				envVarKService:           "servicename",
+				envVarFunctionMemoryMB:   "1024",
+				envVarFunctionTimeoutSec: "60",
+				envVarFunctionRegion:     "us-central1",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "gcp.func"},
@@ -94,29 +120,27 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "valid Vercel",
 			env: map[string]string{
-				"VERCEL":        "1",
-				"VERCEL_URL":    "*.vercel.app",
-				"VERCEL_REGION": "cdg1",
+				envVarVercel:       "1",
+				envVarVercelRegion: "cdg1",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "vercel"},
 				{Key: "region", Value: "cdg1"},
-				{Key: "url", Value: "*.vercel.app"},
 			}),
 		},
 		{
 			name: "invalid multiple providers",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":        "AWS_Lambda_java8",
-				"FUNCTIONS_WORKER_RUNTIME": "node",
+				envVarAWSExecutionEnv:        "AWS_Lambda_java8",
+				envVarFunctionsWorkerRuntime: "node",
 			},
 			want: clientMetadata(nil),
 		},
 		{
 			name: "invalid long string",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV": "AWS_Lambda_java8",
-				"AWS_REGION": func() string {
+				envVarAWSExecutionEnv: "AWS_Lambda_java8",
+				envVarAWSRegion: func() string {
 					var s string
 					for i := 0; i < 512; i++ {
 						s += "a"
@@ -131,8 +155,8 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "invalid wrong types",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
-				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "big",
+				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSLambdaFunctionMemorySize: "big",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
@@ -163,7 +187,7 @@ func TestHandshakeProse(t *testing.T) {
 				assert.Equal(mt, pair.CommandName, hello, "expected and actual command name at index %d are different", idx)
 
 				helloOk, err := pair.Received.Response.LookupErr("helloOk")
-				require.NoError(mt, err, "expected helloOk field at index %d", idx)
+				require.NoError(mt, err, "expected helloOk field at index %d for %v", idx, pair.Received)
 				assert.Equal(mt, helloOk.Boolean(), true, "expected helloOk field at index %d to be true", idx)
 
 				sent := pair.Sent

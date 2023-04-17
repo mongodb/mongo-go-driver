@@ -139,7 +139,6 @@ const (
 	envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
 	envVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
 	envVarFunctionRegion              = "FUNCTION_REGION"
-	envVarVercelURL                   = "VERCEL_URL"
 	envVarVercelRegion                = "VERCEL_REGION"
 )
 
@@ -154,7 +153,9 @@ const (
 // getFaasEnvName parses the FaaS environment variable name and returns the
 // corresponding name used by the client. If none of the variables or variables
 // for multiple names are populated the client.env value MUST be entirely
-// omitted.
+// omitted. When variables for multiple "client.env.name" values are present,
+// "vercel" takes precedence over "aws.lambda"; any other combination MUST cause
+// "client.env" to be entirely omitted.
 func getFaasEnvName() string {
 	envVars := []string{
 		envVarAWSExecutionEnv,
@@ -178,12 +179,18 @@ func getFaasEnvName() string {
 
 		switch envVar {
 		case envVarAWSExecutionEnv, envVarAWSLambdaRuntimeAPI:
-			name = envNameAWSLambda
+			// "vercel" takes precedence over "aws.lambda".
+			if name != envNameVercel {
+				name = envNameAWSLambda
+			}
 		case envVarFunctionsWorkerRuntime:
 			name = envNameAzureFunc
 		case envVarKService, envVarFunctionName:
 			name = envNameGCPFunc
 		case envVarVercel:
+			// "vercel" takes precedence over "aws.lambda".
+			delete(names, envNameAWSLambda)
+
 			name = envNameVercel
 		}
 
@@ -287,15 +294,6 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 		return bsoncore.AppendInt32Element(dst, "timeout_sec", timeoutInt32)
 	}
 
-	addURL := func(envVar string) []byte {
-		url := os.Getenv(envVar)
-		if url == "" {
-			return dst
-		}
-
-		return bsoncore.AppendStringElement(dst, "url", url)
-	}
-
 	if !omitNonName {
 		switch name {
 		case envNameAWSLambda:
@@ -307,7 +305,6 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 			dst = addTimeout(envVarFunctionTimeoutSec)
 		case envNameVercel:
 			dst = addRegion(envVarVercelRegion)
-			dst = addURL(envVarVercelURL)
 		}
 	}
 

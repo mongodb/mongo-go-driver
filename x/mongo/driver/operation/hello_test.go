@@ -59,7 +59,6 @@ func clearTestEnv(t *testing.T) {
 	t.Setenv(envVarFunctionMemoryMB, "")
 	t.Setenv(envVarFunctionTimeoutSec, "")
 	t.Setenv(envVarFunctionRegion, "")
-	t.Setenv(envVarVercelURL, "")
 	t.Setenv(envVarVercelRegion, "")
 }
 
@@ -259,23 +258,6 @@ func TestAppendClientEnv(t *testing.T) {
 				envVarVercelRegion: "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"vercel","region":"us-east-2"}}`),
-		},
-		{
-			name: "vercel url",
-			env: map[string]string{
-				envVarVercel:    "1",
-				envVarVercelURL: "*.vercel.app",
-			},
-			want: []byte(`{"env":{"name":"vercel","url":"*.vercel.app"}}`),
-		},
-		{
-			name: "vercel with url and region",
-			env: map[string]string{
-				envVarVercel:       "1",
-				envVarVercelURL:    "*.vercel.app",
-				envVarVercelRegion: "us-east-2",
-			},
-			want: []byte(`{"env":{"name":"vercel","region":"us-east-2","url":"*.vercel.app"}}`),
 		},
 		{
 			name: "azure only",
@@ -566,25 +548,33 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "one aws",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV": "hello",
+				envVarAWSExecutionEnv: "hello",
 			},
-			want: "aws.lambda",
+			want: envNameAWSLambda,
 		},
 		{
 			name: "both aws options",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":      "hello",
-				"AWS_LAMBDA_RUNTIME_API": "hello",
+				envVarAWSExecutionEnv:     "hello",
+				envVarAWSLambdaRuntimeAPI: "hello",
 			},
-			want: "aws.lambda",
+			want: envNameAWSLambda,
 		},
 		{
 			name: "multiple variables",
 			env: map[string]string{
-				"AWS_EXECUTION_ENV":        "hello",
-				"FUNCTIONS_WORKER_RUNTIME": "hello",
+				envVarAWSExecutionEnv:        "hello",
+				envVarFunctionsWorkerRuntime: "hello",
 			},
 			want: "",
+		},
+		{
+			name: "vercel and aws lambda",
+			env: map[string]string{
+				envVarAWSExecutionEnv: "hello",
+				envVarVercel:          "hello",
+			},
+			want: envNameVercel,
 		},
 	}
 
