@@ -177,6 +177,12 @@ func TestDateTime(t *testing.T) {
 			assert.Nil(t, err, "Unmarshal error: %v", err)
 			assert.Equal(t, DateTime(0), dt, "expected DateTime value to be 0, got %v", dt)
 		})
+		t.Run("UTC", func(t *testing.T) {
+			dt := DateTime(1681145535123)
+			jsonBytes, err := json.Marshal(dt)
+			assert.Nil(t, err, "Marshal error: %v", err)
+			assert.Equal(t, `"2023-04-10T16:52:15.123Z"`, string(jsonBytes))
+		})
 	})
 	t.Run("NewDateTimeFromTime", func(t *testing.T) {
 		t.Run("range is not limited", func(t *testing.T) {
