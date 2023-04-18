@@ -608,6 +608,29 @@ func BenchmarkClientMetadata(b *testing.B) {
 	})
 }
 
+func BenchmarkClientMetadtaLargeEnv(b *testing.B) {
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	b.Setenv(envNameAWSLambda, "foo")
+
+	str := ""
+	for i := 0; i < 512; i++ {
+		str += "a"
+	}
+
+	b.Setenv(envVarAWSLambdaRuntimeAPI, str)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := encodeClientMetadata("foo", maxClientMetadataSize)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
 func FuzzEncodeClientMetadata(f *testing.F) {
 	f.Fuzz(func(t *testing.T, b []byte, appname string) {
 		if len(b) > maxClientMetadataSize {
