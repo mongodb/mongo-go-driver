@@ -52,7 +52,7 @@ func (sc *StringCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val r
 	return vw.WriteString(val.String())
 }
 
-func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *StringCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -74,7 +74,7 @@ func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t ref
 		if err != nil {
 			return emptyValue, err
 		}
-		if sc.DecodeObjectIDAsHex || dc.ObjectIDAsHexString {
+		if sc.DecodeObjectIDAsHex {
 			str = oid.Hex()
 		} else {
 			// TODO(GODRIVER-2796): Return an error here instead of decoding to a garbled string.
