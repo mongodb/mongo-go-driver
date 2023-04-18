@@ -127,6 +127,8 @@ func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, erro
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
+//
+// Deprecated: Use mongo.Connect instead.
 func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	clientOpt := options.MergeClientOptions(opts...)
 
@@ -233,6 +235,8 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 //
 // Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main
 // goroutine. The Client.Ping method can be used to verify that the connection was created successfully.
+//
+// Deprecated: Use mongo.Connect instead.
 func (c *Client) Connect(ctx context.Context) error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
