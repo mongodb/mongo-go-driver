@@ -26,8 +26,6 @@ type MapCodec struct {
 	EncodeKeysWithStringer bool
 }
 
-var _ ValueCodec = &MapCodec{}
-
 // KeyMarshaler is the interface implemented by an object that can marshal itself into a string key.
 // This applies to types used as map keys and is similar to encoding.TextMarshaler.
 type KeyMarshaler interface {

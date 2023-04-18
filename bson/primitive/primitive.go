@@ -45,7 +45,7 @@ var _ json.Unmarshaler = (*DateTime)(nil)
 
 // MarshalJSON marshal to time type.
 func (d DateTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Time())
+	return json.Marshal(d.Time().UTC())
 }
 
 // UnmarshalJSON creates a primitive.DateTime from a JSON string.

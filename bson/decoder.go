@@ -53,6 +53,9 @@ func NewDecoder(vr bsonrw.ValueReader) (*Decoder, error) {
 }
 
 // NewDecoderWithContext returns a new decoder that uses DecodeContext dc to read from vr.
+//
+// Deprecated: Use bson.NewDecoder and use the Decoder configuration methods set the desired
+// behavior of the decoder instead.
 func NewDecoderWithContext(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*Decoder, error) {
 	if dc.Registry == nil {
 		dc.Registry = DefaultRegistry
@@ -123,6 +126,9 @@ func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
 }
 
 // SetContext replaces the current registry of the decoder with dc.
+//
+// Deprecated: Use the Decoder configuration methods set the desired behavior of the decoder
+// instead.
 func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
 	d.dc = dc
 	return nil

@@ -3792,3 +3792,10 @@ func buildDocument(elems []byte) []byte {
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 	return doc
 }
+
+func buildDefaultRegistry() *Registry {
+	rb := NewRegistryBuilder()
+	defaultValueEncoders.RegisterDefaultEncoders(rb)
+	defaultValueDecoders.RegisterDefaultDecoders(rb)
+	return rb.Build()
+}

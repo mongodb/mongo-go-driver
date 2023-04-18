@@ -12,11 +12,13 @@ fi
 
 # Use the "github.com/walle/lll" tool to check that all lines in *_example_test.go files are
 # wrapped at 80 characters to keep them readable when rendered on https://pkg.go.dev.
-# Ignore long lines that are comments containing URI-like strings.
+# Ignore long lines that are comments containing URI-like strings and testable example output
+# comments like "// Output: ...".
 # E.g ignored lines:
 #     // "mongodb://ldap-user:ldap-pwd@localhost:27017/?authMechanism=PLAIN"
 #     // (https://www.mongodb.com/docs/manual/core/authentication-mechanisms-enterprise/#security-auth-ldap).
-lll_out="$(find . -type f -name "*_examples_test.go" | lll -w 4 -l 80 -e '^\s*\/\/.+:\/\/' --files)"
+#     // Output: {"myint": {"$numberLong":"1"},"int32": {"$numberLong":"1"},"int64": {"$numberLong":"1"}}
+lll_out="$(find . -type f -name "*_examples_test.go" | lll -w 4 -l 80 -e '^\s*\/\/(.+:\/\/| Output:)' --files)"
 
 if [[ $lll_out ]]; then
   echo "lll check failed for:";
