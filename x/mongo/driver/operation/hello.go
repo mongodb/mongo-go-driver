@@ -381,17 +381,17 @@ retry:
 	var err error
 	dst, err = appendClientAppName(dst, appname)
 	if err != nil {
-		return dst, err
+		return nil, err
 	}
 
 	dst, err = appendClientDriver(dst)
 	if err != nil {
-		return dst, err
+		return nil, err
 	}
 
 	dst, err = appendClientOS(dst, omitOSNonType)
 	if err != nil {
-		return dst, err
+		return nil, err
 	}
 
 	if !truncatePlatform {
@@ -401,13 +401,13 @@ retry:
 	if !omitEnvDocument {
 		dst, err = appendClientEnv(dst, omitEnvNonName, omitEnvDoc)
 		if err != nil {
-			return dst, err
+			return nil, err
 		}
 	}
 
 	dst, err = bsoncore.AppendDocumentEnd(dst, idx)
 	if err != nil {
-		return dst, err
+		return nil, err
 	}
 
 	if len(dst) > maxLen {
@@ -446,7 +446,7 @@ retry:
 
 		// There is nothing left to update. Return an empty slice to
 		// tell caller not to append a `client` document.
-		return dst[:0], nil
+		return nil, nil
 	}
 
 	return dst, nil
@@ -472,10 +472,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 	}
 	dst, _ = bsoncore.AppendArrayEnd(dst, idx)
 
-	clientMetadata, err := encodeClientMetadata(h.appname, maxClientMetadataSize)
-	if err != nil {
-		return dst, err
-	}
+	clientMetadata, _ := encodeClientMetadata(h.appname, maxClientMetadataSize)
 
 	// If the client metadata is empty, do not append it to the command.
 	if len(clientMetadata) > 0 {
