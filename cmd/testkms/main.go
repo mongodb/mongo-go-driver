@@ -35,16 +35,6 @@ var datakeyopts = map[string]primitive.M{
 	},
 }
 
-var providers = func() []string {
-	l := make([]string, len(datakeyopts))
-	i := 0
-	for p := range datakeyopts {
-		l[i] = p
-		i++
-	}
-	return l
-}()
-
 func main() {
 	uri := os.Getenv("MONGODB_URI")
 	provider := os.Getenv("PROVIDER")
@@ -64,6 +54,11 @@ func main() {
 		ok = true
 	}
 	if !ok {
+		providers := make([]string, 0, len(datakeyopts))
+		for p := range datakeyopts {
+			providers = append(providers, p)
+		}
+
 		fmt.Println("The following environment variables are understood:")
 		fmt.Println("- MONGODB_URI as a MongoDB URI. Example: 'mongodb://localhost:27017'")
 		fmt.Println("- EXPECT_ERROR as an optional expected error substring.")

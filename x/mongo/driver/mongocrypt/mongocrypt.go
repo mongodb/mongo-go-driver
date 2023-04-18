@@ -499,7 +499,8 @@ func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
 	return ok && len(doc) == 5
 }
 
-// GetKmsProviders returns the originally configured KMS providers.
+// GetKmsProviders attempts to obtain credentials from environment.
+// It is expected to be called when a libmongocrypt context is in the mongocrypt.NeedKmsCredentials state.
 func (m *MongoCrypt) GetKmsProviders(ctx context.Context) (bsoncore.Document, error) {
 	builder := bsoncore.NewDocumentBuilder()
 	for k, p := range m.kmsProviders {

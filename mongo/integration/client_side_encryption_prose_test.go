@@ -2020,10 +2020,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	})
 
 	mt.RunOpts("18. Azure IMDS Credentials", noClientOpts, func(mt *mtest.T) {
-		if os.Getenv("AZURE_MOCK_SERVERS_RUNNING") == "" {
-			mt.Skipf("Skipping test as AZURE_MOCK_SERVERS_RUNNING is not set")
-		}
-
 		buf := make([]byte, 0, 256)
 		kmsProvidersMap := map[string]map[string]interface{}{
 			"azure": {},
@@ -2053,7 +2049,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "error in GetKmsProviders: %v", err)
 			val, err := doc.LookupErr("azure")
 			assert.Nil(mt, err, "error in LookupErr: %v", err)
-			assert.Equal(mt, val.String(), `{"accessToken": "magic-cookie"}`, "expected accessToken, got %s", val.String())
+			assert.Equal(mt, `{"accessToken": "magic-cookie"}`, val.String(), "expected accessToken, got %s", val.String())
 		})
 		mt.Run("Case 2: Empty JSON", func(mt *mtest.T) {
 			header := make(http.Header)

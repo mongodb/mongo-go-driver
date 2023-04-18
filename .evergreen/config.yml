@@ -1013,21 +1013,6 @@ functions:
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
 
-  start-kms-mock-azure-imds-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate-kmstlsvenv.sh
-    - command: shell.exec
-      params:
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
-
   start-cse-servers:
     - command: shell.exec
       params:
@@ -1048,11 +1033,13 @@ functions:
               --port 5698 \
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
+            kmstlsvenv/Scripts/python.exe bottle.py fake_azure:imds
           else
             ./kmstlsvenv/bin/python3 -u kms_kmip_server.py \
               --port 5698 \
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
+            ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
           fi
 
   run-kms-tls-test:
@@ -1108,28 +1095,6 @@ functions:
           CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/ca-ec.pem"
           CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/client-ec.pem"
           make evg-test-kmip \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH
-
-  run-azure-imds-test:
-    - command: shell.exec
-      type: test
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-          export AZURE_MOCK_SERVERS_RUNNING="${AZURE_MOCK_SERVERS_RUNNING}"
-
-          export GOFLAGS=-mod=vendor
-          BUILD_TAGS="-tags cse" \
-          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
-          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
-          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
-          AZURE_CLIENT_ID="${cse_azure_client_id}" \
-          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
-          GCP_EMAIL="${cse_gcp_email}" \
-          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
-          make evg-test-azure \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
 
@@ -2070,19 +2035,6 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
 
-  - name: "test-azure-imds"
-    tags: ["azure-imds"]
-    commands:
-      - func: bootstrap-mongo-orchestration
-        vars:
-          TOPOLOGY: "server"
-          AUTH: "noauth"
-          SSL: "nossl"
-      - func: start-kms-mock-azure-imds-server
-      - func: run-azure-imds-test
-        vars:
-          AZURE_MOCK_SERVERS_RUNNING: "true"
-
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
@@ -2557,6 +2509,10 @@ task_groups:
         params:
           file: testazurekms-expansions.yml
     teardown_group:
+      # setup_group may have failed before updating expansions. Try to update again to clean up resources on setup failure.
+      - command: expansions.update
+        params:
+          file: testazurekms-expansions.yml
       - command: shell.exec
         params:
           shell: "bash"
@@ -2703,12 +2659,6 @@ buildvariants:
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
-
-  - matrix_name: "azure-imds-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
-    display_name: "AZURE IMDS ${os-ssl-40}"
-    tasks:
-      - name: ".azure-imds"
 
   - matrix_name: "fuzz-test"
     matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }

@@ -124,10 +124,6 @@ evg-test-kmip:
 evg-test-kms:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
 
-.PHONY: evg-test-azure
-evg-test-azure:
-	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionProse/Azure_IMDS_Credentials
-
 .PHONY: evg-test-load-balancers
 evg-test-load-balancers:
 	# Load balancer should be tested with all unified tests as well as tests in the following
