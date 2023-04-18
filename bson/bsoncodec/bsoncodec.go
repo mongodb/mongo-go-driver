@@ -120,7 +120,7 @@ func (vde ValueDecoderError) Error() string {
 type EncodeContext struct {
 	*Registry
 
-	// IntMinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16,
+	// MinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16,
 	// int32, or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent
 	// the integer value.
 	//
