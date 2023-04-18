@@ -168,7 +168,7 @@ func getFaasEnvName() string {
 
 	// If none of the variables are populated the client.env value MUST be
 	// entirely omitted.
-	names := make(map[string]struct{})
+	names := make(map[string]bool)
 
 	for _, envVar := range envVars {
 		if os.Getenv(envVar) == "" {
@@ -180,7 +180,7 @@ func getFaasEnvName() string {
 		switch envVar {
 		case envVarAWSExecutionEnv, envVarAWSLambdaRuntimeAPI:
 			// "vercel" takes precedence over "aws.lambda".
-			if name != envNameVercel {
+			if !names[envNameVercel] {
 				name = envNameAWSLambda
 			}
 		case envVarFunctionsWorkerRuntime:
@@ -194,7 +194,7 @@ func getFaasEnvName() string {
 			name = envNameVercel
 		}
 
-		names[name] = struct{}{}
+		names[name] = true
 		if len(names) > 1 {
 			// If multiple names are populated the client.env value
 			// MUST be entirely omitted.
