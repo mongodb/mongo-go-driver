@@ -620,11 +620,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 	if err = createNumericalIndexIfNotExists(ctx, filesIv, filesModel); err != nil {
 		return err
 	}
-	if err = createNumericalIndexIfNotExists(ctx, chunksIv, chunksModel); err != nil {
-		return err
-	}
-
-	return nil
+	return createNumericalIndexIfNotExists(ctx, chunksIv, chunksModel)
 }
 
 func (b *Bucket) checkFirstWrite(ctx context.Context) error {

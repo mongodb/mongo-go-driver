@@ -119,11 +119,7 @@ func SingleFindOneByID(ctx context.Context, tm TimerManager, iters int) error {
 
 	tm.StopTimer()
 
-	if err = db.Drop(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return db.Drop(ctx)
 }
 
 func singleInsertCase(ctx context.Context, tm TimerManager, iters int, data string) error {
@@ -163,11 +159,7 @@ func singleInsertCase(ctx context.Context, tm TimerManager, iters int, data stri
 
 	tm.StopTimer()
 
-	if err = db.Drop(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return db.Drop(ctx)
 }
 
 func SingleInsertSmallDocument(ctx context.Context, tm TimerManager, iters int) error {

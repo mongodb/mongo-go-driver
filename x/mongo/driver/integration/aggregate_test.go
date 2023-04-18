@@ -47,7 +47,7 @@ func skipIfBelow32(ctx context.Context, t *testing.T, topo *topology.Topology) {
 	noerr(t, err)
 
 	versionCmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))
-	serverStatus, err := testutil.RunCommand(t, server, dbName, versionCmd)
+	serverStatus, err := testutil.RunCommand(server, dbName, versionCmd)
 	noerr(t, err)
 	version, err := serverStatus.LookupErr("version")
 	noerr(t, err)

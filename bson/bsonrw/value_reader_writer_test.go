@@ -385,7 +385,7 @@ func (llvrw *TestValueReaderWriter) WriteArray() (ArrayWriter, error) {
 	return llvrw, nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteBinary(b []byte) error {
+func (llvrw *TestValueReaderWriter) WriteBinary([]byte) error {
 	llvrw.invoked = llvrwWriteBinary
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -393,7 +393,7 @@ func (llvrw *TestValueReaderWriter) WriteBinary(b []byte) error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
+func (llvrw *TestValueReaderWriter) WriteBinaryWithSubtype([]byte, byte) error {
 	llvrw.invoked = llvrwWriteBinaryWithSubtype
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -409,7 +409,7 @@ func (llvrw *TestValueReaderWriter) WriteBoolean(bool) error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
+func (llvrw *TestValueReaderWriter) WriteCodeWithScope(string) (DocumentWriter, error) {
 	llvrw.invoked = llvrwWriteCodeWithScope
 	if llvrw.errAfter == llvrw.invoked {
 		return nil, llvrw.err
@@ -417,7 +417,7 @@ func (llvrw *TestValueReaderWriter) WriteCodeWithScope(code string) (DocumentWri
 	return llvrw, nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteDBPointer(ns string, oid primitive.ObjectID) error {
+func (llvrw *TestValueReaderWriter) WriteDBPointer(string, primitive.ObjectID) error {
 	llvrw.invoked = llvrwWriteDBPointer
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -425,7 +425,7 @@ func (llvrw *TestValueReaderWriter) WriteDBPointer(ns string, oid primitive.Obje
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteDateTime(dt int64) error {
+func (llvrw *TestValueReaderWriter) WriteDateTime(int64) error {
 	llvrw.invoked = llvrwWriteDateTime
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -465,7 +465,7 @@ func (llvrw *TestValueReaderWriter) WriteInt64(int64) error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteJavascript(code string) error {
+func (llvrw *TestValueReaderWriter) WriteJavascript(string) error {
 	llvrw.invoked = llvrwWriteJavascript
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -505,7 +505,7 @@ func (llvrw *TestValueReaderWriter) WriteObjectID(primitive.ObjectID) error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteRegex(pattern string, options string) error {
+func (llvrw *TestValueReaderWriter) WriteRegex(string, string) error {
 	llvrw.invoked = llvrwWriteRegex
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -529,7 +529,7 @@ func (llvrw *TestValueReaderWriter) WriteDocument() (DocumentWriter, error) {
 	return llvrw, nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteSymbol(symbol string) error {
+func (llvrw *TestValueReaderWriter) WriteSymbol(string) error {
 	llvrw.invoked = llvrwWriteSymbol
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err
@@ -537,7 +537,7 @@ func (llvrw *TestValueReaderWriter) WriteSymbol(symbol string) error {
 	return nil
 }
 
-func (llvrw *TestValueReaderWriter) WriteTimestamp(t uint32, i uint32) error {
+func (llvrw *TestValueReaderWriter) WriteTimestamp(uint32, uint32) error {
 	llvrw.invoked = llvrwWriteTimestamp
 	if llvrw.errAfter == llvrw.invoked {
 		return llvrw.err

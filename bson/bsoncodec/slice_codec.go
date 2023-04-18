@@ -23,8 +23,6 @@ type SliceCodec struct {
 	EncodeNilAsEmpty bool
 }
 
-var _ ValueCodec = &MapCodec{}
-
 // NewSliceCodec returns a MapCodec with options opts.
 func NewSliceCodec(opts ...*bsonoptions.SliceCodecOptions) *SliceCodec {
 	sliceOpt := bsonoptions.MergeSliceCodecOptions(opts...)

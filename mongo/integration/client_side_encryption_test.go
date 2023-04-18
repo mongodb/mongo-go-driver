@@ -484,8 +484,10 @@ func TestFLE2CreateCollection(t *testing.T) {
 
 func TestFLE2DocsExample(t *testing.T) {
 	// FLE 2 is not supported on Standalone topology.
+	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
+	// libmongocrypt is configured to use the QEv2 protocol.
 	mtOpts := mtest.NewOptions().
-		MinServerVersion("6.0").
+		MinServerVersion("7.0").
 		Enterprise(true).
 		CreateClient(false).
 		Topologies(mtest.ReplicaSet,
@@ -494,6 +496,11 @@ func TestFLE2DocsExample(t *testing.T) {
 			mtest.ShardedReplicaSet)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
+
+	if mtest.Serverless() {
+		// Skip tests if running against serverless, as capped collections are banned.
+		mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
+	}
 
 	mt.Run("Auto Encryption", func(mt *mtest.T) {
 		// Drop data from prior test runs.

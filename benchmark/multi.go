@@ -76,11 +76,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 		return err
 	}
 
-	if err = db.Drop(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return db.Drop(ctx)
 }
 
 func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data string) error {
@@ -126,11 +122,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 		return errors.New("bulk operation did not complete")
 	}
 
-	if err = db.Drop(ctx); err != nil {
-		return err
-	}
-
-	return nil
+	return db.Drop(ctx)
 }
 
 func MultiInsertSmallDocument(ctx context.Context, tm TimerManager, iters int) error {

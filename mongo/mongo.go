@@ -33,6 +33,8 @@ type Dialer interface {
 // provided type into BSON bytes and append those bytes to the provided []byte.
 // The AppendBSON can return a non-nil error and non-nil []byte. The AppendBSON
 // method may also write incomplete BSON to the []byte.
+//
+// Deprecated: BSONAppender is unused and will be removed in Go Driver 2.0.
 type BSONAppender interface {
 	AppendBSON([]byte, interface{}) ([]byte, error)
 }
@@ -40,9 +42,13 @@ type BSONAppender interface {
 // BSONAppenderFunc is an adapter function that allows any function that
 // satisfies the AppendBSON method signature to be used where a BSONAppender is
 // used.
+//
+// Deprecated: BSONAppenderFunc is unused and will be removed in Go Driver 2.0.
 type BSONAppenderFunc func([]byte, interface{}) ([]byte, error)
 
 // AppendBSON implements the BSONAppender interface
+//
+// Deprecated: BSONAppenderFunc is unused and will be removed in Go Driver 2.0.
 func (baf BSONAppenderFunc) AppendBSON(dst []byte, val interface{}) ([]byte, error) {
 	return baf(dst, val)
 }

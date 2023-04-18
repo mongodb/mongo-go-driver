@@ -45,7 +45,7 @@ var _ json.Unmarshaler = (*DateTime)(nil)
 
 // MarshalJSON marshal to time type.
 func (d DateTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Time())
+	return json.Marshal(d.Time().UTC())
 }
 
 // UnmarshalJSON creates a primitive.DateTime from a JSON string.
@@ -197,6 +197,9 @@ type MaxKey struct{}
 type D []E
 
 // Map creates a map from the elements of the D.
+//
+// Deprecated: Converting directly from a D to an M will not be supported in Go Driver 2.0. Instead,
+// users should marshal the D to BSON using bson.Marshal and unmarshal it to M using bson.Unmarshal.
 func (d D) Map() M {
 	m := make(M, len(d))
 	for _, e := range d {

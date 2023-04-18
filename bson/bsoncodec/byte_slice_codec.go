@@ -23,7 +23,9 @@ type ByteSliceCodec struct {
 var (
 	defaultByteSliceCodec = NewByteSliceCodec()
 
-	_ ValueCodec  = defaultByteSliceCodec
+	// Assert that defaultByteSliceCodec satisfies the typeDecoder interface, which allows it to be
+	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+	// collection.
 	_ typeDecoder = defaultByteSliceCodec
 )
 
@@ -38,7 +40,7 @@ func NewByteSliceCodec(opts ...*bsonoptions.ByteSliceCodecOptions) *ByteSliceCod
 }
 
 // EncodeValue is the ValueEncoder for []byte.
-func (bsc *ByteSliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (bsc *ByteSliceCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
@@ -48,7 +50,7 @@ func (bsc *ByteSliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, 
 	return vw.WriteBinary(val.Interface().([]byte))
 }
 
-func (bsc *ByteSliceCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (bsc *ByteSliceCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tByteSlice {
 		return emptyValue, ValueDecoderError{
 			Name:     "ByteSliceDecodeValue",

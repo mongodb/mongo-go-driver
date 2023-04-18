@@ -29,7 +29,8 @@ type TimeCodec struct {
 var (
 	defaultTimeCodec = NewTimeCodec()
 
-	_ ValueCodec  = defaultTimeCodec
+	// Assert that defaultTimeCodec satisfies the typeDecoder interface, which allows it to be used
+	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
 	_ typeDecoder = defaultTimeCodec
 )
 
@@ -44,7 +45,7 @@ func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) *TimeCodec {
 	return &codec
 }
 
-func (tc *TimeCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (tc *TimeCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tTime {
 		return emptyValue, ValueDecoderError{
 			Name:     "TimeDecodeValue",
@@ -117,7 +118,7 @@ func (tc *TimeCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val re
 }
 
 // EncodeValue is the ValueEncoderFunc for time.TIme.
-func (tc *TimeCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (tc *TimeCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTime {
 		return ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}

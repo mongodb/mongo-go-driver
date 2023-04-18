@@ -49,8 +49,6 @@ func (stpf StructTagParserFunc) ParseStructTags(sf reflect.StructField) (StructT
 //
 //	Skip       This struct field should be skipped. This is usually denoted by parsing a "-"
 //	           for the name.
-//
-// TODO(skriptble): Add tags for undefined as nil and for null as nil.
 type StructTags struct {
 	Name      string
 	OmitEmpty bool

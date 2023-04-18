@@ -44,6 +44,9 @@ func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
 }
 
 // NewEncoderWithContext returns a new encoder that uses EncodeContext ec to write to vw.
+//
+// Deprecated: Use bson.NewEncoder and use the Encoder configuration methods set the desired
+// behavior of the encoder instead.
 func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*Encoder, error) {
 	if ec.Registry == nil {
 		ec = bsoncodec.EncodeContext{Registry: DefaultRegistry}
@@ -93,6 +96,9 @@ func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
 }
 
 // SetContext replaces the current EncodeContext of the encoder with er.
+//
+// Deprecated: Use the Encoder configuration methods set the desired behavior of the encoder
+// instead.
 func (e *Encoder) SetContext(ec bsoncodec.EncodeContext) error {
 	e.ec = ec
 	return nil

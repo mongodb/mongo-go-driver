@@ -37,13 +37,18 @@ func AutoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs 
 
 // InsertDocs inserts the docs into the test cluster.
 func InsertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
-	err := operation.NewInsert(docs...).Collection(colname).Database(dbname).
-		Deployment(Topology(t)).ServerSelector(description.WriteSelector()).Execute(context.Background())
+	err := operation.NewInsert(docs...).
+		Collection(colname).
+		Database(dbname).
+		Deployment(Topology(t)).
+		ServerSelector(description.WriteSelector()).
+		WriteConcern(writeConcern).
+		Execute(context.Background())
 	require.NoError(t, err)
 }
 
 // RunCommand runs an arbitrary command on a given database of target server
-func RunCommand(t *testing.T, s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+func RunCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
 	op := operation.NewCommand(cmd).
 		Database(db).Deployment(driver.SingleServerDeployment{Server: s})
 	err := op.Execute(context.Background())

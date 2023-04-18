@@ -23,7 +23,9 @@ type StringCodec struct {
 var (
 	defaultStringCodec = NewStringCodec()
 
-	_ ValueCodec  = defaultStringCodec
+	// Assert that defaultStringCodec satisfies the typeDecoder interface, which allows it to be
+	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+	// collection.
 	_ typeDecoder = defaultStringCodec
 )
 
@@ -34,7 +36,7 @@ func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
 }
 
 // EncodeValue is the ValueEncoder for string types.
-func (sc *StringCodec) EncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (sc *StringCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.String {
 		return ValueEncoderError{
 			Name:     "StringEncodeValue",
@@ -46,7 +48,7 @@ func (sc *StringCodec) EncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, va
 	return vw.WriteString(val.String())
 }
 
-func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *StringCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",

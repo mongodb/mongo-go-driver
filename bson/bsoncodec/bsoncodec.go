@@ -23,6 +23,8 @@ var (
 // Marshaler is an interface implemented by types that can marshal themselves
 // into a BSON document represented as bytes. The bytes returned must be a valid
 // BSON document if the error is nil.
+//
+// Deprecated: Use bson.Marshaler instead.
 type Marshaler interface {
 	MarshalBSON() ([]byte, error)
 }
@@ -31,6 +33,8 @@ type Marshaler interface {
 // themselves into a BSON value as bytes. The type must be the valid type for
 // the bytes returned. The bytes and byte type together must be valid if the
 // error is nil.
+//
+// Deprecated: Use bson.ValueMarshaler instead.
 type ValueMarshaler interface {
 	MarshalBSONValue() (bsontype.Type, []byte, error)
 }
@@ -39,6 +43,8 @@ type ValueMarshaler interface {
 // document representation of themselves. The BSON bytes can be assumed to be
 // valid. UnmarshalBSON must copy the BSON bytes if it wishes to retain the data
 // after returning.
+//
+// Deprecated: Use bson.Unmarshaler instead.
 type Unmarshaler interface {
 	UnmarshalBSON([]byte) error
 }
@@ -47,6 +53,8 @@ type Unmarshaler interface {
 // BSON value representation of themselves. The BSON bytes and type can be
 // assumed to be valid. UnmarshalBSONValue must copy the BSON value bytes if it
 // wishes to retain the data after returning.
+//
+// Deprecated: Use bson.ValueUnmarshaler instead.
 type ValueUnmarshaler interface {
 	UnmarshalBSONValue(bsontype.Type, []byte) error
 }
@@ -147,8 +155,10 @@ func (dc *DecodeContext) DefaultDocumentD() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.D{})
 }
 
-// ValueCodec is the interface that groups the methods to encode and decode
+// ValueCodec is an interface for encoding and decoding a reflect.Value.
 // values.
+//
+// Deprecated: Use ValueEncoder and ValueDecoder instead.
 type ValueCodec interface {
 	ValueEncoder
 	ValueDecoder
@@ -233,6 +243,10 @@ func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext
 
 // CodecZeroer is the interface implemented by Codecs that can also determine if
 // a value of the type that would be encoded is zero.
+//
+// Deprecated: Defining custom rules for the zero/empty value will not be supported in Go Driver
+// 2.0. Users who want to omit empty complex values should use a pointer field and set the value to
+// nil instead.
 type CodecZeroer interface {
 	IsTypeZero(interface{}) bool
 }

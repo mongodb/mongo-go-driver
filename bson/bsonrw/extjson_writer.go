@@ -23,11 +23,15 @@ import (
 )
 
 // ExtJSONValueWriterPool is a pool for ExtJSON ValueWriters.
+//
+// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
 type ExtJSONValueWriterPool struct {
 	pool sync.Pool
 }
 
 // NewExtJSONValueWriterPool creates a new pool for ValueWriter instances that write to ExtJSON.
+//
+// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
 func NewExtJSONValueWriterPool() *ExtJSONValueWriterPool {
 	return &ExtJSONValueWriterPool{
 		pool: sync.Pool{
@@ -39,6 +43,8 @@ func NewExtJSONValueWriterPool() *ExtJSONValueWriterPool {
 }
 
 // Get retrieves a ExtJSON ValueWriter from the pool and resets it to use w as the destination.
+//
+// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
 func (bvwp *ExtJSONValueWriterPool) Get(w io.Writer, canonical, escapeHTML bool) ValueWriter {
 	vw := bvwp.pool.Get().(*extJSONValueWriter)
 	if writer, ok := w.(*SliceWriter); ok {
@@ -53,6 +59,8 @@ func (bvwp *ExtJSONValueWriterPool) Get(w io.Writer, canonical, escapeHTML bool)
 
 // Put inserts a ValueWriter into the pool. If the ValueWriter is not a ExtJSON ValueWriter, nothing
 // happens and ok will be false.
+//
+// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
 func (bvwp *ExtJSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
 	bvw, ok := vw.(*extJSONValueWriter)
 	if !ok {

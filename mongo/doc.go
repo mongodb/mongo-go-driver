@@ -125,7 +125,7 @@
 // This bug may result in data corruption.
 // Please use libmongocrypt 1.5.2 or higher when calling RewrapManyDataKey.
 //
-// - Go Driver v1.12.0 requires libmongocrypt v1.7.0 or higher.
+// - Go Driver v1.12.0 requires libmongocrypt v1.8.0 or higher.
 //
 // To install libmongocrypt, follow the instructions for your
 // operating system:
