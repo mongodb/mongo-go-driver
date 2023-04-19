@@ -26,9 +26,6 @@ func TestHandshakeProse(t *testing.T) {
 
 	clientMetadata := func(env bson.D) bson.D {
 		elems := bson.D{
-			{Key: "application", Value: bson.D{
-				{Key: "name", Value: ""},
-			}},
 			{Key: "driver", Value: bson.D{
 				{Key: "name", Value: "mongo-go-driver"},
 				{Key: "version", Value: version.Driver},

@@ -72,7 +72,7 @@ func TestAppendClientName(t *testing.T) {
 	}{
 		{
 			name: "empty",
-			want: []byte(`{"application":{"name":""}}`),
+			want: []byte(`{}`),
 		},
 		{
 			name:    "non-empty",
