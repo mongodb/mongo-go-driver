@@ -62,7 +62,7 @@ func TestHandshakeProse(t *testing.T) {
 		envVarVercelRegion                = "VERCEL_REGION"
 	)
 
-	// Resest the environment variables to avoid environment namespace
+	// Reset the environment variables to avoid environment namespace
 	// collision.
 	t.Setenv(envVarAWSExecutionEnv, "")
 	t.Setenv(envVarFunctionsWorkerRuntime, "")
@@ -193,7 +193,7 @@ func TestHandshakeProse(t *testing.T) {
 				require.NoError(mt, err, "expected command %s at index %d to contain client field", sent.Command, idx)
 
 				got, ok := clientVal.DocumentOK()
-				require.True(mt, ok, "expected client field to be a document, got %T", clientVal)
+				require.True(mt, ok, "expected client field to be a document, got %s", clientVal.Type)
 
 				wantBytes, err := bson.Marshal(test.want)
 				require.NoError(mt, err, "error marshaling want document: %v", err)

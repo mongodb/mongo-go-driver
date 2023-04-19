@@ -293,18 +293,18 @@ func TestAppendClientOS(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		omitEnvFields bool
-		want          []byte // Extended JSON
+		name        string
+		omitNonType bool
+		want        []byte // Extended JSON
 	}{
 		{
 			name: "full",
 			want: []byte(fmt.Sprintf(`{"os":{"type":%q,"architecture":%q}}`, runtime.GOOS, runtime.GOARCH)),
 		},
 		{
-			name:          "partial",
-			omitEnvFields: true,
-			want:          []byte(fmt.Sprintf(`{"os":{"type":%q}}`, runtime.GOOS)),
+			name:        "partial",
+			omitNonType: true,
+			want:        []byte(fmt.Sprintf(`{"os":{"type":%q}}`, runtime.GOOS)),
 		},
 	}
 
@@ -316,7 +316,7 @@ func TestAppendClientOS(t *testing.T) {
 
 			cb := func(_ int, dst []byte) ([]byte, error) {
 				var err error
-				dst, err = appendClientOS(dst, test.omitEnvFields)
+				dst, err = appendClientOS(dst, test.omitNonType)
 
 				return dst, err
 			}
@@ -331,9 +331,8 @@ func TestAppendClientPlatform(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		omitEnvFields bool
-		want          []byte // Extended JSON
+		name string
+		want []byte // Extended JSON
 	}{
 		{
 			name: "full",
@@ -382,7 +381,6 @@ func TestEncodeClientMetadata(t *testing.T) {
 		TimeoutSec int64  `bson:"timeout_sec,omitempty"`
 		MemoryMB   int32  `bson:"memory_mb,omitempty"`
 		Region     string `bson:"region,omitempty"`
-		URL        string `bson:"url,omitempty"`
 	}
 
 	type clientMetadata struct {
@@ -406,7 +404,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 	t.Setenv(envVarAWSRegion, "us-east-2")
 
 	t.Run("nothing is omitted", func(t *testing.T) {
-		got, err := encodeClientMetadata("foo", 512)
+		got, err := encodeClientMetadata("foo", maxClientMetadataSize)
 		assert.Nil(t, err, "error in encodeClientMetadata: %v", err)
 
 		want := formatJSON(&clientMetadata{

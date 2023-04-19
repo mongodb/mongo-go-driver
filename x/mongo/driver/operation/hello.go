@@ -168,7 +168,7 @@ func getFaasEnvName() string {
 
 	// If none of the variables are populated the client.env value MUST be
 	// entirely omitted.
-	names := make(map[string]bool)
+	names := make(map[string]struct{})
 
 	for _, envVar := range envVars {
 		if os.Getenv(envVar) == "" {
@@ -179,10 +179,7 @@ func getFaasEnvName() string {
 
 		switch envVar {
 		case envVarAWSExecutionEnv, envVarAWSLambdaRuntimeAPI:
-			// "vercel" takes precedence over "aws.lambda".
-			if !names[envNameVercel] {
-				name = envNameAWSLambda
-			}
+			name = envNameAWSLambda
 		case envVarFunctionsWorkerRuntime:
 			name = envNameAzureFunc
 		case envVarKService, envVarFunctionName:
@@ -194,7 +191,7 @@ func getFaasEnvName() string {
 			name = envNameVercel
 		}
 
-		names[name] = true
+		names[name] = struct{}{}
 		if len(names) > 1 {
 			// If multiple names are populated the client.env value
 			// MUST be entirely omitted.
@@ -212,9 +209,13 @@ func getFaasEnvName() string {
 }
 
 // appendClientAppName appends the application metadata to the dst. It is the
-// responsibility of the caller to check that this appending does cause dst to
-// exceed any size limitations.
+// responsibility of the caller to check that this appending does not cause dst
+// to exceed any size limitations.
 func appendClientAppName(dst []byte, name string) ([]byte, error) {
+	if name == "" {
+		return dst, nil
+	}
+
 	var idx int32
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "application")
 
@@ -339,8 +340,8 @@ func appendClientPlatform(dst []byte) []byte {
 // then an empty byte slice is returned. If there is not enough space to encode
 // a document, the document is truncated and returned.
 //
-// This function attempts to build the following document, prioritizing upto the
-// givien order:
+// This function attempts to build the following document. Fields are omitted to
+// save space following the MongoDB Handshake.
 //
 //	{
 //		application: {
@@ -362,7 +363,6 @@ func appendClientPlatform(dst []byte) []byte {
 //		        timeout_sec: 42,
 //		        memory_mb: 1024,
 //		        region: "<string>",
-//		        url: "<string>"
 //		}
 //	}
 func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
