@@ -170,13 +170,9 @@ evg-test-versioned-api:
 		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST_PKG >> test.suite ; \
 	done
 
-.PHONY: build-gcpkms-test
-build-gcpkms-test:
-	go build $(BUILD_TAGS) ./cmd/testgcpkms
-
-.PHONY: build-awskms-test
-build-awskms-test:
-	go build $(BUILD_TAGS) ./cmd/testawskms
+.PHONY: build-kms-test
+build-kms-test:
+	go build $(BUILD_TAGS) ./cmd/testkms
 
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark

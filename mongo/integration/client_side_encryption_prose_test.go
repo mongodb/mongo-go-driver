@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -35,6 +36,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
+	mongocryptopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
 var (
@@ -2022,6 +2025,100 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		})
 	})
 
+	mt.RunOpts("18. Azure IMDS Credentials", noClientOpts, func(mt *mtest.T) {
+		buf := make([]byte, 0, 256)
+		kmsProvidersMap := map[string]map[string]interface{}{
+			"azure": {},
+		}
+		p, err := bson.MarshalAppend(buf[:0], kmsProvidersMap)
+		assert.Nil(mt, err, "error in MarshalAppendWithRegistry: %v", err)
+
+		getClient := func(header http.Header) *http.Client {
+			lt := &localTransport{
+				header: header,
+				rt:     http.DefaultTransport,
+			}
+			return &http.Client{
+				Timeout:   30 * time.Second,
+				Transport: lt,
+			}
+		}
+
+		mt.Run("Case 1: Success", func(mt *mtest.T) {
+			opts := &mongocryptopts.MongoCryptOptions{
+				KmsProviders: p,
+				HTTPClient:   getClient(nil),
+			}
+			crypt, err := mongocrypt.NewMongoCrypt(opts)
+			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
+			doc, err := crypt.GetKmsProviders(context.Background())
+			assert.Nil(mt, err, "error in GetKmsProviders: %v", err)
+			val, err := doc.LookupErr("azure")
+			assert.Nil(mt, err, "error in LookupErr: %v", err)
+			assert.Equal(mt, `{"accessToken": "magic-cookie"}`, val.String(), "expected accessToken, got %s", val.String())
+		})
+		mt.Run("Case 2: Empty JSON", func(mt *mtest.T) {
+			header := make(http.Header)
+			header.Set("X-MongoDB-HTTP-TestParams", "case=empty-json")
+			opts := &mongocryptopts.MongoCryptOptions{
+				KmsProviders: p,
+				HTTPClient:   getClient(header),
+			}
+			crypt, err := mongocrypt.NewMongoCrypt(opts)
+			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
+			_, err = crypt.GetKmsProviders(context.Background())
+			assert.ErrorContains(mt, err, "got unexpected empty accessToken")
+		})
+		mt.Run("Case 3: Bad JSON", func(mt *mtest.T) {
+			header := make(http.Header)
+			header.Set("X-MongoDB-HTTP-TestParams", "case=bad-json")
+			opts := &mongocryptopts.MongoCryptOptions{
+				KmsProviders: p,
+				HTTPClient:   getClient(header),
+			}
+			crypt, err := mongocrypt.NewMongoCrypt(opts)
+			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
+			_, err = crypt.GetKmsProviders(context.Background())
+			assert.ErrorContains(mt, err, "error reading body JSON")
+		})
+		mt.Run("Case 4: HTTP 404", func(mt *mtest.T) {
+			header := make(http.Header)
+			header.Set("X-MongoDB-HTTP-TestParams", "case=404")
+			opts := &mongocryptopts.MongoCryptOptions{
+				KmsProviders: p,
+				HTTPClient:   getClient(header),
+			}
+			crypt, err := mongocrypt.NewMongoCrypt(opts)
+			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
+			_, err = crypt.GetKmsProviders(context.Background())
+			assert.ErrorContains(mt, err, "got StatusCode: 404")
+		})
+		mt.Run("Case 5: HTTP 500", func(mt *mtest.T) {
+			header := make(http.Header)
+			header.Set("X-MongoDB-HTTP-TestParams", "case=500")
+			opts := &mongocryptopts.MongoCryptOptions{
+				KmsProviders: p,
+				HTTPClient:   getClient(header),
+			}
+			crypt, err := mongocrypt.NewMongoCrypt(opts)
+			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
+			_, err = crypt.GetKmsProviders(context.Background())
+			assert.ErrorContains(mt, err, "got StatusCode: 500")
+		})
+		mt.Run("Case 6: Slow Response", func(mt *mtest.T) {
+			header := make(http.Header)
+			header.Set("X-MongoDB-HTTP-TestParams", "case=slow")
+			opts := &mongocryptopts.MongoCryptOptions{
+				KmsProviders: p,
+				HTTPClient:   getClient(header),
+			}
+			crypt, err := mongocrypt.NewMongoCrypt(opts)
+			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
+			_, err = crypt.GetKmsProviders(context.Background())
+			assert.ErrorContains(mt, err, "Client.Timeout or context cancellation while reading body")
+		})
+	})
+
 	mt.RunOpts("20. Bypass creating mongocryptd client when shared library is loaded",
 		noClientOpts, func(mt *mtest.T) {
 			cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
@@ -2897,4 +2994,21 @@ func listenForConnections(t *testing.T, run func(net.Conn)) net.Listener {
 		}
 	}()
 	return l
+}
+
+type localTransport struct {
+	rt http.RoundTripper
+
+	header http.Header
+}
+
+func (t *localTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	r := req.Clone(req.Context())
+	r.URL.Host = "localhost:8080"
+	for key, vals := range t.header {
+		for _, val := range vals {
+			r.Header.Add(key, val)
+		}
+	}
+	return t.rt.RoundTrip(r)
 }

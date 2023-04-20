@@ -1039,6 +1039,16 @@ functions:
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
           fi
+    - command: shell.exec
+      params:
+        background: true
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          if [ "Windows_NT" = "$OS" ]; then
+            kmstlsvenv/Scripts/python.exe bottle.py fake_azure:imds
+          else
+            ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
+          fi
 
   run-kms-tls-test:
     - command: shell.exec
@@ -2049,18 +2059,18 @@ tasks:
         shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          echo "Building build-gcpkms-test ... begin"
+          echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-gcpkms-test
-          echo "Building build-gcpkms-test ... end"
+            make build-kms-test
+          echo "Building build-kms-test ... end"
 
           echo "Copying files ... begin"
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
           export GCPKMS_ZONE=${GCPKMS_ZONE}
           export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
-          tar czf testgcpkms.tgz ./testgcpkms ./install/libmongocrypt/lib/libmongocrypt.*
+          tar czf testgcpkms.tgz ./testkms ./install/libmongocrypt/lib/libmongocrypt.*
           GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/copy-file.sh
           echo "Copying files ... end"
 
@@ -2079,7 +2089,7 @@ tasks:
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
           export GCPKMS_ZONE=${GCPKMS_ZONE}
           export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
-          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' ./testgcpkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
 
   - name: "testgcpkms-fail-task"
     # testgcpkms-fail-task runs in a non-GCE environment.
@@ -2092,15 +2102,16 @@ tasks:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            echo "Building build-gcpkms-test ... begin"
+            echo "Building build-kms-test ... begin"
             BUILD_TAGS="-tags cse" \
             PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-              make build-gcpkms-test
-            echo "Building build-gcpkms-test ... end"
+              make build-kms-test
+            echo "Building build-kms-test ... end"
             LD_LIBRARY_PATH=./install/libmongocrypt/lib \
             MONGODB_URI='mongodb://localhost:27017/' \
             EXPECT_ERROR='unable to retrieve GCP credentials' \
-              ./testgcpkms
+            PROVIDER='gcp' \
+              ./testkms
 
   - name: "testawskms-task"
     commands:
@@ -2111,18 +2122,19 @@ tasks:
         shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          echo "Building build-awskms-test ... begin"
+          echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-awskms-test
-          echo "Building build-awskms-test ... end"
+            make build-kms-test
+          echo "Building build-kms-test ... end"
 
           export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
           export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
 
           LD_LIBRARY_PATH=./install/libmongocrypt/lib \
           MONGODB_URI='${atlas_free_tier_uri}' \
-            ./testawskms
+          PROVIDER='aws' \
+            ./testkms
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
@@ -2135,16 +2147,80 @@ tasks:
         shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          echo "Building build-awskms-test ... begin"
+          echo "Building build-kms-test ... begin"
           BUILD_TAGS="-tags cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-awskms-test
-          echo "Building build-awskms-test ... end"
+            make build-kms-test
+          echo "Building build-kms-test ... end"
 
           LD_LIBRARY_PATH=./install/libmongocrypt/lib \
           MONGODB_URI='${atlas_free_tier_uri}' \
           EXPECT_ERROR='unable to retrieve aws credentials' \
-            ./testawskms
+          PROVIDER='aws' \
+            ./testkms
+
+  - name: "testazurekms-task"
+    commands:
+    - command: shell.exec
+      type: setup
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          echo "Building build-kms-test ... begin"
+          BUILD_TAGS="-tags cse" \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+            make build-kms-test
+          echo "Building build-kms-test ... end"
+
+          echo "Copying files ... begin"
+          export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
+          export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
+          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+          tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib/libmongocrypt.*
+          AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
+          echo "Copying files ... end"
+          echo "Untarring file ... begin"
+          AZUREKMS_CMD="tar xf /tmp/testazurekms.tgz" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          echo "Untarring file ... end"
+
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
+          export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
+          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+
+  - name: "testazurekms-fail-task"
+    # testazurekms-fail-task runs without environment variables.
+    # It is expected to fail to obtain credentials.
+    commands:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          echo "Building build-kms-test ... begin"
+          BUILD_TAGS="-tags cse" \
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
+            make build-kms-test
+          echo "Building build-kms-test ... end"
+
+          LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+          MONGODB_URI='mongodb://localhost:27017' \
+          EXPECT_ERROR='unable to retrieve azure credentials' \
+          PROVIDER='azure' \
+            ./testkms
 
   - name: "test-fuzz"
     commands:
@@ -2411,6 +2487,49 @@ task_groups:
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
     tasks:
       - testgcpkms-task
+  - name: testazurekms_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800 # 30 minutes
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            export AZUREKMS_VMNAME_PREFIX="GODRIVER"
+            export AZUREKMS_CLIENTID=${AZUREKMS_CLIENTID}
+            export AZUREKMS_TENANTID=${AZUREKMS_TENANTID}
+            export AZUREKMS_SECRET=${AZUREKMS_SECRET}
+            export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
+            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
+            echo '${testazurekms_publickey}' > /tmp/testazurekms.pubkey
+            export AZUREKMS_PUBLICKEYPATH=/tmp/testazurekms.pubkey
+            echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
+            sudo chmod 600 /tmp/testazurekms.prikey
+            export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
+            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+      - command: expansions.update
+        params:
+          file: testazurekms-expansions.yml
+    teardown_group:
+      # setup_group may have failed before updating expansions. Try to update again to clean up resources on setup failure.
+      - command: expansions.update
+        params:
+          file: testazurekms-expansions.yml
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
+            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+    tasks:
+      - testazurekms-task
 
 
 buildvariants:
@@ -2576,3 +2695,14 @@ buildvariants:
     tasks:
       - testawskms-task
       - testawskms-fail-task
+
+  - name: testazurekms-variant
+    display_name: "AZURE KMS"
+    run_on:
+      - debian11-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.19"
+    tasks:
+      - name: testazurekms_task_group
+        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
+      - testazurekms-fail-task

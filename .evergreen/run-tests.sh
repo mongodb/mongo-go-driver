@@ -83,6 +83,7 @@ await_server() {
 }
 # * List servers to await here ...
 await_server "KMS", 5698
+await_server "Azure", 8080
 
 echo "finished awaiting servers"
 
