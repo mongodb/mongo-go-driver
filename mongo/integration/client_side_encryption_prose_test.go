@@ -37,7 +37,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	mongocryptOpts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	mongocryptopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
 
 var (
@@ -2030,7 +2030,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		kmsProvidersMap := map[string]map[string]interface{}{
 			"azure": {},
 		}
-		p, err := bson.MarshalAppendWithRegistry(bson.DefaultRegistry, buf[:0], kmsProvidersMap)
+		p, err := bson.MarshalAppend(buf[:0], kmsProvidersMap)
 		assert.Nil(mt, err, "error in MarshalAppendWithRegistry: %v", err)
 
 		getClient := func(header http.Header) *http.Client {
@@ -2045,7 +2045,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 
 		mt.Run("Case 1: Success", func(mt *mtest.T) {
-			opts := &mongocryptOpts.MongoCryptOptions{
+			opts := &mongocryptopts.MongoCryptOptions{
 				KmsProviders: p,
 				HTTPClient:   getClient(nil),
 			}
@@ -2060,7 +2060,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Run("Case 2: Empty JSON", func(mt *mtest.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=empty-json")
-			opts := &mongocryptOpts.MongoCryptOptions{
+			opts := &mongocryptopts.MongoCryptOptions{
 				KmsProviders: p,
 				HTTPClient:   getClient(header),
 			}
@@ -2072,7 +2072,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Run("Case 3: Bad JSON", func(mt *mtest.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=bad-json")
-			opts := &mongocryptOpts.MongoCryptOptions{
+			opts := &mongocryptopts.MongoCryptOptions{
 				KmsProviders: p,
 				HTTPClient:   getClient(header),
 			}
@@ -2084,7 +2084,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Run("Case 4: HTTP 404", func(mt *mtest.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=404")
-			opts := &mongocryptOpts.MongoCryptOptions{
+			opts := &mongocryptopts.MongoCryptOptions{
 				KmsProviders: p,
 				HTTPClient:   getClient(header),
 			}
@@ -2096,7 +2096,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Run("Case 5: HTTP 500", func(mt *mtest.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=500")
-			opts := &mongocryptOpts.MongoCryptOptions{
+			opts := &mongocryptopts.MongoCryptOptions{
 				KmsProviders: p,
 				HTTPClient:   getClient(header),
 			}
@@ -2108,7 +2108,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Run("Case 6: Slow Response", func(mt *mtest.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=slow")
-			opts := &mongocryptOpts.MongoCryptOptions{
+			opts := &mongocryptopts.MongoCryptOptions{
 				KmsProviders: p,
 				HTTPClient:   getClient(header),
 			}
