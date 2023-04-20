@@ -103,7 +103,7 @@ func TestOperation(t *testing.T) {
 		}{
 			{"CommandFn", &Operation{}, InvalidOperationError{MissingField: "CommandFn"}},
 			{"Deployment", &Operation{CommandFn: cmdFn}, InvalidOperationError{MissingField: "Deployment"}},
-			{"Database", &Operation{CommandFn: cmdFn, Deployment: d}, InvalidOperationError{MissingField: "Database"}},
+			{"Database", &Operation{CommandFn: cmdFn, Deployment: d}, errDatabaseNameEmpty},
 			{"<nil>", &Operation{CommandFn: cmdFn, Deployment: d, Database: "test"}, nil},
 		}
 
