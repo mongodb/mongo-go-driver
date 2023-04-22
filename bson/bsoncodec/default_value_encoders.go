@@ -145,7 +145,7 @@ func (dve DefaultValueEncoders) IntEncodeValue(ec EncodeContext, vw bsonrw.Value
 		return vw.WriteInt64(i64)
 	case reflect.Int64:
 		i64 := val.Int()
-		if (ec.IntMinSize || ec.MinSize) && fitsIn32Bits(i64) {
+		if ec.MinSize && fitsIn32Bits(i64) {
 			return vw.WriteInt32(int32(i64))
 		}
 		return vw.WriteInt64(i64)
@@ -167,7 +167,7 @@ func (dve DefaultValueEncoders) UintEncodeValue(ec EncodeContext, vw bsonrw.Valu
 		return vw.WriteInt32(int32(val.Uint()))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		u64 := val.Uint()
-		if (ec.IntMinSize || ec.MinSize) && u64 <= math.MaxInt32 {
+		if ec.MinSize && u64 <= math.MaxInt32 {
 			return vw.WriteInt32(int32(u64))
 		}
 		if u64 > math.MaxInt64 {

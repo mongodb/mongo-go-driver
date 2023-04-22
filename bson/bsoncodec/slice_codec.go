@@ -44,7 +44,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val re
 		return ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
-	if val.IsNil() && !sc.EncodeNilAsEmpty && !ec.NilSliceAsEmpty {
+	if val.IsNil() && !sc.EncodeNilAsEmpty && !ec.nilSliceAsEmpty {
 		return vw.WriteNull()
 	}
 

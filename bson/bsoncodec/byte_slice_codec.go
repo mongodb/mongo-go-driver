@@ -48,7 +48,7 @@ func (bsc *ByteSliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, 
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
-	if val.IsNil() && !bsc.EncodeNilAsEmpty && !ec.NilByteSliceAsEmpty {
+	if val.IsNil() && !bsc.EncodeNilAsEmpty && !ec.nilByteSliceAsEmpty {
 		return vw.WriteNull()
 	}
 	return vw.WriteBinary(val.Interface().([]byte))

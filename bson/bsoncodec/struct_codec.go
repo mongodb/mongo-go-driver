@@ -115,7 +115,7 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val 
 		return ValueEncoderError{Name: "StructCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
 
-	sd, err := sc.describeStruct(ec.Registry, val.Type(), ec.AllowUnexportedFields)
+	sd, err := sc.describeStruct(ec.Registry, val.Type(), ec.useJSONStructTags, ec.errorOnInlineDuplicates)
 	if err != nil {
 		return err
 	}
@@ -162,17 +162,18 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val 
 
 		encoder := desc.encoder
 
-		var isZero bool
+		var zero bool
 		rvInterface := rv.Interface()
 		if cz, ok := encoder.(CodecZeroer); ok {
-			isZero = cz.IsTypeZero(rvInterface)
+			zero = cz.IsTypeZero(rvInterface)
 		} else if rv.Kind() == reflect.Interface {
-			// sc.isZero will not treat an interface rv as an interface, so we need to check for the zero interface separately.
-			isZero = rv.IsNil()
+			// isZero will not treat an interface rv as an interface, so we need to check for the
+			// zero interface separately.
+			zero = rv.IsNil()
 		} else {
-			isZero = sc.isZero(rvInterface)
+			zero = isZero(rvInterface, sc.EncodeOmitDefaultStruct || ec.omitZeroStruct)
 		}
-		if desc.omitEmpty && isZero {
+		if desc.omitEmpty && zero {
 			continue
 		}
 
@@ -181,7 +182,17 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val 
 			return err
 		}
 
-		ectx := EncodeContext{Registry: ec.Registry, MinSize: desc.minSize}
+		ectx := EncodeContext{
+			Registry:                ec.Registry,
+			MinSize:                 desc.minSize || ec.MinSize,
+			errorOnInlineDuplicates: ec.errorOnInlineDuplicates,
+			mapKeysWithStringer:     ec.mapKeysWithStringer,
+			nilMapAsEmpty:           ec.nilMapAsEmpty,
+			nilSliceAsEmpty:         ec.nilSliceAsEmpty,
+			nilByteSliceAsEmpty:     ec.nilByteSliceAsEmpty,
+			omitZeroStruct:          ec.omitZeroStruct,
+			useJSONStructTags:       ec.useJSONStructTags,
+		}
 		err = encoder.EncodeValue(ectx, vw2, rv)
 		if err != nil {
 			return err
@@ -242,12 +253,12 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val 
 		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
 
-	sd, err := sc.describeStruct(dc.Registry, val.Type(), dc.AllowUnexportedFields)
+	sd, err := sc.describeStruct(dc.Registry, val.Type(), dc.useJSONStructTags, false)
 	if err != nil {
 		return err
 	}
 
-	if sc.DecodeZeroStruct {
+	if sc.DecodeZeroStruct || dc.zeroStructs {
 		val.Set(reflect.Zero(val.Type()))
 	}
 	if sc.DecodeDeepZeroInline && sd.inline {
@@ -330,12 +341,14 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val 
 		}
 		field = field.Addr()
 
-		allowTruncatingFloats := fd.truncate || dc.AllowTruncatingDoubles || dc.Truncate
 		dctx := DecodeContext{
-			Registry:               dc.Registry,
-			AllowTruncatingDoubles: allowTruncatingFloats,
-			Truncate:               allowTruncatingFloats,
-			defaultDocumentType:    dc.defaultDocumentType,
+			Registry:            dc.Registry,
+			Truncate:            fd.truncate || dc.Truncate,
+			defaultDocumentType: dc.defaultDocumentType,
+			binaryAsSlice:       dc.binaryAsSlice,
+			useJSONStructTags:   dc.useJSONStructTags,
+			zeroMaps:            dc.zeroMaps,
+			zeroStructs:         dc.zeroStructs,
 		}
 
 		if fd.decoder == nil {
@@ -351,7 +364,7 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val 
 	return nil
 }
 
-func (sc *StructCodec) isZero(i interface{}) bool {
+func isZero(i interface{}, omitZeroStruct bool) bool {
 	v := reflect.ValueOf(i)
 
 	// check the value validity
@@ -377,30 +390,30 @@ func (sc *StructCodec) isZero(i interface{}) bool {
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
 	case reflect.Struct:
-		if sc.EncodeOmitDefaultStruct {
-			vt := v.Type()
-			if vt == tTime {
-				return v.Interface().(time.Time).IsZero()
-			}
-			for i := 0; i < v.NumField(); i++ {
-				// TODO(GODRIVER-2797): Remove logic that checks if the struct field is anonymous.
-				if vt.Field(i).PkgPath != "" && !vt.Field(i).Anonymous {
-					continue // Private field
-				}
-				fld := v.Field(i)
-				if !sc.isZero(fld.Interface()) {
-					return false
-				}
-			}
-			return true
+		if !omitZeroStruct {
+			return false
 		}
+
+		// TODO(GODRIVER-2820): Update the logic to be able to handle private struct fields.
+		// TODO Use condition "reflect.Zero(v.Type()).Equal(v)" instead.
+
+		vt := v.Type()
+		if vt == tTime {
+			return v.Interface().(time.Time).IsZero()
+		}
+		for i := 0; i < v.NumField(); i++ {
+			if vt.Field(i).PkgPath != "" && !vt.Field(i).Anonymous {
+				continue // Private field
+			}
+			fld := v.Field(i)
+			if !isZero(fld.Interface(), omitZeroStruct) {
+				return false
+			}
+		}
+		return true
 	}
 
 	return false
-}
-
-func isPrivate(field reflect.StructField) bool {
-	return field.PkgPath != "" && !field.Anonymous
 }
 
 type structDescription struct {
@@ -451,7 +464,12 @@ func (bi byIndex) Less(i, j int) bool {
 	return len(bi[i].inline) < len(bi[j].inline)
 }
 
-func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type, allowUnexported bool) (*structDescription, error) {
+func (sc *StructCodec) describeStruct(
+	r *Registry,
+	t reflect.Type,
+	useJSONStructTags bool,
+	errorOnDuplicates bool,
+) (*structDescription, error) {
 	// We need to analyze the struct, including getting the tags, collecting
 	// information about inlining, and create a map of the field name to the field.
 	sc.l.RLock()
@@ -471,17 +489,8 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type, allowUnexport
 	var fields []fieldDescription
 	for i := 0; i < numFields; i++ {
 		sf := t.Field(i)
-
-		// The old "StructCodec.AllowUnexportedFields" logic will only include a private struct
-		// field (i.e. not exported) if the AllowUnexportedFields option is set AND if the struct
-		// field is anonymous (i.e. embedded). That is likely an unintended behavior introduced when
-		// attempting to emulate the private field logic from the "mgo" BSON library. However, we
-		// must leave that here for now to maintain backward compatibility.
-		// For the newer "allowUnexported" option (from the EncodeContext or DecodeContext), we only
-		// consider if the struct field is private, which is the way the "encoding/json" library
-		// handles private fields.
-		// TODO(GODRIVER-2797): Remove logic that checks if the struct field is anonymous.
-		if sf.PkgPath != "" && (!sc.AllowUnexportedFields || !sf.Anonymous) && !allowUnexported {
+		if sf.PkgPath != "" && (!sc.AllowUnexportedFields || !sf.Anonymous) {
+			// field is private or unexported fields aren't allowed, ignore
 			continue
 		}
 
@@ -502,7 +511,14 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type, allowUnexport
 			decoder:   decoder,
 		}
 
-		stags, err := sc.parser.ParseStructTags(sf)
+		var stags StructTags
+		// If the caller requested that we use JSON struct tags, use the JSONFallbackStructTagParser
+		// instead of the parser defined on the codec.
+		if useJSONStructTags {
+			stags, err = JSONFallbackStructTagParser.ParseStructTags(sf)
+		} else {
+			stags, err = sc.parser.ParseStructTags(sf)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -532,7 +548,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type, allowUnexport
 				}
 				fallthrough
 			case reflect.Struct:
-				inlinesf, err := sc.describeStruct(r, sfType, allowUnexported)
+				inlinesf, err := sc.describeStruct(r, sfType, useJSONStructTags, errorOnDuplicates)
 				if err != nil {
 					return nil, err
 				}
@@ -584,7 +600,7 @@ func (sc *StructCodec) describeStruct(r *Registry, t reflect.Type, allowUnexport
 			continue
 		}
 		dominant, ok := dominantField(fields[i : i+advance])
-		if !ok || !sc.OverwriteDuplicatedInlinedFields {
+		if !ok || !sc.OverwriteDuplicatedInlinedFields || errorOnDuplicates {
 			return nil, fmt.Errorf("struct %s has duplicated key %s", t.String(), name)
 		}
 		sd.fl = append(sd.fl, dominant)

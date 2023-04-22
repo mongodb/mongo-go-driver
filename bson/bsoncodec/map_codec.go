@@ -69,7 +69,7 @@ func (mc *MapCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val ref
 		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
-	if val.IsNil() && !mc.EncodeNilAsEmpty && !ec.NilMapAsEmpty {
+	if val.IsNil() && !mc.EncodeNilAsEmpty && !ec.nilMapAsEmpty {
 		// If we have a nil map but we can't WriteNull, that means we're probably trying to encode
 		// to a TopLevel document. We can't currently tell if this is what actually happened, but if
 		// there's a deeper underlying problem, the error will also be returned from WriteDocument,
@@ -102,7 +102,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 
 	keys := val.MapKeys()
 	for _, key := range keys {
-		keyStr, err := mc.encodeKey(key, ec.MapKeysWithStringer)
+		keyStr, err := mc.encodeKey(key, ec.mapKeysWithStringer)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 		val.Set(reflect.MakeMap(val.Type()))
 	}
 
-	if val.Len() > 0 && mc.DecodeZerosMap {
+	if val.Len() > 0 && (mc.DecodeZerosMap || dc.zeroMaps) {
 		clearMap(val)
 	}
 

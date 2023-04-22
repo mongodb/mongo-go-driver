@@ -127,7 +127,7 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReade
 		return emptyValue, err
 	}
 
-	if (eic.DecodeBinaryAsSlice || dc.BinaryAsSlice) && rtype == tBinary {
+	if (eic.DecodeBinaryAsSlice || dc.binaryAsSlice) && rtype == tBinary {
 		binElem := elem.Interface().(primitive.Binary)
 		if binElem.Subtype == bsontype.BinaryGeneric || binElem.Subtype == bsontype.BinaryBinaryOld {
 			elem = reflect.ValueOf(binElem.Data)

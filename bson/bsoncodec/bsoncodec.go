@@ -120,50 +120,79 @@ func (vde ValueDecoderError) Error() string {
 type EncodeContext struct {
 	*Registry
 
-	// MinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16,
-	// int32, or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent
-	// the integer value.
+	// MinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16, int32,
+	// or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent the
+	// integer value.
 	//
-	// Deprecated: Use IntMinSize instead.
+	// Deprecated: Use bson.Encoder.IntMinSize instead.
 	MinSize bool
 
-	// AllowUnexportedFields, if true, instructs encoders to marshal values from unexported struct
-	// fields.
-	AllowUnexportedFields bool
+	errorOnInlineDuplicates bool
+	mapKeysWithStringer     bool
+	nilMapAsEmpty           bool
+	nilSliceAsEmpty         bool
+	nilByteSliceAsEmpty     bool
+	omitZeroStruct          bool
+	useJSONStructTags       bool
+}
 
-	// ErrorOnInlineDuplicates, if true, instructs encoders to return an error if there is a
-	// duplicate field in the marshaled BSON when the "inline" struct tag option is set.
-	ErrorOnInlineDuplicates bool
+// ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in
+// the marshaled BSON when the "inline" struct tag option is set.
+//
+// Deprecated: Use bson.Encoder.ErrorOnInlineDuplicates instead.
+func (ec *EncodeContext) ErrorOnInlineDuplicates() {
+	ec.errorOnInlineDuplicates = true
+}
 
-	// IntMinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16,
-	// int32, or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent
-	// the integer value.
-	IntMinSize bool
+// MapKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name strings
+// using fmt.Sprintf() instead of the default string conversion logic.
+//
+// Deprecated: Use bson.Encoder.MapKeysWithStringer instead.
+func (ec *EncodeContext) MapKeysWithStringer() {
+	ec.mapKeysWithStringer = true
+}
 
-	// MapKeysWithStringer, if true, instructs encoders to convert Go map keys to BSON document
-	// field name strings using fmt.Sprintf() instead of the default string conversion logic.
-	MapKeysWithStringer bool
+// NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON
+// null.
+//
+// Deprecated: Use bson.Encoder.NilMapAsEmpty instead.
+func (ec *EncodeContext) NilMapAsEmpty() {
+	ec.nilMapAsEmpty = true
+}
 
-	// NilMapAsEmpty, if true, instructs encoders to marshal nil Go maps as empty BSON documents
-	// instead of BSON null.
-	NilMapAsEmpty bool
+// NilSliceAsEmpty causes the Encoder to marshal nil Go slices as empty BSON arrays instead of BSON
+// null.
+//
+// Deprecated: Use bson.Encoder.NilSliceAsEmpty instead.
+func (ec *EncodeContext) NilSliceAsEmpty() {
+	ec.nilSliceAsEmpty = true
+}
 
-	// NilSliceAsEmpty, if true, instructs encoders to marshal nil Go slices as empty BSON arrays
-	// instead of BSON null.
-	NilSliceAsEmpty bool
+// NilByteSliceAsEmpty causes the Encoder to marshal nil Go byte slices as empty BSON binary values
+// instead of BSON null.
+//
+// Deprecated: Use bson.Encoder.NilByteSliceAsEmpty instead.
+func (ec *EncodeContext) NilByteSliceAsEmpty() {
+	ec.nilByteSliceAsEmpty = true
+}
 
-	// NilByteSliceAsEmpty, if true, instructs encoders to marshal nil Go byte slices as empty BSON
-	// binary values instead of BSON null.
-	NilByteSliceAsEmpty bool
+// OmitZeroStruct causes the Encoder to consider the zero value for a struct (e.g. MyStruct{})
+// as empty and omit it from the marshaled BSON when the "omitempty" struct tag option is set.
+//
+// Note that the Encoder only examines exported struct fields when determining if a struct is the
+// zero value. It considers pointers to a zero struct value (e.g. &MyStruct{}) not empty.
+//
+// Deprecated: Use bson.Encoder.OmitZeroStruct instead.
+func (ec *EncodeContext) OmitZeroStruct() {
+	ec.omitZeroStruct = true
+}
 
-	// OmitDefaultStruct, if true, instructs encoders to consider the zero value for a struct (e.g.
-	// MyStruct{}) as empty and omit it from the marshaled BSON when the "omitempty" struct tag
-	// option is set.
-	OmitDefaultStruct bool
-
-	// UseJSONStructTags, if true, instructs encoders to fall back to using the "json" struct tag if
-	// a "bson" struct tag is not specified.
-	UseJSONStructTags bool
+// UseJSONStructTags causes the Encoder to fall back to using the "json" struct tag if a "bson"
+// struct tag is not specified.
+//
+// Deprecated: Use bson.Encoder.UseJSONStructTags instead.
+func (ec *EncodeContext) UseJSONStructTags() {
+	ec.useJSONStructTags = true
 }
 
 // DecodeContext is the contextual information required for a Codec to decode a
@@ -171,11 +200,11 @@ type EncodeContext struct {
 type DecodeContext struct {
 	*Registry
 
-	// Truncate allows truncating the fractional part of BSON floating point values when decoding
-	// them into a Go integer value. The default is false, which returns an error when attempting to
-	// decode BSON floating point values with a fractional part into a Go integer.
+	// Truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
+	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, or
+	// int64) struct field. The truncation logic does not apply to BSON "decimal128" values.
 	//
-	// Deprecated: Use AllowTruncatingFloats instead.
+	// Deprecated: Use bson.Decoder.AllowTruncatingDoubles instead.
 	Truncate bool
 
 	// Ancestor is the type of a containing document. This is mainly used to determine what type
@@ -183,7 +212,7 @@ type DecodeContext struct {
 	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
 	// will be decoded into a bson.M.
 	//
-	// Deprecated: Use DefaultDocumentM or DefaultDocumentD instead.
+	// Deprecated: Use bson.Decoder.DefaultDocumentM or bson.Decoder.DefaultDocumentD instead.
 	Ancestor reflect.Type
 
 	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
@@ -192,39 +221,56 @@ type DecodeContext struct {
 	// error. DocumentType overrides the Ancestor field.
 	defaultDocumentType reflect.Type
 
-	// AllowTruncatingDoubles, if true, instructs decoders to truncate the fractional part of BSON
-	// "double" values when attempting to unmarshal them into a Go integer struct field. The
-	// truncation logic does not apply to BSON "decimal128" values.
-	AllowTruncatingDoubles bool
+	binaryAsSlice     bool
+	useJSONStructTags bool
+	zeroMaps          bool
+	zeroStructs       bool
+}
 
-	// AllowUnexportedFields, if true, instructs decoders to unmarshal values into unexported struct fields.
-	AllowUnexportedFields bool
+// BinaryAsSlice causes the Decoder to unmarshal BSON binary field values that are the "Generic" or
+// "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
+//
+// Deprecated: Use bson.Decoder.BinaryAsSlice instead.
+func (dc *DecodeContext) BinaryAsSlice() {
+	dc.binaryAsSlice = true
+}
 
-	// BinaryAsSlice, if true, instructs decoders to unmarshal BSON binary field values that are the
-	// "Generic" or "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
-	BinaryAsSlice bool
+// UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"
+// struct tag is not specified.
+//
+// Deprecated: Use bson.Decoder.UseJSONStructTags instead.
+func (dc *DecodeContext) UseJSONStructTags() {
+	dc.useJSONStructTags = true
+}
 
-	// UseJSONStructTags, if true, instructs decoders to fall back to using the "json" struct tag if
-	// a "bson" struct tag is not specified.
-	UseJSONStructTags bool
+// ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value
+// passed to Decode before unmarshaling BSON documents into them.
+//
+// Deprecated: Use bson.Decoder.ZeroMaps instead.
+func (dc *DecodeContext) ZeroMaps() {
+	dc.zeroMaps = true
+}
 
-	// ZeroMaps, if true, instructs decoders to delete any existing values from Go maps in the
-	// destination value passed to Decode before unmarshaling BSON documents into them.
-	ZeroMaps bool
-
-	// ZeroStructs, if true, instructs decoders to delete any existing values from Go structs in the
-	// destination value passed to Decode before unmarshaling BSON documents into them.
-	ZeroStructs bool
+// ZeroStructs causes the Decoder to delete any existing values from Go structs in the destination
+// value passed to Decode before unmarshaling BSON documents into them.
+//
+// Deprecated: Use bson.Decoder.ZeroStructs instead.
+func (dc *DecodeContext) ZeroStructs() {
+	dc.zeroStructs = true
 }
 
 // DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
+//
+// Deprecated: Use bson.Decoder.DefaultDocumentM instead.
 func (dc *DecodeContext) DefaultDocumentM() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.M{})
 }
 
 // DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
 // "interface{}" or "map[string]interface{}".
+//
+// Deprecated: Use bson.Decoder.DefaultDocumentD instead.
 func (dc *DecodeContext) DefaultDocumentD() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.D{})
 }
