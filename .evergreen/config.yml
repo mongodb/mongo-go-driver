@@ -722,7 +722,7 @@ functions:
               "iam_auth_assume_aws_account" : "${iam_auth_assume_aws_account}",
               "iam_auth_assume_aws_secret_access_key" : "${iam_auth_assume_aws_secret_access_key}",
               "iam_auth_assume_role_name" : "${iam_auth_assume_role_name}",
-              "iam_auth_ec2_instance_account" : "${iam_auth_ec2_instance_account}",
+              "iam_auth_ec2_instance_account" : "${iam_auth_subprocessec2_instance_account}",
               "iam_auth_ec2_instance_secret_access_key" : "${iam_auth_ec2_instance_secret_access_key}",
               "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}",
               "iam_auth_assume_web_role_name": "${iam_auth_assume_web_role_name}",
@@ -1112,23 +1112,24 @@ functions:
         role_arn: ${LAMBDA_AWS_ROLE_ARN}
     - command: subprocess.exec
       params:
-        working_dir: src
+        working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
         args:
           - .evergreen/run-deployed-lambda-aws-tests.sh
         env:
-          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/cmd/testfaas/testawslambda
+          PROJECT_DIRECTORY: ${PROJECT_DIRECTORY}
           DRIVERS_TOOLS: ${DRIVERS_TOOLS}
           DRIVERS_ATLAS_PUBLIC_API_KEY: ${DRIVERS_ATLAS_PUBLIC_API_KEY}
           DRIVERS_ATLAS_PRIVATE_API_KEY: ${DRIVERS_ATLAS_PRIVATE_API_KEY}
           DRIVERS_ATLAS_LAMBDA_USER: ${DRIVERS_ATLAS_LAMBDA_USER}
           DRIVERS_ATLAS_LAMBDA_PASSWORD: ${DRIVERS_ATLAS_LAMBDA_PASSWORD}
           DRIVERS_ATLAS_GROUP_ID: ${DRIVERS_ATLAS_GROUP_ID}
-          LAMBDA_STACK_NAME: dbx-go-lambda
-          AWS_REGION: us-east-1
           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/cmd/testfaas/testawslambda
+          LAMBDA_STACK_NAME: dbx-go-lambda
+          AWS_REGION: us-east-1
 
 pre:
   - func: fetch-source
@@ -2177,13 +2178,13 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
 
-  - name: "test-deployed-lambda"
+  - name: "test-aws-lambda"
     tags:
       - latest
       - lambda
     commands:
-      - func: install dependencies
-      - func: run deployed aws lambda tests
+      - func: bootstrap-mongo-orchestration
+      - func: run-deployed-aws-lambda-tests
 
 axes:
   - id: version
@@ -2265,11 +2266,6 @@ axes:
         run_on: ubuntu1804-build
         variables:
           GO_DIST: "/opt/golang/go1.19"
-      - id: "ubuntu2004-64-go-1-19"
-        display_name: "Ubuntu 20.04"
-        run_on: ubuntu2004-build
-        variables:
-          GO_DIST: "/opt/golang/go1.19"
       - id: "macos11-go-1-19"
         display_name: "MacOS 11.0"
         run_on: macos-1100
@@ -2313,6 +2309,15 @@ axes:
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
+
+  - id: os-faas-80
+    display_name: OS
+    values:
+      - id: "rhel80-large-go-1-19"
+        display_name: "RHEL 8.0"
+        run_on: rhel80-large
+        variables:
+          GO_DIST: "/opt/golang/go1.19"
 
 task_groups:
   - name: serverless_task_group
@@ -2595,6 +2600,11 @@ buildvariants:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
 
+  - matrix_name: "faas-test"
+    matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-19"] }
+    display_name: "FaaS ${version} ${os-faas-80}"
+    tasks:
+      - test-aws-lambda
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"

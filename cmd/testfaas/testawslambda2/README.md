@@ -1,6 +1,6 @@
-# testawslambda
+# testawslambda2
 
-This is a sample template for testawslambda - Below is a brief explanation of what we have generated for you:
+This is a sample template for testawslambda2 - Below is a brief explanation of what we have generated for you:
 
 ```bash
 .

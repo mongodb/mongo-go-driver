@@ -4,6 +4,10 @@ Thank you for your interest in contributing to the MongoDB Go Driver!
 
 We are building this software together and strongly encourage contributions from the community that are within the guidelines set forth below.
 
+## Requirements
+
+Go 1.19 or higher is required to run the driver test suite.
+
 ## Bug Fixes and New Features
 
 Before starting to write code, look for existing [tickets](https://jira.mongodb.org/browse/GODRIVER) or [create one](https://jira.mongodb.org/secure/CreateIssue!default.jspa) for your bug, issue, or feature request. This helps the community avoid working on something that might not be of interest or which has already been addressed.
@@ -88,20 +92,28 @@ Ensure the [`--networkMessageCompressors` flag](https://www.mongodb.com/docs/man
 
 ### Testing FaaS
 
-The requirements for testing FaaS implementations in the Go Driver vary depending on the specific service.
+The requirements for testing FaaS implementations in the Go Driver vary depending on the specific runtime.
 
-#### Testing AWS Lambda
+#### AWS Lambda
 
-The following are the prequisites for running the AWS Lambda tests locally:
+The following are the requirements for running the AWS Lambda tests locally:
 
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 2. [Docker](https://www.docker.com/products/docker-desktop/)
 
-Local testing requires exporting the "MONGODB_URI" environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function run the following make target:
+Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-aws-lambda` make target:
 
-```
+```bash
+# run with a pre-set MONGODB_URI environment variables
 make build-aws-lambda
+
+# run using localhost and port 27017
+MONGODB_URI="mongodb://host.docker.internal:27017" make build-aws-lambda
 ```
+
+The usage of host.docker.internal comes from the [Docker networking documentation](https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host).
+
+There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
 
 ## Talk To Us
 
