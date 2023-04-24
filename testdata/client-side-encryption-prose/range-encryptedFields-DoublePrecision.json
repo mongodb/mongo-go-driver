@@ -12,13 +12,13 @@
         "queries": {
           "queryType": "rangePreview",
           "sparsity": {
-            "$numberInt": "1"
+            "$numberLong": "1"
           },
           "min": {
             "$numberDouble": "0.0"
           },
           "max": {
-            "$numberDouble": "199.9"
+            "$numberDouble": "200.0"
           },
           "precision": {
             "$numberInt": "2"
