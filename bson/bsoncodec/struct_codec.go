@@ -62,13 +62,40 @@ type Zeroer interface {
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the StructCodec registered.
 type StructCodec struct {
-	cache                            map[reflect.Type]*structDescription
-	l                                sync.RWMutex
-	parser                           StructTagParser
-	DecodeZeroStruct                 bool
-	DecodeDeepZeroInline             bool
-	EncodeOmitDefaultStruct          bool
-	AllowUnexportedFields            bool
+	cache  map[reflect.Type]*structDescription
+	l      sync.RWMutex
+	parser StructTagParser
+
+	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
+	// destination value passed to Decode before unmarshaling BSON documents into them.
+	//
+	// Deprecated: Use bson.Decoder.ZeroStructs instead.
+	DecodeZeroStruct bool
+
+	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
+	// destination value passed to Decode before unmarshaling BSON documents into them.
+	//
+	// Deprecated: DecodeDeepZeroInline will not be supported in Go Driver 2.0.
+	DecodeDeepZeroInline bool
+
+	// EncodeOmitDefaultStruct causes the Encoder to consider the zero value for a struct (e.g.
+	// MyStruct{}) as empty and omit it from the marshaled BSON when the "omitempty" struct tag
+	// option is set.
+	//
+	// Deprecated: Use bson.Encoder.OmitZeroStruct instead.
+	EncodeOmitDefaultStruct bool
+
+	// AllowUnexportedFields allows encoding and decoding values from un-exported struct fields.
+	//
+	// Deprecated: AllowUnexportedFields does not work on recent versions of Go and will not be
+	// supported in Go Driver 2.0.
+	AllowUnexportedFields bool
+
+	// OverwriteDuplicatedInlinedFields, if false, causes EncodeValue to return an error if there is
+	// a duplicate field in the marshaled BSON when the "inline" struct tag option is set. The
+	// default value is true.
+	//
+	// Deprecated: Use bson.Encoder.ErrorOnInlineDuplicates instead.
 	OverwriteDuplicatedInlinedFields bool
 }
 
@@ -186,7 +213,7 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val 
 			Registry:                ec.Registry,
 			MinSize:                 desc.minSize || ec.MinSize,
 			errorOnInlineDuplicates: ec.errorOnInlineDuplicates,
-			mapKeysWithStringer:     ec.mapKeysWithStringer,
+			stringifyMapKeysWithFmt: ec.stringifyMapKeysWithFmt,
 			nilMapAsEmpty:           ec.nilMapAsEmpty,
 			nilSliceAsEmpty:         ec.nilSliceAsEmpty,
 			nilByteSliceAsEmpty:     ec.nilByteSliceAsEmpty,

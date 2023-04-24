@@ -19,6 +19,10 @@ import (
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the ByteSliceCodec registered.
 type ByteSliceCodec struct {
+	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
+	// instead of BSON null.
+	//
+	// Deprecated: Use bson.Encoder.NilByteSliceAsEmpty instead.
 	EncodeNilAsEmpty bool
 }
 

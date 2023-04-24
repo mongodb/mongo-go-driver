@@ -32,7 +32,7 @@ type Encoder struct {
 
 	errorOnInlineDuplicates bool
 	intMinSize              bool
-	mapKeysWithStringer     bool
+	stringifyMapKeysWithFmt bool
 	nilMapAsEmpty           bool
 	nilSliceAsEmpty         bool
 	nilByteSliceAsEmpty     bool
@@ -97,8 +97,8 @@ func (e *Encoder) Encode(val interface{}) error {
 	if e.intMinSize {
 		e.ec.MinSize = true
 	}
-	if e.mapKeysWithStringer {
-		e.ec.MapKeysWithStringer()
+	if e.stringifyMapKeysWithFmt {
+		e.ec.StringifyMapKeysWithFmt()
 	}
 	if e.nilMapAsEmpty {
 		e.ec.NilMapAsEmpty()
@@ -147,16 +147,17 @@ func (e *Encoder) ErrorOnInlineDuplicates() {
 	e.errorOnInlineDuplicates = true
 }
 
-// IntMinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, or int64) as
-// the minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
+// IntMinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64, uint,
+// uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits) that can
+// represent the integer value.
 func (e *Encoder) IntMinSize() {
 	e.intMinSize = true
 }
 
-// MapKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name strings
-// using fmt.Sprintf() instead of the default string conversion logic.
-func (e *Encoder) MapKeysWithStringer() {
-	e.mapKeysWithStringer = true
+// StringifyMapKeysWithFmt causes the Encoder to convert Go map keys to BSON document field name
+// strings using fmt.Sprint instead of the default string conversion logic.
+func (e *Encoder) StringifyMapKeysWithFmt() {
+	e.stringifyMapKeysWithFmt = true
 }
 
 // NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON

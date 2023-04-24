@@ -52,7 +52,7 @@ func (k CityState) String() string {
 	return fmt.Sprintf("%s, %s", k.City, k.State)
 }
 
-func ExampleEncoder_MapKeysWithStringer() {
+func ExampleEncoder_StringifyMapKeysWithFmt() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
 	vw, err := bsonrw.NewBSONValueWriter(buf)
@@ -66,13 +66,12 @@ func ExampleEncoder_MapKeysWithStringer() {
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
 	// using fmt.Sprintf instead of the default string conversion logic.
-	encoder.MapKeysWithStringer()
+	encoder.StringifyMapKeysWithFmt()
 
 	// Use the Encoder to marshal a BSON document that contains is a map of
 	// city and state to a list of zip codes in that city.
 	zipCodes := map[CityState][]int{
-		{City: "New York", State: "NY"}: {10001, 10005},
-		{City: "Seattle", State: "WA"}:  {98101, 98105},
+		{City: "New York", State: "NY"}: {10001, 10301, 10451},
 	}
 	err = encoder.Encode(zipCodes)
 	if err != nil {
@@ -81,7 +80,7 @@ func ExampleEncoder_MapKeysWithStringer() {
 
 	// Print the BSON document as Extended JSON by converting it to bson.Raw.
 	fmt.Println(bson.Raw(buf.Bytes()).String())
-	// Output: {"New York, NY": [{"$numberInt":"10001"},{"$numberInt":"10005"}],"Seattle, WA": [{"$numberInt":"98101"},{"$numberInt":"98105"}]}
+	// Output: {"New York, NY": [{"$numberInt":"10001"},{"$numberInt":"10301"},{"$numberInt":"10451"}]}
 }
 
 func ExampleEncoder_UseJSONStructTags() {

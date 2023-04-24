@@ -298,11 +298,16 @@ func (tu *testUnmarshaler) UnmarshalBSON(d []byte) error {
 
 func TestDecoderConfiguration(t *testing.T) {
 	type truncateDoublesTest struct {
-		MyInt   int
-		MyInt8  int8
-		MyInt16 int16
-		MyInt32 int32
-		MyInt64 int64
+		MyInt    int
+		MyInt8   int8
+		MyInt16  int16
+		MyInt32  int32
+		MyInt64  int64
+		MyUint   uint
+		MyUint8  uint8
+		MyUint16 uint16
+		MyUint32 uint32
+		MyUint64 uint64
 	}
 
 	type jsonStructTest struct {
@@ -338,14 +343,24 @@ func TestDecoderConfiguration(t *testing.T) {
 				AppendDouble("myInt16", 1.999).
 				AppendDouble("myInt32", 1.999).
 				AppendDouble("myInt64", 1.999).
+				AppendDouble("myUint", 1.999).
+				AppendDouble("myUint8", 1.999).
+				AppendDouble("myUint16", 1.999).
+				AppendDouble("myUint32", 1.999).
+				AppendDouble("myUint64", 1.999).
 				Build(),
 			decodeInto: func() interface{} { return &truncateDoublesTest{} },
 			want: &truncateDoublesTest{
-				MyInt:   1,
-				MyInt8:  1,
-				MyInt16: 1,
-				MyInt32: 1,
-				MyInt64: 1,
+				MyInt:    1,
+				MyInt8:   1,
+				MyInt16:  1,
+				MyInt32:  1,
+				MyInt64:  1,
+				MyUint:   1,
+				MyUint8:  1,
+				MyUint16: 1,
+				MyUint32: 1,
+				MyUint64: 1,
 			},
 		},
 		// Test that BinaryAsSlice causes the Decoder to unmarshal BSON binary fields into Go byte

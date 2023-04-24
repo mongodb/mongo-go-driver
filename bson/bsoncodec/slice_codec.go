@@ -22,6 +22,10 @@ var defaultSliceCodec = NewSliceCodec()
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the SliceCodec registered.
 type SliceCodec struct {
+	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
+	// BSON null.
+	//
+	// Deprecated: Use bson.Encoder.NilSliceAsEmpty instead.
 	EncodeNilAsEmpty bool
 }
 

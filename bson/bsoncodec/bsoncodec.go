@@ -120,15 +120,15 @@ func (vde ValueDecoderError) Error() string {
 type EncodeContext struct {
 	*Registry
 
-	// MinSize, if true, instructs encoders to marshal Go integer values (int, int8, int16, int32,
-	// or int64) as the minimum BSON int size (either 32-bit or 64-bit) that can represent the
-	// integer value.
+	// MinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64,
+	// uint, uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits)
+	// that can represent the integer value.
 	//
 	// Deprecated: Use bson.Encoder.IntMinSize instead.
 	MinSize bool
 
 	errorOnInlineDuplicates bool
-	mapKeysWithStringer     bool
+	stringifyMapKeysWithFmt bool
 	nilMapAsEmpty           bool
 	nilSliceAsEmpty         bool
 	nilByteSliceAsEmpty     bool
@@ -144,12 +144,12 @@ func (ec *EncodeContext) ErrorOnInlineDuplicates() {
 	ec.errorOnInlineDuplicates = true
 }
 
-// MapKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name strings
+// StringifyMapKeysWithFmt causes the Encoder to convert Go map keys to BSON document field name strings
 // using fmt.Sprintf() instead of the default string conversion logic.
 //
-// Deprecated: Use bson.Encoder.MapKeysWithStringer instead.
-func (ec *EncodeContext) MapKeysWithStringer() {
-	ec.mapKeysWithStringer = true
+// Deprecated: Use bson.Encoder.StringifyMapKeysWithFmt instead.
+func (ec *EncodeContext) StringifyMapKeysWithFmt() {
+	ec.stringifyMapKeysWithFmt = true
 }
 
 // NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON
@@ -201,8 +201,9 @@ type DecodeContext struct {
 	*Registry
 
 	// Truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
-	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, or
-	// int64) struct field. The truncation logic does not apply to BSON "decimal128" values.
+	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, int64,
+	// uint, uint8, uint16, uint32, or uint64) struct field. The truncation logic does not apply to
+	// BSON "decimal128" values.
 	//
 	// Deprecated: Use bson.Decoder.AllowTruncatingDoubles instead.
 	Truncate bool

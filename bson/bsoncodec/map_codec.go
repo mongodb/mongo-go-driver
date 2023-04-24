@@ -23,8 +23,22 @@ var defaultMapCodec = NewMapCodec()
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the MapCodec registered.
 type MapCodec struct {
-	DecodeZerosMap         bool
-	EncodeNilAsEmpty       bool
+	// ZeroMaps causes DecodeValue to delete any existing values from Go maps in the destination
+	// value passed to Decode before unmarshaling BSON documents into them.
+	//
+	// Deprecated: Use bson.Decoder.ZeroMaps instead.
+	DecodeZerosMap bool
+
+	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go maps as empty BSON documents instead of
+	// BSON null.
+	//
+	// Deprecated: Use bson.Encoder.NilMapAsEmpty instead.
+	EncodeNilAsEmpty bool
+
+	// EncodeKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name
+	// strings using fmt.Sprintf() instead of the default string conversion logic.
+	//
+	// Deprecated: Use bson.Encoder.StringifyMapKeysWithFmt instead.
 	EncodeKeysWithStringer bool
 }
 
@@ -102,7 +116,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 
 	keys := val.MapKeys()
 	for _, key := range keys {
-		keyStr, err := mc.encodeKey(key, ec.mapKeysWithStringer)
+		keyStr, err := mc.encodeKey(key, ec.stringifyMapKeysWithFmt)
 		if err != nil {
 			return err
 		}

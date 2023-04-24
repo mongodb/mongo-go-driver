@@ -19,6 +19,10 @@ import (
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the EmptyInterfaceCodec registered.
 type EmptyInterfaceCodec struct {
+	// DecodeBinaryAsSlice causes DecodeValue to unmarshal BSON binary field values that are the
+	// "Generic" or "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
+	//
+	// Deprecated: Use bson.Decoder.BinaryAsSlice instead.
 	DecodeBinaryAsSlice bool
 }
 

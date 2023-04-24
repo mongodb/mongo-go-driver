@@ -20,6 +20,10 @@ import (
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the UIntCodec registered.
 type UIntCodec struct {
+	// EncodeToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
+	// minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
+	//
+	// Deprecated: Use bson.Encoder.IntMinSize instead.
 	EncodeToMinSize bool
 }
 

@@ -188,17 +188,23 @@ func TestEncoderConfiguration(t *testing.T) {
 			input: D{
 				{Key: "myInt", Value: int(1)},
 				{Key: "myInt64", Value: int64(1)},
+				{Key: "myUint", Value: uint(1)},
+				{Key: "myUint32", Value: uint32(1)},
+				{Key: "myUint64", Value: uint64(1)},
 			},
 			want: bsoncore.NewDocumentBuilder().
 				AppendInt32("myInt", 1).
 				AppendInt32("myInt64", 1).
+				AppendInt32("myUint", 1).
+				AppendInt32("myUint32", 1).
+				AppendInt32("myUint64", 1).
 				Build(),
 		},
-		// Test that MapKeysWithStringer uses fmt.Sprintf to convert map keys to BSON field names.
+		// Test that StringifyMapKeysWithFmt uses fmt.Sprint to convert map keys to BSON field names.
 		{
-			description: "MapKeysWithStringer",
+			description: "StringifyMapKeysWithFmt",
 			configure: func(enc *Encoder) {
-				enc.MapKeysWithStringer()
+				enc.StringifyMapKeysWithFmt()
 			},
 			input: map[stringerTest]string{
 				{}: "test value",
