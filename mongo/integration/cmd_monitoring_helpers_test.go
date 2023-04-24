@@ -180,6 +180,16 @@ func compareDocsHelper(mt *mtest.T, expected, actual bson.Raw, prefix string) er
 		}
 
 		aVal, err := actual.LookupErr(eKey)
+		if e.Value().Type == bson.TypeNull {
+			// Expected value is BSON null. Expect the actual field to be omitted.
+			if err == bsoncore.ErrElementNotFound {
+				continue
+			} else if err != nil {
+				return fmt.Errorf("expected key %q to be omitted but got error: %v", eKey, err)
+			} else {
+				return fmt.Errorf("expected key %q to be omitted but got %q", eKey, aVal)
+			}
+		}
 		if err != nil {
 			return fmt.Errorf("key %s not found in result", fullKeyName)
 		}
