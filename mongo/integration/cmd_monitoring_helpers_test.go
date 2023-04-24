@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // Helper functions to compare BSON values and command monitoring expectations.
@@ -269,6 +270,17 @@ func checkExpectations(mt *mtest.T, expectations *[]*expectation, id0, id1 bson.
 	}
 }
 
+// makeMatchError appends `expected` and `actual` BSON data to an error.
+func makeMatchError(mt *mtest.T, expected bson.Raw, actual bson.Raw, format string, args ...interface{}) error {
+	mt.Helper()
+	msg := fmt.Sprintf(format, args...)
+	expectedJSON, err := bson.MarshalExtJSON(expected, true, false)
+	assert.Nil(mt, err, "error in MarshalExtJSON: %v", err)
+	actualJSON, err := bson.MarshalExtJSON(actual, true, false)
+	assert.Nil(mt, err, "error in MarshalExtJSON: %v", err)
+	return fmt.Errorf("%s\nExpected %s\nGot: %s", msg, string(expectedJSON), string(actualJSON))
+}
+
 func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Raw) error {
 	mt.Helper()
 
@@ -303,8 +315,14 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Ra
 
 		// Keys that may be nil
 		if val.Type == bson.TypeNull {
-			assert.NotNil(mt, err, "expected key %q to be omitted but got %q", key, actualVal)
-			continue
+			// Expected value is BSON null. Expect the actual field to be omitted.
+			if err == bsoncore.ErrElementNotFound {
+				continue
+			} else if err != nil {
+				return makeMatchError(mt, expected.Command, evt.Command, "expected key %q to be omitted but got error: %v", key, err)
+			} else {
+				return makeMatchError(mt, expected.Command, evt.Command, "expected key %q to be omitted but got %q", key, actualVal)
+			}
 		}
 		assert.Nil(mt, err, "expected command to contain key %q", key)
 
@@ -328,16 +346,16 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Ra
 			case "session1":
 				expectedID = id1
 			default:
-				return fmt.Errorf("unrecognized session identifier in command document: %s", sessName)
+				return makeMatchError(mt, expected.Command, evt.Command, "unrecognized session identifier in command document: %s", sessName)
 			}
 
 			if !bytes.Equal(expectedID, actualID) {
-				return fmt.Errorf("session ID mismatch for session %s; expected %s, got %s", sessName, expectedID,
+				return makeMatchError(mt, expected.Command, evt.Command, "session ID mismatch for session %s; expected %s, got %s", sessName, expectedID,
 					actualID)
 			}
 		default:
 			if err := compareValues(mt, key, val, actualVal); err != nil {
-				return err
+				return makeMatchError(mt, expected.Command, evt.Command, "%s", err)
 			}
 		}
 	}
@@ -410,11 +428,11 @@ func compareSucceededEvent(mt *mtest.T, expectation *expectation) error {
 		switch key {
 		case "writeErrors":
 			if err = compareWriteErrors(mt, val.Array(), actualVal.Array()); err != nil {
-				return err
+				return makeMatchError(mt, expected.Reply, evt.Reply, "%s", err)
 			}
 		default:
 			if err := compareValues(mt, key, val, actualVal); err != nil {
-				return err
+				return makeMatchError(mt, expected.Reply, evt.Reply, "%s", err)
 			}
 		}
 	}
