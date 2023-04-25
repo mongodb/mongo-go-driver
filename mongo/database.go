@@ -579,7 +579,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 		return fmt.Errorf("error transforming document: %v", err)
 	}
 
-	// Create the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
+	// Create the two encryption-related, associated collections: `escCollection` and `ecocCollection`.
 
 	stateCollectionOpts := options.CreateCollection().
 		SetClusteredIndex(bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}})
@@ -590,16 +590,6 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	if err := db.createCollection(ctx, escCollection, stateCollectionOpts); err != nil {
-		return err
-	}
-
-	// Create ECCCollection.
-	eccCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedCacheCollection)
-	if err != nil {
-		return err
-	}
-
-	if err := db.createCollection(ctx, eccCollection, stateCollectionOpts); err != nil {
 		return err
 	}
 
