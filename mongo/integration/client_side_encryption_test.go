@@ -419,7 +419,6 @@ func TestFLE2CreateCollection(t *testing.T) {
 	efJSON := `
 	{
 		"escCollection": "enxcol_.encryptedCollection.esc",
-		"eccCollection": "enxcol_.encryptedCollection.ecc",
 		"ecocCollection": "enxcol_.encryptedCollection.ecoc",
 		"fields": [
 		  {
@@ -446,8 +445,6 @@ func TestFLE2CreateCollection(t *testing.T) {
 		{
 			err = mt.DB.Collection("enxcol_.encryptedCollection.esc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
-			err = mt.DB.Collection("enxcol_.encryptedCollection.ecc").Drop(context.Background())
-			assert.Nil(mt, err, "error in Drop: %v", err)
 			err = mt.DB.Collection("enxcol_.encryptedCollection.ecoc").Drop(context.Background())
 			assert.Nil(mt, err, "error in Drop: %v", err)
 			err := mt.DB.Collection("coll").Drop(context.Background())
@@ -465,10 +462,6 @@ func TestFLE2CreateCollection(t *testing.T) {
 			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.esc"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
 			assert.Equal(mt, got, []string{"enxcol_.encryptedCollection.esc"}, "expected ['encryptedCollection.esc'], got: %v", got)
-
-			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.ecc"}})
-			assert.Nil(mt, err, "error in ListCollectionNames")
-			assert.Equal(mt, got, []string{"enxcol_.encryptedCollection.ecc"}, "expected ['encryptedCollection.ecc'], got: %v", got)
 
 			got, err = mt.DB.ListCollectionNames(context.Background(), bson.D{{"name", "enxcol_.encryptedCollection.ecoc"}})
 			assert.Nil(mt, err, "error in ListCollectionNames")
