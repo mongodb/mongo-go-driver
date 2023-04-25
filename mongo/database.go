@@ -579,6 +579,26 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 		return fmt.Errorf("error transforming document: %v", err)
 	}
 
+	// Check the wire version to ensure server is 7.0.0 or newer.
+	// After the wire version check, and before creating the collections, it is possible the server state changes.
+	// That is OK. This wire version check is a best effort to inform users earlier if using a QEv2 driver with a QEv1 server.
+	{
+		const QEv2WireVersion = 21
+		server, err := db.client.deployment.SelectServer(ctx, description.WriteSelector())
+		if err != nil {
+			return fmt.Errorf("error selecting server to check maxWireVersion: %s", err)
+		}
+		conn, err := server.Connection(ctx)
+		if err != nil {
+			return fmt.Errorf("error getting connection to check maxWireVersion: %s", err)
+		}
+		defer conn.Close()
+		wireVersionRange := conn.Description().WireVersion
+		if wireVersionRange.Max < QEv2WireVersion {
+			return fmt.Errorf("Driver support of Queryable Encryption is incompatible with server. Upgrade server to use Queryable Encryption. Got maxWireVersion %v but need maxWireVersion >= %v", wireVersionRange.Max, QEv2WireVersion)
+		}
+	}
+
 	// Create the two encryption-related, associated collections: `escCollection` and `ecocCollection`.
 
 	stateCollectionOpts := options.CreateCollection().
