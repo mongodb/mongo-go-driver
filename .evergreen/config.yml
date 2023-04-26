@@ -89,6 +89,7 @@ functions:
              export PATH="$(cygpath $GOROOTBIN):$(cygpath $GOPATHBIN):${GCC_PATH}:$(cygpath $MONGODB_BINARIES):$PATH"
           else
              export PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
+             echo "PATH in PS: $PATH"
           fi
 
           # Check Go installation.
@@ -722,7 +723,7 @@ functions:
               "iam_auth_assume_aws_account" : "${iam_auth_assume_aws_account}",
               "iam_auth_assume_aws_secret_access_key" : "${iam_auth_assume_aws_secret_access_key}",
               "iam_auth_assume_role_name" : "${iam_auth_assume_role_name}",
-              "iam_auth_ec2_instance_account" : "${iam_auth_subprocessec2_instance_account}",
+              "iam_auth_ec2_instance_account" : "${iam_auth_ec2_instance_account}",
               "iam_auth_ec2_instance_secret_access_key" : "${iam_auth_ec2_instance_secret_access_key}",
               "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}",
               "iam_auth_assume_web_role_name": "${iam_auth_assume_web_role_name}",
@@ -1110,12 +1111,10 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: ${LAMBDA_AWS_ROLE_ARN}
-    - command: subprocess.exec
+    - command: shell.exec
       params:
         working_dir: src/go.mongodb.org/mongo-driver
-        binary: bash
-        args:
-          - .evergreen/run-deployed-lambda-aws-tests.sh
+        shell: bash
         env:
           PROJECT_DIRECTORY: ${PROJECT_DIRECTORY}
           DRIVERS_TOOLS: ${DRIVERS_TOOLS}
@@ -1127,9 +1126,12 @@ functions:
           AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
           AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
           AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/cmd/testfaas/testawslambda
+          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
           LAMBDA_STACK_NAME: dbx-go-lambda
           AWS_REGION: us-east-1
+        script: |
+          ${PREPARE_SHELL}
+          .evergreen/run-deployed-lambda-aws-tests.sh
 
 pre:
   - func: fetch-source

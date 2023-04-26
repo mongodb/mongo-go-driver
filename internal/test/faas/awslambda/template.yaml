@@ -48,7 +48,7 @@ Resources:
 Outputs:
   MongoDBApi:
     Description: "API Gateway endpoint URL for Prod stage for MongoDB function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/mongodb/"
   MongoDBFunction:
     Description: "MongoDB Lambda Function ARN"
     Value: !GetAtt MongoDBFunction.Arn

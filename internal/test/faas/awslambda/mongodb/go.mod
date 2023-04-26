@@ -1,8 +1,8 @@
-module go.mongodb.go/mongo-driver/cmd/mongodb
+module go.mongodb.go/mongo-driver/internal/test/mongodb
 
 go 1.19
 
-replace go.mongodb.org/mongo-driver => ../../../../
+replace go.mongodb.org/mongo-driver => ../../../../../
 
 require (
 	github.com/aws/aws-lambda-go v1.36.1

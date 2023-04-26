@@ -14,4 +14,4 @@ perf
 .DS_Store
 
 # AWS SAM-generated files
-cmd/testfaas/testawslambda/.aws-sam
+internal/test/faas/awslambda/.aws-sam

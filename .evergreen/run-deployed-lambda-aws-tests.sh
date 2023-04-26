@@ -18,15 +18,13 @@ VARLIST=(
 	TEST_LAMBDA_DIRECTORY
 )
 
+echo "PATH in script: $PATH"
+
 # Ensure that all variables required to run the test are set, otherwise throw
 # an error.
 for VARNAME in ${VARLIST[*]}; do
 	[[ -z "${!VARNAME}" ]] && echo "ERROR: $VARNAME not set" && exit 1;
 done
 
-echo "Starting deployment x"
-#. ${DRIVERS_TOOLS}/.evergreen/run-deployed-lambda-aws-tests.sh
-cd "${TEST_LAMBDA_DIRECTORY}"
-
-sam build
-
+echo "Starting deployment"
+. ${DRIVERS_TOOLS}/.evergreen/run-deployed-lambda-aws-tests.sh
