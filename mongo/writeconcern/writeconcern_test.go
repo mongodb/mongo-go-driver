@@ -27,39 +27,39 @@ func TestWriteConcernWithOptions(t *testing.T) {
 		var wc *writeconcern.WriteConcern
 
 		wc = wc.WithOptions(writeconcern.WMajority())
-		require.Equal(t, wc.GetW().(string), "majority")
+		assert.Equal(t, "majority", wc.GetW().(string))
+		assert.False(t, wc.GetJ())
 	})
 	t.Run("on existing WriteConcern", func(t *testing.T) {
 		t.Parallel()
 
 		wc := writeconcern.New(writeconcern.W(1), writeconcern.J(true))
-		require.Equal(t, wc.GetW().(int), 1)
-		require.Equal(t, wc.GetJ(), true)
+		assert.Equal(t, 1, wc.GetW().(int))
+		assert.True(t, wc.GetJ())
 
 		wc = wc.WithOptions(writeconcern.WMajority())
-		require.Equal(t, wc.GetW().(string), "majority")
-		require.Equal(t, wc.GetJ(), true)
+		assert.Equal(t, "majority", wc.GetW().(string))
+		assert.True(t, wc.GetJ())
 	})
 	t.Run("with multiple options", func(t *testing.T) {
 		t.Parallel()
 
 		wc := writeconcern.New(writeconcern.W(1), writeconcern.J(true))
-		require.Equal(t, wc.GetW().(int), 1)
-		require.Equal(t, wc.GetJ(), true)
-		require.Equal(t, wc.GetWTimeout(), time.Duration(0))
+		assert.Equal(t, 1, wc.GetW().(int))
+		assert.True(t, wc.GetJ())
+		assert.Equal(t, time.Duration(0), wc.GetWTimeout())
 
 		wc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(time.Second))
-		require.Equal(t, wc.GetW().(string), "majority")
-		require.Equal(t, wc.GetJ(), true)
-		require.Equal(t, wc.GetWTimeout(), time.Second)
+		assert.Equal(t, "majority", wc.GetW().(string))
+		assert.True(t, wc.GetJ())
+		assert.Equal(t, time.Second, wc.GetWTimeout())
 	})
 }
 
 func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 	t.Parallel()
 
-	tru := true
-	fals := false
+	boolPtr := func(b bool) *bool { return &b }
 
 	testCases := []struct {
 		description string
@@ -72,7 +72,7 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 			description: "all fields",
 			input: &writeconcern.WriteConcern{
 				W:        "majority",
-				Journal:  &fals,
+				Journal:  boolPtr(false),
 				WTimeout: 1 * time.Minute,
 			},
 			wantType: bson.TypeEmbeddedDocument,
@@ -106,7 +106,7 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 		},
 		{
 			description: "W=0 and J=true",
-			input:       &writeconcern.WriteConcern{W: 0, Journal: &tru},
+			input:       &writeconcern.WriteConcern{W: 0, Journal: boolPtr(true)},
 			wantError:   writeconcern.ErrInconsistent,
 		},
 		{
@@ -149,6 +149,73 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 			err = rv.Unmarshal(&gotValue)
 			require.NoError(t, err, "error unmarshaling RawValue")
 			assert.Equal(t, tc.wantValue, gotValue, "expected and actual BSON values do not match")
+		})
+	}
+}
+
+func TestWriteConcern_Acknowledged(t *testing.T) {
+	boolPtr := func(b bool) *bool { return &b }
+
+	testCases := []struct {
+		description  string
+		writeConcern *writeconcern.WriteConcern
+		want         bool
+	}{
+		{
+			description:  "Unacknowledged",
+			writeConcern: writeconcern.Unacknowledged(),
+			want:         false,
+		},
+		{
+			description:  "W1",
+			writeConcern: writeconcern.W1(),
+			want:         true,
+		},
+		{
+			description:  "Journaled",
+			writeConcern: writeconcern.Journaled(),
+			want:         true,
+		},
+		{
+			description:  "Majority",
+			writeConcern: writeconcern.Majority(),
+			want:         true,
+		},
+		{
+			description: "{w: 0, j: true}",
+			writeConcern: &writeconcern.WriteConcern{
+				W:       0,
+				Journal: boolPtr(true),
+			},
+			want: true,
+		},
+		{
+			description:  "{w: custom}",
+			writeConcern: &writeconcern.WriteConcern{W: "custom"},
+			want:         true,
+		},
+		{
+			description:  "nil",
+			writeConcern: nil,
+			want:         true,
+		},
+		{
+			description: "invalid",
+			writeConcern: &writeconcern.WriteConcern{
+				W: struct{ Field string }{},
+			},
+			want: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc // Capture range variable.
+
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+
+			got := tc.writeConcern.Acknowledged()
+			assert.Equal(t, tc.want, got, "expected and actual Acknowledged value are different")
 		})
 	}
 }

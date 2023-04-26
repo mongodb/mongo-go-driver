@@ -20,6 +20,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+const majority = "majority"
+
 // ErrInconsistent indicates that an inconsistent write concern was specified.
 //
 // Deprecated: ErrInconsistent will be removed in Go Driver 2.0.
@@ -51,7 +53,13 @@ type WriteConcern struct {
 	// mongod instances or to mongod instances with specified tags. It sets the the "w" option
 	// in a MongoDB write concern.
 	//
-	// W must be a type string or int value.
+	// W values must be a string or an int.
+	//
+	// Common values are:
+	// - "majority": requests acknowledgment that write operations have been durably committed to
+	//   the calculated majority of the data-bearing voting members.
+	// - 1: requests acknowledgment that write operations have been written to 1 node.
+	// - 0: requests no acknowledgment of write operations
 	//
 	// For more information about the "w" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#w-option
@@ -75,44 +83,56 @@ type WriteConcern struct {
 	WTimeout time.Duration
 }
 
-// Majority returns a WriteConcern that requests acknowledgment that write operations have been
-// durably committed to the calculated majority of the data-bearing voting members. If journaling is
-// enabled on mongod, nodes only acknowledge when the write operation has been written to the
-// on-disk journal.
-//
-// For more information about write concern "w: majority", see
-// https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-majority-
-func Majority() *WriteConcern {
-	return &WriteConcern{W: "majority"}
-}
-
-// Custom returns a WriteConcern that requests acknowledgment that the write operation has
-// propagated to tagged members that satisfy the custom write concern defined in
-// "settings.getLastErrorModes". If journaling is enabled on mongod, nodes only acknowledge when the
-// write operation has been written to the on-disk journal.
-//
-// For more information about custom write concern names, see
-// https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-custom-write-concern-name-
-func Custom(tag string) *WriteConcern {
-	return &WriteConcern{W: tag}
-}
-
-// W0 returns a WriteConcern that requests no acknowledgment of the write operation.
+// Unacknowledged returns a WriteConcern that requests no acknowledgment of write operations.
 //
 // For more information about write concern "w: 0", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-number-
-func W0() *WriteConcern {
+func Unacknowledged() *WriteConcern {
 	return &WriteConcern{W: 0}
 }
 
-// W1 returns a WriteConcern that requests acknowledgment that the write operation has propagated to
-// the standalone mongod or the primary in a replica set. If journal is true, mongod nodes only
-// acknowledge when the write operation has been written to the on-disk journal.
+// W1 returns a WriteConcern that requests acknowledgment that write operations have been written to
+// memory on one node (e.g. the standalone mongod or the primary in a replica set).
 //
 // For more information about write concern "w: 1", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-number-
 func W1() *WriteConcern {
 	return &WriteConcern{W: 1}
+}
+
+// Journaled returns a WriteConcern that requests acknowledgment that write operations have been
+// written to the on-disk journal on MongoDB.
+//
+// The database's default value for "w" determines how many nodes must write to their on-disk
+// journal before the write operation is acknowledged.
+//
+// For more information about write concern "j: true", see
+// https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-ournal
+func Journaled() *WriteConcern {
+	journal := true
+	return &WriteConcern{Journal: &journal}
+}
+
+// Majority returns a WriteConcern that requests acknowledgment that write operations have been
+// durably committed to the calculated majority of the data-bearing voting members.
+//
+// Write concern "w: majority" typically requires write operations to be written to the on-disk
+// journal before they are acknowledged, unless journaling is disabled on MongoDB or the
+// "writeConcernMajorityJournalDefault" replica set configuration is set to false.
+//
+// For more information about write concern "w: majority", see
+// https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-majority-
+func Majority() *WriteConcern {
+	return &WriteConcern{W: majority}
+}
+
+// Custom returns a WriteConcern that requests acknowledgment that write operations have propagated
+// to tagged members that satisfy the custom write concern defined in "settings.getLastErrorModes".
+//
+// For more information about custom write concern names, see
+// https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-custom-write-concern-name-
+func Custom(tag string) *WriteConcern {
+	return &WriteConcern{W: tag}
 }
 
 // Option is an option to provide when creating a WriteConcern.
@@ -131,16 +151,18 @@ type Option func(concern *WriteConcern)
 
 // New constructs a new WriteConcern.
 //
-// Deprecated: Use the WriteConcern helpers instead, then set individual fields if necessary.
+// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
 // For example:
 //
 //	writeconcern.Majority()
 //
 // or
 //
-//	wc := writeconcern.W1()
 //	journal := true
-//	wc.Journal = &journal
+//	&writeconcern.WriteConcern{
+//		W:       2,
+//		Journal: &journal,
+//	}
 func New(options ...Option) *WriteConcern {
 	concern := &WriteConcern{}
 
@@ -154,16 +176,18 @@ func New(options ...Option) *WriteConcern {
 // W requests acknowledgement that write operations propagate to the specified number of mongod
 // instances.
 //
-// Deprecated: Use the W0 or W1 functions, then set individual fields if necessary.
+// Deprecated: Use the Unacknowledged or W1 functions or define a struct literal instead.
 // For example:
 //
-//	writeconcern.W0()
+//	writeconcern.Unacknowledged()
 //
 // or
 //
-//	wc := writeconcern.W1()
 //	journal := true
-//	wc.Journal = &journal
+//	&writeconcern.WriteConcern{
+//		W:       2,
+//		Journal: &journal,
+//	}
 func W(w int) Option {
 	return func(concern *WriteConcern) {
 		concern.W = w
@@ -176,7 +200,7 @@ func W(w int) Option {
 // Deprecated: Use the Majority function instead.
 func WMajority() Option {
 	return func(concern *WriteConcern) {
-		concern.W = "majority"
+		concern.W = majority
 	}
 }
 
@@ -193,16 +217,18 @@ func WTagSet(tag string) Option {
 // J requests acknowledgement from MongoDB that write operations are written to
 // the journal.
 //
-// Deprecated: Use the WriteConcern helpers instead, then set individual fields if necessary.
+// Deprecated: Use the Journaled function or define a struct literal instead.
 // For example:
 //
-//	writeconcern.Majority()
+//	writeconcern.Journaled()
 //
 // or
 //
-//	wc := writeconcern.W1()
 //	journal := true
-//	wc.Journal = &journal
+//	&writeconcern.WriteConcern{
+//		W:       2,
+//		Journal: &journal,
+//	}
 func J(j bool) Option {
 	return func(concern *WriteConcern) {
 		// To maintain backward compatible behavior (now that the J field is a *bool), only set a
@@ -219,10 +245,19 @@ func J(j bool) Option {
 // It is only applicable for "w" values greater than 1. Using a WTimeout and setting Timeout on the
 // Client at the same time will result in undefined behavior.
 //
-// Deprecated: Use the WriteConcern helpers and then set WTimeout instead. For example:
+// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
+// For example:
 //
 //	wc := writeconcern.W1()
 //	wc.WTimeout = 30 * time.Second
+//
+// or
+//
+//	journal := true
+//	&writeconcern.WriteConcern{
+//		W:        "majority",
+//		WTimeout: 30 * time.Second,
+//	}
 func WTimeout(d time.Duration) Option {
 	return func(concern *WriteConcern) {
 		concern.WTimeout = d
@@ -301,17 +336,9 @@ func AcknowledgedValue(rawv bson.RawValue) bool {
 
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.
 func (wc *WriteConcern) Acknowledged() bool {
-	if wc == nil || (wc.Journal != nil && *wc.Journal) {
-		return true
-	}
-
-	// Only int value 0 with no "j" or "j: false" is an unacknowledged write concern. All other
-	// values are either acknowledged or unsupported, which will cause a BSON marshaling error.
-	if i, ok := wc.W.(int); ok && i == 0 {
-		return false
-	}
-
-	return true
+	// Only {w: 0} or {w: 0, j: false} are an unacknowledged write concerns. All other values are
+	// acknowledged.
+	return wc == nil || wc.W != 0 || (wc.Journal != nil && *wc.Journal)
 }
 
 // IsValid checks whether the write concern is invalid.
@@ -350,10 +377,11 @@ func (wc *WriteConcern) GetW() interface{} {
 
 // GetJ returns the write concern journaling level.
 //
-// Deprecated: Use the WriteConcern.J field instead.
+// Deprecated: Use the WriteConcern.Journal field instead.
 func (wc *WriteConcern) GetJ() bool {
-	// Treat a nil J as false. That maintains backward compatibility with the existing behavior of
-	// GetJ where unset is false. If users want the real value of J, they can access the J field.
+	// Treat a nil Journal as false. That maintains backward compatibility with the existing
+	// behavior of GetJ where unset is false. If users want the real value of Journal, they can
+	// access the Journal field.
 	return wc.Journal != nil && *wc.Journal
 }
 
@@ -366,16 +394,18 @@ func (wc *WriteConcern) GetWTimeout() time.Duration {
 
 // WithOptions returns a copy of this WriteConcern with the options set.
 //
-// Deprecated: Use the WriteConcern helpers instead, then set individual fields if necessary.
+// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
 // For example:
 //
 //	writeconcern.Majority()
 //
 // or
 //
-//	wc := writeconcern.W1()
 //	journal := true
-//	wc.Journal = &journal
+//	&writeconcern.WriteConcern{
+//		W:       2,
+//		Journal: &journal,
+//	}
 func (wc *WriteConcern) WithOptions(options ...Option) *WriteConcern {
 	if wc == nil {
 		return New(options...)
@@ -392,7 +422,7 @@ func (wc *WriteConcern) WithOptions(options ...Option) *WriteConcern {
 
 // AckWrite returns true if a write concern represents an acknowledged write
 //
-// Deprecated: AckWrite will not be supported in Go Driver 2.0.
+// Deprecated: Use WriteConcern.Acknowledged instead.
 func AckWrite(wc *WriteConcern) bool {
 	return wc == nil || wc.Acknowledged()
 }
