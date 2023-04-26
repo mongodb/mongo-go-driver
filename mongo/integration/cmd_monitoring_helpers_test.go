@@ -187,7 +187,7 @@ func compareDocsHelper(mt *mtest.T, expected, actual bson.Raw, prefix string) er
 				continue
 			}
 			if err != nil {
-				return fmt.Errorf("expected key %q to be omitted but got error: %v", eKey, err)
+				return fmt.Errorf("expected key %q to be omitted but got error: %w", eKey, err)
 			}
 			return fmt.Errorf("expected key %q to be omitted but got %q", eKey, aVal)
 		}

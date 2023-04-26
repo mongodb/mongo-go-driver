@@ -586,11 +586,11 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 		const QEv2WireVersion = 21
 		server, err := db.client.deployment.SelectServer(ctx, description.WriteSelector())
 		if err != nil {
-			return fmt.Errorf("error selecting server to check maxWireVersion: %s", err)
+			return fmt.Errorf("error selecting server to check maxWireVersion: %w", err)
 		}
 		conn, err := server.Connection(ctx)
 		if err != nil {
-			return fmt.Errorf("error getting connection to check maxWireVersion: %s", err)
+			return fmt.Errorf("error getting connection to check maxWireVersion: %w", err)
 		}
 		defer conn.Close()
 		wireVersionRange := conn.Description().WireVersion
