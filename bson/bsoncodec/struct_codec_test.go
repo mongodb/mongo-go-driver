@@ -120,7 +120,7 @@ func TestIsZero(t *testing.T) {
 			want:           true,
 		},
 		// TODO(GODRIVER-2820): Change the expected value to "false" once the logic is updated to
-		// TODO also inspct private struct fields.
+		// TODO also inspect private struct fields.
 		{
 			description:    "non-zero struct with only private fields with omitZeroStruct",
 			value:          struct{ val bool }{val: true},
