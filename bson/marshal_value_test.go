@@ -16,7 +16,7 @@ import (
 )
 
 func TestMarshalValue(t *testing.T) {
-	marshalValueTestCases := marshalValueTestCases(t)
+	marshalValueTestCases := newMarshalValueTestCasesWithInterfaceCore(t)
 
 	t.Run("MarshalValue", func(t *testing.T) {
 		for _, tc := range marshalValueTestCases {
@@ -84,14 +84,16 @@ func compareMarshalValueResults(t *testing.T, tc marshalValueTestCase, gotType b
 }
 
 // benchmark covering GODRIVER-2779
-func BenchmarkSliceCodec_Marshal(b *testing.B) {
+func BenchmarkSliceCodecMarshal(b *testing.B) {
 	testStruct := unmarshalerNonPtrStruct{B: []byte(strings.Repeat("t", 4096))}
 
 	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		_, _, err := MarshalValueWithRegistry(DefaultRegistry, testStruct)
-		if err != nil {
-			b.Fatal(err)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, _, err := MarshalValue(testStruct)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
+	})
 }

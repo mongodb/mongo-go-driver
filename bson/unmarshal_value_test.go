@@ -18,7 +18,7 @@ import (
 )
 
 func TestUnmarshalValue(t *testing.T) {
-	unmarshalValueTestCases := unmarshalValueTestCases(t)
+	unmarshalValueTestCases := newMarshalValueTestCases(t)
 
 	t.Run("UnmarshalValue", func(t *testing.T) {
 		for _, tc := range unmarshalValueTestCases {
@@ -74,7 +74,7 @@ func TestUnmarshalValue(t *testing.T) {
 }
 
 // tests covering GODRIVER-2779
-func BenchmarkSliceCodec_Unmarshal(b *testing.B) {
+func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 	benchmarks := []struct {
 		name     string
 		bsontype bsontype.Type
@@ -94,13 +94,15 @@ func BenchmarkSliceCodec_Unmarshal(b *testing.B) {
 	rb := NewRegistryBuilder().RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec()).Build()
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
-			var gotValue []byte
-			for n := 0; n < b.N; n++ {
-				err := UnmarshalValueWithRegistry(rb, bm.bsontype, bm.bytes, &gotValue)
-				if err != nil {
-					b.Fatal(err)
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					var gotValue []byte
+					err := UnmarshalValueWithRegistry(rb, bm.bsontype, bm.bytes, &gotValue)
+					if err != nil {
+						b.Fatal(err)
+					}
 				}
-			}
+			})
 		})
 	}
 }

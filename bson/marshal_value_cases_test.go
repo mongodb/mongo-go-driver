@@ -62,18 +62,21 @@ type marshalValueTestCase struct {
 	bytes    []byte
 }
 
-func unmarshalValueTestCases(t *testing.T) []marshalValueTestCase {
+func newMarshalValueTestCases(t *testing.T) []marshalValueTestCase {
 	t.Helper()
 
-	oid := primitive.NewObjectID()
-	regex := primitive.Regex{Pattern: "pattern", Options: "imx"}
-	dbPointer := primitive.DBPointer{DB: "db", Pointer: primitive.NewObjectID()}
-	codeWithScope := primitive.CodeWithScope{Code: "code", Scope: D{{"a", "b"}}}
+	var (
+		oid           = primitive.NewObjectID()
+		regex         = primitive.Regex{Pattern: "pattern", Options: "imx"}
+		dbPointer     = primitive.DBPointer{DB: "db", Pointer: primitive.NewObjectID()}
+		codeWithScope = primitive.CodeWithScope{Code: "code", Scope: D{{"a", "b"}}}
+		decimal128    = primitive.NewDecimal128(5, 10)
+		structTest    = marshalValueStruct{Foo: 10}
+	)
 	idx, scopeCore := bsoncore.AppendDocumentStart(nil)
 	scopeCore = bsoncore.AppendStringElement(scopeCore, "a", "b")
-	scopeCore, _ = bsoncore.AppendDocumentEnd(scopeCore, idx)
-	decimal128 := primitive.NewDecimal128(5, 10)
-	structTest := marshalValueStruct{Foo: 10}
+	scopeCore, err := bsoncore.AppendDocumentEnd(scopeCore, idx)
+	assert.Nil(t, err, "Document error: %v", err)
 	structCore, err := Marshal(structTest)
 	assert.Nil(t, err, "Marshal error: %v", err)
 
@@ -105,10 +108,10 @@ func unmarshalValueTestCases(t *testing.T) []marshalValueTestCase {
 
 }
 
-func marshalValueTestCases(t *testing.T) []marshalValueTestCase {
+func newMarshalValueTestCasesWithInterfaceCore(t *testing.T) []marshalValueTestCase {
 	t.Helper()
 
-	marshalValueTestCases := unmarshalValueTestCases(t)
+	marshalValueTestCases := newMarshalValueTestCases(t)
 
 	interfaceTest := marshalValueInterfaceOuter{
 		Reader: marshalValueInterfaceInner{

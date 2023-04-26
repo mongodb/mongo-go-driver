@@ -71,6 +71,8 @@ func UnmarshalValue(t bsontype.Type, data []byte, val interface{}) error {
 // UnmarshalValueWithRegistry parses the BSON value of type t with registry r and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
+//
+// TODO(GODRIVER-2711): Deprecate this one with other *WithRegistry functions.
 func UnmarshalValueWithRegistry(r *bsoncodec.Registry, t bsontype.Type, data []byte, val interface{}) error {
 	vr := bsonrw.NewBSONValueReader(t, data)
 	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, vr, val)
