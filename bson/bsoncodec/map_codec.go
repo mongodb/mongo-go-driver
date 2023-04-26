@@ -23,7 +23,7 @@ var defaultMapCodec = NewMapCodec()
 //
 // Deprecated: Use bson.NewRegistry to get a registry with the MapCodec registered.
 type MapCodec struct {
-	// ZeroMaps causes DecodeValue to delete any existing values from Go maps in the destination
+	// DecodeZerosMap causes DecodeValue to delete any existing values from Go maps in the destination
 	// value passed to Decode before unmarshaling BSON documents into them.
 	//
 	// Deprecated: Use bson.Decoder.ZeroMaps instead.

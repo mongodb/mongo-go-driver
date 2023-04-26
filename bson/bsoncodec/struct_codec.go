@@ -72,7 +72,7 @@ type StructCodec struct {
 	// Deprecated: Use bson.Decoder.ZeroStructs instead.
 	DecodeZeroStruct bool
 
-	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
+	// DecodeDeepZeroInline causes DecodeValue to delete any existing values from Go structs in the
 	// destination value passed to Decode before unmarshaling BSON documents into them.
 	//
 	// Deprecated: DecodeDeepZeroInline will not be supported in Go Driver 2.0.
