@@ -60,7 +60,8 @@ type Zeroer interface {
 
 // StructCodec is the Codec used for struct values.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the StructCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// StructCodec registered.
 type StructCodec struct {
 	cache  map[reflect.Type]*structDescription
 	l      sync.RWMutex
@@ -104,7 +105,8 @@ var _ ValueDecoder = &StructCodec{}
 
 // NewStructCodec returns a StructCodec that uses p for struct tag parsing.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the StructCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// StructCodec registered.
 func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) (*StructCodec, error) {
 	if p == nil {
 		return nil, errors.New("a StructTagParser must be provided to NewStructCodec")

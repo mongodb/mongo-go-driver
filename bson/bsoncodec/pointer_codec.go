@@ -19,7 +19,8 @@ var _ ValueDecoder = &PointerCodec{}
 
 // PointerCodec is the Codec used for pointers.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the PointerCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// PointerCodec registered.
 type PointerCodec struct {
 	ecache map[reflect.Type]ValueEncoder
 	dcache map[reflect.Type]ValueDecoder
@@ -28,7 +29,8 @@ type PointerCodec struct {
 
 // NewPointerCodec returns a PointerCodec that has been initialized.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the PointerCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// PointerCodec registered.
 func NewPointerCodec() *PointerCodec {
 	return &PointerCodec{
 		ecache: make(map[reflect.Type]ValueEncoder),

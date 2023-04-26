@@ -17,7 +17,8 @@ import (
 
 // ByteSliceCodec is the Codec used for []byte values.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the ByteSliceCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// ByteSliceCodec registered.
 type ByteSliceCodec struct {
 	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
 	// instead of BSON null.
@@ -37,7 +38,8 @@ var (
 
 // NewByteSliceCodec returns a ByteSliceCodec with options opts.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the ByteSliceCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// ByteSliceCodec registered.
 func NewByteSliceCodec(opts ...*bsonoptions.ByteSliceCodecOptions) *ByteSliceCodec {
 	byteSliceOpt := bsonoptions.MergeByteSliceCodecOptions(opts...)
 	codec := ByteSliceCodec{}

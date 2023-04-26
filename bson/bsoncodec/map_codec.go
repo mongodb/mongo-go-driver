@@ -21,7 +21,8 @@ var defaultMapCodec = NewMapCodec()
 
 // MapCodec is the Codec used for map values.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the MapCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// MapCodec registered.
 type MapCodec struct {
 	// DecodeZerosMap causes DecodeValue to delete any existing values from Go maps in the destination
 	// value passed to Decode before unmarshaling BSON documents into them.
@@ -60,7 +61,8 @@ type KeyUnmarshaler interface {
 
 // NewMapCodec returns a MapCodec with options opts.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the MapCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// MapCodec registered.
 func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
 	mapOpt := bsonoptions.MergeMapCodecOptions(opts...)
 

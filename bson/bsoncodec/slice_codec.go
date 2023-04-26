@@ -20,7 +20,8 @@ var defaultSliceCodec = NewSliceCodec()
 
 // SliceCodec is the Codec used for slice values.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the SliceCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// SliceCodec registered.
 type SliceCodec struct {
 	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
 	// BSON null.
@@ -31,7 +32,8 @@ type SliceCodec struct {
 
 // NewSliceCodec returns a MapCodec with options opts.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the SliceCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// SliceCodec registered.
 func NewSliceCodec(opts ...*bsonoptions.SliceCodecOptions) *SliceCodec {
 	sliceOpt := bsonoptions.MergeSliceCodecOptions(opts...)
 

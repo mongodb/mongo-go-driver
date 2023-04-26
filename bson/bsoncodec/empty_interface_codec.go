@@ -17,7 +17,8 @@ import (
 
 // EmptyInterfaceCodec is the Codec used for interface{} values.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the EmptyInterfaceCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// EmptyInterfaceCodec registered.
 type EmptyInterfaceCodec struct {
 	// DecodeBinaryAsSlice causes DecodeValue to unmarshal BSON binary field values that are the
 	// "Generic" or "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
@@ -37,7 +38,8 @@ var (
 
 // NewEmptyInterfaceCodec returns a EmptyInterfaceCodec with options opts.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the EmptyInterfaceCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// EmptyInterfaceCodec registered.
 func NewEmptyInterfaceCodec(opts ...*bsonoptions.EmptyInterfaceCodecOptions) *EmptyInterfaceCodec {
 	interfaceOpt := bsonoptions.MergeEmptyInterfaceCodecOptions(opts...)
 

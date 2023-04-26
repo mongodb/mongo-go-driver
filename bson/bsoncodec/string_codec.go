@@ -17,7 +17,8 @@ import (
 
 // StringCodec is the Codec used for string values.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the StringCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// StringCodec registered.
 type StringCodec struct {
 	DecodeObjectIDAsHex bool
 }
@@ -33,7 +34,8 @@ var (
 
 // NewStringCodec returns a StringCodec with options opts.
 //
-// Deprecated: Use bson.NewRegistry to get a registry with the StringCodec registered.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// StringCodec registered.
 func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
 	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
 	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}

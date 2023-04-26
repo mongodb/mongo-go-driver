@@ -132,7 +132,8 @@ func parseTags(key string, tag string) (StructTags, error) {
 // but will also fallback to parsing the json tag instead on a field where the
 // bson tag isn't available.
 //
-// Deprecated: Use bson.Encoder.UseJSONStructTags and bson.Decoder.UseJSONStructTags instead.
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.UseJSONStructTags] and
+// [go.mongodb.org/mongo-driver/bson.Decoder.UseJSONStructTags] instead.
 var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
