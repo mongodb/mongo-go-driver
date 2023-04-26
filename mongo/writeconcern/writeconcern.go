@@ -137,16 +137,18 @@ func Custom(tag string) *WriteConcern {
 
 // Option is an option to provide when creating a WriteConcern.
 //
-// Deprecated: Use the WriteConcern helpers instead, then set individual fields if necessary.
+// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
 // For example:
 //
 //	writeconcern.Majority()
 //
 // or
 //
-//	wc := writeconcern.W1()
 //	journal := true
-//	wc.Journal = &journal
+//	&writeconcern.WriteConcern{
+//		W:       2,
+//		Journal: &journal,
+//	}
 type Option func(concern *WriteConcern)
 
 // New constructs a new WriteConcern.
@@ -197,7 +199,7 @@ func W(w int) Option {
 // WMajority requests acknowledgement that write operations propagate to the majority of mongod
 // instances.
 //
-// Deprecated: Use the Majority function instead.
+// Deprecated: Use [Majority] instead.
 func WMajority() Option {
 	return func(concern *WriteConcern) {
 		concern.W = majority
@@ -207,7 +209,7 @@ func WMajority() Option {
 // WTagSet requests acknowledgement that write operations propagate to the specified mongod
 // instance.
 //
-// Deprecated: Use the Custom function instead.
+// Deprecated: Use [Custom] instead.
 func WTagSet(tag string) Option {
 	return func(concern *WriteConcern) {
 		concern.W = tag
@@ -422,7 +424,7 @@ func (wc *WriteConcern) WithOptions(options ...Option) *WriteConcern {
 
 // AckWrite returns true if a write concern represents an acknowledged write
 //
-// Deprecated: Use WriteConcern.Acknowledged instead.
+// Deprecated: Use [WriteConcern.Acknowledged] instead.
 func AckWrite(wc *WriteConcern) bool {
 	return wc == nil || wc.Acknowledged()
 }
