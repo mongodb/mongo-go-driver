@@ -183,13 +183,13 @@ func compareDocsHelper(mt *mtest.T, expected, actual bson.Raw, prefix string) er
 		aVal, err := actual.LookupErr(eKey)
 		if e.Value().Type == bson.TypeNull {
 			// Expected value is BSON null. Expect the actual field to be omitted.
-			if err == bsoncore.ErrElementNotFound {
+			if errors.Is(err, bsoncore.ErrElementNotFound) {
 				continue
-			} else if err != nil {
-				return fmt.Errorf("expected key %q to be omitted but got error: %v", eKey, err)
-			} else {
-				return fmt.Errorf("expected key %q to be omitted but got %q", eKey, aVal)
 			}
+			if err != nil {
+				return fmt.Errorf("expected key %q to be omitted but got error: %v", eKey, err)
+			}
+			return fmt.Errorf("expected key %q to be omitted but got %q", eKey, aVal)
 		}
 		if err != nil {
 			return fmt.Errorf("key %s not found in result", fullKeyName)
@@ -316,13 +316,13 @@ func compareStartedEvent(mt *mtest.T, expectation *expectation, id0, id1 bson.Ra
 		// Keys that may be nil
 		if val.Type == bson.TypeNull {
 			// Expected value is BSON null. Expect the actual field to be omitted.
-			if err == bsoncore.ErrElementNotFound {
+			if errors.Is(err, bsoncore.ErrElementNotFound) {
 				continue
-			} else if err != nil {
-				return makeMatchError(mt, expected.Command, evt.Command, "expected key %q to be omitted but got error: %v", key, err)
-			} else {
-				return makeMatchError(mt, expected.Command, evt.Command, "expected key %q to be omitted but got %q", key, actualVal)
 			}
+			if err != nil {
+				return makeMatchError(mt, expected.Command, evt.Command, "expected key %q to be omitted but got error: %v", key, err)
+			}
+			return makeMatchError(mt, expected.Command, evt.Command, "expected key %q to be omitted but got %q", key, actualVal)
 		}
 		assert.Nil(mt, err, "expected command to contain key %q", key)
 
