@@ -24,6 +24,7 @@ func (z zeroer) IsZero() bool {
 }
 
 func TestIsZero(t *testing.T) {
+	t.Parallel()
 	testCases := []struct {
 		description    string
 		value          interface{}
