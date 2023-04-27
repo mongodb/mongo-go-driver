@@ -18,11 +18,19 @@ import (
 )
 
 func TestUnmarshalValue(t *testing.T) {
+	t.Parallel()
+
 	unmarshalValueTestCases := newMarshalValueTestCases(t)
 
 	t.Run("UnmarshalValue", func(t *testing.T) {
+		t.Parallel()
+
 		for _, tc := range unmarshalValueTestCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				gotValue := reflect.New(reflect.TypeOf(tc.val))
 				err := UnmarshalValue(tc.bsontype, tc.bytes, gotValue.Interface())
 				assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
@@ -31,8 +39,14 @@ func TestUnmarshalValue(t *testing.T) {
 		}
 	})
 	t.Run("UnmarshalValueWithRegistry with DefaultRegistry", func(t *testing.T) {
+		t.Parallel()
+
 		for _, tc := range unmarshalValueTestCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				gotValue := reflect.New(reflect.TypeOf(tc.val))
 				err := UnmarshalValueWithRegistry(DefaultRegistry, tc.bsontype, tc.bytes, gotValue.Interface())
 				assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
@@ -42,6 +56,8 @@ func TestUnmarshalValue(t *testing.T) {
 	})
 	// tests covering GODRIVER-2779
 	t.Run("UnmarshalValueWithRegistry with custom registry", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name     string
 			val      interface{}
@@ -63,7 +79,11 @@ func TestUnmarshalValue(t *testing.T) {
 		}
 		rb := NewRegistryBuilder().RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec()).Build()
 		for _, tc := range testCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				gotValue := reflect.New(reflect.TypeOf(tc.val))
 				err := UnmarshalValueWithRegistry(rb, tc.bsontype, tc.bytes, gotValue.Interface())
 				assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
@@ -96,8 +116,7 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 		b.Run(bm.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					var gotValue []byte
-					err := UnmarshalValueWithRegistry(rb, bm.bsontype, bm.bytes, &gotValue)
+					err := UnmarshalValueWithRegistry(rb, bm.bsontype, bm.bytes, &[]byte{})
 					if err != nil {
 						b.Fatal(err)
 					}
