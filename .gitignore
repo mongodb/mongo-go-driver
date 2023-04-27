@@ -15,4 +15,4 @@ perf
 
 # AWS SAM-generated files
 internal/test/faas/awslambda/.aws-sam
-internal/test/faas/events/event.json
+internal/test/faas/awslambda/events/event.json
