@@ -101,14 +101,10 @@ The following are the requirements for running the AWS Lambda tests locally:
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 2. [Docker](https://www.docker.com/products/docker-desktop/)
 
-Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-aws-lambda` make target:
+Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-faas-awslambda` make target:
 
 ```bash
-# run with a pre-set MONGODB_URI environment variables
-make build-aws-lambda
-
-# run using localhost and port 27017
-MONGODB_URI="mongodb://host.docker.internal:27017" make build-aws-lambda
+MONGODB_URI="mongodb://host.docker.internal:27017" make build-faas-awslambda
 ```
 
 The usage of host.docker.internal comes from the [Docker networking documentation](https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host).

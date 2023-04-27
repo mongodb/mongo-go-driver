@@ -18,8 +18,6 @@ VARLIST=(
 	TEST_LAMBDA_DIRECTORY
 )
 
-echo "PATH in script: $PATH"
-
 # Ensure that all variables required to run the test are set, otherwise throw
 # an error.
 for VARNAME in ${VARLIST[*]}; do

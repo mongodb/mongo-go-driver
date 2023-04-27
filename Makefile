@@ -91,10 +91,10 @@ test-short:
 	go test $(BUILD_TAGS) -timeout 60s -short -p 1 ./...
 
 ### Local FaaS targets. ###
-.PHONY: build-aws-lambda
-build-aws-lambda:
+.PHONY: build-faas-awslambda
+build-faas-awslambda:
 	$(if $(MONGODB_URI),,$(error MONGODB_URI is not set))
-	$(MAKE) -C cmd/testfaas/testawslambda/
+	$(MAKE) -C internal/test/faas/awslambda
 
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test

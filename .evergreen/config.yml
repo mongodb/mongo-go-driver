@@ -89,7 +89,6 @@ functions:
              export PATH="$(cygpath $GOROOTBIN):$(cygpath $GOPATHBIN):${GCC_PATH}:$(cygpath $MONGODB_BINARIES):$PATH"
           else
              export PATH="$GOROOTBIN:$GOPATHBIN:${GCC_PATH}:$MONGODB_BINARIES:$PATH"
-             echo "PATH in PS: $PATH"
           fi
 
           # Check Go installation.
