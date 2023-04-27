@@ -33,6 +33,10 @@ build-tests:
 	# connect to a server.
 	go test -short $(BUILD_TAGS) -run ^$$ ./...
 
+.PHONY: build-compile-check
+build-compile-check:
+	cd internal/test/compilecheck && go build $(BUILD_TAGS)
+
 .PHONY: check-fmt
 check-fmt:
 	etc/check_fmt.sh
