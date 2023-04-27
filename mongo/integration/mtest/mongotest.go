@@ -490,17 +490,11 @@ func DropEncryptedCollection(t *T, coll *mongo.Collection, encryptedFields inter
 	efBSON, err := bson.Marshal(encryptedFields)
 	assert.Nil(t, err, "error in Marshal: %v", err)
 
-	// Drop the three encryption-related, associated collections: `escCollection`, `eccCollection` and `ecocCollection`.
+	// Drop the two encryption-related, associated collections: `escCollection` and `ecocCollection`.
 	// Drop ESCCollection.
 	escCollection, err := internal.GetEncryptedStateCollectionName(efBSON, coll.Name(), internal.EncryptedStateCollection)
 	assert.Nil(t, err, "error in getEncryptedStateCollectionName: %v", err)
 	err = coll.Database().Collection(escCollection).Drop(context.Background())
-	assert.Nil(t, err, "error in Drop: %v", err)
-
-	// Drop ECCCollection.
-	eccCollection, err := internal.GetEncryptedStateCollectionName(efBSON, coll.Name(), internal.EncryptedCacheCollection)
-	assert.Nil(t, err, "error in getEncryptedStateCollectionName: %v", err)
-	err = coll.Database().Collection(eccCollection).Drop(context.Background())
 	assert.Nil(t, err, "error in Drop: %v", err)
 
 	// Drop ECOCCollection.
