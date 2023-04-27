@@ -86,7 +86,7 @@ type LoadBalancedTransactionConnection interface {
 	Description() description.Server
 	Close() error
 	ID() string
-	ServerConnectionID() *int32
+	ServerConnectionID() *int64
 	Address() address.Address
 	Stale() bool
 

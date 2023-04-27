@@ -68,7 +68,7 @@ type Connection interface {
 	Close() error
 
 	ID() string
-	ServerConnectionID() *int32
+	ServerConnectionID() *int64
 	Address() address.Address
 	Stale() bool
 }
@@ -178,7 +178,7 @@ type ErrorProcessor interface {
 type HandshakeInformation struct {
 	Description             description.Server
 	SpeculativeAuthenticate bsoncore.Document
-	ServerConnectionID      *int32
+	ServerConnectionID      *int64
 	SaslSupportedMechs      []string
 }
 

@@ -70,7 +70,7 @@ type connection struct {
 	currentlyStreaming   bool
 	connectContextMutex  sync.Mutex
 	cancellationListener cancellationListener
-	serverConnectionID   *int32 // the server's ID for this client's connection
+	serverConnectionID   *int64 // the server's ID for this client's connection
 
 	// pool related fields
 	pool       *pool
@@ -527,7 +527,7 @@ func (c *connection) ID() string {
 	return c.id
 }
 
-func (c *connection) ServerConnectionID() *int32 {
+func (c *connection) ServerConnectionID() *int64 {
 	return c.serverConnectionID
 }
 
@@ -708,7 +708,7 @@ func (c *Connection) ID() string {
 }
 
 // ServerConnectionID returns the server connection ID of this connection.
-func (c *Connection) ServerConnectionID() *int32 {
+func (c *Connection) ServerConnectionID() *int64 {
 	if c.connection == nil {
 		return nil
 	}

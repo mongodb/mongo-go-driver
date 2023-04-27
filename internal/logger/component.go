@@ -127,7 +127,7 @@ type Command struct {
 	Message            string              // Message associated with the command
 	OperationID        int32               // Driver-generated operation ID
 	RequestID          int64               // Driver-generated request ID
-	ServerConnectionID *int32              // Server's ID for the connection used for the command
+	ServerConnectionID *int64              // Server's ID for the connection used for the command
 	ServerHost         string              // Hostname or IP address for the server
 	ServerPort         string              // Port for the server
 	ServiceID          *primitive.ObjectID // ID for the command  in load balancer mode

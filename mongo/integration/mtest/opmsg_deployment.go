@@ -91,8 +91,8 @@ func (*connection) ID() string {
 }
 
 // ServerConnectionID returns a fixed identifier for the server connection.
-func (*connection) ServerConnectionID() *int32 {
-	serverConnectionID := int32(42)
+func (*connection) ServerConnectionID() *int64 {
+	serverConnectionID := int64(42)
 	return &serverConnectionID
 }
 

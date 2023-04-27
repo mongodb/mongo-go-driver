@@ -748,7 +748,7 @@ type mockConnection struct {
 	rDesc         description.Server
 	rCloseErr     error
 	rID           string
-	rServerConnID *int32
+	rServerConnID *int64
 	rAddr         address.Address
 	rCanStream    bool
 	rStreaming    bool
@@ -757,7 +757,7 @@ type mockConnection struct {
 func (m *mockConnection) Description() description.Server { return m.rDesc }
 func (m *mockConnection) Close() error                    { return m.rCloseErr }
 func (m *mockConnection) ID() string                      { return m.rID }
-func (m *mockConnection) ServerConnectionID() *int32      { return m.rServerConnID }
+func (m *mockConnection) ServerConnectionID() *int64      { return m.rServerConnID }
 func (m *mockConnection) Address() address.Address        { return m.rAddr }
 func (m *mockConnection) SupportsStreaming() bool         { return m.rCanStream }
 func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming }

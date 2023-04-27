@@ -96,7 +96,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	serverConnID             *int32
+	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
 	serverAddress            address.Address
@@ -109,7 +109,7 @@ type finishedInformation struct {
 	response      bsoncore.Document
 	cmdErr        error
 	connID        string
-	serverConnID  *int32
+	serverConnID  *int64
 	redacted      bool
 	serviceID     *primitive.ObjectID
 	serverAddress address.Address
@@ -1777,13 +1777,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
-			Command:            redactStartedInformationCmd(op, info),
-			DatabaseName:       op.Database,
-			CommandName:        info.cmdName,
-			RequestID:          int64(info.requestID),
-			ConnectionID:       info.connID,
-			ServerConnectionID: info.serverConnID,
-			ServiceID:          info.serviceID,
+			Command:              redactStartedInformationCmd(op, info),
+			DatabaseName:         op.Database,
+			CommandName:          info.cmdName,
+			RequestID:            int64(info.requestID),
+			ConnectionID:         info.connID,
+			ServerConnectionID64: info.serverConnID,
+			ServiceID:            info.serviceID,
 		}
 		op.CommandMonitor.Started(ctx, started)
 	}
@@ -1854,13 +1854,13 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:        info.cmdName,
-		RequestID:          int64(info.requestID),
-		ConnectionID:       info.connID,
-		Duration:           info.duration,
-		DurationNanos:      info.duration.Nanoseconds(),
-		ServerConnectionID: info.serverConnID,
-		ServiceID:          info.serviceID,
+		CommandName:          info.cmdName,
+		RequestID:            int64(info.requestID),
+		ConnectionID:         info.connID,
+		Duration:             info.duration,
+		DurationNanos:        info.duration.Nanoseconds(),
+		ServerConnectionID64: info.serverConnID,
+		ServiceID:            info.serviceID,
 	}
 
 	if info.success() {
