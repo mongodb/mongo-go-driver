@@ -26,12 +26,10 @@ type CommandStartedEvent struct {
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
 	// this value (e.g. on MDB < 4.2), it is unset.
 	//
-	// Deprecated: Use ServerConnectionID64
+	// Deprecated: Use ServerConnectionID64.
 	ServerConnectionID *int32
-
-	// ServerConnectionID contains the connection ID from the server of the
-	// operation. If the server does not return this value
-	// (e.g. on MDB < 4.2), it is unset.
+	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
+	// return this value (e.g. on MDB < 4.2), it is unset.
 	ServerConnectionID64 *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
@@ -49,12 +47,10 @@ type CommandFinishedEvent struct {
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
 	// this value (e.g. on MDB < 4.2), it is unset.
 	//
-	// Deprecated: Use ServerConnectionID64
+	// Deprecated: Use ServerConnectionID64.
 	ServerConnectionID *int32
-
-	// ServerConnectionID64 contains the connection ID from the server of
-	// the operation. If the server does not return this value
-	// (e.g. on MDB < 4.2), it is unset.
+	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
+	// return this value (e.g. on MDB < 4.2), it is unset.
 	ServerConnectionID64 *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.

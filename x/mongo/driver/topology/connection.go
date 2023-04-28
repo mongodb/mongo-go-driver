@@ -105,6 +105,11 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 	return c
 }
 
+// PoolID returns the connection pool ID.
+func (c *connection) PoolID() uint64 {
+	return c.poolID
+}
+
 // setGenerationNumber sets the connection's generation number if a callback has been provided to do so in connection
 // configuration.
 func (c *connection) setGenerationNumber() {
@@ -792,6 +797,11 @@ func (c *Connection) unpin(reason string) error {
 
 	c.refCount--
 	return nil
+}
+
+// PoolID returns the connection pool ID.
+func (c *Connection) PoolID() uint64 {
+	return c.connection.PoolID()
 }
 
 func configureTLS(ctx context.Context,

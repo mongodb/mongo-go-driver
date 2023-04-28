@@ -90,6 +90,11 @@ func (*connection) ID() string {
 	return "<mock_connection>"
 }
 
+// PoolID retuns a fixed identifier for the driver pool connection.
+func (*connection) PoolID() uint64 {
+	return 0
+}
+
 // ServerConnectionID returns a fixed identifier for the server connection.
 func (*connection) ServerConnectionID() *int64 {
 	serverConnectionID := int64(42)

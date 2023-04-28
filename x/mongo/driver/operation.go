@@ -96,6 +96,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
+	poolID                   uint64
 	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
@@ -109,6 +110,7 @@ type finishedInformation struct {
 	response      bsoncore.Document
 	cmdErr        error
 	connID        string
+	poolID        uint64
 	serverConnID  *int64
 	redacted      bool
 	serviceID     *primitive.ObjectID
@@ -606,6 +608,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
+		startedInfo.poolID = conn.PoolID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
 		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
@@ -631,6 +634,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		finishedInfo := finishedInformation{
 			cmdName:       startedInfo.cmdName,
+			poolID:        startedInfo.poolID,
 			requestID:     startedInfo.requestID,
 			connID:        startedInfo.connID,
 			serverConnID:  startedInfo.serverConnID,
@@ -1761,6 +1765,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 			logger.ComponentCommand,
 			logger.CommandStarted,
 			logger.SerializeCommand(logger.Command{
+				DriverConnectionID: info.poolID,
 				Message:            logger.CommandStarted,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
@@ -1770,7 +1775,6 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				ServiceID:          info.serviceID,
 			},
 				logger.KeyCommand, formattedCmd,
-				logger.KeyDriverConnectionID, info.connID,
 				logger.KeyDatabaseName, op.Database)...)
 
 	}
@@ -1813,6 +1817,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 			logger.ComponentCommand,
 			logger.CommandSucceeded,
 			logger.SerializeCommand(logger.Command{
+				DriverConnectionID: info.poolID,
 				Message:            logger.CommandSucceeded,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
@@ -1822,7 +1827,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServiceID:          info.serviceID,
 			},
 				logger.KeyDurationMS, info.duration.Milliseconds(),
-				logger.KeyDriverConnectionID, info.connID,
 				logger.KeyReply, formattedReply)...)
 	}
 
@@ -1835,6 +1839,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 			logger.ComponentCommand,
 			logger.CommandFailed,
 			logger.SerializeCommand(logger.Command{
+				DriverConnectionID: info.poolID,
 				Message:            logger.CommandFailed,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
@@ -1844,7 +1849,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				ServiceID:          info.serviceID,
 			},
 				logger.KeyDurationMS, info.duration.Milliseconds(),
-				logger.KeyDriverConnectionID, info.connID,
 				logger.KeyFailure, formattedReply)...)
 	}
 

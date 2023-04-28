@@ -69,6 +69,7 @@ type Connection interface {
 
 	ID() string
 	ServerConnectionID() *int64
+	PoolID() uint64
 	Address() address.Address
 	Stale() bool
 }
