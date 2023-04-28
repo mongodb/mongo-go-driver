@@ -126,7 +126,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	// Attempt to connect to the client with a 5 second timeout.
+	// Attempt to connect to the client with a timeout.
 	if err = client.Connect(ctx); err != nil {
 		return gateway500(), fmt.Errorf("failed to connect: %w", err)
 	}
