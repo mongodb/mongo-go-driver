@@ -24,7 +24,8 @@ type CommandStartedEvent struct {
 	RequestID    int64
 	ConnectionID string
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset.
+	// this value (e.g. on MDB < 4.2), it is unset. If the server connection ID would cause an int32 overflow, then
+	// then this field will be nil.
 	//
 	// Deprecated: Use ServerConnectionID64.
 	ServerConnectionID *int32
@@ -45,7 +46,8 @@ type CommandFinishedEvent struct {
 	RequestID     int64
 	ConnectionID  string
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset.
+	// this value (e.g. on MDB < 4.2), it is unset.If the server connection ID would cause an int32 overflow, then
+	// this field will be nil.
 	//
 	// Deprecated: Use ServerConnectionID64.
 	ServerConnectionID *int32
