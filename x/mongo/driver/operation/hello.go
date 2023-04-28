@@ -566,8 +566,7 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 		info.SpeculativeAuthenticate = speculativeAuthenticate
 	}
 	if serverConnectionID, ok := h.res.Lookup("connectionId").AsInt64OK(); ok {
-		i64 := int64(serverConnectionID)
-		info.ServerConnectionID = &i64
+		info.ServerConnectionID = &serverConnectionID
 	}
 	// Cast to bson.Raw to lookup saslSupportedMechs to avoid converting from bsoncore.Value to bson.RawValue for the
 	// StringSliceFromRawValue call.

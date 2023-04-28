@@ -67,6 +67,12 @@ func (c *ChannelConn) ID() string {
 	return "faked"
 }
 
+// PoolID implements the driver.Connection interface.
+// TODO(GODRIVER-2824): replace return type with int64.
+func (c *ChannelConn) PoolID() uint64 {
+	return 0
+}
+
 // ServerConnectionID implements the driver.Connection interface.
 func (c *ChannelConn) ServerConnectionID() *int64 {
 	serverConnectionID := int64(42)
