@@ -73,7 +73,9 @@ type connection struct {
 	serverConnectionID   *int64 // the server's ID for this client's connection
 
 	// pool related fields
-	pool       *pool
+	pool *pool
+
+	// TODO(GODRIVER-2824): change poolID type to int64.
 	poolID     uint64
 	generation uint64
 }
@@ -106,6 +108,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 }
 
 // PoolID returns the connection pool ID.
+// TODO(GODRIVER-2824): change return type to int64.
 func (c *connection) PoolID() uint64 {
 	return c.poolID
 }
@@ -800,6 +803,7 @@ func (c *Connection) unpin(reason string) error {
 }
 
 // PoolID returns the connection pool ID.
+// TODO(GODRIVER-2824): change return type to int64.
 func (c *Connection) PoolID() uint64 {
 	return c.connection.PoolID()
 }

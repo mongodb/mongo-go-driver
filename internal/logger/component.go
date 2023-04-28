@@ -122,6 +122,7 @@ func EnvHasComponentVariables() bool {
 // Command is a struct defining common fields that must be included in all
 // commands.
 type Command struct {
+	// TODO(GODRIVER-2824): change the DriverConnectionID type to int64.
 	DriverConnectionID uint64              // Driver's ID for the connection
 	Name               string              // Command name
 	Message            string              // Message associated with the command

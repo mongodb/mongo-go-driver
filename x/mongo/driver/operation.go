@@ -96,7 +96,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	poolID                   uint64
+	poolID                   uint64 // TODO(GODRIVER-2824): change type to int64.
 	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
@@ -110,7 +110,7 @@ type finishedInformation struct {
 	response      bsoncore.Document
 	cmdErr        error
 	connID        string
-	poolID        uint64
+	poolID        uint64 // TODO(GODRIVER-2824): change type to int64.
 	serverConnID  *int64
 	redacted      bool
 	serviceID     *primitive.ObjectID
