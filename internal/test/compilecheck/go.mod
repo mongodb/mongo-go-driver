@@ -2,7 +2,7 @@ module go.mongodb.go/mongo-driver/internal/test/compilecheck
 
 go 1.20
 
-replace go.mongodb.org/mongo-driver => ../../../
+replace go.mongodb.org/mongo-driver v1.11.4 => ../../../
 
 require go.mongodb.org/mongo-driver v1.11.4
 
