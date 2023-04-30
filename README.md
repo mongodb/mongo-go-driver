@@ -11,13 +11,20 @@
 The MongoDB supported driver for Go.
 
 -------------------------
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Feedback](#feedback)
-- [Testing / Development](#testing--development)
-- [Continuous Integration](#continuous-integration)
-- [License](#license)
+- [MongoDB Go Driver](#mongodb-go-driver)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Feedback](#feedback)
+  - [Testing / Development](#testing--development)
+    - [Testing Different Topologies](#testing-different-topologies)
+    - [Testing Auth and TLS](#testing-auth-and-tls)
+    - [Testing Compression](#testing-compression)
+  - [Contribution](#contribution)
+  - [Continuous Integration](#continuous-integration)
+  - [Frequently Encountered Issues](#frequently-encountered-issues)
+  - [Thanks and Acknowledgement](#thanks-and-acknowledgement)
+  - [License](#license)
 
 -------------------------
 ## Requirements
