@@ -97,7 +97,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	poolID                   uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID       uint64 // TODO(GODRIVER-2824): change type to int64.
 	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
@@ -106,17 +106,17 @@ type startedInformation struct {
 
 // finishedInformation keeps track of all of the information necessary for monitoring success and failure events.
 type finishedInformation struct {
-	cmdName       string
-	requestID     int32
-	response      bsoncore.Document
-	cmdErr        error
-	connID        string
-	poolID        uint64 // TODO(GODRIVER-2824): change type to int64.
-	serverConnID  *int64
-	redacted      bool
-	serviceID     *primitive.ObjectID
-	serverAddress address.Address
-	duration      time.Duration
+	cmdName            string
+	requestID          int32
+	response           bsoncore.Document
+	cmdErr             error
+	connID             string
+	driverConnectionID uint64 // TODO(GODRIVER-2824): change type to int64.
+	serverConnID       *int64
+	redacted           bool
+	serviceID          *primitive.ObjectID
+	serverAddress      address.Address
+	duration           time.Duration
 }
 
 // convertInt64PtrToInt32Ptr will convert an int64 pointer reference to an int32 pointer
@@ -625,7 +625,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// set extra data and send event if possible
 		startedInfo.connID = conn.ID()
-		startedInfo.poolID = conn.PoolID()
+		startedInfo.driverConnectionID = conn.DriverConnectionID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
 		op.cmdName = startedInfo.cmdName
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
@@ -650,14 +650,14 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		finishedInfo := finishedInformation{
-			cmdName:       startedInfo.cmdName,
-			poolID:        startedInfo.poolID,
-			requestID:     startedInfo.requestID,
-			connID:        startedInfo.connID,
-			serverConnID:  startedInfo.serverConnID,
-			redacted:      startedInfo.redacted,
-			serviceID:     startedInfo.serviceID,
-			serverAddress: desc.Server.Addr,
+			cmdName:            startedInfo.cmdName,
+			driverConnectionID: startedInfo.driverConnectionID,
+			requestID:          startedInfo.requestID,
+			connID:             startedInfo.connID,
+			serverConnID:       startedInfo.serverConnID,
+			redacted:           startedInfo.redacted,
+			serviceID:          startedInfo.serviceID,
+			serverAddress:      desc.Server.Addr,
 		}
 
 		startedTime := time.Now()
@@ -1782,7 +1782,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 			logger.ComponentCommand,
 			logger.CommandStarted,
 			logger.SerializeCommand(logger.Command{
-				DriverConnectionID: info.poolID,
+				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandStarted,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
@@ -1835,7 +1835,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 			logger.ComponentCommand,
 			logger.CommandSucceeded,
 			logger.SerializeCommand(logger.Command{
-				DriverConnectionID: info.poolID,
+				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandSucceeded,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),
@@ -1857,7 +1857,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 			logger.ComponentCommand,
 			logger.CommandFailed,
 			logger.SerializeCommand(logger.Command{
-				DriverConnectionID: info.poolID,
+				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandFailed,
 				Name:               info.cmdName,
 				RequestID:          int64(info.requestID),

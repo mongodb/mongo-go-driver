@@ -549,7 +549,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, w.conn.poolID,
+				logger.KeyDriverConnectionID, w.conn.driverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionCheckedOut, keysAndValues...)
@@ -559,7 +559,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
 				Address:      p.address.String(),
-				ConnectionID: w.conn.poolID,
+				ConnectionID: w.conn.driverConnectionID,
 			})
 		}
 
@@ -597,7 +597,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, w.conn.poolID,
+				logger.KeyDriverConnectionID, w.conn.driverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionCheckedOut, keysAndValues...)
@@ -607,7 +607,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.GetSucceeded,
 				Address:      p.address.String(),
-				ConnectionID: w.conn.poolID,
+				ConnectionID: w.conn.driverConnectionID,
 			})
 		}
 		return w.conn, nil
@@ -672,14 +672,14 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	}
 
 	p.createConnectionsCond.L.Lock()
-	_, ok := p.conns[conn.poolID]
+	_, ok := p.conns[conn.driverConnectionID]
 	if !ok {
 		// If the connection has been removed from the pool already, exit without doing any
 		// additional state changes.
 		p.createConnectionsCond.L.Unlock()
 		return nil
 	}
-	delete(p.conns, conn.poolID)
+	delete(p.conns, conn.driverConnectionID)
 	// Signal the createConnectionsCond so any goroutines waiting for a new connection slot in the
 	// pool will proceed.
 	p.createConnectionsCond.Signal()
@@ -694,7 +694,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 
 	if mustLogPoolMessage(p) {
 		keysAndValues := logger.KeyValues{
-			logger.KeyDriverConnectionID, conn.poolID,
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
 			logger.KeyReason, reason.loggerConn,
 		}
 
@@ -709,7 +709,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionClosed,
 			Address:      p.address.String(),
-			ConnectionID: conn.poolID,
+			ConnectionID: conn.driverConnectionID,
 			Reason:       reason.event,
 			Error:        err,
 		})
@@ -730,7 +730,7 @@ func (p *pool) checkIn(conn *connection) error {
 
 	if mustLogPoolMessage(p) {
 		keysAndValues := logger.KeyValues{
-			logger.KeyDriverConnectionID, conn.poolID,
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
 		}
 
 		logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
@@ -739,7 +739,7 @@ func (p *pool) checkIn(conn *connection) error {
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionReturned,
-			ConnectionID: conn.poolID,
+			ConnectionID: conn.driverConnectionID,
 			Address:      conn.addr.String(),
 		})
 	}
@@ -984,8 +984,8 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 		conn := newConnection(p.address, p.connOpts...)
 		conn.pool = p
-		conn.poolID = atomic.AddUint64(&p.nextID, 1)
-		p.conns[conn.poolID] = conn
+		conn.driverConnectionID = atomic.AddUint64(&p.nextID, 1)
+		p.conns[conn.driverConnectionID] = conn
 
 		return w, conn, true
 	}
@@ -998,7 +998,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, conn.poolID,
+				logger.KeyDriverConnectionID, conn.driverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionCreated, keysAndValues...)
@@ -1008,7 +1008,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionCreated,
 				Address:      p.address.String(),
-				ConnectionID: conn.poolID,
+				ConnectionID: conn.driverConnectionID,
 			})
 		}
 
@@ -1040,7 +1040,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, conn.poolID,
+				logger.KeyDriverConnectionID, conn.driverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionReady, keysAndValues...)
@@ -1050,7 +1050,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionReady,
 				Address:      p.address.String(),
-				ConnectionID: conn.poolID,
+				ConnectionID: conn.driverConnectionID,
 			})
 		}
 

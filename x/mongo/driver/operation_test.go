@@ -766,7 +766,7 @@ func (m *mockConnection) SetStreaming(streaming bool)     { m.rStreaming = strea
 func (m *mockConnection) Stale() bool                     { return false }
 
 // TODO:(GODRIVER-2824) replace return type with int64.
-func (m *mockConnection) PoolID() uint64 { return 0 }
+func (m *mockConnection) DriverConnectionID() uint64 { return 0 }
 
 func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	m.pWriteWM = wm

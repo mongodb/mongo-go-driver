@@ -75,9 +75,9 @@ type connection struct {
 	// pool related fields
 	pool *pool
 
-	// TODO(GODRIVER-2824): change poolID type to int64.
-	poolID     uint64
-	generation uint64
+	// TODO(GODRIVER-2824): change driverConnectionID type to int64.
+	driverConnectionID uint64
+	generation         uint64
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -107,10 +107,10 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 	return c
 }
 
-// PoolID returns the connection pool ID.
+// DriverConnectionID returns the driver connection ID.
 // TODO(GODRIVER-2824): change return type to int64.
-func (c *connection) PoolID() uint64 {
-	return c.poolID
+func (c *connection) DriverConnectionID() uint64 {
+	return c.driverConnectionID
 }
 
 // setGenerationNumber sets the connection's generation number if a callback has been provided to do so in connection
@@ -802,10 +802,10 @@ func (c *Connection) unpin(reason string) error {
 	return nil
 }
 
-// PoolID returns the connection pool ID.
+// DriverConnectionID returns the driver connection ID.
 // TODO(GODRIVER-2824): change return type to int64.
-func (c *Connection) PoolID() uint64 {
-	return c.connection.PoolID()
+func (c *Connection) DriverConnectionID() uint64 {
+	return c.connection.DriverConnectionID()
 }
 
 func configureTLS(ctx context.Context,
