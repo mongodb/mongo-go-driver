@@ -95,7 +95,7 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.8.0-alpha0"
+          LIBMONGOCRYPT_TAG="1.8.0-alpha1"
           # Install libmongocrypt based on OS.
           if [ "Windows_NT" = "$OS" ]; then
              mkdir -p c:/libmongocrypt/include
