@@ -57,10 +57,10 @@ func (v Value) IsNumber() bool {
 	}
 }
 
+// TODO(skriptble): Add support for Decimal128.
+
 // AsInt32 returns a BSON number as an int32. If the BSON type is not a numeric one, this method
 // will panic.
-//
-// TODO(skriptble): Add support for Decimal128.
 func (v Value) AsInt32() int32 {
 	if !v.IsNumber() {
 		panic(ElementTypeError{"bsoncore.Value.AsInt32", v.Type})
@@ -91,10 +91,10 @@ func (v Value) AsInt32() int32 {
 	return i32
 }
 
+// TODO(skriptble): Add support for Decimal128.
+
 // AsInt32OK functions the same as AsInt32 but returns a boolean instead of panicking. False
 // indicates an error.
-//
-// TODO(skriptble): Add support for Decimal128.
 func (v Value) AsInt32OK() (int32, bool) {
 	if !v.IsNumber() {
 		return 0, false
@@ -125,10 +125,10 @@ func (v Value) AsInt32OK() (int32, bool) {
 	return i32, true
 }
 
+// TODO(skriptble): Add support for Decimal128.
+
 // AsInt64 returns a BSON number as an int64. If the BSON type is not a numeric one, this method
 // will panic.
-//
-// TODO(skriptble): Add support for Decimal128.
 func (v Value) AsInt64() int64 {
 	if !v.IsNumber() {
 		panic(ElementTypeError{"bsoncore.Value.AsInt64", v.Type})
@@ -160,10 +160,10 @@ func (v Value) AsInt64() int64 {
 	return i64
 }
 
+// TODO(skriptble): Add support for Decimal128.
+
 // AsInt64OK functions the same as AsInt64 but returns a boolean instead of panicking. False
 // indicates an error.
-//
-// TODO(skriptble): Add support for Decimal128.
 func (v Value) AsInt64OK() (int64, bool) {
 	if !v.IsNumber() {
 		return 0, false
