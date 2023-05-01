@@ -2,12 +2,9 @@ module go.mongodb.go/mongo-driver/internal/test/mongodb
 
 go 1.19
 
-replace go.mongodb.org/mongo-driver => ../../../
+replace go.mongodb.org/mongo-driver v1.11.4 => ../../../
 
-require (
-	github.com/aws/aws-lambda-go v1.36.1
-	go.mongodb.org/mongo-driver v1.11.4
-)
+require github.com/aws/aws-lambda-go v1.36.1
 
 require (
 	github.com/golang/snappy v0.0.1 // indirect
