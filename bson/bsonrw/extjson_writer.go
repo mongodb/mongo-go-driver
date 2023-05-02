@@ -572,6 +572,10 @@ func (ejvw *extJSONValueWriter) WriteDocumentEnd() error {
 	case mDocument:
 		ejvw.buf = append(ejvw.buf, ',')
 	case mTopLevel:
+		// Always end top-level documents with a newline so that multiple documents can be encoded
+		// to the same writer. That matches the Go json.Encoder behavior and also works with
+		// bsonrw.NewExtJSONValueReader.
+		ejvw.buf = append(ejvw.buf, '\n')
 		if ejvw.w != nil {
 			if _, err := ejvw.w.Write(ejvw.buf); err != nil {
 				return err

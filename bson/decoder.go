@@ -59,8 +59,8 @@ func NewDecoder(vr bsonrw.ValueReader) (*Decoder, error) {
 
 // NewDecoderWithContext returns a new decoder that uses DecodeContext dc to read from vr.
 //
-// Deprecated: Use bson.NewDecoder and use the Decoder configuration methods set the desired
-// behavior of the decoder instead.
+// Deprecated: Use [NewDecoder] and use the Decoder configuration methods set the desired unmarshal
+// behavior instead.
 func NewDecoderWithContext(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*Decoder, error) {
 	if dc.Registry == nil {
 		dc.Registry = DefaultRegistry
@@ -78,8 +78,7 @@ func NewDecoderWithContext(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*
 // Decode reads the next BSON document from the stream and decodes it into the
 // value pointed to by val.
 //
-// The documentation for Unmarshal contains details about of BSON into a Go
-// value.
+// See [Unmarshal] for details about BSON unmarshaling behavior.
 func (d *Decoder) Decode(val interface{}) error {
 	if unmarshaler, ok := val.(Unmarshaler); ok {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
@@ -146,8 +145,7 @@ func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
 
 // SetContext replaces the current registry of the decoder with dc.
 //
-// Deprecated: Use the Decoder configuration methods set the desired behavior of the decoder
-// instead.
+// Deprecated: Use the Decoder configuration methods set the desired unmarshal behavior instead.
 func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
 	d.dc = dc
 	return nil
