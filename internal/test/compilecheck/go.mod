@@ -2,7 +2,9 @@ module go.mongodb.go/mongo-driver/internal/test/compilecheck
 
 go 1.20
 
-replace go.mongodb.org/mongo-driver v1.11.4 => ../../../
+replace go.mongodb.org/mongo-driver => ../../../
+
+require go.mongodb.org/mongo-driver v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/golang/snappy v0.0.1 // indirect
