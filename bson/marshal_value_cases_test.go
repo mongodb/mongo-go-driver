@@ -45,7 +45,7 @@ func (mvi marshalValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, erro
 
 var _ ValueUnmarshaler = &marshalValueMarshaler{}
 
-func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ bsontype.Type, b []byte) error {
+func (mvi *marshalValueMarshaler) UnmarshalBSONValue(t bsontype.Type, b []byte) error {
 	v, _, _ := bsoncore.ReadInt32(b)
 	mvi.Foo = int(v)
 	return nil
