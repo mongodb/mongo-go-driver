@@ -49,6 +49,8 @@ func ExampleRegex() {
 		panic(err)
 	}
 
+	// Iterate over the cursor, printing the extended json for each result
+	// returned by the filter.
 	for cursor.Next(ctx) {
 		var got bson.Raw
 		if err := cursor.Decode(&got); err != nil {
