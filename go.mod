@@ -3,6 +3,8 @@ module go.mongodb.org/mongo-driver
 go 1.13
 
 retract (
+	v1.11.5 // Contains import failure.
+
 	// Retract v1.11.0 through v1.11.2 because they contain a data race bug in
 	// operation memory pooling that may cause undefined behavior when reading
 	// raw BSON responses in error documents. Resolved by GODRIVER-2677.
