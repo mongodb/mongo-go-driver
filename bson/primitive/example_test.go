@@ -22,8 +22,8 @@ func ExampleRegex() {
 
 	defer client.Disconnect(ctx)
 
-	col := client.Database("test").Collection("test")
-	defer col.Drop(ctx)
+	coll := client.Database("test").Collection("test")
+	defer coll.Drop(ctx)
 
 	// Create a slice of documents to insert. We will lookup a subset of
 	// these documents using regex.
@@ -33,7 +33,7 @@ func ExampleRegex() {
 		bson.D{{"foo", "qux"}},
 	}
 
-	if _, err := col.InsertMany(ctx, toInsert); err != nil {
+	if _, err := coll.InsertMany(ctx, toInsert); err != nil {
 		panic(err)
 	}
 
@@ -44,7 +44,7 @@ func ExampleRegex() {
 	// Remove "_id" from the results.
 	options := options.Find().SetProjection(bson.D{{"_id", 0}})
 
-	cursor, err := col.Find(ctx, filter, options)
+	cursor, err := coll.Find(ctx, filter, options)
 	if err != nil {
 		panic(err)
 	}
