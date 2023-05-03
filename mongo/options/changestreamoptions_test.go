@@ -3,7 +3,7 @@ package options
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMergeChangeStreamOptions(t *testing.T) {
