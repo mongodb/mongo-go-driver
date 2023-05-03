@@ -12,7 +12,7 @@
         "queries": {
           "queryType": "rangePreview",
           "sparsity": {
-            "$numberInt": "1"
+            "$numberLong": "1"
           }
         }
       }

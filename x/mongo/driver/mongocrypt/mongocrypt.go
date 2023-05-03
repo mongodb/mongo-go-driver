@@ -64,6 +64,9 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 	if needsKmsProvider(opts.KmsProviders, "aws") {
 		kmsProviders["aws"] = creds.NewAWSCredentialProvider(httpClient)
 	}
+	if needsKmsProvider(opts.KmsProviders, "azure") {
+		kmsProviders["azure"] = creds.NewAzureCredentialProvider(httpClient)
+	}
 	crypt := &MongoCrypt{
 		wrapped:      wrapped,
 		kmsProviders: kmsProviders,
@@ -83,11 +86,6 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 
 	if opts.BypassQueryAnalysis {
 		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
-	}
-
-	// Enable Queryable Encryption V2 protocol.
-	if !C.mongocrypt_setopt_fle2v2(wrapped, true) {
-		return nil, crypt.createErrorFromStatus()
 	}
 
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
@@ -501,7 +499,8 @@ func needsKmsProvider(kmsProviders bsoncore.Document, provider string) bool {
 	return ok && len(doc) == 5
 }
 
-// GetKmsProviders returns the originally configured KMS providers.
+// GetKmsProviders attempts to obtain credentials from environment.
+// It is expected to be called when a libmongocrypt context is in the mongocrypt.NeedKmsCredentials state.
 func (m *MongoCrypt) GetKmsProviders(ctx context.Context) (bsoncore.Document, error) {
 	builder := bsoncore.NewDocumentBuilder()
 	for k, p := range m.kmsProviders {

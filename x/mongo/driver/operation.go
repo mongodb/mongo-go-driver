@@ -46,6 +46,8 @@ var (
 	ErrReplyDocumentMismatch = errors.New("number of documents returned does not match numberReturned field")
 	// ErrNonPrimaryReadPref is returned when a read is attempted in a transaction with a non-primary read preference.
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
+	// errDatabaseNameEmpty occurs when a database name is not provided.
+	errDatabaseNameEmpty = errors.New("database name cannot be empty")
 )
 
 const (
@@ -370,7 +372,7 @@ func (op Operation) Validate() error {
 		return InvalidOperationError{MissingField: "Deployment"}
 	}
 	if op.Database == "" {
-		return InvalidOperationError{MissingField: "Database"}
+		return errDatabaseNameEmpty
 	}
 	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
 		return errors.New("session provided for an unacknowledged write")

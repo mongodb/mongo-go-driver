@@ -20,6 +20,9 @@ import (
 )
 
 // A Value is the AWS credentials value for individual credential fields.
+//
+// A Value is also used to represent Azure credentials.
+// Azure credentials only consist of an access token, which is stored in the `SessionToken` field.
 type Value struct {
 	// AWS Access key ID
 	AccessKeyID string
@@ -64,6 +67,9 @@ type ProviderWithContext interface {
 }
 
 // A Credentials provides concurrency safe retrieval of AWS credentials Value.
+//
+// A Credentials is also used to fetch Azure credentials Value.
+//
 // Credentials will cache the credentials value until they expire. Once the value
 // expires the next Get will attempt to retrieve valid credentials.
 //
