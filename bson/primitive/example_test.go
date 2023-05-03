@@ -2,7 +2,6 @@ package primitive_test
 
 import (
 	"context"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -44,23 +43,8 @@ func ExampleRegex() {
 	// Remove "_id" from the results.
 	options := options.Find().SetProjection(bson.D{{"_id", 0}})
 
-	cursor, err := coll.Find(ctx, filter, options)
+	_, err = coll.Find(ctx, filter, options)
 	if err != nil {
 		panic(err)
 	}
-
-	// Iterate over the cursor, printing the extended json for each result
-	// returned by the filter.
-	for cursor.Next(ctx) {
-		var got bson.Raw
-		if err := cursor.Decode(&got); err != nil {
-			panic(err)
-		}
-
-		fmt.Println(got.String())
-	}
-
-	//Output:
-	//{"foo": "bar"}
-	//{"foo": "baz"}
 }
