@@ -1,6 +1,6 @@
 module go.mongodb.go/mongo-driver/internal/test/compilecheck
 
-go 1.20
+go 1.13
 
 replace go.mongodb.org/mongo-driver => ../../../
 

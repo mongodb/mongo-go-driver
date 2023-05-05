@@ -108,7 +108,10 @@ func gateway500() events.APIGatewayProxyResponse {
 }
 
 // handler is the AWS Lambda handler, executing at runtime.
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	listener := new(eventListener)
 
 	clientOptions := options.Client().ApplyURI(os.Getenv("MONGODB_URI")).
@@ -122,9 +125,6 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 	if err != nil {
 		return gateway500(), fmt.Errorf("failed to create client: %w", err)
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
 
 	// Attempt to connect to the client with a timeout.
 	if err = client.Connect(ctx); err != nil {
@@ -179,5 +179,7 @@ func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyRespo
 }
 
 func main() {
-	lambda.Start(handler)
+	ctx := context.Background()
+
+	lambda.StartWithOptions(handler, lambda.WithContext(ctx))
 }

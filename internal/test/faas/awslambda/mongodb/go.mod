@@ -5,7 +5,7 @@ go 1.19
 replace go.mongodb.org/mongo-driver => ../../../../../
 
 require (
-	github.com/aws/aws-lambda-go v1.36.1
+	github.com/aws/aws-lambda-go v1.41.0
 	go.mongodb.org/mongo-driver v1.11.4
 )
 

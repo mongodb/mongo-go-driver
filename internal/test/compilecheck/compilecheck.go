@@ -9,5 +9,5 @@ package compilecheck
 import "go.mongodb.org/mongo-driver/mongo"
 
 func main() {
-	_, _ = mongo.NewClient()
+	_, _ = mongo.Connect(nil, nil)
 }
