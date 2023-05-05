@@ -6,6 +6,8 @@
 
 package options
 
+import "time"
+
 // DefaultIndexOptions represents the default options for a collection to apply on new indexes. This type can be used
 // when creating a new collection through the CreateCollectionOptions.SetDefaultIndexOptions method.
 type DefaultIndexOptions struct {
@@ -28,18 +30,35 @@ func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *Defau
 
 // TimeSeriesOptions specifies options on a time-series collection.
 type TimeSeriesOptions struct {
-	// Name of the top-level field to be used for time. Inserted documents must have this field,
+	// TimeField is the top-level field to be used for time. Inserted documents must have this field,
 	// and the field must be of the BSON UTC datetime type (0x9).
 	TimeField string
 
-	// Optional name of the top-level field describing the series. This field is used to group
+	// MetaField is the name of the top-level field describing the series. This field is used to group
 	// related data and may be of any BSON type, except for array. This name may not be the same
-	// as the TimeField or _id.
+	// as the TimeField or _id. This field is optional.
 	MetaField *string
 
-	// Optional string specifying granularity of time-series data. Allowed granularity options are
-	// "seconds", "minutes" and "hours".
+	// Granularity is granularity of time-series data. Allowed granularity options are
+	// "seconds", "minutes" and "hours". This field is optional
 	Granularity *string
+
+	// BucketMaxSpanSeconds is the maximum range of time values for a
+	// bucket, in seconds. The server will enforce that
+	// "bucketRoundingSeconds" is equal to "bucketMaxSpanSeconds", and that
+	// both are strictly positive. If a user sets one value, they must set
+	// both. If a user sets these values, they cannot also set
+	// "Granularity". This field is optional.
+	BucketMaxSpanSeconds *time.Duration
+
+	// BucketRoundingSeconds is used to determine the minimum time boundary
+	// when opening a new bucket by rounding the first timestamp down to the
+	// next multiple of this value. Specified in seconds. The server will
+	// enforce that "bucketRoundingSeconds" is equal to
+	// "bucketMaxSpanSeconds", and that both are strictly positive. If a
+	// user sets one value, they must set both. If a user sets these values,
+	// they cannot also set "Granularity". This field is optional.
+	BucketRoundingSeconds *time.Duration
 }
 
 // TimeSeries creates a new TimeSeriesOptions instance.
@@ -62,6 +81,20 @@ func (tso *TimeSeriesOptions) SetMetaField(metaField string) *TimeSeriesOptions 
 // SetGranularity sets the value for Granularity.
 func (tso *TimeSeriesOptions) SetGranularity(granularity string) *TimeSeriesOptions {
 	tso.Granularity = &granularity
+	return tso
+}
+
+// SetBucketMaxSpanSeconds sets the value for BucketMaxSpanSeconds.
+func (tso *TimeSeriesOptions) SetBucketMaxSpanSeconds(seconds time.Duration) *TimeSeriesOptions {
+	tso.BucketMaxSpanSeconds = &seconds
+
+	return tso
+}
+
+// SetBucketRoundingSeconds serts the value for BucketRoundingSeconds.
+func (tso *TimeSeriesOptions) SetBucketRoundingSeconds(seconds time.Duration) *TimeSeriesOptions {
+	tso.BucketRoundingSeconds = &seconds
+
 	return tso
 }
 

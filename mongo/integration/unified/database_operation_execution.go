@@ -9,6 +9,7 @@ package unified
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -108,6 +109,10 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 					tso.SetMetaField(val.StringValue())
 				case "granularity":
 					tso.SetGranularity(val.StringValue())
+				case "bucketMaxSpanSeconds":
+					tso.SetBucketMaxSpanSeconds(time.Duration(val.Int32()))
+				case "bucketRoundingSeconds":
+					tso.SetBucketRoundingSeconds(time.Duration(val.Int32()))
 				default:
 					return nil, fmt.Errorf("unrecognized timeseries option %q", key)
 				}
