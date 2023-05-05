@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -726,15 +727,15 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 		}
 
 		if cco.TimeSeriesOptions.BucketMaxSpanSeconds != nil {
-			bmss := *cco.TimeSeriesOptions.BucketMaxSpanSeconds
+			bmss := int64(*cco.TimeSeriesOptions.BucketMaxSpanSeconds / time.Second)
 
-			doc = bsoncore.AppendInt32Element(doc, "bucketMaxSpanSeconds", int32(bmss))
+			doc = bsoncore.AppendInt64Element(doc, "bucketMaxSpanSeconds", bmss)
 		}
 
 		if cco.TimeSeriesOptions.BucketRoundingSeconds != nil {
-			brs := *cco.TimeSeriesOptions.BucketRoundingSeconds
+			brs := int64(*cco.TimeSeriesOptions.BucketRoundingSeconds / time.Second)
 
-			doc = bsoncore.AppendInt32Element(doc, "bucketRoundingSeconds", int32(brs))
+			doc = bsoncore.AppendInt64Element(doc, "bucketRoundingSeconds", brs)
 		}
 
 		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
