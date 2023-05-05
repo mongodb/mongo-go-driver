@@ -39,8 +39,8 @@ type TimeSeriesOptions struct {
 	// as the TimeField or _id. This field is optional.
 	MetaField *string
 
-	// Granularity is granularity of time-series data. Allowed granularity options are
-	// "seconds", "minutes" and "hours". This field is optional
+	// Granularity is the granularity of time-series data. Allowed granularity options are
+	// "seconds", "minutes" and "hours". This field is optional.
 	Granularity *string
 
 	// BucketMaxSpanSeconds is the maximum range of time values for a
