@@ -119,7 +119,10 @@ functions:
             cd libmongocrypt
             git checkout $LIBMONGOCRYPT_TAG
             cd ..
-            ./libmongocrypt/.evergreen/compile.sh
+            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
+                cat output.txt 1>&2
+                exit 1
+            fi
           fi
 
           cat <<EOT > expansion.yml
