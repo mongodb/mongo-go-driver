@@ -83,16 +83,16 @@ func (tso *TimeSeriesOptions) SetGranularity(granularity string) *TimeSeriesOpti
 	return tso
 }
 
-// SetBucketMaxSpanSeconds sets the value for BucketMaxSpanSeconds.
-func (tso *TimeSeriesOptions) SetBucketMaxSpanSeconds(seconds time.Duration) *TimeSeriesOptions {
-	tso.BucketMaxSpan = &seconds
+// SetBucketMaxSpan sets the value for BucketMaxSpan.
+func (tso *TimeSeriesOptions) SetBucketMaxSpan(dur time.Duration) *TimeSeriesOptions {
+	tso.BucketMaxSpan = &dur
 
 	return tso
 }
 
-// SetBucketRoundingSeconds sets the value for BucketRoundingSeconds.
-func (tso *TimeSeriesOptions) SetBucketRoundingSeconds(seconds time.Duration) *TimeSeriesOptions {
-	tso.BucketRounding = &seconds
+// SetBucketRounding sets the value for BucketRounding.
+func (tso *TimeSeriesOptions) SetBucketRounding(dur time.Duration) *TimeSeriesOptions {
+	tso.BucketRounding = &dur
 
 	return tso
 }

@@ -110,9 +110,9 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 				case "granularity":
 					tso.SetGranularity(val.StringValue())
 				case "bucketMaxSpanSeconds":
-					tso.SetBucketMaxSpanSeconds(time.Duration(val.Int32()) * time.Second)
+					tso.SetBucketMaxSpan(time.Duration(val.Int32()) * time.Second)
 				case "bucketRoundingSeconds":
-					tso.SetBucketRoundingSeconds(time.Duration(val.Int32()) * time.Second)
+					tso.SetBucketRounding(time.Duration(val.Int32()) * time.Second)
 				default:
 					return nil, fmt.Errorf("unrecognized timeseries option %q", key)
 				}
