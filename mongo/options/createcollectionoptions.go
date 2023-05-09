@@ -43,11 +43,9 @@ type TimeSeriesOptions struct {
 	// "seconds", "minutes" and "hours". This field is optional.
 	Granularity *string
 
-	// BucketMaxSpan is the maximum range of time values for a bucket, in
-	// seconds. The server will enforce that "bucketRoundingSeconds" is
-	// equal to "bucketMaxSpanSeconds", and that both are strictly positive.
-	// If a user sets one value, they must set both. If a user sets these
-	// values, they cannot also set "Granularity". This field is optional.
+	// BucketMaxSpan is the maximum range of time values for a bucket. The
+	// time.Duration is rounded down to the nearest second and applied as the
+	// command option: "bucketRoundingSeconds". This field is optional.
 	BucketMaxSpan *time.Duration
 
 	// BucketRounding is used to determine the minimum time boundary when
