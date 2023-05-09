@@ -50,11 +50,9 @@ type TimeSeriesOptions struct {
 
 	// BucketRounding is used to determine the minimum time boundary when
 	// opening a new bucket by rounding the first timestamp down to the next
-	// multiple of this value. Specified in seconds. The server will enforce
-	// that "bucketRoundingSeconds" is equal to "bucketMaxSpanSeconds", and
-	// that both are strictly positive. If a user sets one value, they must
-	// set both. If a user sets these values, they cannot also set
-	// "Granularity". This field is optional.
+	// multiple of this value. The time.Duration is rounded down to the nearest
+	// second and applied as the command option: "bucketRoundingSeconds".
+	// This field is optional.
 	BucketRounding *time.Duration
 }
 
