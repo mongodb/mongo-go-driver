@@ -1,52 +1,35 @@
-# We list packages with shell scripts and loop through them to avoid testing with ./...
-# Running go test ./... will run tests in all packages concurrently which can lead to
-# unexpected errors.
-#
-# TODO(GODRIVER-2093): Use ./... to run tests in all packages with parallelism and remove
-# these PKG variables and loops from all make targets.
-PKGS = $(shell etc/list_pkgs.sh)
-TEST_PKGS = $(shell etc/list_test_pkgs.sh)
-
 ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)" "$(ATLAS_TLS12)" "$(ATLAS_FREE_SRV)" "$(ATLAS_REPLSET_SRV)" "$(ATLAS_SHARD_SRV)" "$(ATLAS_TLS11_SRV)" "$(ATLAS_TLS12_SRV)" "$(ATLAS_SERVERLESS)" "$(ATLAS_SERVERLESS_SRV)"
-GODISTS=linux/amd64 linux/386 linux/arm64 linux/arm linux/s390x
 TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
 .PHONY: default
-default: add-license build build-examples check-env check-fmt check-modules lint test-short
+default: add-license build check-fmt check-modules lint test-short
 
+# Find all .go files not in the vendor directory and try to write a license notice. Then check for
+# any changes made with -G. to ignore permissions changes. Exit with a non-zero exit code if there
+# is a diff.
 .PHONY: add-license
 add-license:
-	# Find all .go files not in the vendor directory and try to write a license notice.
 	find . -path ./vendor -prune -o -type f -name "*.go" -print | xargs ./etc/add_license.sh
-	# Check for any changes made with -G. to ignore permissions changes. Exit with a non-zero
-	# exit code if there is a diff.
 	git diff -G. --quiet
 
 .PHONY: build
-build:
-	go build $(BUILD_TAGS) $(PKGS)
+build: build-tests
+	go build $(BUILD_TAGS) ./...
 
-.PHONY: build-examples
-build-examples:
-	go build $(BUILD_TAGS) ./examples/...
-
-.PHONY: build-no-tags
-build-no-tags:
-	go build $(PKGS)
-
+# Use ^$ to match no tests so that no tests are actually run but all tests are
+# compiled. Run with -short to ensure none of the TestMain functions try to
+# connect to a server.
 .PHONY: build-tests
 build-tests:
-	for TEST in $(TEST_PKGS); do \
-		go test $(BUILD_TAGS) -c $$TEST ; \
-		if [ $$? -ne 0 ]; \
-		then \
-			exit 1; \
-		fi \
-	done
+	go test -short $(BUILD_TAGS) -run ^$$ ./...
+
+.PHONY: install-lll
+install-lll:
+	go install github.com/walle/lll/...@latest
 
 .PHONY: check-fmt
-check-fmt:
+check-fmt: install-lll
 	etc/check_fmt.sh
 
 # check-modules runs "go mod tidy" then "go mod vendor" and exits with a non-zero exit code if there
@@ -71,15 +54,21 @@ doc:
 fmt:
 	go fmt ./...
 
+.PHONY: install-golangci-lint
+install-golangci-lint:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.0
+
+# Lint with various GOOS and GOARCH targets to catch static analysis failures that may only affect
+# specific operating systems or architectures. For example, staticcheck will only check for 64-bit
+# alignment of atomically accessed variables on 32-bit architectures (see
+# https://staticcheck.io/docs/checks#SA1027)
 .PHONY: lint
-lint:
-	for dist in $(GODISTS); do \
-		goos=$$(echo $$dist | cut -d/ -f 1) ; \
-		goarch=$$(echo $$dist | cut -d/ -f 2) ; \
-		command="GOOS=$$goos GOARCH=$$goarch golangci-lint run --config .golangci.yml ./..." ; \
-		echo $$command ; \
-		eval $$command ; \
-	done
+lint: install-golangci-lint
+	GOOS=linux GOARCH=amd64 golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=386 golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=arm64 golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=arm golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=s390x golangci-lint run --config .golangci.yml ./...
 
 .PHONY: update-notices
 update-notices:
@@ -88,25 +77,19 @@ update-notices:
 ### Local testing targets. ###
 .PHONY: test
 test:
-	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s $$TEST ; \
-	done
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -p 1 ./...
 
 .PHONY: test-cover
 test-cover:
-	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) $$TEST ; \
-	done
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -cover $(COVER_ARGS) -p 1 ./...
 
 .PHONY: test-race
 test-race:
-	for TEST in $(TEST_PKGS) ; do \
-		go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race $$TEST ; \
-	done
+	go test $(BUILD_TAGS) -timeout $(TEST_TIMEOUT)s -race -p 1 ./...
 
 .PHONY: test-short
 test-short:
-	go test $(BUILD_TAGS) -timeout 60s -short $(TEST_PKGS)
+	go test $(BUILD_TAGS) -timeout 60s -short ./...
 
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
@@ -115,9 +98,7 @@ build-aws-ecs-test:
 
 .PHONY: evg-test
 evg-test:
-	for TEST in $(TEST_PKGS); do \
-		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST >> test.suite ; \
-	done
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s -p 1 ./... >> test.suite
 
 .PHONY: evg-test-atlas
 evg-test-atlas:
@@ -186,9 +167,9 @@ evg-test-serverless:
 .PHONY: evg-test-versioned-api
 evg-test-versioned-api:
 	# Versioned API related tests are in the mongo, integration and unified packages.
-	for TEST_PKG in ./mongo ./mongo/integration ./mongo/integration/unified; do \
-		go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s $$TEST_PKG >> test.suite ; \
-	done
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo >> test.suite
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration >> test.suite
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration/unified >> test.suite
 
 .PHONY: build-gcpkms-test
 build-gcpkms-test:
