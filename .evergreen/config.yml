@@ -189,18 +189,6 @@ functions:
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
 
-  install-linters:
-    - command: shell.exec
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-
-          # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
-          # file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
-          go install github.com/walle/lll/...@latest
-
   upload-mo-artifacts:
     - command: shell.exec
       params:
@@ -1163,7 +1151,6 @@ tasks:
   - name: sa-fmt
     tags: ["static-analysis"]
     commands:
-      - func: install-linters
       - func: run-make
         vars:
           targets: check-fmt
@@ -1178,7 +1165,6 @@ tasks:
   - name: sa-lint
     tags: ["static-analysis"]
     commands:
-      - func: install-linters
       - func: run-make
         vars:
           targets: "lint add-license"
@@ -1196,13 +1182,6 @@ tasks:
         vars:
           targets: driver-benchmark
       - func: send-perf-data
-
-  - name: sa-build-examples
-    tags: ["static-analysis"]
-    commands:
-      - func: run-make
-        vars:
-          targets: build-examples
 
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]
