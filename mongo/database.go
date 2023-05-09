@@ -726,14 +726,14 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 			doc = bsoncore.AppendStringElement(doc, "granularity", *cco.TimeSeriesOptions.Granularity)
 		}
 
-		if cco.TimeSeriesOptions.BucketMaxSpanSeconds != nil {
-			bmss := int64(*cco.TimeSeriesOptions.BucketMaxSpanSeconds / time.Second)
+		if cco.TimeSeriesOptions.BucketMaxSpan != nil {
+			bmss := int64(*cco.TimeSeriesOptions.BucketMaxSpan / time.Second)
 
 			doc = bsoncore.AppendInt64Element(doc, "bucketMaxSpanSeconds", bmss)
 		}
 
-		if cco.TimeSeriesOptions.BucketRoundingSeconds != nil {
-			brs := int64(*cco.TimeSeriesOptions.BucketRoundingSeconds / time.Second)
+		if cco.TimeSeriesOptions.BucketRounding != nil {
+			brs := int64(*cco.TimeSeriesOptions.BucketRounding / time.Second)
 
 			doc = bsoncore.AppendInt64Element(doc, "bucketRoundingSeconds", brs)
 		}
