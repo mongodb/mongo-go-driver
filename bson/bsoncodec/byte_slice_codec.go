@@ -16,7 +16,14 @@ import (
 )
 
 // ByteSliceCodec is the Codec used for []byte values.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// ByteSliceCodec registered.
 type ByteSliceCodec struct {
+	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
+	// instead of BSON null.
+	//
+	// Deprecated: Use bson.Encoder.NilByteSliceAsEmpty instead.
 	EncodeNilAsEmpty bool
 }
 
@@ -29,7 +36,10 @@ var (
 	_ typeDecoder = defaultByteSliceCodec
 )
 
-// NewByteSliceCodec returns a StringCodec with options opts.
+// NewByteSliceCodec returns a ByteSliceCodec with options opts.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// ByteSliceCodec registered.
 func NewByteSliceCodec(opts ...*bsonoptions.ByteSliceCodecOptions) *ByteSliceCodec {
 	byteSliceOpt := bsonoptions.MergeByteSliceCodecOptions(opts...)
 	codec := ByteSliceCodec{}
@@ -40,11 +50,11 @@ func NewByteSliceCodec(opts ...*bsonoptions.ByteSliceCodecOptions) *ByteSliceCod
 }
 
 // EncodeValue is the ValueEncoder for []byte.
-func (bsc *ByteSliceCodec) EncodeValue(_ EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (bsc *ByteSliceCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
-	if val.IsNil() && !bsc.EncodeNilAsEmpty {
+	if val.IsNil() && !bsc.EncodeNilAsEmpty && !ec.nilByteSliceAsEmpty {
 		return vw.WriteNull()
 	}
 	return vw.WriteBinary(val.Interface().([]byte))
