@@ -35,7 +35,7 @@ build-tests:
 
 .PHONY: build-compile-check
 build-compile-check:
-	cd internal/test/compilecheck && go build $(BUILD_TAGS) && go mod tidy
+	cd internal/test/compilecheck && go build $(BUILD_TAGS)
 
 .PHONY: check-fmt
 check-fmt:
