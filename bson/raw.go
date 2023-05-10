@@ -51,6 +51,11 @@ func (r Raw) Lookup(key ...string) RawValue {
 
 // LookupErr searches the document and potentially subdocuments or arrays for the
 // provided key. Each key provided to this method represents a layer of depth.
+//
+// The returned error is one of:
+//   - bsoncore.ErrElementNotFound
+//   - bsoncore.InsufficientBytesError
+//   - bsoncore.InvalidDepthTraversalError
 func (r Raw) LookupErr(key ...string) (RawValue, error) {
 	val, err := bsoncore.Document(r).LookupErr(key...)
 	return convertFromCoreValue(val), err
