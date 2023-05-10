@@ -3,7 +3,7 @@ TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
 .PHONY: default
-default: add-license build build-tests check-fmt check-modules lint test-short
+default: add-license build check-fmt check-modules lint test-short
 
 # Find all .go files not in the vendor directory and try to write a license notice. Then check for
 # any changes made with -G. to ignore permissions changes. Exit with a non-zero exit code if there
@@ -14,12 +14,8 @@ add-license:
 	git diff -G. --quiet
 
 .PHONY: build
-build:
+build: build-tests
 	go build $(BUILD_TAGS) ./...
-
-.PHONY: build-no-tags
-build-no-tags:
-	go build ./...
 
 # Use ^$ to match no tests so that no tests are actually run but all tests are
 # compiled. Run with -short to ensure none of the TestMain functions try to

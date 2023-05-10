@@ -320,7 +320,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags \"cse gssapi\""
+          ${BUILD_ENV|} make ${targets} BUILD_TAGS=${BUILD_TAGS|"-tags \"cse gssapi\""}
 
   run-tests:
     - command: shell.exec
@@ -1899,8 +1899,6 @@ tasks:
       - func: run-make
         vars:
           targets: "build-compile-check"
-          # Use GO111MODULE=off to disable modules, as go versions less than
-          # 1.16 will complain about the retract directives in go.mod.
           BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
   # Build with whatever the latest Go version is that we're using for tests
@@ -1909,31 +1907,40 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build build-tests"
+          targets: "build"
 
   - name: linux-32-bit
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build-no-tags"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work for cross-compiled binaries, so omit that task.
+          targets: "build -o build-tests"
           BUILD_ENV: "GOARCH=386"
+          BUILD_TAGS: ""
 
   - name: linux-arm64
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build-no-tags"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work for cross-compiled binaries, so omit that task.
+          targets: "build -o build-tests"
           BUILD_ENV: "GOARCH=arm64"
+          BUILD_TAGS: ""
 
   - name: linux-s390x
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build-no-tags"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work for cross-compiled binaries, so omit that task.
+          targets: "build -o build-tests"
           BUILD_ENV: "GOARCH=ppc64le"
+          BUILD_TAGS: ""
 
   - name: "atlas-test"
     commands:
