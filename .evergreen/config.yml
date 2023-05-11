@@ -1114,6 +1114,34 @@ functions:
         script: |
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
+
+  run-deployed-aws-lambda-tests:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${LAMBDA_AWS_ROLE_ARN}
+        duration_seconds: 3600
+    - command: shell.exec
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: bash
+        env:
+          PROJECT_DIRECTORY: ${PROJECT_DIRECTORY}
+          DRIVERS_TOOLS: ${DRIVERS_TOOLS}
+          DRIVERS_ATLAS_PUBLIC_API_KEY: ${DRIVERS_ATLAS_PUBLIC_API_KEY}
+          DRIVERS_ATLAS_PRIVATE_API_KEY: ${DRIVERS_ATLAS_PRIVATE_API_KEY}
+          DRIVERS_ATLAS_LAMBDA_USER: ${DRIVERS_ATLAS_LAMBDA_USER}
+          DRIVERS_ATLAS_LAMBDA_PASSWORD: ${DRIVERS_ATLAS_LAMBDA_PASSWORD}
+          DRIVERS_ATLAS_GROUP_ID: ${DRIVERS_ATLAS_GROUP_ID}
+          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
+          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
+          LAMBDA_STACK_NAME: dbx-go-lambda
+          AWS_REGION: us-east-1
+        script: |
+          ${PREPARE_SHELL}
+          .evergreen/run-deployed-lambda-aws-tests.sh
+
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -1891,10 +1919,10 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          targets: "build-compile-check"
           # Use GO111MODULE=off to disable modules, as go versions less than
           # 1.16 will complain about the retract directives in go.mod.
-          BUILD_ENV: "GO111MODULE=off PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
+          BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
   # Build with whatever the latest Go version is that we're using for tests
   - name: build
@@ -2227,6 +2255,14 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
 
+  - name: "test-aws-lambda"
+    tags:
+      - latest
+      - lambda
+    commands:
+      - func: bootstrap-mongo-orchestration
+      - func: run-deployed-aws-lambda-tests
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -2350,6 +2386,15 @@ axes:
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
+
+  - id: os-faas-80
+    display_name: OS
+    values:
+      - id: "rhel80-large-go-1-19"
+        display_name: "RHEL 8.0"
+        run_on: rhel80-large
+        variables:
+          GO_DIST: "/opt/golang/go1.19"
 
 task_groups:
   - name: serverless_task_group
@@ -2674,6 +2719,12 @@ buildvariants:
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
+
+  - matrix_name: "faas-test"
+    matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-19"] }
+    display_name: "FaaS ${version} ${os-faas-80}"
+    tasks:
+      - test-aws-lambda
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"

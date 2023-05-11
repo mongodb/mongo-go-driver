@@ -33,6 +33,10 @@ build-tests:
 	# connect to a server.
 	go test -short $(BUILD_TAGS) -run ^$$ ./...
 
+.PHONY: build-compile-check
+build-compile-check:
+	cd internal/test/compilecheck && go mod tidy && go build $(BUILD_TAGS)
+
 .PHONY: check-fmt
 check-fmt:
 	etc/check_fmt.sh
@@ -89,6 +93,12 @@ test-race:
 .PHONY: test-short
 test-short:
 	go test $(BUILD_TAGS) -timeout 60s -short -p 1 ./...
+
+### Local FaaS targets. ###
+.PHONY: build-faas-awslambda
+build-faas-awslambda:
+	$(if $(MONGODB_URI),,$(error MONGODB_URI is not set))
+	$(MAKE) -C internal/test/faas/awslambda
 
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test

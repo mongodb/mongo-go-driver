@@ -12,3 +12,7 @@ perf
 **mongocryptd.pid
 *.test
 .DS_Store
+
+# AWS SAM-generated files
+internal/test/faas/awslambda/.aws-sam
+internal/test/faas/awslambda/events/event.json
