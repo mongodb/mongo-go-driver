@@ -115,8 +115,6 @@ func TestIOSinkInfo(t *testing.T) {
 }
 
 func TestSelectMaxDocumentLength(t *testing.T) {
-	t.Parallel()
-
 	for _, tcase := range []struct {
 		name     string
 		arg      uint
@@ -166,8 +164,6 @@ func TestSelectMaxDocumentLength(t *testing.T) {
 }
 
 func TestSelectLogSink(t *testing.T) {
-	t.Parallel()
-
 	for _, tcase := range []struct {
 		name     string
 		arg      LogSink
@@ -217,8 +213,6 @@ func TestSelectLogSink(t *testing.T) {
 }
 
 func TestSelectedComponentLevels(t *testing.T) {
-	t.Parallel()
-
 	for _, tcase := range []struct {
 		name     string
 		arg      map[Component]Level

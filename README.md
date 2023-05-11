@@ -11,15 +11,6 @@
 The MongoDB supported driver for Go.
 
 -------------------------
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Feedback](#feedback)
-- [Testing / Development](#testing--development)
-- [Continuous Integration](#continuous-integration)
-- [License](#license)
-
--------------------------
 ## Requirements
 
 - Go 1.13 or higher. We aim to support the latest versions of Go.
