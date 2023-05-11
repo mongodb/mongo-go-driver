@@ -14,7 +14,7 @@ add-license:
 	git diff -G. --quiet
 
 .PHONY: build
-build: build-tests
+build: build-tests build-compile-check
 	go build $(BUILD_TAGS) ./...
 
 # Use ^$ to match no tests so that no tests are actually run but all tests are

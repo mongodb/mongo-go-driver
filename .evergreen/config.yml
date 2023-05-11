@@ -1898,6 +1898,8 @@ tasks:
     commands:
       - func: run-make
         vars:
+          # We only test building the compilecheck submodule with Go 1.13 because the root module's
+          # go.mod file contains retract directives, which are not supported until Go 1.16.
           targets: "build-compile-check"
           BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
