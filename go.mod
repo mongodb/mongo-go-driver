@@ -19,7 +19,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/snappy v0.0.1
 	github.com/google/go-cmp v0.5.2
-	github.com/klauspost/compress v1.13.6
+	github.com/klauspost/compress v1.13.5
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
 	github.com/xdg-go/scram v1.1.2
 	github.com/xdg-go/stringprep v1.0.4
