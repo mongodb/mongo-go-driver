@@ -35,10 +35,7 @@ build-tests:
 
 .PHONY: build-compile-check
 build-compile-check:
-	cd internal/test/compilecheck \
-		&& go mod tidy \
-		&& go build $(BUILD_TAGS) \
-		&& go build -buildmode=plugin # Test dynamic-linking
+	etc/compile_check.sh
 
 .PHONY: check-fmt
 check-fmt:
