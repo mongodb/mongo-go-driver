@@ -1167,7 +1167,7 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "lint add-license"
+          targets: "lint check-license"
 
   - name: perf
     tags: ["performance"]
