@@ -17,19 +17,28 @@ function version {
 # check will only run on environments where the Go version is greater than or
 # equal to the DEV_MIN_VERSION.
 function dev_compile_check {
-	VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
+	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
 
-	if [ $(version $VERSION) -ge $(version $DEV_MIN_VERSION) ]; then
-		GO111MODULE=on ${GC} build ./...
-		GO111MODULE=on ${GC} build ${BUILD_TAGS} ./...
+	if [ $(version $MACHINE_VERSION) -lt $(version $DEV_MIN_VERSION) ]; then
+		return
 	fi
+
+	GO111MODULE=on ${GC} build ./...
+	GO111MODULE=on ${GC} build ${BUILD_TAGS} ./...
 }
 
 # compile_check will attemps to build the the internal/test/compilecheck project
-# using the provided go version. This is to simulate a end-to-end use case.
+# using the provided go version. This is to simulate a end-to-end use case. This
+# check will only run on environments where the Go version is greater than or
+# equal to the given version.
 function compile_check {
 	GO111MODULE=$1
 	VERSION=$2
+	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
+
+	if [ $(version $MACHINE_VERSION) -lt $(version $VERSION) ]; then
+		return
+	fi
 
 	# Change the directory to the compilecheck test directory.
 	cd ${COMPILE_CHECK_DIR}
