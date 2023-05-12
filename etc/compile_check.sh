@@ -6,7 +6,6 @@ WD=$(pwd)
 COMPILE_CHECK_DIR="internal/test/compilecheck"
 DEV_MIN_VERSION=1.19
 
-
 # version will flatten a version string of upto 4 components for inequality
 # comparison.
 function version {
