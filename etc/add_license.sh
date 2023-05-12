@@ -17,11 +17,11 @@ add_copyright() {
     fi
 
     # Check if first 14 bytes matches the word "// Copied from"
-     local line=$(head -c 14 $1)
-     if [ "$line" == "// Copied from" ]; then
- 	echo "$1 has a third-party copyright notice" >&2
- 	return
-     fi
+    local line=$(head -c 14 $1)
+    if [ "$line" == "// Copied from" ]; then
+        echo "$1 has a third-party copyright notice" >&2
+        return
+    fi
 
     echo "$copyright" | cat - $1 > temp && mv temp $1
 }

@@ -61,6 +61,23 @@ func UnmarshalWithContext(dc bsoncodec.DecodeContext, data []byte, val interface
 	return unmarshalFromReader(dc, vr, val)
 }
 
+// UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
+// stores the result in the value pointed to by val. If val is nil or not a pointer,
+// UnmarshalValue returns an error.
+func UnmarshalValue(t bsontype.Type, data []byte, val interface{}) error {
+	return UnmarshalValueWithRegistry(DefaultRegistry, t, data, val)
+}
+
+// TODO(GODRIVER-2711): Deprecate UnmarshalValueWithRegistry with other *WithRegistry functions.
+
+// UnmarshalValueWithRegistry parses the BSON value of type t with registry r and
+// stores the result in the value pointed to by val. If val is nil or not a pointer,
+// UnmarshalValue returns an error.
+func UnmarshalValueWithRegistry(r *bsoncodec.Registry, t bsontype.Type, data []byte, val interface{}) error {
+	vr := bsonrw.NewBSONValueReader(t, data)
+	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, vr, val)
+}
+
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
 // in the value pointed to by val. If val is nil or not a pointer, Unmarshal
 // returns InvalidUnmarshalError.
