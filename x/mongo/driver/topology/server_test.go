@@ -128,6 +128,10 @@ func (d *timeoutDialer) DialContext(ctx context.Context, network, address string
 
 // TestServerHeartbeatTimeout tests timeout retry for GODRIVER-2577.
 func TestServerHeartbeatTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
+	}
+
 	networkTimeoutError := &net.DNSError{
 		IsTimeout: true,
 	}
