@@ -23,10 +23,13 @@ import (
 )
 
 var (
-	skippedTestDescriptions = map[string]struct{}{
+	skippedTestDescriptions = map[string]string{
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
-		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": {},
+		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": "See GODRIVER-1773",
+		// TODO(GODRIVER-2843): Fix and unskip these test cases.
+		"Find operation with snapshot":                                      "Test fails frequently. See GODRIVER-2843",
+		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
@@ -210,9 +213,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	if tc.SkipReason != nil {
 		ls.Skipf("skipping for reason: %q", *tc.SkipReason)
 	}
-	if _, ok := skippedTestDescriptions[tc.Description]; ok {
-		ls.Skip("skipping due to known failure")
+	if skipReason, ok := skippedTestDescriptions[tc.Description]; ok {
+		ls.Skipf("skipping due to known failure: %v", skipReason)
 	}
+
 	// Validate that we support the schema declared by the test file before attempting to use its contents.
 	if err := checkSchemaVersion(tc.schemaVersion); err != nil {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
