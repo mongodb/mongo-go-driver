@@ -171,18 +171,6 @@ functions:
           git submodule init
           git submodule update
 
-  install-linters:
-    - command: shell.exec
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          ${PREPARE_SHELL}
-
-          # Install linters. Use "go install" instead of "go get" to prevent modifying the go.mod
-          # file.
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
-          go install github.com/walle/lll/...@latest
-
   upload-mo-artifacts:
     - command: shell.exec
       params:
@@ -314,7 +302,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} make ${targets} BUILD_TAGS="-tags \"cse gssapi\""
+          ${BUILD_ENV|} make ${targets} BUILD_TAGS=${BUILD_TAGS|"-tags \"cse gssapi\""}
 
   run-tests:
     - command: shell.exec
@@ -1045,7 +1033,6 @@ tasks:
   - name: sa-fmt
     tags: ["static-analysis"]
     commands:
-      - func: install-linters
       - func: run-make
         vars:
           targets: check-fmt
@@ -1060,7 +1047,6 @@ tasks:
   - name: sa-lint
     tags: ["static-analysis"]
     commands:
-      - func: install-linters
       - func: run-make
         vars:
           targets: "lint add-license"
@@ -1078,13 +1064,6 @@ tasks:
         vars:
           targets: driver-benchmark
       - func: send-perf-data
-
-  - name: sa-build-examples
-    tags: ["static-analysis"]
-    commands:
-      - func: run-make
-        vars:
-          targets: build-examples
 
   - name: test-standalone-noauth-nossl
     tags: ["test", "standalone"]
@@ -1786,7 +1765,9 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work with Go 1.13, so omit that task.
+          targets: "build -o build-tests"
           # Use GO111MODULE=off to disable modules, as go versions less than
           # 1.16 will complain about the retract directives in go.mod.
           BUILD_ENV: "GO111MODULE=off PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
@@ -1797,31 +1778,40 @@ tasks:
     commands:
       - func: run-make
         vars:
-          targets: "build build-tests"
+          targets: "build"
 
   - name: linux-32-bit
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build-no-tags"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work for cross-compiled binaries, so omit that task.
+          targets: "build -o build-tests"
           BUILD_ENV: "GOARCH=386"
+          BUILD_TAGS: ""
 
   - name: linux-arm64
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build-no-tags"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work for cross-compiled binaries, so omit that task.
+          targets: "build -o build-tests"
           BUILD_ENV: "GOARCH=arm64"
+          BUILD_TAGS: ""
 
   - name: linux-s390x
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          targets: "build-no-tags"
+          # The build target runs the build-tests dependency, which actually builds and runs the
+          # tests. That won't work for cross-compiled binaries, so omit that task.
+          targets: "build -o build-tests"
           BUILD_ENV: "GOARCH=ppc64le"
+          BUILD_TAGS: ""
 
   - name: "atlas-test"
     commands:
