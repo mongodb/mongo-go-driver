@@ -1148,26 +1148,12 @@ post:
   - func: cleanup
 
 tasks:
-  - name: sa-fmt
+  - name: static-analysis
     tags: ["static-analysis"]
     commands:
       - func: run-make
         vars:
-          targets: check-fmt
-
-  - name: sa-modules
-    tags: ["static-analysis"]
-    commands:
-      - func: run-make
-        vars:
-          targets: check-modules
-
-  - name: sa-lint
-    tags: ["static-analysis"]
-    commands:
-      - func: run-make
-        vars:
-          targets: "lint check-license"
+          targets: "check-fmt check-license check-modules lint"
 
   - name: perf
     tags: ["performance"]
@@ -1893,6 +1879,7 @@ tasks:
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
+  # Build with the oldest supported version of Go.
   - name: go1.13-build
     tags: ["compile-check"]
     commands:
@@ -1903,46 +1890,13 @@ tasks:
           targets: "build-compile-check"
           BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
 
-  # Build with whatever the latest Go version is that we're using for tests
+  # Build with the same Go version that we're using for tests.
   - name: build
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
           targets: "build"
-
-  - name: linux-32-bit
-    tags: ["compile-check"]
-    commands:
-      - func: run-make
-        vars:
-          # The build target runs the build-tests dependency, which actually builds and runs the
-          # tests. That won't work for cross-compiled binaries, so omit that task.
-          targets: "build -o build-tests"
-          BUILD_ENV: "GOARCH=386"
-          BUILD_TAGS: ""
-
-  - name: linux-arm64
-    tags: ["compile-check"]
-    commands:
-      - func: run-make
-        vars:
-          # The build target runs the build-tests dependency, which actually builds and runs the
-          # tests. That won't work for cross-compiled binaries, so omit that task.
-          targets: "build -o build-tests"
-          BUILD_ENV: "GOARCH=arm64"
-          BUILD_TAGS: ""
-
-  - name: linux-s390x
-    tags: ["compile-check"]
-    commands:
-      - func: run-make
-        vars:
-          # The build target runs the build-tests dependency, which actually builds and runs the
-          # tests. That won't work for cross-compiled binaries, so omit that task.
-          targets: "build -o build-tests"
-          BUILD_ENV: "GOARCH=ppc64le"
-          BUILD_TAGS: ""
 
   - name: "atlas-test"
     commands:
