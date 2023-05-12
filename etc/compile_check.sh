@@ -48,15 +48,21 @@ function compile_check {
 		go mod tidy -go=$VERSION
 	fi
 
+	# Check simple build.
 	${GC} build ./...
+
+	# Check build with dynamic linking.
 	${GC} build -buildmode=plugin
+
+	# Check build with tags.
 	${GC} build ${BUILD_TAGS} ./...
 
-	GOOS=linux GOARCH=386 ${GC} build ${BUILD_TAGS}
-	GOOS=linux GOARCH=arm ${GC} build ${BUILD_TAGS}
-	GOOS=linux GOARCH=arm64 ${GC} build ${BUILD_TAGS}
-	GOOS=linux GOARCH=ppc64le ${GC} build ${BUILD_TAGS}
-	GOOS=linux GOARCH=s390x ${GC} build ${BUILD_TAGS}
+	# Check simple build with various architectures.
+	GOOS=linux GOARCH=386 ${GC} build ./...
+	GOOS=linux GOARCH=arm ${GC} build ./...
+	GOOS=linux GOARCH=arm64 ${GC} build ./...
+	GOOS=linux GOARCH=ppc64le ${GC} build ./...
+	GOOS=linux GOARCH=s390x ${GC} build ./...
 
 	# Reset any changes to the "go.mod" and "go.sum" files.
 	git checkout HEAD -- go.mod
