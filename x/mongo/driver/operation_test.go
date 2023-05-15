@@ -888,7 +888,7 @@ func TestConvertI64PtrToI32Ptr(t *testing.T) {
 			t.Parallel()
 
 			got := convertInt64PtrToInt32Ptr(test.i64)
-			assert.Equal(t, test.want, got)
+			assert.Equal(t, test.want, got, "convertInt64PtrToInt32Ptr()=%v, got %v", test.want, got)
 		})
 	}
 }
