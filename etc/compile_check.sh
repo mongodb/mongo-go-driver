@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e # exit when any command fails
+set -x # show all commands being run
 
 GC=go
-WD=$(pwd)
 COMPILE_CHECK_DIR="internal/test/compilecheck"
 DEV_MIN_VERSION=1.19
 
@@ -22,8 +22,8 @@ function dev_compile_check {
 		return
 	fi
 
-	GO111MODULE=on ${GC} build ./...
-	GO111MODULE=on ${GC} build ${BUILD_TAGS} ./...
+	${GC} build ./...
+	${GC} build $(BUILD_TAGS) ./...
 }
 
 # compile_check will attemps to build the the internal/test/compilecheck project
@@ -31,20 +31,14 @@ function dev_compile_check {
 # check will only run on environments where the Go version is greater than or
 # equal to the given version.
 function compile_check {
-	GO111MODULE=$1
-	VERSION=$2
-	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
-
-	if [ $(version $MACHINE_VERSION) -lt $(version $VERSION) ]; then
-		return
-	fi
-
 	# Change the directory to the compilecheck test directory.
 	cd ${COMPILE_CHECK_DIR}
 
+	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
+
 	# If the version is not 1.13, then run "go mod tidy"
-	if [ "$VERSION" != 1.13 ]; then
-		go mod tidy -go=$VERSION
+	if [ $(version $MACHINE_VERSION) -gt $(version 1.13) ]; then
+		go mod tidy
 	fi
 
 	# Check simple build.
@@ -57,23 +51,20 @@ function compile_check {
 	go build $(BUILD_TAGS) ./...
 
 	# Check build with various architectures.
-	GOOS=linux GOARCH=386 ${GC} build $(BUILD_TAGS) ./...
-	GOOS=linux GOARCH=arm ${GC} build $(BUILD_TAGS) ./...
-	GOOS=linux GOARCH=arm64 ${GC} build $(BUILD_TAGS) ./...
-	GOOS=linux GOARCH=ppc64le ${GC} build $(BUILD_TAGS) ./...
-	GOOS=linux GOARCH=s390x ${GC} build $(BUILD_TAGS) ./...
-
-	# Reset any changes to the "go.mod" and "go.sum" files.
-	git checkout HEAD -- go.mod
+	GOOS=linux GOARCH=386 ${GC} build ./...
+	GOOS=linux GOARCH=arm ${GC} build ./...
+	GOOS=linux GOARCH=arm64 ${GC} build ./...
+	GOOS=linux GOARCH=amd64 ${GC} build ./...
+	GOOS=linux GOARCH=ppc64le ${GC} build ./...
+	GOOS=linux GOARCH=s390x ${GC} build ./...
 
 	# Remove the binaries.
 	rm compilecheck
 	rm compilecheck.so
 
 	# Change the directory back to the working directory.
-	cd ${WD}
+	cd -
 }
 
 dev_compile_check
-compile_check on 1.19
-compile_check on 1.13
+compile_check
