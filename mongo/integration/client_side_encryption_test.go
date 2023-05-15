@@ -551,7 +551,7 @@ func TestFLE2DocsExample(t *testing.T) {
 		{
 			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
 			testutil.AddTestServerAPIVersion(cOpts)
-			aeOpts := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys").SetEncryptedFieldsMap(encryptedFieldsMap)
+			aeOpts := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys").SetEncryptedFieldsMap(encryptedFieldsMap).SetExtraOptions(getCryptSharedLibExtraOptions())
 			cOpts.SetAutoEncryptionOptions(aeOpts)
 			encryptedClient, err := mongo.Connect(context.Background(), cOpts)
 			defer encryptedClient.Disconnect(context.Background())
