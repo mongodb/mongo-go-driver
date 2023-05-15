@@ -490,11 +490,6 @@ func TestFLE2DocsExample(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	if mtest.Serverless() {
-		// Skip tests if running against serverless, as capped collections are banned.
-		mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
-	}
-
 	mt.Run("Auto Encryption", func(mt *mtest.T) {
 		// Drop data from prior test runs.
 		{
