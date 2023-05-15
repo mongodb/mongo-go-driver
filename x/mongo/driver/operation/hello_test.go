@@ -575,7 +575,7 @@ func TestParseFaasEnvName(t *testing.T) {
 			want: envNameVercel,
 		},
 		{
-			name: "ivalid aws prefix",
+			name: "invalid aws prefix",
 			env: map[string]string{
 				envVarAWSExecutionEnv: "foo",
 			},
