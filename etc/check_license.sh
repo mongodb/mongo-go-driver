@@ -11,7 +11,6 @@ copyright=$"// Copyright (C) MongoDB, Inc. $year-present.
 add_copyright() {
     file=$1
     check_only=$2
-    verbose=$3
 
     # Check if first 24 bytes match first 24 bytes of copyright notice.
     local line=$(head -c 24 $file)
@@ -22,7 +21,7 @@ add_copyright() {
         return
     fi
 
-    # Check if first 14 bytes matches the word "// Copied from"
+    # Check if first 14 bytes matches the prefix "// Copied from"
     local line=$(head -c 14 $file)
     if [ "$line" == "// Copied from" ]; then
         if [ ! -z "$verbose" ]; then
@@ -56,5 +55,5 @@ GO_FILES=$(find . -path ./vendor -prune -o -type f -name "*.go" -print)
 
 for file in $GO_FILES
 do
-    add_copyright "$file" "$check_only" "$verbose"
+    add_copyright "$file" "$check_only"
 done
