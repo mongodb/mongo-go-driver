@@ -139,7 +139,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 				t.Fatalf("fn must have one return value and it must be an error.")
 			}
 			params := make([]reflect.Value, 1, len(tc.params)+1)
-			ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+			ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 			params[0] = reflect.ValueOf(ejvw)
 			for _, param := range tc.params {
 				params = append(params, reflect.ValueOf(param))
@@ -162,7 +162,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 	}
 
 	t.Run("WriteArray", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mArray)
 		want := TransitionError{current: mArray, destination: mArray, parent: mTopLevel,
 			name: "WriteArray", modes: []mode{mElement, mValue}, action: "write"}
@@ -172,7 +172,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteCodeWithScope", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mArray)
 		want := TransitionError{current: mArray, destination: mCodeWithScope, parent: mTopLevel,
 			name: "WriteCodeWithScope", modes: []mode{mElement, mValue}, action: "write"}
@@ -182,7 +182,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteDocument", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mArray)
 		want := TransitionError{current: mArray, destination: mDocument, parent: mTopLevel,
 			name: "WriteDocument", modes: []mode{mElement, mValue, mTopLevel}, action: "write"}
@@ -192,7 +192,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteDocumentElement", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mElement)
 		want := TransitionError{current: mElement,
 			destination: mElement,
@@ -206,7 +206,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteDocumentEnd", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mElement)
 		want := fmt.Errorf("incorrect mode to end document: %s", mElement)
 		got := ejvw.WriteDocumentEnd()
@@ -215,7 +215,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteArrayElement", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mElement)
 		want := TransitionError{current: mElement,
 			destination: mValue,
@@ -229,7 +229,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteArrayEnd", func(t *testing.T) {
-		ejvw := newExtJSONWriter(ioutil.Discard, true, true)
+		ejvw := newExtJSONWriter(ioutil.Discard, true, true, false)
 		ejvw.push(mElement)
 		want := fmt.Errorf("incorrect mode to end array: %s", mElement)
 		got := ejvw.WriteArrayEnd()
