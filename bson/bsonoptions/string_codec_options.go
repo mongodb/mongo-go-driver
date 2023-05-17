@@ -9,17 +9,25 @@ package bsonoptions
 var defaultDecodeOIDAsHex = true
 
 // StringCodecOptions represents all possible options for string encoding and decoding.
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 type StringCodecOptions struct {
 	DecodeObjectIDAsHex *bool // Specifies if we should decode ObjectID as the hex value. Defaults to true.
 }
 
 // StringCodec creates a new *StringCodecOptions
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 func StringCodec() *StringCodecOptions {
 	return &StringCodecOptions{}
 }
 
 // SetDecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation. If false, a string made
 // from the raw object ID bytes will be used. Defaults to true.
+//
+// Deprecated: Decoding object IDs as raw bytes will not be supported in Go Driver 2.0.
 func (t *StringCodecOptions) SetDecodeObjectIDAsHex(b bool) *StringCodecOptions {
 	t.DecodeObjectIDAsHex = &b
 	return t

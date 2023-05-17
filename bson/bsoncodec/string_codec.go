@@ -20,6 +20,10 @@ import (
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
 // StringCodec registered.
 type StringCodec struct {
+	// DecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
+	// If false, a string made from the raw object ID bytes will be used. Defaults to true.
+	//
+	// Deprecated: Decoding object IDs as raw bytes will not be supported in Go Driver 2.0.
 	DecodeObjectIDAsHex bool
 }
 
