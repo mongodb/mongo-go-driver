@@ -12,10 +12,10 @@ function version {
 	echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }';
 }
 
-# compile_check will attemps to build the the internal/test/compilecheck project
-# using the provided go version. This is to simulate a end-to-end use case. This
-# check will only run on environments where the Go version is greater than or
-# equal to the given version.
+# compile_check will attempt to build the the internal/test/compilecheck project
+# using the provided Go version. This is to simulate an end-to-end use case.
+# This check will only run on environments where the Go version is greater than
+# or equal to the given version.
 function compile_check {
 	# Change the directory to the compilecheck test directory.
 	cd ${COMPILE_CHECK_DIR}
