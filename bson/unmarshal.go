@@ -67,7 +67,7 @@ func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) 
 // stores the result in the value pointed to by val. If val is nil or not
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 //
-// Deprecated: Use [NewDecoder] and use the Decoder configuration methods set the desired unmarshal
+// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
 // behavior instead:
 //
 //	dec, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
@@ -137,7 +137,7 @@ func UnmarshalExtJSONWithRegistry(r *bsoncodec.Registry, data []byte, canonical 
 // DecodeContext dc and stores the result in the value pointed to by val. If val is
 // nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
 //
-// Deprecated: Use [NewDecoder] and use the Decoder configuration methods set the desired unmarshal
+// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
 // behavior instead:
 //
 //	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)

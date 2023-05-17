@@ -145,7 +145,7 @@ func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
 
 // SetContext replaces the current registry of the decoder with dc.
 //
-// Deprecated: Use the Decoder configuration methods set the desired unmarshal behavior instead.
+// Deprecated: Use the Decoder configuration methods to set the desired unmarshal behavior instead.
 func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
 	d.dc = dc
 	return nil

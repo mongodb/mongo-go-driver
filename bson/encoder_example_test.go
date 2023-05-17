@@ -151,7 +151,7 @@ func ExampleEncoder_multipleBSONDocuments() {
 	for i := 0; i < 5; i++ {
 		err := encoder.Encode(Coordinate{
 			X: i,
-			Y: i,
+			Y: i+1,
 		})
 		if err != nil {
 			panic(err)
@@ -171,11 +171,11 @@ func ExampleEncoder_multipleBSONDocuments() {
 		fmt.Println(bson.Raw(doc).String())
 	}
 	// Output:
-	// {"x": {"$numberInt":"0"},"y": {"$numberInt":"0"}}
-	// {"x": {"$numberInt":"1"},"y": {"$numberInt":"1"}}
-	// {"x": {"$numberInt":"2"},"y": {"$numberInt":"2"}}
-	// {"x": {"$numberInt":"3"},"y": {"$numberInt":"3"}}
-	// {"x": {"$numberInt":"4"},"y": {"$numberInt":"4"}}
+	// {"x": {"$numberInt":"0"},"y": {"$numberInt":"1"}}
+	// {"x": {"$numberInt":"1"},"y": {"$numberInt":"2"}}
+	// {"x": {"$numberInt":"2"},"y": {"$numberInt":"3"}}
+	// {"x": {"$numberInt":"3"},"y": {"$numberInt":"4"}}
+	// {"x": {"$numberInt":"4"},"y": {"$numberInt":"5"}}
 }
 
 func ExampleEncoder_extendedJSON() {
@@ -236,7 +236,7 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	for i := 0; i < 5; i++ {
 		err := encoder.Encode(Coordinate{
 			X: i,
-			Y: i,
+			Y: i+1,
 		})
 		if err != nil {
 			panic(err)
@@ -245,9 +245,9 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 
 	fmt.Println(buf.String())
 	// Output:
-	// {"x":{"$numberInt":"0"},"y":{"$numberInt":"0"}}
-	// {"x":{"$numberInt":"1"},"y":{"$numberInt":"1"}}
-	// {"x":{"$numberInt":"2"},"y":{"$numberInt":"2"}}
-	// {"x":{"$numberInt":"3"},"y":{"$numberInt":"3"}}
-	// {"x":{"$numberInt":"4"},"y":{"$numberInt":"4"}}
+	// {"x":{"$numberInt":"0"},"y":{"$numberInt":"1"}}
+	// {"x":{"$numberInt":"1"},"y":{"$numberInt":"2"}}
+	// {"x":{"$numberInt":"2"},"y":{"$numberInt":"3"}}
+	// {"x":{"$numberInt":"3"},"y":{"$numberInt":"4"}}
+	// {"x":{"$numberInt":"4"},"y":{"$numberInt":"5"}}
 }

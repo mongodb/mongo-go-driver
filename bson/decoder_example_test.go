@@ -171,12 +171,12 @@ func ExampleDecoder_multipleExtendedJSONDocuments() {
 	// Define a newline-separated sequence of Extended JSON documents that
 	// contain X,Y coordinates.
 	data := []byte(`
-	{"x":{"$numberInt":"0"},"y":{"$numberInt":"0"}}
-	{"x":{"$numberInt":"1"},"y":{"$numberInt":"1"}}
-	{"x":{"$numberInt":"2"},"y":{"$numberInt":"2"}}
-	{"x":{"$numberInt":"3"},"y":{"$numberInt":"3"}}
-	{"x":{"$numberInt":"4"},"y":{"$numberInt":"4"}}
-	`)
+{"x":{"$numberInt":"0"},"y":{"$numberInt":"0"}}
+{"x":{"$numberInt":"1"},"y":{"$numberInt":"1"}}
+{"x":{"$numberInt":"2"},"y":{"$numberInt":"2"}}
+{"x":{"$numberInt":"3"},"y":{"$numberInt":"3"}}
+{"x":{"$numberInt":"4"},"y":{"$numberInt":"4"}}
+`)
 
 	// Create a Decoder that reads the Extended JSON documents and use it to
 	// unmarshal the documents Coordinate structs.

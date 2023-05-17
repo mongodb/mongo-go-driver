@@ -54,7 +54,7 @@ func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
 
 // NewEncoderWithContext returns a new encoder that uses EncodeContext ec to write to vw.
 //
-// Deprecated: Use [NewEncoder] and use the Encoder configuration methods set the desired marshal
+// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
 // behavior instead.
 func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*Encoder, error) {
 	if ec.Registry == nil {

@@ -98,7 +98,7 @@ func MarshalWithRegistry(r *bsoncodec.Registry, val interface{}) ([]byte, error)
 // MarshalWithContext returns the BSON encoding of val as a BSON document using EncodeContext ec. If val is not a type
 // that can be transformed into a document, MarshalValueWithContext should be used instead.
 //
-// Deprecated: Use [NewEncoder] and use the Encoder configuration methods set the desired marshal
+// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
 // behavior instead:
 //
 //	buf := bytes.NewBuffer(dst)
@@ -146,7 +146,7 @@ func MarshalAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val interface{
 // transformed into a document, MarshalValueAppendWithContext should be used instead.
 //
 // Deprecated: Use [NewEncoder], pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewBSONValueWriter], and use the Encoder configuration methods set the desired marshal
+// [bsonrw.NewBSONValueWriter], and use the Encoder configuration methods to set the desired marshal
 // behavior instead:
 //
 //	buf := bytes.NewBuffer(dst)
@@ -315,7 +315,7 @@ func MarshalExtJSONWithRegistry(r *bsoncodec.Registry, val interface{}, canonica
 
 // MarshalExtJSONWithContext returns the extended JSON encoding of val using Registry r.
 //
-// Deprecated: Use [NewEncoder] and use the Encoder configuration methods set the desired marshal
+// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
 // behavior instead:
 //
 //	buf := new(bytes.Buffer)
@@ -363,7 +363,7 @@ func MarshalExtJSONAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val int
 // encoding of val, dst will be grown.
 //
 // Deprecated: Use [NewEncoder], pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewExtJSONValueWriter], and use the Encoder configuration methods set the desired marshal
+// [bsonrw.NewExtJSONValueWriter], and use the Encoder configuration methods to set the desired marshal
 // behavior instead:
 //
 //	buf := bytes.NewBuffer(dst)
