@@ -9,6 +9,7 @@ package driver
 import (
 	"testing"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -89,4 +90,56 @@ func TestBatchCursor(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestBatchCursorSetComment(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		comment interface{}
+		want    string
+	}{
+		{
+			name:    "empty",
+			comment: nil,
+			want:    "",
+		},
+		{
+			name:    "bson.D",
+			comment: bson.D{{"foo", "bar"}},
+			want:    `{"foo": "bar"}`,
+		},
+		{
+			name:    "map",
+			comment: map[string]interface{}{"foo": "bar"},
+			want:    `{"foo": "bar"}`,
+		},
+		{
+			name:    "struct",
+			comment: struct{ Foo string }{Foo: "bar"},
+			want:    `{"foo": "bar"}`,
+		},
+		{
+			name:    "non-document type",
+			comment: "foo: bar",
+			want:    "",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			bc := BatchCursor{}
+			bc.SetComment(test.comment)
+
+			got := bc.comment.String()
+			if got != test.want {
+				t.Fatalf("bc.comment=%v, want %v", string(got), test.want)
+			}
+		})
+	}
 }

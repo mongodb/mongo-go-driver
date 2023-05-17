@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -35,9 +36,28 @@ type batchCursor interface {
 	// Close closes the cursor.
 	Close(context.Context) error
 
-	// The SetBatchSize method is a modifier function used to adjust the
-	// batch size of the cursor that implements it.
+	// SetBatchSize is a modifier function used to adjust the batch size of
+	// the cursor that implements it.
 	SetBatchSize(int32)
+
+	// SetMaxtimeMS will set the maximum number of milliseconds the server
+	// will allow the operations to execute. This field cannot be sent if
+	// the cursor was not configured with awaitData=true.
+	SetMaxTimeMS(time.Duration)
+
+	// SetComment will set a user-configurable comment that can be used to
+	// identify the operation in logs.
+	SetComment(interface{})
+
+	// Tailable will set the cursor to "tail" or follow the target namespace
+	// for new data. Querying a capped collection is one use case for a
+	// tailable cursor
+	Tailable(bool)
+
+	// AwaitData should only be set alongside a tailable cursor. This is the
+	// amount of time the server will wait for new data based on the
+	// MaxTimeMS. If the time does expire an empty batch will be returned.
+	AwaitData(bool)
 }
 
 // changeStreamCursor is the interface implemented by batch cursors that also provide the functionality for retrieving

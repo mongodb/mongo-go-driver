@@ -10,8 +10,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
@@ -23,6 +26,7 @@ import (
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead
 // of one at a time. An individual document cursor can be built on top of this batch cursor.
 type BatchCursor struct {
+	awaitData            *bool
 	clientSession        *session.Client
 	clock                *session.ClusterClock
 	comment              bsoncore.Value
@@ -42,6 +46,7 @@ type BatchCursor struct {
 	postBatchResumeToken bsoncore.Document
 	crypt                Crypt
 	serverAPI            *ServerAPIOptions
+	tailable             *bool
 
 	// legacy server (< 3.2) fields
 	limit       int32
@@ -355,6 +360,15 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			if bc.comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
 				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
 			}
+
+			if bc.awaitData != nil {
+				dst = bsoncore.AppendBooleanElement(dst, "awaitData", *bc.awaitData)
+			}
+
+			if bc.tailable != nil {
+				dst = bsoncore.AppendBooleanElement(dst, "tailable", *bc.tailable)
+			}
+
 			return dst, nil
 		},
 		Database:   bc.database,
@@ -430,9 +444,50 @@ func (bc *BatchCursor) PostBatchResumeToken() bsoncore.Document {
 	return bc.postBatchResumeToken
 }
 
-// SetBatchSize sets the batchSize for future getMores.
+// SetBatchSize sets the batchSize for future getMore operations.
 func (bc *BatchCursor) SetBatchSize(size int32) {
 	bc.batchSize = size
+}
+
+// SetMaxTimeMS sets the maxTimeMS for future getMore operations.
+func (bc *BatchCursor) SetMaxTimeMS(dur time.Duration) {
+	bc.maxTimeMS = int64(dur / time.Millisecond)
+}
+
+// SetMaxTimeMS sets the comment for future getMore operations.
+func (bc *BatchCursor) SetComment(comment interface{}) {
+	if comment == nil {
+		return
+	}
+
+	refValue := reflect.ValueOf(comment)
+	if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
+		return
+	}
+
+	registry := bson.DefaultRegistry
+	buf := make([]byte, 0, 256)
+
+	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], comment)
+	if err != nil {
+		return
+	}
+
+	if bsonType != bsontype.EmbeddedDocument {
+		return
+	}
+
+	bc.comment = bsoncore.Value{Type: bsonType, Data: bsonValue}
+}
+
+// Tailable sets the "tail" logic for future getMore operations.
+func (bc *BatchCursor) Tailable(tailable bool) {
+	bc.tailable = &tailable
+}
+
+// AwaitData sets the "awaitData" logic for future getMore operations.
+func (bc *BatchCursor) AwaitData(awaitData bool) {
+	bc.awaitData = &awaitData
 }
 
 func (bc *BatchCursor) getOperationDeployment() Deployment {

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -131,4 +132,24 @@ func (*ListCollectionsBatchCursor) projectNameElement(rawDoc bsoncore.Document) 
 // SetBatchSize sets the batchSize for future getMores.
 func (lcbc *ListCollectionsBatchCursor) SetBatchSize(size int32) {
 	lcbc.bc.SetBatchSize(size)
+}
+
+// SetMaxTimeMS sets the maxTimeMS for future getMore operations.
+func (lcbc *ListCollectionsBatchCursor) SetMaxTimeMS(dur time.Duration) {
+	lcbc.SetMaxTimeMS(dur)
+}
+
+// SetComment sets the comment for future getMore operations.
+func (lcbc *ListCollectionsBatchCursor) SetComment(comment interface{}) {
+	lcbc.SetComment(comment)
+}
+
+// Tailable sets the "tail" logic for future getMore operations.
+func (lcbc *ListCollectionsBatchCursor) Tailable(tailable bool) {
+	lcbc.Tailable(tailable)
+}
+
+// AwaitData sets the "awaitData" logic for future getMore operations.
+func (lcbc *ListCollectionsBatchCursor) AwaitData(awaitData bool) {
+	lcbc.AwaitData(awaitData)
 }

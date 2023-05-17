@@ -91,6 +91,12 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 			cco.SetChangeStreamPreAndPostImages(val.Document())
 		case "expireAfterSeconds":
 			cco.SetExpireAfterSeconds(int64(val.Int32()))
+		case "capped":
+			cco.SetCapped(val.Boolean())
+		case "size":
+			cco.SetSizeInBytes(val.AsInt64())
+		case "max":
+			cco.SetMaxDocuments(val.AsInt64())
 		case "timeseries":
 			tsElems, err := elem.Value().Document().Elements()
 			if err != nil {
@@ -129,7 +135,20 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 	}
 
 	err = db.CreateCollection(ctx, collName, &cco)
-	return newErrorResult(err), nil
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+
+	if collID := operation.ResultEntityID; collID != nil {
+		collEO := newCollectionEntityOptions(*collID, operation.Object, collName, nil)
+
+		err := entities(ctx).addCollectionEntity(collEO)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save collection as entity: %w", err)
+		}
+	}
+
+	return newErrorResult(nil), nil
 }
 
 func executeDropCollection(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -252,4 +271,183 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 
 	res, err := db.RunCommand(ctx, command, opts).DecodeBytes()
 	return newDocumentResult(res, err), nil
+}
+
+func newCursorType(cursorTypeString string) options.CursorType {
+	var cursorType options.CursorType
+
+	switch cursorTypeString {
+	case "tailable":
+		cursorType = options.Tailable
+	case "nonTailable":
+		cursorType = options.NonTailable
+	case "tailableAwait":
+		cursorType = options.TailableAwait
+	}
+
+	return cursorType
+}
+
+// executeRunCursorCommand proxies the database's runCursorCommand method and
+// supports the same arguments and options.
+func executeRunCursorCommand(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		batchSize  int32
+		command    bson.Raw
+		comment    bson.Raw
+		cursorType options.CursorType
+		maxTimeMS  time.Duration
+	)
+
+	opts := options.RunCmd()
+
+	const (
+		batchSizeKey   = "batchSize"
+		commandKey     = "command"
+		commandNameKey = "commandName"
+		commentKey     = "comment"
+		cursorTypeKey  = "cursorType"
+		maxTimeMSKey   = "maxTimeMS"
+	)
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case batchSizeKey:
+			batchSize = val.Int32()
+		case commandKey:
+			command = val.Document()
+		case commandNameKey:
+			// This is only necessary for languages that cannot
+			// preserve key order in the command document, so we can
+			// ignore it.
+		case commentKey:
+			comment = val.Document()
+		case cursorTypeKey:
+			cursorType = newCursorType(val.String())
+		case maxTimeMSKey:
+			// The Go Driver does not support this option.
+			maxTimeMS = time.Duration(val.AsInt64()) * time.Millisecond
+		default:
+			return nil, fmt.Errorf("unrecognized runCursorCommand option: %q", key)
+		}
+	}
+
+	if command == nil {
+		return nil, newMissingArgumentError(commandKey)
+	}
+
+	cursor, err := db.RunCommandCursor(ctx, command, opts)
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+
+	if batchSize > 0 {
+		cursor.SetBatchSize(batchSize)
+	}
+
+	if maxTimeMS > 0 {
+		cursor.SetMaxTimeMS(maxTimeMS)
+	}
+
+	if len(comment) > 0 {
+		cursor.SetComment(comment)
+	}
+
+	cursor.SetCursorType(cursorType)
+
+	// When executing the provided command, the test runner MUST fully
+	// iterate the cursor. This will ensure consistent behavior between
+	// drivers that eagerly create a server-side cursor and those that do
+	// so lazily when iteration begins.
+	var docs []bson.Raw
+	if err := cursor.All(ctx, &docs); err != nil {
+		return newErrorResult(err), nil
+	}
+
+	return newCursorResult(docs), nil
+}
+
+// executeCreatecommandCurosr proxies the database's runCursorCommand method and
+// supports the same arguments and options.
+func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*operationResult, error) {
+	db, err := entities(ctx).database(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		batchSize  int32
+		command    bson.Raw
+		cursorType options.CursorType
+	)
+
+	opts := options.RunCmd()
+
+	const (
+		commandKey     = "command"
+		commandNameKey = "commandName"
+		cursorTypeKey  = "cursorType"
+		batchSizeKey   = "batchSize"
+	)
+
+	elems, _ := operation.Arguments.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case batchSizeKey:
+			batchSize = val.Int32()
+		case commandKey:
+			command = val.Document()
+		case commandNameKey:
+			// This is only necessary for languages that cannot
+			// preserve key order in the command document, so we can
+			// ignore it.
+		case cursorTypeKey:
+			cursorType = newCursorType(val.String())
+		default:
+			return nil, fmt.Errorf("unrecognized createRunCursorCommand option: %q", key)
+		}
+	}
+
+	if command == nil {
+		return nil, newMissingArgumentError(commandKey)
+	}
+
+	// Test runners MUST ensure that the server-side cursor is created (i.e.
+	// the command document has executed) as part of this operation
+	cursor, err := db.RunCommandCursor(ctx, command, opts)
+	if err != nil {
+		return newErrorResult(err), nil
+	}
+
+	if batchSize > 0 {
+		cursor.SetBatchSize(batchSize)
+	}
+
+	cursor.SetCursorType(cursorType)
+
+	var docs []bson.Raw
+	if err := cursor.All(ctx, &docs); err != nil {
+		return newErrorResult(err), nil
+	}
+
+	if cursorID := operation.ResultEntityID; cursorID != nil {
+		err := entities(ctx).addCursorEntity(*cursorID, cursor)
+		if err != nil {
+			return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+		}
+	}
+
+	return newErrorResult(nil), nil
 }

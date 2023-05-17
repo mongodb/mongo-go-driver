@@ -67,6 +67,33 @@ tests:
                 $readPreference: { $$exists: false }
               commandName: ping
 
+  - description: always gossips the $clusterTime on the sent command
+    operations:
+      # We have to run one command to obtain a clusterTime to gossip
+      - name: runCommand
+        object: *db
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+        expectResult: { ok: 1 }
+      - name: runCommand
+        object: *db
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+        expectResult: { ok: 1 }
+    expectEvents:
+      - client: *client
+        events:
+          - commandStartedEvent:
+              commandName: ping
+          # Only check the shape of the second ping which should have the $clusterTime received from the first operation
+          - commandStartedEvent:
+              command:
+                ping: 1
+                $clusterTime: { $$exists: true }
+              commandName: ping
+
   - description: attaches the provided session lsid to given command
     operations:
       - name: runCommand
