@@ -23,7 +23,7 @@ function compile_check {
 	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
 
 	# If the version is not 1.13, then run "go mod tidy"
-	if [ $(version $MACHINE_VERSION) -gt $(version 1.13) ]; then
+	if [ $(version $MACHINE_VERSION) -ge $(version 1.15) ]; then
 		go mod tidy
 	fi
 
