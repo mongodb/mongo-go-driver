@@ -26,7 +26,7 @@ build-tests:
 
 .PHONY: build-compile-check
 build-compile-check:
-	cd internal/test/compilecheck && go mod tidy && go build $(BUILD_TAGS)
+	etc/compile_check.sh
 
 .PHONY: install-lll
 install-lll:
