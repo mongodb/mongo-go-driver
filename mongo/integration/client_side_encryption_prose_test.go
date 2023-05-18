@@ -1988,6 +1988,30 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 			}
 		})
+
+		mt.Run("Case 2: RewrapManyDataKeyOpts.provider is not optional", func(mt *mtest.T) {
+			var err error
+			var clientEncryption *mongo.ClientEncryption
+			{
+				var keyVaultClient *mongo.Client
+				{
+					co := options.Client().ApplyURI(mtest.ClusterURI())
+					keyVaultClient, err = mongo.Connect(context.Background(), co)
+					defer keyVaultClient.Disconnect(context.Background())
+					testutil.AddTestServerAPIVersion(co)
+					assert.Nil(mt, err, "error on Connect: %v", err)
+				}
+				ceOpts := options.ClientEncryption().
+					SetKeyVaultNamespace("keyvault.datakeys").
+					SetKmsProviders(fullKmsProvidersMap)
+				clientEncryption, err = mongo.NewClientEncryption(keyVaultClient, ceOpts)
+				assert.Nil(mt, err, "error in NewClientEncryption: %v", err)
+				defer clientEncryption.Close(context.Background())
+			}
+
+			_, err = clientEncryption.RewrapManyDataKey(context.Background(), bson.D{}, options.RewrapManyDataKey().SetMasterKey(bson.D{}))
+			assert.True(mt, strings.Contains(err.Error(), "expected 'Provider' to be set to identify type of 'MasterKey'"), "unexpected error message: %v", err)
+		})
 	})
 }
 
