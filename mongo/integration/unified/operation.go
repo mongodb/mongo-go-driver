@@ -139,8 +139,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	case "runCommand":
 		return executeRunCommand(ctx, op)
 	case "runCursorCommand":
-		return executeRunCursorCommand(ctx, op)
-	case "createRunCursorCommand":
+		return executeCreateCommandCursor(ctx, op)
+	case "createCommandCursor":
 		return executeCreateRunCursorCommand(ctx, op)
 
 	// Collection operations

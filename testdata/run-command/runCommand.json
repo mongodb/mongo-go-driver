@@ -125,6 +125,14 @@
     },
     {
       "description": "always gossips the $clusterTime on the sent command",
+      "runOnRequirements": [
+        {
+          "topologies": [
+            "replicaset",
+            "sharded"
+          ]
+        }
+      ],
       "operations": [
         {
           "name": "runCommand",
@@ -400,7 +408,7 @@
               "insert": "collection",
               "documents": [
                 {
-                  "_id": 1
+			"foo": "bar"
                 }
               ],
               "ordered": true

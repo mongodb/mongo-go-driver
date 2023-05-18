@@ -41,7 +41,6 @@ initialData:
       - { _id: 5, x: 55 }
 
 tests:
-  # CSOT
   - description: errors if timeoutMode is set without timeoutMS
     operations:
       - name: runCursorCommand
@@ -53,7 +52,7 @@ tests:
         expectError:
           isClientError: true
 
-  - description: error if timeoutMode is cursor_lifetime and cursorType is tailableAwait
+  - description: error if timeoutMode is cursorLifetime and cursorType is tailableAwait
     operations:
       - name: runCursorCommand
         object: *db
@@ -80,7 +79,7 @@ tests:
   - description: error if getMore maxTimeMS setting is equal to timeoutMS
     operations:
       - name: runCursorCommand
-        object: *collection
+        object: *db
         arguments:
           commandName: find
           command: { find: *collection }
@@ -111,11 +110,13 @@ tests:
         arguments:
           commandName: find
           timeoutMS: 20
-          command: { find: *collection, batchSize: 2 }
+          command: { find: *collection, batchSize: 1 }
         expectError:
           isTimeoutError: true
     expectEvents:
       - client: *client
+        ignorecommandmonitoringevents:
+          - killCursors
         events:
           - commandStartedEvent:
               commandName: find
@@ -206,7 +207,7 @@ tests:
           documents:
             - { _id: 1, x: 11 }
             - { _id: 2, x: 22 }
-      - name: createRunCommandCursor
+      - name: createCommandCursor
         object: *db
         arguments:
           commandName: find
@@ -277,7 +278,8 @@ tests:
           max: 3
         saveResultAsEntity: *cappedCollection
       - name: insertMany
-      - name: createRunCommandCursor
+        object: *cappedCollection
+      - name: createCommandCursor
         object: *db
         arguments:
           command: { find: *cappedCollection, tailable: true, awaitData: true }

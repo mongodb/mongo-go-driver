@@ -29,6 +29,9 @@
         "useMultipleMongoses": false,
         "observeEvents": [
           "commandStartedEvent"
+        ],
+        "ignoreCommandMonitoringEvents": [
+       	  "killCursors"
         ]
       }
     },
@@ -103,7 +106,7 @@
       ]
     },
     {
-      "description": "error if timeoutMode is cursor_lifetime and cursorType is tailableAwait",
+      "description": "error if timeoutMode is cursorLifetime and cursorType is tailableAwait",
       "operations": [
         {
           "name": "runCursorCommand",
@@ -181,7 +184,7 @@
                   "getMore"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 15
+                "blockTimeMS": 45
               }
             }
           }
@@ -191,7 +194,7 @@
           "object": "db",
           "arguments": {
             "commandName": "find",
-            "timeoutMS": 20,
+            "timeoutMS": 60,
             "command": {
               "find": "collection",
               "batchSize": 2
@@ -232,7 +235,7 @@
                   },
                   "collection": "collection",
                   "maxTimeMS": {
-                    "$$exists": false
+                    "$$exists": true
                   }
                 }
               }
@@ -378,7 +381,7 @@
           }
         },
         {
-          "name": "createRunCommandCursor",
+          "name": "createCommandCursor",
           "object": "db",
           "arguments": {
             "commandName": "find",
@@ -505,10 +508,23 @@
           "saveResultAsEntity": "cappedCollection"
         },
         {
-          "name": "insertMany"
+          "name": "insertMany",
+          "object": "cappedCollection",
+          "arguments": {
+            "documents": [
+              {
+                "_id": 1,
+                "x": 11
+              },
+              {
+                "_id": 2,
+                "x": 22
+              }
+            ]
+          }
         },
         {
-          "name": "createRunCommandCursor",
+          "name": "createCommandCursor",
           "object": "db",
           "arguments": {
             "command": {

@@ -288,9 +288,9 @@ func newCursorType(cursorTypeString string) options.CursorType {
 	return cursorType
 }
 
-// executeRunCursorCommand proxies the database's runCursorCommand method and
+// executeCreateCommandCursor proxies the database's runCursorCommand method and
 // supports the same arguments and options.
-func executeRunCursorCommand(ctx context.Context, operation *operation) (*operationResult, error) {
+func executeCreateCommandCursor(ctx context.Context, operation *operation) (*operationResult, error) {
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -313,6 +313,7 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 		commentKey     = "comment"
 		cursorTypeKey  = "cursorType"
 		maxTimeMSKey   = "maxTimeMS"
+		timeoutModeKey = "timeoutMode"
 	)
 
 	elems, _ := operation.Arguments.Elements()
@@ -331,11 +332,14 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 			// ignore it.
 		case commentKey:
 			comment = val.Document()
-		case cursorTypeKey:
-			cursorType = newCursorType(val.String())
 		case maxTimeMSKey:
 			// The Go Driver does not support this option.
+
 			maxTimeMS = time.Duration(val.AsInt64()) * time.Millisecond
+		case cursorTypeKey:
+			return nil, newSkipTestError("cursorType not supported")
+		case timeoutModeKey:
+			return nil, newSkipTestError("timeoutMode not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized runCursorCommand option: %q", key)
 		}
@@ -397,6 +401,7 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 		commandNameKey = "commandName"
 		cursorTypeKey  = "cursorType"
 		batchSizeKey   = "batchSize"
+		timeoutModeKey = "timeoutMode"
 	)
 
 	elems, _ := operation.Arguments.Elements()
@@ -414,7 +419,9 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 			// preserve key order in the command document, so we can
 			// ignore it.
 		case cursorTypeKey:
-			cursorType = newCursorType(val.String())
+			return nil, newSkipTestError("cursorType not supported")
+		case timeoutModeKey:
+			return nil, newSkipTestError("timeoutMode not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized createRunCursorCommand option: %q", key)
 		}
