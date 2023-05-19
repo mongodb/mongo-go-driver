@@ -54,8 +54,8 @@ func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
 
 // NewEncoderWithContext returns a new encoder that uses EncodeContext ec to write to vw.
 //
-// Deprecated: Use bson.NewEncoder and use the Encoder configuration methods set the desired
-// behavior of the encoder instead.
+// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
+// behavior instead.
 func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*Encoder, error) {
 	if ec.Registry == nil {
 		ec = bsoncodec.EncodeContext{Registry: DefaultRegistry}
@@ -72,8 +72,7 @@ func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*
 
 // Encode writes the BSON encoding of val to the stream.
 //
-// The documentation for Marshal contains details about the conversion of Go
-// values to BSON.
+// See [Marshal] for details about BSON marshaling behavior.
 func (e *Encoder) Encode(val interface{}) error {
 	if marshaler, ok := val.(Marshaler); ok {
 		// TODO(skriptble): Should we have a MarshalAppender interface so that we can have []byte reuse?
@@ -134,8 +133,7 @@ func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
 
 // SetContext replaces the current EncodeContext of the encoder with ec.
 //
-// Deprecated: Use the Encoder configuration methods set the desired behavior of the encoder
-// instead.
+// Deprecated: Use the Encoder configuration methods set the desired marshal behavior instead.
 func (e *Encoder) SetContext(ec bsoncodec.EncodeContext) error {
 	e.ec = ec
 	return nil

@@ -7,7 +7,9 @@
 package bson_test
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -19,16 +21,16 @@ func ExampleDecoder() {
 	doc := bson.D{
 		{Key: "name", Value: "Cereal Rounds"},
 		{Key: "sku", Value: "AB12345"},
-		{Key: "price", Value: 399},
+		{Key: "price_cents", Value: 399},
 	}
-	b, err := bson.Marshal(doc)
+	data, err := bson.Marshal(doc)
 	if err != nil {
 		panic(err)
 	}
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(b))
+	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
 	if err != nil {
 		panic(err)
 	}
@@ -36,7 +38,7 @@ func ExampleDecoder() {
 	type Product struct {
 		Name  string `bson:"name"`
 		SKU   string `bson:"sku"`
-		Price int64  `bson:"price"`
+		Price int64  `bson:"price_cents"`
 	}
 
 	var res Product
@@ -60,14 +62,14 @@ func ExampleDecoder_DefaultDocumentM() {
 			{Key: "elevation", Value: 10},
 		}},
 	}
-	b, err := bson.Marshal(doc)
+	data, err := bson.Marshal(doc)
 	if err != nil {
 		panic(err)
 	}
 
 	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
 	// into a City struct.
-	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(b))
+	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
 	if err != nil {
 		panic(err)
 	}
@@ -101,14 +103,14 @@ func ExampleDecoder_UseJSONStructTags() {
 		{Key: "sku", Value: "AB12345"},
 		{Key: "price_cents", Value: 399},
 	}
-	b, err := bson.Marshal(doc)
+	data, err := bson.Marshal(doc)
 	if err != nil {
 		panic(err)
 	}
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(b))
+	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
 	if err != nil {
 		panic(err)
 	}
@@ -131,4 +133,86 @@ func ExampleDecoder_UseJSONStructTags() {
 
 	fmt.Printf("%+v\n", res)
 	// Output: {Name:Cereal Rounds SKU:AB12345 Price:399}
+}
+
+func ExampleDecoder_extendedJSON() {
+	// Define an Extended JSON document that contains the name, SKU, and price
+	// (in cents) of a product.
+	data := []byte(`{"name":"Cereal Rounds","sku":"AB12345","price_cents":{"$numberLong":"399"}}`)
+
+	// Create a Decoder that reads the Extended JSON document and use it to
+	// unmarshal the document into a Product struct.
+	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)
+	if err != nil {
+		panic(err)
+	}
+	decoder, err := bson.NewDecoder(vr)
+	if err != nil {
+		panic(err)
+	}
+
+	type Product struct {
+		Name  string `bson:"name"`
+		SKU   string `bson:"sku"`
+		Price int64  `bson:"price_cents"`
+	}
+
+	var res Product
+	err = decoder.Decode(&res)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%+v\n", res)
+	// Output: {Name:Cereal Rounds SKU:AB12345 Price:399}
+}
+
+func ExampleDecoder_multipleExtendedJSONDocuments() {
+	// Define a newline-separated sequence of Extended JSON documents that
+	// contain X,Y coordinates.
+	data := []byte(`
+{"x":{"$numberInt":"0"},"y":{"$numberInt":"0"}}
+{"x":{"$numberInt":"1"},"y":{"$numberInt":"1"}}
+{"x":{"$numberInt":"2"},"y":{"$numberInt":"2"}}
+{"x":{"$numberInt":"3"},"y":{"$numberInt":"3"}}
+{"x":{"$numberInt":"4"},"y":{"$numberInt":"4"}}
+`)
+
+	// Create a Decoder that reads the Extended JSON documents and use it to
+	// unmarshal the documents Coordinate structs.
+	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)
+	if err != nil {
+		panic(err)
+	}
+	decoder, err := bson.NewDecoder(vr)
+	if err != nil {
+		panic(err)
+	}
+
+	type Coordinate struct {
+		X int
+		Y int
+	}
+
+	// Read and unmarshal each Extended JSON document from the sequence. If
+	// Decode returns error io.EOF, that means the Decoder has reached the end
+	// of the input, so break the loop.
+	for {
+		var res Coordinate
+		err = decoder.Decode(&res)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("%+v\n", res)
+	}
+	// Output:
+	// {X:0 Y:0}
+	// {X:1 Y:1}
+	// {X:2 Y:2}
+	// {X:3 Y:3}
+	// {X:4 Y:4}
 }
