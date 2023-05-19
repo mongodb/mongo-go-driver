@@ -16,7 +16,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -321,28 +320,18 @@ func (c *Cursor) SetBatchSize(batchSize int32) {
 	c.bc.SetBatchSize(batchSize)
 }
 
-// SetMaxtimeMS will set the maximum number of milliseconds the server will
-// allow the operations to execute. This field cannot be sent if the cursor was
-// not configured with awaitData=true.
-func (c *Cursor) SetMaxTimeMS(maxTimeMS time.Duration) {
-	c.bc.SetMaxTimeMS(maxTimeMS)
+// SetMaxTime will set the maximum number of time the server will allow the
+// operations to execute. This field cannot be sent if the cursor was not
+// configured with awaitData=true. The time.Duration value passed by this setter
+// will be converted to milleseconds before being sent to the server.
+func (c *Cursor) SetMaxTime(dur time.Duration) {
+	c.bc.SetMaxTime(dur)
 }
 
 // SetComment will set a user-configurable comment that can be used to identify
 // the operation in logs.
 func (c *Cursor) SetComment(comment interface{}) {
 	c.bc.SetComment(comment)
-}
-
-// SetCursorType will set the cursor type on the Cursor.
-func (c *Cursor) SetCursorType(cursorType options.CursorType) {
-	switch cursorType {
-	case options.Tailable:
-		c.bc.Tailable(true)
-	case options.TailableAwait:
-		c.bc.Tailable(true)
-		c.bc.AwaitData(true)
-	}
 }
 
 // BatchCursorFromCursor returns a driver.BatchCursor for the given Cursor. If there is no underlying

@@ -273,21 +273,6 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 	return newDocumentResult(res, err), nil
 }
 
-func newCursorType(cursorTypeString string) options.CursorType {
-	var cursorType options.CursorType
-
-	switch cursorTypeString {
-	case "tailable":
-		cursorType = options.Tailable
-	case "nonTailable":
-		cursorType = options.NonTailable
-	case "tailableAwait":
-		cursorType = options.TailableAwait
-	}
-
-	return cursorType
-}
-
 // executeCreateCommandCursor proxies the database's runCursorCommand method and
 // supports the same arguments and options.
 func executeCreateCommandCursor(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -297,24 +282,13 @@ func executeCreateCommandCursor(ctx context.Context, operation *operation) (*ope
 	}
 
 	var (
-		batchSize  int32
-		command    bson.Raw
-		comment    bson.Raw
-		cursorType options.CursorType
-		maxTimeMS  time.Duration
+		batchSize int32
+		command   bson.Raw
+		comment   bson.Raw
+		maxTime   time.Duration
 	)
 
 	opts := options.RunCmd()
-
-	const (
-		batchSizeKey   = "batchSize"
-		commandKey     = "command"
-		commandNameKey = "commandName"
-		commentKey     = "comment"
-		cursorTypeKey  = "cursorType"
-		maxTimeMSKey   = "maxTimeMS"
-		timeoutModeKey = "timeoutMode"
-	)
 
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {
@@ -322,23 +296,23 @@ func executeCreateCommandCursor(ctx context.Context, operation *operation) (*ope
 		val := elem.Value()
 
 		switch key {
-		case batchSizeKey:
+		case "batchSize":
 			batchSize = val.Int32()
-		case commandKey:
+		case "command":
 			command = val.Document()
-		case commandNameKey:
+		case "commandName":
 			// This is only necessary for languages that cannot
 			// preserve key order in the command document, so we can
 			// ignore it.
-		case commentKey:
+		case "comment":
 			comment = val.Document()
-		case maxTimeMSKey:
+		case "maxTimeMS":
 			// The Go Driver does not support this option.
 
-			maxTimeMS = time.Duration(val.AsInt64()) * time.Millisecond
-		case cursorTypeKey:
+			maxTime = time.Duration(val.AsInt64()) * time.Millisecond
+		case "cursorTimeout":
 			return nil, newSkipTestError("cursorType not supported")
-		case timeoutModeKey:
+		case "timeoutMode":
 			return nil, newSkipTestError("timeoutMode not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized runCursorCommand option: %q", key)
@@ -346,7 +320,7 @@ func executeCreateCommandCursor(ctx context.Context, operation *operation) (*ope
 	}
 
 	if command == nil {
-		return nil, newMissingArgumentError(commandKey)
+		return nil, newMissingArgumentError("command")
 	}
 
 	cursor, err := db.RunCommandCursor(ctx, command, opts)
@@ -358,15 +332,13 @@ func executeCreateCommandCursor(ctx context.Context, operation *operation) (*ope
 		cursor.SetBatchSize(batchSize)
 	}
 
-	if maxTimeMS > 0 {
-		cursor.SetMaxTimeMS(maxTimeMS)
+	if maxTime > 0 {
+		cursor.SetMaxTime(maxTime)
 	}
 
 	if len(comment) > 0 {
 		cursor.SetComment(comment)
 	}
-
-	cursor.SetCursorType(cursorType)
 
 	// When executing the provided command, the test runner MUST fully
 	// iterate the cursor. This will ensure consistent behavior between
@@ -389,20 +361,11 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 	}
 
 	var (
-		batchSize  int32
-		command    bson.Raw
-		cursorType options.CursorType
+		batchSize int32
+		command   bson.Raw
 	)
 
 	opts := options.RunCmd()
-
-	const (
-		commandKey     = "command"
-		commandNameKey = "commandName"
-		cursorTypeKey  = "cursorType"
-		batchSizeKey   = "batchSize"
-		timeoutModeKey = "timeoutMode"
-	)
 
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {
@@ -410,17 +373,17 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 		val := elem.Value()
 
 		switch key {
-		case batchSizeKey:
+		case "batchSize":
 			batchSize = val.Int32()
-		case commandKey:
+		case "command":
 			command = val.Document()
-		case commandNameKey:
+		case "commandName":
 			// This is only necessary for languages that cannot
 			// preserve key order in the command document, so we can
 			// ignore it.
-		case cursorTypeKey:
+		case "cursorType":
 			return nil, newSkipTestError("cursorType not supported")
-		case timeoutModeKey:
+		case "timeoutMode":
 			return nil, newSkipTestError("timeoutMode not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized createRunCursorCommand option: %q", key)
@@ -428,7 +391,7 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 	}
 
 	if command == nil {
-		return nil, newMissingArgumentError(commandKey)
+		return nil, newMissingArgumentError("command")
 	}
 
 	// Test runners MUST ensure that the server-side cursor is created (i.e.
@@ -441,8 +404,6 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 	if batchSize > 0 {
 		cursor.SetBatchSize(batchSize)
 	}
-
-	cursor.SetCursorType(cursorType)
 
 	var docs []bson.Raw
 	if err := cursor.All(ctx, &docs); err != nil {

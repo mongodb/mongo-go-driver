@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -86,7 +87,9 @@ func (tbc *testBatchCursor) Close(context.Context) error {
 	return nil
 }
 
-func (tbc *testBatchCursor) SetBatchSize(int32) {}
+func (tbc *testBatchCursor) SetBatchSize(int32)       {}
+func (tbc *testBatchCursor) SetComment(interface{})   {}
+func (tbc *testBatchCursor) SetMaxTime(time.Duration) {}
 
 func TestCursor(t *testing.T) {
 	t.Run("loops until docs available", func(t *testing.T) {})

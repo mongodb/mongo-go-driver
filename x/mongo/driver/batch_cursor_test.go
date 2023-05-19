@@ -138,7 +138,7 @@ func TestBatchCursorSetComment(t *testing.T) {
 
 			got := bc.comment.String()
 			if got != test.want {
-				t.Fatalf("bc.comment=%v, want %v", string(got), test.want)
+				t.Fatalf("bc.comment=%v, want %v", got, test.want)
 			}
 		})
 	}

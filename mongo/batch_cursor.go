@@ -40,24 +40,16 @@ type batchCursor interface {
 	// the cursor that implements it.
 	SetBatchSize(int32)
 
-	// SetMaxtimeMS will set the maximum number of milliseconds the server
-	// will allow the operations to execute. This field cannot be sent if
-	// the cursor was not configured with awaitData=true.
-	SetMaxTimeMS(time.Duration)
+	// SetMaxTime will set the maximum number of time the server will allow
+	// the operations to execute. This field cannot be sent if the cursor
+	// was not configured with awaitData=true. The time.Duration value
+	// passed by this setter will be converted to milleseconds before being
+	// sent to the server.
+	SetMaxTime(time.Duration)
 
 	// SetComment will set a user-configurable comment that can be used to
 	// identify the operation in logs.
 	SetComment(interface{})
-
-	// Tailable will set the cursor to "tail" or follow the target namespace
-	// for new data. Querying a capped collection is one use case for a
-	// tailable cursor
-	Tailable(bool)
-
-	// AwaitData should only be set alongside a tailable cursor. This is the
-	// amount of time the server will wait for new data based on the
-	// MaxTimeMS. If the time does expire an empty batch will be returned.
-	AwaitData(bool)
 }
 
 // changeStreamCursor is the interface implemented by batch cursors that also provide the functionality for retrieving

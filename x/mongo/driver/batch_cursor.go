@@ -449,12 +449,12 @@ func (bc *BatchCursor) SetBatchSize(size int32) {
 	bc.batchSize = size
 }
 
-// SetMaxTimeMS sets the maxTimeMS for future getMore operations.
-func (bc *BatchCursor) SetMaxTimeMS(dur time.Duration) {
+// SetMaxTime sets the maxTimeMS for future getMore operations.
+func (bc *BatchCursor) SetMaxTime(dur time.Duration) {
 	bc.maxTimeMS = int64(dur / time.Millisecond)
 }
 
-// SetMaxTimeMS sets the comment for future getMore operations.
+// SetComment sets the comment for future getMore operations.
 func (bc *BatchCursor) SetComment(comment interface{}) {
 	if comment == nil {
 		return
@@ -478,16 +478,6 @@ func (bc *BatchCursor) SetComment(comment interface{}) {
 	}
 
 	bc.comment = bsoncore.Value{Type: bsonType, Data: bsonValue}
-}
-
-// Tailable sets the "tail" logic for future getMore operations.
-func (bc *BatchCursor) Tailable(tailable bool) {
-	bc.tailable = &tailable
-}
-
-// AwaitData sets the "awaitData" logic for future getMore operations.
-func (bc *BatchCursor) AwaitData(awaitData bool) {
-	bc.awaitData = &awaitData
 }
 
 func (bc *BatchCursor) getOperationDeployment() Deployment {

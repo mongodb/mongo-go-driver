@@ -129,27 +129,24 @@ func (*ListCollectionsBatchCursor) projectNameElement(rawDoc bsoncore.Document) 
 	return filteredDoc, nil
 }
 
-// SetBatchSize sets the batchSize for future getMores.
+// SetBatchSize sets the number of documents to fetch from the database with
+// each iteration of the cursor's "Next" method. Note that some operations set
+// an initial cursor batch size, so this setting only affects subsequent
+// document batches fetched from the database.
 func (lcbc *ListCollectionsBatchCursor) SetBatchSize(size int32) {
 	lcbc.bc.SetBatchSize(size)
 }
 
-// SetMaxTimeMS sets the maxTimeMS for future getMore operations.
-func (lcbc *ListCollectionsBatchCursor) SetMaxTimeMS(dur time.Duration) {
-	lcbc.SetMaxTimeMS(dur)
+// SetMaxTime will set the maximum number of time the server will allow the
+// operations to execute. This field cannot be sent if the cursor was not
+// configured with awaitData=true. The time.Duration value passed by this setter
+// will be converted to milleseconds before being sent to the server.
+func (lcbc *ListCollectionsBatchCursor) SetMaxTime(dur time.Duration) {
+	lcbc.bc.SetMaxTime(dur)
 }
 
-// SetComment sets the comment for future getMore operations.
+// SetComment will set a user-configurable comment that can be used to identify
+// the operation in logs.
 func (lcbc *ListCollectionsBatchCursor) SetComment(comment interface{}) {
-	lcbc.SetComment(comment)
-}
-
-// Tailable sets the "tail" logic for future getMore operations.
-func (lcbc *ListCollectionsBatchCursor) Tailable(tailable bool) {
-	lcbc.Tailable(tailable)
-}
-
-// AwaitData sets the "awaitData" logic for future getMore operations.
-func (lcbc *ListCollectionsBatchCursor) AwaitData(awaitData bool) {
-	lcbc.AwaitData(awaitData)
+	lcbc.bc.SetComment(comment)
 }
