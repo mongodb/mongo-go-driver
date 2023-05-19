@@ -151,7 +151,7 @@ func ExampleEncoder_multipleBSONDocuments() {
 	for i := 0; i < 5; i++ {
 		err := encoder.Encode(Coordinate{
 			X: i,
-			Y: i+1,
+			Y: i + 1,
 		})
 		if err != nil {
 			panic(err)
@@ -168,7 +168,7 @@ func ExampleEncoder_multipleBSONDocuments() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(bson.Raw(doc).String())
+		fmt.Println(doc.String())
 	}
 	// Output:
 	// {"x": {"$numberInt":"0"},"y": {"$numberInt":"1"}}
@@ -236,7 +236,7 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	for i := 0; i < 5; i++ {
 		err := encoder.Encode(Coordinate{
 			X: i,
-			Y: i+1,
+			Y: i + 1,
 		})
 		if err != nil {
 			panic(err)
