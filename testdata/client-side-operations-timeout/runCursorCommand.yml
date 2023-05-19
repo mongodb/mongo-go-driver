@@ -17,6 +17,7 @@ createEntities:
       id: &client client
       useMultipleMongoses: false
       observeEvents: [commandStartedEvent]
+      ignoreCommandMonitoringEvents: [killCursors]
   - database: # For tests that need success event assertions
       id: &commandDb commandDb
       client: *commandClient
@@ -102,21 +103,20 @@ tests:
             data:
               failCommands: [find, getMore]
               blockConnection: true
-              blockTimeMS: 15
-      # Run a find with timeoutMS=20 and batchSize=1 to force two batches, which will cause a find and a getMore to be sent.
-      # Both will block for 15ms so together they will go over the timeout.
+              blockTimeMS: 45
+      # Run a find with timeoutMS less than double our failPoint blockTimeMS and
+      # batchSize less than the total document count will cause a find and a getMore to be sent.
+      # Both will block for 45ms so together they will go over the timeout.
       - name: runCursorCommand
         object: *db
         arguments:
           commandName: find
-          timeoutMS: 20
-          command: { find: *collection, batchSize: 1 }
+          timeoutMS: 60
+          command: { find: *collection, batchSize: 2 }
         expectError:
           isTimeoutError: true
     expectEvents:
       - client: *client
-        ignorecommandmonitoringevents:
-          - killCursors
         events:
           - commandStartedEvent:
               commandName: find
@@ -128,7 +128,7 @@ tests:
               command:
                 getMore: { $$type: [int, long] }
                 collection: *collection
-                maxTimeMS: { $$exists: false }
+                maxTimeMS: { $$exists: true }
 
   # If timeoutMode=ITERATION, timeoutMS applies separately to the initial find and the getMore on the cursor. Neither
   # command should have a maxTimeMS field. This is a failure test. The "find" inherits timeoutMS=10 and "getMore"
@@ -279,6 +279,8 @@ tests:
         saveResultAsEntity: *cappedCollection
       - name: insertMany
         object: *cappedCollection
+        arguments:
+          documents: [ { foo: bar }, { fizz: buzz } ]
       - name: createCommandCursor
         object: *db
         arguments:

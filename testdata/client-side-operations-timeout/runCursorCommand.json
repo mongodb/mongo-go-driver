@@ -31,7 +31,7 @@
           "commandStartedEvent"
         ],
         "ignoreCommandMonitoringEvents": [
-       	  "killCursors"
+          "killCursors"
         ]
       }
     },
@@ -513,12 +513,10 @@
           "arguments": {
             "documents": [
               {
-                "_id": 1,
-                "x": 11
+                "foo": "bar"
               },
               {
-                "_id": 2,
-                "x": 22
+                "fizz": "buzz"
               }
             ]
           }
