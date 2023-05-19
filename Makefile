@@ -3,15 +3,15 @@ TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
 .PHONY: default
-default: add-license build check-fmt check-modules lint test-short
+default: build check-license check-fmt check-modules lint test-short
 
-# Find all .go files not in the vendor directory and try to write a license notice. Then check for
-# any changes made with -G. to ignore permissions changes. Exit with a non-zero exit code if there
-# is a diff.
 .PHONY: add-license
 add-license:
-	find . -path ./vendor -prune -o -type f -name "*.go" -print | xargs ./etc/add_license.sh
-	git diff -G. --quiet
+	etc/check_license.sh -a
+
+.PHONY: check-license
+check-license:
+	etc/check_license.sh
 
 .PHONY: build
 build: build-tests build-compile-check
