@@ -449,7 +449,11 @@ func (bc *BatchCursor) SetBatchSize(size int32) {
 	bc.batchSize = size
 }
 
-// SetMaxTime sets the maxTimeMS for future getMore operations.
+// SetMaxTime will set the maximum number of time the server will allow the
+// operations to execute. This field cannot be sent if the cursor was not
+// configured with awaitData=true. The time.Duration value passed by this setter
+// will be converted to millisecond before being sent to the server, rounding
+// down to the nearest millisecond.
 func (bc *BatchCursor) SetMaxTime(dur time.Duration) {
 	bc.maxTimeMS = int64(dur / time.Millisecond)
 }

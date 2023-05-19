@@ -8,6 +8,7 @@ package driver
 
 import (
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -139,6 +140,54 @@ func TestBatchCursorSetComment(t *testing.T) {
 			got := bc.comment.String()
 			if got != test.want {
 				t.Fatalf("bc.comment=%v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestBatchCursorSetMaxTime(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		dur  time.Duration
+		want int64
+	}{
+		{
+			name: "empty",
+			dur:  0,
+			want: 0,
+		},
+		{
+			name: "non-specified (nanosecond) input",
+			// 10 million nanoseconds = 10 millseconds
+			dur:  time.Duration(10_000_000),
+			want: 10,
+		},
+		{
+			name: "non-millisecond input",
+			dur:  time.Duration(10_000 * time.Microsecond),
+			want: 10,
+		},
+		{
+			name: "millisecond input",
+			dur:  time.Duration(10 * time.Millisecond),
+			want: 10,
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			bc := BatchCursor{}
+			bc.SetMaxTime(test.dur)
+
+			got := bc.maxTimeMS
+			if got != test.want {
+				t.Fatalf("bc.maxTimeMS=%v, want %v", got, test.want)
 			}
 		})
 	}

@@ -140,7 +140,8 @@ func (lcbc *ListCollectionsBatchCursor) SetBatchSize(size int32) {
 // SetMaxTime will set the maximum number of time the server will allow the
 // operations to execute. This field cannot be sent if the cursor was not
 // configured with awaitData=true. The time.Duration value passed by this setter
-// will be converted to milleseconds before being sent to the server.
+// will be converted to milliseconds before being sent to the server, rounding
+// down to the nearest millisecond.
 func (lcbc *ListCollectionsBatchCursor) SetMaxTime(dur time.Duration) {
 	lcbc.bc.SetMaxTime(dur)
 }
