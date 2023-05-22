@@ -24,8 +24,14 @@ type CommandStartedEvent struct {
 	RequestID    int64
 	ConnectionID string
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset.
+	// this value (e.g. on MDB < 4.2), it is unset. If the server connection ID would cause an int32 overflow, then
+	// then this field will be nil.
+	//
+	// Deprecated: Use ServerConnectionID64.
 	ServerConnectionID *int32
+	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
+	// return this value (e.g. on MDB < 4.2), it is unset.
+	ServerConnectionID64 *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -40,8 +46,14 @@ type CommandFinishedEvent struct {
 	RequestID     int64
 	ConnectionID  string
 	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset.
+	// this value (e.g. on MDB < 4.2), it is unset.If the server connection ID would cause an int32 overflow, then
+	// this field will be nil.
+	//
+	// Deprecated: Use ServerConnectionID64.
 	ServerConnectionID *int32
+	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
+	// return this value (e.g. on MDB < 4.2), it is unset.
+	ServerConnectionID64 *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID

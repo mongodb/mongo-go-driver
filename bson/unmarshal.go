@@ -48,6 +48,16 @@ func Unmarshal(data []byte, val interface{}) error {
 // UnmarshalWithRegistry parses the BSON-encoded data using Registry r and
 // stores the result in the value pointed to by val. If val is nil or not
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+//
+// Deprecated: Use [NewDecoder] and specify the Registry by calling [Decoder.SetRegistry] instead:
+//
+//	dec, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
+//	if err != nil {
+//		panic(err)
+//	}
+//	dec.SetRegistry(reg)
+//
+// See [Decoder] for more examples.
 func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) error {
 	vr := bsonrw.NewBSONDocumentReader(data)
 	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, vr, val)
@@ -56,6 +66,17 @@ func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) 
 // UnmarshalWithContext parses the BSON-encoded data using DecodeContext dc and
 // stores the result in the value pointed to by val. If val is nil or not
 // a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+//
+// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
+// behavior instead:
+//
+//	dec, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
+//	if err != nil {
+//		panic(err)
+//	}
+//	dec.DefaultDocumentM()
+//
+// See [Decoder] for more examples.
 func UnmarshalWithContext(dc bsoncodec.DecodeContext, data []byte, val interface{}) error {
 	vr := bsonrw.NewBSONDocumentReader(data)
 	return unmarshalFromReader(dc, vr, val)
@@ -68,11 +89,12 @@ func UnmarshalValue(t bsontype.Type, data []byte, val interface{}) error {
 	return UnmarshalValueWithRegistry(DefaultRegistry, t, data, val)
 }
 
-// TODO(GODRIVER-2711): Deprecate UnmarshalValueWithRegistry with other *WithRegistry functions.
-
 // UnmarshalValueWithRegistry parses the BSON value of type t with registry r and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
+//
+// Deprecated: Using a custom registry to unmarshal individual BSON values will not be supported in
+// Go Driver 2.0.
 func UnmarshalValueWithRegistry(r *bsoncodec.Registry, t bsontype.Type, data []byte, val interface{}) error {
 	vr := bsonrw.NewBSONValueReader(t, data)
 	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, vr, val)
@@ -88,6 +110,20 @@ func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
 // UnmarshalExtJSONWithRegistry parses the extended JSON-encoded data using
 // Registry r and stores the result in the value pointed to by val. If val is
 // nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+//
+// Deprecated: Use [NewDecoder] and specify the Registry by calling [Decoder.SetRegistry] instead:
+//
+//	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)
+//	if err != nil {
+//		panic(err)
+//	}
+//	dec, err := bson.NewDecoder(vr)
+//	if err != nil {
+//		panic(err)
+//	}
+//	dec.SetRegistry(reg)
+//
+// See [Decoder] for more examples.
 func UnmarshalExtJSONWithRegistry(r *bsoncodec.Registry, data []byte, canonical bool, val interface{}) error {
 	ejvr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
 	if err != nil {
@@ -100,6 +136,21 @@ func UnmarshalExtJSONWithRegistry(r *bsoncodec.Registry, data []byte, canonical 
 // UnmarshalExtJSONWithContext parses the extended JSON-encoded data using
 // DecodeContext dc and stores the result in the value pointed to by val. If val is
 // nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
+//
+// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
+// behavior instead:
+//
+//	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)
+//	if err != nil {
+//		panic(err)
+//	}
+//	dec, err := bson.NewDecoder(vr)
+//	if err != nil {
+//		panic(err)
+//	}
+//	dec.DefaultDocumentM()
+//
+// See [Decoder] for more examples.
 func UnmarshalExtJSONWithContext(dc bsoncodec.DecodeContext, data []byte, canonical bool, val interface{}) error {
 	ejvr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), canonical)
 	if err != nil {

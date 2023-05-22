@@ -88,6 +88,7 @@ type extJSONValueWriter struct {
 	frame      int64
 	canonical  bool
 	escapeHTML bool
+	newlines   bool
 }
 
 // NewExtJSONValueWriter creates a ValueWriter that writes Extended JSON to w.
@@ -96,10 +97,13 @@ func NewExtJSONValueWriter(w io.Writer, canonical, escapeHTML bool) (ValueWriter
 		return nil, errNilWriter
 	}
 
-	return newExtJSONWriter(w, canonical, escapeHTML), nil
+	// Enable newlines for all Extended JSON value writers created by NewExtJSONValueWriter. We
+	// expect these value writers to be used with an Encoder, which should add newlines after
+	// encoded Extended JSON documents.
+	return newExtJSONWriter(w, canonical, escapeHTML, true), nil
 }
 
-func newExtJSONWriter(w io.Writer, canonical, escapeHTML bool) *extJSONValueWriter {
+func newExtJSONWriter(w io.Writer, canonical, escapeHTML, newlines bool) *extJSONValueWriter {
 	stack := make([]ejvwState, 1, 5)
 	stack[0] = ejvwState{mode: mTopLevel}
 
@@ -109,6 +113,7 @@ func newExtJSONWriter(w io.Writer, canonical, escapeHTML bool) *extJSONValueWrit
 		stack:      stack,
 		canonical:  canonical,
 		escapeHTML: escapeHTML,
+		newlines:   newlines,
 	}
 }
 
@@ -572,6 +577,12 @@ func (ejvw *extJSONValueWriter) WriteDocumentEnd() error {
 	case mDocument:
 		ejvw.buf = append(ejvw.buf, ',')
 	case mTopLevel:
+		// If the value writer has newlines enabled, end top-level documents with a newline so that
+		// multiple documents encoded to the same writer are separated by newlines. That matches the
+		// Go json.Encoder behavior and also works with bsonrw.NewExtJSONValueReader.
+		if ejvw.newlines {
+			ejvw.buf = append(ejvw.buf, '\n')
+		}
 		if ejvw.w != nil {
 			if _, err := ejvw.w.Write(ejvw.buf); err != nil {
 				return err
