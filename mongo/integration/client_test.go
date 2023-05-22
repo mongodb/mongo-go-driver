@@ -502,7 +502,7 @@ func TestClient(t *testing.T) {
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%s'", evt.CommandName)
 
-		// Attempt to get the readPreference mode. If the mod is
+		// Attempt to get the readPreference mode. If the mode is
 		// "Primary," then there will be no readPreference mode set on
 		// the wire message. In this case we can skip the test.
 		modeVal := evt.Command.Lookup("$readPreference", "mode")
