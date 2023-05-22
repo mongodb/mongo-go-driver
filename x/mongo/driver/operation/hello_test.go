@@ -159,14 +159,14 @@ func TestAppendClientEnv(t *testing.T) {
 		{
 			name: "aws only",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_java8",
+				envVarAWSExecutionEnv: "AWS_Lambda_foo",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda"}}`),
 		},
 		{
 			name: "aws mem only",
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSExecutionEnv:             "AWS_Lambda_foo",
 				envVarAWSLambdaFunctionMemorySize: "1024",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","memory_mb":1024}}`),
@@ -174,7 +174,7 @@ func TestAppendClientEnv(t *testing.T) {
 		{
 			name: "aws region only",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_java8",
+				envVarAWSExecutionEnv: "AWS_Lambda_foo",
 				envVarAWSRegion:       "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","region":"us-east-2"}}`),
@@ -182,7 +182,7 @@ func TestAppendClientEnv(t *testing.T) {
 		{
 			name: "aws mem and region",
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSExecutionEnv:             "AWS_Lambda_foo",
 				envVarAWSLambdaFunctionMemorySize: "1024",
 				envVarAWSRegion:                   "us-east-2",
 			},
@@ -192,7 +192,7 @@ func TestAppendClientEnv(t *testing.T) {
 			name:          "aws mem and region with omit fields",
 			omitEnvFields: true,
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
+				envVarAWSExecutionEnv:             "AWS_Lambda_foo",
 				envVarAWSLambdaFunctionMemorySize: "1024",
 				envVarAWSRegion:                   "us-east-2",
 			},
@@ -552,14 +552,14 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "one aws",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "hello",
+				envVarAWSExecutionEnv: "AWS_Lambda_foo",
 			},
 			want: envNameAWSLambda,
 		},
 		{
 			name: "both aws options",
 			env: map[string]string{
-				envVarAWSExecutionEnv:     "hello",
+				envVarAWSExecutionEnv:     "AWS_Lambda_foo",
 				envVarAWSLambdaRuntimeAPI: "hello",
 			},
 			want: envNameAWSLambda,
@@ -567,7 +567,7 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "multiple variables",
 			env: map[string]string{
-				envVarAWSExecutionEnv:        "hello",
+				envVarAWSExecutionEnv:        "AWS_Lambda_foo",
 				envVarFunctionsWorkerRuntime: "hello",
 			},
 			want: "",
@@ -575,10 +575,17 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "vercel and aws lambda",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "hello",
+				envVarAWSExecutionEnv: "AWS_Lambda_foo",
 				envVarVercel:          "hello",
 			},
 			want: envNameVercel,
+		},
+		{
+			name: "invalid aws prefix",
+			env: map[string]string{
+				envVarAWSExecutionEnv: "foo",
+			},
+			want: "",
 		},
 	}
 

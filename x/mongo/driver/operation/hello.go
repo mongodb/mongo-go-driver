@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal"
@@ -29,6 +30,7 @@ import (
 // sharded clusters is 512.
 const maxClientMetadataSize = 512
 
+const awsLambdaPrefix = "AWS_Lambda_"
 const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
@@ -171,14 +173,21 @@ func getFaasEnvName() string {
 	names := make(map[string]struct{})
 
 	for _, envVar := range envVars {
-		if os.Getenv(envVar) == "" {
+		val := os.Getenv(envVar)
+		if val == "" {
 			continue
 		}
 
 		var name string
 
 		switch envVar {
-		case envVarAWSExecutionEnv, envVarAWSLambdaRuntimeAPI:
+		case envVarAWSExecutionEnv:
+			if !strings.HasPrefix(val, awsLambdaPrefix) {
+				continue
+			}
+
+			name = envNameAWSLambda
+		case envVarAWSLambdaRuntimeAPI:
 			name = envNameAWSLambda
 		case envVarFunctionsWorkerRuntime:
 			name = envNameAzureFunc
