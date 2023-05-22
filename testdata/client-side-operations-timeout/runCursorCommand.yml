@@ -67,6 +67,8 @@ tests:
 
   # If timeoutMode is unset, it should default to CURSOR_LIFETIME and the time remaining after the find succeeds should be applied to the getMore
   - description: Non-tailable cursor lifetime remaining timeoutMS applied to getMore if timeoutMode is unset
+    runOnRequirements:
+      - serverless: forbid
     operations:
       # Block find/getMore for 15ms.
       - name: failPoint
@@ -110,6 +112,8 @@ tests:
   # command should have a maxTimeMS field. This is a failure test. The "find" inherits timeoutMS=10 and "getMore"
   # commands are blocked for 15ms, causing iteration to fail with a timeout error.
   - description: Non=tailable cursor iteration timeoutMS is refreshed for getMore if timeoutMode is iteration - failure
+    runOnRequirements:
+      - serverless: forbid
     operations:
       - name: failPoint
         object: testRunner
@@ -153,6 +157,8 @@ tests:
   # find inherits timeoutMS=10 from the collection and the getMore command blocks for 15ms, causing iteration to fail
   # with a timeout error.
   - description: Tailable cursor iteration timeoutMS is refreshed for getMore - failure
+    runOnRequirements:
+      - serverless: forbid
     operations:
       - name: failPoint
         object: testRunner
@@ -229,6 +235,8 @@ tests:
   # The timeoutMS value should be refreshed for getMore's. This is a failure test. The find inherits timeoutMS=10 from
   # the collection and the getMore blocks for 15ms, causing iteration to fail with a timeout error.
   - description: Tailable cursor awaitData iteration timeoutMS is refreshed for getMore - failure
+    runOnRequirements:
+      - serverless: forbid
     operations:
       - name: failPoint
         object: testRunner

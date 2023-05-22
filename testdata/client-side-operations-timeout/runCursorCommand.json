@@ -127,6 +127,11 @@
     },
     {
       "description": "Non-tailable cursor lifetime remaining timeoutMS applied to getMore if timeoutMode is unset",
+      "runOnRequirements": [
+        {
+          "serverless": "forbid"
+        }
+      ],
       "operations": [
         {
           "name": "failPoint",
@@ -206,6 +211,11 @@
     },
     {
       "description": "Non=tailable cursor iteration timeoutMS is refreshed for getMore if timeoutMode is iteration - failure",
+      "runOnRequirements": [
+        {
+          "serverless": "forbid"
+        }
+      ],
       "operations": [
         {
           "name": "failPoint",
@@ -285,6 +295,11 @@
     },
     {
       "description": "Tailable cursor iteration timeoutMS is refreshed for getMore - failure",
+      "runOnRequirements": [
+        {
+          "serverless": "forbid"
+        }
+      ],
       "operations": [
         {
           "name": "failPoint",
@@ -428,6 +443,11 @@
     },
     {
       "description": "Tailable cursor awaitData iteration timeoutMS is refreshed for getMore - failure",
+      "runOnRequirements": [
+        {
+          "serverless": "forbid"
+        }
+      ],
       "operations": [
         {
           "name": "failPoint",

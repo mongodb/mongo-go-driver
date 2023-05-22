@@ -180,7 +180,7 @@ tests:
           - commandStartedEvent: &insert_attempt
               command:
                 insert: *collection0Name
-                documents: 
+                documents:
                   - { _id: 2 }
                 ordered: true
                 lsid: { $$sessionLsid: *session0 }
@@ -191,7 +191,7 @@ tests:
           - commandStartedEvent:
               command:
                 insert: *collection0Name
-                documents: 
+                documents:
                   - { _id: 3 }
                 ordered: true
                 lsid: { $$sessionLsid: *session0 }

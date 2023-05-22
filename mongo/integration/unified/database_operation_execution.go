@@ -273,9 +273,9 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 	return newDocumentResult(res, err), nil
 }
 
-// executeCreateCommandCursor proxies the database's runCursorCommand method and
+// executeRunCursorCommand proxies the database's runCursorCommand method and
 // supports the same arguments and options.
-func executeCreateCommandCursor(ctx context.Context, operation *operation) (*operationResult, error) {
+func executeRunCursorCommand(ctx context.Context, operation *operation) (*operationResult, error) {
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
 		return nil, err
@@ -403,11 +403,6 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 
 	if batchSize > 0 {
 		cursor.SetBatchSize(batchSize)
-	}
-
-	var docs []bson.Raw
-	if err := cursor.All(ctx, &docs); err != nil {
-		return newErrorResult(err), nil
 	}
 
 	if cursorID := operation.ResultEntityID; cursorID != nil {
