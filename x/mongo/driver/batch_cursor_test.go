@@ -166,12 +166,12 @@ func TestBatchCursorSetMaxTime(t *testing.T) {
 		},
 		{
 			name: "non-millisecond input",
-			dur:  time.Duration(10_000 * time.Microsecond),
+			dur:  10_000 * time.Microsecond,
 			want: 10,
 		},
 		{
 			name: "millisecond input",
-			dur:  time.Duration(10 * time.Millisecond),
+			dur:  10 * time.Millisecond,
 			want: 10,
 		},
 	}

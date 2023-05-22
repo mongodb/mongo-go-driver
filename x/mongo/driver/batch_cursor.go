@@ -26,7 +26,6 @@ import (
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead
 // of one at a time. An individual document cursor can be built on top of this batch cursor.
 type BatchCursor struct {
-	awaitData            *bool
 	clientSession        *session.Client
 	clock                *session.ClusterClock
 	comment              bsoncore.Value
@@ -46,7 +45,6 @@ type BatchCursor struct {
 	postBatchResumeToken bsoncore.Document
 	crypt                Crypt
 	serverAPI            *ServerAPIOptions
-	tailable             *bool
 
 	// legacy server (< 3.2) fields
 	limit       int32
@@ -361,14 +359,6 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
 			}
 
-			if bc.awaitData != nil {
-				dst = bsoncore.AppendBooleanElement(dst, "awaitData", *bc.awaitData)
-			}
-
-			if bc.tailable != nil {
-				dst = bsoncore.AppendBooleanElement(dst, "tailable", *bc.tailable)
-			}
-
 			return dst, nil
 		},
 		Database:   bc.database,
@@ -455,6 +445,7 @@ func (bc *BatchCursor) SetBatchSize(size int32) {
 // will be converted to millisecond before being sent to the server, rounding
 // down to the nearest millisecond.
 func (bc *BatchCursor) SetMaxTime(dur time.Duration) {
+	fmt.Println("moop")
 	bc.maxTimeMS = int64(dur / time.Millisecond)
 }
 

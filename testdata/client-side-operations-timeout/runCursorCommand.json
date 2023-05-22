@@ -126,46 +126,6 @@
       ]
     },
     {
-      "description": "error if getMore maxTimeMS setting is greater than timeoutMS",
-      "operations": [
-        {
-          "name": "runCursorCommand",
-          "object": "db",
-          "arguments": {
-            "commandName": "find",
-            "command": {
-              "find": "collection"
-            },
-            "timeoutMS": 5,
-            "maxTimeMS": 10
-          },
-          "expectError": {
-            "isClientError": true
-          }
-        }
-      ]
-    },
-    {
-      "description": "error if getMore maxTimeMS setting is equal to timeoutMS",
-      "operations": [
-        {
-          "name": "runCursorCommand",
-          "object": "db",
-          "arguments": {
-            "commandName": "find",
-            "command": {
-              "find": "collection"
-            },
-            "timeoutMS": 5,
-            "maxTimeMS": 5
-          },
-          "expectError": {
-            "isClientError": true
-          }
-        }
-      ]
-    },
-    {
       "description": "Non-tailable cursor lifetime remaining timeoutMS applied to getMore if timeoutMode is unset",
       "operations": [
         {

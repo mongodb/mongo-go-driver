@@ -1532,7 +1532,8 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
 		}
-		doc = bsoncore.AppendStringElement(doc, "mode", "primary")
+
+		return nil, nil
 	case readpref.PrimaryPreferredMode:
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
