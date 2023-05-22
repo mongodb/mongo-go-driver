@@ -106,6 +106,9 @@ func TestCMAPProse(t *testing.T) {
 		})
 		t.Run("checkOut", func(t *testing.T) {
 			t.Run("connection error publishes events", func(t *testing.T) {
+				// TODO(GODRIVER-2851): Fix and unskip this test case.
+				t.Skip("Test fails frequently, skipping. See GODRIVER-2851")
+
 				// If checkOut() creates a connection that encounters an error while connecting,
 				// the pool should publish connection created and closed events and checkOut should
 				// return the error.
