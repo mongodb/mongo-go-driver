@@ -40,15 +40,16 @@ type batchCursor interface {
 	// the cursor that implements it.
 	SetBatchSize(int32)
 
-	// SetMaxTime will set the maximum number of time the server will allow
-	// the operations to execute. This field cannot be sent if the cursor
-	// was not configured with awaitData=true. The time.Duration value
-	// passed by this setter will be converted to millisecond before being
-	// sent to the server, rounding down to the nearest millisecond.
+	// SetMaxTime will set the maximum amount of time the server will allow
+	// the operations to execute. The server will error if this field is set
+	// but the cursor is not configured with awaitData=true.
+	//
+	// The time.Duration value passed by this setter will be converted and
+	// rounded down to the nearest millisecond.
 	SetMaxTime(time.Duration)
 
 	// SetComment will set a user-configurable comment that can be used to
-	// identify the operation in logs.
+	// identify the operation in server logs.
 	SetComment(interface{})
 }
 

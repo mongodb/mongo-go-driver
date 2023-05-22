@@ -358,7 +358,6 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			if bc.comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
 				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
 			}
-
 			return dst, nil
 		},
 		Database:   bc.database,
@@ -439,13 +438,13 @@ func (bc *BatchCursor) SetBatchSize(size int32) {
 	bc.batchSize = size
 }
 
-// SetMaxTime will set the maximum number of time the server will allow the
-// operations to execute. This field cannot be sent if the cursor was not
-// configured with awaitData=true. The time.Duration value passed by this setter
-// will be converted to millisecond before being sent to the server, rounding
+// SetMaxTime will set the maximum amount of time the server will allow the
+// operations to execute. The server will error if this field is set but the
+// cursor is not configured with awaitData=true.
+//
+// The time.Duration value passed by this setter will be converted and rounded
 // down to the nearest millisecond.
 func (bc *BatchCursor) SetMaxTime(dur time.Duration) {
-	fmt.Println("moop")
 	bc.maxTimeMS = int64(dur / time.Millisecond)
 }
 

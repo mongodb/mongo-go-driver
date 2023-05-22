@@ -320,17 +320,18 @@ func (c *Cursor) SetBatchSize(batchSize int32) {
 	c.bc.SetBatchSize(batchSize)
 }
 
-// SetMaxTime will set the maximum number of time the server will allow the
-// operations to execute. This field cannot be sent if the cursor was not
-// configured with awaitData=true. The time.Duration value passed by this setter
-// will be converted to milliseconds before being sent to the server, rounding
+// SetMaxTime will set the maximum amount of time the server will allow the
+// operations to execute. The server will error if this field is set but the
+// cursor is not configured with awaitData=true.
+//
+// The time.Duration value passed by this setter will be converted and rounded
 // down to the nearest millisecond.
 func (c *Cursor) SetMaxTime(dur time.Duration) {
 	c.bc.SetMaxTime(dur)
 }
 
 // SetComment will set a user-configurable comment that can be used to identify
-// the operation in logs.
+// the operation in server logs.
 func (c *Cursor) SetComment(comment interface{}) {
 	c.bc.SetComment(comment)
 }

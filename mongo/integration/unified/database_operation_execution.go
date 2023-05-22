@@ -140,9 +140,9 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 	}
 
 	if collID := operation.ResultEntityID; collID != nil {
-		collEO := newCollectionEntityOptions(*collID, operation.Object, collName, nil)
+		collEntityOpts := newCollectionEntityOptions(*collID, operation.Object, collName, nil)
 
-		err := entities(ctx).addCollectionEntity(collEO)
+		err := entities(ctx).addCollectionEntity(collEntityOpts)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save collection as entity: %w", err)
 		}
@@ -307,8 +307,6 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 		case "comment":
 			comment = val.Document()
 		case "maxTimeMS":
-			// The Go Driver does not support this option.
-
 			maxTime = time.Duration(val.AsInt64()) * time.Millisecond
 		case "cursorTimeout":
 			return nil, newSkipTestError("cursorType not supported")
@@ -395,7 +393,7 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 	}
 
 	// Test runners MUST ensure that the server-side cursor is created (i.e.
-	// the command document has executed) as part of this operation
+	// the command document has executed) as part of this operation.
 	cursor, err := db.RunCommandCursor(ctx, command, opts)
 	if err != nil {
 		return newErrorResult(err), nil

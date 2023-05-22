@@ -668,8 +668,6 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	return nil
 }
 
-// databaseID, collection optionsk, collection id, collection name
-
 func (em *EntityMap) addCollectionEntity(entityOptions *entityOptions) error {
 	db, ok := em.dbEntites[entityOptions.DatabaseID]
 	if !ok {
