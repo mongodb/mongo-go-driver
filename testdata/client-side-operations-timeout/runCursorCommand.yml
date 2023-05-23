@@ -89,7 +89,7 @@ tests:
         object: *db
         arguments:
           commandName: find
-          timeoutMS: 60
+          timeoutMS: 100
           command: { find: *collection, batchSize: 2 }
         expectError:
           isTimeoutError: true
@@ -125,14 +125,14 @@ tests:
             data:
               failCommands: ["getMore"]
               blockConnection: true
-              blockTimeMS: 15
+              blockTimeMS: 60
       - name: runCursorCommand
         object: *db
         arguments:
           commandName: find
           command: { find: *collection, batchSize: 2 }
           timeoutMode: iteration
-          timeoutMS: 20
+          timeoutMS: 100
           batchSize: 2
         expectError:
           isTimeoutError: true
@@ -170,7 +170,7 @@ tests:
             data:
               failCommands: ["getMore"]
               blockConnection: true
-              blockTimeMS: 15
+              blockTimeMS: 60
       - name: dropCollection
         object: *db
         arguments:
@@ -195,7 +195,7 @@ tests:
           commandName: find
           command: { find: *cappedCollection, batchSize: 1, tailable: true }
           timeoutMode: iteration
-          timeoutMS: 20
+          timeoutMS: 100
           batchSize: 1
           cursorType: tailable
         saveResultAsEntity: &tailableCursor tailableCursor
@@ -248,7 +248,7 @@ tests:
             data:
               failCommands: ["getMore"]
               blockConnection: true
-              blockTimeMS: 15
+              blockTimeMS: 60
       - name: dropCollection
         object: *db
         arguments:
