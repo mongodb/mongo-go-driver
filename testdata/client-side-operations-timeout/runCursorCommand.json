@@ -149,7 +149,7 @@
                   "getMore"
                 ],
                 "blockConnection": true,
-                "blockTimeMS": 45
+                "blockTimeMS": 60
               }
             }
           }
