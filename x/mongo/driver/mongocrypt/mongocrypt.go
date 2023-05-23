@@ -88,11 +88,6 @@ func NewMongoCrypt(opts *options.MongoCryptOptions) (*MongoCrypt, error) {
 		C.mongocrypt_setopt_bypass_query_analysis(wrapped)
 	}
 
-	// Enable Queryable Encryption V2 protocol.
-	if !C.mongocrypt_setopt_fle2v2(wrapped, true) {
-		return nil, crypt.createErrorFromStatus()
-	}
-
 	// If loading the crypt_shared library isn't disabled, set the default library search path "$SYSTEM"
 	// and set a library override path if one was provided.
 	if !opts.CryptSharedLibDisabled {
@@ -399,6 +394,11 @@ func (m *MongoCrypt) RewrapDataKeyContext(filter []byte, opts *options.RewrapMan
 	ctx := newContext(C.mongocrypt_ctx_new(m.wrapped))
 	if ctx.wrapped == nil {
 		return nil, m.createErrorFromStatus()
+	}
+
+	if opts.MasterKey != nil && opts.Provider == nil {
+		// Provider is nil, but MasterKey is set. This is an error.
+		return nil, fmt.Errorf("expected 'Provider' to be set to identify type of 'MasterKey'")
 	}
 
 	if opts.Provider != nil {

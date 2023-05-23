@@ -12,3 +12,12 @@ perf
 **mongocryptd.pid
 *.test
 .DS_Store
+main.so
+
+# AWS SAM-generated files
+internal/test/faas/awslambda/.aws-sam
+internal/test/faas/awslambda/events/event.json
+
+# Ignore compiled binaries from the compilecheck
+internal/test/compilecheck/compilecheck
+internal/test/compilecheck/compilecheck.so

@@ -184,6 +184,9 @@ func TestServerSelectionProse(t *testing.T) {
 
 	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded)
 	mt.RunOpts("operationCount-based selection within latency window, no failpoint", mtOpts, func(mt *mtest.T) {
+		// TODO(GODRIVER-2842): Fix and unskip this test case.
+		mt.Skip("Test fails frequently, skipping. See GODRIVER-2842")
+
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne() error")
 

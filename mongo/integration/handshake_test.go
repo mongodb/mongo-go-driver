@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2023-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package integration
 
 import (
@@ -78,7 +84,7 @@ func TestHandshakeProse(t *testing.T) {
 		want bson.D
 	}{
 		{
-			name: "valid AWS",
+			name: "1. valid AWS",
 			env: map[string]string{
 				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
 				envVarAWSRegion:                   "us-east-2",
@@ -91,7 +97,7 @@ func TestHandshakeProse(t *testing.T) {
 			}),
 		},
 		{
-			name: "valid Azure",
+			name: "2. valid Azure",
 			env: map[string]string{
 				envVarFunctionsWorkerRuntime: "node",
 			},
@@ -100,7 +106,7 @@ func TestHandshakeProse(t *testing.T) {
 			}),
 		},
 		{
-			name: "valid GCP",
+			name: "3. valid GCP",
 			env: map[string]string{
 				envVarKService:           "servicename",
 				envVarFunctionMemoryMB:   "1024",
@@ -115,7 +121,7 @@ func TestHandshakeProse(t *testing.T) {
 			}),
 		},
 		{
-			name: "valid Vercel",
+			name: "4. valid Vercel",
 			env: map[string]string{
 				envVarVercel:       "1",
 				envVarVercelRegion: "cdg1",
@@ -126,7 +132,7 @@ func TestHandshakeProse(t *testing.T) {
 			}),
 		},
 		{
-			name: "invalid multiple providers",
+			name: "5. invalid multiple providers",
 			env: map[string]string{
 				envVarAWSExecutionEnv:        "AWS_Lambda_java8",
 				envVarFunctionsWorkerRuntime: "node",
@@ -134,7 +140,7 @@ func TestHandshakeProse(t *testing.T) {
 			want: clientMetadata(nil),
 		},
 		{
-			name: "invalid long string",
+			name: "6. invalid long string",
 			env: map[string]string{
 				envVarAWSExecutionEnv: "AWS_Lambda_java8",
 				envVarAWSRegion: func() string {
@@ -150,7 +156,7 @@ func TestHandshakeProse(t *testing.T) {
 			}),
 		},
 		{
-			name: "invalid wrong types",
+			name: "7. invalid wrong types",
 			env: map[string]string{
 				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
 				envVarAWSLambdaFunctionMemorySize: "big",
@@ -158,6 +164,13 @@ func TestHandshakeProse(t *testing.T) {
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
 			}),
+		},
+		{
+			name: "8. Invalid - AWS_EXECUTION_ENV does not start with \"AWS_Lambda_\"",
+			env: map[string]string{
+				envVarAWSExecutionEnv: "EC2",
+			},
+			want: clientMetadata(nil),
 		},
 	} {
 		test := test
