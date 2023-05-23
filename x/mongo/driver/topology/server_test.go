@@ -837,6 +837,8 @@ func TestServer(t *testing.T) {
 }
 
 func TestServer_ProcessError(t *testing.T) {
+	t.Parallel()
+
 	processID := primitive.NewObjectID()
 	newProcessID := primitive.NewObjectID()
 
@@ -1003,7 +1005,6 @@ func TestServer_ProcessError(t *testing.T) {
 				},
 				stale: false,
 			},
-			// inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
