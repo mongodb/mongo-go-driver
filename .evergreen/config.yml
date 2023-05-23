@@ -115,10 +115,7 @@ functions:
              rm -rf libmongocrypt-all
              echo "fetching build for Windows ... end"
           else
-            git clone https://github.com/mongodb/libmongocrypt
-            cd libmongocrypt
-            git checkout $LIBMONGOCRYPT_TAG
-            cd ..
+            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
             if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
                 cat output.txt 1>&2
                 exit 1
