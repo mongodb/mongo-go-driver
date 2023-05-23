@@ -320,7 +320,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          ${BUILD_ENV|} make ${targets} BUILD_TAGS=${BUILD_TAGS|"-tags \"cse gssapi\""}
+          ${BUILD_ENV|} BUILD_TAGS=${BUILD_TAGS|-tags=cse,gssapi} make ${targets}
 
   run-tests:
     - command: shell.exec
@@ -514,7 +514,7 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
           AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
           AWS_DEFAULT_REGION="us-east-1" \
@@ -1053,7 +1053,7 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
           AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
           AZURE_TENANT_ID="${cse_azure_tenant_id}" \
@@ -1080,7 +1080,7 @@ functions:
           MONGODB_URI="${MONGODB_URI}" \
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
           AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
           AZURE_TENANT_ID="${cse_azure_tenant_id}" \
@@ -2030,7 +2030,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
@@ -2073,7 +2073,7 @@ tasks:
           script: |
             ${PREPARE_SHELL}
             echo "Building build-kms-test ... begin"
-            BUILD_TAGS="-tags cse" \
+            BUILD_TAGS="-tags=cse" \
             PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
               make build-kms-test
             echo "Building build-kms-test ... end"
@@ -2093,7 +2093,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
@@ -2118,7 +2118,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
@@ -2139,7 +2139,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
@@ -2181,7 +2181,7 @@ tasks:
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags cse" \
+          BUILD_TAGS="-tags=cse" \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
