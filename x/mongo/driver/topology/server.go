@@ -24,6 +24,7 @@ import (
 )
 
 const minHeartbeatInterval = 500 * time.Millisecond
+const wireVersion42 = 8 // Wire version for MongoDB 4.2
 
 // Server state constants.
 const (
@@ -448,7 +449,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 
 		res := driver.ServerMarkedUnknown
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
-		if cerr.NodeIsShuttingDown() || wireVersion == nil || wireVersion.Max < 8 {
+		if cerr.NodeIsShuttingDown() || wireVersion == nil || wireVersion.Max < wireVersion42 {
 			res = driver.ConnectionPoolCleared
 			s.pool.clear(err, serviceID)
 		}
@@ -467,7 +468,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 
 		res := driver.ServerMarkedUnknown
 		// If the node is shutting down or is older than 4.2, we synchronously clear the pool
-		if wcerr.NodeIsShuttingDown() || wireVersion == nil || wireVersion.Max < 8 {
+		if wcerr.NodeIsShuttingDown() || wireVersion == nil || wireVersion.Max < wireVersion42 {
 			res = driver.ConnectionPoolCleared
 			s.pool.clear(err, serviceID)
 		}

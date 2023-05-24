@@ -842,24 +842,6 @@ func TestServer_ProcessError(t *testing.T) {
 	processID := primitive.NewObjectID()
 	newProcessID := primitive.NewObjectID()
 
-	// newServerDescription is a convenience function for creating a server description with a
-	// specified kind, topology version process ID and counter, and last error.
-	newServerDescription := func(
-		kind description.ServerKind,
-		processID primitive.ObjectID,
-		counter int64,
-		lastError error,
-	) description.Server {
-		return description.Server{
-			Kind: kind,
-			TopologyVersion: &description.TopologyVersion{
-				ProcessID: processID,
-				Counter:   counter,
-			},
-			LastError: lastError,
-		}
-	}
-
 	testCases := []struct {
 		name string
 
@@ -920,12 +902,12 @@ func TestServer_ProcessError(t *testing.T) {
 				Kind: description.RSPrimary,
 			},
 		},
-		// Test that a "not primary" error with an old topology version is ignored.
+		// Test that a "not writable primary" error with an old topology version is ignored.
 		{
-			name:             "stale not primary error",
+			name:             "stale not writable primary error",
 			startDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
 			inputErr: driver.Error{
-				Code: 10107, // NotPrimary
+				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
 					ProcessID: processID,
 					Counter:   0,
@@ -936,13 +918,13 @@ func TestServer_ProcessError(t *testing.T) {
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
 		},
-		// Test that a "not primary" error with an newer topology version marks the Server as
-		// "unknown" and updates its topology version.
+		// Test that a "not writable primary" error with an newer topology version marks the Server
+		// as "unknown" and updates its topology version.
 		{
-			name:             "new not primary error",
+			name:             "new not writable primary error",
 			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
-				Code: 10107, // NotPrimary
+				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
 					ProcessID: processID,
 					Counter:   1,
@@ -952,20 +934,20 @@ func TestServer_ProcessError(t *testing.T) {
 			want:           driver.ServerMarkedUnknown,
 			wantGeneration: 0,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.Error{
-				Code: 10107, // NotPrimary
+				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
 					ProcessID: processID,
 					Counter:   1,
 				},
 			}),
 		},
-		// Test that a "not primary" error with an different topology process ID marks the Server as
+		// Test that a "not writable primary" error with an different topology process ID marks the Server as
 		// "unknown" and updates its topology version.
 		{
-			name:             "new process ID not primary error",
+			name:             "new process ID not writable primary error",
 			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
-				Code: 10107, // NotPrimary
+				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
 					ProcessID: newProcessID,
 					Counter:   0,
@@ -975,7 +957,7 @@ func TestServer_ProcessError(t *testing.T) {
 			want:           driver.ServerMarkedUnknown,
 			wantGeneration: 0,
 			wantDescription: newServerDescription(description.Unknown, newProcessID, 0, driver.Error{
-				Code: 10107, // NotPrimary
+				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
 					ProcessID: newProcessID,
 					Counter:   0,
@@ -989,7 +971,7 @@ func TestServer_ProcessError(t *testing.T) {
 			name:             "newer connection topology version",
 			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
-				Code: 10107, // NotPrimary
+				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
 					ProcessID: processID,
 					Counter:   1,
@@ -1032,13 +1014,13 @@ func TestServer_ProcessError(t *testing.T) {
 				},
 			}),
 		},
-		// Test that a "not primary" error with a stale topology version is ignored.
+		// Test that a "not writable primary" error with a stale topology version is ignored.
 		{
-			name:             "stale not primary write concern error",
+			name:             "stale not writable primary write concern error",
 			startDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotPrimary
+					Code: 10107, // NotWritablePrimary
 					TopologyVersion: &description.TopologyVersion{
 						ProcessID: processID,
 						Counter:   0,
@@ -1050,14 +1032,14 @@ func TestServer_ProcessError(t *testing.T) {
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
 		},
-		// Test that a "not primary" error with a newer topology version marks the Server as
-		// "unknown" and updates its topology version.
+		// Test that a "not writable primary" error with a newer topology version marks the Server
+		// as "unknown" and updates its topology version.
 		{
-			name:             "new not primary write concern error",
+			name:             "new not writable primary write concern error",
 			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotPrimary
+					Code: 10107, // NotWritablePrimary
 					TopologyVersion: &description.TopologyVersion{
 						ProcessID: processID,
 						Counter:   1,
@@ -1069,7 +1051,7 @@ func TestServer_ProcessError(t *testing.T) {
 			wantGeneration: 0,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotPrimary
+					Code: 10107, // NotWritablePrimary
 					TopologyVersion: &description.TopologyVersion{
 						ProcessID: processID,
 						Counter:   1,
@@ -1104,15 +1086,15 @@ func TestServer_ProcessError(t *testing.T) {
 				},
 			}),
 		},
-		// Test that "node is recovering" or "not primary" errors that have a newer topology version
-		// than the local Server topology version and appear to be from MongoDB servers before 4.2
-		// mark the Server as "unknown" and clear the connection pool.
+		// Test that "node is recovering" or "not writable primary" errors that have a newer
+		// topology version than the local Server topology version and appear to be from MongoDB
+		// servers before 4.2 mark the Server as "unknown" and clear the connection pool.
 		{
 			name:             "older than 4.2 write concern error",
 			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotPrimary
+					Code: 10107, // NotWritablePrimary
 					TopologyVersion: &description.TopologyVersion{
 						ProcessID: processID,
 						Counter:   1,
@@ -1124,7 +1106,7 @@ func TestServer_ProcessError(t *testing.T) {
 			wantGeneration: 1,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
-					Code: 10107, // NotPrimary
+					Code: 10107, // NotWritablePrimary
 					TopologyVersion: &description.TopologyVersion{
 						ProcessID: processID,
 						Counter:   1,
@@ -1285,4 +1267,22 @@ func (p *processErrorTestConn) Stale() bool {
 
 func (p *processErrorTestConn) Description() description.Server {
 	return p.description
+}
+
+// newServerDescription is a convenience function for creating a server description with a specified
+// kind, topology version process ID and counter, and last error.
+func newServerDescription(
+	kind description.ServerKind,
+	processID primitive.ObjectID,
+	counter int64,
+	lastError error,
+) description.Server {
+	return description.Server{
+		Kind: kind,
+		TopologyVersion: &description.TopologyVersion{
+			ProcessID: processID,
+			Counter:   counter,
+		},
+		LastError: lastError,
+	}
 }
