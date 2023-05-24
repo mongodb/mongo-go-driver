@@ -7,16 +7,24 @@
 package bsonoptions
 
 // UIntCodecOptions represents all possible options for uint encoding and decoding.
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 type UIntCodecOptions struct {
 	EncodeToMinSize *bool // Specifies if all uints except uint64 should be decoded to minimum size bsontype. Defaults to false.
 }
 
 // UIntCodec creates a new *UIntCodecOptions
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 func UIntCodec() *UIntCodecOptions {
 	return &UIntCodecOptions{}
 }
 
 // SetEncodeToMinSize specifies if all uints except uint64 should be decoded to minimum size bsontype. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.IntMinSize] instead.
 func (u *UIntCodecOptions) SetEncodeToMinSize(b bool) *UIntCodecOptions {
 	u.EncodeToMinSize = &b
 	return u

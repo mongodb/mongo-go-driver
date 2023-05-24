@@ -26,6 +26,9 @@ const (
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
 // TimeCodec registered.
 type TimeCodec struct {
+	// UseLocalTimeZone specifies if we should decode into the local time zone. Defaults to false.
+	//
+	// Deprecated: Use bson.Decoder.UseLocalTimeZone instead.
 	UseLocalTimeZone bool
 }
 
@@ -51,7 +54,7 @@ func NewTimeCodec(opts ...*bsonoptions.TimeCodecOptions) *TimeCodec {
 	return &codec
 }
 
-func (tc *TimeCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+func (tc *TimeCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tTime {
 		return emptyValue, ValueDecoderError{
 			Name:     "TimeDecodeValue",
@@ -102,7 +105,7 @@ func (tc *TimeCodec) decodeType(_ DecodeContext, vr bsonrw.ValueReader, t reflec
 		return emptyValue, fmt.Errorf("cannot decode %v into a time.Time", vrType)
 	}
 
-	if !tc.UseLocalTimeZone {
+	if !tc.UseLocalTimeZone && !dc.useLocalTimeZone {
 		timeVal = timeVal.UTC()
 	}
 	return reflect.ValueOf(timeVal), nil

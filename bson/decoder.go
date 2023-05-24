@@ -41,6 +41,7 @@ type Decoder struct {
 
 	binaryAsSlice     bool
 	useJSONStructTags bool
+	useLocalTimeZone  bool
 	zeroMaps          bool
 	zeroStructs       bool
 }
@@ -120,6 +121,9 @@ func (d *Decoder) Decode(val interface{}) error {
 	if d.useJSONStructTags {
 		d.dc.UseJSONStructTags()
 	}
+	if d.useLocalTimeZone {
+		d.dc.UseLocalTimeZone()
+	}
 	if d.zeroMaps {
 		d.dc.ZeroMaps()
 	}
@@ -180,6 +184,12 @@ func (d *Decoder) BinaryAsSlice() {
 // struct tag is not specified.
 func (d *Decoder) UseJSONStructTags() {
 	d.useJSONStructTags = true
+}
+
+// UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
+// of the UTC timezone.
+func (d *Decoder) UseLocalTimeZone() {
+	d.useLocalTimeZone = true
 }
 
 // ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value

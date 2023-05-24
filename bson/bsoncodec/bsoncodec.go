@@ -224,6 +224,7 @@ type DecodeContext struct {
 
 	binaryAsSlice     bool
 	useJSONStructTags bool
+	useLocalTimeZone  bool
 	zeroMaps          bool
 	zeroStructs       bool
 }
@@ -242,6 +243,14 @@ func (dc *DecodeContext) BinaryAsSlice() {
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.UseJSONStructTags] instead.
 func (dc *DecodeContext) UseJSONStructTags() {
 	dc.useJSONStructTags = true
+}
+
+// UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
+// of the UTC timezone.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.UseLocalTimeZone] instead.
+func (dc *DecodeContext) UseLocalTimeZone() {
+	dc.useLocalTimeZone = true
 }
 
 // ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value

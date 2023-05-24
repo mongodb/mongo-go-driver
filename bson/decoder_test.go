@@ -11,6 +11,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -314,6 +315,10 @@ func TestDecoderConfiguration(t *testing.T) {
 		StructFieldName string `json:"jsonFieldName"`
 	}
 
+	type localTimeZoneTest struct {
+		MyTime time.Time
+	}
+
 	type zeroMapsTest struct {
 		MyMap map[string]string
 	}
@@ -422,6 +427,19 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build(),
 			decodeInto: func() interface{} { return &jsonStructTest{} },
 			want:       &jsonStructTest{StructFieldName: "test value"},
+		},
+		// Test that UseLocalTimeZone causes the Decoder to use the local time zone for decoded
+		// time.Time values instead of UTC.
+		{
+			description: "UseLocalTimeZone",
+			configure: func(dec *Decoder) {
+				dec.UseLocalTimeZone()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDateTime("myTime", 1684349179939).
+				Build(),
+			decodeInto: func() interface{} { return &localTimeZoneTest{} },
+			want:       &localTimeZoneTest{MyTime: time.UnixMilli(1684349179939)},
 		},
 		// Test that ZeroMaps causes the Decoder to empty any Go map values before decoding BSON
 		// documents into them.

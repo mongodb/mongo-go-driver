@@ -7,6 +7,9 @@
 package bsonoptions
 
 // MapCodecOptions represents all possible options for map encoding and decoding.
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 type MapCodecOptions struct {
 	DecodeZerosMap   *bool // Specifies if the map should be zeroed before decoding into it. Defaults to false.
 	EncodeNilAsEmpty *bool // Specifies if a nil map should encode as an empty document instead of null. Defaults to false.
@@ -19,17 +22,24 @@ type MapCodecOptions struct {
 }
 
 // MapCodec creates a new *MapCodecOptions
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 func MapCodec() *MapCodecOptions {
 	return &MapCodecOptions{}
 }
 
 // SetDecodeZerosMap specifies if the map should be zeroed before decoding into it. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.ZeroMaps] instead.
 func (t *MapCodecOptions) SetDecodeZerosMap(b bool) *MapCodecOptions {
 	t.DecodeZerosMap = &b
 	return t
 }
 
 // SetEncodeNilAsEmpty specifies if a nil map should encode as an empty document instead of null. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.NilMapAsEmpty] instead.
 func (t *MapCodecOptions) SetEncodeNilAsEmpty(b bool) *MapCodecOptions {
 	t.EncodeNilAsEmpty = &b
 	return t
@@ -40,6 +50,8 @@ func (t *MapCodecOptions) SetEncodeNilAsEmpty(b bool) *MapCodecOptions {
 // type must either be a string, an integer type, or implement bsoncodec.KeyUnmarshaler. If true, keys are encoded with
 // fmt.Sprint() and the encoding key type must be a string, an integer type, or a float. If true, the use of Stringer
 // will override TextMarshaler/TextUnmarshaler. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.StringifyMapKeysWithFmt] instead.
 func (t *MapCodecOptions) SetEncodeKeysWithStringer(b bool) *MapCodecOptions {
 	t.EncodeKeysWithStringer = &b
 	return t
