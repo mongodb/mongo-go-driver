@@ -502,13 +502,10 @@ func TestClient(t *testing.T) {
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%s'", evt.CommandName)
 
-		// Attempt to get the readPreference mode. If the mode is
-		// "Primary," then there will be no readPreference mode set on
-		// the wire message. In this case we can skip the test.
-		modeVal := evt.Command.Lookup("$readPreference", "mode")
-		if modeVal.Type.String() == "invalid" {
-			return
-		}
+		// A direct connection will result in a single topology, and so
+		// the default readPreference mode should be "primaryPrefered".
+		modeVal, err := evt.Command.LookupErr("$readPreference", "mode")
+		assert.Nil(mt, err, "expected command %s to include $readPreference", evt.Command)
 
 		mode := modeVal.StringValue()
 		assert.Equal(mt, mode, "primaryPreferred", "expected read preference mode primaryPreferred, got %v", mode)

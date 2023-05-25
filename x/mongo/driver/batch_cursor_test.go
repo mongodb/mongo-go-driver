@@ -7,6 +7,7 @@
 package driver
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -93,13 +94,14 @@ func TestBatchCursor(t *testing.T) {
 	})
 }
 
-func TestBatchCursorSetComment(t *testing.T) {
+func TestCommentToBSONCoreValue(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name    string
 		comment interface{}
 		want    string
+		err     error
 	}{
 		{
 			name:    "empty",
@@ -137,10 +139,21 @@ func TestBatchCursorSetComment(t *testing.T) {
 			bc := BatchCursor{}
 			bc.SetComment(test.comment)
 
-			got := bc.comment.String()
-			if got != test.want {
-				t.Fatalf("bc.comment=%v, want %v", got, test.want)
+			value, err := commentToBSONCoreValue(test.comment)
+			if !errors.Is(err, test.err) {
+				t.Fatalf("failed to convert comment to bsoncore.Value: %v", err)
 			}
+
+			if value == nil && test.want != "" {
+				t.Fatalf("expected comment=%v, got: nil", test.want)
+			}
+
+			if value == nil && test.want == "" {
+				return
+			}
+
+			got := value.String()
+			assert.Equal(t, test.want, got, "expected and actual comments are different")
 		})
 	}
 }
@@ -159,14 +172,8 @@ func TestBatchCursorSetMaxTime(t *testing.T) {
 			want: 0,
 		},
 		{
-			name: "non-specified (nanosecond) input",
-			// 10 million nanoseconds = 10 millseconds
-			dur:  time.Duration(10_000_000),
-			want: 10,
-		},
-		{
-			name: "non-millisecond input",
-			dur:  10_000 * time.Microsecond,
+			name: "partial milliseconds are truncated",
+			dur:  10_900 * time.Microsecond,
 			want: 10,
 		},
 		{
@@ -186,9 +193,7 @@ func TestBatchCursorSetMaxTime(t *testing.T) {
 			bc.SetMaxTime(test.dur)
 
 			got := bc.maxTimeMS
-			if got != test.want {
-				t.Fatalf("bc.maxTimeMS=%v, want %v", got, test.want)
-			}
+			assert.Equal(t, test.want, got, "expected and actual maxTimeMS are different")
 		})
 	}
 }

@@ -148,7 +148,7 @@ func executeCreateCollection(ctx context.Context, operation *operation) (*operat
 		}
 	}
 
-	return newErrorResult(nil), nil
+	return newEmptyResult(), nil
 }
 
 func executeDropCollection(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -410,5 +410,5 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 		}
 	}
 
-	return newErrorResult(nil), nil
+	return newCursorResult(nil), nil
 }

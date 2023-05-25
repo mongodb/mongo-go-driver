@@ -123,6 +123,7 @@ type ConnString struct {
 	SSLDisableOCSPEndpointCheckSet     bool
 	Timeout                            time.Duration
 	TimeoutSet                         bool
+	WaitQueueTimeoutMS                 time.Duration
 	WString                            string
 	WNumber                            int
 	WNumberSet                         bool
@@ -907,6 +908,14 @@ func (p *parser) addOption(pair string) error {
 			return fmt.Errorf("invalid value for %q: %q", key, value)
 		}
 		p.SSLDisableOCSPEndpointCheckSet = true
+	case "waitqueuetimeoutms":
+		dur, err := time.ParseDuration(value + "ms")
+		if err != nil {
+			return fmt.Errorf("invalid value for %q: %q", key, value)
+		}
+
+		p.WaitQueueTimeoutMS = dur
+		fmt.Println("DUR!!!", dur)
 	case "w":
 		if w, err := strconv.Atoi(value); err == nil {
 			if w < 0 {

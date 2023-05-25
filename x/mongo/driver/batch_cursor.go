@@ -28,7 +28,7 @@ import (
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
-	comment              bsoncore.Value
+	comment              interface{}
 	database             string
 	collection           string
 	id                   int64
@@ -329,6 +329,40 @@ func calcGetMoreBatchSize(bc BatchCursor) (int32, bool) {
 	return gmBatchSize, true
 }
 
+// commentToBSONCoreValue will convert the input comment from an "any" type to
+// a bsoncore.Value. If the conversion cannot occur, this function returns nil.
+// If marshaling the comment for the bsoncore.Value Data failes, this comment
+// will return an error.
+func commentToBSONCoreValue(comment interface{}) (*bsoncore.Value, error) {
+	if comment == nil {
+		return nil, nil
+	}
+
+	// If the comment is already a bsoncore.Value, then do nothing.
+	if value, ok := comment.(bsoncore.Value); ok {
+		return &value, nil
+	}
+
+	refValue := reflect.ValueOf(comment)
+	if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
+		return nil, nil
+	}
+
+	registry := bson.DefaultRegistry
+	buf := make([]byte, 0, 256)
+
+	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], comment)
+	if err != nil {
+		return nil, err
+	}
+
+	if bsonType != bsontype.EmbeddedDocument {
+		return nil, nil
+	}
+
+	return &bsoncore.Value{Type: bsonType, Data: bsonValue}, nil
+}
+
 func (bc *BatchCursor) getMore(ctx context.Context) {
 	bc.clearBatch()
 	if bc.id == 0 {
@@ -354,10 +388,18 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			if bc.maxTimeMS > 0 {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
-			// The getMore command does not support commenting pre-4.4.
-			if bc.comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
-				dst = bsoncore.AppendValueElement(dst, "comment", bc.comment)
+
+			comment, err := commentToBSONCoreValue(bc.comment)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing comment: %w", err)
 			}
+
+			// The getMore command does not support commenting pre-4.4.
+			if comment != nil && comment.Type != bsontype.Type(0) &&
+				bc.serverDescription.WireVersion.Max >= 9 {
+				dst = bsoncore.AppendValueElement(dst, "comment", *comment)
+			}
+
 			return dst, nil
 		},
 		Database:   bc.database,
@@ -450,28 +492,7 @@ func (bc *BatchCursor) SetMaxTime(dur time.Duration) {
 
 // SetComment sets the comment for future getMore operations.
 func (bc *BatchCursor) SetComment(comment interface{}) {
-	if comment == nil {
-		return
-	}
-
-	refValue := reflect.ValueOf(comment)
-	if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
-		return
-	}
-
-	registry := bson.DefaultRegistry
-	buf := make([]byte, 0, 256)
-
-	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], comment)
-	if err != nil {
-		return
-	}
-
-	if bsonType != bsontype.EmbeddedDocument {
-		return
-	}
-
-	bc.comment = bsoncore.Value{Type: bsonType, Data: bsonValue}
+	bc.comment = comment
 }
 
 func (bc *BatchCursor) getOperationDeployment() Deployment {
