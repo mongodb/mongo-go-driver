@@ -1087,9 +1087,6 @@ func ExampleCollection_Find_primitiveRegex() {
 
 	defer client.Disconnect(ctx)
 
-	coll := client.Database("test").Collection("test")
-	defer coll.Drop(ctx)
-
 	type Pet struct {
 		Type string `bson:"type"`
 		Name string `bson:"name"`
@@ -1101,6 +1098,8 @@ func ExampleCollection_Find_primitiveRegex() {
 		Pet{Type: "cat", Name: "Mo"},
 		Pet{Type: "dog", Name: "Loki"},
 	}
+
+	coll := client.Database("test").Collection("test")
 
 	if _, err := coll.InsertMany(ctx, toInsert); err != nil {
 		panic(err)
@@ -1129,9 +1128,6 @@ func ExampleCollection_Find_regex() {
 
 	defer client.Disconnect(ctx)
 
-	coll := client.Database("test").Collection("test")
-	defer coll.Drop(ctx)
-
 	type Pet struct {
 		Type string `bson:"type"`
 		Name string `bson:"name"`
@@ -1143,6 +1139,8 @@ func ExampleCollection_Find_regex() {
 		Pet{Type: "cat", Name: "Mo"},
 		Pet{Type: "dog", Name: "Loki"},
 	}
+
+	coll := client.Database("test").Collection("test")
 
 	if _, err := coll.InsertMany(ctx, toInsert); err != nil {
 		panic(err)
