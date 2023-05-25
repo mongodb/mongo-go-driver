@@ -410,5 +410,5 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 		}
 	}
 
-	return newCursorResult(nil), nil
+	return newEmptyResult(), nil
 }

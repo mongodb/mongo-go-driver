@@ -331,7 +331,7 @@ func calcGetMoreBatchSize(bc BatchCursor) (int32, bool) {
 
 // commentToBSONCoreValue will convert the input comment from an "any" type to
 // a bsoncore.Value. If the conversion cannot occur, this function returns nil.
-// If marshaling the comment for the bsoncore.Value Data failes, this comment
+// If marshaling the comment for the bsoncore.Value Data fails, this comment
 // will return an error.
 func commentToBSONCoreValue(comment interface{}) (*bsoncore.Value, error) {
 	if comment == nil {
