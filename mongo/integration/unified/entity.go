@@ -85,7 +85,7 @@ type entityOptions struct {
 }
 
 // newCollectionEntityOptions constructs an entity options object for a
-// collection
+// collection.
 func newCollectionEntityOptions(id string, databaseID string, collectionName string,
 	opts *dbOrCollectionOptions) *entityOptions {
 	options := &entityOptions{

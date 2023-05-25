@@ -350,8 +350,8 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 	return newCursorResult(docs), nil
 }
 
-// executeCreatecommandCurosr proxies the database's runCursorCommand method and
-// supports the same arguments and options.
+// executeCreateRunCursorCommand proxies the database's runCursorCommand method
+// and supports the same arguments and options.
 func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*operationResult, error) {
 	db, err := entities(ctx).database(operation.Object)
 	if err != nil {
