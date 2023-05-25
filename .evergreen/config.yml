@@ -2463,6 +2463,7 @@ task_groups:
     teardown_group:
       - command: shell.exec
         params:
+          shell: "bash"
           script: |
             ${PREPARE_SHELL}
 
