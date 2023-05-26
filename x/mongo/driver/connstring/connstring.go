@@ -915,7 +915,6 @@ func (p *parser) addOption(pair string) error {
 		}
 
 		p.WaitQueueTimeoutMS = dur
-		fmt.Println("DUR!!!", dur)
 	case "w":
 		if w, err := strconv.Atoi(value); err == nil {
 			if w < 0 {
