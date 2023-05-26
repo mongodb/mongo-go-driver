@@ -2625,7 +2625,7 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 }
 
 // RunCommandExamples contains examples of RunCommand operations.
-// Appears at https://www.mongodb.com/docs/manual/reference/command/collStats/.
+// Appears at https://www.mongodb.com/docs/manual/reference/command/buildInfo/.
 func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	ctx := context.Background()
 
@@ -2679,15 +2679,6 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 		res := db.RunCommand(ctx, bson.D{{"buildInfo", 1}})
 
 		// End RunCommand Example 1
-
-		err := res.Err()
-		require.NoError(t, err)
-	}
-	{
-		// Start RunCommand Example 2
-		res := db.RunCommand(ctx, bson.D{{"collStats", "restaurants"}})
-
-		// End RunCommand Example 2
 
 		err := res.Err()
 		require.NoError(t, err)
