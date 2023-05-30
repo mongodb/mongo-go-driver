@@ -141,6 +141,17 @@ func TestParseDecimal128(t *testing.T) {
 		bigIntTestCase{s: "0.10000000000000000000000000000000000000000001", remark: "parse fail"},
 		bigIntTestCase{s: ".125e1", h: 0x303c000000000000, l: 125},
 		bigIntTestCase{s: ".125", h: 0x303a000000000000, l: 125},
+		// Test that parsing negative zero returns negative zero with a zero exponent.
+		bigIntTestCase{s: "-0", h: 0xb040000000000000, l: 0},
+		// Test that parsing negative zero with an in-range exponent returns negative zero and
+		// preserves the specified exponent value.
+		bigIntTestCase{s: "-0E999", h: 0xb80e000000000000, l: 0},
+		// Test that parsing zero with an out-of-range positive exponent returns zero with the
+		// maximum positive exponent (i.e. 0e+6111).
+		bigIntTestCase{s: "0E2000000000000", h: 0x5ffe000000000000, l: 0},
+		// Test that parsing zero with an out-of-range negative exponent returns zero with the
+		// minimum negative exponent (i.e. 0e-6176).
+		bigIntTestCase{s: "-0E2000000000000", h: 0xdffe000000000000, l: 0},
 		bigIntTestCase{s: "", remark: "parse fail"})
 
 	for _, c := range cases {
@@ -148,13 +159,16 @@ func TestParseDecimal128(t *testing.T) {
 			switch c.remark {
 			case "overflow", "parse fail":
 				_, err := ParseDecimal128(c.s)
-				require.Error(t, err)
-			case "", "rounding", "subnormal", "clamped", "NaN", "Infinity", "-Infinity":
-				d128, err := ParseDecimal128(c.s)
-				require.NoError(t, err)
+				assert.Error(t, err, "ParseDecimal128(%q) should return an error", c.s)
+			default:
+				got, err := ParseDecimal128(c.s)
+				require.NoError(t, err, "ParseDecimal128(%q) error", c.s)
 
-				require.Equal(t, c.h, d128.h, "case %s", c.s, d128.l)
-				require.Equal(t, c.l, d128.l, "case %s", c.s, d128.h)
+				want := Decimal128{h: c.h, l: c.l}
+				// Decimal128 doesn't implement an equality function, so compare the expected
+				// low/high uint64 values directly. Also print the string representation of each
+				// number to make debugging failures easier.
+				assert.Equal(t, want, got, "ParseDecimal128(%q) = %s, want %s", c.s, got, want)
 			}
 		})
 	}
