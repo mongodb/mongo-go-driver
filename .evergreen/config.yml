@@ -22,6 +22,7 @@ exec_timeout_secs: 3600
 timeout:
   - command: shell.exec
     params:
+      shell: "bash"
       script: |
         ls -la
 functions:
@@ -34,6 +35,7 @@ functions:
     # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           set -o errexit
@@ -113,11 +115,11 @@ functions:
              rm -rf libmongocrypt-all
              echo "fetching build for Windows ... end"
           else
-            git clone https://github.com/mongodb/libmongocrypt
-            cd libmongocrypt
-            git checkout $LIBMONGOCRYPT_TAG
-            cd ..
-            ./libmongocrypt/.evergreen/compile.sh
+            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
+            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
+                cat output.txt 1>&2
+                exit 1
+            fi
           fi
 
           cat <<EOT > expansion.yml
@@ -153,6 +155,7 @@ functions:
   prepare-resources:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           rm -rf $DRIVERS_TOOLS
@@ -165,6 +168,7 @@ functions:
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -174,8 +178,8 @@ functions:
           git submodule update
     - command: shell.exec
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
@@ -192,6 +196,7 @@ functions:
   upload-mo-artifacts:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
@@ -219,6 +224,7 @@ functions:
   bootstrap-mongohoused:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -226,6 +232,7 @@ functions:
           DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh build-mongohouse-local.sh
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           ${PREPARE_SHELL}
@@ -236,6 +243,7 @@ functions:
   bootstrap-mongo-orchestration:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -254,6 +262,7 @@ functions:
   ocsp-bootstrap-mongo-orchestration:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -270,6 +279,7 @@ functions:
   cleanup:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           cd "$MONGO_ORCHESTRATION_HOME"
@@ -286,6 +296,7 @@ functions:
   fix-absolute-paths:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
@@ -295,6 +306,7 @@ functions:
   windows-fix:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
@@ -307,6 +319,7 @@ functions:
   make-files-executable:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
@@ -317,6 +330,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -326,6 +340,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
         script: |
@@ -341,6 +356,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -364,6 +380,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -393,6 +410,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -422,6 +440,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -454,6 +473,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -473,6 +493,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -536,6 +557,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -581,6 +603,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
         script: |
@@ -599,6 +622,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -611,8 +635,8 @@ functions:
   run-valid-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -626,8 +650,8 @@ functions:
   run-revoked-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -643,8 +667,8 @@ functions:
   run-valid-delegate-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -658,8 +682,8 @@ functions:
   run-revoked-delegate-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -675,6 +699,7 @@ functions:
   run-load-balancer:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh start
     - command: expansions.update
@@ -684,6 +709,7 @@ functions:
   stop-load-balancer:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
           # balancer is not running.
@@ -693,6 +719,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -724,8 +751,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
@@ -734,6 +761,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -746,6 +774,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -755,8 +784,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
@@ -765,6 +794,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -783,6 +813,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -792,8 +823,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
@@ -806,6 +837,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -822,6 +854,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -833,6 +866,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -842,6 +876,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -855,6 +890,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -864,6 +900,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -875,8 +912,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
@@ -902,8 +939,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
@@ -916,6 +953,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -932,6 +970,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -943,6 +982,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -960,6 +1000,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -980,6 +1021,7 @@ functions:
           . ./activate-kmstlsvenv.sh
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -996,6 +1038,7 @@ functions:
           . ./activate-kmstlsvenv.sh
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -1013,6 +1056,7 @@ functions:
 
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -1029,6 +1073,7 @@ functions:
           fi
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -1042,6 +1087,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1069,6 +1115,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1098,6 +1145,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -2025,8 +2073,8 @@ tasks:
     - command: shell.exec
       type: setup
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2051,8 +2099,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
@@ -2068,8 +2116,8 @@ tasks:
       - command: shell.exec
         type: test
         params:
-          working_dir: src/go.mongodb.org/mongo-driver
           shell: "bash"
+          working_dir: src/go.mongodb.org/mongo-driver
           script: |
             ${PREPARE_SHELL}
             echo "Building build-kms-test ... begin"
@@ -2088,8 +2136,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2113,8 +2161,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2134,8 +2182,8 @@ tasks:
     - command: shell.exec
       type: setup
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2159,8 +2207,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
@@ -2176,8 +2224,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2415,6 +2463,7 @@ task_groups:
     teardown_group:
       - command: shell.exec
         params:
+          shell: "bash"
           script: |
             ${PREPARE_SHELL}
 
