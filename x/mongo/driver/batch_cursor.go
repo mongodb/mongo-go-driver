@@ -391,7 +391,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 			comment, err := commentToBSONCoreValue(bc.comment)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing comment: %w", err)
+				return nil, fmt.Errorf("error marshaling comment as a BSON value: %w", err)
 			}
 
 			// The getMore command does not support commenting pre-4.4.
