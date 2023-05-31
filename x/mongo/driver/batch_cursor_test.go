@@ -136,9 +136,6 @@ func TestCommentToBSONCoreValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			bc := BatchCursor{}
-			bc.SetComment(test.comment)
-
 			value, err := commentToBSONCoreValue(test.comment)
 			if !errors.Is(err, test.err) {
 				t.Fatalf("failed to convert comment to bsoncore.Value: %v", err)
