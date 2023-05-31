@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -330,38 +329,6 @@ func calcGetMoreBatchSize(bc BatchCursor) (int32, bool) {
 	}
 
 	return gmBatchSize, true
-}
-
-// commentToBSONCoreValue will convert the input comment from an "any" type to
-// a bsoncore.Value. If the conversion cannot occur, this function returns nil.
-// If marshaling the comment for the bsoncore.Value Data fails, this comment
-// will return an error.
-func commentToBSONCoreValue(comment interface{}, registry *bsoncodec.Registry) (*bsoncore.Value, error) {
-	if comment == nil {
-		return nil, nil
-	}
-
-	// If the comment is already a bsoncore.Value, then do nothing.
-	if value, ok := comment.(bsoncore.Value); ok {
-		return &value, nil
-	}
-
-	if registry == nil {
-		registry = bson.DefaultRegistry
-	}
-
-	buf := make([]byte, 0, 256)
-
-	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], comment)
-	if err != nil {
-		return nil, err
-	}
-
-	if bsonType != bsontype.EmbeddedDocument {
-		return nil, nil
-	}
-
-	return &bsoncore.Value{Type: bsonType, Data: bsonValue}, nil
 }
 
 func (bc *BatchCursor) getMore(ctx context.Context) {
