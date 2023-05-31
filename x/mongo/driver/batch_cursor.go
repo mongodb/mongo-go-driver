@@ -10,11 +10,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
@@ -29,6 +29,7 @@ type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
 	comment              interface{}
+	registry             *bsoncodec.Registry
 	database             string
 	collection           string
 	id                   int64
@@ -143,6 +144,7 @@ type CursorOptions struct {
 	CommandMonitor *event.CommandMonitor
 	Crypt          Crypt
 	ServerAPI      *ServerAPIOptions
+	Registry       *bsoncodec.Registry
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -166,6 +168,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		crypt:                opts.Crypt,
 		serverAPI:            opts.ServerAPI,
 		serverDescription:    cr.Desc,
+		registry:             opts.Registry,
 	}
 
 	if ds != nil {
@@ -333,7 +336,7 @@ func calcGetMoreBatchSize(bc BatchCursor) (int32, bool) {
 // a bsoncore.Value. If the conversion cannot occur, this function returns nil.
 // If marshaling the comment for the bsoncore.Value Data fails, this comment
 // will return an error.
-func commentToBSONCoreValue(comment interface{}) (*bsoncore.Value, error) {
+func commentToBSONCoreValue(comment interface{}, registry *bsoncodec.Registry) (*bsoncore.Value, error) {
 	if comment == nil {
 		return nil, nil
 	}
@@ -343,12 +346,15 @@ func commentToBSONCoreValue(comment interface{}) (*bsoncore.Value, error) {
 		return &value, nil
 	}
 
-	refValue := reflect.ValueOf(comment)
-	if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
-		return nil, nil
+	//refValue := reflect.ValueOf(comment)
+	//if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
+	//	return nil, nil
+	//}
+
+	if registry == nil {
+		registry = bson.DefaultRegistry
 	}
 
-	registry := bson.DefaultRegistry
 	buf := make([]byte, 0, 256)
 
 	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], comment)
@@ -389,7 +395,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
 
-			comment, err := commentToBSONCoreValue(bc.comment)
+			comment, err := commentToBSONCoreValue(bc.comment, bc.registry)
 			if err != nil {
 				return nil, fmt.Errorf("error marshaling comment as a BSON value: %w", err)
 			}

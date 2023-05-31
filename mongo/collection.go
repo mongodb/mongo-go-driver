@@ -813,6 +813,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 
 	ao := options.MergeAggregateOptions(a.opts...)
 	cursorOpts := a.client.createBaseCursorOptions()
+	cursorOpts.Registry = a.registry
 
 	op := operation.NewAggregate(pipelineArr).
 		Session(sess).
@@ -1195,6 +1196,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
+	cursorOpts.Registry = coll.registry
+
 	if fo.AllowDiskUse != nil {
 		op.AllowDiskUse(*fo.AllowDiskUse)
 	}

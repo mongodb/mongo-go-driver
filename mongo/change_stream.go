@@ -105,6 +105,9 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ctx = context.Background()
 	}
 
+	cursorOpts := config.client.createBaseCursorOptions()
+	cursorOpts.Registry = config.registry
+
 	cs := &ChangeStream{
 		client:     config.client,
 		registry:   config.registry,
@@ -114,7 +117,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 			description.ReadPrefSelector(config.readPreference),
 			description.LatencySelector(config.client.localThreshold),
 		}),
-		cursorOptions: config.client.createBaseCursorOptions(),
+		cursorOptions: cursorOpts,
 	}
 
 	cs.sess = sessionFromContext(ctx)

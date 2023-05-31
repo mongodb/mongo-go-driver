@@ -94,6 +94,8 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		Timeout(iv.coll.client.timeout)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
+	cursorOpts.Registry = iv.coll.registry
+
 	lio := options.MergeListIndexesOptions(opts...)
 	if lio.BatchSize != nil {
 		op = op.BatchSize(*lio.BatchSize)
