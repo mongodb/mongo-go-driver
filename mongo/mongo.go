@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
@@ -123,6 +124,13 @@ func transformAndEnsureID(registry *bsoncodec.Registry, val interface{}) (bsonco
 	}
 
 	return doc, id, nil
+}
+
+func transformValue(registry *bsoncodec.Registry, val interface{},
+	mapAllowed bool, paramName string) (bsoncore.Value, error) {
+	v, err := internal.NewBSONValue(registry, val, mapAllowed, paramName)
+
+	return v, replaceErrors(err)
 }
 
 func transformBsoncoreDocument(registry *bsoncodec.Registry, val interface{}, mapAllowed bool, paramName string) (bsoncore.Document, error) {
