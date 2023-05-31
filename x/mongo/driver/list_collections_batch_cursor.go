@@ -19,7 +19,7 @@ import (
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly
 // handles current and legacy ListCollections operations.
 //
-// TODO(GODRIVER-2861): Merge ListCollectionsBatchCursor into BatchCursor
+// TODO(GODRIVER-2861): Merge ListCollectionsBatchCursor into BatchCursor.
 type ListCollectionsBatchCursor struct {
 	legacy       bool // server version < 3.0
 	bc           *BatchCursor

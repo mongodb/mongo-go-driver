@@ -1559,7 +1559,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 
 		// OP_MSG requires never sending read preference "primary"
 		// except for topology "single".
-
+		//
 		// It is important to note that although the Go Driver does not
 		// support legacy opcodes, OP_QUERY has different rules for
 		// adding read preference to commands.

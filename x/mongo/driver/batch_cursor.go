@@ -346,11 +346,6 @@ func commentToBSONCoreValue(comment interface{}, registry *bsoncodec.Registry) (
 		return &value, nil
 	}
 
-	//refValue := reflect.ValueOf(comment)
-	//if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
-	//	return nil, nil
-	//}
-
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
