@@ -10,6 +10,7 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -182,7 +183,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
 		Logger(bw.collection.client.logger)
 	if bw.comment != nil {
-		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
+		comment, err := internal.NewBSONValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
 			return op.Result(), err
 		}
@@ -240,7 +241,7 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
 		Logger(bw.collection.client.logger)
 	if bw.comment != nil {
-		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
+		comment, err := internal.NewBSONValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
 			return op.Result(), err
 		}
@@ -286,7 +287,7 @@ func createDeleteDoc(filter interface{}, collation *options.Collation, hint inte
 		doc = bsoncore.AppendDocumentElement(doc, "collation", collation.ToDocument())
 	}
 	if hint != nil {
-		hintVal, err := transformValue(registry, hint, false, "hint")
+		hintVal, err := internal.NewBSONValue(registry, hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}
@@ -336,7 +337,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI).
 		Timeout(bw.collection.client.timeout).Logger(bw.collection.client.logger)
 	if bw.comment != nil {
-		comment, err := transformValue(bw.collection.registry, bw.comment, true, "comment")
+		comment, err := internal.NewBSONValue(bw.collection.registry, bw.comment, true, "comment")
 		if err != nil {
 			return op.Result(), err
 		}
@@ -412,7 +413,7 @@ func createUpdateDoc(
 	}
 
 	if hint != nil {
-		hintVal, err := transformValue(registry, hint, false, "hint")
+		hintVal, err := internal.NewBSONValue(registry, hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}

@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -85,6 +86,21 @@ func replaceErrors(err error) error {
 	}
 	if me, ok := err.(mongocrypt.Error); ok {
 		return MongocryptError{Code: me.Code, Message: me.Message}
+	}
+
+	if _, ok := err.(internal.ErrNilValue); ok {
+		return ErrNilValue
+	}
+
+	if ordArgErr, ok := err.(internal.ErrMapForOrderedArgument); ok {
+		return ErrMapForOrderedArgument{ParamName: ordArgErr.ParamName}
+	}
+
+	if marshalErr, ok := err.(internal.ErrMarshal); ok {
+		return MarshalError{
+			Value: marshalErr.Value,
+			Err:   marshalErr.Err,
+		}
 	}
 
 	return err

@@ -390,15 +390,14 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
 
-			comment, err := commentToBSONCoreValue(bc.comment, bc.registry)
+			comment, err := internal.NewBSONValue(bc.registry, bc.comment, true, "comment")
 			if err != nil {
 				return nil, fmt.Errorf("error marshaling comment as a BSON value: %w", err)
 			}
 
 			// The getMore command does not support commenting pre-4.4.
-			if comment != nil && comment.Type != bsontype.Type(0) &&
-				bc.serverDescription.WireVersion.Max >= 9 {
-				dst = bsoncore.AppendValueElement(dst, "comment", *comment)
+			if comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
+				dst = bsoncore.AppendValueElement(dst, "comment", comment)
 			}
 
 			return dst, nil

@@ -281,7 +281,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
 	if imo.Comment != nil {
-		comment, err := transformValue(coll.registry, imo.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, imo.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -438,7 +438,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		doc = bsoncore.AppendDocumentElement(doc, "collation", do.Collation.ToDocument())
 	}
 	if do.Hint != nil {
-		hint, err := transformValue(coll.registry, do.Hint, false, "hint")
+		hint, err := internal.NewBSONValue(coll.registry, do.Hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}
@@ -454,7 +454,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
 	if do.Comment != nil {
-		comment, err := transformValue(coll.registry, do.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, do.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -573,7 +573,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
 	}
 	if uo.Comment != nil {
-		comment, err := transformValue(coll.registry, uo.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, uo.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -852,14 +852,14 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if ao.Comment != nil {
 		op.Comment(*ao.Comment)
 
-		commentVal, err := transformValue(a.registry, ao.Comment, true, "comment")
+		commentVal, err := internal.NewBSONValue(a.registry, ao.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
 		cursorOpts.Comment = commentVal
 	}
 	if ao.Hint != nil {
-		hintVal, err := transformValue(a.registry, ao.Hint, false, "hint")
+		hintVal, err := internal.NewBSONValue(a.registry, ao.Hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}
@@ -957,7 +957,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		op.Comment(*countOpts.Comment)
 	}
 	if countOpts.Hint != nil {
-		hintVal, err := transformValue(coll.registry, countOpts.Hint, false, "hint")
+		hintVal, err := internal.NewBSONValue(coll.registry, countOpts.Hint, false, "hint")
 		if err != nil {
 			return 0, err
 		}
@@ -1034,7 +1034,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		Timeout(coll.client.timeout).MaxTime(co.MaxTime)
 
 	if co.Comment != nil {
-		comment, err := transformValue(coll.registry, co.Comment, false, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, co.Comment, false, "comment")
 		if err != nil {
 			return 0, err
 		}
@@ -1104,7 +1104,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
 	}
 	if option.Comment != nil {
-		comment, err := transformValue(coll.registry, option.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, option.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -1214,7 +1214,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.Comment != nil {
 		op.Comment(*fo.Comment)
 
-		commentVal, err := transformValue(coll.registry, fo.Comment, true, "comment")
+		commentVal, err := internal.NewBSONValue(coll.registry, fo.Comment, true, "comment")
 		if err != nil {
 			return nil, err
 		}
@@ -1230,7 +1230,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 	}
 	if fo.Hint != nil {
-		hint, err := transformValue(coll.registry, fo.Hint, false, "hint")
+		hint, err := internal.NewBSONValue(coll.registry, fo.Hint, false, "hint")
 		if err != nil {
 			return nil, err
 		}
@@ -1444,7 +1444,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
 	if fod.Comment != nil {
-		comment, err := transformValue(coll.registry, fod.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, fod.Comment, true, "comment")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1465,7 +1465,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		op = op.Sort(sort)
 	}
 	if fod.Hint != nil {
-		hint, err := transformValue(coll.registry, fod.Hint, false, "hint")
+		hint, err := internal.NewBSONValue(coll.registry, fod.Hint, false, "hint")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1521,7 +1521,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
 	if fo.Comment != nil {
-		comment, err := transformValue(coll.registry, fo.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, fo.Comment, true, "comment")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1548,7 +1548,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		op = op.Upsert(*fo.Upsert)
 	}
 	if fo.Hint != nil {
-		hint, err := transformValue(coll.registry, fo.Hint, false, "hint")
+		hint, err := internal.NewBSONValue(coll.registry, fo.Hint, false, "hint")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1616,7 +1616,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		op = op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
 	if fo.Comment != nil {
-		comment, err := transformValue(coll.registry, fo.Comment, true, "comment")
+		comment, err := internal.NewBSONValue(coll.registry, fo.Comment, true, "comment")
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1643,7 +1643,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		op = op.Upsert(*fo.Upsert)
 	}
 	if fo.Hint != nil {
-		hint, err := transformValue(coll.registry, fo.Hint, false, "hint")
+		hint, err := internal.NewBSONValue(coll.registry, fo.Hint, false, "hint")
 		if err != nil {
 			return &SingleResult{err: err}
 		}

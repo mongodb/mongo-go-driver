@@ -7,11 +7,9 @@
 package driver
 
 import (
-	"errors"
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -92,67 +90,6 @@ func TestBatchCursor(t *testing.T) {
 			})
 		}
 	})
-}
-
-func TestCommentToBSONCoreValue(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		comment interface{}
-		want    string
-		err     error
-	}{
-		{
-			name:    "empty",
-			comment: nil,
-			want:    "",
-		},
-		{
-			name:    "bson.D",
-			comment: bson.D{{"foo", "bar"}},
-			want:    `{"foo": "bar"}`,
-		},
-		{
-			name:    "map",
-			comment: map[string]interface{}{"foo": "bar"},
-			want:    `{"foo": "bar"}`,
-		},
-		{
-			name:    "struct",
-			comment: struct{ Foo string }{Foo: "bar"},
-			want:    `{"foo": "bar"}`,
-		},
-		{
-			name:    "non-document type",
-			comment: "foo: bar",
-			want:    "",
-		},
-	}
-
-	for _, test := range tests {
-		test := test
-
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			value, err := commentToBSONCoreValue(test.comment, nil)
-			if !errors.Is(err, test.err) {
-				t.Fatalf("failed to convert comment to bsoncore.Value: %v", err)
-			}
-
-			if value == nil && test.want != "" {
-				t.Fatalf("expected comment=%v, got: nil", test.want)
-			}
-
-			if value == nil && test.want == "" {
-				return
-			}
-
-			got := value.String()
-			assert.Equal(t, test.want, got, "expected and actual comments are different")
-		})
-	}
 }
 
 func TestBatchCursorSetMaxTime(t *testing.T) {
