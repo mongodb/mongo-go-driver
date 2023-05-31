@@ -15,6 +15,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -31,17 +33,27 @@ type Cursor struct {
 	bc            batchCursor
 	batch         *bsoncore.DocumentSequence
 	batchLength   int
+	bsonOpts      *options.BSONOptions
 	registry      *bsoncodec.Registry
 	clientSession *session.Client
 
 	err error
 }
 
-func newCursor(bc batchCursor, registry *bsoncodec.Registry) (*Cursor, error) {
-	return newCursorWithSession(bc, registry, nil)
+func newCursor(
+	bc batchCursor,
+	bsonOpts *options.BSONOptions,
+	registry *bsoncodec.Registry,
+) (*Cursor, error) {
+	return newCursorWithSession(bc, bsonOpts, registry, nil)
 }
 
-func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry, clientSession *session.Client) (*Cursor, error) {
+func newCursorWithSession(
+	bc batchCursor,
+	bsonOpts *options.BSONOptions,
+	registry *bsoncodec.Registry,
+	clientSession *session.Client,
+) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
@@ -50,6 +62,7 @@ func newCursorWithSession(bc batchCursor, registry *bsoncodec.Registry, clientSe
 	}
 	c := &Cursor{
 		bc:            bc,
+		bsonOpts:      bsonOpts,
 		registry:      registry,
 		clientSession: clientSession,
 	}
@@ -203,10 +216,59 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 	}
 }
 
+func getDecoder(
+	data []byte,
+	opts *options.BSONOptions,
+	reg *bsoncodec.Registry,
+) (*bson.Decoder, error) {
+	dec, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
+	if err != nil {
+		return nil, err
+	}
+
+	if opts != nil {
+		if opts.AllowTruncatingDoubles {
+			dec.AllowTruncatingDoubles()
+		}
+		if opts.BinaryAsSlice {
+			dec.BinaryAsSlice()
+		}
+		if opts.DefaultDocumentD {
+			dec.DefaultDocumentD()
+		}
+		if opts.DefaultDocumentM {
+			dec.DefaultDocumentM()
+		}
+		if opts.UseJSONStructTags {
+			dec.UseJSONStructTags()
+		}
+		if opts.UseLocalTimeZone {
+			dec.UseLocalTimeZone()
+		}
+		if opts.ZeroMaps {
+			dec.ZeroMaps()
+		}
+		if opts.ZeroStructs {
+			dec.ZeroStructs()
+		}
+	}
+
+	if reg != nil {
+		dec.SetRegistry(reg)
+	}
+
+	return dec, nil
+}
+
 // Decode will unmarshal the current document into val and return any errors from the unmarshalling process without any
 // modification. If val is nil or is a typed nil, an error will be returned.
 func (c *Cursor) Decode(val interface{}) error {
-	return bson.UnmarshalWithRegistry(c.registry, c.Current, val)
+	dec, err := getDecoder(c.Current, c.bsonOpts, c.registry)
+	if err != nil {
+		return fmt.Errorf("error configuring BSON decoder: %w", err)
+	}
+
+	return dec.Decode(val)
 }
 
 // Err returns the last error seen by the Cursor, or nil if no error has occurred.

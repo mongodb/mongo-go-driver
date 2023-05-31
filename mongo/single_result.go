@@ -9,9 +9,11 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ErrNoDocuments is returned by SingleResult methods when the operation that created the SingleResult did not return
@@ -22,11 +24,12 @@ var ErrNoDocuments = errors.New("mongo: no documents in result")
 // SingleResult methods will return that error. If the operation did not return any documents, all SingleResult methods
 // will return ErrNoDocuments.
 type SingleResult struct {
-	ctx context.Context
-	err error
-	cur *Cursor
-	rdr bson.Raw
-	reg *bsoncodec.Registry
+	ctx      context.Context
+	err      error
+	cur      *Cursor
+	rdr      bson.Raw
+	bsonOpts *options.BSONOptions
+	reg      *bsoncodec.Registry
 }
 
 // NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
@@ -71,7 +74,13 @@ func (sr *SingleResult) Decode(v interface{}) error {
 	if sr.err = sr.setRdrContents(); sr.err != nil {
 		return sr.err
 	}
-	return bson.UnmarshalWithRegistry(sr.reg, sr.rdr, v)
+
+	dec, err := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
+	if err != nil {
+		return fmt.Errorf("error configuring BSON decoder: %w", err)
+	}
+
+	return dec.Decode(v)
 }
 
 // DecodeBytes will return the document represented by this SingleResult as a bson.Raw. If there was an error from the

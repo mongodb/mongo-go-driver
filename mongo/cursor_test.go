@@ -96,14 +96,14 @@ func TestCursor(t *testing.T) {
 
 	t.Run("TestAll", func(t *testing.T) {
 		t.Run("errors if argument is not pointer to slice", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 			err = cursor.All(context.Background(), []bson.D{})
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 
 		t.Run("fills slice with all documents", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			var docs []bson.D
@@ -118,7 +118,7 @@ func TestCursor(t *testing.T) {
 		})
 
 		t.Run("decodes each document into slice type", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			type Document struct {
@@ -136,7 +136,7 @@ func TestCursor(t *testing.T) {
 		})
 
 		t.Run("multiple batches are included", func(t *testing.T) {
-			cursor, err := newCursor(newTestBatchCursor(2, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(2, 5), nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 			var docs []bson.D
 			err = cursor.All(context.Background(), &docs)
@@ -153,7 +153,7 @@ func TestCursor(t *testing.T) {
 			var docs []bson.D
 
 			tbc := newTestBatchCursor(1, 5)
-			cursor, err := newCursor(tbc, nil)
+			cursor, err := newCursor(tbc, nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
@@ -164,7 +164,7 @@ func TestCursor(t *testing.T) {
 		t.Run("does not error given interface as parameter", func(t *testing.T) {
 			var docs interface{} = []bson.D{}
 
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
@@ -174,7 +174,7 @@ func TestCursor(t *testing.T) {
 		t.Run("errors when not given pointer to slice", func(t *testing.T) {
 			var docs interface{} = "test"
 
-			cursor, err := newCursor(newTestBatchCursor(1, 5), nil)
+			cursor, err := newCursor(newTestBatchCursor(1, 5), nil, nil)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
 			err = cursor.All(context.Background(), &docs)
