@@ -309,7 +309,7 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 		case "maxTimeMS":
 			maxTime = time.Duration(val.AsInt64()) * time.Millisecond
 		case "cursorTimeout":
-			return nil, newSkipTestError("cursorType not supported")
+			return nil, newSkipTestError("cursorTimeout not supported")
 		case "timeoutMode":
 			return nil, newSkipTestError("timeoutMode not supported")
 		default:
