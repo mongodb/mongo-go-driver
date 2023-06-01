@@ -23,7 +23,7 @@ type collectionData struct {
 	DatabaseName   string                 `bson:"databaseName"`
 	CollectionName string                 `bson:"collectionName"`
 	Documents      []bson.Raw             `bson:"documents"`
-	Options        *collectionDataOptions `bson:"collectionOptions"`
+	Options        *collectionDataOptions `bson:"createOptions"`
 }
 
 type collectionDataOptions struct {
