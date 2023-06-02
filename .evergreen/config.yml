@@ -2298,10 +2298,10 @@ axes:
       - id: "windows-64-go-1-18"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2017-test
+          - windows-vsCurrent-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1604-64-go-1-19"
         display_name: "Ubuntu 16.04"
@@ -2323,10 +2323,10 @@ axes:
       - id: "windows-64-go-1-18"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2017-test
+          - windows-vsCurrent-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
       - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
@@ -2357,10 +2357,10 @@ axes:
       - id: "windows-64-vs2017-small-go-1-19"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2017-small
+          - windows-vsCurrent-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
       - id: "ubuntu1804-64-go-1-19"
         display_name: "Ubuntu 18.04"
