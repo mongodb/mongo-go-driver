@@ -2294,7 +2294,7 @@ axes:
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-18"
+      - id: "windows-64-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
           - windows-vsCurrent-latest-small
@@ -2318,7 +2318,7 @@ axes:
   - id: os-ssl-40
     display_name: OS
     values:
-      - id: "windows-64-go-1-18"
+      - id: "windows-64-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
           - windows-vsCurrent-latest-small
@@ -2351,7 +2351,7 @@ axes:
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vs2017-small-go-1-20"
+      - id: "windows-64-vsCurrent-latest-small-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
           - windows-vsCurrent-latest-small
@@ -2649,7 +2649,7 @@ buildvariants:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-18"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
