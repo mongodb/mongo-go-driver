@@ -581,3 +581,8 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 func (h *Hello) FinishHandshake(context.Context, driver.Connection) error {
 	return nil
 }
+
+// Reauthenticate implements the Handshaker interface. This is a no-op function for a non-authenticated connection.
+func (h *Hello) Reauthenticate(context.Context, driver.Connection) error {
+	return nil
+}

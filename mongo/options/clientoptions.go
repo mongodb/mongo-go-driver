@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	mongoAuth "go.mongodb.org/mongo-driver/mongo/auth"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -90,6 +91,8 @@ type Credential struct {
 	Username                string
 	Password                string
 	PasswordSet             bool
+	OidcOnRequest           mongoAuth.OidcOnRequest
+	OidcOnRefresh           mongoAuth.OidcOnRefresh
 }
 
 // ClientOptions contains options to configure a Client instance. Each option can be set through setter functions. See

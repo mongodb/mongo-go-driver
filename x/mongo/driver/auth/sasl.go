@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -18,15 +19,16 @@ import (
 
 // SaslClient is the client piece of a sasl conversation.
 type SaslClient interface {
-	Start() (string, []byte, error)
-	Next(challenge []byte) ([]byte, error)
+	Start(addr address.Address) ([]byte, error)
+	Next(addr address.Address, challenge []byte) ([]byte, error)
 	Completed() bool
+	GetMechanism() string
 }
 
 // SaslClientCloser is a SaslClient that has resources to clean up.
 type SaslClientCloser interface {
 	SaslClient
-	Close()
+	Close(addr address.Address)
 }
 
 // ExtraOptionsSaslClient is a SaslClient that appends options to the saslStart command.
@@ -39,7 +41,6 @@ type ExtraOptionsSaslClient interface {
 type saslConversation struct {
 	client      SaslClient
 	source      string
-	mechanism   string
 	speculative bool
 }
 
@@ -57,19 +58,21 @@ func newSaslConversation(client SaslClient, source string, speculative bool) *sa
 	}
 }
 
+func (sc *saslConversation) GetHandshakeInformation(ctx context.Context, hello *operation.Hello, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
+	payload, err := sc.client.Start(addr)
+	if err != nil {
+		return driver.HandshakeInformation{}, err
+	}
+	doc := sc.composeFirstMessage(payload)
+	return hello.SpeculativeAuthenticate(doc).GetHandshakeInformation(ctx, addr, c)
+}
+
 // FirstMessage returns the first message to be sent to the server. This message contains a "db" field so it can be used
 // for speculative authentication.
-func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
-	var payload []byte
-	var err error
-	sc.mechanism, payload, err = sc.client.Start()
-	if err != nil {
-		return nil, err
-	}
-
+func (sc *saslConversation) composeFirstMessage(payload []byte) bsoncore.Document {
 	saslCmdElements := [][]byte{
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
-		bsoncore.AppendStringElement(nil, "mechanism", sc.mechanism),
+		bsoncore.AppendStringElement(nil, "mechanism", sc.client.GetMechanism()),
 		bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 	}
 	if sc.speculative {
@@ -83,7 +86,7 @@ func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
 	}
 
-	return bsoncore.BuildDocumentFromElements(nil, saslCmdElements...), nil
+	return bsoncore.BuildDocumentFromElements(nil, saslCmdElements...)
 }
 
 type saslResponse struct {
@@ -96,14 +99,18 @@ type saslResponse struct {
 // Finish completes the conversation based on the first server response to authenticate the given connection.
 func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstResponse bsoncore.Document) error {
 	if closer, ok := sc.client.(SaslClientCloser); ok {
-		defer closer.Close()
+		defer closer.Close(cfg.Description.Addr)
+	}
+
+	if firstResponse == nil {
+		return nil
 	}
 
 	var saslResp saslResponse
 	err := bson.Unmarshal(firstResponse, &saslResp)
 	if err != nil {
 		fullErr := fmt.Errorf("unmarshal error: %v", err)
-		return newError(fullErr, sc.mechanism)
+		return newError(fullErr, sc.client.GetMechanism())
 	}
 
 	cid := saslResp.ConversationID
@@ -111,16 +118,16 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 	var rdr bsoncore.Document
 	for {
 		if saslResp.Code != 0 {
-			return newError(err, sc.mechanism)
+			return newError(err, sc.client.GetMechanism())
 		}
 
 		if saslResp.Done && sc.client.Completed() {
 			return nil
 		}
 
-		payload, err = sc.client.Next(saslResp.Payload)
+		payload, err = sc.client.Next(cfg.Description.Addr, saslResp.Payload)
 		if err != nil {
-			return newError(err, sc.mechanism)
+			return newError(err, sc.client.GetMechanism())
 		}
 
 		if saslResp.Done && sc.client.Completed() {
@@ -140,14 +147,14 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 
 		err = saslContinueCmd.Execute(ctx)
 		if err != nil {
-			return newError(err, sc.mechanism)
+			return newError(err, sc.client.GetMechanism())
 		}
 		rdr = saslContinueCmd.Result()
 
 		err = bson.Unmarshal(rdr, &saslResp)
 		if err != nil {
 			fullErr := fmt.Errorf("unmarshal error: %v", err)
-			return newError(fullErr, sc.mechanism)
+			return newError(fullErr, sc.client.GetMechanism())
 		}
 	}
 }
@@ -157,17 +164,21 @@ func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
 
-	saslStartDoc, err := conversation.FirstMessage()
+	payload, err := conversation.client.Start(cfg.Description.Addr)
 	if err != nil {
-		return newError(err, conversation.mechanism)
+		return newError(err, conversation.client.GetMechanism())
 	}
+	saslStartDoc := conversation.composeFirstMessage(payload)
 	saslStartCmd := operation.NewCommand(saslStartDoc).
 		Database(authSource).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	if err := saslStartCmd.Execute(ctx); err != nil {
-		return newError(err, conversation.mechanism)
+		if closer, ok := client.(SaslClientCloser); ok {
+			defer closer.Close(cfg.Description.Addr)
+		}
+		return newError(err, conversation.client.GetMechanism())
 	}
 
 	return conversation.Finish(ctx, cfg, saslStartCmd.Result())

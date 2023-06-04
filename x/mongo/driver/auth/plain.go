@@ -8,6 +8,8 @@ package auth
 
 import (
 	"context"
+
+	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
 // PLAIN is the mechanism name for PLAIN.
@@ -41,12 +43,16 @@ type plainSaslClient struct {
 
 var _ SaslClient = (*plainSaslClient)(nil)
 
-func (c *plainSaslClient) Start() (string, []byte, error) {
-	b := []byte("\x00" + c.username + "\x00" + c.password)
-	return PLAIN, b, nil
+func (*plainSaslClient) GetMechanism() string {
+	return PLAIN
 }
 
-func (c *plainSaslClient) Next([]byte) ([]byte, error) {
+func (c *plainSaslClient) Start(address.Address) ([]byte, error) {
+	b := []byte("\x00" + c.username + "\x00" + c.password)
+	return b, nil
+}
+
+func (c *plainSaslClient) Next(address.Address, []byte) ([]byte, error) {
 	return nil, newAuthError("unexpected server challenge", nil)
 }
 

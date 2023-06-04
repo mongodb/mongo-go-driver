@@ -770,6 +770,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Labels = tt.Labels
 			operationErr.Raw = tt.Raw
 		case Error:
+			if e := conn.ResumeFromError(tt); e == nil {
+				continue
+			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				if err := op.Client.ClearPinnedResources(); err != nil {
 					return err
@@ -800,7 +803,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			// If retries are supported for the current operation on the first server description,
 			// the error is considered retryable, and there are retries remaining (negative retries
 			// means retry indefinitely), then retry the operation.
-			if retrySupported && retryableErr && retries != 0 {
+			if retrySupported && retryableErr && retries > 0 {
 				if op.Client != nil && op.Client.Committing {
 					// Apply majority write concern for retries
 					op.Client.UpdateCommitTransactionWriteConcern()

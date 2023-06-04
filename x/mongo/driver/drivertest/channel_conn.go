@@ -62,6 +62,11 @@ func (c *ChannelConn) Close() error {
 	return nil
 }
 
+// ResumeFromError implements the driver.Connection interface.
+func (c *ChannelConn) ResumeFromError(error) error {
+	return nil
+}
+
 // ID implements the driver.Connection interface.
 func (c *ChannelConn) ID() string {
 	return "faked"

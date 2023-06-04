@@ -9,6 +9,7 @@ package auth
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -36,8 +37,8 @@ type x509Conversation struct{}
 var _ SpeculativeConversation = (*x509Conversation)(nil)
 
 // FirstMessage returns the first message to be sent to the server.
-func (c *x509Conversation) FirstMessage() (bsoncore.Document, error) {
-	return createFirstX509Message(description.Server{}, ""), nil
+func (*x509Conversation) GetHandshakeInformation(ctx context.Context, hello *operation.Hello, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
+	return hello.SpeculativeAuthenticate(createFirstX509Message(description.Server{}, "")).GetHandshakeInformation(ctx, addr, c)
 }
 
 // createFirstX509Message creates the first message for the X509 conversation.
@@ -63,8 +64,8 @@ func (c *x509Conversation) Finish(context.Context, *Config, bsoncore.Document) e
 }
 
 // CreateSpeculativeConversation creates a speculative conversation for X509 authentication.
-func (a *MongoDBX509Authenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
-	return &x509Conversation{}, nil
+func (a *MongoDBX509Authenticator) CreateSpeculativeConversation() SpeculativeConversation {
+	return &x509Conversation{}
 }
 
 // Auth authenticates the provided connection by conducting an X509 authentication conversation.

@@ -18,6 +18,7 @@ import (
 
 	"github.com/xdg-go/scram"
 	"github.com/xdg-go/stringprep"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -86,8 +87,8 @@ func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
-func (a *ScramAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
-	return newSaslConversation(a.createSaslClient(), a.source, true), nil
+func (a *ScramAuthenticator) CreateSpeculativeConversation() SpeculativeConversation {
+	return newSaslConversation(a.createSaslClient(), a.source, true)
 }
 
 func (a *ScramAuthenticator) createSaslClient() SaslClient {
@@ -105,15 +106,19 @@ type scramSaslAdapter struct {
 var _ SaslClient = (*scramSaslAdapter)(nil)
 var _ ExtraOptionsSaslClient = (*scramSaslAdapter)(nil)
 
-func (a *scramSaslAdapter) Start() (string, []byte, error) {
-	step, err := a.conversation.Step("")
-	if err != nil {
-		return a.mechanism, nil, err
-	}
-	return a.mechanism, []byte(step), nil
+func (a *scramSaslAdapter) GetMechanism() string {
+	return a.mechanism
 }
 
-func (a *scramSaslAdapter) Next(challenge []byte) ([]byte, error) {
+func (a *scramSaslAdapter) Start(address.Address) ([]byte, error) {
+	step, err := a.conversation.Step("")
+	if err != nil {
+		return nil, err
+	}
+	return []byte(step), nil
+}
+
+func (a *scramSaslAdapter) Next(_ address.Address, challenge []byte) ([]byte, error) {
 	step, err := a.conversation.Step(string(challenge))
 	if err != nil {
 		return nil, err

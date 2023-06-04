@@ -48,6 +48,11 @@ func (th *testHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 	return nil
 }
 
+// Reauthenticate implements the Handshaker interface.
+func (th *testHandshaker) Reauthenticate(context.Context, driver.Connection) error {
+	return nil
+}
+
 var _ driver.Handshaker = &testHandshaker{}
 
 func TestConnection(t *testing.T) {

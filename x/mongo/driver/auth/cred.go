@@ -6,11 +6,17 @@
 
 package auth
 
+import (
+	"go.mongodb.org/mongo-driver/mongo/auth"
+)
+
 // Cred is a user's credential.
 type Cred struct {
-	Source      string
-	Username    string
-	Password    string
-	PasswordSet bool
-	Props       map[string]string
+	Source        string
+	Username      string
+	Password      string
+	PasswordSet   bool
+	Props         map[string]string
+	OidcOnRequest auth.OidcOnRequest
+	OidcOnRefresh auth.OidcOnRefresh
 }

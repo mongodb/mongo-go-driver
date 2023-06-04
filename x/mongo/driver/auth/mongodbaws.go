@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/internal/credproviders"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
 )
 
@@ -66,15 +67,19 @@ type awsSaslAdapter struct {
 
 var _ SaslClient = (*awsSaslAdapter)(nil)
 
-func (a *awsSaslAdapter) Start() (string, []byte, error) {
-	step, err := a.conversation.Step(nil)
-	if err != nil {
-		return MongoDBAWS, nil, err
-	}
-	return MongoDBAWS, step, nil
+func (a *awsSaslAdapter) GetMechanism() string {
+	return MongoDBAWS
 }
 
-func (a *awsSaslAdapter) Next(challenge []byte) ([]byte, error) {
+func (a *awsSaslAdapter) Start(address.Address) ([]byte, error) {
+	step, err := a.conversation.Step(nil)
+	if err != nil {
+		return nil, err
+	}
+	return step, nil
+}
+
+func (a *awsSaslAdapter) Next(_ address.Address, challenge []byte) ([]byte, error) {
 	step, err := a.conversation.Step(challenge)
 	if err != nil {
 		return nil, err

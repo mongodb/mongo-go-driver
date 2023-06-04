@@ -144,17 +144,19 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	// Auth & Database & Password & Username
 	if co.Auth != nil {
 		cred := &auth.Cred{
-			Username:    co.Auth.Username,
-			Password:    co.Auth.Password,
-			PasswordSet: co.Auth.PasswordSet,
-			Props:       co.Auth.AuthMechanismProperties,
-			Source:      co.Auth.AuthSource,
+			Username:      co.Auth.Username,
+			Password:      co.Auth.Password,
+			PasswordSet:   co.Auth.PasswordSet,
+			Props:         co.Auth.AuthMechanismProperties,
+			Source:        co.Auth.AuthSource,
+			OidcOnRequest: co.Auth.OidcOnRequest,
+			OidcOnRefresh: co.Auth.OidcOnRefresh,
 		}
 		mechanism := co.Auth.AuthMechanism
 
 		if len(cred.Source) == 0 {
 			switch strings.ToUpper(mechanism) {
-			case auth.MongoDBX509, auth.GSSAPI, auth.PLAIN:
+			case auth.MongoDBX509, auth.GSSAPI, auth.PLAIN, auth.MongoDBOIDC:
 				cred.Source = "$external"
 			default:
 				cred.Source = "admin"

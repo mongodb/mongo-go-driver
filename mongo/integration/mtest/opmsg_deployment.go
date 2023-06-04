@@ -85,6 +85,11 @@ func (*connection) Close() error {
 	return nil
 }
 
+// ResumeFromError is a no-op operation.
+func (*connection) ResumeFromError(error) error {
+	return nil
+}
+
 // ID returns a fixed identifier for the connection.
 func (*connection) ID() string {
 	return "<mock_connection>"

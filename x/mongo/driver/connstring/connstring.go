@@ -428,6 +428,20 @@ func (p *parser) setDefaultAuthParams(dbName string) error {
 		} else if p.AuthSource != "$external" {
 			return fmt.Errorf("auth source must be $external")
 		}
+	case "mongodb-oidc":
+		if p.AuthSource == "" {
+			p.AuthSource = "$external"
+		} else if p.AuthSource != "$external" {
+			return fmt.Errorf("auth source must be $external")
+		}
+		const defaultHosts = `[".mongodb.net", ".mongodb-dev.net", ".mongodbgov.net", "localhost", "127.0.0.1", "::1"]`
+		if p.AuthMechanismProperties == nil {
+			p.AuthMechanismProperties = map[string]string{
+				"ALLOWED_HOSTS": defaultHosts,
+			}
+		} else if v, ok := p.AuthMechanismProperties["ALLOWED_HOSTS"]; ok && v != "" {
+			return fmt.Errorf("ALLOWED_HOSTS is not allowed in the URI")
+		}
 	case "mongodb-cr":
 		fallthrough
 	case "scram-sha-1":
@@ -488,6 +502,13 @@ func (p *parser) validateAuth() error {
 		}
 		if token && p.Username == "" && p.Password == "" {
 			return fmt.Errorf("token without username and password is invalid for MONGODB-AWS")
+		}
+	case "mongodb-oidc":
+		if v, ok := p.AuthMechanismProperties["PROVIDER_NAME"]; ok && v != "" && p.UsernameSet {
+			return fmt.Errorf("username must not be specified in automatic authentication for MONGODB-OIDC")
+		}
+		if p.PasswordSet {
+			return fmt.Errorf("password must not be specified for MONGODB-OIDC")
 		}
 	case "gssapi":
 		if p.Username == "" {

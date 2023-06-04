@@ -33,6 +33,7 @@ func init() {
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
 	RegisterAuthenticatorFactory(MongoDBAWS, newMongoDBAWSAuthenticator)
+	RegisterAuthenticatorFactory(MongoDBOIDC, newOidcAuthenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
@@ -91,23 +92,16 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {
-			var err error
-			ah.conversation, err = speculativeAuth.CreateSpeculativeConversation()
-			if err != nil {
-				return driver.HandshakeInformation{}, newAuthError("failed to create conversation", err)
-			}
-
-			firstMsg, err := ah.conversation.FirstMessage()
-			if err != nil {
-				return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
-			}
-
-			op = op.SpeculativeAuthenticate(firstMsg)
+			ah.conversation = speculativeAuth.CreateSpeculativeConversation()
 		}
 	}
 
 	var err error
-	ah.handshakeInfo, err = op.GetHandshakeInformation(ctx, addr, conn)
+	if ah.conversation != nil {
+		ah.handshakeInfo, err = ah.conversation.GetHandshakeInformation(ctx, op, addr, conn)
+	} else {
+		ah.handshakeInfo, err = op.GetHandshakeInformation(ctx, addr, conn)
+	}
 	if err != nil {
 		return driver.HandshakeInformation{}, newAuthError("handshake failure", err)
 	}
@@ -124,18 +118,8 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 		}
 	}
 
-	desc := conn.Description()
-	if performAuth(desc) && ah.options.Authenticator != nil {
-		cfg := &Config{
-			Description:   desc,
-			Connection:    conn,
-			ClusterClock:  ah.options.ClusterClock,
-			HandshakeInfo: ah.handshakeInfo,
-			ServerAPI:     ah.options.ServerAPI,
-			HTTPClient:    ah.options.HTTPClient,
-		}
-
-		if err := ah.authenticate(ctx, cfg); err != nil {
+	if performAuth(conn.Description()) && ah.options.Authenticator != nil {
+		if err := ah.authenticate(ctx, ah.getConfig(conn)); err != nil {
 			return newAuthError("auth error", err)
 		}
 	}
@@ -146,20 +130,38 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 	return ah.wrapped.FinishHandshake(ctx, conn)
 }
 
+func (ah *authHandshaker) getConfig(conn driver.Connection) *Config {
+	return &Config{
+		Description:   conn.Description(),
+		Connection:    conn,
+		ClusterClock:  ah.options.ClusterClock,
+		HandshakeInfo: ah.handshakeInfo,
+		ServerAPI:     ah.options.ServerAPI,
+		HTTPClient:    ah.options.HTTPClient,
+	}
+}
+
 func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
-	// If the initial hello reply included a response to the speculative authentication attempt, we only need to
-	// conduct the remainder of the conversation.
-	if speculativeResponse := ah.handshakeInfo.SpeculativeAuthenticate; speculativeResponse != nil {
-		// Defensively ensure that the server did not include a response if speculative auth was not attempted.
-		if ah.conversation == nil {
-			return errors.New("speculative auth was not attempted but the server included a response")
+	speculativeResponse := ah.handshakeInfo.SpeculativeAuthenticate
+	// Conduct the remainder of the conversation for speculative authentication attempt.
+	if ah.conversation != nil {
+		err := ah.conversation.Finish(ctx, cfg, speculativeResponse)
+		// Finish the conversation if the initial hello reply included a response.
+		if speculativeResponse != nil {
+			return err
 		}
-		return ah.conversation.Finish(ctx, cfg, speculativeResponse)
+	} else if speculativeResponse != nil {
+		// Defensively ensure that the server did not include a response if speculative auth was not attempted.
+		return errors.New("speculative auth was not attempted but the server included a response")
 	}
 
 	// If the server does not support speculative authentication or the first attempt was not successful, we need to
 	// perform authentication from scratch.
 	return ah.options.Authenticator.Auth(ctx, cfg)
+}
+
+func (ah *authHandshaker) Reauthenticate(ctx context.Context, conn driver.Connection) error {
+	return ah.options.Authenticator.Auth(ctx, ah.getConfig(conn))
 }
 
 // Handshaker creates a connection handshaker for the given authenticator.
@@ -186,14 +188,14 @@ type Authenticator interface {
 	Auth(context.Context, *Config) error
 }
 
-func newAuthError(msg string, inner error) error {
+func newAuthError(msg string, inner error) *Error {
 	return &Error{
 		message: msg,
 		inner:   inner,
 	}
 }
 
-func newError(err error, mech string) error {
+func newError(err error, mech string) *Error {
 	return &Error{
 		message: fmt.Sprintf("unable to authenticate using mechanism \"%s\"", mech),
 		inner:   err,

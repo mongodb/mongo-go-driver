@@ -756,6 +756,7 @@ type mockConnection struct {
 
 func (m *mockConnection) Description() description.Server { return m.rDesc }
 func (m *mockConnection) Close() error                    { return m.rCloseErr }
+func (m *mockConnection) ResumeFromError(error) error     { return nil }
 func (m *mockConnection) ID() string                      { return m.rID }
 func (m *mockConnection) ServerConnectionID() *int32      { return m.rServerConnID }
 func (m *mockConnection) Address() address.Address        { return m.rAddr }

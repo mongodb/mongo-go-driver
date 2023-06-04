@@ -43,7 +43,7 @@ type DefaultAuthenticator struct {
 var _ SpeculativeAuthenticator = (*DefaultAuthenticator)(nil)
 
 // CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
-func (a *DefaultAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
+func (a *DefaultAuthenticator) CreateSpeculativeConversation() SpeculativeConversation {
 	return a.speculativeAuthenticator.CreateSpeculativeConversation()
 }
 

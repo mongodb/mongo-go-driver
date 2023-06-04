@@ -85,6 +85,7 @@ type LoadBalancedTransactionConnection interface {
 	ReadWireMessage(ctx context.Context) ([]byte, error)
 	Description() description.Server
 	Close() error
+	ResumeFromError(error) error
 	ID() string
 	ServerConnectionID() *int32
 	Address() address.Address

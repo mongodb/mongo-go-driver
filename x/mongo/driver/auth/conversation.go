@@ -9,7 +9,10 @@ package auth
 import (
 	"context"
 
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 // SpeculativeConversation represents an authentication conversation that can be merged with the initial connection
@@ -21,11 +24,11 @@ import (
 // Finish takes the server response to the initial message and conducts the remainder of the conversation to
 // authenticate the provided connection.
 type SpeculativeConversation interface {
-	FirstMessage() (bsoncore.Document, error)
+	GetHandshakeInformation(ctx context.Context, hello *operation.Hello, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error)
 	Finish(ctx context.Context, cfg *Config, firstResponse bsoncore.Document) error
 }
 
 // SpeculativeAuthenticator represents an authenticator that supports speculative authentication.
 type SpeculativeAuthenticator interface {
-	CreateSpeculativeConversation() (SpeculativeConversation, error)
+	CreateSpeculativeConversation() SpeculativeConversation
 }
