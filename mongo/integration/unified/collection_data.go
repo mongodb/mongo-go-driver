@@ -20,9 +20,9 @@ import (
 )
 
 type collectionData struct {
-	DatabaseName   string                 `bson:"databaseName"`
-	CollectionName string                 `bson:"collectionName"`
-	Documents      []bson.Raw             `bson:"documents"`
+	DatabaseName   string         `bson:"databaseName"`
+	CollectionName string         `bson:"collectionName"`
+	Documents      []bson.Raw     `bson:"documents"`
 	Options        *createOptions `bson:"createOptions"`
 }
 
