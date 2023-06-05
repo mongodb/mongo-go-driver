@@ -22,6 +22,7 @@ exec_timeout_secs: 3600
 timeout:
   - command: shell.exec
     params:
+      shell: "bash"
       script: |
         ls -la
 functions:
@@ -34,6 +35,7 @@ functions:
     # Make an evergreen expansion file with dynamic values
     - command: shell.exec
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           set -o errexit
@@ -113,11 +115,11 @@ functions:
              rm -rf libmongocrypt-all
              echo "fetching build for Windows ... end"
           else
-            git clone https://github.com/mongodb/libmongocrypt
-            cd libmongocrypt
-            git checkout $LIBMONGOCRYPT_TAG
-            cd ..
-            ./libmongocrypt/.evergreen/compile.sh
+            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
+            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
+                cat output.txt 1>&2
+                exit 1
+            fi
           fi
 
           cat <<EOT > expansion.yml
@@ -153,6 +155,7 @@ functions:
   prepare-resources:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           rm -rf $DRIVERS_TOOLS
@@ -165,6 +168,7 @@ functions:
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -174,8 +178,8 @@ functions:
           git submodule update
     - command: shell.exec
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
@@ -192,6 +196,7 @@ functions:
   upload-mo-artifacts:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
@@ -219,6 +224,7 @@ functions:
   bootstrap-mongohoused:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -226,6 +232,7 @@ functions:
           DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh build-mongohouse-local.sh
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           ${PREPARE_SHELL}
@@ -236,6 +243,7 @@ functions:
   bootstrap-mongo-orchestration:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -254,6 +262,7 @@ functions:
   ocsp-bootstrap-mongo-orchestration:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
 
@@ -270,6 +279,7 @@ functions:
   cleanup:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           cd "$MONGO_ORCHESTRATION_HOME"
@@ -286,6 +296,7 @@ functions:
   fix-absolute-paths:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           for filename in $(find ${DRIVERS_TOOLS} -name \*.json); do
@@ -295,6 +306,7 @@ functions:
   windows-fix:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
@@ -307,6 +319,7 @@ functions:
   make-files-executable:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           ${PREPARE_SHELL}
           for i in $(find ${DRIVERS_TOOLS}/.evergreen ${PROJECT_DIRECTORY} -name \*.sh); do
@@ -317,6 +330,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -326,6 +340,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
         script: |
@@ -341,6 +356,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -364,6 +380,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -393,6 +410,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -422,6 +440,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -454,6 +473,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -473,6 +493,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -536,6 +557,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -581,6 +603,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         add_expansions_to_env: true
         script: |
@@ -599,6 +622,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -611,8 +635,8 @@ functions:
   run-valid-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -626,8 +650,8 @@ functions:
   run-revoked-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -643,8 +667,8 @@ functions:
   run-valid-delegate-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -658,8 +682,8 @@ functions:
   run-revoked-delegate-ocsp-server:
     - command: shell.exec
       params:
-        background: true
         shell: "bash"
+        background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/ocsp
           . ./activate-ocspvenv.sh
@@ -675,6 +699,7 @@ functions:
   run-load-balancer:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh start
     - command: expansions.update
@@ -684,6 +709,7 @@ functions:
   stop-load-balancer:
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
           # balancer is not running.
@@ -693,6 +719,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -724,8 +751,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
@@ -734,6 +761,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -746,6 +774,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -755,8 +784,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
@@ -765,6 +794,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -783,6 +813,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -792,8 +823,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
@@ -806,6 +837,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -822,6 +854,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -833,6 +866,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -842,6 +876,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -855,6 +890,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -864,6 +900,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -875,8 +912,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_ECS_AUTH_TEST}" = "true" ]; then
@@ -902,8 +939,8 @@ functions:
     - command: shell.exec
       type: test
       params:
-        working_dir: "src"
         shell: "bash"
+        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
           if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
@@ -916,6 +953,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -932,6 +970,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -943,6 +982,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         silent: true
         script: |
@@ -960,6 +1000,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -980,6 +1021,7 @@ functions:
           . ./activate-kmstlsvenv.sh
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -996,6 +1038,7 @@ functions:
           . ./activate-kmstlsvenv.sh
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -1013,6 +1056,7 @@ functions:
 
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -1029,6 +1073,7 @@ functions:
           fi
     - command: shell.exec
       params:
+        shell: "bash"
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
@@ -1042,6 +1087,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1069,6 +1115,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1098,6 +1145,7 @@ functions:
     - command: shell.exec
       type: test
       params:
+        shell: "bash"
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
@@ -2025,8 +2073,8 @@ tasks:
     - command: shell.exec
       type: setup
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2051,8 +2099,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
@@ -2068,8 +2116,8 @@ tasks:
       - command: shell.exec
         type: test
         params:
-          working_dir: src/go.mongodb.org/mongo-driver
           shell: "bash"
+          working_dir: src/go.mongodb.org/mongo-driver
           script: |
             ${PREPARE_SHELL}
             echo "Building build-kms-test ... begin"
@@ -2088,8 +2136,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2113,8 +2161,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2134,8 +2182,8 @@ tasks:
     - command: shell.exec
       type: setup
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2159,8 +2207,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
@@ -2176,8 +2224,8 @@ tasks:
     - command: shell.exec
       type: test
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
           echo "Building build-kms-test ... begin"
@@ -2243,88 +2291,85 @@ axes:
           VERSION: "latest"
 
   # OSes that require >= 3.2 for SSL
-  # TODO(GODRIVER-2754): Update Windows to VS2019 and update Go to 1.19.
   - id: os-ssl-32
     display_name: OS
     values:
-      - id: "windows-64-go-1-18"
+      - id: "windows-64-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2017-test
+          - windows-vsCurrent-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1604-64-go-1-19"
+      - id: "ubuntu1604-64-go-1-20"
         display_name: "Ubuntu 16.04"
         run_on: ubuntu1604-build
         variables:
-          GO_DIST: "/opt/golang/go1.19"
-      - id: "macos11-go-1-19"
+          GO_DIST: "/opt/golang/go1.20"
+      - id: "macos11-go-1-20"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.19"
+          GO_DIST: "/opt/golang/go1.20"
 
   # OSes that require >= 4.0 for SSL
-  # TODO(GODRIVER-2754): Update Windows to VS2019 and update Go to 1.19.
   - id: os-ssl-40
     display_name: OS
     values:
-      - id: "windows-64-go-1-18"
+      - id: "windows-64-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2017-test
+          - windows-vsCurrent-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1804-64-go-1-19"
+      - id: "ubuntu1804-64-go-1-20"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-build
         variables:
-          GO_DIST: "/opt/golang/go1.19"
-      - id: "macos11-go-1-19"
+          GO_DIST: "/opt/golang/go1.20"
+      - id: "macos11-go-1-20"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.19"
+          GO_DIST: "/opt/golang/go1.20"
 
   # OCSP linux tasks need to run against this OS since stapling is disabled on Ubuntu 18.04 (SERVER-51364)
   - id: ocsp-rhel-70
     display_name: OS
     values:
-      - id: "rhel70-go-1-19"
+      - id: "rhel70-go-1-20"
         display_name: "RHEL 7.0"
         run_on: rhel70-build
         variables:
-          GO_DIST: "/opt/golang/go1.19"
+          GO_DIST: "/opt/golang/go1.20"
 
-  # TODO(GODRIVER-2754): Update Windows to VS2019 and update Go to 1.19.
   - id: os-aws-auth
     display_name: OS
     values:
-      - id: "windows-64-vs2017-small-go-1-19"
+      - id: "windows-64-vsCurrent-latest-small-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-64-vs2017-small
+          - windows-vsCurrent-latest-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
-          GO_DIST: "C:\\golang\\go1.18"
+          GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
-      - id: "ubuntu1804-64-go-1-19"
+      - id: "ubuntu1804-64-go-1-20"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
         variables:
-          GO_DIST: "/opt/golang/go1.19"
-      - id: "macos11-go-1-19"
+          GO_DIST: "/opt/golang/go1.20"
+      - id: "macos11-go-1-20"
         display_name: "MacOS 11.0"
         run_on: macos-1100
         batchtime: 1440 # Run at most once per 24 hours.
         variables:
-          GO_DIST: "/opt/golang/go1.19"
+          GO_DIST: "/opt/golang/go1.20"
           SKIP_ECS_AUTH_TEST: true
           SKIP_EC2_AUTH_TEST: true
           SKIP_WEB_IDENTITY_AUTH_TEST: true
@@ -2332,11 +2377,11 @@ axes:
   - id: os-faas-80
     display_name: OS
     values:
-      - id: "rhel80-large-go-1-19"
+      - id: "rhel80-large-go-1-20"
         display_name: "RHEL 8.0"
         run_on: rhel80-large
         variables:
-          GO_DIST: "/opt/golang/go1.19"
+          GO_DIST: "/opt/golang/go1.20"
 
 task_groups:
   - name: serverless_task_group
@@ -2415,6 +2460,7 @@ task_groups:
     teardown_group:
       - command: shell.exec
         params:
+          shell: "bash"
           script: |
             ${PREPARE_SHELL}
 
@@ -2525,7 +2571,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".static-analysis"
 
@@ -2534,7 +2580,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".performance"
 
@@ -2543,7 +2589,7 @@ buildvariants:
     run_on:
       - ubuntu1804-test
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
 
@@ -2552,7 +2598,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "atlas-test"
 
@@ -2561,7 +2607,7 @@ buildvariants:
     run_on:
       - ubuntu1804-build
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "test-atlas-data-lake"
 
@@ -2596,14 +2642,14 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-19"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-20"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-18"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2611,7 +2657,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["macos11-go-1-19"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["macos11-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2619,7 +2665,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "race-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
@@ -2631,39 +2677,39 @@ buildvariants:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
     # The LB software is only available on Ubuntu 18.04, so we don't test on all OSes.
-    matrix_spec: { version: ["5.0", "6.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
+    matrix_spec: { version: ["5.0", "6.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
-    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-19"] }
+    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "Serverless ${os-ssl-40}"
     tasks:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
 
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-19"] }
+    matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
 
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-19"] }
+    matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda
@@ -2673,7 +2719,7 @@ buildvariants:
     run_on:
       - debian11-small
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: testgcpkms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
@@ -2684,7 +2730,7 @@ buildvariants:
     run_on:
       - debian11-small
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - testawskms-task
       - testawskms-fail-task
@@ -2694,7 +2740,7 @@ buildvariants:
     run_on:
       - debian11-small
     expansions:
-      GO_DIST: "/opt/golang/go1.19"
+      GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
