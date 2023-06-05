@@ -769,7 +769,7 @@ func TestConnection(t *testing.T) {
 				t.Errorf("LocalAddresses do not match. got %v; want %v", got, want)
 			}
 
-			want = (*int32)(nil)
+			want = (*int64)(nil)
 			got = conn.ServerConnectionID()
 			if !cmp.Equal(got, want) {
 				t.Errorf("ServerConnectionIDs do not match. got %v; want %v", got, want)

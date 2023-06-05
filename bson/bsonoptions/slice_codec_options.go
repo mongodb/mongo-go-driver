@@ -7,16 +7,24 @@
 package bsonoptions
 
 // SliceCodecOptions represents all possible options for slice encoding and decoding.
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 type SliceCodecOptions struct {
 	EncodeNilAsEmpty *bool // Specifies if a nil slice should encode as an empty array instead of null. Defaults to false.
 }
 
 // SliceCodec creates a new *SliceCodecOptions
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 func SliceCodec() *SliceCodecOptions {
 	return &SliceCodecOptions{}
 }
 
 // SetEncodeNilAsEmpty specifies  if a nil slice should encode as an empty array instead of null. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.NilSliceAsEmpty] instead.
 func (s *SliceCodecOptions) SetEncodeNilAsEmpty(b bool) *SliceCodecOptions {
 	s.EncodeNilAsEmpty = &b
 	return s

@@ -38,6 +38,12 @@ type Decoder struct {
 	// (*Decoder).SetContext.
 	defaultDocumentM bool
 	defaultDocumentD bool
+
+	binaryAsSlice     bool
+	useJSONStructTags bool
+	useLocalTimeZone  bool
+	zeroMaps          bool
+	zeroStructs       bool
 }
 
 // NewDecoder returns a new decoder that uses the DefaultRegistry to read from vr.
@@ -54,8 +60,8 @@ func NewDecoder(vr bsonrw.ValueReader) (*Decoder, error) {
 
 // NewDecoderWithContext returns a new decoder that uses DecodeContext dc to read from vr.
 //
-// Deprecated: Use bson.NewDecoder and use the Decoder configuration methods set the desired
-// behavior of the decoder instead.
+// Deprecated: Use [NewDecoder] and use the Decoder configuration methods set the desired unmarshal
+// behavior instead.
 func NewDecoderWithContext(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*Decoder, error) {
 	if dc.Registry == nil {
 		dc.Registry = DefaultRegistry
@@ -73,8 +79,7 @@ func NewDecoderWithContext(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*
 // Decode reads the next BSON document from the stream and decodes it into the
 // value pointed to by val.
 //
-// The documentation for Unmarshal contains details about of BSON into a Go
-// value.
+// See [Unmarshal] for details about BSON unmarshaling behavior.
 func (d *Decoder) Decode(val interface{}) error {
 	if unmarshaler, ok := val.(Unmarshaler); ok {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
@@ -103,12 +108,29 @@ func (d *Decoder) Decode(val interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	if d.defaultDocumentM {
 		d.dc.DefaultDocumentM()
 	}
 	if d.defaultDocumentD {
 		d.dc.DefaultDocumentD()
 	}
+	if d.binaryAsSlice {
+		d.dc.BinaryAsSlice()
+	}
+	if d.useJSONStructTags {
+		d.dc.UseJSONStructTags()
+	}
+	if d.useLocalTimeZone {
+		d.dc.UseLocalTimeZone()
+	}
+	if d.zeroMaps {
+		d.dc.ZeroMaps()
+	}
+	if d.zeroStructs {
+		d.dc.ZeroStructs()
+	}
+
 	return decoder.DecodeValue(d.dc, d.vr, rval)
 }
 
@@ -127,8 +149,7 @@ func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
 
 // SetContext replaces the current registry of the decoder with dc.
 //
-// Deprecated: Use the Decoder configuration methods set the desired behavior of the decoder
-// instead.
+// Deprecated: Use the Decoder configuration methods to set the desired unmarshal behavior instead.
 func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
 	d.dc = dc
 	return nil
@@ -144,4 +165,41 @@ func (d *Decoder) DefaultDocumentM() {
 // "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentD() {
 	d.defaultDocumentD = true
+}
+
+// AllowTruncatingDoubles causes the Decoder to truncate the fractional part of BSON "double" values
+// when attempting to unmarshal them into a Go integer (int, int8, int16, int32, or int64) struct
+// field. The truncation logic does not apply to BSON "decimal128" values.
+func (d *Decoder) AllowTruncatingDoubles() {
+	d.dc.Truncate = true
+}
+
+// BinaryAsSlice causes the Decoder to unmarshal BSON binary field values that are the "Generic" or
+// "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
+func (d *Decoder) BinaryAsSlice() {
+	d.binaryAsSlice = true
+}
+
+// UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"
+// struct tag is not specified.
+func (d *Decoder) UseJSONStructTags() {
+	d.useJSONStructTags = true
+}
+
+// UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
+// of the UTC timezone.
+func (d *Decoder) UseLocalTimeZone() {
+	d.useLocalTimeZone = true
+}
+
+// ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value
+// passed to Decode before unmarshaling BSON documents into them.
+func (d *Decoder) ZeroMaps() {
+	d.zeroMaps = true
+}
+
+// ZeroStructs causes the Decoder to delete any existing values from Go structs in the destination
+// value passed to Decode before unmarshaling BSON documents into them.
+func (d *Decoder) ZeroStructs() {
+	d.zeroStructs = true
 }

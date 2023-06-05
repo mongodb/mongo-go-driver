@@ -108,10 +108,6 @@ func (z zeroTest) IsZero() bool { return z.reportZero }
 
 func compareZeroTest(_, _ zeroTest) bool { return true }
 
-type nonZeroer struct {
-	value bool
-}
-
 type llCodec struct {
 	t         *testing.T
 	decodeval interface{}

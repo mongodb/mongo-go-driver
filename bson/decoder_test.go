@@ -11,14 +11,15 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -282,144 +283,6 @@ func TestDecoderv2(t *testing.T) {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
 	})
-	t.Run("DefaultDocuemntD embedded map as empty interface", func(t *testing.T) {
-		t.Parallel()
-
-		type someMap map[string]interface{}
-
-		in := make(someMap)
-		in["foo"] = map[string]interface{}{"bar": "baz"}
-
-		bytes, err := Marshal(in)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var bsonOut someMap
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
-		if err != nil {
-			t.Fatal(err)
-		}
-		dec.DefaultDocumentM()
-		if err := dec.Decode(&bsonOut); err != nil {
-			t.Fatal(err)
-		}
-
-		// Ensure that interface{}-typed top-level data is converted to the document type.
-		bsonOutType := reflect.TypeOf(bsonOut)
-		inType := reflect.TypeOf(in)
-		assert.Equal(t, inType, bsonOutType, "expected %v to equal %v", inType.String(), bsonOutType.String())
-
-		// Ensure that the embedded type is a primitive map.
-		mType := reflect.TypeOf(primitive.M{})
-		bsonFooOutType := reflect.TypeOf(bsonOut["foo"])
-		assert.Equal(t, mType, bsonFooOutType, "expected %v to equal %v", mType.String(), bsonFooOutType.String())
-	})
-	t.Run("DefaultDocuemntD for decoding into interface{} alias", func(t *testing.T) {
-		t.Parallel()
-
-		var in interface{} = map[string]interface{}{"bar": "baz"}
-
-		bytes, err := Marshal(in)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var bsonOut interface{}
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
-		if err != nil {
-			t.Fatal(err)
-		}
-		dec.DefaultDocumentD()
-		if err := dec.Decode(&bsonOut); err != nil {
-			t.Fatal(err)
-		}
-
-		// Ensure that interface{}-typed top-level data is converted to the document type.
-		dType := reflect.TypeOf(primitive.D{})
-		bsonOutType := reflect.TypeOf(bsonOut)
-		assert.Equal(t, dType, bsonOutType,
-			"expected %v to equal %v", dType.String(), bsonOutType.String())
-	})
-	t.Run("DefaultDocuemntD for decoding into non-interface{} alias", func(t *testing.T) {
-		t.Parallel()
-
-		var in interface{} = map[string]interface{}{"bar": "baz"}
-
-		bytes, err := Marshal(in)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		var bsonOut struct{}
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
-		if err != nil {
-			t.Fatal(err)
-		}
-		dec.DefaultDocumentD()
-		if err := dec.Decode(&bsonOut); err != nil {
-			t.Fatal(err)
-		}
-
-		// Ensure that typed top-level data is not converted to the document type.
-		dType := reflect.TypeOf(primitive.D{})
-		bsonOutType := reflect.TypeOf(bsonOut)
-		assert.NotEqual(t, dType, bsonOutType,
-			"expected %v to not equal %v", dType.String(), bsonOutType.String())
-	})
-	t.Run("DefaultDocumentD for deep struct values", func(t *testing.T) {
-		t.Parallel()
-
-		type emb struct {
-			Foo map[int]interface{} `bson:"foo"`
-		}
-
-		objID := primitive.NewObjectID()
-
-		in := emb{
-			Foo: map[int]interface{}{
-				1: map[string]interface{}{"bar": "baz"},
-				2: map[int]interface{}{
-					3: map[string]interface{}{"bar": "baz"},
-				},
-				4: map[primitive.ObjectID]interface{}{
-					objID: map[string]interface{}{"bar": "baz"},
-				},
-			},
-		}
-
-		bytes, err := Marshal(in)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(bytes))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		dec.DefaultDocumentD()
-
-		var out emb
-		if err := dec.Decode(&out); err != nil {
-			t.Fatal(err)
-		}
-
-		mType := reflect.TypeOf(primitive.M{})
-		bsonOutType := reflect.TypeOf(out)
-		assert.NotEqual(t, mType, bsonOutType,
-			"expected %v to not equal %v", mType.String(), bsonOutType.String())
-
-		want := emb{
-			Foo: map[int]interface{}{
-				1: primitive.D{{Key: "bar", Value: "baz"}},
-				2: primitive.D{{Key: "3", Value: primitive.D{{Key: "bar", Value: "baz"}}}},
-				4: primitive.D{{Key: objID.Hex(), Value: primitive.D{{Key: "bar", Value: "baz"}}}},
-			},
-		}
-
-		assert.Equal(t, want, out, "expected %v, got %v", want, out)
-	})
 }
 
 type testUnmarshaler struct {
@@ -432,4 +295,253 @@ func (tu *testUnmarshaler) UnmarshalBSON(d []byte) error {
 	tu.invoked = true
 	tu.data = d
 	return tu.err
+}
+
+func TestDecoderConfiguration(t *testing.T) {
+	type truncateDoublesTest struct {
+		MyInt    int
+		MyInt8   int8
+		MyInt16  int16
+		MyInt32  int32
+		MyInt64  int64
+		MyUint   uint
+		MyUint8  uint8
+		MyUint16 uint16
+		MyUint32 uint32
+		MyUint64 uint64
+	}
+
+	type jsonStructTest struct {
+		StructFieldName string `json:"jsonFieldName"`
+	}
+
+	type localTimeZoneTest struct {
+		MyTime time.Time
+	}
+
+	type zeroMapsTest struct {
+		MyMap map[string]string
+	}
+
+	type zeroStructsTest struct {
+		MyString string
+		MyInt    int
+	}
+
+	testCases := []struct {
+		description string
+		configure   func(*Decoder)
+		input       []byte
+		decodeInto  func() interface{}
+		want        interface{}
+	}{
+		// Test that AllowTruncatingDoubles causes the Decoder to unmarshal BSON doubles with
+		// fractional parts into Go integer types by truncating the fractional part.
+		{
+			description: "AllowTruncatingDoubles",
+			configure: func(dec *Decoder) {
+				dec.AllowTruncatingDoubles()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDouble("myInt", 1.999).
+				AppendDouble("myInt8", 1.999).
+				AppendDouble("myInt16", 1.999).
+				AppendDouble("myInt32", 1.999).
+				AppendDouble("myInt64", 1.999).
+				AppendDouble("myUint", 1.999).
+				AppendDouble("myUint8", 1.999).
+				AppendDouble("myUint16", 1.999).
+				AppendDouble("myUint32", 1.999).
+				AppendDouble("myUint64", 1.999).
+				Build(),
+			decodeInto: func() interface{} { return &truncateDoublesTest{} },
+			want: &truncateDoublesTest{
+				MyInt:    1,
+				MyInt8:   1,
+				MyInt16:  1,
+				MyInt32:  1,
+				MyInt64:  1,
+				MyUint:   1,
+				MyUint8:  1,
+				MyUint16: 1,
+				MyUint32: 1,
+				MyUint64: 1,
+			},
+		},
+		// Test that BinaryAsSlice causes the Decoder to unmarshal BSON binary fields into Go byte
+		// slices when there is no type information (e.g when unmarshaling into a bson.D).
+		{
+			description: "BinaryAsSlice",
+			configure: func(dec *Decoder) {
+				dec.BinaryAsSlice()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendBinary("myBinary", bsontype.BinaryGeneric, []byte{}).
+				Build(),
+			decodeInto: func() interface{} { return &D{} },
+			want:       &D{{Key: "myBinary", Value: []byte{}}},
+		},
+		// Test that DefaultDocumentD overrides the default "ancestor" logic and always decodes BSON
+		// documents into bson.D values, independent of the top-level Go value type.
+		{
+			description: "DefaultDocumentD nested",
+			configure: func(dec *Decoder) {
+				dec.DefaultDocumentD()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
+					AppendString("myString", "test value").
+					Build()).
+				Build(),
+			decodeInto: func() interface{} { return M{} },
+			want: M{
+				"myDocument": D{{Key: "myString", Value: "test value"}},
+			},
+		},
+		// Test that DefaultDocumentM overrides the default "ancestor" logic and always decodes BSON
+		// documents into bson.M values, independent of the top-level Go value type.
+		{
+			description: "DefaultDocumentM nested",
+			configure: func(dec *Decoder) {
+				dec.DefaultDocumentM()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
+					AppendString("myString", "test value").
+					Build()).
+				Build(),
+			decodeInto: func() interface{} { return &D{} },
+			want: &D{
+				{Key: "myDocument", Value: M{"myString": "test value"}},
+			},
+		},
+		// Test that UseJSONStructTags causes the Decoder to fall back to "json" struct tags if
+		// "bson" struct tags are not available.
+		{
+			description: "UseJSONStructTags",
+			configure: func(dec *Decoder) {
+				dec.UseJSONStructTags()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendString("jsonFieldName", "test value").
+				Build(),
+			decodeInto: func() interface{} { return &jsonStructTest{} },
+			want:       &jsonStructTest{StructFieldName: "test value"},
+		},
+		// Test that UseLocalTimeZone causes the Decoder to use the local time zone for decoded
+		// time.Time values instead of UTC.
+		{
+			description: "UseLocalTimeZone",
+			configure: func(dec *Decoder) {
+				dec.UseLocalTimeZone()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDateTime("myTime", 1684349179939).
+				Build(),
+			decodeInto: func() interface{} { return &localTimeZoneTest{} },
+			want:       &localTimeZoneTest{MyTime: time.UnixMilli(1684349179939)},
+		},
+		// Test that ZeroMaps causes the Decoder to empty any Go map values before decoding BSON
+		// documents into them.
+		{
+			description: "ZeroMaps",
+			configure: func(dec *Decoder) {
+				dec.ZeroMaps()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendDocument("myMap", bsoncore.NewDocumentBuilder().
+					AppendString("myString", "test value").
+					Build()).
+				Build(),
+			decodeInto: func() interface{} {
+				return &zeroMapsTest{MyMap: map[string]string{"myExtraValue": "extra value"}}
+			},
+			want: &zeroMapsTest{MyMap: map[string]string{"myString": "test value"}},
+		},
+		// Test that ZeroStructs causes the Decoder to empty any Go struct values before decoding
+		// BSON documents into them.
+		{
+			description: "ZeroStructs",
+			configure: func(dec *Decoder) {
+				dec.ZeroStructs()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendString("myString", "test value").
+				Build(),
+			decodeInto: func() interface{} {
+				return &zeroStructsTest{MyInt: 1}
+			},
+			want: &zeroStructsTest{MyString: "test value"},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc // Capture range variable.
+
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+
+			dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(tc.input))
+			require.NoError(t, err, "NewDecoder error")
+
+			tc.configure(dec)
+
+			got := tc.decodeInto()
+			err = dec.Decode(got)
+			require.NoError(t, err, "Decode error")
+
+			assert.Equal(t, tc.want, got, "expected and actual decode results do not match")
+		})
+	}
+
+	t.Run("DefaultDocumentM top-level", func(t *testing.T) {
+		t.Parallel()
+
+		input := bsoncore.NewDocumentBuilder().
+			AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
+				AppendString("myString", "test value").
+				Build()).
+			Build()
+
+		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(input))
+		require.NoError(t, err, "NewDecoder error")
+
+		dec.DefaultDocumentM()
+
+		var got interface{}
+		err = dec.Decode(&got)
+		require.NoError(t, err, "Decode error")
+
+		want := M{
+			"myDocument": M{
+				"myString": "test value",
+			},
+		}
+		assert.Equal(t, want, got, "expected and actual decode results do not match")
+	})
+	t.Run("DefaultDocumentD top-level", func(t *testing.T) {
+		t.Parallel()
+
+		input := bsoncore.NewDocumentBuilder().
+			AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
+				AppendString("myString", "test value").
+				Build()).
+			Build()
+
+		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader(input))
+		require.NoError(t, err, "NewDecoder error")
+
+		dec.DefaultDocumentD()
+
+		var got interface{}
+		err = dec.Decode(&got)
+		require.NoError(t, err, "Decode error")
+
+		want := D{
+			{Key: "myDocument", Value: D{
+				{Key: "myString", Value: "test value"},
+			}},
+		}
+		assert.Equal(t, want, got, "expected and actual decode results do not match")
+	})
 }

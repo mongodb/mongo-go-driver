@@ -87,7 +87,8 @@ type LoadBalancedTransactionConnection interface {
 	Close() error
 	ResumeFromError(error) error
 	ID() string
-	ServerConnectionID() *int32
+	ServerConnectionID() *int64
+	DriverConnectionID() uint64 // TODO(GODRIVER-2824): change type to int64.
 	Address() address.Address
 	Stale() bool
 

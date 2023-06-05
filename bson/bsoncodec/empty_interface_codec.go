@@ -16,7 +16,14 @@ import (
 )
 
 // EmptyInterfaceCodec is the Codec used for interface{} values.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// EmptyInterfaceCodec registered.
 type EmptyInterfaceCodec struct {
+	// DecodeBinaryAsSlice causes DecodeValue to unmarshal BSON binary field values that are the
+	// "Generic" or "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
+	//
+	// Deprecated: Use bson.Decoder.BinaryAsSlice instead.
 	DecodeBinaryAsSlice bool
 }
 
@@ -30,6 +37,9 @@ var (
 )
 
 // NewEmptyInterfaceCodec returns a EmptyInterfaceCodec with options opts.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
+// EmptyInterfaceCodec registered.
 func NewEmptyInterfaceCodec(opts ...*bsonoptions.EmptyInterfaceCodecOptions) *EmptyInterfaceCodec {
 	interfaceOpt := bsonoptions.MergeEmptyInterfaceCodecOptions(opts...)
 
@@ -123,7 +133,7 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReade
 		return emptyValue, err
 	}
 
-	if eic.DecodeBinaryAsSlice && rtype == tBinary {
+	if (eic.DecodeBinaryAsSlice || dc.binaryAsSlice) && rtype == tBinary {
 		binElem := elem.Interface().(primitive.Binary)
 		if binElem.Subtype == bsontype.BinaryGeneric || binElem.Subtype == bsontype.BinaryBinaryOld {
 			elem = reflect.ValueOf(binElem.Data)

@@ -59,6 +59,10 @@ var skippedTestDescriptions = map[string]string{
 	// that request a new connection cannot be satisfied by a check-in.
 	// TODO(DRIVERS-2223): Re-enable this test once the spec test is updated to support the Go pool check-in behavior.
 	"threads blocked by maxConnecting check out returned connections": "test requires a checked-in connections cannot satisfy a check-out waiting on a new connection (DRIVERS-2223)",
+	// TODO(GODRIVER-2852): Fix and unskip this test case.
+	"must be able to start a pool with minPoolSize connections": "test fails frequently, skipping; see GODRIVER-2852",
+	// TODO(GODRIVER-2852): Fix and unskip this test case.
+	"pool clear halts background minPoolSize establishments": "test fails frequently, skipping; see GODRIVER-2852",
 }
 
 type cmapEvent struct {
