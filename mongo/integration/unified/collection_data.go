@@ -20,13 +20,13 @@ import (
 )
 
 type collectionData struct {
-	DatabaseName   string                 `bson:"databaseName"`
-	CollectionName string                 `bson:"collectionName"`
-	Documents      []bson.Raw             `bson:"documents"`
-	Options        *collectionDataOptions `bson:"collectionOptions"`
+	DatabaseName   string         `bson:"databaseName"`
+	CollectionName string         `bson:"collectionName"`
+	Documents      []bson.Raw     `bson:"documents"`
+	Options        *createOptions `bson:"createOptions"`
 }
 
-type collectionDataOptions struct {
+type createOptions struct {
 	Capped      *bool  `bson:"capped"`
 	SizeInBytes *int64 `bson:"size"`
 }
