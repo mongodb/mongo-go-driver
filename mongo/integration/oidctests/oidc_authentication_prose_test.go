@@ -44,7 +44,7 @@ type callback struct {
 	refreshCbcount int32
 }
 
-func (cb *callback) OnRequest(ctx context.Context, user string, info auth.IDPServerInfo) (auth.IDPServerResp, error) {
+func (cb *callback) OnRequest(ctx context.Context, _ string, _ auth.IDPServerInfo) (auth.IDPServerResp, error) {
 	cb.t.Helper()
 	cb.validateContextDeadline(ctx, 5*time.Minute)
 	i := atomic.AddInt32(&cb.requestCbcount, 1) - 1
@@ -52,7 +52,7 @@ func (cb *callback) OnRequest(ctx context.Context, user string, info auth.IDPSer
 	return cb.callback(cb.requestResult[i])
 }
 
-func (cb *callback) OnRefresh(ctx context.Context, user string, serverInfo auth.IDPServerInfo, refreshInfo auth.IDPRefreshInfo) (auth.IDPServerResp, error) {
+func (cb *callback) OnRefresh(ctx context.Context, _ string, _ auth.IDPServerInfo, _ auth.IDPRefreshInfo) (auth.IDPServerResp, error) {
 	cb.t.Helper()
 	cb.validateContextDeadline(ctx, 5*time.Minute)
 	i := atomic.AddInt32(&cb.refreshCbcount, 1) - 1

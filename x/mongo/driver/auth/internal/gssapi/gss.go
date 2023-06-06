@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"strings"
 	"unsafe"
+
+	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
 // New creates a new SaslClient. The target parameter should be a hostname with no port.
@@ -66,13 +68,11 @@ type SaslClient struct {
 	done            bool
 }
 
-func (sc *SaslClient) Close() {
+func (sc *SaslClient) Close(address.Address) {
 	C.gssapi_client_destroy(&sc.state)
 }
 
-func (sc *SaslClient) Start() (string, []byte, error) {
-	const mechName = "GSSAPI"
-
+func (sc *SaslClient) Start(addr address.Address) ([]byte, error) {
 	cservicePrincipalName := C.CString(sc.servicePrincipalName)
 	defer C.free(unsafe.Pointer(cservicePrincipalName))
 	var cusername *C.char
@@ -88,15 +88,15 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 	status := C.gssapi_client_init(&sc.state, cservicePrincipalName, cusername, cpassword)
 
 	if status != C.GSSAPI_OK {
-		return mechName, nil, sc.getError("unable to initialize client")
+		return nil, sc.getError("unable to initialize client")
 	}
 
-	payload, err := sc.Next(nil)
+	payload, err := sc.Next(addr, nil)
 
-	return mechName, payload, err
+	return payload, err
 }
 
-func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
+func (sc *SaslClient) Next(_ address.Address, challenge []byte) ([]byte, error) {
 
 	var buf unsafe.Pointer
 	var bufLen C.size_t
@@ -144,6 +144,10 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 	}
 
 	return C.GoBytes(outBuf, C.int(outBufLen)), nil
+}
+
+func (sc *SaslClient) GetMechanism() string {
+	return "GSSAPI"
 }
 
 func (sc *SaslClient) Completed() bool {
