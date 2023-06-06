@@ -3,18 +3,19 @@ TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
 .PHONY: default
-default: add-license build check-fmt check-modules lint test-short
+default: build check-license check-fmt check-modules lint test-short
 
-# Find all .go files not in the vendor directory and try to write a license notice. Then check for
-# any changes made with -G. to ignore permissions changes. Exit with a non-zero exit code if there
-# is a diff.
 .PHONY: add-license
 add-license:
-	find . -path ./vendor -prune -o -type f -name "*.go" -print | xargs ./etc/add_license.sh
-	git diff -G. --quiet
+	etc/check_license.sh -a
+
+.PHONY: check-license
+check-license:
+	etc/check_license.sh
 
 .PHONY: build
-build: build-tests
+build: cross-compile build-tests build-compile-check
+	go build ./...
 	go build $(BUILD_TAGS) ./...
 
 # Use ^$ to match no tests so that no tests are actually run but all tests are
@@ -23,6 +24,22 @@ build: build-tests
 .PHONY: build-tests
 build-tests:
 	go test -short $(BUILD_TAGS) -run ^$$ ./...
+
+.PHONY: build-compile-check
+build-compile-check:
+	etc/compile_check.sh
+
+# Cross-compiling on Linux for architectures 386, arm, arm64, amd64, ppc64le, and s390x.
+# Omit any build tags because we don't expect our build environment to support compiling the C
+# libraries for other architectures.
+.PHONY: cross-compile
+cross-compile:
+	GOOS=linux GOARCH=386 go build ./...
+	GOOS=linux GOARCH=arm go build ./...
+	GOOS=linux GOARCH=arm64 go build ./...
+	GOOS=linux GOARCH=amd64 go build ./...
+	GOOS=linux GOARCH=ppc64le go build ./...
+	GOOS=linux GOARCH=s390x go build ./...
 
 .PHONY: install-lll
 install-lll:
@@ -64,10 +81,11 @@ install-golangci-lint:
 # https://staticcheck.io/docs/checks#SA1027)
 .PHONY: lint
 lint: install-golangci-lint
-	GOOS=linux GOARCH=amd64 golangci-lint run --config .golangci.yml ./...
 	GOOS=linux GOARCH=386 golangci-lint run --config .golangci.yml ./...
-	GOOS=linux GOARCH=arm64 golangci-lint run --config .golangci.yml ./...
 	GOOS=linux GOARCH=arm golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=arm64 golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=amd64 golangci-lint run --config .golangci.yml ./...
+	GOOS=linux GOARCH=ppc64le golangci-lint run --config .golangci.yml ./...
 	GOOS=linux GOARCH=s390x golangci-lint run --config .golangci.yml ./...
 
 .PHONY: update-notices
