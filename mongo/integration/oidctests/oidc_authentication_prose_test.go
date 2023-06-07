@@ -86,11 +86,11 @@ func (cb *callback) validateContextDeadline(ctx context.Context, timeout time.Du
 func TestCallbackDrivenAuthProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.RunOpts("1.1 Single Principal Implicit Username", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.1 Single Principal Implicit Username", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -106,7 +106,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("1.2 Single Principal Explicit Username", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.2 Single Principal Explicit Username", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -122,7 +122,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("1.3 Multiple Principal User 1", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.3 Multiple Principal User 1", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -138,7 +138,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("1.4 Multiple Principal User 2", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.4 Multiple Principal User 2", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -155,7 +155,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("1.5 Multiple Principal No User", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.5 Multiple Principal No User", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -171,7 +171,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.NotNil(mt, err, "expect failure")
 	})
-	mt.RunOpts("1.6 Allowed Hosts Blocked", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.6 Allowed Hosts Blocked", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -188,7 +188,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.ErrorContains(mt, err, "OIDC host is not allowed")
 	})
-	mt.RunOpts("1.7 Lock Avoids Extra Callback Calls", mtOpts, func(mt *mtest.T) {
+	mt.Run("1.7 Lock Avoids Extra Callback Calls", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -225,11 +225,11 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 func TestAwsAutomaticAuthProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.RunOpts("2.1 Single Principal", mtOpts, func(mt *mtest.T) {
+	mt.Run("2.1 Single Principal", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		clientOpts := options.Client().
@@ -240,7 +240,7 @@ func TestAwsAutomaticAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("2.2 Multiple Principal User 1", mtOpts, func(mt *mtest.T) {
+	mt.Run("2.2 Multiple Principal User 1", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		clientOpts := options.Client().
@@ -251,7 +251,7 @@ func TestAwsAutomaticAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("2.3 Multiple Principal User 2", mtOpts, func(mt *mtest.T) {
+	mt.Run("2.3 Multiple Principal User 2", func(mt *mtest.T) {
 		mt.T.Setenv(awsEnv, "/tmp/tokens/test_user2")
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
@@ -263,7 +263,7 @@ func TestAwsAutomaticAuthProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("2.4 Allowed Hosts Ignored", mtOpts, func(mt *mtest.T) {
+	mt.Run("2.4 Allowed Hosts Ignored", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		clientOpts := options.Client().
@@ -280,11 +280,11 @@ func TestAwsAutomaticAuthProse(t *testing.T) {
 func TestCallbackValidationProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.RunOpts("3.1 Valid Callbacks", mtOpts, func(mt *mtest.T) {
+	mt.Run("3.1 Valid Callbacks", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -308,7 +308,7 @@ func TestCallbackValidationProse(t *testing.T) {
 		f(clientOpts)
 		assert.Equal(mt, int32(1), callback.refreshCbcount, "refresh count is expected to be %d, but is %d", 1, callback.refreshCbcount)
 	})
-	mt.RunOpts("3.2 Request Callback Returns Null", mtOpts, func(mt *mtest.T) {
+	mt.Run("3.2 Request Callback Returns Null", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -327,7 +327,7 @@ func TestCallbackValidationProse(t *testing.T) {
 		assert.Equal(mt, int32(1), callback.requestCbcount, "request count is expected to be %d, but is %d", 1, callback.requestCbcount)
 		assert.Equal(mt, int32(0), callback.refreshCbcount, "refresh count is expected to be %d, but is %d", 0, callback.refreshCbcount)
 	})
-	mt.RunOpts("3.3 Refresh Callback Returns Null", mtOpts, func(mt *mtest.T) {
+	mt.Run("3.3 Refresh Callback Returns Null", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -356,13 +356,13 @@ func TestCallbackValidationProse(t *testing.T) {
 		}(clientOpts)
 		assert.Equal(mt, int32(1), callback.refreshCbcount, "refresh count is expected to be %d, but is %d", 1, callback.refreshCbcount)
 	})
-	mt.RunOpts("3.4 Request Callback Returns Invalid Data", mtOpts, func(mt *mtest.T) {
+	mt.Run("3.4 Request Callback Returns Invalid Data", func(mt *mtest.T) {
 		mt.Skip("N/A for Go Driver")
 	})
-	mt.RunOpts("3.5 Refresh Callback Returns Missing Data", mtOpts, func(mt *mtest.T) {
+	mt.Run("3.5 Refresh Callback Returns Missing Data", func(mt *mtest.T) {
 		mt.Skip("N/A for Go Driver")
 	})
-	mt.RunOpts("3.6 Refresh Callback Returns Extra Data", mtOpts, func(mt *mtest.T) {
+	mt.Run("3.6 Refresh Callback Returns Extra Data", func(mt *mtest.T) {
 		mt.Skip("N/A for Go Driver")
 	})
 }
@@ -370,11 +370,11 @@ func TestCallbackValidationProse(t *testing.T) {
 func TestCachedCredentialsProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.RunOpts("4.1 Cache with refresh", mtOpts, func(mt *mtest.T) {
+	mt.Run("4.1 Cache with refresh", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -400,7 +400,7 @@ func TestCachedCredentialsProse(t *testing.T) {
 		f(clientOpts)
 		assert.Equal(mt, int32(1), callback.refreshCbcount, "refresh count is expected to be %d, but is %d", 1, callback.refreshCbcount)
 	})
-	mt.RunOpts("4.2 Cache with no refresh", mtOpts, func(mt *mtest.T) {
+	mt.Run("4.2 Cache with no refresh", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -434,10 +434,10 @@ func TestCachedCredentialsProse(t *testing.T) {
 		}()
 		assert.Equal(mt, int32(2), callback.requestCbcount, "request count is expected to be  %d, but is %d", 2, callback.requestCbcount)
 	})
-	mt.RunOpts("4.3 Cache key includes callback", mtOpts, func(mt *mtest.T) {
+	mt.Run("4.3 Cache key includes callback", func(mt *mtest.T) {
 		mt.Skip("N/A for Go Driver")
 	})
-	mt.RunOpts("4.4 Error clears cache", mtOpts, func(mt *mtest.T) {
+	mt.Run("4.4 Error clears cache", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -468,7 +468,7 @@ func TestCachedCredentialsProse(t *testing.T) {
 		entry := v.(*xauth.CacheEntry)
 		assert.Equal(mt, &xauth.Auth{}, entry.Auth, "cached credentials are not cleared")
 	})
-	mt.RunOpts("4.5 AWS Automatic workflow does not use cache", mtOpts, func(mt *mtest.T) {
+	mt.Run("4.5 AWS Automatic workflow does not use cache", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		clientOpts := options.Client().
@@ -486,7 +486,7 @@ func TestCachedCredentialsProse(t *testing.T) {
 func TestSpeculativeAuthenticationProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -543,14 +543,14 @@ func TestSpeculativeAuthenticationProse(t *testing.T) {
 func TestReauthenticationProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
-	mt.RunOpts("6.1 Succeeds", mtOpts, func(mt *mtest.T) {
+	mt.Run("6.1 Succeeds", func(mt *mtest.T) {
 		// TODO
 	})
-	mt.RunOpts("6.2 Retries and Succeeds with Cache", mtOpts, func(mt *mtest.T) {
+	mt.Run("6.2 Retries and Succeeds with Cache", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -594,7 +594,7 @@ func TestReauthenticationProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.Nil(mt, err, "Find error: %v", err)
 	})
-	mt.RunOpts("6.3 Retries and Fails with no Cache", mtOpts, func(mt *mtest.T) {
+	mt.Run("6.3 Retries and Fails with no Cache", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 		callback := &callback{
@@ -634,7 +634,7 @@ func TestReauthenticationProse(t *testing.T) {
 		_, err = coll.Find(ctx, bson.M{})
 		assert.ErrorContains(mt, err, "ReauthenticationRequired")
 	})
-	mt.RunOpts("6.4 Separate Connections Avoid Extra Callback Calls", mtOpts, func(mt *mtest.T) {
+	mt.Run("6.4 Separate Connections Avoid Extra Callback Calls", func(mt *mtest.T) {
 		xauth.OidcCache = sync.Map{}
 		ctx := context.Background()
 

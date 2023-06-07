@@ -553,11 +553,11 @@ func (c initConnection) Description() description.Server {
 	}
 	return c.connection.desc
 }
-func (c initConnection) Close() error                { return nil }
-func (c initConnection) ResumeFromError(error) error { return nil }
-func (c initConnection) ID() string                  { return c.id }
-func (c initConnection) Address() address.Address    { return c.addr }
-func (c initConnection) Stale() bool                 { return false }
+func (c initConnection) Close() error                    { return nil }
+func (c initConnection) ResumeFromError(err error) error { return err }
+func (c initConnection) ID() string                      { return c.id }
+func (c initConnection) Address() address.Address        { return c.addr }
+func (c initConnection) Stale() bool                     { return false }
 func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
@@ -677,12 +677,12 @@ func (c *Connection) Close() error {
 
 // ResumeFromError handles connection error.
 func (c *Connection) ResumeFromError(err error) error {
-	if de, ok := err.(driver.Error); ok {
-		switch de.Code {
-		case driver.ReauthenticationRequired:
-			err = c.connection.config.handshaker.Reauthenticate(context.Background(), initConnection{c.connection})
-		}
-	}
+	// if de, ok := err.(driver.Error); ok {
+	// 	switch de.Code {
+	// 	case driver.ReauthenticationRequired:
+	// 		err = c.connection.config.handshaker.Reauthenticate(context.Background(), initConnection{c.connection})
+	// 	}
+	// }
 	return err
 }
 
