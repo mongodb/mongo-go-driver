@@ -162,7 +162,8 @@ func isUnorderedLog(log *logMessage) bool {
 	// received in any order. To account for this behavior, we considered
 	// both logs to be "unordered".
 	return msgStr == logger.ConnectionCheckoutFailed ||
-		msgStr == logger.ConnectionClosed
+		msgStr == logger.ConnectionClosed ||
+		msgStr == logger.ConnectionPoolCleared
 }
 
 type logQueues struct {
@@ -251,8 +252,22 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 	go func() {
 		defer close(errs)
 
+		// Record the message literals as they occur.
+		actualMessageSet := map[string]bool{}
+
 		for actual := range logs.unordered {
-			var err error
+			msg, err := actual.Data.LookupErr(logger.KeyMessage)
+			if err != nil {
+				errs <- fmt.Errorf("could not lookup message from unordered log: %w", err)
+
+				break
+
+			}
+
+			msgStr := msg.StringValue()
+			if msgStr == logger.ConnectionPoolCleared && actualMessageSet[logger.ConnectionClosed] {
+				errs <- fmt.Errorf("connection has been closed before the pool could clear")
+			}
 
 			// Iterate over the unordered log messages and verify
 			// that at least one of them matches the actual log
@@ -272,6 +287,8 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 			if err != nil {
 				errs <- err
 			}
+
+			actualMessageSet[msgStr] = true
 		}
 	}()
 
