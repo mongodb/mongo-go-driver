@@ -166,10 +166,11 @@ func isUnorderedLog(log *logMessage) bool {
 	// However, either of these conditions are valid:
 	//
 	//   1. connection checkout failed > connection pool cleared
-	//   2. connection pool clared > connection checkout failed
+	//   2. connection pool cleared > connection checkout failed
 	//
-	// Therefore, the ConnectionPoolCleared literal is added to unordered
-	// list. The check for cleared > closed is made in the matching logic.
+	// Therefore, the ConnectionPoolCleared literal is added to the
+	// unordered list. The check for cleared > closed is made in the
+	// matching logic.
 	return msgStr == logger.ConnectionCheckoutFailed ||
 		msgStr == logger.ConnectionClosed ||
 		msgStr == logger.ConnectionPoolCleared
