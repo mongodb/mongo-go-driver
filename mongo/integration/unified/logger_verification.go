@@ -161,6 +161,15 @@ func isUnorderedLog(log *logMessage) bool {
 	// or close a connection first. Because of this, either log may be
 	// received in any order. To account for this behavior, we considered
 	// both logs to be "unordered".
+	//
+	// The connection pool must clear before the connection is closed.
+	// However, either of these conditions can be valid:
+	//
+	//   1. connectoin checkout failed > connection pool cleared
+	//   2. conneciton pool clared > connection checkout failed
+	//
+	// Therefore, the ConnectionPoolCleared literal is added to unordered
+	// list. The check for cleared > closed is made in the matching logic.
 	return msgStr == logger.ConnectionCheckoutFailed ||
 		msgStr == logger.ConnectionClosed ||
 		msgStr == logger.ConnectionPoolCleared
