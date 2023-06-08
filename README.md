@@ -173,7 +173,8 @@ See our [common issues](docs/common-issues.md) documentation for troubleshooting
 -------------------------
 ## Thanks and Acknowledgement
 
-<a href="https://github.com/ashleymcnamara">@ashleymcnamara</a> - Mongo Gopher Artwork
+- The Go Gopher artwork by [@ashleymcnamara](https://github.com/ashleymcnamara)
+- The original Go gopher was designed by [Renee French](http://reneefrench.blogspot.com/)
 
 -------------------------
 ## License
