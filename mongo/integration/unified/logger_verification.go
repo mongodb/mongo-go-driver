@@ -163,9 +163,9 @@ func isUnorderedLog(log *logMessage) bool {
 	// both logs to be "unordered".
 	//
 	// The connection pool must clear before the connection is closed.
-	// However, either of these conditions can be valid:
+	// However, either of these conditions are valid:
 	//
-	//   1. connectoin checkout failed > connection pool cleared
+	//   1. connection checkout failed > connection pool cleared
 	//   2. conneciton pool clared > connection checkout failed
 	//
 	// Therefore, the ConnectionPoolCleared literal is added to unordered
