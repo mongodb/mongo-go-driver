@@ -32,12 +32,13 @@ var (
 	// MockDescription is the server description used for the mock deployment. Each mocked connection returns this
 	// value from its Description method.
 	MockDescription = description.Server{
-		CanonicalAddr:         serverAddress,
-		MaxDocumentSize:       maxDocumentSize,
-		MaxMessageSize:        maxMessageSize,
-		MaxBatchCount:         maxBatchCount,
-		SessionTimeoutMinutes: sessionTimeoutMinutes,
-		Kind:                  description.RSPrimary,
+		CanonicalAddr:            serverAddress,
+		MaxDocumentSize:          maxDocumentSize,
+		MaxMessageSize:           maxMessageSize,
+		MaxBatchCount:            maxBatchCount,
+		SessionTimeoutMinutes:    sessionTimeoutMinutes,
+		SessionTimeoutMinutesSet: true,
+		Kind:                     description.RSPrimary,
 		WireVersion: &description.VersionRange{
 			Max: topology.SupportedWireVersions.Max,
 		},
@@ -162,8 +163,11 @@ func (md *mockDeployment) Disconnect(context.Context) error {
 func (md *mockDeployment) Subscribe() (*driver.Subscription, error) {
 	if md.updates == nil {
 		md.updates = make(chan description.Topology, 1)
+
+		stm := sessionTimeoutMinutes
 		md.updates <- description.Topology{
-			SessionTimeoutMinutes: sessionTimeoutMinutes,
+			SessionTimeoutMinutes:    stm,
+			SessionTimeoutMinutesSet: true,
 		}
 	}
 

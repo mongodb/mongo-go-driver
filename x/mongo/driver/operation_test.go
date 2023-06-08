@@ -144,9 +144,24 @@ func TestOperation(t *testing.T) {
 		wcAck := writeconcern.New(writeconcern.WMajority())
 		wcUnack := writeconcern.New(writeconcern.W(0))
 
-		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1}
-		descNotRetryableWireVersion := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}, SessionTimeoutMinutes: 1}
-		descNotRetryableStandalone := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1, Kind: description.Standalone}
+		descRetryable := description.Server{
+			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesSet: true,
+		}
+
+		descNotRetryableWireVersion := description.Server{
+			WireVersion:              &description.VersionRange{Min: 0, Max: 5},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesSet: true,
+		}
+
+		descNotRetryableStandalone := description.Server{
+			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesSet: true,
+			Kind:                     description.Standalone,
+		}
 
 		testCases := []struct {
 			name string

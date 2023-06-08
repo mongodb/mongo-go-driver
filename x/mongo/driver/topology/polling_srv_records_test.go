@@ -182,9 +182,10 @@ func TestPollSRVRecords(t *testing.T) {
 		topo.serversLock.Lock()
 		topo.fsm.Kind = description.Single
 		topo.desc.Store(description.Topology{
-			Kind:                  topo.fsm.Kind,
-			Servers:               topo.fsm.Servers,
-			SessionTimeoutMinutes: topo.fsm.SessionTimeoutMinutes,
+			Kind:                     topo.fsm.Kind,
+			Servers:                  topo.fsm.Servers,
+			SessionTimeoutMinutes:    topo.fsm.SessionTimeoutMinutes,
+			SessionTimeoutMinutesSet: topo.fsm.SessionTimeoutMinutesSet,
 		})
 		topo.serversLock.Unlock()
 

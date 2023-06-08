@@ -218,9 +218,10 @@ func (t *Topology) Connect() error {
 		// server monitoring goroutines.
 
 		newDesc := description.Topology{
-			Kind:                  t.fsm.Kind,
-			Servers:               t.fsm.Servers,
-			SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
+			Kind:                     t.fsm.Kind,
+			Servers:                  t.fsm.Servers,
+			SessionTimeoutMinutes:    t.fsm.SessionTimeoutMinutes,
+			SessionTimeoutMinutesSet: t.fsm.SessionTimeoutMinutesSet,
 		}
 		t.desc.Store(newDesc)
 		t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
@@ -681,9 +682,10 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 
 	//store new description
 	newDesc := description.Topology{
-		Kind:                  t.fsm.Kind,
-		Servers:               t.fsm.Servers,
-		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
+		Kind:                     t.fsm.Kind,
+		Servers:                  t.fsm.Servers,
+		SessionTimeoutMinutes:    t.fsm.SessionTimeoutMinutes,
+		SessionTimeoutMinutesSet: t.fsm.SessionTimeoutMinutesSet,
 	}
 	t.desc.Store(newDesc)
 

@@ -426,9 +426,10 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc := description.Server{
-			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
-			SessionTimeoutMinutes: 30,
+			Addr:                     "foo",
+			Kind:                     description.RSPrimary,
+			SessionTimeoutMinutes:    30,
+			SessionTimeoutMinutesSet: true,
 		}
 		topo.apply(ctx, desc)
 
@@ -452,10 +453,11 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc1 := description.Server{
-			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
-			SessionTimeoutMinutes: 30,
-			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                     "foo",
+			Kind:                     description.RSPrimary,
+			SessionTimeoutMinutes:    30,
+			SessionTimeoutMinutesSet: true,
+			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should update because new timeout is lower
 		desc2 := description.Server{
@@ -486,17 +488,19 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc1 := description.Server{
-			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
-			SessionTimeoutMinutes: 20,
-			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                     "foo",
+			Kind:                     description.RSPrimary,
+			SessionTimeoutMinutes:    20,
+			SessionTimeoutMinutesSet: true,
+			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because new timeout is higher
 		desc2 := description.Server{
-			Addr:                  "bar",
-			Kind:                  description.RSPrimary,
-			SessionTimeoutMinutes: 30,
-			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                     "bar",
+			Kind:                     description.RSPrimary,
+			SessionTimeoutMinutes:    30,
+			SessionTimeoutMinutesSet: true,
+			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
@@ -520,17 +524,19 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc1 := description.Server{
-			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
-			SessionTimeoutMinutes: 20,
-			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                     "foo",
+			Kind:                     description.RSPrimary,
+			SessionTimeoutMinutes:    20,
+			SessionTimeoutMinutesSet: true,
+			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because not a data bearing server
 		desc2 := description.Server{
-			Addr:                  "bar",
-			Kind:                  description.Unknown,
-			SessionTimeoutMinutes: 10,
-			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                     "bar",
+			Kind:                     description.Unknown,
+			SessionTimeoutMinutes:    10,
+			SessionTimeoutMinutesSet: true,
+			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)

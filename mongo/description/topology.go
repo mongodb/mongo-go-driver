@@ -14,11 +14,12 @@ import (
 
 // Topology contains information about a MongoDB cluster.
 type Topology struct {
-	Servers               []Server
-	SetName               string
-	Kind                  TopologyKind
-	SessionTimeoutMinutes uint32
-	CompatibilityErr      error
+	Servers                  []Server
+	SetName                  string
+	Kind                     TopologyKind
+	SessionTimeoutMinutes    uint32
+	SessionTimeoutMinutesSet bool
+	CompatibilityErr         error
 }
 
 // String implements the Stringer interface.

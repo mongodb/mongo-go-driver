@@ -15,11 +15,13 @@ import (
 )
 
 func TestSessionPool(t *testing.T) {
+	uint32ptr := func(ui32 uint32) *uint32 { return &ui32 }
+
 	t.Run("TestLifo", func(t *testing.T) {
 		descChan := make(chan description.Topology)
 		p := NewPool(descChan)
 		p.latestTopology = topologyDescription{
-			timeoutMinutes: 30, // Set to some arbitrarily high number greater than 1 minute.
+			timeoutMinutes: uint32ptr(30), // Set to some arbitrarily high number greater than 1 minute.
 		}
 
 		first, err := p.GetSession()

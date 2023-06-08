@@ -60,18 +60,26 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 		// If timeout currently 0, check all servers to see if any still don't have a timeout
 		// If they all have timeout, pick the lowest.
 		timeout := s.SessionTimeoutMinutes
+		timeoutSet := s.SessionTimeoutMinutesSet
 		for _, server := range f.Servers {
 			if server.DataBearing() && server.SessionTimeoutMinutes < timeout {
 				timeout = server.SessionTimeoutMinutes
+				timeoutSet = server.SessionTimeoutMinutesSet
 			}
 		}
-		f.SessionTimeoutMinutes = timeout
+
+		if timeoutSet {
+			f.SessionTimeoutMinutes = timeout
+			f.SessionTimeoutMinutesSet = true
+		}
 	} else {
 		if s.DataBearing() && oldMinutes > s.SessionTimeoutMinutes {
 			f.SessionTimeoutMinutes = s.SessionTimeoutMinutes
 		} else {
 			f.SessionTimeoutMinutes = oldMinutes
 		}
+
+		f.SessionTimeoutMinutesSet = true
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {

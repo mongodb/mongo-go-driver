@@ -25,7 +25,7 @@ type Node struct {
 // relevant for determining session expiration.
 type topologyDescription struct {
 	kind           description.TopologyKind
-	timeoutMinutes uint32
+	timeoutMinutes *uint32
 }
 
 // Pool is a pool of server sessions that can be reused.
@@ -63,9 +63,14 @@ func NewPool(descChan <-chan description.Topology) *Pool {
 func (p *Pool) updateTimeout() {
 	select {
 	case newDesc := <-p.descChan:
+		var timeoutMinutes *uint32
+		if newDesc.SessionTimeoutMinutesSet {
+			timeoutMinutes = &newDesc.SessionTimeoutMinutes
+		}
+
 		p.latestTopology = topologyDescription{
 			kind:           newDesc.Kind,
-			timeoutMinutes: newDesc.SessionTimeoutMinutes,
+			timeoutMinutes: timeoutMinutes,
 		}
 	default:
 		// no new description waiting
@@ -189,4 +194,8 @@ func (p *Pool) String() string {
 // CheckedOut returns number of sessions checked out from pool.
 func (p *Pool) CheckedOut() int64 {
 	return atomic.LoadInt64(&p.checkedOut)
+}
+
+func (p *Pool) hasSessionSupport() bool {
+	return p.latestTopology.timeoutMinutes != nil
 }
