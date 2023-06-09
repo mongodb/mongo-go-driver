@@ -1074,6 +1074,7 @@ functions:
     # Wait up to 10 seconds for the KMIP server to start.
     - command: shell.exec
       params:
+        shell: "bash"
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
           if [ "Windows_NT" = "$OS" ]; then
