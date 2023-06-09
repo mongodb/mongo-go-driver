@@ -1071,6 +1071,25 @@ functions:
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
           fi
+    # Wait up to 10 seconds for the KMIP server to start.
+    - command: shell.exec
+      params:
+        script: |
+          cd ${DRIVERS_TOOLS}/.evergreen/csfle
+          if [ "Windows_NT" = "$OS" ]; then
+            export PYTHON=kmstlsvenv/Scripts/python.exe
+          else
+            export PYTHON=./kmstlsvenv/bin/python3
+          fi
+          for i in $(seq 1 1 10); do
+             sleep 1
+             if $PYTHON -u kms_kmip_client.py; then
+                echo 'KMS KMIP server started!'
+                exit 0
+             fi
+          done
+          echo 'Failed to start KMIP server!'
+          exit 1
     - command: shell.exec
       params:
         shell: "bash"
