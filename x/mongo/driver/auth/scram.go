@@ -106,16 +106,12 @@ type scramSaslAdapter struct {
 var _ SaslClient = (*scramSaslAdapter)(nil)
 var _ ExtraOptionsSaslClient = (*scramSaslAdapter)(nil)
 
-func (a *scramSaslAdapter) GetMechanism() string {
-	return a.mechanism
-}
-
-func (a *scramSaslAdapter) Start(address.Address) ([]byte, error) {
+func (a *scramSaslAdapter) Start(address.Address) (string, []byte, error) {
 	step, err := a.conversation.Step("")
 	if err != nil {
-		return nil, err
+		return a.mechanism, nil, err
 	}
-	return []byte(step), nil
+	return a.mechanism, []byte(step), nil
 }
 
 func (a *scramSaslAdapter) Next(_ address.Address, challenge []byte) ([]byte, error) {

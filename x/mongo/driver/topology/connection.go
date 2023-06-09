@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -553,11 +554,18 @@ func (c initConnection) Description() description.Server {
 	}
 	return c.connection.desc
 }
-func (c initConnection) Close() error                { return nil }
-func (c initConnection) ResumeFromError(error) error { return nil }
-func (c initConnection) ID() string                  { return c.id }
-func (c initConnection) Address() address.Address    { return c.addr }
-func (c initConnection) Stale() bool                 { return false }
+func (c initConnection) Close() error { return nil }
+func (c initConnection) ResumeFromError(ctx context.Context, err error) error {
+	if de, ok := err.(driver.Error); ok && de.Code == driver.ReauthenticationRequired {
+		if reauthenticator, ok := c.connection.config.handshaker.(auth.Reauthenticator); ok {
+			err = reauthenticator.Reauth(ctx, c)
+		}
+	}
+	return err
+}
+func (c initConnection) ID() string               { return c.id }
+func (c initConnection) Address() address.Address { return c.addr }
+func (c initConnection) Stale() bool              { return false }
 func (c initConnection) LocalAddress() address.Address {
 	if c.connection == nil || c.nc == nil {
 		return address.Address("0.0.0.0")
@@ -676,14 +684,10 @@ func (c *Connection) Close() error {
 }
 
 // ResumeFromError handles connection error.
-func (c *Connection) ResumeFromError(err error) error {
-	if de, ok := err.(driver.Error); ok {
-		switch de.Code {
-		case driver.ReauthenticationRequired:
-			err = c.connection.config.handshaker.Reauthenticate(context.Background(), initConnection{c.connection})
-		}
-	}
-	return err
+func (c *Connection) ResumeFromError(ctx context.Context, err error) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return initConnection{c.connection}.ResumeFromError(ctx, err)
 }
 
 // Expire closes this connection and will closeConnection the underlying socket.

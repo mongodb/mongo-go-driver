@@ -93,15 +93,18 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 	if ah.options.Authenticator != nil {
 		if speculativeAuth, ok := ah.options.Authenticator.(SpeculativeAuthenticator); ok {
 			ah.conversation = speculativeAuth.CreateSpeculativeConversation()
+
+			firstMsg, err := ah.conversation.FirstMessage(addr)
+			if err != nil {
+				return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
+			}
+
+			op = op.SpeculativeAuthenticate(firstMsg)
 		}
 	}
 
 	var err error
-	if ah.conversation != nil {
-		ah.handshakeInfo, err = ah.conversation.GetHandshakeInformation(ctx, op, addr, conn)
-	} else {
-		ah.handshakeInfo, err = op.GetHandshakeInformation(ctx, addr, conn)
-	}
+	ah.handshakeInfo, err = op.GetHandshakeInformation(ctx, addr, conn)
 	if err != nil {
 		return driver.HandshakeInformation{}, newAuthError("handshake failure", err)
 	}
@@ -119,7 +122,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 	}
 
 	if performAuth(conn.Description()) && ah.options.Authenticator != nil {
-		if err := ah.authenticate(ctx, ah.getConfig(conn)); err != nil {
+		if err := ah.authenticate(ctx, ah.newConfig(conn)); err != nil {
 			return newAuthError("auth error", err)
 		}
 	}
@@ -130,7 +133,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 	return ah.wrapped.FinishHandshake(ctx, conn)
 }
 
-func (ah *authHandshaker) getConfig(conn driver.Connection) *Config {
+func (ah *authHandshaker) newConfig(conn driver.Connection) *Config {
 	return &Config{
 		Description:   conn.Description(),
 		Connection:    conn,
@@ -160,8 +163,9 @@ func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
 	return ah.options.Authenticator.Auth(ctx, cfg)
 }
 
-func (ah *authHandshaker) Reauthenticate(ctx context.Context, conn driver.Connection) error {
-	return ah.options.Authenticator.Auth(ctx, ah.getConfig(conn))
+// Reauth re-authenticates the connection.
+func (ah *authHandshaker) Reauth(ctx context.Context, conn driver.Connection) error {
+	return ah.options.Authenticator.Auth(ctx, ah.newConfig(conn))
 }
 
 // Handshaker creates a connection handshaker for the given authenticator.
@@ -186,6 +190,11 @@ type Config struct {
 type Authenticator interface {
 	// Auth authenticates the connection.
 	Auth(context.Context, *Config) error
+}
+
+// Reauthenticator re-authenticates a connection.
+type Reauthenticator interface {
+	Reauth(context.Context, driver.Connection) error
 }
 
 func newAuthError(msg string, inner error) *Error {

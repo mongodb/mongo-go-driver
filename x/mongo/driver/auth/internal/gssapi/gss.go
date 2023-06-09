@@ -23,6 +23,8 @@ import (
 	"runtime"
 	"strings"
 	"unsafe"
+
+	"go.mongodb.org/mongo-driver/mongo/address"
 )
 
 // New creates a new SaslClient. The target parameter should be a hostname with no port.
@@ -66,11 +68,11 @@ type SaslClient struct {
 	done            bool
 }
 
-func (sc *SaslClient) Close() {
+func (sc *SaslClient) Close(address.Address) {
 	C.gssapi_client_destroy(&sc.state)
 }
 
-func (sc *SaslClient) Start() (string, []byte, error) {
+func (sc *SaslClient) Start(addr address.Address) (string, []byte, error) {
 	const mechName = "GSSAPI"
 
 	cservicePrincipalName := C.CString(sc.servicePrincipalName)
@@ -91,12 +93,12 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 		return mechName, nil, sc.getError("unable to initialize client")
 	}
 
-	payload, err := sc.Next(nil)
+	payload, err := sc.Next(addr, nil)
 
 	return mechName, payload, err
 }
 
-func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
+func (sc *SaslClient) Next(_ address.Address, challenge []byte) ([]byte, error) {
 
 	var buf unsafe.Pointer
 	var bufLen C.size_t

@@ -67,16 +67,12 @@ type awsSaslAdapter struct {
 
 var _ SaslClient = (*awsSaslAdapter)(nil)
 
-func (a *awsSaslAdapter) GetMechanism() string {
-	return MongoDBAWS
-}
-
-func (a *awsSaslAdapter) Start(address.Address) ([]byte, error) {
+func (a *awsSaslAdapter) Start(address.Address) (string, []byte, error) {
 	step, err := a.conversation.Step(nil)
 	if err != nil {
-		return nil, err
+		return MongoDBAWS, nil, err
 	}
-	return step, nil
+	return MongoDBAWS, step, nil
 }
 
 func (a *awsSaslAdapter) Next(_ address.Address, challenge []byte) ([]byte, error) {

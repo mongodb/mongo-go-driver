@@ -44,7 +44,7 @@ type callback struct {
 	refreshCbcount int32
 }
 
-func (cb *callback) OnRequest(ctx context.Context, user string, info auth.IDPServerInfo) (auth.IDPServerResp, error) {
+func (cb *callback) OnRequest(ctx context.Context, _ string, _ auth.IDPServerInfo) (auth.IDPServerResp, error) {
 	cb.t.Helper()
 	cb.validateContextDeadline(ctx, 5*time.Minute)
 	i := atomic.AddInt32(&cb.requestCbcount, 1) - 1
@@ -52,7 +52,7 @@ func (cb *callback) OnRequest(ctx context.Context, user string, info auth.IDPSer
 	return cb.callback(cb.requestResult[i])
 }
 
-func (cb *callback) OnRefresh(ctx context.Context, user string, serverInfo auth.IDPServerInfo, refreshInfo auth.IDPRefreshInfo) (auth.IDPServerResp, error) {
+func (cb *callback) OnRefresh(ctx context.Context, _ string, _ auth.IDPServerInfo, _ auth.IDPRefreshInfo) (auth.IDPServerResp, error) {
 	cb.t.Helper()
 	cb.validateContextDeadline(ctx, 5*time.Minute)
 	i := atomic.AddInt32(&cb.refreshCbcount, 1) - 1
@@ -86,7 +86,7 @@ func (cb *callback) validateContextDeadline(ctx context.Context, timeout time.Du
 func TestCallbackDrivenAuthProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -225,7 +225,7 @@ func TestCallbackDrivenAuthProse(t *testing.T) {
 func TestAwsAutomaticAuthProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -280,7 +280,7 @@ func TestAwsAutomaticAuthProse(t *testing.T) {
 func TestCallbackValidationProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -370,7 +370,7 @@ func TestCallbackValidationProse(t *testing.T) {
 func TestCachedCredentialsProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -486,7 +486,7 @@ func TestCachedCredentialsProse(t *testing.T) {
 func TestSpeculativeAuthenticationProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
@@ -543,7 +543,7 @@ func TestSpeculativeAuthenticationProse(t *testing.T) {
 func TestReauthenticationProse(t *testing.T) {
 	t.Setenv(awsEnv, "/tmp/tokens/test_user1")
 
-	mtOpts := mtest.NewOptions().MinServerVersion("7.0").CreateClient(false)
+	mtOpts := mtest.NewOptions().MinServerVersion("7.0").Enterprise(true).CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 

@@ -37,8 +37,8 @@ type x509Conversation struct{}
 var _ SpeculativeConversation = (*x509Conversation)(nil)
 
 // FirstMessage returns the first message to be sent to the server.
-func (*x509Conversation) GetHandshakeInformation(ctx context.Context, hello *operation.Hello, addr address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-	return hello.SpeculativeAuthenticate(createFirstX509Message(description.Server{}, "")).GetHandshakeInformation(ctx, addr, c)
+func (c *x509Conversation) FirstMessage(address.Address) (bsoncore.Document, error) {
+	return createFirstX509Message(description.Server{}, ""), nil
 }
 
 // createFirstX509Message creates the first message for the X509 conversation.

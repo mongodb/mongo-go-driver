@@ -757,14 +757,16 @@ type mockConnection struct {
 
 func (m *mockConnection) Description() description.Server { return m.rDesc }
 func (m *mockConnection) Close() error                    { return m.rCloseErr }
-func (m *mockConnection) ResumeFromError(error) error     { return nil }
-func (m *mockConnection) ID() string                      { return m.rID }
-func (m *mockConnection) ServerConnectionID() *int64      { return m.rServerConnID }
-func (m *mockConnection) Address() address.Address        { return m.rAddr }
-func (m *mockConnection) SupportsStreaming() bool         { return m.rCanStream }
-func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming }
-func (m *mockConnection) SetStreaming(streaming bool)     { m.rStreaming = streaming }
-func (m *mockConnection) Stale() bool                     { return false }
+func (m *mockConnection) ResumeFromError(_ context.Context, err error) error {
+	return err
+}
+func (m *mockConnection) ID() string                  { return m.rID }
+func (m *mockConnection) ServerConnectionID() *int64  { return m.rServerConnID }
+func (m *mockConnection) Address() address.Address    { return m.rAddr }
+func (m *mockConnection) SupportsStreaming() bool     { return m.rCanStream }
+func (m *mockConnection) CurrentlyStreaming() bool    { return m.rStreaming }
+func (m *mockConnection) SetStreaming(streaming bool) { m.rStreaming = streaming }
+func (m *mockConnection) Stale() bool                 { return false }
 
 // TODO:(GODRIVER-2824) replace return type with int64.
 func (m *mockConnection) DriverConnectionID() uint64 { return 0 }

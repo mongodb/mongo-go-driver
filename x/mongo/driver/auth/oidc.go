@@ -49,8 +49,6 @@ type CacheEntry struct {
 	Auth         *Auth
 	generationID uuid.UUID
 	cond         sync.Cond
-
-	reauthMutex sync.Mutex
 }
 
 func newOidcAuthenticator(cred *Cred) (Authenticator, error) {
@@ -101,12 +99,15 @@ func newOidcAuthenticator(cred *Cred) (Authenticator, error) {
 // OidcAuthenticator uses the OIDC algorithm over SASL to authenticate a connection.
 type OidcAuthenticator struct {
 	Source string
-	Client oidcSaslClient
+	Client interface {
+		SaslClientCloser
+		auth(context.Context, *Config) error
+	}
 }
 
 // CreateSpeculativeConversation creates a speculative conversation for OIDC authentication.
 func (a *OidcAuthenticator) CreateSpeculativeConversation() SpeculativeConversation {
-	return newOidcSaslConversation(a.Client, a.Source, true)
+	return newSaslConversation(a.Client, a.Source, true)
 }
 
 // Auth authenticates the connection.
@@ -116,11 +117,7 @@ func (a *OidcAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 type aswOidcClient struct{}
 
-func (*aswOidcClient) GetMechanism() string {
-	return MongoDBOIDC
-}
-
-func (*aswOidcClient) Start(address.Address) ([]byte, error) {
+func (*aswOidcClient) Start(address.Address) (string, []byte, error) {
 	const env = "AWS_WEB_IDENTITY_TOKEN_FILE"
 	builder := bsoncore.NewDocumentBuilder()
 	var err error
@@ -129,7 +126,7 @@ func (*aswOidcClient) Start(address.Address) ([]byte, error) {
 	} else if res, err := ioutil.ReadFile(path); err == nil {
 		builder.AppendString("jwt", string(res))
 	}
-	return builder.Build(), err
+	return MongoDBOIDC, builder.Build(), err
 }
 
 func (*aswOidcClient) Next(address.Address, []byte) ([]byte, error) {
@@ -141,10 +138,6 @@ func (*aswOidcClient) Completed() bool {
 }
 
 func (*aswOidcClient) Close(address.Address) {}
-
-func (*aswOidcClient) allowAddr(address.Address) bool {
-	return true
-}
 
 func (oc *aswOidcClient) auth(ctx context.Context, cfg *Config) error {
 	return ConductSaslConversation(ctx, cfg, oidcSource, oc)
@@ -160,7 +153,6 @@ const (
 type reauth struct {
 	generationID uuid.UUID
 	reauthStep   reauthStep
-	reauthLocked *sync.Mutex
 }
 
 type oidcClient struct {
@@ -172,11 +164,11 @@ type oidcClient struct {
 	reauth map[address.Address]*reauth
 }
 
-func (*oidcClient) GetMechanism() string {
-	return MongoDBOIDC
-}
+func (oc *oidcClient) Start(addr address.Address) (string, []byte, error) {
+	if !oc.allowAddr(addr) {
+		return MongoDBOIDC, nil, fmt.Errorf("OIDC host is not allowed: %s", addr.String())
+	}
 
-func (oc *oidcClient) Start(addr address.Address) ([]byte, error) {
 	var hasKey bool
 	key := fmt.Sprintf("%s@%s", oc.username, addr)
 	entry := func() *CacheEntry {
@@ -215,17 +207,17 @@ func (oc *oidcClient) Start(addr address.Address) ([]byte, error) {
 		if oc.username != "" {
 			builder.AppendString("n", oc.username)
 		}
-		return builder.Build(), nil
+		return MongoDBOIDC, builder.Build(), nil
 	} else if entry.Auth.expiry.Add(-5 * time.Minute).After(time.Now()) {
 		oc.reauth[addr].generationID = entry.generationID
 		builder.AppendString("jwt", *entry.Auth.accessToken)
-		return builder.Build(), nil
+		return MongoDBOIDC, builder.Build(), nil
 	} else if oc.onRefresh == nil || entry.Auth.refreshToken == nil {
 		entry.Auth.serverInfo = nil
 		if oc.username != "" {
 			builder.AppendString("n", oc.username)
 		}
-		return builder.Build(), nil
+		return MongoDBOIDC, builder.Build(), nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), oidcCallbackTimeout)
 	defer cancel()
@@ -261,7 +253,7 @@ func (oc *oidcClient) Start(addr address.Address) ([]byte, error) {
 		}
 		builder.AppendString("jwt", resp.AccessToken)
 	}
-	return builder.Build(), err
+	return MongoDBOIDC, builder.Build(), err
 }
 
 func (oc *oidcClient) Next(addr address.Address, challenge []byte) ([]byte, error) {
@@ -377,18 +369,6 @@ func (oc *oidcClient) auth(ctx context.Context, cfg *Config) error {
 	}
 	entry := v.(*CacheEntry)
 
-	// Do not lock in recursive calls.
-	if r.reauthLocked == nil {
-		r.reauthLocked = &entry.reauthMutex
-		r.reauthLocked.Lock()
-		r.reauthStep = 0
-		defer func() {
-			r.reauthStep = 0
-			r.reauthLocked.Unlock()
-			r.reauthLocked = nil
-		}()
-	}
-
 	if r.reauthStep == jwtReauth {
 		oc.Close(cfg.Description.Addr)
 	}
@@ -410,12 +390,14 @@ func (oc *oidcClient) auth(ctx context.Context, cfg *Config) error {
 			default:
 				entry.Auth.expiry = time.Time{}
 			}
+			r.reauthStep++
 		}
 	}()
-	r.reauthStep++
 	if r.reauthStep > principalReauth {
 		return newError(nil, MongoDBOIDC)
 	}
 
-	return ConductSaslConversation(ctx, cfg, oidcSource, oc)
+	err := ConductSaslConversation(ctx, cfg, oidcSource, oc)
+	r.reauthStep = 0
+	return err
 }

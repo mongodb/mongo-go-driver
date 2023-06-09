@@ -85,7 +85,7 @@ type LoadBalancedTransactionConnection interface {
 	ReadWireMessage(ctx context.Context) ([]byte, error)
 	Description() description.Server
 	Close() error
-	ResumeFromError(error) error
+	ResumeFromError(context.Context, error) error
 	ID() string
 	ServerConnectionID() *int64
 	DriverConnectionID() uint64 // TODO(GODRIVER-2824): change type to int64.

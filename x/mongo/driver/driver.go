@@ -62,7 +62,7 @@ type Connection interface {
 	ReadWireMessage(ctx context.Context) ([]byte, error)
 	Description() description.Server
 
-	ResumeFromError(error) error
+	ResumeFromError(context.Context, error) error
 	// Close closes any underlying connection and returns or frees any resources held by the
 	// connection. Close is idempotent and can be called multiple times, although subsequent calls
 	// to Close may return an error. A connection cannot be used after it is closed.
@@ -184,7 +184,6 @@ type HandshakeInformation struct {
 type Handshaker interface {
 	GetHandshakeInformation(context.Context, address.Address, Connection) (HandshakeInformation, error)
 	FinishHandshake(context.Context, Connection) error
-	Reauthenticate(context.Context, Connection) error
 }
 
 // SingleServerDeployment is an implementation of Deployment that always returns a single server.
