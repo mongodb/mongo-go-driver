@@ -1071,25 +1071,7 @@ functions:
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
           fi
-    # Wait up to 10 seconds for the KMIP server to start.
-    - command: shell.exec
-      params:
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            export PYTHON=kmstlsvenv/Scripts/python.exe
-          else
-            export PYTHON=./kmstlsvenv/bin/python3
-          fi
-          for i in $(seq 1 1 10); do
-             sleep 1
-             if $PYTHON -u kms_kmip_client.py; then
-                echo 'KMS KMIP server started!'
-                exit 0
-             fi
-          done
-          echo 'Failed to start KMIP server!'
-          exit 1
+
     - command: shell.exec
       params:
         shell: "bash"
@@ -1101,6 +1083,27 @@ functions:
           else
             ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
           fi
+
+    - command: shell.exec
+      params:
+        script: |
+          # Ensure mock servers are running before starting tests.
+          await_server() {
+            for i in $(seq 300); do
+                # Exit code 7: "Failed to connect to host".
+                if curl -s "localhost:$2"; test $? -ne 7; then
+                  return 0
+                else
+                  sleep 1
+                fi
+            done
+            echo "could not detect '$1' server on port $2"
+          }
+          # * List servers to await here ...
+          await_server "KMS", 5698
+          await_server "Azure", 8080
+
+          echo "finished awaiting servers"
 
   run-kms-tls-test:
     - command: shell.exec
