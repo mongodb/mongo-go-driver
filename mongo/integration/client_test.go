@@ -857,8 +857,6 @@ func TestClientStress(t *testing.T) {
 					SetPoolMonitor(tpm.PoolMonitor).
 					SetMaxPoolSize(maxPoolSize))
 			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
-				mt.Parallel()
-
 				// Print the count of connection created, connection closed, and pool clear events
 				// collected during the test to help with debugging.
 				defer func() {
