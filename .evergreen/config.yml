@@ -1071,6 +1071,7 @@ functions:
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
           fi
+
     - command: shell.exec
       params:
         shell: "bash"
@@ -1082,6 +1083,27 @@ functions:
           else
             ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
           fi
+
+    - command: shell.exec
+      params:
+        script: |
+          # Ensure mock servers are running before starting tests.
+          await_server() {
+            for i in $(seq 300); do
+                # Exit code 7: "Failed to connect to host".
+                if curl -s "localhost:$2"; test $? -ne 7; then
+                  return 0
+                else
+                  sleep 1
+                fi
+            done
+            echo "could not detect '$1' server on port $2"
+          }
+          # * List servers to await here ...
+          await_server "KMS", 5698
+          await_server "Azure", 8080
+
+          echo "finished awaiting servers"
 
   run-kms-tls-test:
     - command: shell.exec
