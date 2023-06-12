@@ -47,9 +47,9 @@ func TestDecompressFailures(t *testing.T) {
 			Compressor:       wiremessage.CompressorSnappy,
 			UncompressedSize: 100, // reasonable size
 		}
-		// compressed data is twice as large as declared above
-		// in test we use actual compression so that the decompress action would pass without fix (thus failing test)
-		// when decompression starts it allocates a buffer of the defined size, regardless of a valid compressed body following
+		// Compressed data is twice as large as declared above.
+		// In test we use actual compression so that the decompress action would pass without fix (thus failing test).
+		// When decompression starts it allocates a buffer of the defined size, regardless of a valid compressed body following.
 		compressedData, err := CompressPayload(make([]byte, opts.UncompressedSize*2), opts)
 		assert.NoError(t, err, "premature error making compressed example")
 
