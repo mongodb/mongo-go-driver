@@ -793,16 +793,12 @@ func TestClient(t *testing.T) {
 }
 
 func TestClientStress(t *testing.T) {
-	t.Parallel()
-
 	mtOpts := mtest.NewOptions().CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
 	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
 	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
-		mt.Parallel()
-
 		oid := primitive.NewObjectID()
 		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
 		_, err := mt.Coll.InsertOne(context.Background(), doc)
@@ -857,8 +853,6 @@ func TestClientStress(t *testing.T) {
 					SetPoolMonitor(tpm.PoolMonitor).
 					SetMaxPoolSize(maxPoolSize))
 			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
-				mt.Parallel()
-
 				// Print the count of connection created, connection closed, and pool clear events
 				// collected during the test to help with debugging.
 				defer func() {
