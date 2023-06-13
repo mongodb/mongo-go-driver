@@ -220,8 +220,7 @@ func (t *Topology) Connect() error {
 		newDesc := description.Topology{
 			Kind:                     t.fsm.Kind,
 			Servers:                  t.fsm.Servers,
-			SessionTimeoutMinutes:    t.fsm.SessionTimeoutMinutes,
-			SessionTimeoutMinutesSet: t.fsm.SessionTimeoutMinutesSet,
+			SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
 		}
 		t.desc.Store(newDesc)
 		t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
@@ -684,8 +683,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	newDesc := description.Topology{
 		Kind:                     t.fsm.Kind,
 		Servers:                  t.fsm.Servers,
-		SessionTimeoutMinutes:    t.fsm.SessionTimeoutMinutes,
-		SessionTimeoutMinutesSet: t.fsm.SessionTimeoutMinutesSet,
+		SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
 	}
 	t.desc.Store(newDesc)
 

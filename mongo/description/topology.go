@@ -18,7 +18,7 @@ type Topology struct {
 	SetName                  string
 	Kind                     TopologyKind
 	SessionTimeoutMinutes    uint32
-	SessionTimeoutMinutesSet bool
+	SessionTimeoutMinutesPtr *uint32
 	CompatibilityErr         error
 }
 

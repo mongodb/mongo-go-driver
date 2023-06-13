@@ -54,7 +54,7 @@ type Server struct {
 	ReadOnly                 bool
 	ServiceID                *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
 	SessionTimeoutMinutes    uint32
-	SessionTimeoutMinutesSet bool
+	SessionTimeoutMinutesPtr *uint32
 	SetName                  string
 	SetVersion               uint32
 	Tags                     tag.Set
@@ -169,7 +169,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 
 			desc.SessionTimeoutMinutes = uint32(i64)
-			desc.SessionTimeoutMinutesSet = true
+			desc.SessionTimeoutMinutesPtr = &desc.SessionTimeoutMinutes
 		case "maxBsonObjectSize":
 			i64, ok := element.Value().AsInt64OK()
 			if !ok {
@@ -465,11 +465,15 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.SessionTimeoutMinutesSet != other.SessionTimeoutMinutesSet {
+	if s.SessionTimeoutMinutesPtr == nil && other.SessionTimeoutMinutesPtr != nil {
 		return false
 	}
 
-	if s.SessionTimeoutMinutes != other.SessionTimeoutMinutes {
+	if s.SessionTimeoutMinutesPtr != nil && other.SessionTimeoutMinutesPtr == nil {
+		return false
+	}
+
+	if *s.SessionTimeoutMinutesPtr != *other.SessionTimeoutMinutesPtr {
 		return false
 	}
 

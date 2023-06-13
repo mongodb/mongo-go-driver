@@ -63,14 +63,9 @@ func NewPool(descChan <-chan description.Topology) *Pool {
 func (p *Pool) updateTimeout() {
 	select {
 	case newDesc := <-p.descChan:
-		var timeoutMinutes *uint32
-		if newDesc.SessionTimeoutMinutesSet {
-			timeoutMinutes = &newDesc.SessionTimeoutMinutes
-		}
-
 		p.latestTopology = topologyDescription{
 			kind:           newDesc.Kind,
-			timeoutMinutes: timeoutMinutes,
+			timeoutMinutes: newDesc.SessionTimeoutMinutesPtr,
 		}
 	default:
 		// no new description waiting

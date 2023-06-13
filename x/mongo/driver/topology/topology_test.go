@@ -414,6 +414,8 @@ func TestServerSelection(t *testing.T) {
 }
 
 func TestSessionTimeout(t *testing.T) {
+	uint32ToPtr := func(u uint32) *uint32 { return &u }
+
 	t.Run("UpdateSessionTimeout", func(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
@@ -428,8 +430,7 @@ func TestSessionTimeout(t *testing.T) {
 		desc := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesSet: true,
+			SessionTimeoutMinutesPtr: uint32ToPtr(30),
 		}
 		topo.apply(ctx, desc)
 
@@ -455,8 +456,7 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesSet: true,
+			SessionTimeoutMinutesPtr: uint32ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should update because new timeout is lower
@@ -490,16 +490,14 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesSet: true,
+			SessionTimeoutMinutesPtr: uint32ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because new timeout is higher
 		desc2 := description.Server{
 			Addr:                     "bar",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesSet: true,
+			SessionTimeoutMinutesPtr: uint32ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
@@ -526,16 +524,14 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesSet: true,
+			SessionTimeoutMinutesPtr: uint32ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because not a data bearing server
 		desc2 := description.Server{
 			Addr:                     "bar",
 			Kind:                     description.Unknown,
-			SessionTimeoutMinutes:    10,
-			SessionTimeoutMinutesSet: true,
+			SessionTimeoutMinutesPtr: uint32ToPtr(10),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)

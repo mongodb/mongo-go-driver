@@ -1375,7 +1375,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
-	if client == nil || !sessionsSupported(desc.WireVersion) || !desc.SessionTimeoutMinutesSet {
+	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutesPtr == nil {
 		return dst, nil
 	}
 	if err := client.UpdateUseTime(); err != nil {
@@ -1910,5 +1910,5 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
-	return s.SessionTimeoutMinutesSet && s.Kind != description.Standalone
+	return s.SessionTimeoutMinutesPtr != nil && s.Kind != description.Standalone
 }
