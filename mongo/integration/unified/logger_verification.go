@@ -271,7 +271,6 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 				errs <- fmt.Errorf("could not lookup message from unordered log: %w", err)
 
 				break
-
 			}
 
 			msgStr := msg.StringValue()
