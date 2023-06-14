@@ -62,15 +62,15 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 	boolPtr := func(b bool) *bool { return &b }
 
 	testCases := []struct {
-		description string
-		input       *writeconcern.WriteConcern
-		wantType    bsontype.Type
-		wantValue   bson.D
-		wantError   error
+		name      string
+		wc        *writeconcern.WriteConcern
+		wantType  bsontype.Type
+		wantValue bson.D
+		wantError error
 	}{
 		{
-			description: "all fields",
-			input: &writeconcern.WriteConcern{
+			name: "all fields",
+			wc: &writeconcern.WriteConcern{
 				W:        "majority",
 				Journal:  boolPtr(false),
 				WTimeout: 1 * time.Minute,
@@ -83,56 +83,61 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 			},
 		},
 		{
-			description: "string W",
-			input:       &writeconcern.WriteConcern{W: "majority"},
-			wantType:    bson.TypeEmbeddedDocument,
-			wantValue:   bson.D{{Key: "w", Value: "majority"}},
+			name:      "string W",
+			wc:        &writeconcern.WriteConcern{W: "majority"},
+			wantType:  bson.TypeEmbeddedDocument,
+			wantValue: bson.D{{Key: "w", Value: "majority"}},
 		},
 		{
-			description: "int W",
-			input:       &writeconcern.WriteConcern{W: 1},
-			wantType:    bson.TypeEmbeddedDocument,
-			wantValue:   bson.D{{Key: "w", Value: int32(1)}},
+			name:      "int W",
+			wc:        &writeconcern.WriteConcern{W: 1},
+			wantType:  bson.TypeEmbeddedDocument,
+			wantValue: bson.D{{Key: "w", Value: int32(1)}},
 		},
 		{
-			description: "int32 W",
-			input:       &writeconcern.WriteConcern{W: int32(1)},
-			wantError:   errors.New("WriteConcern.W must be a string or int, but is a int32"),
+			name:      "int32 W",
+			wc:        &writeconcern.WriteConcern{W: int32(1)},
+			wantError: errors.New("WriteConcern.W must be a string or int, but is a int32"),
 		},
 		{
-			description: "bool W",
-			input:       &writeconcern.WriteConcern{W: false},
-			wantError:   errors.New("WriteConcern.W must be a string or int, but is a bool"),
+			name:      "bool W",
+			wc:        &writeconcern.WriteConcern{W: false},
+			wantError: errors.New("WriteConcern.W must be a string or int, but is a bool"),
 		},
 		{
-			description: "W=0 and J=true",
-			input:       &writeconcern.WriteConcern{W: 0, Journal: boolPtr(true)},
-			wantError:   writeconcern.ErrInconsistent,
+			name:      "W=0 and J=true",
+			wc:        &writeconcern.WriteConcern{W: 0, Journal: boolPtr(true)},
+			wantError: writeconcern.ErrInconsistent,
 		},
 		{
-			description: "negative W",
-			input:       &writeconcern.WriteConcern{W: -1},
-			wantError:   writeconcern.ErrNegativeW,
+			name:      "negative W",
+			wc:        &writeconcern.WriteConcern{W: -1},
+			wantError: writeconcern.ErrNegativeW,
 		},
 		{
-			description: "negative WTimeout",
-			input:       &writeconcern.WriteConcern{W: 1, WTimeout: -1},
-			wantError:   writeconcern.ErrNegativeWTimeout,
+			name:      "negative WTimeout",
+			wc:        &writeconcern.WriteConcern{W: 1, WTimeout: -1},
+			wantError: writeconcern.ErrNegativeWTimeout,
 		},
 		{
-			description: "empty",
-			input:       &writeconcern.WriteConcern{},
-			wantError:   writeconcern.ErrEmptyWriteConcern,
+			name:      "empty",
+			wc:        &writeconcern.WriteConcern{},
+			wantError: writeconcern.ErrEmptyWriteConcern,
+		},
+		{
+			name:      "nil",
+			wc:        nil,
+			wantError: writeconcern.ErrEmptyWriteConcern,
 		},
 	}
 
 	for _, tc := range testCases {
 		tc := tc // Capture range variable.
 
-		t.Run(tc.description, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			typ, b, err := tc.input.MarshalBSONValue()
+			typ, b, err := tc.wc.MarshalBSONValue()
 			if tc.wantError != nil {
 				assert.Equal(t, tc.wantError, err, "expected and actual errors do not match")
 				return
@@ -153,69 +158,84 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 	}
 }
 
-func TestWriteConcern_Acknowledged(t *testing.T) {
+func TestWriteConcern(t *testing.T) {
 	boolPtr := func(b bool) *bool { return &b }
 
 	testCases := []struct {
-		description  string
-		writeConcern *writeconcern.WriteConcern
-		want         bool
+		name             string
+		wc               *writeconcern.WriteConcern
+		wantAcknowledged bool
+		wantIsValid      bool
 	}{
 		{
-			description:  "Unacknowledged",
-			writeConcern: writeconcern.Unacknowledged(),
-			want:         false,
+			name:             "Unacknowledged",
+			wc:               writeconcern.Unacknowledged(),
+			wantAcknowledged: false,
+			wantIsValid:      true,
 		},
 		{
-			description:  "W1",
-			writeConcern: writeconcern.W1(),
-			want:         true,
+			name:             "W1",
+			wc:               writeconcern.W1(),
+			wantAcknowledged: true,
+			wantIsValid:      true,
 		},
 		{
-			description:  "Journaled",
-			writeConcern: writeconcern.Journaled(),
-			want:         true,
+			name:             "Journaled",
+			wc:               writeconcern.Journaled(),
+			wantAcknowledged: true,
+			wantIsValid:      true,
 		},
 		{
-			description:  "Majority",
-			writeConcern: writeconcern.Majority(),
-			want:         true,
+			name:             "Majority",
+			wc:               writeconcern.Majority(),
+			wantAcknowledged: true,
+			wantIsValid:      true,
 		},
 		{
-			description: "{w: 0, j: true}",
-			writeConcern: &writeconcern.WriteConcern{
+			name: "{w: 0, j: true}",
+			wc: &writeconcern.WriteConcern{
 				W:       0,
 				Journal: boolPtr(true),
 			},
-			want: true,
+			wantAcknowledged: true,
+			wantIsValid:      false,
 		},
 		{
-			description:  "{w: custom}",
-			writeConcern: &writeconcern.WriteConcern{W: "custom"},
-			want:         true,
+			name:             "{w: custom}",
+			wc:               &writeconcern.WriteConcern{W: "custom"},
+			wantAcknowledged: true,
+			wantIsValid:      true,
 		},
 		{
-			description:  "nil",
-			writeConcern: nil,
-			want:         true,
+			name:             "nil",
+			wc:               nil,
+			wantAcknowledged: true,
+			wantIsValid:      true,
 		},
 		{
-			description: "invalid",
-			writeConcern: &writeconcern.WriteConcern{
+			name: "invalid type",
+			wc: &writeconcern.WriteConcern{
 				W: struct{ Field string }{},
 			},
-			want: true,
+			wantAcknowledged: true,
+			wantIsValid:      false,
 		},
 	}
 
 	for _, tc := range testCases {
 		tc := tc // Capture range variable.
 
-		t.Run(tc.description, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := tc.writeConcern.Acknowledged()
-			assert.Equal(t, tc.want, got, "expected and actual Acknowledged value are different")
+			assert.Equal(t,
+				tc.wantAcknowledged,
+				tc.wc.Acknowledged(),
+				"expected and actual Acknowledged value are different")
+			assert.Equal(t,
+				tc.wantIsValid,
+				tc.wc.IsValid(),
+				"expected and actual IsValid value are different")
 		})
 	}
 }

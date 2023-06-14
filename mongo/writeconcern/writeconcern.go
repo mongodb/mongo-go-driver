@@ -49,41 +49,46 @@ var ErrNegativeWTimeout = errors.New("write concern `wtimeout` field cannot be n
 // For more information about MongoDB write concerns, see
 // https://www.mongodb.com/docs/manual/reference/write-concern/
 type WriteConcern struct {
-	// W requests acknowledgment that the write operation has propagated to a specified number of
-	// mongod instances or to mongod instances with specified tags. It sets the the "w" option
-	// in a MongoDB write concern.
+	// W requests acknowledgment that the write operation has propagated to a
+	// specified number of mongod instances or to mongod instances with
+	// specified tags. It sets the the "w" option in a MongoDB write concern.
 	//
 	// W values must be a string or an int.
 	//
 	// Common values are:
-	// - "majority": requests acknowledgment that write operations have been durably committed to
-	//   the calculated majority of the data-bearing voting members.
-	// - 1: requests acknowledgment that write operations have been written to 1 node.
-	// - 0: requests no acknowledgment of write operations
+	//   - "majority": requests acknowledgment that write operations have been
+	//     durably committed to the calculated majority of the data-bearing
+	//     voting members.
+	//   - 1: requests acknowledgment that write operations have been written
+	//     to 1 node.
+	//   - 0: requests no acknowledgment of write operations
 	//
 	// For more information about the "w" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#w-option
 	W interface{}
 
-	// Journal requests acknowledgment from MongoDB that the write operation has been written to the
-	// on-disk journal. It sets the "j" option in a MongoDB write concern.
+	// Journal requests acknowledgment from MongoDB that the write operation has
+	// been written to the on-disk journal. It sets the "j" option in a MongoDB
+	// write concern.
 	//
 	// For more information about the "j" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#j-option
 	Journal *bool
 
-	// WTimeout specifies a time limit for the write concern. It sets the "wtimeout" option in a
-	// MongoDB write concern.
+	// WTimeout specifies a time limit for the write concern. It sets the
+	// "wtimeout" option in a MongoDB write concern.
 	//
-	// It is only applicable for "w" values greater than 1. Using a WTimeout and setting Timeout on
-	// the Client at the same time will result in undefined behavior.
+	// It is only applicable for "w" values greater than 1. Using a WTimeout and
+	// setting Timeout on the Client at the same time will result in undefined
+	// behavior.
 	//
 	// For more information about the "wtimeout" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#wtimeout
 	WTimeout time.Duration
 }
 
-// Unacknowledged returns a WriteConcern that requests no acknowledgment of write operations.
+// Unacknowledged returns a WriteConcern that requests no acknowledgment of
+// write operations.
 //
 // For more information about write concern "w: 0", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-number-
@@ -91,8 +96,9 @@ func Unacknowledged() *WriteConcern {
 	return &WriteConcern{W: 0}
 }
 
-// W1 returns a WriteConcern that requests acknowledgment that write operations have been written to
-// memory on one node (e.g. the standalone mongod or the primary in a replica set).
+// W1 returns a WriteConcern that requests acknowledgment that write operations
+// have been written to memory on one node (e.g. the standalone mongod or the
+// primary in a replica set).
 //
 // For more information about write concern "w: 1", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-number-
@@ -100,11 +106,11 @@ func W1() *WriteConcern {
 	return &WriteConcern{W: 1}
 }
 
-// Journaled returns a WriteConcern that requests acknowledgment that write operations have been
-// written to the on-disk journal on MongoDB.
+// Journaled returns a WriteConcern that requests acknowledgment that write
+// operations have been written to the on-disk journal on MongoDB.
 //
-// The database's default value for "w" determines how many nodes must write to their on-disk
-// journal before the write operation is acknowledged.
+// The database's default value for "w" determines how many nodes must write to
+// their on-disk journal before the write operation is acknowledged.
 //
 // For more information about write concern "j: true", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-ournal
@@ -113,12 +119,14 @@ func Journaled() *WriteConcern {
 	return &WriteConcern{Journal: &journal}
 }
 
-// Majority returns a WriteConcern that requests acknowledgment that write operations have been
-// durably committed to the calculated majority of the data-bearing voting members.
+// Majority returns a WriteConcern that requests acknowledgment that write
+// operations have been durably committed to the calculated majority of the
+// data-bearing voting members.
 //
-// Write concern "w: majority" typically requires write operations to be written to the on-disk
-// journal before they are acknowledged, unless journaling is disabled on MongoDB or the
-// "writeConcernMajorityJournalDefault" replica set configuration is set to false.
+// Write concern "w: majority" typically requires write operations to be written
+// to the on-disk journal before they are acknowledged, unless journaling is
+// disabled on MongoDB or the "writeConcernMajorityJournalDefault" replica set
+// configuration is set to false.
 //
 // For more information about write concern "w: majority", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-majority-
@@ -126,8 +134,9 @@ func Majority() *WriteConcern {
 	return &WriteConcern{W: majority}
 }
 
-// Custom returns a WriteConcern that requests acknowledgment that write operations have propagated
-// to tagged members that satisfy the custom write concern defined in "settings.getLastErrorModes".
+// Custom returns a WriteConcern that requests acknowledgment that write
+// operations have propagated to tagged members that satisfy the custom write
+// concern defined in "settings.getLastErrorModes".
 //
 // For more information about custom write concern names, see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-custom-write-concern-name-
@@ -233,9 +242,10 @@ func WTagSet(tag string) Option {
 //	}
 func J(j bool) Option {
 	return func(concern *WriteConcern) {
-		// To maintain backward compatible behavior (now that the J field is a *bool), only set a
-		// value for J if the input is true. If the input is false, do not set a value, which omits
-		// "j" from the marshaled write concern.
+		// To maintain backward compatible behavior (now that the J field is a
+		// bool pointer), only set a value for J if the input is true. If the
+		// input is false, do not set a value, which omits "j" from the
+		// marshaled write concern.
 		if j {
 			concern.Journal = &j
 		}
@@ -268,28 +278,34 @@ func WTimeout(d time.Duration) Option {
 
 // MarshalBSONValue implements the bson.ValueMarshaler interface.
 //
-// Deprecated: Marshaling a WriteConcern to BSON will not be supported in Go Driver 2.0.
+// Deprecated: Marshaling a WriteConcern to BSON will not be supported in Go
+// Driver 2.0.
 func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	if !wc.IsValid() {
-		return bsontype.Type(0), nil, ErrInconsistent
+	if wc == nil {
+		return 0, nil, ErrEmptyWriteConcern
 	}
 
 	var elems []byte
-
 	if wc.W != nil {
-		// Only support string or int values for W. That aligns with the documentation and the
-		// behavior of other functions, like Acknowledged.
-		switch t := wc.W.(type) {
+		// Only support string or int values for W. That aligns with the
+		// documentation and the behavior of other functions, like Acknowledged.
+		switch w := wc.W.(type) {
 		case int:
-			if t < 0 {
-				return bsontype.Type(0), nil, ErrNegativeW
+			if w < 0 {
+				return 0, nil, ErrNegativeW
 			}
 
-			elems = bsoncore.AppendInt32Element(elems, "w", int32(t))
+			// If Journal=true and W=0, return an error because that write
+			// concern is ambiguous.
+			if wc.Journal != nil && *wc.Journal && w == 0 {
+				return 0, nil, ErrInconsistent
+			}
+
+			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
 		case string:
-			elems = bsoncore.AppendStringElement(elems, "w", t)
+			elems = bsoncore.AppendStringElement(elems, "w", w)
 		default:
-			return bsontype.Type(0),
+			return 0,
 				nil,
 				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
 		}
@@ -300,7 +316,7 @@ func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	}
 
 	if wc.WTimeout < 0 {
-		return bsontype.Type(0), nil, ErrNegativeWTimeout
+		return 0, nil, ErrNegativeWTimeout
 	}
 
 	if wc.WTimeout != 0 {
@@ -308,9 +324,9 @@ func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	}
 
 	if len(elems) == 0 {
-		return bsontype.Type(0), nil, ErrEmptyWriteConcern
+		return 0, nil, ErrEmptyWriteConcern
 	}
-	return bsontype.EmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
 }
 
 // AcknowledgedValue returns true if a BSON RawValue for a write concern represents an acknowledged write concern.
@@ -343,31 +359,24 @@ func (wc *WriteConcern) Acknowledged() bool {
 	return wc == nil || wc.W != 0 || (wc.Journal != nil && *wc.Journal)
 }
 
-// IsValid checks whether the write concern is invalid.
-//
-// Deprecated: IsValid will not be supported in Go Driver 2.0.
+// IsValid returns true if the WriteConcern is valid.
 func (wc *WriteConcern) IsValid() bool {
-	if wc.Journal == nil || !*wc.Journal {
+	if wc == nil {
 		return true
 	}
 
-	switch v := wc.W.(type) {
-	// Now that users can set W to any type, IsValid doesn't handle cases where W is an unsupported
-	// type. However, the only use case of this function appears to be in MarshalBSONValue, which
-	// now does its own unsupported type handling and returns an usable error for unsupported types
-	// (MarshalBSONValue returns ErrInconsistent when IsValid is false, which doesn't cover
-	// unsupported types). To maintain backward compatibility and return good errors in
-	// MarshalBSONValue, keep the logic here the same and don't handle unsupported types.
-	//
-	// IsValid is deprecated and will be removed in Go Driver 2.0, so the inconsistency will only
-	// exist during the transition from Go Driver 1.x to Go Driver 2.0.
+	switch w := wc.W.(type) {
 	case int:
-		if v == 0 {
-			return false
-		}
+		// A write concern with {w: int} must have a non-negative value and
+		// cannot have the combination {w: 0, j: true}.
+		return w >= 0 && (w > 0 || wc.Journal == nil || !*wc.Journal)
+	case string, nil:
+		// A write concern with {w: string} or no w specified is always valid.
+		return true
+	default:
+		// A write concern with an unsupported w type is not valid.
+		return false
 	}
-
-	return true
 }
 
 // GetW returns the write concern w level.
