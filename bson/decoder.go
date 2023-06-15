@@ -137,12 +137,14 @@ func (d *Decoder) Decode(val interface{}) error {
 // Reset will reset the state of the decoder, using the same *DecodeContext used in
 // the original construction but using vr for reading.
 func (d *Decoder) Reset(vr bsonrw.ValueReader) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	d.vr = vr
 	return nil
 }
 
 // SetRegistry replaces the current registry of the decoder with r.
 func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	d.dc.Registry = r
 	return nil
 }
@@ -151,6 +153,7 @@ func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
 //
 // Deprecated: Use the Decoder configuration methods to set the desired unmarshal behavior instead.
 func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	d.dc = dc
 	return nil
 }

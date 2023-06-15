@@ -417,6 +417,7 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 
 	return op.Result(), err
 }
+
 func createUpdateDoc(
 	filter interface{},
 	update interface{},
@@ -449,11 +450,15 @@ func createUpdateDoc(
 	}
 
 	if arrayFilters != nil {
-		arr, err := arrayFilters.ToArrayDocument()
+		reg := registry
+		if arrayFilters.Registry != nil {
+			reg = arrayFilters.Registry
+		}
+		arr, err := marshalValue(arrayFilters.Filters, bsonOpts, reg)
 		if err != nil {
 			return nil, err
 		}
-		updateDoc = bsoncore.AppendArrayElement(updateDoc, "arrayFilters", arr)
+		updateDoc = bsoncore.AppendArrayElement(updateDoc, "arrayFilters", arr.Data)
 	}
 
 	if collation != nil {

@@ -534,7 +534,11 @@ func (cs *ChangeStream) Decode(val interface{}) error {
 		return ErrNilCursor
 	}
 
-	return bson.UnmarshalWithRegistry(cs.registry, cs.Current, val)
+	dec, err := getDecoder(cs.Current, cs.bsonOpts, cs.registry)
+	if err != nil {
+		return fmt.Errorf("error configuring BSON decoder: %w", err)
+	}
+	return dec.Decode(val)
 }
 
 // Err returns the last error seen by the change stream, or nil if no errors has occurred.

@@ -254,7 +254,7 @@ func getDecoder(
 	}
 
 	if reg != nil {
-		dec.SetRegistry(reg)
+		_ = dec.SetRegistry(reg)
 	}
 
 	return dec, nil
@@ -357,7 +357,12 @@ func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, bat
 		}
 
 		currElem := sliceVal.Index(index).Addr().Interface()
-		if err = bson.UnmarshalWithRegistry(c.registry, doc, currElem); err != nil {
+		dec, err := getDecoder(doc, c.bsonOpts, c.registry)
+		if err != nil {
+			return sliceVal, index, fmt.Errorf("error configuring BSON decoder: %w", err)
+		}
+		err = dec.Decode(currElem)
+		if err != nil {
 			return sliceVal, index, err
 		}
 

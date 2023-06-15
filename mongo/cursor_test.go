@@ -13,6 +13,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
@@ -179,6 +181,27 @@ func TestCursor(t *testing.T) {
 
 			err = cursor.All(context.Background(), &docs)
 			assert.NotNil(t, err, "expected error, got: %v", err)
+		})
+		t.Run("with BSONOptions", func(t *testing.T) {
+			cursor, err := newCursor(
+				newTestBatchCursor(1, 5),
+				&options.BSONOptions{
+					UseJSONStructTags: true,
+				},
+				nil)
+			require.NoError(t, err, "newCursor error")
+
+			type myDocument struct {
+				A int32 `json:"foo"`
+			}
+			var got []myDocument
+
+			err = cursor.All(context.Background(), &got)
+			require.NoError(t, err, "All error")
+
+			want := []myDocument{{A: 0}, {A: 1}, {A: 2}, {A: 3}, {A: 4}}
+
+			assert.Equal(t, want, got, "expected and actual All results are different")
 		})
 	})
 }

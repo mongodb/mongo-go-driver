@@ -1664,11 +1664,16 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	op = op.Update(u)
 
 	if fo.ArrayFilters != nil {
-		filtersDoc, err := fo.ArrayFilters.ToArrayDocument()
+		af := fo.ArrayFilters
+		reg := coll.registry
+		if af.Registry != nil {
+			reg = af.Registry
+		}
+		filtersDoc, err := marshalValue(af.Filters, coll.bsonOpts, reg)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
-		op = op.ArrayFilters(bsoncore.Document(filtersDoc))
+		op = op.ArrayFilters(filtersDoc.Data)
 	}
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
@@ -1747,6 +1752,7 @@ func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
 		readConcern:    coll.readConcern,
 		readPreference: coll.readPreference,
 		client:         coll.client,
+		bsonOpts:       coll.bsonOpts,
 		registry:       coll.registry,
 		streamType:     CollectionStream,
 		collectionName: coll.Name(),

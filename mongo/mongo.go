@@ -123,7 +123,7 @@ func getEncoder(
 	}
 
 	if reg != nil {
-		enc.SetRegistry(reg)
+		_ = enc.SetRegistry(reg)
 	}
 
 	return enc, nil

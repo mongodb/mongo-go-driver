@@ -650,6 +650,8 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 		uo.Registry = bson.DefaultRegistry
 	}
 	if uo.Metadata != nil {
+		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
+		// TODO gridfs package is merged into the mongo package.
 		raw, err := bson.MarshalWithRegistry(uo.Registry, uo.Metadata)
 		if err != nil {
 			return nil, err

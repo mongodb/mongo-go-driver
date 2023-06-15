@@ -14,6 +14,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestSingleResult(t *testing.T) {
@@ -43,6 +45,31 @@ func TestSingleResult(t *testing.T) {
 			resBytes := []byte(res)
 			assert.Equal(t, r, resBytes, "expected contents %v, got %v", r, resBytes)
 			assert.Equal(t, sr.err, err, "expected error %v, got %v", sr.err, err)
+		})
+		t.Run("with BSONOptions", func(t *testing.T) {
+			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
+			require.NoError(t, err, "newCursor error")
+
+			sr := &SingleResult{
+				cur: c,
+				bsonOpts: &options.BSONOptions{
+					UseJSONStructTags: true,
+				},
+				reg: bson.DefaultRegistry,
+			}
+
+			type myDocument struct {
+				A *int32 `json:"foo"`
+			}
+
+			var got myDocument
+			err = sr.Decode(&got)
+			require.NoError(t, err, "Decode error")
+
+			i := int32(0)
+			want := myDocument{A: &i}
+
+			assert.Equal(t, want, got, "expected and actual Decode results are different")
 		})
 	})
 
