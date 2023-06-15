@@ -17,6 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -186,6 +187,20 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.publishServerOpeningEvent(s.address)
 
 	return s
+}
+
+func mustLogServerMessage(srv *Server) bool {
+	return srv.cfg.logger != nil && srv.cfg.logger.LevelComponentEnabled(
+		logger.LevelDebug, logger.ComponentTopology)
+}
+
+func logServerMessage(srv *Server, msg string, keysAndValues ...interface{}) {
+	srv.cfg.logger.Print(logger.LevelDebug,
+		logger.ComponentTopology,
+		msg,
+		logger.SerializeTopology(logger.Topology{
+			Message: msg,
+		}, keysAndValues...)...)
 }
 
 // Connect initializes the Server by starting background monitoring goroutines.
@@ -947,6 +962,10 @@ func (s *Server) publishServerOpeningEvent(addr address.Address) {
 
 	if s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerOpening != nil {
 		s.cfg.serverMonitor.ServerOpening(serverOpening)
+	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerOpening)
 	}
 }
 

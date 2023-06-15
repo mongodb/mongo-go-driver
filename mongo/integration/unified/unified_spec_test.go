@@ -29,6 +29,7 @@ var (
 		"client-side-encryption/unified",
 		"client-side-operations-timeout",
 		"gridfs",
+		"server-discovery-and-monitoring/unified",
 	}
 	failDirectories = []string{
 		"unified-test-format/valid-fail",

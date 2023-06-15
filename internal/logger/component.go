@@ -28,6 +28,10 @@ const (
 	ConnectionCheckoutFailed  = "Connection checkout failed"
 	ConnectionCheckedOut      = "Connection checked out"
 	ConnectionCheckedIn       = "Connection checked in"
+	TopologyClosed            = "Stopped topology monitoring"
+	TopologyOpening           = "Starting topology monitoring"
+	TopologyServerOpening     = "Starting server monitoring"
+	TopologyServerClosed      = "Stopped server monitoring"
 )
 
 const (
@@ -52,6 +56,7 @@ const (
 	KeyServerPort         = "serverPort"
 	KeyServiceID          = "serviceId"
 	KeyTimestamp          = "timestamp"
+	KeyTopologyID         = "topologyId"
 )
 
 type KeyValues []interface{}
@@ -195,6 +200,25 @@ func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []i
 	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
+	}
+
+	return keysAndValues
+}
+
+type Topology struct {
+	Message string
+	ID      primitive.ObjectID
+}
+
+func SerializeTopology(topo Topology, extraKeysAndValues ...interface{}) []interface{} {
+	keysAndValues := KeyValues{
+		KeyMessage, topo.Message,
+		KeyTopologyID, topo.ID,
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKeysAndValues); i += 2 {
+		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
 	}
 
 	return keysAndValues

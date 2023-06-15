@@ -78,9 +78,47 @@ func newLogMessage(level int, msg string, args ...interface{}) (*logMessage, err
 // clientLogMessages is a struct representing the expected "LogMessages" for a
 // client.
 type clientLogMessages struct {
-	Client      string        `bson:"client"`
-	LogMessages []*logMessage `bson:"messages"`
+	Client         string        `bson:"client"`
+	IgnoreMessages []*logMessage `bson:"ignoreMessages"`
+	LogMessages    []*logMessage `bson:"messages"`
 }
+
+// relativeComplement is the relative compliment of the "messages" input slice
+// in clientLogMessages.LogMessages. For example, if LogMessages = [ A, B, C ]
+// and messages = [ B ], then this method will return [ A, C ].
+func (msg clientLogMessages) relativeComplement(ctx context.Context, c []*logMessage) []*logMessage {
+	//logs := make([]*logMessage, 0)
+	//for _, logMessageC := range c {
+	//	for _, logMessage := range msg.LogMessages {
+	//		if err := verifyLogMatch(ctx, logMessage, logMessageC); err != nil {
+	//			continue
+	//		}
+
+	//		logs = append(logs, logMessage)
+	//	}
+	//}
+
+	return nil
+}
+
+//func subsetClientLogMessages(target, ) []int {
+//    result := make([]int, 0)
+//
+//    // Create a map to store the elements of slice B for fast lookup
+//    BMap := make(map[int]bool)
+//    for _, val := range B {
+//        BMap[val] = true
+//    }
+//
+//    // Iterate over slice A and append elements that are not in slice B to the result
+//    for _, val := range A {
+//        if !BMap[val] {
+//            result = append(result, val)
+//        }
+//    }
+//
+//    return result
+//}
 
 // logMessageValidator defines the expectation for log messages across all
 // clients.
@@ -182,7 +220,11 @@ type logQueues struct {
 	unordered <-chan *logMessage
 }
 
+// partitionLogQueue will partition the expected logs into "unordered" and
+// "ordered" log channels. This function will also remove any logs in the
+// "ignoreMessages" list for client.
 func partitionLogQueue(ctx context.Context, exp *clientLogMessages) logQueues {
+	fmt.Println("partition")
 	orderedLogCh := make(chan *logMessage, len(exp.LogMessages))
 	unorderedLogCh := make(chan *logMessage, len(exp.LogMessages))
 

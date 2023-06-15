@@ -50,6 +50,7 @@ type clientEntity struct {
 	failed                   []*event.CommandFailedEvent
 	pooled                   []*event.PoolEvent
 	serverDescriptionChanged []*event.ServerDescriptionChangedEvent
+	serverHeartbeatSucceeded []*event.ServerHeartbeatSucceededEvent
 	ignoredCommands          map[string]struct{}
 	observeSensitiveCommands *bool
 	numConnsCheckedOut       int32
@@ -117,7 +118,6 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 			SetMaxDocumentLength(defaultMaxDocumentLen).
 			SetSink(clientLogger)
-
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
@@ -145,6 +145,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 		serverMonitor := &event.ServerMonitor{
 			ServerDescriptionChanged: entity.processServerDescriptionChangedEvent,
+			ServerHeartbeatSucceeded: entity.processServerHeartbeatSucceededEvent,
 		}
 
 		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor).SetServerMonitor(serverMonitor)
@@ -456,6 +457,18 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 	}
 
 	c.addEventsCount(serverDescriptionChangedEvent)
+}
+
+func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHeartbeatSucceededEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverHeartbeatSucceededEvent]; ok {
+		c.serverHeartbeatSucceeded = append(c.serverHeartbeatSucceeded, evt)
+	}
+
+	c.addEventsCount(serverHeartbeatSucceededEvent)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {

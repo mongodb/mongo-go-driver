@@ -23,6 +23,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -155,6 +156,21 @@ func New(cfg *Config) (*Topology, error) {
 	t.publishTopologyOpeningEvent()
 
 	return t, nil
+}
+
+func mustLogTopologyMessage(topo *Topology) bool {
+	return topo.cfg.logger != nil && topo.cfg.logger.LevelComponentEnabled(
+		logger.LevelDebug, logger.ComponentTopology)
+}
+
+func logTopologyMessage(topo *Topology, msg string, keysAndValues ...interface{}) {
+	topo.cfg.logger.Print(logger.LevelDebug,
+		logger.ComponentTopology,
+		msg,
+		logger.SerializeTopology(logger.Topology{
+			Message: msg,
+			ID:      topo.id,
+		}, keysAndValues...)...)
 }
 
 // Connect initializes a Topology and starts the monitoring process. This function
@@ -818,6 +834,10 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.ServerClosed != nil {
 		t.cfg.ServerMonitor.ServerClosed(serverClosed)
 	}
+
+	if mustLogTopologyMessage(t) {
+		logTopologyMessage(t, logger.TopologyServerClosed)
+	}
 }
 
 // publishes a TopologyDescriptionChangedEvent to indicate the topology description has changed
@@ -842,6 +862,10 @@ func (t *Topology) publishTopologyOpeningEvent() {
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.TopologyOpening != nil {
 		t.cfg.ServerMonitor.TopologyOpening(topologyOpening)
 	}
+
+	if mustLogTopologyMessage(t) {
+		logTopologyMessage(t, logger.TopologyOpening)
+	}
 }
 
 // publishes a TopologyClosedEvent to indicate the topology has been closed
@@ -852,5 +876,9 @@ func (t *Topology) publishTopologyClosedEvent() {
 
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.TopologyClosed != nil {
 		t.cfg.ServerMonitor.TopologyClosed(topologyClosed)
+	}
+
+	if mustLogTopologyMessage(t) {
+		logTopologyMessage(t, logger.TopologyClosed)
 	}
 }
