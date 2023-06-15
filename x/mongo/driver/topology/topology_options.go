@@ -349,7 +349,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 
 		serverOpts = append(
 			serverOpts,
-			WithLogger(func() *logger.Logger { return log }),
+			withLogger(func() *logger.Logger { return log }),
 		)
 	}
 

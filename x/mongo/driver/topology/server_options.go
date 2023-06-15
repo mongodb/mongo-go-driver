@@ -197,7 +197,7 @@ func WithServerLoadBalanced(fn func(bool) bool) ServerOption {
 }
 
 // WithLogger configures the logger for the server to use.
-func WithLogger(fn func() *logger.Logger) ServerOption {
+func withLogger(fn func() *logger.Logger) ServerOption {
 	return func(cfg *serverConfig) {
 		cfg.logger = fn()
 	}
