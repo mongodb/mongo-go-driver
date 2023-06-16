@@ -7,7 +7,9 @@ replace go.mongodb.org/mongo-driver => ../../../
 require (
 	github.com/bombsimon/logrusr/v4 v4.0.0
 	github.com/sirupsen/logrus v1.9.0
-	go.mongodb.org/mongo-driver v1.11.1
+	// Note that the Go driver version is replaced with the local Go driver code
+	// by the replace directive above.
+	go.mongodb.org/mongo-driver v1.11.7
 )
 
 require (
