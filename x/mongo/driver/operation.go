@@ -1877,6 +1877,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	finished := event.CommandFinishedEvent{
 		CommandName:          info.cmdName,
+		DatabaseName:         op.Database,
 		RequestID:            int64(info.requestID),
 		ConnectionID:         info.connID,
 		Duration:             info.duration,
