@@ -851,6 +851,12 @@ func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topol
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.TopologyDescriptionChanged != nil {
 		t.cfg.ServerMonitor.TopologyDescriptionChanged(topologyDescriptionChanged)
 	}
+
+	if mustLogTopologyMessage(t) {
+		logTopologyMessage(t, logger.TopologyDescriptionChanged,
+			logger.KeyPreviousDescription, prev.String(),
+			logger.KeyNewDescription, current.String())
+	}
 }
 
 // publishes a TopologyOpeningEvent to indicate the topology is being initialized

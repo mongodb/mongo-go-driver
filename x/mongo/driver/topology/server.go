@@ -512,7 +512,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	return driver.ConnectionPoolCleared
 }
 
-// update handles performing heartbeats and updating any subscribers of the
+// update handle performing heartbeats and updating any subscribers of the
 // newest description.Server retrieved.
 func (s *Server) update() {
 	defer s.closewg.Done()
@@ -778,8 +778,7 @@ func (s *Server) check() (description.Server, error) {
 	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
 		// Create a new connection if this is the first check, the connection was closed after an error during the previous
 		// check, or the previous check was cancelled.
-		isNilConn := s.conn == nil
-		if !isNilConn {
+		if s.conn != nil {
 			s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
 		}
 		// Create a new connection and add it's handshake RTT as a sample.
@@ -789,12 +788,12 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			if !isNilConn {
+			if s.conn != nil {
 				s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, s.conn.desc, false)
 			}
 		} else {
 			err = unwrapConnectionError(err)
-			if !isNilConn {
+			if s.conn != nil {
 				s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, false)
 			}
 		}
@@ -979,6 +978,10 @@ func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await b
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatStarted != nil {
 		s.cfg.serverMonitor.ServerHeartbeatStarted(serverHeartbeatStarted)
 	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerHeartbeatStarted)
+	}
 }
 
 // publishes a ServerHeartbeatSucceededEvent to indicate hello has succeeded
@@ -998,6 +1001,10 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatSucceeded != nil {
 		s.cfg.serverMonitor.ServerHeartbeatSucceeded(serverHeartbeatSucceeded)
 	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerHeartbeatStarted)
+	}
 }
 
 // publishes a ServerHeartbeatFailedEvent to indicate hello has failed
@@ -1016,6 +1023,10 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatFailed != nil {
 		s.cfg.serverMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
+	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerHeartbeatFailed)
 	}
 }
 

@@ -44,16 +44,17 @@ type clientEntity struct {
 	*mongo.Client
 	disconnected bool
 
-	recordEvents             atomic.Value
-	started                  []*event.CommandStartedEvent
-	succeeded                []*event.CommandSucceededEvent
-	failed                   []*event.CommandFailedEvent
-	pooled                   []*event.PoolEvent
-	serverDescriptionChanged []*event.ServerDescriptionChangedEvent
-	serverHeartbeatSucceeded []*event.ServerHeartbeatSucceededEvent
-	ignoredCommands          map[string]struct{}
-	observeSensitiveCommands *bool
-	numConnsCheckedOut       int32
+	recordEvents               atomic.Value
+	started                    []*event.CommandStartedEvent
+	succeeded                  []*event.CommandSucceededEvent
+	failed                     []*event.CommandFailedEvent
+	pooled                     []*event.PoolEvent
+	serverDescriptionChanged   []*event.ServerDescriptionChangedEvent
+	serverHeartbeatSucceeded   []*event.ServerHeartbeatSucceededEvent
+	topologyDescriptionChanged []*event.TopologyDescriptionChangedEvent
+	ignoredCommands            map[string]struct{}
+	observeSensitiveCommands   *bool
+	numConnsCheckedOut         int32
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
@@ -144,8 +145,9 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 
 		serverMonitor := &event.ServerMonitor{
-			ServerDescriptionChanged: entity.processServerDescriptionChangedEvent,
-			ServerHeartbeatSucceeded: entity.processServerHeartbeatSucceededEvent,
+			ServerDescriptionChanged:   entity.processServerDescriptionChangedEvent,
+			ServerHeartbeatSucceeded:   entity.processServerHeartbeatSucceededEvent,
+			TopologyDescriptionChanged: entity.processTopologyDescriptionChangedEvent,
 		}
 
 		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor).SetServerMonitor(serverMonitor)
@@ -469,6 +471,19 @@ func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHea
 	}
 
 	c.addEventsCount(serverHeartbeatSucceededEvent)
+}
+
+// topologyDescriptionChangedEvent
+func (c *clientEntity) processTopologyDescriptionChangedEvent(evt *event.TopologyDescriptionChangedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[topologyDescriptionChangedEvent]; ok {
+		c.topologyDescriptionChanged = append(c.topologyDescriptionChanged, evt)
+	}
+
+	c.addEventsCount(topologyDescriptionChangedEvent)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {
