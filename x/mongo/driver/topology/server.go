@@ -763,8 +763,7 @@ func (s *Server) check() (description.Server, error) {
 	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
 		// Create a new connection if this is the first check, the connection was closed after an error during the previous
 		// check, or the previous check was cancelled.
-		isNilConn := s.conn == nil
-		if !isNilConn {
+		if s.conn != nil {
 			s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
 		}
 		// Create a new connection and add it's handshake RTT as a sample.
@@ -774,12 +773,12 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			if !isNilConn {
+			if s.conn != nil {
 				s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, s.conn.desc, false)
 			}
 		} else {
 			err = unwrapConnectionError(err)
-			if !isNilConn {
+			if s.conn != nil {
 				s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, false)
 			}
 		}
