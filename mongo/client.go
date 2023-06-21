@@ -61,6 +61,7 @@ type Client struct {
 	readPreference *readpref.ReadPref
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
+	bsonOpts       *options.BSONOptions
 	registry       *bsoncodec.Registry
 	monitor        *event.CommandMonitor
 	serverAPI      *driver.ServerAPIOptions
@@ -163,6 +164,10 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	client.readPreference = readpref.Primary()
 	if clientOpt.ReadPreference != nil {
 		client.readPreference = clientOpt.ReadPreference
+	}
+	// BSONOptions
+	if clientOpt.BSONOptions != nil {
+		client.bsonOpts = clientOpt.BSONOptions
 	}
 	// Registry
 	client.registry = bson.DefaultRegistry
@@ -531,7 +536,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
 	for k, v := range opts.SchemaMap {
-		schema, err := transformBsoncoreDocument(c.registry, v, true, "schemaMap")
+		schema, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -541,14 +546,14 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// convert schemas in EncryptedFieldsMap to bsoncore documents
 	cryptEncryptedFieldsMap := make(map[string]bsoncore.Document)
 	for k, v := range opts.EncryptedFieldsMap {
-		encryptedFields, err := transformBsoncoreDocument(c.registry, v, true, "encryptedFieldsMap")
+		encryptedFields, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
 		}
 		cryptEncryptedFieldsMap[k] = encryptedFields
 	}
 
-	kmsProviders, err := transformBsoncoreDocument(c.registry, opts.KmsProviders, true, "kmsProviders")
+	kmsProviders, err := marshal(opts.KmsProviders, c.bsonOpts, c.registry)
 	if err != nil {
 		return nil, fmt.Errorf("error creating KMS providers document: %v", err)
 	}
@@ -674,7 +679,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	filterDoc, err := transformBsoncoreDocument(c.registry, filter, true, "filter")
+	filterDoc, err := marshal(filter, c.bsonOpts, c.registry)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
@@ -805,6 +810,7 @@ func (c *Client) Watch(ctx context.Context, pipeline interface{},
 		readConcern:    c.readConcern,
 		readPreference: c.readPreference,
 		client:         c,
+		bsonOpts:       c.bsonOpts,
 		registry:       c.registry,
 		streamType:     ClientStream,
 		crypt:          c.cryptFLE,
