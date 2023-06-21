@@ -13,6 +13,8 @@ import (
 )
 
 func TestDifferentAddressRanges(t *testing.T) {
+	t.Parallel()
+
 	slice := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
 	testCases := []struct {
@@ -74,6 +76,8 @@ func TestDifferentAddressRanges(t *testing.T) {
 }
 
 func TestEqualBSON(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name     string
 		expected interface{}
