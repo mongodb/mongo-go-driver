@@ -1785,14 +1785,14 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandStarted,
 				Name:               info.cmdName,
+				DatabaseName:       op.Database,
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         port,
 				ServiceID:          info.serviceID,
 			},
-				logger.KeyCommand, formattedCmd,
-				logger.KeyDatabaseName, op.Database)...)
+				logger.KeyCommand, formattedCmd)...)
 
 	}
 
@@ -1838,6 +1838,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandSucceeded,
 				Name:               info.cmdName,
+				DatabaseName:       op.Database,
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
@@ -1860,6 +1861,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandFailed,
 				Name:               info.cmdName,
+				DatabaseName:       op.Database,
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,

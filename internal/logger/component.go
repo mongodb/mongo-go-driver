@@ -125,6 +125,7 @@ type Command struct {
 	// TODO(GODRIVER-2824): change the DriverConnectionID type to int64.
 	DriverConnectionID uint64              // Driver's ID for the connection
 	Name               string              // Command name
+	DatabaseName       string              // Database name
 	Message            string              // Message associated with the command
 	OperationID        int32               // Driver-generated operation ID
 	RequestID          int64               // Driver-generated request ID
@@ -141,6 +142,7 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyCommandName, cmd.Name,
+		KeyDatabaseName, cmd.DatabaseName,
 		KeyDriverConnectionID, cmd.DriverConnectionID,
 		KeyMessage, cmd.Message,
 		KeyOperationID, cmd.OperationID,
