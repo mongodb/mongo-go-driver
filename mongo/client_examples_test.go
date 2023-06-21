@@ -444,7 +444,11 @@ func ExampleConnect_bSONOptions() {
 	if err != nil {
 		panic(err)
 	}
-	defer client.Disconnect(context.TODO())
+	defer func() {
+            if err := client.Disconnect(context.TODO()); err != nil {
+                panic(err)
+            }
+        }()
 
 	coll := client.Database("db").Collection("coll")
 

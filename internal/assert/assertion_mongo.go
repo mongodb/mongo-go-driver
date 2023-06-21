@@ -50,7 +50,7 @@ func DifferentAddressRanges(t TestingT, a, b []byte) {
 	overlapLow := max(aStart, bStart)
 	overlapHigh := min(aEnd, bEnd)
 
-	t.Errorf("Byte slices point to the same the same underlying byte array:\n"+
+	t.Errorf("Byte slices point to the same underlying byte array:\n"+
 		"\ta addresses:\t%d ... %d\n"+
 		"\tb addresses:\t%d ... %d\n"+
 		"\toverlap:\t%d ... %d",
