@@ -68,6 +68,7 @@ func ServerAPIFromServerOptions(opts []ServerOption) *driver.ServerAPIOptions {
 	return newServerConfig(opts...).serverAPI
 }
 
+// WithMonitoringDisabled enable/disable the server's monitoring.
 func WithMonitoringDisabled(fn func(bool) bool) ServerOption {
 	return func(cfg *serverConfig) {
 		cfg.monitoringDisabled = fn(cfg.monitoringDisabled)
