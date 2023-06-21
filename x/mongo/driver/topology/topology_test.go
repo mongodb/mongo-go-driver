@@ -695,7 +695,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 		server := NewServer(
 			address.Address(testDesc.Address),
 			primitive.NilObjectID,
-			withMonitoringDisabled(func(bool) bool { return true }))
+			WithMonitoringDisabled(func(bool) bool { return true }))
 		servers[testDesc.Address] = server
 
 		desc := description.Server{

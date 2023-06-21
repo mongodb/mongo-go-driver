@@ -312,7 +312,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 				}),
 				// Disable monitoring to prevent unrelated failures from the RTT monitor and
 				// heartbeats from unexpectedly clearing the connection pool.
-				withMonitoringDisabled(func(bool) bool { return true }),
+				WithMonitoringDisabled(func(bool) bool { return true }),
 			)
 			require.NoError(t, server.Connect(nil))
 
@@ -543,7 +543,7 @@ func TestServer(t *testing.T) {
 					}),
 					// Disable the monitoring routine because we're only testing pooled connections and we don't want
 					// errors in monitoring to clear the pool and make this test flaky.
-					withMonitoringDisabled(func(bool) bool {
+					WithMonitoringDisabled(func(bool) bool {
 						return true
 					}),
 					// With the default maxConnecting (2), there are multiple goroutines creating
@@ -711,7 +711,7 @@ func TestServer(t *testing.T) {
 			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 				return append(connOpts, dialerOpt)
 			}),
-			withMonitoringDisabled(func(bool) bool { return true }),
+			WithMonitoringDisabled(func(bool) bool { return true }),
 			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 		}
 
@@ -805,7 +805,7 @@ func TestServer(t *testing.T) {
 			address.Address("invalid"),
 			nil,
 			primitive.NewObjectID(),
-			withMonitoringDisabled(func(bool) bool {
+			WithMonitoringDisabled(func(bool) bool {
 				return true
 			}),
 		)
