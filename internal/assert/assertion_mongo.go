@@ -17,7 +17,15 @@ import (
 
 // DifferentAddressRanges asserts that two byte slices reference distinct memory
 // address ranges, meaning they reference different underlying byte arrays.
-func DifferentAddressRanges(t TestingT, a, b []byte) {
+func DifferentAddressRanges(t TestingT, a, b []byte) (ok bool) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+
+	if len(a) == 0 || len(b) == 0 {
+		return true
+	}
+
 	// Find the start and end memory addresses for the underlying byte array for
 	// each input byte slice.
 	sliceAddrRange := func(b []byte) (uintptr, uintptr) {
@@ -30,7 +38,7 @@ func DifferentAddressRanges(t TestingT, a, b []byte) {
 	// If "b" starts after "a" ends or "a" starts after "b" ends, there is no
 	// overlap.
 	if bStart > aEnd || aStart > bEnd {
-		return
+		return true
 	}
 
 	// Otherwise, calculate the overlap start and end and print the memory
@@ -57,14 +65,20 @@ func DifferentAddressRanges(t TestingT, a, b []byte) {
 		aStart, aEnd,
 		bStart, bEnd,
 		overlapLow, overlapHigh)
+
+	return false
 }
 
 // EqualBSON asserts that the expected and actual BSON binary values are equal.
 // If the values are not equal, it prints both the binary and Extended JSON diff
 // of the BSON values. The provided BSON value types must implement the
 // fmt.Stringer interface.
-func EqualBSON(t TestingT, expected, actual interface{}) {
-	Equal(t,
+func EqualBSON(t TestingT, expected, actual interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+
+	return Equal(t,
 		expected,
 		actual,
 		`expected and actual BSON values do not match
