@@ -794,6 +794,8 @@ func TestClient(t *testing.T) {
 }
 
 func TestClient_BSONOptions(t *testing.T) {
+	t.Parallel()
+
 	mt := mtest.New(t, noClientOpts)
 	defer mt.Close()
 

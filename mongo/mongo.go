@@ -123,7 +123,10 @@ func getEncoder(
 	}
 
 	if reg != nil {
-		_ = enc.SetRegistry(reg)
+		// TODO:(GODRIVER-2719): Remove error handling.
+		if err := enc.SetRegistry(reg); err != nil {
+			return nil, err
+		}
 	}
 
 	return enc, nil
@@ -197,13 +200,21 @@ func ensureID(
 		return doc, id.ID, nil
 	}
 
-	// If we couldn't find an "_id" element, add one with the value of the
+	// We couldn't find an "_id" element, so add one with the value of the
 	// provided ObjectID.
+
 	olddoc := doc
-	doc = make(bsoncore.Document, 0, len(olddoc)+17) // type byte + _id + null byte + object ID
+
+	// Reserve an extra 17 bytes for the "_id" field we're about to add:
+	// type (1) + "_id" (3) + terminator (1) + object ID (12)
+	const extraSpace = 17
+	doc = make(bsoncore.Document, 0, len(olddoc)+extraSpace)
 	_, doc = bsoncore.ReserveLength(doc)
 	doc = bsoncore.AppendObjectIDElement(doc, "_id", oid)
-	doc = append(doc, olddoc[4:]...) // remove the length
+
+	// Remove and re-write the BSON document length header.
+	const int32Len = 4
+	doc = append(doc, olddoc[int32Len:]...)
 	doc = bsoncore.UpdateLength(doc, 0, int32(len(doc)))
 
 	return doc, oid, nil

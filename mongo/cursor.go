@@ -254,7 +254,10 @@ func getDecoder(
 	}
 
 	if reg != nil {
-		_ = dec.SetRegistry(reg)
+		// TODO:(GODRIVER-2719): Remove error handling.
+		if err := dec.SetRegistry(reg); err != nil {
+			return nil, err
+		}
 	}
 
 	return dec, nil

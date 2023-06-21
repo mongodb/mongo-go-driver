@@ -428,27 +428,29 @@ func ExampleConnect_bSONOptions() {
 	// Configure a client that customizes the BSON marshal and unmarshal
 	// behavior.
 
+	// Specify BSON options that cause the driver to fallback to "json"
+	// struct tags if "bson" struct tags are missing, marshal nil Go maps as
+	// empty BSON documents, and marshals nil Go slices as empty BSON
+	// arrays.
+	bsonOpts := &options.BSONOptions{
+		UseJSONStructTags: true,
+		NilMapAsEmpty:     true,
+		NilSliceAsEmpty:   true,
+	}
+
 	clientOpts := options.Client().
 		ApplyURI("mongodb://localhost:27017").
-		// Specify BSON options that cause the driver to fallback to "json"
-		// struct tags if "bson" struct tags are missing, marshal nil Go maps as
-		// empty BSON documents, and marshals nil Go slices as empty BSON
-		// arrays.
-		SetBSONOptions(&options.BSONOptions{
-			UseJSONStructTags: true,
-			NilMapAsEmpty:     true,
-			NilSliceAsEmpty:   true,
-		})
+		SetBSONOptions(bsonOpts)
 
 	client, err := mongo.Connect(context.TODO(), clientOpts)
 	if err != nil {
 		panic(err)
 	}
 	defer func() {
-            if err := client.Disconnect(context.TODO()); err != nil {
-                panic(err)
-            }
-        }()
+		if err := client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
 
 	coll := client.Database("db").Collection("coll")
 
