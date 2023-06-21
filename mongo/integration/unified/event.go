@@ -30,6 +30,8 @@ const (
 	connectionCheckedOutEvent       monitoringEventType = "ConnectionCheckedOutEvent"
 	connectionCheckedInEvent        monitoringEventType = "ConnectionCheckedInEvent"
 	serverDescriptionChangedEvent   monitoringEventType = "ServerDescriptionChangedEvent"
+	serverHeartbeatFailedEvent      monitoringEventType = "ServerHeartbeatFailedEvent"
+	serverHeartbeatStartedEvent     monitoringEventType = "ServerHeartbeatStartedEvent"
 	serverHeartbeatSucceededEvent   monitoringEventType = "ServerHeartbeatSucceededEvent"
 	topologyDescriptionChangedEvent monitoringEventType = "TopologyDescriptionChangedEvent"
 )
@@ -66,6 +68,10 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return connectionCheckedInEvent, true
 	case "serverdescriptionchangedevent":
 		return serverDescriptionChangedEvent, true
+	case "serverheartbeatfailedevent":
+		return serverHeartbeatFailedEvent, true
+	case "serverheartbeatstartedevent":
+		return serverHeartbeatStartedEvent, true
 	case "serverheartbeatsucceededevent":
 		return serverHeartbeatSucceededEvent, true
 	case "topologydescriptionchangedevent":

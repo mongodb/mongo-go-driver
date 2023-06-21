@@ -44,17 +44,19 @@ type clientEntity struct {
 	*mongo.Client
 	disconnected bool
 
-	recordEvents               atomic.Value
-	started                    []*event.CommandStartedEvent
-	succeeded                  []*event.CommandSucceededEvent
-	failed                     []*event.CommandFailedEvent
-	pooled                     []*event.PoolEvent
-	serverDescriptionChanged   []*event.ServerDescriptionChangedEvent
-	serverHeartbeatSucceeded   []*event.ServerHeartbeatSucceededEvent
-	topologyDescriptionChanged []*event.TopologyDescriptionChangedEvent
-	ignoredCommands            map[string]struct{}
-	observeSensitiveCommands   *bool
-	numConnsCheckedOut         int32
+	recordEvents                atomic.Value
+	started                     []*event.CommandStartedEvent
+	succeeded                   []*event.CommandSucceededEvent
+	failed                      []*event.CommandFailedEvent
+	pooled                      []*event.PoolEvent
+	serverDescriptionChanged    []*event.ServerDescriptionChangedEvent
+	serverHeartbeatFailedEvent  []*event.ServerHeartbeatFailedEvent
+	serverHeartbeatStartedEvent []*event.ServerHeartbeatStartedEvent
+	serverHeartbeatSucceeded    []*event.ServerHeartbeatSucceededEvent
+	topologyDescriptionChanged  []*event.TopologyDescriptionChangedEvent
+	ignoredCommands             map[string]struct{}
+	observeSensitiveCommands    *bool
+	numConnsCheckedOut          int32
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
@@ -146,6 +148,8 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 
 		serverMonitor := &event.ServerMonitor{
 			ServerDescriptionChanged:   entity.processServerDescriptionChangedEvent,
+			ServerHeartbeatFailed:      entity.processServerHeartbeatFailedEvent,
+			ServerHeartbeatStarted:     entity.processServerHeartbeatStartedEvent,
 			ServerHeartbeatSucceeded:   entity.processServerHeartbeatSucceededEvent,
 			TopologyDescriptionChanged: entity.processTopologyDescriptionChangedEvent,
 		}
@@ -459,6 +463,31 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 	}
 
 	c.addEventsCount(serverDescriptionChangedEvent)
+}
+
+func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartbeatFailedEvent) {
+	fmt.Println("processing server heartbeat failed")
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverHeartbeatFailedEvent]; ok {
+		c.serverHeartbeatFailedEvent = append(c.serverHeartbeatFailedEvent, evt)
+	}
+
+	c.addEventsCount(serverHeartbeatFailedEvent)
+}
+
+func (c *clientEntity) processServerHeartbeatStartedEvent(evt *event.ServerHeartbeatStartedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverHeartbeatStartedEvent]; ok {
+		c.serverHeartbeatStartedEvent = append(c.serverHeartbeatStartedEvent, evt)
+	}
+
+	c.addEventsCount(serverHeartbeatStartedEvent)
 }
 
 func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHeartbeatSucceededEvent) {
