@@ -39,6 +39,7 @@ const (
 )
 
 const (
+	KeyAwaited             = "awaited"
 	KeyCommand             = "command"
 	KeyCommandName         = "commandName"
 	KeyDatabaseName        = "databaseName"
@@ -211,20 +212,58 @@ func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []i
 	return keysAndValues
 }
 
-type Topology struct {
-	Message string
-	ID      primitive.ObjectID
+// Server contains data that all server messages MAY contain.
+type Server struct {
+	DriverConnectionID uint64             // Driver's ID for the connection
+	TopologyID         primitive.ObjectID // Driver's unique ID for this topology
+	Message            string             // Message associated with the topology
+	ServerConnectionID *int64             // Server's ID for the connection used for the command
+	ServerHost         string             // Hostname or IP address for the server
+	ServerPort         string             // Port for the server
 }
 
-func SerializeTopology(topo Topology, extraKeysAndValues ...interface{}) []interface{} {
+// SerializeServer serializes a TopologyMessage into a slice of keys and
+// values that can be passed to a logger.
+func SerializeServer(srv Server, extraKV ...interface{}) []interface{} {
+	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
-		KeyMessage, topo.Message,
+		KeyDriverConnectionID, srv.DriverConnectionID,
+		KeyMessage, srv.Message,
+		KeyServerHost, srv.ServerHost,
+		KeyTopologyID, srv.TopologyID,
+	}
+
+	if connID := srv.ServerConnectionID; connID != nil {
+		keysAndValues.Add(KeyServerConnectionID, connID)
+	}
+
+	port, err := strconv.ParseInt(srv.ServerPort, 0, 32)
+	if err == nil {
+		keysAndValues.Add(KeyServerPort, port)
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKV); i += 2 {
+		keysAndValues.Add(extraKV[i].(string), extraKV[i+1])
+	}
+
+	return keysAndValues
+}
+
+// Topology contains data that all topology messages MAY contain.
+type Topology struct {
+	ID      primitive.ObjectID // Driver's unique ID for this topology
+	Message string             // Message associated with the topology
+}
+
+func SerializeTopology(topo Topology, extraKV ...interface{}) []interface{} {
+	keysAndValues := KeyValues{
 		KeyTopologyID, topo.ID,
 	}
 
 	// Add the optional keys and values.
-	for i := 0; i < len(extraKeysAndValues); i += 2 {
-		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
+	for i := 0; i < len(extraKV); i += 2 {
+		keysAndValues.Add(extraKV[i].(string), extraKV[i+1])
 	}
 
 	return keysAndValues

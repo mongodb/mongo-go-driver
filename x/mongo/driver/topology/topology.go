@@ -168,8 +168,8 @@ func logTopologyMessage(topo *Topology, msg string, keysAndValues ...interface{}
 		logger.ComponentTopology,
 		msg,
 		logger.SerializeTopology(logger.Topology{
-			Message: msg,
 			ID:      topo.id,
+			Message: msg,
 		}, keysAndValues...)...)
 }
 
@@ -836,7 +836,15 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 	}
 
 	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyServerClosed)
+		serverHost, serverPort, err := net.SplitHostPort(addr.String())
+		if err != nil {
+			serverHost = addr.String()
+			serverPort = ""
+		}
+
+		logTopologyMessage(t, logger.TopologyServerClosed,
+			logger.KeyServerHost, serverHost,
+			logger.KeyServerPort, serverPort)
 	}
 }
 

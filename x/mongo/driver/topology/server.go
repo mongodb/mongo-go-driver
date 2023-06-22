@@ -195,11 +195,30 @@ func mustLogServerMessage(srv *Server) bool {
 }
 
 func logServerMessage(srv *Server, msg string, keysAndValues ...interface{}) {
+	serverHost, serverPort, err := net.SplitHostPort(srv.address.String())
+	if err != nil {
+		serverHost = srv.address.String()
+		serverPort = ""
+	}
+
+	var driverConnectionID uint64
+	var serverConnectionID *int64
+
+	if srv.conn != nil {
+		driverConnectionID = srv.conn.driverConnectionID
+		serverConnectionID = srv.conn.serverConnectionID
+	}
+
 	srv.cfg.logger.Print(logger.LevelDebug,
 		logger.ComponentTopology,
 		msg,
-		logger.SerializeTopology(logger.Topology{
-			Message: msg,
+		logger.SerializeServer(logger.Server{
+			DriverConnectionID: driverConnectionID,
+			TopologyID:         srv.topologyID,
+			Message:            msg,
+			ServerConnectionID: serverConnectionID,
+			ServerHost:         serverHost,
+			ServerPort:         serverPort,
 		}, keysAndValues...)...)
 }
 
@@ -980,7 +999,8 @@ func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await b
 	}
 
 	if mustLogServerMessage(s) {
-		logServerMessage(s, logger.TopologyServerHeartbeatStarted)
+		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+			logger.KeyAwaited, await)
 	}
 }
 
@@ -1003,7 +1023,10 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
-		logServerMessage(s, logger.TopologyServerHeartbeatStarted)
+		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+			logger.KeyAwaited, await,
+			logger.KeyDurationMS, duration.Milliseconds(),
+			logger.KeyReply, desc)
 	}
 }
 
@@ -1026,7 +1049,10 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
-		logServerMessage(s, logger.TopologyServerHeartbeatFailed)
+		logServerMessage(s, logger.TopologyServerHeartbeatFailed,
+			logger.KeyAwaited, await,
+			logger.KeyDurationMS, duration.Milliseconds(),
+			logger.KeyFailure, err.Error())
 	}
 }
 
