@@ -466,7 +466,6 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 }
 
 func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartbeatFailedEvent) {
-	fmt.Println("processing server heartbeat failed")
 	if !c.getRecordEvents() {
 		return
 	}
