@@ -7,6 +7,7 @@
 package logger
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -156,10 +157,11 @@ func selectLogSink(sink LogSink) (LogSink, *os.File, error) {
 
 	if path != "" {
 		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
-		if err == nil {
-			return NewIOSink(logFile), logFile, nil
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to open log file: %v", err)
 		}
 
+		return NewIOSink(logFile), logFile, nil
 	}
 
 	return NewIOSink(os.Stderr), nil, nil
