@@ -92,6 +92,88 @@ type Credential struct {
 	PasswordSet             bool
 }
 
+// BSONOptions are optional BSON marshaling and unmarshaling behaviors.
+type BSONOptions struct {
+	// UseJSONStructTags causes the driver to fall back to using the "json"
+	// struct tag if a "bson" struct tag is not specified.
+	UseJSONStructTags bool
+
+	// ErrorOnInlineDuplicates causes the driver to return an error if there is
+	// a duplicate field in the marshaled BSON when the "inline" struct tag
+	// option is set.
+	ErrorOnInlineDuplicates bool
+
+	// IntMinSize causes the driver to marshal Go integer values (int, int8,
+	// int16, int32, int64, uint, uint8, uint16, uint32, or uint64) as the
+	// minimum BSON int size (either 32 or 64 bits) that can represent the
+	// integer value.
+	IntMinSize bool
+
+	// NilMapAsEmpty causes the driver to marshal nil Go maps as empty BSON
+	// documents instead of BSON null.
+	//
+	// Empty BSON documents take up slightly more space than BSON null, but
+	// preserve the ability to use document update operations like "$set" that
+	// do not work on BSON null.
+	NilMapAsEmpty bool
+
+	// NilSliceAsEmpty causes the driver to marshal nil Go slices as empty BSON
+	// arrays instead of BSON null.
+	//
+	// Empty BSON arrays take up slightly more space than BSON null, but
+	// preserve the ability to use array update operations like "$push" or
+	// "$addToSet" that do not work on BSON null.
+	NilSliceAsEmpty bool
+
+	// NilByteSliceAsEmpty causes the driver to marshal nil Go byte slices as
+	// empty BSON binary values instead of BSON null.
+	NilByteSliceAsEmpty bool
+
+	// OmitZeroStruct causes the driver to consider the zero value for a struct
+	// (e.g. MyStruct{}) as empty and omit it from the marshaled BSON when the
+	// "omitempty" struct tag option is set.
+	OmitZeroStruct bool
+
+	// StringifyMapKeysWithFmt causes the driver to convert Go map keys to BSON
+	// document field name strings using fmt.Sprint instead of the default
+	// string conversion logic.
+	StringifyMapKeysWithFmt bool
+
+	// AllowTruncatingDoubles causes the driver to truncate the fractional part
+	// of BSON "double" values when attempting to unmarshal them into a Go
+	// integer (int, int8, int16, int32, or int64) struct field. The truncation
+	// logic does not apply to BSON "decimal128" values.
+	AllowTruncatingDoubles bool
+
+	// BinaryAsSlice causes the driver to unmarshal BSON binary field values
+	// that are the "Generic" or "Old" BSON binary subtype as a Go byte slice
+	// instead of a primitive.Binary.
+	BinaryAsSlice bool
+
+	// DefaultDocumentD causes the driver to always unmarshal documents into the
+	// primitive.D type. This behavior is restricted to data typed as
+	// "interface{}" or "map[string]interface{}".
+	DefaultDocumentD bool
+
+	// DefaultDocumentM causes the driver to always unmarshal documents into the
+	// primitive.M type. This behavior is restricted to data typed as
+	// "interface{}" or "map[string]interface{}".
+	DefaultDocumentM bool
+
+	// UseLocalTimeZone causes the driver to unmarshal time.Time values in the
+	// local timezone instead of the UTC timezone.
+	UseLocalTimeZone bool
+
+	// ZeroMaps causes the driver to delete any existing values from Go maps in
+	// the destination value before unmarshaling BSON documents into them.
+	ZeroMaps bool
+
+	// ZeroStructs causes the driver to delete any existing values from Go
+	// structs in the destination value before unmarshaling BSON documents into
+	// them.
+	ZeroStructs bool
+}
+
 // ClientOptions contains options to configure a Client instance. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
 type ClientOptions struct {
@@ -118,6 +200,7 @@ type ClientOptions struct {
 	ServerMonitor            *event.ServerMonitor
 	ReadConcern              *readconcern.ReadConcern
 	ReadPreference           *readpref.ReadPref
+	BSONOptions              *BSONOptions
 	Registry                 *bsoncodec.Registry
 	ReplicaSet               *string
 	RetryReads               *bool
@@ -669,6 +752,12 @@ func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions 
 	return c
 }
 
+// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
+func (c *ClientOptions) SetBSONOptions(opts *BSONOptions) *ClientOptions {
+	c.BSONOptions = opts
+	return c
+}
+
 // SetRegistry specifies the BSON registry to use for BSON marshalling/unmarshalling operations. The default is
 // bson.DefaultRegistry.
 func (c *ClientOptions) SetRegistry(registry *bsoncodec.Registry) *ClientOptions {
@@ -952,6 +1041,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ReadPreference != nil {
 			c.ReadPreference = opt.ReadPreference
+		}
+		if opt.BSONOptions != nil {
+			c.BSONOptions = opt.BSONOptions
 		}
 		if opt.Registry != nil {
 			c.Registry = opt.Registry

@@ -27,6 +27,10 @@ type DatabaseOptions struct {
 	// the read preference of the Client used to configure the Database will be used.
 	ReadPreference *readpref.ReadPref
 
+	// BSONOptions configures optional BSON marshaling and unmarshaling
+	// behavior.
+	BSONOptions *BSONOptions
+
 	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Database. The default value
 	// is nil, which means that the registry of the Client used to configure the Database will be used.
 	Registry *bsoncodec.Registry
@@ -52,6 +56,12 @@ func (d *DatabaseOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *Databa
 // SetReadPreference sets the value for the ReadPreference field.
 func (d *DatabaseOptions) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptions {
 	d.ReadPreference = rp
+	return d
+}
+
+// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
+func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
+	d.BSONOptions = opts
 	return d
 }
 

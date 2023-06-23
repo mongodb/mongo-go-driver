@@ -2409,6 +2409,15 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
+  - id: os-serverless
+    display_name: OS
+    values:
+      - id: "ubuntu2004-go-1-20"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-build
+        variables:
+          GO_DIST: "/opt/golang/go1.20"
+
 task_groups:
   - name: serverless_task_group
     setup_group_can_fail_task: true
@@ -2716,8 +2725,8 @@ buildvariants:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
-    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-20"] }
-    display_name: "Serverless ${os-ssl-40}"
+    matrix_spec: { os-serverless: "*" }
+    display_name: "Serverless ${os-serverless}"
     tasks:
       - "serverless_task_group"
 

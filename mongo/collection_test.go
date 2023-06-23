@@ -206,7 +206,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.BulkWrite(bgCtx, []WriteModel{nil})
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
-		aggErr := errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid")
+		aggErr := errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		_, err = coll.Aggregate(bgCtx, nil)
 		assert.Equal(t, aggErr, err, "expected error %v, got %v", aggErr, err)
 

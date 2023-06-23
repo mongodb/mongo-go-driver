@@ -423,3 +423,48 @@ func ExampleConnect_stableAPI() {
 	}
 	_ = serverAPIDeprecationClient
 }
+
+func ExampleConnect_bSONOptions() {
+	// Configure a client that customizes the BSON marshal and unmarshal
+	// behavior.
+
+	// Specify BSON options that cause the driver to fallback to "json"
+	// struct tags if "bson" struct tags are missing, marshal nil Go maps as
+	// empty BSON documents, and marshals nil Go slices as empty BSON
+	// arrays.
+	bsonOpts := &options.BSONOptions{
+		UseJSONStructTags: true,
+		NilMapAsEmpty:     true,
+		NilSliceAsEmpty:   true,
+	}
+
+	clientOpts := options.Client().
+		ApplyURI("mongodb://localhost:27017").
+		SetBSONOptions(bsonOpts)
+
+	client, err := mongo.Connect(context.TODO(), clientOpts)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		if err := client.Disconnect(context.TODO()); err != nil {
+			panic(err)
+		}
+	}()
+
+	coll := client.Database("db").Collection("coll")
+
+	// Define a struct that contains a map and a slice and uses "json" struct
+	// tags to specify field names.
+	type myDocument struct {
+		MyMap   map[string]interface{} `json:"a"`
+		MySlice []string               `json:"b"`
+	}
+
+	// Insert an instance of the struct with all empty fields. Expect the
+	// resulting BSON document to have a structure like {"a": {}, "b": []}
+	_, err = coll.InsertOne(context.TODO(), myDocument{})
+	if err != nil {
+		panic(err)
+	}
+}
