@@ -91,6 +91,9 @@ func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
 	}
 
 	if _, ok := eo.URIOptions["heartbeatFrequencyMS"]; !ok {
+		// The UST values for heartbeatFrequencyMS are given as int32,
+		// so we need to cast the frequency as int32 before setting it
+		// on the URIOptions map.
 		eo.URIOptions["heartbeatFrequencyMS"] = int32(freq.Milliseconds())
 	}
 }

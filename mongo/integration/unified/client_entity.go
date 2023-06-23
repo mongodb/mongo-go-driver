@@ -501,7 +501,6 @@ func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHea
 	c.addEventsCount(serverHeartbeatSucceededEvent)
 }
 
-// topologyDescriptionChangedEvent
 func (c *clientEntity) processTopologyDescriptionChangedEvent(evt *event.TopologyDescriptionChangedEvent) {
 	if !c.getRecordEvents() {
 		return

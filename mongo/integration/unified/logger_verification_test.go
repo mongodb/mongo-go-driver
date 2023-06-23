@@ -2,7 +2,6 @@ package unified
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -15,8 +14,6 @@ func newTestLogMessage(t *testing.T, level int, msg string, args ...interface{})
 
 	message, err := newLogMessage(level, msg, args...)
 	require.Nil(t, err, "failed to create test log message: %v", err)
-
-	fmt.Println("msg: ", message, level, msg, err)
 
 	return message
 }

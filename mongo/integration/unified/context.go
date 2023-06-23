@@ -20,7 +20,7 @@ const (
 	// operationalFailPoint indicates that the test case contains an
 	// operation that sets a failpoint. This information is useful in
 	// determining if a client entity (file or operational level) should
-	// specify a reduced value for heartbeatFrequencyMS
+	// specify a reduced value for heartbeatFrequencyMS.
 	operationalFailPointKey = "operational-fail-point"
 	// entitiesKey is used to store an entityMap instance in a Context.
 	entitiesKey ctxKey = "test-entities"

@@ -190,8 +190,8 @@ type Connection struct {
 	ServerPort string // Port for the server
 }
 
-// SerializeConnection serializes a ConnectionMessage into a slice of keys
-// and values that can be passed to a logger.
+// SerializeConnection serializes a Connection message into a slice of keys and
+// values  that can be passed to a logger.
 func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
@@ -217,12 +217,12 @@ type Server struct {
 	DriverConnectionID uint64             // Driver's ID for the connection
 	TopologyID         primitive.ObjectID // Driver's unique ID for this topology
 	Message            string             // Message associated with the topology
-	ServerConnectionID *int64             // Server's ID for the connection used for the command
+	ServerConnectionID *int64             // Server's ID for the connection
 	ServerHost         string             // Hostname or IP address for the server
 	ServerPort         string             // Port for the server
 }
 
-// SerializeServer serializes a TopologyMessage into a slice of keys and
+// SerializeServer serializes a Server message into a slice of keys and
 // values that can be passed to a logger.
 func SerializeServer(srv Server, extraKV ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
@@ -256,6 +256,8 @@ type Topology struct {
 	Message string             // Message associated with the topology
 }
 
+// SerializeTopology serializes a Topology message into a slice of keys and
+// values that can be passed to a logger.
 func SerializeTopology(topo Topology, extraKV ...interface{}) []interface{} {
 	keysAndValues := KeyValues{
 		KeyTopologyID, topo.ID,

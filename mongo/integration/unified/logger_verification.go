@@ -192,7 +192,7 @@ type logQueues struct {
 
 // partitionLogQueue will partition the expected logs into "unordered" and
 // "ordered" log channels. This function will also remove any logs in the
-// "ignoreMessages" list for client.
+// "ignoreMessages" list for a client.
 func partitionLogQueue(ctx context.Context, exp *clientLogMessages) logQueues {
 	orderedLogCh := make(chan *logMessage, len(exp.LogMessages))
 	unorderedLogCh := make(chan *logMessage, len(exp.LogMessages))
