@@ -96,7 +96,7 @@ func replaceErrors(err error) error {
 		return ErrMapForOrderedArgument{ParamName: ordArgErr.ParamName}
 	}
 
-	if marshalErr, ok := err.(internal.ErrMarshal); ok {
+	if marshalErr, ok := err.(internal.MarshalError); ok {
 		return MarshalError{
 			Value: marshalErr.Value,
 			Err:   marshalErr.Err,

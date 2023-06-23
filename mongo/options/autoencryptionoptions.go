@@ -151,7 +151,6 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 
 // SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
 // EncryptedFieldsMap is used for Queryable Encryption.
-// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
 	a.EncryptedFieldsMap = ef
 	return a
@@ -159,7 +158,6 @@ func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{})
 
 // SetBypassQueryAnalysis specifies whether or not query analysis should be used for automatic encryption.
 // Use this option when using explicit encryption with Queryable Encryption.
-// Beta: Queryable Encryption is in Public Technical Preview. Queryable Encryption should not be used in production and is subject to backwards breaking changes.
 func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptions {
 	a.BypassQueryAnalysis = &bypass
 	return a

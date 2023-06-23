@@ -7,12 +7,14 @@
 package driver
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
@@ -22,12 +24,15 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+type EncoderFn func(*bytes.Buffer, *bsoncodec.Registry) (*bson.Encoder, error)
+
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead
 // of one at a time. An individual document cursor can be built on top of this batch cursor.
 type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
 	comment              interface{}
+	encoderFn            EncoderFn
 	registry             *bsoncodec.Registry
 	database             string
 	collection           string
@@ -136,14 +141,15 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 
 // CursorOptions are extra options that are required to construct a BatchCursor.
 type CursorOptions struct {
-	BatchSize      int32
-	Comment        bsoncore.Value
-	MaxTimeMS      int64
-	Limit          int32
-	CommandMonitor *event.CommandMonitor
-	Crypt          Crypt
-	ServerAPI      *ServerAPIOptions
-	Registry       *bsoncodec.Registry
+	BatchSize             int32
+	Comment               bsoncore.Value
+	MaxTimeMS             int64
+	Limit                 int32
+	CommandMonitor        *event.CommandMonitor
+	Crypt                 Crypt
+	ServerAPI             *ServerAPIOptions
+	MarshalValueEncoderFn EncoderFn
+	Registry              *bsoncodec.Registry
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -168,6 +174,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		serverAPI:            opts.ServerAPI,
 		serverDescription:    cr.Desc,
 		registry:             opts.Registry,
+		encoderFn:            opts.MarshalValueEncoderFn,
 	}
 
 	if ds != nil {
@@ -357,7 +364,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
 
-			comment, err := internal.NewBSONValue(bc.registry, bc.comment, true, "comment")
+			comment, err := internal.MarshalValue(bc.comment, bc.registry, internal.EncoderFn(bc.encoderFn))
 			if err != nil {
 				return nil, fmt.Errorf("error marshaling comment as a BSON value: %w", err)
 			}

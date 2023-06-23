@@ -80,6 +80,7 @@ type ChangeStream struct {
 	err             error
 	sess            *session.Client
 	client          *Client
+	bsonOpts        *options.BSONOptions
 	registry        *bsoncodec.Registry
 	streamType      StreamType
 	options         *options.ChangeStreamOptions
@@ -92,6 +93,7 @@ type changeStreamConfig struct {
 	readConcern    *readconcern.ReadConcern
 	readPreference *readpref.ReadPref
 	client         *Client
+	bsonOpts       *options.BSONOptions
 	registry       *bsoncodec.Registry
 	streamType     StreamType
 	collectionName string
@@ -106,10 +108,13 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 
 	cursorOpts := config.client.createBaseCursorOptions()
+
 	cursorOpts.Registry = config.registry
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts)
 
 	cs := &ChangeStream{
 		client:     config.client,
+		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
 		options:    options.MergeChangeStreamOptions(opts...),
@@ -141,7 +146,8 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if comment := cs.options.Comment; comment != nil {
 		cs.aggregate.Comment(*comment)
 
-		commentVal, err := internal.NewBSONValue(cs.registry, comment, true, "comment")
+		//commentVal, err := internal.NewBSONValue(cs.registry, comment, true, "comment")
+		commentVal, err := marshalValue(comment, cs.bsonOpts, cs.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -392,7 +398,7 @@ func (cs *ChangeStream) storeResumeToken() error {
 func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	val := reflect.ValueOf(pipeline)
 	if !val.IsValid() || !(val.Kind() == reflect.Slice) {
-		cs.err = errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid")
+		cs.err = errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		return cs.err
 	}
 
@@ -413,7 +419,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 
 	for i := 0; i < val.Len(); i++ {
 		var elem []byte
-		elem, cs.err = transformBsoncoreDocument(cs.registry, val.Index(i).Interface(), true, fmt.Sprintf("pipeline stage :%v", i))
+		elem, cs.err = marshal(val.Index(i).Interface(), cs.bsonOpts, cs.registry)
 		if cs.err != nil {
 			return cs.err
 		}
@@ -441,7 +447,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 
 	if cs.options.ResumeAfter != nil {
 		var raDoc bsoncore.Document
-		raDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.ResumeAfter, true, "resumeAfter")
+		raDoc, cs.err = marshal(cs.options.ResumeAfter, cs.bsonOpts, cs.registry)
 		if cs.err != nil {
 			return nil, cs.err
 		}
@@ -455,7 +461,7 @@ func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 
 	if cs.options.StartAfter != nil {
 		var saDoc bsoncore.Document
-		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter, true, "startAfter")
+		saDoc, cs.err = marshal(cs.options.StartAfter, cs.bsonOpts, cs.registry)
 		if cs.err != nil {
 			return nil, cs.err
 		}
@@ -534,7 +540,11 @@ func (cs *ChangeStream) Decode(val interface{}) error {
 		return ErrNilCursor
 	}
 
-	return bson.UnmarshalWithRegistry(cs.registry, cs.Current, val)
+	dec, err := getDecoder(cs.Current, cs.bsonOpts, cs.registry)
+	if err != nil {
+		return fmt.Errorf("error configuring BSON decoder: %w", err)
+	}
+	return dec.Decode(val)
 }
 
 // Err returns the last error seen by the change stream, or nil if no errors has occurred.

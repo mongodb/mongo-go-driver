@@ -376,6 +376,7 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val 
 			defaultDocumentType: dc.defaultDocumentType,
 			binaryAsSlice:       dc.binaryAsSlice,
 			useJSONStructTags:   dc.useJSONStructTags,
+			useLocalTimeZone:    dc.useLocalTimeZone,
 			zeroMaps:            dc.zeroMaps,
 			zeroStructs:         dc.zeroStructs,
 		}

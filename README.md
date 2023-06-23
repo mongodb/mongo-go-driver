@@ -15,7 +15,7 @@ The MongoDB supported driver for Go.
 
 - Go 1.13 or higher. We aim to support the latest versions of Go.
   - `go mod tidy` will error when importing the Go Driver using Go versions older than 1.15 due to dependencies that import [io/fs](https://pkg.go.dev/io/fs). See golang/go issue [#44557](https://github.com/golang/go/issues/44557) for more information.
-  - Go 1.19 or higher is required to run the driver test suite.
+  - Go 1.20 or higher is required to run the driver test suite.
 - MongoDB 3.6 and higher.
 
 -------------------------
@@ -173,7 +173,8 @@ See our [common issues](docs/common-issues.md) documentation for troubleshooting
 -------------------------
 ## Thanks and Acknowledgement
 
-<a href="https://github.com/ashleymcnamara">@ashleymcnamara</a> - Mongo Gopher Artwork
+- The Go Gopher artwork by [@ashleymcnamara](https://github.com/ashleymcnamara)
+- The original Go Gopher was designed by [Renee French](http://reneefrench.blogspot.com/)
 
 -------------------------
 ## License

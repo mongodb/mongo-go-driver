@@ -41,6 +41,7 @@ type Decoder struct {
 
 	binaryAsSlice     bool
 	useJSONStructTags bool
+	useLocalTimeZone  bool
 	zeroMaps          bool
 	zeroStructs       bool
 }
@@ -120,6 +121,9 @@ func (d *Decoder) Decode(val interface{}) error {
 	if d.useJSONStructTags {
 		d.dc.UseJSONStructTags()
 	}
+	if d.useLocalTimeZone {
+		d.dc.UseLocalTimeZone()
+	}
 	if d.zeroMaps {
 		d.dc.ZeroMaps()
 	}
@@ -133,12 +137,14 @@ func (d *Decoder) Decode(val interface{}) error {
 // Reset will reset the state of the decoder, using the same *DecodeContext used in
 // the original construction but using vr for reading.
 func (d *Decoder) Reset(vr bsonrw.ValueReader) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	d.vr = vr
 	return nil
 }
 
 // SetRegistry replaces the current registry of the decoder with r.
 func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	d.dc.Registry = r
 	return nil
 }
@@ -147,18 +153,19 @@ func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
 //
 // Deprecated: Use the Decoder configuration methods to set the desired unmarshal behavior instead.
 func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	d.dc = dc
 	return nil
 }
 
-// DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
-// "interface{}" or "map[string]interface{}".
+// DefaultDocumentM causes the Decoder to always unmarshal documents into the primitive.M type. This
+// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentM() {
 	d.defaultDocumentM = true
 }
 
-// DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
-// "interface{}" or "map[string]interface{}".
+// DefaultDocumentD causes the Decoder to always unmarshal documents into the primitive.D type. This
+// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentD() {
 	d.defaultDocumentD = true
 }
@@ -180,6 +187,12 @@ func (d *Decoder) BinaryAsSlice() {
 // struct tag is not specified.
 func (d *Decoder) UseJSONStructTags() {
 	d.useJSONStructTags = true
+}
+
+// UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
+// of the UTC timezone.
+func (d *Decoder) UseLocalTimeZone() {
+	d.useLocalTimeZone = true
 }
 
 // ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value

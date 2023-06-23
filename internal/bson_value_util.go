@@ -7,6 +7,7 @@
 package internal
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 
@@ -33,48 +34,42 @@ func (e ErrMapForOrderedArgument) Error() string {
 		e.ParamName)
 }
 
-// ErrMarshal is returned when attempting to transform a value into a document
+// MarshalError is returned when attempting to transform a value into a document
 // results in an error.
-type ErrMarshal struct {
+type MarshalError struct {
 	Value interface{}
 	Err   error
 }
 
 // Error implements the error interface.
-func (e ErrMarshal) Error() string {
+func (e MarshalError) Error() string {
 	return fmt.Sprintf("cannot transform type %s to a BSON Document: %v",
 		reflect.TypeOf(e.Value), e.Err)
 }
 
-// NewBSONValue will attempt to convert a value from an "any" type to a
-// bsoncore.Value.
-func NewBSONValue(registry *bsoncodec.Registry, val interface{},
-	mapAllowed bool, paramName string) (bsoncore.Value, error) {
-	if val == nil {
-		return bsoncore.Value{}, ErrNilValue{}
-	}
+type EncoderFn func(*bytes.Buffer, *bsoncodec.Registry) (*bson.Encoder, error)
 
-	// If the value is already a bsoncore.Value, then do nothing.
-	if value, ok := val.(bsoncore.Value); ok {
-		return value, nil
-	}
-
-	if !mapAllowed {
-		refValue := reflect.ValueOf(val)
-		if refValue.Kind() == reflect.Map && refValue.Len() > 1 {
-			return bsoncore.Value{}, ErrMapForOrderedArgument{paramName}
-		}
-	}
-
+func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn) (bsoncore.Value, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
 
-	buf := make([]byte, 0, 256)
-	bsonType, bsonValue, err := bson.MarshalValueAppendWithRegistry(registry, buf[:0], val)
-	if err != nil {
-		return bsoncore.Value{}, ErrMarshal{Value: val, Err: err}
+	if val == nil {
+		return bsoncore.Value{}, ErrNilValue{}
 	}
 
-	return bsoncore.Value{Type: bsonType, Data: bsonValue}, nil
+	buf := new(bytes.Buffer)
+	enc, err := encFn(buf, registry)
+	if err != nil {
+		return bsoncore.Value{}, fmt.Errorf("error configuring BSON encoder: %w", err)
+	}
+
+	// Encode the value in a single-element document with an empty key. Use bsoncore to extract the
+	// first element and return the BSON value.
+	err = enc.Encode(bson.D{{Key: "", Value: val}})
+	if err != nil {
+		return bsoncore.Value{}, MarshalError{Value: val, Err: err}
+	}
+
+	return bsoncore.Document(buf.Bytes()).Index(0).Value(), nil
 }

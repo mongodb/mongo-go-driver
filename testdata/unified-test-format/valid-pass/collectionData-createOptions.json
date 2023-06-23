@@ -1,6 +1,12 @@
 {
-  "description": "initialCollectionData-collectionOptions",
-  "schemaVersion": "1.5",
+  "description": "collectionData-createOptions",
+  "schemaVersion": "1.9",
+  "runOnRequirements": [
+    {
+      "minServerVersion": "3.6",
+      "serverless": "forbid"
+    }
+  ],
   "createEntities": [
     {
       "client": {
@@ -26,9 +32,9 @@
     {
       "collectionName": "coll0",
       "databaseName": "database0",
-      "collectionOptions": {
+      "createOptions": {
         "capped": true,
-        "size": 512
+        "size": 4096
       },
       "documents": [
         {
@@ -41,27 +47,31 @@
   "tests": [
     {
       "description": "collection is created with the correct options",
-      "runOnRequirements": [
-        {
-          "minServerVersion": "3.6",
-          "serverless": "forbid"
-        }
-      ],
       "operations": [
         {
-          "name": "runCommand",
-          "object": "database0",
+          "object": "collection0",
+          "name": "aggregate",
           "arguments": {
-            "commandName": "collStats",
-            "command": {
-              "collStats": "coll0",
-              "scale": 1
-            }
+            "pipeline": [
+              {
+                "$collStats": {
+                  "storageStats": {}
+                }
+              },
+              {
+                "$project": {
+                  "capped": "$storageStats.capped",
+                  "maxSize": "$storageStats.maxSize"
+                }
+              }
+            ]
           },
-          "expectResult": {
-            "capped": true,
-            "maxSize": 512
-          }
+          "expectResult": [
+            {
+              "capped": true,
+              "maxSize": 4096
+            }
+          ]
         }
       ]
     }

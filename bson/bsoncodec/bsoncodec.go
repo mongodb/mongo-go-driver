@@ -224,6 +224,7 @@ type DecodeContext struct {
 
 	binaryAsSlice     bool
 	useJSONStructTags bool
+	useLocalTimeZone  bool
 	zeroMaps          bool
 	zeroStructs       bool
 }
@@ -244,6 +245,14 @@ func (dc *DecodeContext) UseJSONStructTags() {
 	dc.useJSONStructTags = true
 }
 
+// UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
+// of the UTC timezone.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.UseLocalTimeZone] instead.
+func (dc *DecodeContext) UseLocalTimeZone() {
+	dc.useLocalTimeZone = true
+}
+
 // ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value
 // passed to Decode before unmarshaling BSON documents into them.
 //
@@ -260,16 +269,16 @@ func (dc *DecodeContext) ZeroStructs() {
 	dc.zeroStructs = true
 }
 
-// DefaultDocumentM will decode empty documents using the primitive.M type. This behavior is restricted to data typed as
-// "interface{}" or "map[string]interface{}".
+// DefaultDocumentM causes the Decoder to always unmarshal documents into the primitive.M type. This
+// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DefaultDocumentM] instead.
 func (dc *DecodeContext) DefaultDocumentM() {
 	dc.defaultDocumentType = reflect.TypeOf(primitive.M{})
 }
 
-// DefaultDocumentD will decode empty documents using the primitive.D type. This behavior is restricted to data typed as
-// "interface{}" or "map[string]interface{}".
+// DefaultDocumentD causes the Decoder to always unmarshal documents into the primitive.D type. This
+// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DefaultDocumentD] instead.
 func (dc *DecodeContext) DefaultDocumentD() {

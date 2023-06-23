@@ -16,12 +16,18 @@ import (
 )
 
 // ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.
+//
+// Deprecated: ErrNilType will not be supported in Go Driver 2.0.
 var ErrNilType = errors.New("cannot perform a decoder lookup on <nil>")
 
 // ErrNotPointer is returned when a non-pointer type is provided to LookupDecoder.
+//
+// Deprecated: ErrNotPointer will not be supported in Go Driver 2.0.
 var ErrNotPointer = errors.New("non-pointer provided to LookupDecoder")
 
 // ErrNoEncoder is returned when there wasn't an encoder available for a type.
+//
+// Deprecated: ErrNoEncoder will not be supported in Go Driver 2.0.
 type ErrNoEncoder struct {
 	Type reflect.Type
 }
@@ -34,6 +40,8 @@ func (ene ErrNoEncoder) Error() string {
 }
 
 // ErrNoDecoder is returned when there wasn't a decoder available for a type.
+//
+// Deprecated: ErrNoDecoder will not be supported in Go Driver 2.0.
 type ErrNoDecoder struct {
 	Type reflect.Type
 }
@@ -43,6 +51,8 @@ func (end ErrNoDecoder) Error() string {
 }
 
 // ErrNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.
+//
+// Deprecated: ErrNoTypeMapEntry will not be supported in Go Driver 2.0.
 type ErrNoTypeMapEntry struct {
 	Type bsontype.Type
 }
@@ -52,6 +62,8 @@ func (entme ErrNoTypeMapEntry) Error() string {
 }
 
 // ErrNotInterface is returned when the provided type is not an interface.
+//
+// Deprecated: ErrNotInterface will not be supported in Go Driver 2.0.
 var ErrNotInterface = errors.New("The provided type is not an interface")
 
 // A RegistryBuilder is used to build a Registry. This type is not goroutine

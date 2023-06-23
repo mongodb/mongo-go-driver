@@ -825,6 +825,9 @@ func readLengthBytes(src []byte) ([]byte, []byte, bool) {
 	if !ok {
 		return nil, src, false
 	}
+	if l < 4 {
+		return nil, src, false
+	}
 	if len(src) < int(l) {
 		return nil, src, false
 	}
