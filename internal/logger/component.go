@@ -191,7 +191,7 @@ type Connection struct {
 }
 
 // SerializeConnection serializes a Connection message into a slice of keys and
-// values  that can be passed to a logger.
+// values that can be passed to a logger.
 func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
