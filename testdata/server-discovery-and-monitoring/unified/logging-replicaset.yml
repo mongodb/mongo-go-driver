@@ -20,8 +20,6 @@ tests:
           entities:
             - client:
                 id: &client client
-                uriOptions:
-                  heartbeatFrequencyMS: 5000
                 observeLogMessages:
                   topology: debug
                 observeEvents:

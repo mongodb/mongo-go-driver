@@ -33,7 +33,7 @@ var (
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
-	lowHeartbeatFrequency      = time.Duration(50 * time.Millisecond)
+	lowHeartbeatFrequency      = 50 * time.Millisecond
 )
 
 // TestCase holds and runs a unified spec test case

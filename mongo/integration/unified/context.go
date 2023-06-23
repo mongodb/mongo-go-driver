@@ -21,7 +21,7 @@ const (
 	// operation that sets a failpoint. This information is useful in
 	// determining if a client entity (file or operational level) should
 	// specify a reduced value for heartbeatFrequencyMS.
-	operationalFailPointKey = "operational-fail-point"
+	operationalFailPointKey ctxKey = "operational-fail-point"
 	// entitiesKey is used to store an entityMap instance in a Context.
 	entitiesKey ctxKey = "test-entities"
 	// failPointsKey is used to store a map from a fail point name to the Client instance used to configure it.

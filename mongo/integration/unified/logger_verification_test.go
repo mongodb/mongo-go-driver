@@ -40,10 +40,10 @@ func TestClientLogMessages(t *testing.T) {
 				name: "no match",
 				clm: clientLogMessages{
 					IgnoreMessages: []*logMessage{
-						newTestLogMessage(t, int(logger.LevelDebug), logger.CommandStarted),
+						newTestLogMessage(t, int(logger.LevelDebug), logger.CommandFailed),
 					},
 				},
-				message: newTestLogMessage(t, int(logger.LevelInfo), logger.CommandStarted),
+				message: newTestLogMessage(t, int(logger.LevelInfo), logger.CommandFailed),
 				want:    false,
 			},
 			{
