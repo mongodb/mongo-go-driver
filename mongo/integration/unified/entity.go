@@ -15,6 +15,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -82,6 +83,16 @@ type entityOptions struct {
 	DatabaseID string `bson:"database"`
 
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
+}
+
+func (eo *entityOptions) setHeartbeatFrequencyMS(freq time.Duration) {
+	if eo.URIOptions == nil {
+		eo.URIOptions = make(bson.M)
+	}
+
+	if _, ok := eo.URIOptions["heartbeatFrequencyMS"]; !ok {
+		eo.URIOptions["heartbeatFrequencyMS"] = int32(freq.Milliseconds())
+	}
 }
 
 type clientEncryptionOpts struct {

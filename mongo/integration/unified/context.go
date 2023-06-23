@@ -17,6 +17,11 @@ import (
 type ctxKey string
 
 const (
+	// operationalFailPoint indicates that the test case contains an
+	// operation that sets a failpoint. This information is useful in
+	// determining if a client entity (file or operational level) should
+	// specify a reduced value for heartbeatFrequencyMS
+	operationalFailPointKey = "operational-fail-point"
 	// entitiesKey is used to store an entityMap instance in a Context.
 	entitiesKey ctxKey = "test-entities"
 	// failPointsKey is used to store a map from a fail point name to the Client instance used to configure it.
@@ -29,7 +34,13 @@ const (
 
 // newTestContext creates a new Context derived from ctx with values initialized to store the state required for test
 // execution.
-func newTestContext(ctx context.Context, entityMap *EntityMap, expectedLogMessageCount int) context.Context {
+func newTestContext(
+	ctx context.Context,
+	entityMap *EntityMap,
+	expectedLogMessageCount int,
+	hasOperationalFailPoint bool,
+) context.Context {
+	ctx = context.WithValue(ctx, operationalFailPointKey, hasOperationalFailPoint)
 	ctx = context.WithValue(ctx, entitiesKey, entityMap)
 	ctx = context.WithValue(ctx, failPointsKey, make(map[string]*mongo.Client))
 	ctx = context.WithValue(ctx, targetedFailPointsKey, make(map[string]string))
@@ -59,6 +70,10 @@ func addTargetedFailPoint(ctx context.Context, failPoint string, host string) er
 
 func failPoints(ctx context.Context) map[string]*mongo.Client {
 	return ctx.Value(failPointsKey).(map[string]*mongo.Client)
+}
+
+func hasOperationalFailpoint(ctx context.Context) bool {
+	return ctx.Value(operationalFailPointKey).(bool)
 }
 
 func targetedFailPoints(ctx context.Context) map[string]string {

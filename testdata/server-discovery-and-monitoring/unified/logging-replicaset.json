@@ -261,9 +261,6 @@
               {
                 "client": {
                   "id": "client",
-                  "uriOptions": {
-                    "heartbeatFrequencyMS": 5000
-                  },
                   "observeLogMessages": {
                     "topology": "debug"
                   },
