@@ -17,7 +17,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
@@ -133,11 +133,11 @@ func getEncoder(
 	return enc, nil
 }
 
-//type EncoderFn(opts *options.BSONOptions) internal.EncoderFn {
-
-func newEncoderFn(opts *options.BSONOptions) func(*bytes.Buffer, *bsoncodec.Registry) (*bson.Encoder, error) {
-	return func(b *bytes.Buffer, r *bsoncodec.Registry) (*bson.Encoder, error) {
-		return getEncoder(b, opts, r)
+// newEncoderFn will return a function for constructing and encoder based on
+// the provided codec options.
+func newEncoderFn(opts *options.BSONOptions) codecutil.EncoderFn {
+	return func(w io.Writer, r *bsoncodec.Registry) (*bson.Encoder, error) {
+		return getEncoder(w, opts, r)
 	}
 }
 
@@ -430,7 +430,7 @@ func marshalValue(
 	bsonOpts *options.BSONOptions,
 	registry *bsoncodec.Registry,
 ) (bsoncore.Value, error) {
-	return internal.MarshalValue(val, registry, newEncoderFn(bsonOpts))
+	return codecutil.MarshalValue(val, registry, newEncoderFn(bsonOpts))
 }
 
 // Build the aggregation pipeline for the CountDocument command.

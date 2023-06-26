@@ -7,10 +7,10 @@
 package driver
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -19,12 +19,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
-
-type EncoderFn func(*bytes.Buffer, *bsoncodec.Registry) (*bson.Encoder, error)
 
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead
 // of one at a time. An individual document cursor can be built on top of this batch cursor.
@@ -32,7 +31,7 @@ type BatchCursor struct {
 	clientSession        *session.Client
 	clock                *session.ClusterClock
 	comment              interface{}
-	encoderFn            EncoderFn
+	encoderFn            codecutil.EncoderFn
 	registry             *bsoncodec.Registry
 	database             string
 	collection           string
@@ -148,7 +147,7 @@ type CursorOptions struct {
 	CommandMonitor        *event.CommandMonitor
 	Crypt                 Crypt
 	ServerAPI             *ServerAPIOptions
-	MarshalValueEncoderFn EncoderFn
+	MarshalValueEncoderFn func(io.Writer, *bsoncodec.Registry) (*bson.Encoder, error)
 	Registry              *bsoncodec.Registry
 }
 
@@ -174,7 +173,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		serverAPI:            opts.ServerAPI,
 		serverDescription:    cr.Desc,
 		registry:             opts.Registry,
-		encoderFn:            opts.MarshalValueEncoderFn,
+		encoderFn:            codecutil.EncoderFn(opts.MarshalValueEncoderFn),
 	}
 
 	if ds != nil {
@@ -364,7 +363,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
 
-			comment, err := internal.MarshalValue(bc.comment, bc.registry, internal.EncoderFn(bc.encoderFn))
+			comment, err := codecutil.MarshalValue(bc.comment, bc.registry, bc.encoderFn)
 			if err != nil {
 				return nil, fmt.Errorf("error marshaling comment as a BSON value: %w", err)
 			}

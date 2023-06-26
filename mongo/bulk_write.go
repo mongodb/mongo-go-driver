@@ -187,7 +187,6 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
 		Logger(bw.collection.client.logger)
 	if bw.comment != nil {
-		//comment, err := internal.NewBSONValue(bw.collection.registry, bw.comment, true, "comment")
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
 			return op.Result(), err
@@ -258,7 +257,6 @@ func (bw *bulkWrite) runDelete(ctx context.Context, batch bulkWriteBatch) (opera
 		ServerAPI(bw.collection.client.serverAPI).Timeout(bw.collection.client.timeout).
 		Logger(bw.collection.client.logger)
 	if bw.comment != nil {
-		//comment, err := internal.NewBSONValue(bw.collection.registry, bw.comment, true, "comment")
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
 			return op.Result(), err
@@ -310,7 +308,6 @@ func createDeleteDoc(
 		doc = bsoncore.AppendDocumentElement(doc, "collation", collation.ToDocument())
 	}
 	if hint != nil {
-		//hintVal, err := internal.NewBSONValue(registry, hint, false, "hint")
 		if isUnorderedMap(hint) {
 			return nil, ErrMapForOrderedArgument{"hint"}
 		}
@@ -391,7 +388,6 @@ func (bw *bulkWrite) runUpdate(ctx context.Context, batch bulkWriteBatch) (opera
 		ArrayFilters(hasArrayFilters).ServerAPI(bw.collection.client.serverAPI).
 		Timeout(bw.collection.client.timeout).Logger(bw.collection.client.logger)
 	if bw.comment != nil {
-		//comment, err := internal.NewBSONValue(bw.collection.registry, bw.comment, true, "comment")
 		comment, err := marshalValue(bw.comment, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
 			return op.Result(), err
@@ -474,7 +470,6 @@ func createUpdateDoc(
 	}
 
 	if hint != nil {
-		//hintVal, err := internal.NewBSONValue(registry, hint, false, "hint")
 		if isUnorderedMap(hint) {
 			return nil, ErrMapForOrderedArgument{"hint"}
 		}

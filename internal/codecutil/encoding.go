@@ -4,15 +4,17 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package internal
+package codecutil
 
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -47,8 +49,46 @@ func (e MarshalError) Error() string {
 		reflect.TypeOf(e.Value), e.Err)
 }
 
-type EncoderFn func(*bytes.Buffer, *bsoncodec.Registry) (*bson.Encoder, error)
+// EncoderFn is used to functionally construct an encoder for marshaling values.
+type EncoderFn func(io.Writer, *bsoncodec.Registry) (*bson.Encoder, error)
 
+// defaultEncoderFn will return a function that will construct an encoder with
+// a BSON Value writer.
+func defaultEncoderFn() EncoderFn {
+	return func(w io.Writer, reg *bsoncodec.Registry) (*bson.Encoder, error) {
+		rw, err := bsonrw.NewBSONValueWriter(w)
+		if err != nil {
+			return nil, fmt.Errorf("error configuring BSON encoder writer: %w", err)
+		}
+
+		enc, err := bson.NewEncoder(rw)
+		if err != nil {
+			return nil, fmt.Errorf("error encoding default BSON encoder: %w", err)
+		}
+
+		return enc, nil
+	}
+}
+
+// newMarshalValueEncoder will attempt to construct an encoder from the provided
+// writer, registry, and encoder function. If the encoder function is not
+// provided, then this function will construct an encoder with a BSON Value
+// writer.
+func newMarshalValueEncoder(w io.Writer, reg *bsoncodec.Registry, encFn EncoderFn) (*bson.Encoder, error) {
+	if encFn == nil {
+		encFn = defaultEncoderFn()
+	}
+
+	enc, err := encFn(w, reg)
+	if err != nil {
+		return nil, fmt.Errorf("error configuring BSON encoder: %w", err)
+	}
+
+	return enc, nil
+}
+
+// MarshalValue will attempt to encode the provided value with the registry and
+// encoder function. If the encoder function does not exist, then this
 func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn) (bsoncore.Value, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
@@ -59,13 +99,14 @@ func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn
 	}
 
 	buf := new(bytes.Buffer)
-	enc, err := encFn(buf, registry)
+
+	enc, err := newMarshalValueEncoder(buf, registry, encFn)
 	if err != nil {
-		return bsoncore.Value{}, fmt.Errorf("error configuring BSON encoder: %w", err)
+		return bsoncore.Value{}, err
 	}
 
-	// Encode the value in a single-element document with an empty key. Use bsoncore to extract the
-	// first element and return the BSON value.
+	// Encode the value in a single-element document with an empty key. Use
+	// bsoncore to extract the first element and return the BSON value.
 	err = enc.Encode(bson.D{{Key: "", Value: val}})
 	if err != nil {
 		return bsoncore.Value{}, MarshalError{Value: val, Err: err}

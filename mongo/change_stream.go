@@ -146,7 +146,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if comment := cs.options.Comment; comment != nil {
 		cs.aggregate.Comment(*comment)
 
-		//commentVal, err := internal.NewBSONValue(cs.registry, comment, true, "comment")
 		commentVal, err := marshalValue(comment, cs.bsonOpts, cs.registry)
 		if err != nil {
 			return nil, err
