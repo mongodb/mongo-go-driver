@@ -28,7 +28,8 @@ func TestNewMarshalValueEncoder(t *testing.T) {
 		wantErr  error
 	}{
 		{
-			name: "empty",
+			name:    "empty",
+			wantErr: ErrNilValue{},
 		},
 		{
 			name: "empty registry and non-empty encoder function",
