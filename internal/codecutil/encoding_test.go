@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 func TestNewMarshalValueEncoder(t *testing.T) {
@@ -26,11 +25,10 @@ func TestNewMarshalValueEncoder(t *testing.T) {
 		registry *bsoncodec.Registry
 		encFn    EncoderFn
 		want     *bson.Encoder
-		valid    bool
+		wantErr  error
 	}{
 		{
-			name:  "empty",
-			valid: false,
+			name: "empty",
 		},
 		{
 			name: "empty registry and non-empty encoder function",
@@ -43,7 +41,6 @@ func TestNewMarshalValueEncoder(t *testing.T) {
 
 				return enc
 			}(t),
-			valid: true,
 		},
 	}
 
@@ -55,13 +52,7 @@ func TestNewMarshalValueEncoder(t *testing.T) {
 
 			got, err := newMarshalValueEncoder(test.w, test.registry, test.encFn)
 
-			if !test.valid {
-				require.Error(t, err)
-
-				return
-			}
-
-			require.Nil(t, err, "failed to construct MarshalValue encoder: %v", err)
+			assert.Equal(t, test.wantErr, err, "expected and actual error do not match")
 			assert.Equal(t, test.want, got, "expected and actual encoders are different")
 		})
 	}
