@@ -90,6 +90,11 @@ func newMarshalValueEncoder(w io.Writer, reg *bsoncodec.Registry, encFn EncoderF
 // MarshalValue will attempt to encode the provided value with the registry and
 // encoder function. If the encoder function does not exist, then this
 func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn) (bsoncore.Value, error) {
+	// If the val is already a bsoncore.Value, then do nothing.
+	if bval, ok := val.(bsoncore.Value); ok {
+		return bval, nil
+	}
+
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
