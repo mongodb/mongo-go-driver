@@ -58,12 +58,12 @@ func defaultEncoderFn() EncoderFn {
 	return func(w io.Writer, reg *bsoncodec.Registry) (*bson.Encoder, error) {
 		rw, err := bsonrw.NewBSONValueWriter(w)
 		if err != nil {
-			return nil, fmt.Errorf("error configuring BSON encoder writer: %w", err)
+			return nil, err
 		}
 
 		enc, err := bson.NewEncoder(rw)
 		if err != nil {
-			return nil, fmt.Errorf("error encoding default BSON encoder: %w", err)
+			return nil, err
 		}
 
 		return enc, nil

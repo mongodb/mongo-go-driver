@@ -6,58 +6,12 @@
 package codecutil
 
 import (
-	"bytes"
-	"errors"
-	"io"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
-
-func TestNewMarshalValueEncoder(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		w        io.Writer
-		registry *bsoncodec.Registry
-		encFn    EncoderFn
-		want     *bson.Encoder
-		wantErr  error
-	}{
-		{
-			name:    "empty",
-			wantErr: ErrNilValue{},
-		},
-		{
-			name: "empty registry and non-empty encoder function",
-			w:    new(bytes.Buffer),
-			want: func(t *testing.T) *bson.Encoder {
-				t.Helper()
-
-				enc, err := defaultEncoderFn()(new(bytes.Buffer), bson.DefaultRegistry)
-				assert.Nil(t, err)
-
-				return enc
-			}(t),
-		},
-	}
-
-	for _, test := range tests {
-		test := test // Capture the range variable.
-
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, err := newMarshalValueEncoder(test.w, test.registry, test.encFn)
-
-			assert.Equal(t, test.wantErr, err, "expected and actual error do not match")
-			assert.Equal(t, test.want, got, "expected and actual encoders are different")
-		})
-	}
-}
 
 func TestMarshalValue(t *testing.T) {
 	t.Parallel()
@@ -68,13 +22,13 @@ func TestMarshalValue(t *testing.T) {
 		registry *bsoncodec.Registry
 		encFn    EncoderFn
 		want     string
-		err      error
+		wantErr  error
 	}{
 		{
-			name: "empty",
-			val:  nil,
-			want: "",
-			err:  ErrNilValue{},
+			name:    "empty",
+			val:     nil,
+			want:    "",
+			wantErr: ErrNilValue{},
 		},
 		{
 			name: "bson.D",
@@ -105,12 +59,9 @@ func TestMarshalValue(t *testing.T) {
 			t.Parallel()
 
 			value, err := MarshalValue(test.val, test.registry, test.encFn)
-			if !errors.Is(err, test.err) {
-				t.Fatalf("failed to convert comment to bsoncore.Value: %v", err)
-			}
 
-			got := value.String()
-			assert.Equal(t, test.want, got, "expected and actual comments are different")
+			assert.Equal(t, test.wantErr, err, "expected and actual error do not match")
+			assert.Equal(t, test.want, value.String(), "expected and actual comments are different")
 		})
 	}
 }
