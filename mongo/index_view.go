@@ -258,7 +258,6 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).MaxTime(option.MaxTime)
 	if option.CommitQuorum != nil {
-		//commitQuorum, err := internal.NewBSONValue(iv.coll.registry, option.CommitQuorum, true, "commitQuorum")
 		commitQuorum, err := marshalValue(option.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
