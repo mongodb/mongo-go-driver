@@ -514,7 +514,7 @@ func TestMarshalValue(t *testing.T) {
 		{
 			name:    "nil document",
 			value:   nil,
-			wantErr: codecutil.ErrNilValue{},
+			wantErr: codecutil.ErrNilValue,
 		},
 		{
 			name:  "value marshaler",

@@ -88,7 +88,7 @@ func replaceErrors(err error) error {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
 
-	if _, ok := err.(codecutil.ErrNilValue); ok {
+	if errors.Is(err, codecutil.ErrNilValue) {
 		return ErrNilValue
 	}
 

@@ -34,7 +34,7 @@ func TestMarshalValue(t *testing.T) {
 			name:    "empty",
 			val:     nil,
 			want:    "",
-			wantErr: ErrNilValue{},
+			wantErr: ErrNilValue,
 		},
 		{
 			name: "bson.D",

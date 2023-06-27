@@ -8,6 +8,7 @@ package codecutil
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -18,11 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-type ErrNilValue struct{}
-
-func (e ErrNilValue) Error() string {
-	return "value is nil"
-}
+var ErrNilValue = errors.New("value is nil")
 
 // ErrMapForOrderedArgument is returned when a map with multiple keys is passed
 // to a CRUD method for an ordered parameter
@@ -100,7 +97,7 @@ func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn
 	}
 
 	if val == nil {
-		return bsoncore.Value{}, ErrNilValue{}
+		return bsoncore.Value{}, ErrNilValue
 	}
 
 	buf := new(bytes.Buffer)
