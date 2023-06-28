@@ -109,6 +109,10 @@ const (
 	WhenAvailable FullDocument = "whenAvailable"
 )
 
+// TODO(GODRIVER-2617): Once Registry is removed, ArrayFilters doesn't need to
+// TODO be a separate type. Remove the type and update all ArrayFilters fields
+// TODO to be type []interface{}.
+
 // ArrayFilters is used to hold filters for the array filters CRUD option. If a registry is nil, bson.DefaultRegistry
 // will be used when converting the filter interfaces to BSON.
 type ArrayFilters struct {

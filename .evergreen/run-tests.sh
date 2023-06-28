@@ -69,24 +69,6 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
 fi
 
-# Ensure mock KMS servers are running before starting tests.
-await_server() {
-  for i in $(seq 300); do
-      # Exit code 7: "Failed to connect to host".
-      if curl -s "localhost:$2"; test $? -ne 7; then
-        return 0
-      else
-        sleep 1
-      fi
-  done
-  echo "could not detect '$1' server on port $2"
-}
-# * List servers to await here ...
-await_server "KMS", 5698
-await_server "Azure", 8080
-
-echo "finished awaiting servers"
-
 if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
   CRYPT_SHARED_LIB_PATH=""
   echo "crypt_shared library is skipped"
@@ -133,6 +115,6 @@ GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
 CSFLE_TLS_CA_FILE="$CSFLE_TLS_CA_FILE" \
 CSFLE_TLS_CERTIFICATE_KEY_FILE="$CSFLE_TLS_CERTIFICATE_KEY_FILE" \
 CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH \
-make $MAKEFILE_TARGET \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+make $MAKEFILE_TARGET

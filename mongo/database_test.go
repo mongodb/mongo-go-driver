@@ -139,7 +139,7 @@ func TestDatabase(t *testing.T) {
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
 		_, err = db.Watch(context.Background(), nil)
-		watchErr := errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid")
+		watchErr := errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		assert.Equal(t, watchErr, err, "expected error %v, got %v", watchErr, err)
 
 		_, err = db.ListCollections(context.Background(), nil)

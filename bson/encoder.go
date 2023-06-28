@@ -42,6 +42,7 @@ type Encoder struct {
 
 // NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
 func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	if vw == nil {
 		return nil, errors.New("cannot create a new Encoder with a nil ValueWriter")
 	}
@@ -121,12 +122,14 @@ func (e *Encoder) Encode(val interface{}) error {
 // Reset will reset the state of the Encoder, using the same *EncodeContext used in
 // the original construction but using vw.
 func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	e.vw = vw
 	return nil
 }
 
 // SetRegistry replaces the current registry of the Encoder with r.
 func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	e.ec.Registry = r
 	return nil
 }
@@ -135,6 +138,7 @@ func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
 //
 // Deprecated: Use the Encoder configuration methods set the desired marshal behavior instead.
 func (e *Encoder) SetContext(ec bsoncodec.EncodeContext) error {
+	// TODO:(GODRIVER-2719): Remove error return value.
 	e.ec = ec
 	return nil
 }

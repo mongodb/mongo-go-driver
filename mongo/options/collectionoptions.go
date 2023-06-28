@@ -27,6 +27,10 @@ type CollectionOptions struct {
 	// the read preference of the Database used to configure the Collection will be used.
 	ReadPreference *readpref.ReadPref
 
+	// BSONOptions configures optional BSON marshaling and unmarshaling
+	// behavior.
+	BSONOptions *BSONOptions
+
 	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Collection. The default value
 	// is nil, which means that the registry of the Database used to configure the Collection will be used.
 	Registry *bsoncodec.Registry
@@ -52,6 +56,12 @@ func (c *CollectionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *Coll
 // SetReadPreference sets the value for the ReadPreference field.
 func (c *CollectionOptions) SetReadPreference(rp *readpref.ReadPref) *CollectionOptions {
 	c.ReadPreference = rp
+	return c
+}
+
+// SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
+func (c *CollectionOptions) SetBSONOptions(opts *BSONOptions) *CollectionOptions {
+	c.BSONOptions = opts
 	return c
 }
 

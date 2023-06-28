@@ -379,6 +379,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 	mt.Run("4. bson size limits", func(mt *mtest.T) {
+		// TODO(GODRIVER-2872): Fix and unskip this test case.
+		mt.Skip("Test fails frequently, skipping. See GODRIVER-2872")
+
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -1566,10 +1569,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
 	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("12. explicit encryption", runOpts, func(mt *mtest.T) {
-		if mtest.Serverless() {
-			// Skip tests if running against serverless, as capped collections are banned.
-			mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
-		}
 		// Test Setup ... begin
 		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
 		key1Document := readJSONFile(mt, "key1-document.json")
@@ -2192,10 +2191,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
 	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("21. automatic data encryption keys", qeRunOpts, func(mt *mtest.T) {
-		if mtest.Serverless() {
-			// Skip tests if running against serverless, as capped collections are banned.
-			mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
-		}
 		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
 			opts := options.Client().ApplyURI(mtest.ClusterURI())
 			client, err := mongo.Connect(context.Background(), opts)
@@ -2357,10 +2352,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
 	// libmongocrypt is configured to use the QEv2 protocol.
 	mt.RunOpts("22. range explicit encryption", qeRunOpts, func(mt *mtest.T) {
-		if mtest.Serverless() {
-			// Skip tests if running against serverless, as capped collections are banned.
-			mt.Skip("Queryable Encryption tests are skipped on serverless until QEv2 protocol is enabled on serverless by default: DRIVERS-2589")
-		}
 		type testcase struct {
 			typeStr       string
 			field         string

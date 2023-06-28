@@ -75,7 +75,7 @@ func TestClient(t *testing.T) {
 		client.sessionPool = &session.Pool{}
 
 		_, err := client.Watch(bgCtx, nil)
-		watchErr := errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid")
+		watchErr := errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		assert.Equal(t, watchErr, err, "expected error %v, got %v", watchErr, err)
 
 		_, err = client.ListDatabases(bgCtx, nil)

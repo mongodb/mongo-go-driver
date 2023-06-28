@@ -10,7 +10,6 @@ import (
 	"math/rand"
 	"reflect"
 	"testing"
-	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -770,49 +769,7 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 
 			// Assert that the byte slice in the unmarshaled value does not share any memory
 			// addresses with the input byte slice.
-			assertDifferentArrays(t, data, tc.getByteSlice(got))
+			assert.DifferentAddressRanges(t, data, tc.getByteSlice(got))
 		})
 	}
-}
-
-// assertDifferentArrays asserts that two byte slices reference distinct memory ranges, meaning
-// they reference different underlying byte arrays.
-func assertDifferentArrays(t *testing.T, a, b []byte) {
-	// Find the start and end memory addresses for the underlying byte array for each input byte
-	// slice.
-	sliceAddrRange := func(b []byte) (uintptr, uintptr) {
-		sh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-		return sh.Data, sh.Data + uintptr(sh.Cap-1)
-	}
-	aStart, aEnd := sliceAddrRange(a)
-	bStart, bEnd := sliceAddrRange(b)
-
-	// If "b" starts after "a" ends or "a" starts after "b" ends, there is no overlap.
-	if bStart > aEnd || aStart > bEnd {
-		return
-	}
-
-	// Otherwise, calculate the overlap start and end and print the memory overlap error message.
-	min := func(a, b uintptr) uintptr {
-		if a < b {
-			return a
-		}
-		return b
-	}
-	max := func(a, b uintptr) uintptr {
-		if a > b {
-			return a
-		}
-		return b
-	}
-	overlapLow := max(aStart, bStart)
-	overlapHigh := min(aEnd, bEnd)
-
-	t.Errorf("Byte slices point to the same the same underlying byte array:\n"+
-		"\ta addresses:\t%d ... %d\n"+
-		"\tb addresses:\t%d ... %d\n"+
-		"\toverlap:\t%d ... %d",
-		aStart, aEnd,
-		bStart, bEnd,
-		overlapLow, overlapHigh)
 }
