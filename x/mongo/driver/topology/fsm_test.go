@@ -1,8 +1,15 @@
+// Copyright (C) MongoDB, Inc. 2023-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package topology
 
 import (
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
@@ -64,7 +71,7 @@ func TestCompareUint32Ptr(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := compareUint32Ptr(test.ptr1, test.ptr2)
+			got := internal.CompareUint32Ptr(test.ptr1, test.ptr2)
 			assert.Equal(t, test.want, got, "compareUint32Ptr() = %v, wanted %v", got, test.want)
 		})
 	}

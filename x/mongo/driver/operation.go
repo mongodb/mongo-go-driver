@@ -1375,6 +1375,13 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
+
+	// If the operation is defined for an explicit session but the server
+	// does not support sessions, then throw an error.
+	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutesPtr == nil {
+		return nil, ErrSessionsNotSupported
+	}
+
 	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutesPtr == nil {
 		return dst, nil
 	}
