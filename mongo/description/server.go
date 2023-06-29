@@ -465,15 +465,7 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.SessionTimeoutMinutesPtr == nil && other.SessionTimeoutMinutesPtr != nil {
-		return false
-	}
-
-	if s.SessionTimeoutMinutesPtr != nil && other.SessionTimeoutMinutesPtr == nil {
-		return false
-	}
-
-	if *s.SessionTimeoutMinutesPtr != *other.SessionTimeoutMinutesPtr {
+	if internal.CompareUint32Ptr(s.SessionTimeoutMinutesPtr, other.SessionTimeoutMinutesPtr) != 0 {
 		return false
 	}
 
