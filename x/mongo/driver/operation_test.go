@@ -148,16 +148,19 @@ func TestOperation(t *testing.T) {
 
 		descRetryable := description.Server{
 			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
+			SessionTimeoutMinutes:    1,
 			SessionTimeoutMinutesPtr: uint32ToPtr(1),
 		}
 
 		descNotRetryableWireVersion := description.Server{
 			WireVersion:              &description.VersionRange{Min: 0, Max: 5},
+			SessionTimeoutMinutes:    1,
 			SessionTimeoutMinutesPtr: uint32ToPtr(1),
 		}
 
 		descNotRetryableStandalone := description.Server{
 			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
+			SessionTimeoutMinutes:    1,
 			SessionTimeoutMinutesPtr: uint32ToPtr(1),
 			Kind:                     description.Standalone,
 		}

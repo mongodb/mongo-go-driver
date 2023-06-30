@@ -38,7 +38,7 @@ func TestCompareUint32Ptr(t *testing.T) {
 			want: 2,
 		},
 		{
-			name: "ptr1 and ptr2 have same value, differnt address",
+			name: "ptr1 and ptr2 have same value, different address",
 			ptr1: uint32ToPtr(1),
 			ptr2: uint32ToPtr(1),
 			want: 0,

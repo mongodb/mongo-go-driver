@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	sessionTimeoutMinutes *uint32 = func() *uint32 {
+	sessionTimeoutMinutes = func() *uint32 {
 		var uint32V uint32 = 30
 
 		return &uint32V
@@ -37,10 +37,13 @@ var (
 	// MockDescription is the server description used for the mock deployment. Each mocked connection returns this
 	// value from its Description method.
 	MockDescription = description.Server{
-		CanonicalAddr:            serverAddress,
-		MaxDocumentSize:          maxDocumentSize,
-		MaxMessageSize:           maxMessageSize,
-		MaxBatchCount:            maxBatchCount,
+		CanonicalAddr:   serverAddress,
+		MaxDocumentSize: maxDocumentSize,
+		MaxMessageSize:  maxMessageSize,
+		MaxBatchCount:   maxBatchCount,
+		// TODO(GODRIVER-2885): This can be removed once legacy
+		// SessionTimeoutMinutes is removed.
+		SessionTimeoutMinutes:    *sessionTimeoutMinutes,
 		SessionTimeoutMinutesPtr: sessionTimeoutMinutes,
 		Kind:                     description.RSPrimary,
 		WireVersion: &description.VersionRange{

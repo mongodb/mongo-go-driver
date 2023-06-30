@@ -15,7 +15,6 @@ import (
 	"os/exec"
 	"strconv"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
@@ -32,13 +31,13 @@ type mongocryptdProcess struct {
 
 // start will start a mongocryptd server in the background on the OS. If a
 // process
-func (p *mongocryptdProcess) start(ctx context.Context, port int) error {
+func (p *mongocryptdProcess) start(port int) error {
 	args := []string{
 		"mongocryptd",
 		"--port", strconv.Itoa(port),
 	}
 
-	p.cmd = exec.Command(args[0], args[1:]...)
+	p.cmd = exec.Command(args[0], args[1:]...) //nolint:gosec
 	p.cmd.Stderr = p.cmd.Stdout
 
 	return p.cmd.Start()
@@ -63,8 +62,6 @@ func (p *mongocryptdProcess) close() error {
 	return nil
 }
 
-// TestSessionsMongocryptdProse tests session prose tests that should use a
-// mongocryptd server as the test server (available with server versions 4.2+).
 func TestSessionsMongocryptdProse(t *testing.T) {
 	t.Parallel()
 
@@ -73,13 +70,9 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	ctx := context.Background()
 
 	proc := mongocryptdProcess{}
-	procTimeout := time.Duration(100 * time.Millisecond)
-
-	procCtx, procCancel := context.WithTimeout(context.Background(), procTimeout)
-	t.Cleanup(procCancel)
 
 	// Start a mongocryptd server.
-	err := proc.start(procCtx, mongocryptdPort)
+	err := proc.start(mongocryptdPort)
 	require.NoError(t, err, "failed to create a mongocryptd process: %v", err)
 
 	t.Cleanup(func() {
@@ -94,7 +87,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 			// a session ID, then the Go Driver WM
 			// construction has incorrectly interpreted that
 			// LogicalSessionTimeoutMinutes was returned by
-			// the server via a hello command.
+			// the server on handshake.
 			_, err := evt.Command.LookupErr("lsid")
 			if !errors.Is(err, bsoncore.ErrElementNotFound) {
 				require.NoError(t, err, "expected error to be nil, got %v", err)
@@ -127,11 +120,11 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		// Send a read command to the server (e.g., findOne), ignoring
 		// any errors from the server response
-		t.Run("read", func(t *testing.T) { coll.FindOne(ctx, bson.D{{"x", 1}}) })
+		t.Run("read", func(t *testing.T) { _ = coll.FindOne(ctx, bson.D{{"x", 1}}) })
 
 		// Send a write command to the server (e.g., insertOne),
 		// ignoring any errors from the server response
-		t.Run("write", func(t *testing.T) { coll.InsertOne(ctx, bson.D{{"x", 1}}) })
+		t.Run("write", func(t *testing.T) { _, _ = coll.InsertOne(ctx, bson.D{{"x", 1}}) })
 	})
 
 	t.Run("19. explicit session raises an error if connection does not support sessions", func(t *testing.T) {

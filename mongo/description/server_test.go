@@ -48,7 +48,14 @@ func TestServer(t *testing.T) {
 			{"passive", Server{Passive: true}, true},
 			{"primary", Server{Primary: address.Address("foo")}, false},
 			{"readOnly", Server{ReadOnly: true}, true},
-			{"sessionTimeoutMinutes", Server{SessionTimeoutMinutesPtr: uint32ToPtr(1)}, false},
+			{
+				"sessionTimeoutMinutes",
+				Server{
+					SessionTimeoutMinutesPtr: uint32ToPtr(1),
+					SessionTimeoutMinutes:    1,
+				},
+				false,
+			},
 			{"setName", Server{SetName: "foo"}, false},
 			{"setVersion", Server{SetVersion: 1}, false},
 			{"tags", Server{Tags: tag.Set{tag.Tag{"foo", "bar"}}}, false},

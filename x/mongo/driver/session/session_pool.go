@@ -190,7 +190,3 @@ func (p *Pool) String() string {
 func (p *Pool) CheckedOut() int64 {
 	return atomic.LoadInt64(&p.checkedOut)
 }
-
-func (p *Pool) hasSessionSupport() bool {
-	return p.latestTopology.timeoutMinutes != nil
-}
