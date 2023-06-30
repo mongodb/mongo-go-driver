@@ -77,20 +77,88 @@ func TestCompareUint32Ptr(t *testing.T) {
 	}
 }
 
-func TestMinFSMSeversTimeout(t *testing.T) {
+func TestFSMSessionTimeout(t *testing.T) {
 	t.Parallel()
+
+	uint32ToPtr := func(u uint32) *uint32 { return &u }
 
 	tests := []struct {
 		name string
-		f    fsm
+		f    *fsm
 		s    description.Server
 		want *uint32
 	}{
 		{
 			name: "empty",
-			f:    fsm{},
+			f:    &fsm{},
 			s:    description.Server{},
 			want: nil,
+		},
+		{
+			name: "no session support on data-bearing server with session support on fsm",
+			f: &fsm{
+				Topology: description.Topology{
+					SessionTimeoutMinutesPtr: uint32ToPtr(1),
+				},
+			},
+			s: description.Server{
+				Kind: description.RSPrimary,
+			},
+			want: nil,
+		},
+		{
+			name: "lower timeout on data-bearing server with session support on fsm",
+			f: &fsm{
+				Topology: description.Topology{
+					SessionTimeoutMinutesPtr: uint32ToPtr(2),
+				},
+			},
+			s: description.Server{
+				Kind:                     description.RSPrimary,
+				SessionTimeoutMinutesPtr: uint32ToPtr(1),
+			},
+			want: uint32ToPtr(1),
+		},
+		{
+			name: "session support on data-bearing server with no session support on fsm with no servers",
+			f:    &fsm{Topology: description.Topology{}},
+			s: description.Server{
+				Kind:                     description.RSPrimary,
+				SessionTimeoutMinutesPtr: uint32ToPtr(1),
+			},
+			want: uint32ToPtr(1),
+		},
+		{
+			name: "session support on data-bearing server with no session support on fsm and lower servers",
+			f: &fsm{Topology: description.Topology{
+				Servers: []description.Server{
+					{
+						Kind:                     description.RSPrimary,
+						SessionTimeoutMinutesPtr: uint32ToPtr(1),
+					},
+				},
+			}},
+			s: description.Server{
+				Kind:                     description.RSPrimary,
+				SessionTimeoutMinutesPtr: uint32ToPtr(2),
+			},
+			want: uint32ToPtr(1),
+		},
+		{
+			name: "session support on data-bearing server with no session support on fsm and higher servers",
+			f: &fsm{Topology: description.Topology{
+				Servers: []description.Server{
+					{
+						Kind:                     description.RSPrimary,
+						SessionTimeoutMinutesPtr: uint32ToPtr(3),
+					},
+				},
+			}},
+			s: description.Server{
+				Kind:                     description.RSPrimary,
+				SessionTimeoutMinutesPtr: uint32ToPtr(2),
+			},
+			want: uint32ToPtr(2),
 		},
 	}
 
@@ -100,7 +168,7 @@ func TestMinFSMSeversTimeout(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := minFSMSeversTimeout(test.f, test.s)
+			got := selectFSMSessionTimeout(test.f, test.s)
 			assert.Equal(t, test.want, got, "minFSMServersTimeout() = %v, wanted %v", got, test.want)
 		})
 	}

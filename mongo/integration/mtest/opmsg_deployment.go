@@ -170,6 +170,10 @@ func (md *mockDeployment) Subscribe() (*driver.Subscription, error) {
 
 		md.updates <- description.Topology{
 			SessionTimeoutMinutesPtr: sessionTimeoutMinutes,
+
+			// TODO(GODRIVER-2885): This can be removed once legacy
+			// SessionTimeoutMinutes is removed.
+			SessionTimeoutMinutes: *sessionTimeoutMinutes,
 		}
 	}
 

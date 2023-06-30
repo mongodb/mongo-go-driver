@@ -39,12 +39,13 @@ func newFSM() *fsm {
 	return &f
 }
 
-// minFSMSeversTimeout determines the minimum timeout to return for the
-// topology's finite state machine. If the logicalSessionTimeoutMinutes on the
-// FSM exists and the server is data-bearing, then we determine this value by
-// returning
+// selectFSMSessionTimeout selects the timeout to return for the topology's
+// finite state machine. If the logicalSessionTimeoutMinutes on the FSM exists
+// and the server is data-bearing, then we determine this value by returning
 //
 //	min{server timeout, FSM timeout}
+//
+// where a "nil" value is considered less than 0.
 //
 // Otherwise, if the FSM's logicalSessionTimeoutMinutes exist, then this
 // function returns the FSM timout.
@@ -52,18 +53,23 @@ func newFSM() *fsm {
 // In the case where the FSM timeout DNE, we check all servers to see if any
 // still do not have a timeout. This function chooses the lowest of the existing
 // timeouts.
-func minFSMSeversTimeout(f fsm, s description.Server) *uint32 {
+func selectFSMSessionTimeout(f *fsm, s description.Server) *uint32 {
 	oldMinutes := f.SessionTimeoutMinutesPtr
 	comp := internal.CompareUint32Ptr(oldMinutes, s.SessionTimeoutMinutesPtr)
 
 	// If the server is data-bearing and the current timeout exists and is
-	// larger than the server timeout, then return the server timeout.
-	if s.DataBearing() && comp == 1 {
+	// either:
+	//
+	// 1. larger than the server timeout, or
+	// 2. non-nil while the server timeout is nil
+	//
+	// then return the server timeout.
+	if s.DataBearing() && (comp == 1 || comp == 2) {
 		return s.SessionTimeoutMinutesPtr
 	}
 
 	// If the current timeout exists and the server is not data-bearing OR
-	// min{server timeout, current timeout} = current tiemout, then return
+	// min{server timeout, current timeout} = current timeout, then return
 	// the current timeout.
 	if oldMinutes != nil {
 		return oldMinutes
@@ -115,15 +121,26 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
-	f.Topology = description.Topology{
-		Kind:    f.Kind,
-		Servers: newServers,
-		SetName: f.SetName,
-	}
-
 	// Reset the logicalSessionTimeoutMinutes to the minimum of the FSM
 	// and the description.server/f.servers.
-	f.SessionTimeoutMinutesPtr = minFSMSeversTimeout(*f, s)
+	serverTimeoutMinutes := selectFSMSessionTimeout(f, s)
+
+	f.Topology = description.Topology{
+		Kind:                     f.Kind,
+		Servers:                  newServers,
+		SetName:                  f.SetName,
+		SessionTimeoutMinutesPtr: serverTimeoutMinutes,
+
+		// TODO(GODRIVER-2885): This branch can be removed once legacy
+		// SessionTimeoutMinutes is removed.
+		SessionTimeoutMinutes: func() uint32 {
+			if serverTimeoutMinutes != nil {
+				return *serverTimeoutMinutes
+			}
+
+			return 0
+		}(),
+	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
 		return f.Topology, s

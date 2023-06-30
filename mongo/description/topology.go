@@ -14,9 +14,10 @@ import (
 
 // Topology contains information about a MongoDB cluster.
 type Topology struct {
-	Servers                  []Server
-	SetName                  string
-	Kind                     TopologyKind
+	Servers []Server
+	SetName string
+	Kind    TopologyKind
+	// Depricated: Use SessionTimeoutMinutes instead.
 	SessionTimeoutMinutes    uint32
 	SessionTimeoutMinutesPtr *uint32
 	CompatibilityErr         error
