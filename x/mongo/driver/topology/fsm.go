@@ -84,24 +84,9 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *uint32 {
 		}
 
 		srvTimeout := server.SessionTimeoutMinutesPtr
+		comp := internal.CompareUint32Ptr(timeout, srvTimeout)
 
-		// If the server timout DNE, then do nothing. There are two
-		// relevant cases to this branch:
-		//
-		// (1) timout == nil: in this case, setting the timout to the
-		//     server timout is redundant.
-		//
-		// (2) timout != nil: in this case the timout would already be
-		//     the lowest non-nil value yet encountered.
-		if srvTimeout == nil {
-			continue
-		}
-
-		comp := internal.CompareUint32Ptr(srvTimeout, timeout)
-
-		// If the timeout is non-nil and the server is GEQ to than the
-		// existing timeout, do nothing.
-		if comp == 0 || comp == 1 {
+		if comp <= 0 { // timeout <= srvTimout
 			continue
 		}
 
