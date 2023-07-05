@@ -125,11 +125,15 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		// Send a read command to the server (e.g., findOne), ignoring
 		// any errors from the server response
-		t.Run("read", func(t *testing.T) { _ = coll.FindOne(context.Background(), bson.D{{"x", 1}}) })
+		mt.RunOpts("read", mtOpts, func(_ *mtest.T) {
+			_ = coll.FindOne(context.Background(), bson.D{{"x", 1}})
+		})
 
 		// Send a write command to the server (e.g., insertOne),
 		// ignoring any errors from the server response
-		t.Run("write", func(t *testing.T) { _, _ = coll.InsertOne(context.Background(), bson.D{{"x", 1}}) })
+		mt.RunOpts("write", mtOpts, func(_ *mtest.T) {
+			_, _ = coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+		})
 	})
 
 	mt.RunOpts("19. explicit session raises an error if connection does not support sessions", mtOpts, func(mt *mtest.T) {
@@ -160,11 +164,11 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		// Attempt to send a write command to the server (e.g.,
 		// ``insertOne``) with the explicit session passed in.
-		t.Run("write", func(t *testing.T) {
+		mt.RunOpts("write", mtOpts, func(mt *mtest.T) {
 			// Assert that a client-side error is generated
 			// indicating that sessions are not supported.
 			res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
-			assert.ErrorIs(t, res.Err(), mongo.ErrSessionsNotSupported,
+			assert.ErrorIs(mt, res.Err(), mongo.ErrSessionsNotSupported,
 				"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
 		})
 	})
