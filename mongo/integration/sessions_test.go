@@ -55,7 +55,7 @@ func TestSessions(t *testing.T) {
 
 	mt.Run("imperative API", func(mt *mtest.T) {
 		mt.Run("round trip Session object", func(mt *mtest.T) {
-			// Rountrip a Session object through NewSessionContext/ContextFromSession and assert that it is correctly
+			// Roundtrip a Session object through NewSessionContext/ContextFromSession and assert that it is correctly
 			// stored/retrieved.
 
 			sess, err := mt.Client.StartSession()

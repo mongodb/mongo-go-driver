@@ -30,8 +30,7 @@ type mongocryptdProcess struct {
 	cmd *exec.Cmd
 }
 
-// start will start a mongocryptd server in the background on the OS. If a
-// process
+// start will start a mongocryptd server in the background on the OS.
 func (p *mongocryptdProcess) start(port int) error {
 	args := []string{
 		"mongocryptd",
@@ -64,29 +63,14 @@ func (p *mongocryptdProcess) close() error {
 }
 
 func TestSessionsMongocryptdProse(t *testing.T) {
-	t.Parallel()
-
 	const mongocryptdPort = 27022
 
-	proc := mongocryptdProcess{}
-
-	// Start a mongocryptd server.
-	err := proc.start(mongocryptdPort)
-	require.NoError(t, err, "failed to create a mongocryptd process: %v", err)
-
-	t.Cleanup(func() {
-		err := proc.close()
-		require.NoError(t, err, "failed to close mongocryptd: %v", err)
-	})
-
+	// Monitor the lsid value on commands. If an operation run in any
+	// subtests contains an lsid, then the Go Driver wire message
+	// construction has incorrectly interpreted that
+	// LogicalSessionTimeoutMinutes was returned by the server on handshake.
 	cmdMonitor := &event.CommandMonitor{
 		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
-			// Lookup the session id for the command sent to
-			// a mongocryptd server. If the command contains
-			// a session ID, then the Go Driver WM
-			// construction has incorrectly interpreted that
-			// LogicalSessionTimeoutMinutes was returned by
-			// the server on handshake.
 			_, err := evt.Command.LookupErr("lsid")
 			if !errors.Is(err, bsoncore.ErrElementNotFound) {
 				require.NoError(t, err, "expected error to be nil, got %v", err)
@@ -99,22 +83,45 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 		Host:   net.JoinHostPort("localhost", strconv.Itoa(mongocryptdPort)),
 	}
 
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("5.0").
+		Topologies(mtest.ReplicaSet, mtest.Sharded).
+		CreateCollection(false).
+		CreateClient(false)
+
+	// Create a new instance of mtest (MongoDB testing framework) for this
+	// test and configure it to control server versions.
+	mt := mtest.New(t, mtOpts)
+	mt.Cleanup(mt.Close)
+
+	proc := mongocryptdProcess{}
+
+	// Start a mongocryptd server.
+	err := proc.start(mongocryptdPort)
+	require.NoError(t, err, "failed to create a mongocryptd process: %v", err)
+
+	t.Cleanup(func() {
+		err := proc.close()
+		require.NoError(t, err, "failed to close mongocryptd: %v", err)
+	})
+
 	clientOpts := options.
 		Client().
 		ApplyURI(uri.String()).
 		SetMonitor(cmdMonitor)
 
-	mtOpts := mtest.NewOptions().
-		ClientOptions(clientOpts).
-		MinServerVersion("5.0").
-		Topologies(mtest.ReplicaSet, mtest.Sharded).
-		CreateCollection(false)
+	ctx := context.Background()
 
-	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
+	client, err := mongo.Connect(ctx, clientOpts)
+	require.NoError(t, err, "could not connect to mongocryptd: %v", err)
 
-	mt.RunOpts("18 implicit session is ignored if connection does not support sessions", mtOpts, func(mt *mtest.T) {
-		coll := mt.Client.Database("db").Collection("coll")
+	t.Cleanup(func() {
+		err := client.Disconnect(ctx)
+		require.NoError(t, err, "mongocryptd client could not disconnect: %v", err)
+	})
+
+	mt.RunOpts("18. implicit session is ignored if connection does not support sessions", mtOpts, func(mt *mtest.T) {
+		coll := client.Database("db").Collection("coll")
 
 		// Send a read command to the server (e.g., findOne), ignoring
 		// any errors from the server response
@@ -125,43 +132,40 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 		t.Run("write", func(t *testing.T) { _, _ = coll.InsertOne(context.Background(), bson.D{{"x", 1}}) })
 	})
 
-	mt.RunOpts("19. explicit session raises an error if connection does not support sessions", mtOpts,
-		func(mt *mtest.T) {
-			client := mt.Client
+	mt.RunOpts("19. explicit session raises an error if connection does not support sessions", mtOpts, func(mt *mtest.T) {
+		// Create a new explicit session by calling startSession (this
+		// MUST NOT error).
+		session, err := client.StartSession()
+		require.NoError(mt, err, "expected error to be nil, got %v", err)
 
-			// Create a new explicit session by calling startSession (this
-			// MUST NOT error).
-			session, err := client.StartSession()
-			require.NoError(t, err, "expected error to be nil, got %v", err)
+		defer session.EndSession(context.Background())
 
-			defer session.EndSession(context.Background())
+		sessionCtx := mongo.NewSessionContext(context.TODO(), session)
 
-			sessionCtx := mongo.NewSessionContext(context.TODO(), session)
+		if err = session.StartTransaction(); err != nil {
+			panic(err)
+		}
 
-			if err = session.StartTransaction(); err != nil {
-				panic(err)
-			}
+		coll := client.Database("db").Collection("coll")
 
-			coll := client.Database("db").Collection("coll")
-
-			// Attempt to send a read command to the server (e.g., findOne)
-			// with the explicit session passed in.
-			t.Run("read", func(t *testing.T) {
-				// Assert that a client-side error is generated
-				// indicating that sessions are not supported
-				res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
-				assert.ErrorIs(t, res.Err(), mongo.ErrSessionsNotSupported,
-					"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
-			})
-
-			// Attempt to send a write command to the server (e.g.,
-			// ``insertOne``) with the explicit session passed in.
-			t.Run("write", func(t *testing.T) {
-				// Assert that a client-side error is generated
-				// indicating that sessions are not supported.
-				res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
-				assert.ErrorIs(t, res.Err(), mongo.ErrSessionsNotSupported,
-					"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
-			})
+		// Attempt to send a read command to the server (e.g., findOne)
+		// with the explicit session passed in.
+		mt.RunOpts("read", mtOpts, func(mt *mtest.T) {
+			// Assert that a client-side error is generated
+			// indicating that sessions are not supported
+			res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
+			assert.ErrorIs(mt, res.Err(), mongo.ErrSessionsNotSupported,
+				"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
 		})
+
+		// Attempt to send a write command to the server (e.g.,
+		// ``insertOne``) with the explicit session passed in.
+		t.Run("write", func(t *testing.T) {
+			// Assert that a client-side error is generated
+			// indicating that sessions are not supported.
+			res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
+			assert.ErrorIs(t, res.Err(), mongo.ErrSessionsNotSupported,
+				"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
+		})
+	})
 }

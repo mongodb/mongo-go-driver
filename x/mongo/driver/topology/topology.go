@@ -222,7 +222,7 @@ func (t *Topology) Connect() error {
 			Servers:                  t.fsm.Servers,
 			SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
 
-			// TODO(GODRIVER-2885): This filed can be removed once
+			// TODO(GODRIVER-2885): This field can be removed once
 			// legacy SessionTimeoutMinutes is removed.
 			SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 		}
@@ -689,7 +689,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		Servers:                  t.fsm.Servers,
 		SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
 
-		// TODO(GODRIVER-2885): This filed can be removed once legacy
+		// TODO(GODRIVER-2885): This field can be removed once legacy
 		// SessionTimeoutMinutes is removed.
 		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 	}

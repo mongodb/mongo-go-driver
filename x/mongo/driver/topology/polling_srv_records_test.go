@@ -186,7 +186,7 @@ func TestPollSRVRecords(t *testing.T) {
 			Servers:                  topo.fsm.Servers,
 			SessionTimeoutMinutesPtr: topo.fsm.SessionTimeoutMinutesPtr,
 
-			// TODO(GODRIVER-2885): This filed can be removed once
+			// TODO(GODRIVER-2885): This field can be removed once
 			// legacy SessionTimeoutMinutes is removed.
 			SessionTimeoutMinutes: topo.fsm.SessionTimeoutMinutes,
 		})

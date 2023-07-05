@@ -17,7 +17,7 @@ type Topology struct {
 	Servers []Server
 	SetName string
 	Kind    TopologyKind
-	// Depricated: Use SessionTimeoutMinutes instead.
+	// Deprecated: Use SessionTimeoutMinutes instead.
 	SessionTimeoutMinutes    uint32
 	SessionTimeoutMinutesPtr *uint32
 	CompatibilityErr         error
