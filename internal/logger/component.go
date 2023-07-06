@@ -149,7 +149,7 @@ type Command struct {
 // SerializeCommand takes a command and a variable number of key-value pairs and
 // returns a slice of interface{} that can be passed to the logger for
 // structured logging.
-func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
+func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyCommandName, cmd.Name,
@@ -165,7 +165,7 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
 	}
 
-	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
+	port, err := strconv.ParseInt(cmd.ServerPort, 10, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
 	}
@@ -192,7 +192,7 @@ type Connection struct {
 
 // SerializeConnection serializes a Connection message into a slice of keys and
 // values that can be passed to a logger.
-func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
+func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyMessage, conn.Message,
@@ -204,7 +204,7 @@ func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []i
 		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
 	}
 
-	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)
+	port, err := strconv.ParseInt(conn.ServerPort, 10, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
 	}
@@ -224,20 +224,20 @@ type Server struct {
 
 // SerializeServer serializes a Server message into a slice of keys and
 // values that can be passed to a logger.
-func SerializeServer(srv Server, extraKV ...interface{}) []interface{} {
+func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyDriverConnectionID, srv.DriverConnectionID,
 		KeyMessage, srv.Message,
 		KeyServerHost, srv.ServerHost,
-		KeyTopologyID, srv.TopologyID,
+		KeyTopologyID, srv.TopologyID.Hex(),
 	}
 
 	if connID := srv.ServerConnectionID; connID != nil {
-		keysAndValues.Add(KeyServerConnectionID, connID)
+		keysAndValues.Add(KeyServerConnectionID, *connID)
 	}
 
-	port, err := strconv.ParseInt(srv.ServerPort, 0, 32)
+	port, err := strconv.ParseInt(srv.ServerPort, 10, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
 	}
@@ -258,9 +258,9 @@ type Topology struct {
 
 // SerializeTopology serializes a Topology message into a slice of keys and
 // values that can be passed to a logger.
-func SerializeTopology(topo Topology, extraKV ...interface{}) []interface{} {
+func SerializeTopology(topo Topology, extraKV ...interface{}) KeyValues {
 	keysAndValues := KeyValues{
-		KeyTopologyID, topo.ID,
+		KeyTopologyID, topo.ID.Hex(),
 	}
 
 	// Add the optional keys and values.
