@@ -721,6 +721,86 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		wg.Wait()
 	})
+
+	splitLargeChangesOpts := mtOpts.MinServerVersion("7.0.0").CreateClient(true)
+	mt.RunOpts("split large changes", splitLargeChangesOpts, func(mt *mtest.T) {
+		type idValue struct {
+			ID    int32  `bson:"_id"`
+			Value string `bson:"value"`
+		}
+
+		doc := idValue{
+			ID:    1,
+			Value: "q" + generateLongString(10*1024*1024),
+		}
+
+		// Insert the document
+		_, err := mt.Coll.InsertOne(context.Background(), doc)
+		require.NoError(t, err, "failed to insert idValue: %v", err)
+
+		// Watch for change events
+		pipeline := mongo.Pipeline{
+			{{"$changeStreamSplitLargeEvent", bson.D{}}},
+		}
+
+		opts := options.ChangeStream().SetFullDocument(options.UpdateLookup)
+
+		cs, err := mt.Coll.Watch(context.Background(), pipeline, opts)
+		require.NoError(t, err, "failed to watch collection: %v", err)
+
+		defer closeStream(cs)
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			filter := bson.D{{"_id", int32(1)}}
+			update := bson.D{{"$set", bson.D{{"value", generateLongString(10 * 1024 * 1024)}}}}
+
+			_, err := mt.Coll.UpdateOne(context.Background(), filter, update)
+			require.NoError(mt, err, "UpdateOne failed: %v", err)
+		}()
+
+		nextCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		t.Cleanup(cancel)
+
+		type splitEvent struct {
+			Fragment int32 `bson:"fragment"`
+			Of       int32 `bson:"of"`
+		}
+
+		got := struct {
+			SplitEvent splitEvent `bson:"splitEvent"`
+		}{}
+
+		cs.Next(nextCtx)
+
+		err = cs.Decode(&got)
+		require.NoError(mt, err, "failed to decode first iteration: %v", err)
+
+		want := splitEvent{
+			Fragment: 1,
+			Of:       2,
+		}
+
+		assert.Equal(mt, want, got.SplitEvent, "expected and actual Decode results are different")
+
+		cs.Next(nextCtx)
+
+		err = cs.Decode(&got)
+		require.NoError(mt, err, "failed to decoded second iteration: %v", err)
+
+		want = splitEvent{
+			Fragment: 2,
+			Of:       2,
+		}
+
+		assert.Equal(mt, want, got.SplitEvent, "expected and actual decode results are different")
+
+		wg.Wait()
+	})
 }
 
 func closeStream(cs *mongo.ChangeStream) {
@@ -764,4 +844,14 @@ func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
 func compareResumeTokens(mt *mtest.T, cs *mongo.ChangeStream, expected bson.Raw) {
 	mt.Helper()
 	assert.Equal(mt, expected, cs.ResumeToken(), "expected resume token %v, got %v", expected, cs.ResumeToken())
+}
+
+// generateLongString is a helper function to generate a long string of a
+// specific length
+func generateLongString(length int) string {
+	data := make([]byte, length)
+	for i := 0; i < length; i++ {
+		data[i] = 'q'
+	}
+	return string(data)
 }
