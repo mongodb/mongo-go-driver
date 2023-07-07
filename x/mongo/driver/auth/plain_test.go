@@ -13,8 +13,8 @@ import (
 
 	"encoding/base64"
 
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
