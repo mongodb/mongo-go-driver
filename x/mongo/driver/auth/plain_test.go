@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
@@ -174,15 +175,12 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 	}
 
 	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
-	if err != nil {
-		t.Fatalf("expected no error but got \"%s\"", err)
-	}
+	require.NoError(t, err, "Auth error")
+	require.Len(t, c.Written, 1, "expected 1 messages to be sent")
 
-	if len(c.Written) != 1 {
-		t.Fatalf("expected 1 messages to be sent but had %d", len(c.Written))
-	}
+	payload, err := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
+	require.NoError(t, err, "DecodeString error")
 
-	payload, _ := base64.StdEncoding.DecodeString("AHVzZXIAcGVuY2ls")
 	expectedCmd := bsoncore.BuildDocumentFromElements(nil,
 		bsoncore.AppendInt32Element(nil, "saslStart", 1),
 		bsoncore.AppendStringElement(nil, "mechanism", "PLAIN"),
