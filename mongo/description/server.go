@@ -31,35 +31,37 @@ type SelectedServer struct {
 type Server struct {
 	Addr address.Address
 
-	Arbiters              []string
-	AverageRTT            time.Duration
-	AverageRTTSet         bool
-	Compression           []string // compression methods returned by server
-	CanonicalAddr         address.Address
-	ElectionID            primitive.ObjectID
-	HeartbeatInterval     time.Duration
-	HelloOK               bool
-	Hosts                 []string
-	IsCryptd              bool
-	LastError             error
-	LastUpdateTime        time.Time
-	LastWriteTime         time.Time
-	MaxBatchCount         uint32
-	MaxDocumentSize       uint32
-	MaxMessageSize        uint32
-	Members               []address.Address
-	Passives              []string
-	Passive               bool
-	Primary               address.Address
-	ReadOnly              bool
-	ServiceID             *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
-	SessionTimeoutMinutes uint32
-	SetName               string
-	SetVersion            uint32
-	Tags                  tag.Set
-	TopologyVersion       *TopologyVersion
-	Kind                  ServerKind
-	WireVersion           *VersionRange
+	Arbiters          []string
+	AverageRTT        time.Duration
+	AverageRTTSet     bool
+	Compression       []string // compression methods returned by server
+	CanonicalAddr     address.Address
+	ElectionID        primitive.ObjectID
+	HeartbeatInterval time.Duration
+	HelloOK           bool
+	Hosts             []string
+	IsCryptd          bool
+	LastError         error
+	LastUpdateTime    time.Time
+	LastWriteTime     time.Time
+	MaxBatchCount     uint32
+	MaxDocumentSize   uint32
+	MaxMessageSize    uint32
+	Members           []address.Address
+	Passives          []string
+	Passive           bool
+	Primary           address.Address
+	ReadOnly          bool
+	ServiceID         *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
+	// Deprecated: Use SessionTimeoutMinutesPtr instead.
+	SessionTimeoutMinutes    uint32
+	SessionTimeoutMinutesPtr *uint32
+	SetName                  string
+	SetVersion               uint32
+	Tags                     tag.Set
+	TopologyVersion          *TopologyVersion
+	Kind                     ServerKind
+	WireVersion              *VersionRange
 }
 
 // NewServer creates a new server description from the given hello command response.
@@ -166,7 +168,9 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = fmt.Errorf("expected 'logicalSessionTimeoutMinutes' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
+
 			desc.SessionTimeoutMinutes = uint32(i64)
+			desc.SessionTimeoutMinutesPtr = &desc.SessionTimeoutMinutes
 		case "maxBsonObjectSize":
 			i64, ok := element.Value().AsInt64OK()
 			if !ok {
@@ -462,7 +466,7 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if s.SessionTimeoutMinutes != other.SessionTimeoutMinutes {
+	if internal.CompareUint32Ptr(s.SessionTimeoutMinutesPtr, other.SessionTimeoutMinutesPtr) != 0 {
 		return false
 	}
 

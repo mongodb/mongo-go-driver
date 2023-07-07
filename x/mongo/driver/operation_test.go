@@ -56,6 +56,8 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestOperation(t *testing.T) {
+	uint32ToPtr := func(u uint32) *uint32 { return &u }
+
 	t.Run("selectServer", func(t *testing.T) {
 		t.Run("returns validation error", func(t *testing.T) {
 			op := &Operation{}
@@ -144,9 +146,24 @@ func TestOperation(t *testing.T) {
 		wcAck := writeconcern.New(writeconcern.WMajority())
 		wcUnack := writeconcern.New(writeconcern.W(0))
 
-		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1}
-		descNotRetryableWireVersion := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}, SessionTimeoutMinutes: 1}
-		descNotRetryableStandalone := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1, Kind: description.Standalone}
+		descRetryable := description.Server{
+			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesPtr: uint32ToPtr(1),
+		}
+
+		descNotRetryableWireVersion := description.Server{
+			WireVersion:              &description.VersionRange{Min: 0, Max: 5},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesPtr: uint32ToPtr(1),
+		}
+
+		descNotRetryableStandalone := description.Server{
+			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesPtr: uint32ToPtr(1),
+			Kind:                     description.Standalone,
+		}
 
 		testCases := []struct {
 			name string

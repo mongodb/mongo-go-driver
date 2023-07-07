@@ -218,8 +218,12 @@ func (t *Topology) Connect() error {
 		// server monitoring goroutines.
 
 		newDesc := description.Topology{
-			Kind:                  t.fsm.Kind,
-			Servers:               t.fsm.Servers,
+			Kind:                     t.fsm.Kind,
+			Servers:                  t.fsm.Servers,
+			SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
+
+			// TODO(GODRIVER-2885): This field can be removed once
+			// legacy SessionTimeoutMinutes is removed.
 			SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 		}
 		t.desc.Store(newDesc)
@@ -681,8 +685,12 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 
 	//store new description
 	newDesc := description.Topology{
-		Kind:                  t.fsm.Kind,
-		Servers:               t.fsm.Servers,
+		Kind:                     t.fsm.Kind,
+		Servers:                  t.fsm.Servers,
+		SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
+
+		// TODO(GODRIVER-2885): This field can be removed once legacy
+		// SessionTimeoutMinutes is removed.
 		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 	}
 	t.desc.Store(newDesc)

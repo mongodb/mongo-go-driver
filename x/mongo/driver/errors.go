@@ -52,6 +52,9 @@ var (
 	ErrDeadlineWouldBeExceeded = errors.New("operation not sent to server, as Timeout would be exceeded")
 	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
 	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
+	// ErrSessionsNotSupported is returned if a user defines an explicit
+	// session but the topology does not support sessions.
+	ErrSessionsNotSupported = errors.New("current topology does not support sessions")
 )
 
 // QueryFailureError is an error representing a command failure as a document.

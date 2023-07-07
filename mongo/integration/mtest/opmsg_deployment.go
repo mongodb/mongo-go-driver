@@ -21,23 +21,31 @@ import (
 )
 
 const (
-	serverAddress                = address.Address("localhost:27017")
-	maxDocumentSize       uint32 = 16777216
-	maxMessageSize        uint32 = 48000000
-	maxBatchCount         uint32 = 100000
-	sessionTimeoutMinutes uint32 = 30
+	serverAddress          = address.Address("localhost:27017")
+	maxDocumentSize uint32 = 16777216
+	maxMessageSize  uint32 = 48000000
+	maxBatchCount   uint32 = 100000
 )
 
 var (
+	sessionTimeoutMinutes = func() *uint32 {
+		var uint32V uint32 = 30
+
+		return &uint32V
+	}()
+
 	// MockDescription is the server description used for the mock deployment. Each mocked connection returns this
 	// value from its Description method.
 	MockDescription = description.Server{
-		CanonicalAddr:         serverAddress,
-		MaxDocumentSize:       maxDocumentSize,
-		MaxMessageSize:        maxMessageSize,
-		MaxBatchCount:         maxBatchCount,
-		SessionTimeoutMinutes: sessionTimeoutMinutes,
-		Kind:                  description.RSPrimary,
+		CanonicalAddr:   serverAddress,
+		MaxDocumentSize: maxDocumentSize,
+		MaxMessageSize:  maxMessageSize,
+		MaxBatchCount:   maxBatchCount,
+		// TODO(GODRIVER-2885): This can be removed once legacy
+		// SessionTimeoutMinutes is removed.
+		SessionTimeoutMinutes:    *sessionTimeoutMinutes,
+		SessionTimeoutMinutesPtr: sessionTimeoutMinutes,
+		Kind:                     description.RSPrimary,
 		WireVersion: &description.VersionRange{
 			Max: topology.SupportedWireVersions.Max,
 		},
@@ -162,8 +170,13 @@ func (md *mockDeployment) Disconnect(context.Context) error {
 func (md *mockDeployment) Subscribe() (*driver.Subscription, error) {
 	if md.updates == nil {
 		md.updates = make(chan description.Topology, 1)
+
 		md.updates <- description.Topology{
-			SessionTimeoutMinutes: sessionTimeoutMinutes,
+			SessionTimeoutMinutesPtr: sessionTimeoutMinutes,
+
+			// TODO(GODRIVER-2885): This can be removed once legacy
+			// SessionTimeoutMinutes is removed.
+			SessionTimeoutMinutes: *sessionTimeoutMinutes,
 		}
 	}
 
