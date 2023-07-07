@@ -146,7 +146,6 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 	compareResponses(t, <-c.Written, expectedCmd, "$external")
 }
 
-
 func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 	t.Parallel()
 
