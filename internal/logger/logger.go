@@ -83,6 +83,13 @@ func (logger *Logger) LevelComponentEnabled(level Level, component Component) bo
 // Print will synchronously print the given message to the configured LogSink.
 // If the LogSink is nil, then this method will do nothing. Future work could be done to make
 // this method asynchronous, see buffer management in libraries such as log4j.
+//
+// It's worth noting that many structured logs defined by DBX-wide
+// specifications include a "message" field, which is often shared with the
+// message arguments passed to this print function. The "Info" method used by
+// this function is implemented based on the go-logr/logr LogSink interface,
+// which is why "Print" has a message parameter. Any duplication in code is
+// intentional to adhere to the logr pattern.
 func (logger *Logger) Print(level Level, component Component, msg string, keysAndValues ...interface{}) {
 	// If the level is not enabled for the component, then
 	// skip the message.
