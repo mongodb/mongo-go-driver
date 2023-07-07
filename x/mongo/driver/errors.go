@@ -393,7 +393,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 					ok = true
 				}
 			case bson.TypeBoolean:
-				if elem.Value().Boolean() == true {
+				if elem.Value().Boolean() {
 					ok = true
 				}
 			}
