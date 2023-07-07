@@ -7,6 +7,7 @@
 package bsoncodec
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -147,7 +148,7 @@ func TestIsZero(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			got := isZero(tc.value, tc.omitZeroStruct)
+			got := isZero(reflect.ValueOf(tc.value), tc.omitZeroStruct)
 			assert.Equal(t, tc.want, got, "expected and actual isZero return are different")
 		})
 	}
