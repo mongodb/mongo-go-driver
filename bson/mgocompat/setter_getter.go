@@ -7,6 +7,7 @@
 package mgocompat
 
 import (
+	"errors"
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -73,16 +74,15 @@ func SetterDecodeValue(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val ref
 		return err
 	}
 
-	fn := val.Convert(tSetter).MethodByName("SetBSON")
-
-	errVal := fn.Call([]reflect.Value{reflect.ValueOf(bson.RawValue{Type: t, Value: src})})[0]
-	if !errVal.IsNil() {
-		err = errVal.Interface().(error)
-		if err == ErrSetZero {
-			val.Set(reflect.Zero(val.Type()))
-			return nil
+	m, ok := val.Interface().(Setter)
+	if !ok {
+		return bsoncodec.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
+	}
+	if err := m.SetBSON(bson.RawValue{Type: t, Value: src}); err != nil {
+		if !errors.Is(err, ErrSetZero) {
+			return err
 		}
-		return err
+		val.Set(reflect.Zero(val.Type()))
 	}
 	return nil
 }
@@ -104,17 +104,23 @@ func GetterEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val re
 		return bsoncodec.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
 	}
 
-	fn := val.Convert(tGetter).MethodByName("GetBSON")
-	returns := fn.Call(nil)
-	if !returns[1].IsNil() {
-		return returns[1].Interface().(error)
+	m, ok := val.Interface().(Getter)
+	if !ok {
+		return vw.WriteNull()
 	}
-	intermediate := returns[0]
-	encoder, err := ec.Registry.LookupEncoder(intermediate.Type())
+	x, err := m.GetBSON()
 	if err != nil {
 		return err
 	}
-	return encoder.EncodeValue(ec, vw, intermediate)
+	if x == nil {
+		return vw.WriteNull()
+	}
+	vv := reflect.ValueOf(x)
+	encoder, err := ec.Registry.LookupEncoder(vv.Type())
+	if err != nil {
+		return err
+	}
+	return encoder.EncodeValue(ec, vw, vv)
 }
 
 // isImplementationNil returns if val is a nil pointer and inter is implemented on a concrete type
