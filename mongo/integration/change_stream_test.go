@@ -736,7 +736,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		// Insert the document
 		_, err := mt.Coll.InsertOne(context.Background(), doc)
-		require.NoError(t, err, "failed to insert idValue: %v", err)
+		require.NoError(t, err, "failed to insert idValue")
 
 		// Watch for change events
 		pipeline := mongo.Pipeline{
@@ -746,7 +746,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		opts := options.ChangeStream().SetFullDocument(options.UpdateLookup)
 
 		cs, err := mt.Coll.Watch(context.Background(), pipeline, opts)
-		require.NoError(t, err, "failed to watch collection: %v", err)
+		require.NoError(t, err, "failed to watch collection")
 
 		defer closeStream(cs)
 
@@ -760,7 +760,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			update := bson.D{{"$set", bson.D{{"value", generateLongString(10 * 1024 * 1024)}}}}
 
 			_, err := mt.Coll.UpdateOne(context.Background(), filter, update)
-			require.NoError(mt, err, "UpdateOne failed: %v", err)
+			require.NoError(mt, err, "failed to update idValue")
 		}()
 
 		nextCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -778,7 +778,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		cs.Next(nextCtx)
 
 		err = cs.Decode(&got)
-		require.NoError(mt, err, "failed to decode first iteration: %v", err)
+		require.NoError(mt, err, "failed to decode first iteration")
 
 		want := splitEvent{
 			Fragment: 1,
@@ -790,7 +790,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		cs.Next(nextCtx)
 
 		err = cs.Decode(&got)
-		require.NoError(mt, err, "failed to decoded second iteration: %v", err)
+		require.NoError(mt, err, "failed to decoded second iteration")
 
 		want = splitEvent{
 			Fragment: 2,
