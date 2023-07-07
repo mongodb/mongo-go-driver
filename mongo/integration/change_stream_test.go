@@ -722,7 +722,15 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		wg.Wait()
 	})
 
-	splitLargeChangesOpts := mtOpts.MinServerVersion("7.0.0").CreateClient(true)
+	splitLargeChangesCollOpts := options.
+		CreateCollection().
+		SetChangeStreamPreAndPostImages(bson.M{"enabled": true})
+
+	splitLargeChangesOpts := mtOpts.
+		MinServerVersion("7.0.0").
+		CreateClient(true).
+		CollectionCreateOptions(splitLargeChangesCollOpts)
+
 	mt.RunOpts("split large changes", splitLargeChangesOpts, func(mt *mtest.T) {
 		type idValue struct {
 			ID    int32  `bson:"_id"`
@@ -743,7 +751,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			{{"$changeStreamSplitLargeEvent", bson.D{}}},
 		}
 
-		opts := options.ChangeStream().SetFullDocument(options.UpdateLookup)
+		opts := options.ChangeStream().SetFullDocument(options.Required)
 
 		cs, err := mt.Coll.Watch(context.Background(), pipeline, opts)
 		require.NoError(t, err, "failed to watch collection")
@@ -757,7 +765,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			defer wg.Done()
 
 			filter := bson.D{{"_id", int32(1)}}
-			update := bson.D{{"$set", bson.D{{"value", generateLongString(10 * 1024 * 1024)}}}}
+			update := bson.D{{"$set", bson.D{{"value", "z" + generateLongString(10*1024*1024)}}}}
 
 			_, err := mt.Coll.UpdateOne(context.Background(), filter, update)
 			require.NoError(mt, err, "failed to update idValue")
