@@ -44,15 +44,19 @@ type clientEntity struct {
 	*mongo.Client
 	disconnected bool
 
-	recordEvents             atomic.Value
-	started                  []*event.CommandStartedEvent
-	succeeded                []*event.CommandSucceededEvent
-	failed                   []*event.CommandFailedEvent
-	pooled                   []*event.PoolEvent
-	serverDescriptionChanged []*event.ServerDescriptionChangedEvent
-	ignoredCommands          map[string]struct{}
-	observeSensitiveCommands *bool
-	numConnsCheckedOut       int32
+	recordEvents                atomic.Value
+	started                     []*event.CommandStartedEvent
+	succeeded                   []*event.CommandSucceededEvent
+	failed                      []*event.CommandFailedEvent
+	pooled                      []*event.PoolEvent
+	serverDescriptionChanged    []*event.ServerDescriptionChangedEvent
+	serverHeartbeatFailedEvent  []*event.ServerHeartbeatFailedEvent
+	serverHeartbeatStartedEvent []*event.ServerHeartbeatStartedEvent
+	serverHeartbeatSucceeded    []*event.ServerHeartbeatSucceededEvent
+	topologyDescriptionChanged  []*event.TopologyDescriptionChangedEvent
+	ignoredCommands             map[string]struct{}
+	observeSensitiveCommands    *bool
+	numConnsCheckedOut          int32
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents map[monitoringEventType]struct{}
@@ -117,7 +121,6 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 			SetMaxDocumentLength(defaultMaxDocumentLen).
 			SetSink(clientLogger)
-
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
@@ -144,7 +147,11 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 
 		serverMonitor := &event.ServerMonitor{
-			ServerDescriptionChanged: entity.processServerDescriptionChangedEvent,
+			ServerDescriptionChanged:   entity.processServerDescriptionChangedEvent,
+			ServerHeartbeatFailed:      entity.processServerHeartbeatFailedEvent,
+			ServerHeartbeatStarted:     entity.processServerHeartbeatStartedEvent,
+			ServerHeartbeatSucceeded:   entity.processServerHeartbeatSucceededEvent,
+			TopologyDescriptionChanged: entity.processTopologyDescriptionChangedEvent,
 		}
 
 		clientOpts.SetMonitor(commandMonitor).SetPoolMonitor(poolMonitor).SetServerMonitor(serverMonitor)
@@ -456,6 +463,54 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 	}
 
 	c.addEventsCount(serverDescriptionChangedEvent)
+}
+
+func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartbeatFailedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverHeartbeatFailedEvent]; ok {
+		c.serverHeartbeatFailedEvent = append(c.serverHeartbeatFailedEvent, evt)
+	}
+
+	c.addEventsCount(serverHeartbeatFailedEvent)
+}
+
+func (c *clientEntity) processServerHeartbeatStartedEvent(evt *event.ServerHeartbeatStartedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverHeartbeatStartedEvent]; ok {
+		c.serverHeartbeatStartedEvent = append(c.serverHeartbeatStartedEvent, evt)
+	}
+
+	c.addEventsCount(serverHeartbeatStartedEvent)
+}
+
+func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHeartbeatSucceededEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[serverHeartbeatSucceededEvent]; ok {
+		c.serverHeartbeatSucceeded = append(c.serverHeartbeatSucceeded, evt)
+	}
+
+	c.addEventsCount(serverHeartbeatSucceededEvent)
+}
+
+func (c *clientEntity) processTopologyDescriptionChangedEvent(evt *event.TopologyDescriptionChangedEvent) {
+	if !c.getRecordEvents() {
+		return
+	}
+
+	if _, ok := c.observedEvents[topologyDescriptionChangedEvent]; ok {
+		c.topologyDescriptionChanged = append(c.topologyDescriptionChanged, evt)
+	}
+
+	c.addEventsCount(topologyDescriptionChangedEvent)
 }
 
 func (c *clientEntity) setRecordEvents(record bool) {

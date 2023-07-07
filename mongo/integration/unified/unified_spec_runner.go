@@ -33,10 +33,7 @@ var (
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
-)
-
-const (
-	lowHeartbeatFrequency int32 = 50
+	lowHeartbeatFrequency      = 50 * time.Millisecond
 )
 
 // TestCase holds and runs a unified spec test case
@@ -228,7 +225,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		expectedLogCount += len(clientLog.LogMessages)
 	}
 
-	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount)
+	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount, tc.setsFailPoint())
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
@@ -266,16 +263,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	// a fail point, set a low heartbeatFrequencyMS value into the URI options map if one is not already present.
 	// This speeds up recovery time for the client if the fail point forces the server to return a state change
 	// error.
-	shouldSetHeartbeatFrequency := tc.setsFailPoint()
 	for idx, entity := range tc.createEntities {
 		for entityType, entityOptions := range entity {
-			if shouldSetHeartbeatFrequency && entityType == "client" {
-				if entityOptions.URIOptions == nil {
-					entityOptions.URIOptions = make(bson.M)
-				}
-				if _, ok := entityOptions.URIOptions["heartbeatFrequencyMS"]; !ok {
-					entityOptions.URIOptions["heartbeatFrequencyMS"] = lowHeartbeatFrequency
-				}
+			if entityType == "client" && hasOperationalFailpoint(testCtx) {
+				entityOptions.setHeartbeatFrequencyMS(lowHeartbeatFrequency)
 			}
 
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
