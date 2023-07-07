@@ -52,7 +52,7 @@ type LogSink interface {
 	// method will only be called if the provided level has been defined
 	// for a component in the LoggerOptions.
 	//
-	// The level returned by this function is not guarunteed to be 1-1 with
+	// The level returned by this function is not guaranteed to be 1-1 with
 	// the optional levels used to construct logging for a client. These
 	// are the following level mappings for V = "Verbosity":
 	//
