@@ -250,6 +250,30 @@ func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
 	return keysAndValues
 }
 
+// ServerSelection contains data that all server selection messages MUST
+// contain.
+type ServerSelection struct {
+	Selector            string
+	OperationID         int
+	Operation           string
+	TopologyDescription string
+}
+
+// SerializeServerSelection serializes a Topology message into a slice of keys
+// and values that can be passed to a logger.
+func SerializeServerSelection(topo Topology, extraKV ...interface{}) KeyValues {
+	keysAndValues := KeyValues{
+		KeyTopologyID, topo.ID.Hex(),
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKV); i += 2 {
+		keysAndValues.Add(extraKV[i].(string), extraKV[i+1])
+	}
+
+	return keysAndValues
+}
+
 // Topology contains data that all topology messages MAY contain.
 type Topology struct {
 	ID      primitive.ObjectID // Driver's unique ID for this topology
