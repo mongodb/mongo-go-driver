@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -739,7 +740,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 		doc := idValue{
 			ID:    1,
-			Value: "q" + generateLongString(10*1024*1024),
+			Value: "q" + strings.Repeat("q", 10*1024*1024),
 		}
 
 		// Insert the document
@@ -765,7 +766,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			defer wg.Done()
 
 			filter := bson.D{{"_id", int32(1)}}
-			update := bson.D{{"$set", bson.D{{"value", "z" + generateLongString(10*1024*1024)}}}}
+			update := bson.D{{"$set", bson.D{{"value", "z" + strings.Repeat("q", 10*1024*1024)}}}}
 
 			_, err := mt.Coll.UpdateOne(context.Background(), filter, update)
 			require.NoError(mt, err, "failed to update idValue")
@@ -852,14 +853,4 @@ func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
 func compareResumeTokens(mt *mtest.T, cs *mongo.ChangeStream, expected bson.Raw) {
 	mt.Helper()
 	assert.Equal(mt, expected, cs.ResumeToken(), "expected resume token %v, got %v", expected, cs.ResumeToken())
-}
-
-// generateLongString is a helper function to generate a long string of a
-// specific length
-func generateLongString(length int) string {
-	data := make([]byte, length)
-	for i := 0; i < length; i++ {
-		data[i] = 'q'
-	}
-	return string(data)
 }
