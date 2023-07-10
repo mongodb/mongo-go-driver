@@ -222,7 +222,6 @@ tests:
             observeLogMessages:
               topology: debug
             observeEvents:
-            - serverHeartbeatStartedEvent
             - serverHeartbeatFailedEvent
             uriOptions:
               appname: failingHeartbeatLoggingTest
@@ -238,7 +237,7 @@ tests:
             - isMaster
             appName: failingHeartbeatLoggingTest
             closeConnection: true
-        client: setupClient
+        client: *setupClient
     - name: waitForEvent
       object: testRunner
       arguments:

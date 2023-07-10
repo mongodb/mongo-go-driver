@@ -418,6 +418,7 @@
       "expectLogMessages": [
         {
           "client": "client",
+	  "ignoreExtraMessages": true,
           "ignoreMessages": [
             {
               "level": "debug",

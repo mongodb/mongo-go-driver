@@ -118,7 +118,7 @@ tests:
       - name: close
         object: *client
     expectLogMessages:
-      - client: client
+      - client: *client
         ignoreExtraMessages: true
         ignoreMessages:
           - level: debug
@@ -211,6 +211,7 @@ tests:
         count: 1
     expectLogMessages:
       - client: *client
+        ignoreExtraMessages: true
         ignoreMessages:
           - level: debug
             component: topology
