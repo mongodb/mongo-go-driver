@@ -147,7 +147,7 @@ type CursorOptions struct {
 	CommandMonitor        *event.CommandMonitor
 	Crypt                 Crypt
 	ServerAPI             *ServerAPIOptions
-	MarshalValueEncoderFn func(io.Writer, *bsoncodec.Registry) (*bson.Encoder, error)
+	MarshalValueEncoderFn func(io.Writer) (*bson.Encoder, error)
 	Registry              *bsoncodec.Registry
 }
 

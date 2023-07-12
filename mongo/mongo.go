@@ -136,8 +136,8 @@ func getEncoder(
 // newEncoderFn will return a function for constructing and encoder based on
 // the provided codec options.
 func newEncoderFn(opts *options.BSONOptions) codecutil.EncoderFn {
-	return func(w io.Writer, r *bsoncodec.Registry) (*bson.Encoder, error) {
-		return getEncoder(w, opts, r)
+	return func(w io.Writer) (*bson.Encoder, error) {
+		return getEncoder(w, opts, nil)
 	}
 }
 
