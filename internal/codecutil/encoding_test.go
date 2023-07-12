@@ -12,12 +12,29 @@
 package codecutil
 
 import (
+	"io"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 )
+
+func testEncFn(t *testing.T) EncoderFn {
+	t.Helper()
+
+	return func(w io.Writer) (*bson.Encoder, error) {
+		rw, err := bsonrw.NewBSONValueWriter(w)
+		require.NoError(t, err, "failed to constructed BSONValue writer")
+
+		enc, err := bson.NewEncoder(rw)
+		require.NoError(t, err, "failed to constructor encoder")
+
+		return enc, nil
+	}
+}
 
 func TestMarshalValue(t *testing.T) {
 	t.Parallel()
@@ -35,26 +52,31 @@ func TestMarshalValue(t *testing.T) {
 			val:     nil,
 			want:    "",
 			wantErr: ErrNilValue,
+			encFn:   testEncFn(t),
 		},
 		{
-			name: "bson.D",
-			val:  bson.D{{"foo", "bar"}},
-			want: `{"foo": "bar"}`,
+			name:  "bson.D",
+			val:   bson.D{{"foo", "bar"}},
+			want:  `{"foo": "bar"}`,
+			encFn: testEncFn(t),
 		},
 		{
-			name: "map",
-			val:  map[string]interface{}{"foo": "bar"},
-			want: `{"foo": "bar"}`,
+			name:  "map",
+			val:   map[string]interface{}{"foo": "bar"},
+			want:  `{"foo": "bar"}`,
+			encFn: testEncFn(t),
 		},
 		{
-			name: "struct",
-			val:  struct{ Foo string }{Foo: "bar"},
-			want: `{"foo": "bar"}`,
+			name:  "struct",
+			val:   struct{ Foo string }{Foo: "bar"},
+			want:  `{"foo": "bar"}`,
+			encFn: testEncFn(t),
 		},
 		{
-			name: "non-document type",
-			val:  "foo: bar",
-			want: `"foo: bar"`,
+			name:  "non-document type",
+			val:   "foo: bar",
+			want:  `"foo: bar"`,
+			encFn: testEncFn(t),
 		},
 	}
 
