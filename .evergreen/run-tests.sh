@@ -90,7 +90,7 @@ fi
 if [ -z ${MAKEFILE_TARGET+x} ]; then
   if [ "$(uname -s)" = "Darwin" ]; then
       # Run a subset of the tests on Darwin
-      MAKEFILE_TARGET="evg-test-serverless"
+      MAKEFILE_TARGET="evg-test-load-balancers"
   else
     MAKEFILE_TARGET="evg-test"
   fi
