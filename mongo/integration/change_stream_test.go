@@ -58,8 +58,11 @@ func TestChangeStream_Standalone(t *testing.T) {
 	})
 }
 
-func TestChangeStream_ReplicaSet(t *testing.T) {
-	mtOpts := mtest.NewOptions().MinServerVersion(minChangeStreamVersion).CreateClient(false).Topologies(mtest.ReplicaSet)
+func TestChangeStream(t *testing.T) {
+	mtOpts := mtest.NewOptions().
+		CreateClient(false).
+		MinServerVersion(minChangeStreamVersion).
+		Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
