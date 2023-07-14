@@ -20,6 +20,10 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+// ErrNoCursor is returned by NewCursorResponse when the database response does
+// not contain a cursor.
+var ErrNoCursor = errors.New("database response does not contain a cursor")
+
 // BatchCursor is a batch implementation of a cursor. It returns documents in entire batches instead
 // of one at a time. An individual document cursor can be built on top of this batch cursor.
 type BatchCursor struct {
@@ -62,17 +66,27 @@ type CursorResponse struct {
 	postBatchResumeToken bsoncore.Document
 }
 
-// NewCursorResponse constructs a cursor response from the given response and server. This method
-// can be used within the ProcessResponse method for an operation.
+// NewCursorResponse constructs a cursor response from the given response and
+// server. If the provided database response does not contain a cursor, it
+// returns ErrNoCursor.
+//
+// NewCursorResponse can be used within the ProcessResponse method for an operation.
 func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 	response := info.ServerResponse
-	cur, ok := response.Lookup("cursor").DocumentOK()
-	if !ok {
-		return CursorResponse{}, fmt.Errorf("cursor should be an embedded document but is of BSON type %s", response.Lookup("cursor").Type)
+	cur, err := response.LookupErr("cursor")
+	if err == bsoncore.ErrElementNotFound {
+		return CursorResponse{}, ErrNoCursor
 	}
-	elems, err := cur.Elements()
 	if err != nil {
-		return CursorResponse{}, err
+		return CursorResponse{}, fmt.Errorf("error getting cursor from database response: %w", err)
+	}
+	curDoc, ok := cur.DocumentOK()
+	if !ok {
+		return CursorResponse{}, fmt.Errorf("cursor should be an embedded document but is BSON type %s", cur.Type)
+	}
+	elems, err := curDoc.Elements()
+	if err != nil {
+		return CursorResponse{}, fmt.Errorf("error getting elements from cursor: %w", err)
 	}
 	curresp := CursorResponse{Server: info.Server, Desc: info.ConnectionDescription}
 
