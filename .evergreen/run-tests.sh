@@ -88,7 +88,12 @@ if [ "Windows_NT" = "$OS" ]; then
 fi
 
 if [ -z ${MAKEFILE_TARGET+x} ]; then
-  MAKEFILE_TARGET="evg-test"
+  if [ "$(uname -s)" = "Darwin" ]; then
+      # Run a subset of the tests on Darwin
+      MAKEFILE_TARGET="evg-test-serverless"
+  else
+    MAKEFILE_TARGET="evg-test"
+  fi
 fi
 
 AUTH=${AUTH} \
