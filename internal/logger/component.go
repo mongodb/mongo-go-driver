@@ -28,6 +28,9 @@ const (
 	ConnectionCheckoutFailed         = "Connection checkout failed"
 	ConnectionCheckedOut             = "Connection checked out"
 	ConnectionCheckedIn              = "Connection checked in"
+	ServerSelectionFailed            = "Server selection failed"
+	ServerSelectionStarted           = "Server selection started"
+	ServerSelectionSucceeded         = "Server selection succeeded"
 	TopologyClosed                   = "Stopped topology monitoring"
 	TopologyDescriptionChanged       = "Topology description changed"
 	TopologyOpening                  = "Starting topology monitoring"
@@ -53,17 +56,29 @@ const (
 	KeyMessage             = "message"
 	KeyMinPoolSize         = "minPoolSize"
 	KeyNewDescription      = "newDescription"
+	KeyOperation           = "operation"
 	KeyOperationID         = "operationId"
 	KeyPreviousDescription = "previousDescription"
 	KeyReason              = "reason"
 	KeyReply               = "reply"
 	KeyRequestID           = "requestId"
+	KeySelector            = "selector"
 	KeyServerConnectionID  = "serverConnectionId"
 	KeyServerHost          = "serverHost"
 	KeyServerPort          = "serverPort"
 	KeyServiceID           = "serviceId"
 	KeyTimestamp           = "timestamp"
+	KeyTopologyDescription = "topologyDescription"
 	KeyTopologyID          = "topologyId"
+)
+
+// ContextKey is a custom type used to prevent key collisions when using the
+// context package.
+type ContextKey string
+
+const (
+	ContextKeyOperation   ContextKey = KeyOperation
+	ContextKeyOperationID ContextKey = KeyOperationID
 )
 
 type KeyValues []interface{}
@@ -138,7 +153,7 @@ type Command struct {
 	DriverConnectionID uint64              // Driver's ID for the connection
 	Name               string              // Command name
 	Message            string              // Message associated with the command
-	OperationID        int32               // Driver-generated operation ID
+	OperationID        *int32              // Driver-generated operation ID
 	RequestID          int64               // Driver-generated request ID
 	ServerConnectionID *int64              // Server's ID for the connection used for the command
 	ServerHost         string              // Hostname or IP address for the server
@@ -155,7 +170,6 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues 
 		KeyCommandName, cmd.Name,
 		KeyDriverConnectionID, cmd.DriverConnectionID,
 		KeyMessage, cmd.Message,
-		KeyOperationID, cmd.OperationID,
 		KeyRequestID, cmd.RequestID,
 		KeyServerHost, cmd.ServerHost,
 	}
@@ -178,6 +192,10 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues 
 	// Add the "serviceId" if it is not nil.
 	if cmd.ServiceID != nil {
 		keysAndValues.Add(KeyServiceID, cmd.ServiceID.Hex())
+	}
+
+	if cmd.OperationID != nil {
+		keysAndValues.Add(KeyOperationID, *cmd.OperationID)
 	}
 
 	return keysAndValues
@@ -254,16 +272,22 @@ func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
 // contain.
 type ServerSelection struct {
 	Selector            string
-	OperationID         int
-	Operation           string
+	OperationID         *int
+	Operation           interface{}
 	TopologyDescription string
 }
 
 // SerializeServerSelection serializes a Topology message into a slice of keys
 // and values that can be passed to a logger.
-func SerializeServerSelection(topo Topology, extraKV ...interface{}) KeyValues {
+func SerializeServerSelection(srvSelection ServerSelection, extraKV ...interface{}) KeyValues {
 	keysAndValues := KeyValues{
-		KeyTopologyID, topo.ID.Hex(),
+		KeySelector, srvSelection.Selector,
+		KeyOperation, srvSelection.Operation,
+		KeyTopologyDescription, srvSelection.TopologyDescription,
+	}
+
+	if srvSelection.OperationID != nil {
+		keysAndValues.Add(KeyOperationID, srvSelection.OperationID)
 	}
 
 	// Add the optional keys and values.

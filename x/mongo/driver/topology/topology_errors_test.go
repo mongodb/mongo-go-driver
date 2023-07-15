@@ -21,11 +21,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
-var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-	return []description.Server{}, nil
-}
-
 func TestTopologyErrors(t *testing.T) {
+	selectNone := description.NewDefaultServerSelector(nil,
+		func(t description.Topology, s []description.Server) ([]description.Server, error) {
+			return []description.Server{}, nil
+		})
+
 	t.Run("errors are wrapped", func(t *testing.T) {
 		t.Run("server selection error", func(t *testing.T) {
 			topo, err := New(nil)

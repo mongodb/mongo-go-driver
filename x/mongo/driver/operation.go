@@ -189,6 +189,11 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	return bson.Raw{}
 }
 
+const (
+	InsertOp = "insert"
+	FindOp   = "find"
+)
+
 // Operation is used to execute an operation. It contains all of the common code required to
 // select a server, transform an operation into a command, write the command to a connection from
 // the selected server, read a response from that connection, process the response, and potentially
@@ -308,6 +313,10 @@ type Operation struct {
 
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
+
+	// Name is the name of the operation. This is used when serializing
+	// OP_MSG as well as for logging server selection data.
+	Name string
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -333,6 +342,7 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		})
 	}
 
+	ctx = context.WithValue(ctx, logger.ContextKeyOperation, op.Name)
 	return op.Deployment.SelectServer(ctx, selector)
 }
 

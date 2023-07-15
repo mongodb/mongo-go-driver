@@ -108,6 +108,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		ServerAPI:         f.serverAPI,
 		Timeout:           f.timeout,
 		Logger:            f.logger,
+		Name:              driver.FindOp,
 	}.Execute(ctx)
 
 }

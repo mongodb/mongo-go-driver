@@ -56,19 +56,24 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestServerSelection(t *testing.T) {
-	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
-		if len(candidates) == 0 {
+	selectFirst := description.NewDefaultServerSelector(nil,
+		func(t description.Topology, candidates []description.Server) ([]description.Server, error) {
+			if len(candidates) == 0 {
+				return []description.Server{}, nil
+			}
+			return candidates[0:1], nil
+		})
+
+	selectNone := description.NewDefaultServerSelector(nil,
+		func(description.Topology, []description.Server) ([]description.Server, error) {
 			return []description.Server{}, nil
-		}
-		return candidates[0:1], nil
-	}
-	var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-		return []description.Server{}, nil
-	}
+		})
+
 	var errSelectionError = errors.New("encountered an error in the selector")
-	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-		return nil, errSelectionError
-	}
+	selectError := description.NewDefaultServerSelector(nil,
+		func(description.Topology, []description.Server) ([]description.Server, error) {
+			return nil, errSelectionError
+		})
 
 	t.Run("Success", func(t *testing.T) {
 		topo, err := New(nil)
@@ -908,6 +913,11 @@ func serverKindFromString(t *testing.T, s string) description.ServerKind {
 }
 
 func BenchmarkSelectServerFromDescription(b *testing.B) {
+	selectNone := description.NewDefaultServerSelector(nil,
+		func(description.Topology, []description.Server) ([]description.Server, error) {
+			return []description.Server{}, nil
+		})
+
 	for _, bcase := range []struct {
 		name        string
 		serversHook func(servers []description.Server)

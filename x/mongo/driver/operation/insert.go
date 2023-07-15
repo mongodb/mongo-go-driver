@@ -113,6 +113,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 		ServerAPI:         i.serverAPI,
 		Timeout:           i.timeout,
 		Logger:            i.logger,
+		Name:              driver.InsertOp,
 	}.Execute(ctx)
 
 }

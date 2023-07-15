@@ -1862,9 +1862,26 @@ func (coll *Collection) drop(ctx context.Context) error {
 	return nil
 }
 
-// makePinnedSelector makes a selector for a pinned session with a pinned server. Will attempt to do server selection on
-// the pinned server but if that fails it will go through a list of default selectors
-func makePinnedSelector(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelectorFunc {
+type pinnedServerSelector struct {
+	stringer fmt.Stringer
+	fn       description.ServerSelectorFunc
+}
+
+func (pss pinnedServerSelector) String() string {
+	return pss.stringer.String()
+}
+
+func (pss pinnedServerSelector) SelectServer(
+	t description.Topology,
+	s []description.Server,
+) ([]description.Server, error) {
+	return pss.fn(t, s)
+}
+
+// pinnedSelectorFunc makes a selector for a pinned session with a pinned
+// server. Will attempt to do server selection on the pinned server but if that
+// fails it will go through a list of default selectors
+func pinnedSelectorFunc(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelectorFunc {
 	return func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
 		if sess != nil && sess.PinnedServer != nil {
 			// If there is a pinned server, try to find it in the list of candidates.
@@ -1881,7 +1898,18 @@ func makePinnedSelector(sess *session.Client, defaultSelector description.Server
 	}
 }
 
-func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelectorFunc {
+func makePinnedSelector(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelector {
+	if srvSelectorStringer, ok := defaultSelector.(fmt.Stringer); ok {
+		return pinnedServerSelector{
+			stringer: srvSelectorStringer,
+			fn:       pinnedSelectorFunc(sess, defaultSelector),
+		}
+	}
+
+	return pinnedSelectorFunc(sess, defaultSelector)
+}
+
+func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		selector = description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(sess.CurrentRp),
@@ -1892,7 +1920,7 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 	return makePinnedSelector(sess, selector)
 }
 
-func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelectorFunc {
+func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		// Use current transaction's read preference if available
 		rp = sess.CurrentRp

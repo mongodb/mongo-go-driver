@@ -210,20 +210,20 @@ var _ Server = SingleConnectionDeployment{}
 // SelectServer implements the Deployment interface. This method does not use the
 // description.SelectedServer provided and instead returns itself. The Connections returned from the
 // Connection method have a no-op Close method.
-func (ssd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
-	return ssd, nil
+func (scd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
+	return scd, nil
 }
 
 // Kind implements the Deployment interface. It always returns description.Single.
-func (ssd SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
+func (SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
 
 // Connection implements the Server interface. It always returns the embedded connection.
-func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
-	return ssd.C, nil
+func (scd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
+	return scd.C, nil
 }
 
 // RTTMonitor implements the driver.Server interface.
-func (ssd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
+func (SingleConnectionDeployment) RTTMonitor() RTTMonitor {
 	return &internal.ZeroRTTMonitor{}
 }
 

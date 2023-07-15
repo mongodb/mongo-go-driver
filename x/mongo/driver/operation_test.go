@@ -755,6 +755,10 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 	panic("not implemented")
 }
 
+func (m *mockServerSelector) String() string {
+	panic("not implemented")
+}
+
 type mockConnection struct {
 	// parameters
 	pWriteWM []byte

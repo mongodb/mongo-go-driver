@@ -7,6 +7,7 @@
 package description
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
@@ -22,6 +23,11 @@ type ServerSelector interface {
 	SelectServer(Topology, []Server) ([]Server, error)
 }
 
+type ServerSelectorStringer interface {
+	ServerSelector
+	fmt.Stringer
+}
+
 // ServerSelectorFunc is a function that can be used as a ServerSelector.
 type ServerSelectorFunc func(Topology, []Server) ([]Server, error)
 
@@ -30,8 +36,50 @@ func (ssf ServerSelectorFunc) SelectServer(t Topology, s []Server) ([]Server, er
 	return ssf(t, s)
 }
 
+// serverSelectorInfo contains metadata concerning the server selector for the
+// purpose of publication.
+type serverSelectorInfo struct {
+	Type           string
+	CustomSelector bool
+	Data           string               `json:",omitempty"`
+	Selectors      []serverSelectorInfo `json:",omitempty"`
+}
+
+// String returns the JSON string representation of the serverSelectorInfo.
+func (sss serverSelectorInfo) String() string {
+	bytes, _ := json.Marshal(sss)
+
+	return string(bytes)
+}
+
+// serverSelectorInfoGetter is an interface that defines an info() method to
+// get the serverSelectorInfo.
+type serverSelectorInfoGetter interface {
+	info() serverSelectorInfo
+}
+
 type compositeSelector struct {
 	selectors []ServerSelector
+}
+
+func (cs *compositeSelector) info() serverSelectorInfo {
+	cssInfo := &serverSelectorInfo{
+		Type:           "compositeSelector",
+		CustomSelector: true,
+	}
+
+	for _, sel := range cs.selectors {
+		if getter, ok := sel.(serverSelectorInfoGetter); ok {
+			cssInfo.Selectors = append(cssInfo.Selectors, getter.info())
+		}
+	}
+
+	return *cssInfo
+}
+
+// String returns the JSON string representation of the compositeSelector.
+func (cs *compositeSelector) String() string {
+	return cs.info().String()
 }
 
 // CompositeSelector combines multiple selectors into a single selector by applying them in order to the candidates
@@ -59,8 +107,18 @@ func (cs *compositeSelector) SelectServer(t Topology, candidates []Server) ([]Se
 	return candidates, nil
 }
 
+// How do we make the compositeSelector an fmt.Stringer? Do we concatenate?
+
 type latencySelector struct {
 	latency time.Duration
+}
+
+func (latencySelector) info() serverSelectorInfo {
+	return serverSelectorInfo{Type: "latencySelector", CustomSelector: true}
+}
+
+func (selector latencySelector) String() string {
+	return selector.info().String()
 }
 
 // LatencySelector creates a ServerSelector which selects servers based on their average RTT values.
@@ -115,37 +173,66 @@ func (ls *latencySelector) SelectServer(t Topology, candidates []Server) ([]Serv
 	}
 }
 
+type writeServerSelector struct {
+	fn ServerSelectorFunc
+}
+
+func (writeServerSelector) info() serverSelectorInfo {
+	return serverSelectorInfo{Type: "writeSelector", CustomSelector: true}
+}
+
+func (selector writeServerSelector) String() string {
+	return selector.info().String()
+}
+
+func (selector writeServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
+	return selector.fn(t, s)
+}
+
+func writeSelectorFunc(t Topology, candidates []Server) ([]Server, error) {
+	switch t.Kind {
+	case Single, LoadBalanced:
+		return candidates, nil
+	default:
+		result := []Server{}
+		for _, candidate := range candidates {
+			switch candidate.Kind {
+			case Mongos, RSPrimary, Standalone:
+				result = append(result, candidate)
+			}
+		}
+		return result, nil
+	}
+}
+
 // WriteSelector selects all the writable servers.
 func WriteSelector() ServerSelector {
-	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
-		switch t.Kind {
-		case Single, LoadBalanced:
-			return candidates, nil
-		default:
-			result := []Server{}
-			for _, candidate := range candidates {
-				switch candidate.Kind {
-				case Mongos, RSPrimary, Standalone:
-					result = append(result, candidate)
-				}
-			}
-			return result, nil
-		}
-	})
+	return writeServerSelector{
+		fn: writeSelectorFunc,
+	}
 }
 
-// ReadPrefSelector selects servers based on the provided read preference.
-func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
-	return readPrefSelector(rp, false)
+type readPrefServerSelector struct {
+	stringer fmt.Stringer
+	fn       ServerSelectorFunc
 }
 
-// OutputAggregateSelector selects servers based on the provided read preference given that the underlying operation is
-// aggregate with an output stage.
-func OutputAggregateSelector(rp *readpref.ReadPref) ServerSelector {
-	return readPrefSelector(rp, true)
+func (selector readPrefServerSelector) info() serverSelectorInfo {
+	return serverSelectorInfo{
+		Type: "readPrefSelector",
+		Data: selector.stringer.String(),
+	}
 }
 
-func readPrefSelector(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelector {
+func (selector readPrefServerSelector) String() string {
+	return selector.info().String()
+}
+
+func (rpss readPrefServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
+	return rpss.fn(t, s)
+}
+
+func readPrefSelectorFunc(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelectorFunc {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
 		if t.Kind == LoadBalanced {
 			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
@@ -175,6 +262,24 @@ func readPrefSelector(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelec
 
 		return nil, nil
 	})
+}
+
+// ReadPrefSelector selects servers based on the provided read preference.
+func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
+	return readPrefServerSelector{
+		stringer: rp,
+		fn:       readPrefSelectorFunc(rp, false),
+	}
+
+}
+
+// OutputAggregateSelector selects servers based on the provided read preference
+// given that the underlying operation is aggregate with an output stage.
+func OutputAggregateSelector(rp *readpref.ReadPref) ServerSelector {
+	return readPrefServerSelector{
+		stringer: rp,
+		fn:       readPrefSelectorFunc(rp, true),
+	}
 }
 
 // maxStalenessSupported returns an error if the given server version does not support max staleness.

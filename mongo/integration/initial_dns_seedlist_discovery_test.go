@@ -249,7 +249,7 @@ func getSSLSettings(mt *mtest.T, test seedlistTest) *tls.Config {
 }
 
 func getServerByAddress(address string, topo *topology.Topology) (description.Server, error) {
-	selectByName := description.ServerSelectorFunc(func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
+	selectByName := description.NewDefaultServerSelector(nil, func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
 		for _, s := range servers {
 			if s.Addr.String() == address {
 				return []description.Server{s}, nil
