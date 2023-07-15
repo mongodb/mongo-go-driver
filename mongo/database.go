@@ -253,11 +253,11 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 	}
 
 	if err = op.Execute(ctx); err != nil {
+		closeImplicitSession(sess)
 		if errors.Is(err, driver.ErrNoCursor) {
 			return nil, errors.New(
 				"database response does not contain a cursor; try using RunCommand instead")
 		}
-		closeImplicitSession(sess)
 		return nil, replaceErrors(err)
 	}
 
