@@ -18,8 +18,6 @@ import (
 
 // ListCollectionsBatchCursor is a special batch cursor returned from ListCollections that properly
 // handles current and legacy ListCollections operations.
-//
-// TODO(GODRIVER-2861): Merge ListCollectionsBatchCursor into BatchCursor.
 type ListCollectionsBatchCursor struct {
 	legacy       bool // server version < 3.0
 	bc           *BatchCursor
@@ -29,6 +27,8 @@ type ListCollectionsBatchCursor struct {
 
 // NewListCollectionsBatchCursor creates a new non-legacy ListCollectionsCursor.
 func NewListCollectionsBatchCursor(bc *BatchCursor) (*ListCollectionsBatchCursor, error) {
+	// TODO(GODRIVER-2861): Merge ListCollectionsBatchCursor into
+	// BatchCursor.
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}

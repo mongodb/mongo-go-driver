@@ -92,10 +92,6 @@ func replaceErrors(err error) error {
 		return ErrNilValue
 	}
 
-	if ordArgErr, ok := err.(codecutil.ErrMapForOrderedArgument); ok {
-		return ErrMapForOrderedArgument{ParamName: ordArgErr.ParamName}
-	}
-
 	if marshalErr, ok := err.(codecutil.MarshalError); ok {
 		return MarshalError{
 			Value: marshalErr.Value,
