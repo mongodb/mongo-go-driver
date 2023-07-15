@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
@@ -36,7 +35,6 @@ type BatchCursor struct {
 	clock                *session.ClusterClock
 	comment              interface{}
 	encoderFn            codecutil.EncoderFn
-	registry             *bsoncodec.Registry
 	database             string
 	collection           string
 	id                   int64
