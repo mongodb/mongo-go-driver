@@ -135,9 +135,9 @@ func getEncoder(
 
 // newEncoderFn will return a function for constructing and encoder based on
 // the provided codec options.
-func newEncoderFn(opts *options.BSONOptions) codecutil.EncoderFn {
-	return func(w io.Writer, r *bsoncodec.Registry) (*bson.Encoder, error) {
-		return getEncoder(w, opts, r)
+func newEncoderFn(opts *options.BSONOptions, registry *bsoncodec.Registry) codecutil.EncoderFn {
+	return func(w io.Writer) (*bson.Encoder, error) {
+		return getEncoder(w, opts, registry)
 	}
 }
 
@@ -430,7 +430,7 @@ func marshalValue(
 	bsonOpts *options.BSONOptions,
 	registry *bsoncodec.Registry,
 ) (bsoncore.Value, error) {
-	return codecutil.MarshalValue(val, registry, newEncoderFn(bsonOpts))
+	return codecutil.MarshalValue(val, newEncoderFn(bsonOpts, registry))
 }
 
 // Build the aggregation pipeline for the CountDocument command.

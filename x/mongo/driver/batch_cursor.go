@@ -147,8 +147,7 @@ type CursorOptions struct {
 	CommandMonitor        *event.CommandMonitor
 	Crypt                 Crypt
 	ServerAPI             *ServerAPIOptions
-	MarshalValueEncoderFn func(io.Writer, *bsoncodec.Registry) (*bson.Encoder, error)
-	Registry              *bsoncodec.Registry
+	MarshalValueEncoderFn func(io.Writer) (*bson.Encoder, error)
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -172,8 +171,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		crypt:                opts.Crypt,
 		serverAPI:            opts.ServerAPI,
 		serverDescription:    cr.Desc,
-		registry:             opts.Registry,
-		encoderFn:            codecutil.EncoderFn(opts.MarshalValueEncoderFn),
+		encoderFn:            opts.MarshalValueEncoderFn,
 	}
 
 	if ds != nil {
@@ -363,7 +361,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
 			}
 
-			comment, err := codecutil.MarshalValue(bc.comment, bc.registry, bc.encoderFn)
+			comment, err := codecutil.MarshalValue(bc.comment, bc.encoderFn)
 			if err != nil {
 				return nil, fmt.Errorf("error marshaling comment as a BSON value: %w", err)
 			}

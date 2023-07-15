@@ -109,8 +109,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts := config.client.createBaseCursorOptions()
 
-	cursorOpts.Registry = config.registry
-	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts)
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
 	cs := &ChangeStream{
 		client:     config.client,

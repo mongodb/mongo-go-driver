@@ -844,8 +844,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 
 	cursorOpts := a.client.createBaseCursorOptions()
 
-	cursorOpts.Registry = a.registry
-	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts)
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
 
 	op := operation.NewAggregate(pipelineArr).
 		Session(sess).
@@ -1235,8 +1234,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
-	cursorOpts.Registry = coll.registry
-	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts)
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 
 	if fo.AllowDiskUse != nil {
 		op.AllowDiskUse(*fo.AllowDiskUse)

@@ -178,8 +178,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	case true:
 		cursorOpts := db.client.createBaseCursorOptions()
 
-		cursorOpts.Registry = db.registry
-		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts)
+		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
 		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
 	default:
@@ -400,8 +399,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	cursorOpts := db.client.createBaseCursorOptions()
 
-	cursorOpts.Registry = db.registry
-	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts)
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)

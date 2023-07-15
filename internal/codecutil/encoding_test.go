@@ -64,7 +64,7 @@ func TestMarshalValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			value, err := MarshalValue(test.val, test.registry, test.encFn)
+			value, err := MarshalValue(test.val, test.encFn)
 
 			assert.Equal(t, test.wantErr, err, "expected and actual error do not match")
 			assert.Equal(t, test.want, value.String(), "expected and actual comments are different")

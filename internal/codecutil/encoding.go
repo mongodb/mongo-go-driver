@@ -14,7 +14,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -47,12 +46,12 @@ func (e MarshalError) Error() string {
 }
 
 // EncoderFn is used to functionally construct an encoder for marshaling values.
-type EncoderFn func(io.Writer, *bsoncodec.Registry) (*bson.Encoder, error)
+type EncoderFn func(io.Writer) (*bson.Encoder, error)
 
 // defaultEncoderFn will return a function that will construct an encoder with
 // a BSON Value writer.
 func defaultEncoderFn() EncoderFn {
-	return func(w io.Writer, reg *bsoncodec.Registry) (*bson.Encoder, error) {
+	return func(w io.Writer) (*bson.Encoder, error) {
 		rw, err := bsonrw.NewBSONValueWriter(w)
 		if err != nil {
 			return nil, err
@@ -68,15 +67,14 @@ func defaultEncoderFn() EncoderFn {
 }
 
 // newMarshalValueEncoder will attempt to construct an encoder from the provided
-// writer, registry, and encoder function. If the encoder function is not
-// provided, then this function will construct an encoder with a BSON Value
-// writer.
-func newMarshalValueEncoder(w io.Writer, reg *bsoncodec.Registry, encFn EncoderFn) (*bson.Encoder, error) {
+// writer and encoder function. If the encoder function is not provided, then
+// this function will construct an encoder with a BSON Value writer.
+func newMarshalValueEncoder(w io.Writer, encFn EncoderFn) (*bson.Encoder, error) {
 	if encFn == nil {
 		encFn = defaultEncoderFn()
 	}
 
-	enc, err := encFn(w, reg)
+	enc, err := encFn(w)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring BSON encoder: %w", err)
 	}
@@ -86,14 +84,10 @@ func newMarshalValueEncoder(w io.Writer, reg *bsoncodec.Registry, encFn EncoderF
 
 // MarshalValue will attempt to encode the provided value with the registry and
 // encoder function. If the encoder function does not exist, then this
-func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn) (bsoncore.Value, error) {
+func MarshalValue(val interface{}, encFn EncoderFn) (bsoncore.Value, error) {
 	// If the val is already a bsoncore.Value, then do nothing.
 	if bval, ok := val.(bsoncore.Value); ok {
 		return bval, nil
-	}
-
-	if registry == nil {
-		registry = bson.DefaultRegistry
 	}
 
 	if val == nil {
@@ -102,7 +96,7 @@ func MarshalValue(val interface{}, registry *bsoncodec.Registry, encFn EncoderFn
 
 	buf := new(bytes.Buffer)
 
-	enc, err := newMarshalValueEncoder(buf, registry, encFn)
+	enc, err := newMarshalValueEncoder(buf, encFn)
 	if err != nil {
 		return bsoncore.Value{}, err
 	}
