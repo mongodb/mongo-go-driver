@@ -891,3 +891,22 @@ func TestConvertI64PtrToI32Ptr(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeOpReply(t *testing.T) {
+	t.Parallel()
+
+	// GODRIVER-2869: Prevent infinite loop caused by malformatted wiremessage with length of 0.
+	t.Run("malformatted wiremessage with length of 0", func(t *testing.T) {
+		t.Parallel()
+
+		var wm []byte
+		wm = wiremessage.AppendReplyFlags(wm, 0)
+		wm = wiremessage.AppendReplyCursorID(wm, int64(0))
+		wm = wiremessage.AppendReplyStartingFrom(wm, 0)
+		wm = wiremessage.AppendReplyNumberReturned(wm, 0)
+		idx, wm := bsoncore.ReserveLength(wm)
+		wm = bsoncore.UpdateLength(wm, idx, 0)
+		reply := Operation{}.decodeOpReply(wm)
+		assert.Equal(t, []bsoncore.Document(nil), reply.documents)
+	})
+}

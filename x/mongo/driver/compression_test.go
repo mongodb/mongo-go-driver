@@ -42,7 +42,11 @@ func TestCompression(t *testing.T) {
 }
 
 func TestDecompressFailures(t *testing.T) {
+	t.Parallel()
+
 	t.Run("snappy decompress huge size", func(t *testing.T) {
+		t.Parallel()
+
 		opts := CompressionOpts{
 			Compressor:       wiremessage.CompressorSnappy,
 			UncompressedSize: 100, // reasonable size
