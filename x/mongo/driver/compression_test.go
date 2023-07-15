@@ -46,6 +46,46 @@ func TestCompression(t *testing.T) {
 	}
 }
 
+func TestCompressionLevels(t *testing.T) {
+	errEq := func(e1, e2 error) bool {
+		if e1 == nil || e2 == nil {
+			return (e1 == nil) == (e2 == nil)
+		}
+		return e1.Error() == e2.Error()
+	}
+
+	in := []byte("abc")
+	wr := new(bytes.Buffer)
+
+	t.Run("ZLib", func(t *testing.T) {
+		opts := CompressionOpts{
+			Compressor: wiremessage.CompressorZLib,
+		}
+		for lvl := zlib.HuffmanOnly - 2; lvl < zlib.BestCompression+2; lvl++ {
+			opts.ZlibLevel = lvl
+			_, err1 := CompressPayload(in, opts)
+			_, err2 := zlib.NewWriterLevel(wr, lvl)
+			if !errEq(err1, err2) {
+				t.Fatalf("%d: error: %v, want: %v", lvl, err1, err2)
+			}
+		}
+	})
+
+	t.Run("Zstd", func(t *testing.T) {
+		opts := CompressionOpts{
+			Compressor: wiremessage.CompressorZstd,
+		}
+		for lvl := zstd.SpeedFastest - 2; lvl < zstd.SpeedBestCompression+2; lvl++ {
+			opts.ZstdLevel = int(lvl)
+			_, err1 := CompressPayload(in, opts)
+			_, err2 := zstd.NewWriter(wr, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(opts.ZstdLevel)))
+			if !errEq(err1, err2) {
+				t.Fatalf("%d: error: %v, want: %v", lvl, err1, err2)
+			}
+		}
+	})
+}
+
 func TestDecompressFailures(t *testing.T) {
 	t.Parallel()
 
