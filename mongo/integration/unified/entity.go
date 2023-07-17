@@ -84,6 +84,20 @@ type entityOptions struct {
 	ClientEncryptionOpts *clientEncryptionOpts `bson:"clientEncryptionOpts"`
 }
 
+// newCollectionEntityOptions constructs an entity options object for a
+// collection.
+func newCollectionEntityOptions(id string, databaseID string, collectionName string,
+	opts *dbOrCollectionOptions) *entityOptions {
+	options := &entityOptions{
+		ID:                id,
+		DatabaseID:        databaseID,
+		CollectionName:    collectionName,
+		CollectionOptions: opts,
+	}
+
+	return options
+}
+
 type clientEncryptionOpts struct {
 	KeyVaultClient    string              `bson:"keyVaultClient"`
 	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
