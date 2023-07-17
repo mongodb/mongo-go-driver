@@ -35,8 +35,8 @@ func (e MarshalError) Error() string {
 // EncoderFn is used to functionally construct an encoder for marshaling values.
 type EncoderFn func(io.Writer) (*bson.Encoder, error)
 
-// MarshalValue will attempt to encode the provided value with the registry and
-// encoder function. If the encoder function does not exist, then this
+// MarshalValue will attempt to encode the value with the encoder returned by
+// the encoder function.
 func MarshalValue(val interface{}, encFn EncoderFn) (bsoncore.Value, error) {
 	// If the val is already a bsoncore.Value, then do nothing.
 	if bval, ok := val.(bsoncore.Value); ok {

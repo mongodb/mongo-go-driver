@@ -4,11 +4,6 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//
-// Licensed under the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License. You may obtain
-// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 package codecutil
 
 import (
@@ -27,10 +22,10 @@ func testEncFn(t *testing.T) EncoderFn {
 
 	return func(w io.Writer) (*bson.Encoder, error) {
 		rw, err := bsonrw.NewBSONValueWriter(w)
-		require.NoError(t, err, "failed to constructed BSONValue writer")
+		require.NoError(t, err, "failed to construct BSONValue writer")
 
 		enc, err := bson.NewEncoder(rw)
-		require.NoError(t, err, "failed to constructor encoder")
+		require.NoError(t, err, "failed to construct encoder")
 
 		return enc, nil
 	}

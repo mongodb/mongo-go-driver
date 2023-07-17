@@ -406,7 +406,7 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 	if cursorID := operation.ResultEntityID; cursorID != nil {
 		err := entities(ctx).addCursorEntity(*cursorID, cursor)
 		if err != nil {
-			return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+			return nil, fmt.Errorf("failed to store result as cursor entity: %v", err)
 		}
 	}
 

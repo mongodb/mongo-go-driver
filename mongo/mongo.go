@@ -133,8 +133,8 @@ func getEncoder(
 	return enc, nil
 }
 
-// newEncoderFn will return a function for constructing and encoder based on
-// the provided codec options.
+// newEncoderFn will return a function for constructing an encoder based on the
+// provided codec options.
 func newEncoderFn(opts *options.BSONOptions, registry *bsoncodec.Registry) codecutil.EncoderFn {
 	return func(w io.Writer) (*bson.Encoder, error) {
 		return getEncoder(w, opts, registry)
