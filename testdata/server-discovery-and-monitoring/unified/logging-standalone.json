@@ -1,6 +1,6 @@
 {
   "description": "standalone-logging",
-  "schemaVersion": "1.14",
+  "schemaVersion": "1.16",
   "runOnRequirements": [
     {
       "topologies": [
@@ -308,9 +308,6 @@
                 },
                 "driverConnectionId": {
                   "$$exists": true
-                },
-                "serverConnectionId": {
-                  "$$exists": true
                 }
               }
             },
@@ -394,7 +391,7 @@
               "mode": "alwaysOn",
               "data": {
                 "failCommands": [
-		  "hello",
+                  "hello",
                   "isMaster"
                 ],
                 "appName": "failingHeartbeatLoggingTest",
@@ -418,7 +415,7 @@
       "expectLogMessages": [
         {
           "client": "client",
-	  "ignoreExtraMessages": true,
+          "ignoreExtraMessages": true,
           "ignoreMessages": [
             {
               "level": "debug",
@@ -499,9 +496,6 @@
                   ]
                 },
                 "driverConnectionId": {
-                  "$$exists": true
-                },
-                "serverConnectionId": {
                   "$$exists": true
                 },
                 "durationMS": {

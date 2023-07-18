@@ -101,7 +101,7 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
-	fileReqs, testCases := ParseTestFile(t, content, opts...)
+	fileReqs, testCases := ParseTestFile(t, content, expectValidFail, opts...)
 
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
@@ -157,11 +157,14 @@ func parseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*Te
 }
 
 // ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+func ParseTestFile(t *testing.T, testJSON []byte, expectValidFail bool, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	t.Helper()
 
 	runOnRequirements, testCases, err := parseTestFile(testJSON, opts...)
-	assert.NoError(t, err, "error parsing test file")
+
+	if !expectValidFail {
+		assert.NoError(t, err, "error parsing test file")
+	}
 
 	return runOnRequirements, testCases
 }
