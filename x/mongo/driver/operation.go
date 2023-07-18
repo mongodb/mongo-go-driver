@@ -343,6 +343,8 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 	}
 
 	ctx = context.WithValue(ctx, logger.ContextKeyOperation, op.Name)
+	ctx = context.WithValue(ctx, logger.ContextKeyOperationID, wiremessage.CurrentRequestID())
+
 	return op.Deployment.SelectServer(ctx, selector)
 }
 
@@ -531,6 +533,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
+		wiremessage.NextRequestID()
+
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx)
@@ -1110,7 +1114,7 @@ func (op Operation) createQueryWireMessage(maxTimeMS uint64, dst []byte, desc de
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
-	info.requestID = wiremessage.NextRequestID()
+	info.requestID = wiremessage.CurrentRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
 	dst = wiremessage.AppendQueryFlags(dst, flags)
 	// FullCollectionName
@@ -1195,7 +1199,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 		flags |= wiremessage.ExhaustAllowed
 	}
 
-	info.requestID = wiremessage.NextRequestID()
+	info.requestID = wiremessage.CurrentRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body

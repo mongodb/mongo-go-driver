@@ -235,6 +235,10 @@ func matchOrderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		}
 	}
 
+	if len(expLogMessages) == 0 {
+		return nil
+	}
+
 	errs := make(chan error, 1)
 
 	go func() {
@@ -274,6 +278,10 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		}
 	}
 
+	if len(unordered) == 0 {
+		return nil
+	}
+
 	errs := make(chan error, 1)
 
 	go func() {
@@ -309,7 +317,7 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 				}
 			}
 
-			// If there as no match, return an error.
+			// If there was no match, return an error.
 			if err != nil {
 				errs <- err
 			}
@@ -334,13 +342,27 @@ func startLogValidators(ctx context.Context, validator *logMessageValidator) {
 		go func(expected *clientLogMessages) {
 			defer wg.Done()
 
-			validator.clientErrs[expected.Client] <- <-matchOrderedLogs(ctx, logs)
+			errCh := matchOrderedLogs(ctx, logs)
+			if errCh == nil {
+				return
+			}
+
+			if errs := <-errCh; errs != nil {
+				validator.clientErrs[expected.Client] <- errs
+			}
 		}(expected)
 
 		go func(expected *clientLogMessages) {
 			defer wg.Done()
 
-			validator.clientErrs[expected.Client] <- <-matchUnorderedLogs(ctx, logs)
+			errCh := matchUnorderedLogs(ctx, logs)
+			if errCh == nil {
+				return
+			}
+
+			if errs := <-errCh; errs != nil {
+				validator.clientErrs[expected.Client] <- errs
+			}
 		}(expected)
 
 		go func(expected *clientLogMessages) {

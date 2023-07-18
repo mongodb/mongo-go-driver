@@ -31,6 +31,7 @@ const (
 	ServerSelectionFailed            = "Server selection failed"
 	ServerSelectionStarted           = "Server selection started"
 	ServerSelectionSucceeded         = "Server selection succeeded"
+	ServerSelectionWaiting           = "Waiting for suitable server to become available"
 	TopologyClosed                   = "Stopped topology monitoring"
 	TopologyDescriptionChanged       = "Topology description changed"
 	TopologyOpening                  = "Starting topology monitoring"
@@ -60,6 +61,7 @@ const (
 	KeyOperationID         = "operationId"
 	KeyPreviousDescription = "previousDescription"
 	KeyReason              = "reason"
+	KeyRemainingTimeMS     = "remainingTimeMS"
 	KeyReply               = "reply"
 	KeyRequestID           = "requestId"
 	KeySelector            = "selector"
@@ -153,7 +155,7 @@ type Command struct {
 	DriverConnectionID uint64              // Driver's ID for the connection
 	Name               string              // Command name
 	Message            string              // Message associated with the command
-	OperationID        *int32              // Driver-generated operation ID
+	OperationID        int32               // Driver-generated operation ID
 	RequestID          int64               // Driver-generated request ID
 	ServerConnectionID *int64              // Server's ID for the connection used for the command
 	ServerHost         string              // Hostname or IP address for the server
@@ -170,6 +172,7 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues 
 		KeyCommandName, cmd.Name,
 		KeyDriverConnectionID, cmd.DriverConnectionID,
 		KeyMessage, cmd.Message,
+		KeyOperationID, cmd.OperationID,
 		KeyRequestID, cmd.RequestID,
 		KeyServerHost, cmd.ServerHost,
 	}
@@ -192,10 +195,6 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues 
 	// Add the "serviceId" if it is not nil.
 	if cmd.ServiceID != nil {
 		keysAndValues.Add(KeyServiceID, cmd.ServiceID.Hex())
-	}
-
-	if cmd.OperationID != nil {
-		keysAndValues.Add(KeyOperationID, *cmd.OperationID)
 	}
 
 	return keysAndValues
@@ -272,7 +271,7 @@ func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
 // contain.
 type ServerSelection struct {
 	Selector            string
-	OperationID         *int
+	OperationID         interface{}
 	Operation           interface{}
 	TopologyDescription string
 }

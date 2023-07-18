@@ -281,21 +281,82 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 
 type waitForEventArguments struct {
 	ClientID string              `bson:"client"`
-	Event    map[string]struct{} `bson:"event"`
+	Event    map[string]bson.Raw `bson:"event"`
 	Count    int32               `bson:"count"`
+}
+
+// serverDescriptionChangedEventCompleted will return "true" if a specific
+// server description change event has occured, up to the description type.
+//
+// The structure of the UST object is as follows:
+//   - previousDescription: Optional object. A value corresponding to the server
+//     description as it was before the change that triggered this event.
+//   - newDescription: Optional object. A value corresponding to the server
+//     description as it was after the change that triggered this event.
+//
+// If the bson.Raw value is empty, then this function will only consider if a
+// serverDescriptionChangeEvent has occured at all.
+//
+// If the bson.Raw contains newDescription and/or previousDescription, it will
+// attemps to compare them to events up to the fields defined in the UST
+// specifications.
+func serverDescriptionChangedEventCompleted(client *clientEntity, raw bson.Raw, count int32) bool {
+	if len(raw) == 0 {
+		return false
+	}
+
+	eventKey := &serverDescriptionChangedEventKey{}
+
+	// If the document has no values, then we assume that the UST only
+	// intents to check that the event happened.
+	if values, _ := raw.Values(); len(values) == 0 {
+		return client.getServerDescriptionChangedEventCount(*eventKey) >= count
+	}
+
+	// Add default values to the key.
+	eventKey.NewType = "Unknown"
+	eventKey.PreviousType = "Unknown"
+
+	elems, _ := raw.Elements()
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch strings.ToLower(key) {
+		case "newdescription":
+			newdoc := val.Document()
+			typ := newdoc.Lookup("type")
+
+			eventKey.NewType = typ.StringValue()
+		case "previousdescription":
+			newdoc := val.Document()
+			typ := newdoc.Lookup("type")
+
+			eventKey.PreviousType = typ.StringValue()
+		}
+	}
+
+	return client.getServerDescriptionChangedEventCount(*eventKey) >= count
 }
 
 // eventCompleted will check all of the events in the event map and return true if all of the events have at least the
 // specified number of occurrences. If the event map is empty, it will return true.
 func (args waitForEventArguments) eventCompleted(client *clientEntity) bool {
-	for rawEventType := range args.Event {
+	for rawEventType, eventDoc := range args.Event {
 		eventType, ok := monitoringEventTypeFromString(rawEventType)
 		if !ok {
 			return false
 		}
 
-		if client.getEventCount(eventType) < args.Count {
-			return false
+		switch eventType {
+		case serverDescriptionChangedEvent:
+			if !serverDescriptionChangedEventCompleted(client, eventDoc, args.Count) {
+				return false
+			}
+		default:
+			if client.getEventCount(eventType) < args.Count {
+				return false
+			}
 		}
 	}
 
