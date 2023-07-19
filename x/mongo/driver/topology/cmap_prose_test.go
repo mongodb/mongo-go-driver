@@ -128,8 +128,7 @@ func TestCMAPProse(t *testing.T) {
 				_, err := pool.checkOut(context.Background())
 				assert.NotNil(t, err, "expected checkOut() error, got nil")
 
-				assert.Equal(t, 1, len(created), "expected 1 opened events, got %d", len(created))
-				assert.Equal(t, 1, len(closed), "expected 1 closed events, got %d", len(closed))
+				assertConnectionCounts(t, pool, 1, 1)
 			})
 			t.Run("pool is empty", func(t *testing.T) {
 				// If a checkOut() has to create a new connection and that connection encounters an
