@@ -235,10 +235,6 @@ func matchOrderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		}
 	}
 
-	if len(expLogMessages) == 0 {
-		return nil
-	}
-
 	errs := make(chan error, 1)
 
 	go func() {
@@ -276,10 +272,6 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		if isUnorderedLog(log) {
 			unordered[log] = struct{}{}
 		}
-	}
-
-	if len(unordered) == 0 {
-		return nil
 	}
 
 	errs := make(chan error, 1)
