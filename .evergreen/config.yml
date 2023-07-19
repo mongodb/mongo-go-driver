@@ -2583,7 +2583,7 @@ task_groups:
     tasks:
       - testazurekms-task
 
-  - name: test_aws_lambda_task_group
+  - name: test-aws-lambda-task-group
     setup_group:
       - func: fetch-source
       - func: prepare-resources
