@@ -2248,7 +2248,7 @@ tasks:
           duration_seconds: 3600
       - command: subprocess.exec
         params:
-          working_dir: src
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           add_expansions_to_env: true
           args:
@@ -2588,7 +2588,7 @@ task_groups:
       - func: prepare-resources
       - command: subprocess.exec
         params:
-          working_dir: src
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           add_expansions_to_env: true
           env:
@@ -2602,7 +2602,7 @@ task_groups:
     teardown_group:
       - command: subprocess.exec
         params:
-          working_dir: src
+          working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
           add_expansions_to_env: true
           env:
