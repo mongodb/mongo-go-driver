@@ -476,8 +476,6 @@ func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, act
 
 	if actual != nil {
 		actualValue = *actual
-	} else {
-		actualValue = nil
 	}
 
 	msg := fmt.Sprintf("expected desc.SessionTimeoutMinutesPtr to reference %v, got %v", expectedValue, actualValue)
