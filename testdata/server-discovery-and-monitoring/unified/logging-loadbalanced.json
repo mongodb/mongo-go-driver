@@ -1,6 +1,6 @@
 {
-  "description": "standalone-logging",
-  "schemaVersion": "1.14",
+  "description": "loadbalanced-logging",
+  "schemaVersion": "1.16",
   "runOnRequirements": [
     {
       "topologies": [

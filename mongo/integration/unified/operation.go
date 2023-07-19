@@ -138,6 +138,10 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeListCollectionNames(ctx, op)
 	case "runCommand":
 		return executeRunCommand(ctx, op)
+	case "runCursorCommand":
+		return executeRunCursorCommand(ctx, op)
+	case "createCommandCursor":
+		return executeCreateRunCursorCommand(ctx, op)
 
 	// Collection operations
 	case "aggregate":

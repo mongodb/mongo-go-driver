@@ -1,6 +1,6 @@
 {
   "description": "sharded-logging",
-  "schemaVersion": "1.14",
+  "schemaVersion": "1.16",
   "runOnRequirements": [
     {
       "topologies": [
@@ -471,9 +471,6 @@
                   ]
                 },
                 "driverConnectionId": {
-                  "$$exists": true
-                },
-                "serverConnectionId": {
                   "$$exists": true
                 },
                 "durationMS": {

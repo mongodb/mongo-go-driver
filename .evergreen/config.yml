@@ -715,6 +715,17 @@ functions:
           # balancer is not running.
           DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
 
+  teardown-aws:
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
+          if [ -f "./aws_e2e_setup.json" ]; then
+            . ./activate-authawsvenv.sh
+            python ./lib/aws_assign_instance_profile.py
+          fi
+
   add-aws-auth-variables-to-file:
     - command: shell.exec
       type: test
@@ -1173,33 +1184,6 @@ functions:
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
 
-  run-deployed-aws-lambda-tests:
-    - command: ec2.assume_role
-      params:
-        role_arn: ${LAMBDA_AWS_ROLE_ARN}
-        duration_seconds: 3600
-    - command: shell.exec
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        env:
-          PROJECT_DIRECTORY: ${PROJECT_DIRECTORY}
-          DRIVERS_TOOLS: ${DRIVERS_TOOLS}
-          DRIVERS_ATLAS_PUBLIC_API_KEY: ${DRIVERS_ATLAS_PUBLIC_API_KEY}
-          DRIVERS_ATLAS_PRIVATE_API_KEY: ${DRIVERS_ATLAS_PRIVATE_API_KEY}
-          DRIVERS_ATLAS_LAMBDA_USER: ${DRIVERS_ATLAS_LAMBDA_USER}
-          DRIVERS_ATLAS_LAMBDA_PASSWORD: ${DRIVERS_ATLAS_LAMBDA_PASSWORD}
-          DRIVERS_ATLAS_GROUP_ID: ${DRIVERS_ATLAS_GROUP_ID}
-          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
-          LAMBDA_STACK_NAME: dbx-go-lambda
-          AWS_REGION: us-east-1
-        script: |
-          ${PREPARE_SHELL}
-          .evergreen/run-deployed-lambda-aws-tests.sh
-
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -1215,6 +1199,7 @@ post:
         - "src/go.mongodb.org/mongo-driver/*.suite"
   - func: upload-mo-artifacts
   - func: stop-load-balancer
+  - func: teardown-aws
   - func: cleanup
 
 tasks:
@@ -2267,13 +2252,24 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
 
-  - name: "test-aws-lambda"
-    tags:
-      - latest
-      - lambda
+  - name: "test-aws-lambda-deployed"
     commands:
-      - func: bootstrap-mongo-orchestration
-      - func: run-deployed-aws-lambda-tests
+      - command: ec2.assume_role
+        params:
+          role_arn: ${LAMBDA_AWS_ROLE_ARN}
+          duration_seconds: 3600
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          add_expansions_to_env: true
+          env:
+            TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+          script: |
+            ${PREPARE_SHELL}
+            ./.evergreen/run-deployed-lambda-aws-tests.sh
 
 axes:
   - id: version
@@ -2599,6 +2595,38 @@ task_groups:
     tasks:
       - testazurekms-task
 
+  - name: test-aws-lambda-task-group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - test-aws-lambda-deployed
 
 buildvariants:
   - name: static-analysis
@@ -2747,7 +2775,7 @@ buildvariants:
     matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
-      - test-aws-lambda
+      - test-aws-lambda-task-group
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"

@@ -1,6 +1,6 @@
 description: "standalone-logging"
 
-schemaVersion: "1.14"
+schemaVersion: "1.16"
 
 runOnRequirements:
   - topologies:
@@ -118,7 +118,7 @@ tests:
       - name: close
         object: *client
     expectLogMessages:
-      - client: client
+      - client: *client
         ignoreExtraMessages: true
         ignoreMessages:
           - level: debug
@@ -159,7 +159,6 @@ tests:
               serverHost: { $$type: string }
               serverPort: { $$type: [int, long] }
               driverConnectionId: { $$exists: true }
-              serverConnectionId: { $$exists: true }
           - level: debug
             component: topology
             data:
@@ -211,6 +210,7 @@ tests:
         count: 1
     expectLogMessages:
       - client: *client
+        ignoreExtraMessages: true
         ignoreMessages:
           - level: debug
             component: topology
@@ -254,6 +254,5 @@ tests:
               serverHost: { $$type: string }
               serverPort: { $$type: [int, long] }
               driverConnectionId: { $$exists: true }
-              serverConnectionId: { $$exists: true }
               durationMS: { $$type: [int, long] }
               failure: { $$exists: true }

@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -91,8 +92,15 @@ func replaceErrors(err error) error {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
 
-	if errors.Is(err, driver.ErrSessionsNotSupported) {
-		return ErrSessionsNotSupported
+	if errors.Is(err, codecutil.ErrNilValue) {
+		return ErrNilValue
+	}
+
+	if marshalErr, ok := err.(codecutil.MarshalError); ok {
+		return MarshalError{
+			Value: marshalErr.Value,
+			Err:   marshalErr.Err,
+		}
 	}
 
 	return err

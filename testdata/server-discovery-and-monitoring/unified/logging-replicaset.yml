@@ -1,6 +1,6 @@
 description: "replicaset-logging"
 
-schemaVersion: "1.14"
+schemaVersion: "1.16"
 
 runOnRequirements:
   - topologies:
@@ -222,7 +222,6 @@ tests:
             observeLogMessages:
               topology: debug
             observeEvents:
-            - serverHeartbeatStartedEvent
             - serverHeartbeatFailedEvent
             uriOptions:
               appname: failingHeartbeatLoggingTest
@@ -238,7 +237,7 @@ tests:
             - isMaster
             appName: failingHeartbeatLoggingTest
             closeConnection: true
-        client: setupClient
+        client: *setupClient
     - name: waitForEvent
       object: testRunner
       arguments:
@@ -286,6 +285,5 @@ tests:
             serverHost: { $$type: string }
             serverPort: { $$type: [int, long] }
             driverConnectionId: { $$exists: true }
-            serverConnectionId: { $$exists: true }
             durationMS: { $$type: [int, long] }
             failure: { $$exists: true }
