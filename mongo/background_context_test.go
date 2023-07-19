@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package internal
+package mongo
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 )
 
 func TestBackgroundContext(t *testing.T) {
-	t.Run("NewBackgroundContext accepts a nil child", func(t *testing.T) {
-		ctx := NewBackgroundContext(nil)
+	t.Run("newBackgroundContext accepts a nil child", func(t *testing.T) {
+		ctx := newBackgroundContext(nil)
 		assert.Equal(t, context.Background(), ctx, "expected context.Background() for a nil child")
 	})
 	t.Run("Value requests are forwarded", func(t *testing.T) {
@@ -26,7 +26,7 @@ func TestBackgroundContext(t *testing.T) {
 		expectedVal := "value"
 		childCtx := context.WithValue(context.Background(), ctxKey{}, expectedVal)
 
-		ctx := NewBackgroundContext(childCtx)
+		ctx := newBackgroundContext(childCtx)
 		gotVal, ok := ctx.Value(ctxKey{}).(string)
 		assert.True(t, ok, "expected context to contain a string value for ctxKey")
 		assert.Equal(t, expectedVal, gotVal, "expected value for ctxKey to be %q, got %q", expectedVal, gotVal)
@@ -37,7 +37,7 @@ func TestBackgroundContext(t *testing.T) {
 		childCtx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 
-		ctx := NewBackgroundContext(childCtx)
+		ctx := newBackgroundContext(childCtx)
 		deadline, ok := ctx.Deadline()
 		assert.False(t, ok, "expected context to have no deadline, but got %v", deadline)
 	})
@@ -47,7 +47,7 @@ func TestBackgroundContext(t *testing.T) {
 		childCtx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		ctx := NewBackgroundContext(childCtx)
+		ctx := newBackgroundContext(childCtx)
 		select {
 		case <-ctx.Done():
 			t.Fatalf("expected context to not expire, but Done channel had a value; ctx error: %v", ctx.Err())

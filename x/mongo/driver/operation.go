@@ -22,7 +22,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/errutil"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -417,8 +419,8 @@ func (op Operation) Execute(ctx context.Context) error {
 
 	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
 	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !internal.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *op.Timeout)
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !csot.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *op.Timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
 		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
@@ -456,7 +458,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	// If context is a Timeout context, automatically set retries to -1 (infinite) if retrying is
 	// enabled.
 	retryEnabled := op.RetryMode != nil && op.RetryMode.Enabled()
-	if internal.IsTimeoutContext(ctx) && retryEnabled {
+	if csot.IsTimeoutContext(ctx) && retryEnabled {
 		retries = -1
 	}
 
@@ -668,8 +670,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		if ctx.Err() != nil {
 			err = ctx.Err()
 		} else if deadline, ok := ctx.Deadline(); ok {
-			if internal.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
-				err = internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
+				err = errutil.WrapErrorf(ErrDeadlineWouldBeExceeded,
 					"remaining time %v until context deadline is less than 90th percentile RTT\n%v", time.Until(deadline), srvr.RTTMonitor().Stats())
 			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
 				err = context.DeadlineExceeded
@@ -903,7 +905,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				}
 				// Reset the retries number for RetryOncePerCommand unless context is a Timeout context, in
 				// which case retries should remain as -1 (as many times as possible).
-				if *op.RetryMode == RetryOncePerCommand && !internal.IsTimeoutContext(ctx) {
+				if *op.RetryMode == RetryOncePerCommand && !csot.IsTimeoutContext(ctx) {
 					retries = 1
 				}
 			}
@@ -1434,7 +1436,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration, rttStats string) (uint64, error) {
-	if internal.IsTimeoutContext(ctx) {
+	if csot.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 			maxTime := remainingTimeout - rtt90
@@ -1443,7 +1445,7 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration,
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 			if maxTimeMS <= 0 {
-				return 0, internal.WrapErrorf(ErrDeadlineWouldBeExceeded,
+				return 0, errutil.WrapErrorf(ErrDeadlineWouldBeExceeded,
 					"remaining time %v until context deadline is less than or equal to 90th percentile RTT\n%v",
 					remainingTimeout, rttStats)
 			}
@@ -1634,7 +1636,7 @@ func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.Que
 }
 
 func (Operation) canCompress(cmd string) bool {
-	if cmd == internal.LegacyHello || cmd == "hello" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
+	if cmd == handshake.LegacyHello || cmd == "hello" || cmd == "saslStart" || cmd == "saslContinue" || cmd == "getnonce" || cmd == "authenticate" ||
 		cmd == "createUser" || cmd == "updateUser" || cmd == "copydbSaslStart" || cmd == "copydbgetnonce" || cmd == "copydb" {
 		return false
 	}
@@ -1766,7 +1768,7 @@ func (op *Operation) redactCommand(cmd string, doc bsoncore.Document) bool {
 
 		return true
 	}
-	if strings.ToLower(cmd) != internal.LegacyHelloLowercase && cmd != "hello" {
+	if strings.ToLower(cmd) != handshake.LegacyHelloLowercase && cmd != "hello" {
 		return false
 	}
 

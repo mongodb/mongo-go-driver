@@ -28,9 +28,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -1059,7 +1058,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				mcryptClient, err := mongo.Connect(context.Background(), mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
-				err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{internal.LegacyHelloLowercase, 1}}).Err()
+				err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{constant.LegacyHelloLowercase, 1}}).Err()
 				assert.NotNil(mt, err, "expected mongocryptd legacy hello error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), "server selection error"),
 					"expected mongocryptd server selection error, got %v", err)

@@ -13,7 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -43,7 +43,7 @@ func executeCreateView(ctx context.Context, operation *operation) (*operationRes
 		case "collection":
 			collName = val.StringValue()
 		case "pipeline":
-			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
 		case "viewOn":
 			viewOn = val.StringValue()
 		default:

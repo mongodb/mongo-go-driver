@@ -16,8 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -42,7 +42,7 @@ func TestDatabase(t *testing.T) {
 
 	mt.RunOpts("run command", noClientOpts, func(mt *mtest.T) {
 		mt.Run("decode raw", func(mt *mtest.T) {
-			res, err := mt.DB.RunCommand(context.Background(), bson.D{{internal.LegacyHello, 1}}).DecodeBytes()
+			res, err := mt.DB.RunCommand(context.Background(), bson.D{{handshake.LegacyHello, 1}}).DecodeBytes()
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 
 			ok, err := res.LookupErr("ok")
@@ -50,7 +50,7 @@ func TestDatabase(t *testing.T) {
 			assert.Equal(mt, bson.TypeDouble, ok.Type, "expected ok type %v, got %v", bson.TypeDouble, ok.Type)
 			assert.Equal(mt, 1.0, ok.Double(), "expected ok value 1.0, got %v", ok.Double())
 
-			hello, err := res.LookupErr(internal.LegacyHelloLowercase)
+			hello, err := res.LookupErr(handshake.LegacyHelloLowercase)
 			assert.Nil(mt, err, "legacy hello response field not found in result")
 			assert.Equal(mt, bson.TypeBoolean, hello.Type, "expected hello type %v, got %v", bson.TypeBoolean, hello.Type)
 			assert.True(mt, hello.Boolean(), "expected hello value true, got false")
@@ -76,14 +76,14 @@ func TestDatabase(t *testing.T) {
 
 			runCmdOpts := options.RunCmd().
 				SetReadPreference(readpref.SecondaryPreferred())
-			err := mt.DB.RunCommand(context.Background(), bson.D{{internal.LegacyHello, 1}}, runCmdOpts).Err()
+			err := mt.DB.RunCommand(context.Background(), bson.D{{handshake.LegacyHello, 1}}, runCmdOpts).Err()
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 
 			expected := bson.Raw(bsoncore.NewDocumentBuilder().
 				AppendString("mode", "secondaryPreferred").
 				Build())
 			evt := mt.GetStartedEvent()
-			assert.Equal(mt, internal.LegacyHello, evt.CommandName, "expected legacy hello command to be sent, got %q", evt.CommandName)
+			assert.Equal(mt, handshake.LegacyHello, evt.CommandName, "expected legacy hello command to be sent, got %q", evt.CommandName)
 			actual, ok := evt.Command.Lookup("$readPreference").DocumentOK()
 			assert.True(mt, ok, "expected command %v to contain a $readPreference document", evt.Command)
 			assert.Equal(mt, expected, actual, "expected $readPreference document %v, got %v", expected, actual)

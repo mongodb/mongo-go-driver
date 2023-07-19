@@ -27,8 +27,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -161,7 +161,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			wg.Add(1)
 
 			errors := &errorQueue{errors: tc.ioErrors}
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address("localhost:27017"),
 				primitive.NewObjectID(),
@@ -289,7 +289,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 				_ = l.Close()
 			}()
 
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address(l.Addr().String()),
 				primitive.NewObjectID(),
