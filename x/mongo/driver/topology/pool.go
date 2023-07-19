@@ -500,6 +500,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Type:    event.GetFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonConnectionErrored,
+				Error:   err,
 			})
 		}
 		return nil, err
@@ -542,6 +543,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 					Type:    event.GetFailed,
 					Address: p.address.String(),
 					Reason:  event.ReasonConnectionErrored,
+					Error:   w.err,
 				})
 			}
 			return nil, w.err
@@ -589,6 +591,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 					Type:    event.GetFailed,
 					Address: p.address.String(),
 					Reason:  event.ReasonConnectionErrored,
+					Error:   w.err,
 				})
 			}
 
@@ -625,6 +628,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 				Type:    event.GetFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonTimedOut,
+				Error:   ctx.Err(),
 			})
 		}
 
@@ -878,6 +882,7 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			Type:      event.PoolCleared,
 			Address:   p.address.String(),
 			ServiceID: serviceID,
+			Error:     err,
 		})
 	}
 }
