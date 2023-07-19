@@ -2598,7 +2598,7 @@ task_groups:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
       - command: expansions.update
         params:
-          file: src/atlas-expansion.yml
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
     teardown_group:
       - command: subprocess.exec
         params:
