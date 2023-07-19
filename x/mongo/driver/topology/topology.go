@@ -217,11 +217,11 @@ func logServerSelectionSucceededMessage(
 		port = ""
 	}
 
-	portInt32, _ := strconv.ParseInt(port, 10, 32)
+	portInt64, _ := strconv.ParseInt(port, 10, 32)
 
 	logServerSelectionMessage(ctx, logger.LevelDebug, topo, logger.ServerSelectionSucceeded, srvSelector,
 		logger.KeyServerHost, host,
-		logger.KeyServerPort, portInt32)
+		logger.KeyServerPort, portInt64)
 }
 
 func logServerSelectionFailedMessage(
@@ -972,9 +972,11 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 			serverPort = ""
 		}
 
+		portInt64, _ := strconv.ParseInt(serverPort, 10, 32)
+
 		logTopologyMessage(t, logger.TopologyServerClosed,
 			logger.KeyServerHost, serverHost,
-			logger.KeyServerPort, serverPort)
+			logger.KeyServerPort, portInt64)
 	}
 }
 
