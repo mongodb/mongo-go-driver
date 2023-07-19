@@ -52,9 +52,7 @@ type LogSink interface {
 	// method will only be called if the provided level has been defined
 	// for a component in the LoggerOptions.
 	//
-	// The level returned by this function is not guaranteed to be 1-1 with
-	// the optional levels used to construct logging for a client. These
-	// are the following level mappings for V = "Verbosity":
+	// Here are the following level mappings for V = "Verbosity":
 	//
 	//  - V(0): off
 	//  - V(1): informational
@@ -63,8 +61,8 @@ type LogSink interface {
 	// This level mapping is taken from the go-logr/logr library
 	// specifications, specifically:
 	//
-	// "Level V(0) is the default, and logger.V(0).Info() has the same meaning
-	// as logger.Info()."
+	// "Level V(0) is the default, and logger.V(0).Info() has the same
+	// meaning as logger.Info()."
 	Info(level int, message string, keysAndValues ...interface{})
 
 	// Error logs an error message with the given key/value pairs
