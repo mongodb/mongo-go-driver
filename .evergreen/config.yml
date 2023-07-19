@@ -715,6 +715,17 @@ functions:
           # balancer is not running.
           DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
 
+  teardown-aws:
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
+          if [ -f "./aws_e2e_setup.json" ]; then
+            . ./activate-authawsvenv.sh
+            python ./lib/aws_assign_instance_profile.py
+          fi
+
   add-aws-auth-variables-to-file:
     - command: shell.exec
       type: test
@@ -1215,6 +1226,7 @@ post:
         - "src/go.mongodb.org/mongo-driver/*.suite"
   - func: upload-mo-artifacts
   - func: stop-load-balancer
+  - func: teardown-aws
   - func: cleanup
 
 tasks:
