@@ -2584,8 +2584,8 @@ task_groups:
 
   - name: test_aws_lambda_task_group
     setup_group:
-      - func: fetch source
-      - func: prepare resources
+      - func: fetch-source
+      - func: prepare-resources
       - command: subprocess.exec
         params:
           working_dir: src
