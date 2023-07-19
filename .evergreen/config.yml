@@ -2249,7 +2249,7 @@ tasks:
       - command: shell.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
-          binary: bash
+          shell: bash
           add_expansions_to_env: true
           env:
             TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
