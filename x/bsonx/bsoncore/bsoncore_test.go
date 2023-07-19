@@ -945,8 +945,12 @@ func TestNullBytes(t *testing.T) {
 }
 
 func TestInvalidBytes(t *testing.T) {
+	t.Parallel()
+
 	t.Run("read length less than 4 int bytes", func(t *testing.T) {
-		_, src, ok := readLengthBytes([]byte{0x00, 0x00, 0x00, 0x01})
+		t.Parallel()
+
+		_, src, ok := readLengthBytes([]byte{0x01, 0x00, 0x00, 0x00})
 		assert.False(t, ok, "expected not ok response for invalid length read")
 		assert.Equal(t, 4, len(src), "expected src to contain the size parameter still")
 	})

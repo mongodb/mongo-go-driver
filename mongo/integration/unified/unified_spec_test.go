@@ -30,6 +30,7 @@ var (
 		"client-side-operations-timeout",
 		"gridfs",
 		"server-discovery-and-monitoring/unified",
+		"run-command",
 	}
 	failDirectories = []string{
 		"unified-test-format/valid-fail",

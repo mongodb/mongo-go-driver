@@ -11,6 +11,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -26,6 +27,8 @@ type ListCollectionsBatchCursor struct {
 
 // NewListCollectionsBatchCursor creates a new non-legacy ListCollectionsCursor.
 func NewListCollectionsBatchCursor(bc *BatchCursor) (*ListCollectionsBatchCursor, error) {
+	// TODO(GODRIVER-2861): Merge ListCollectionsBatchCursor into
+	// BatchCursor.
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
 	}
@@ -128,7 +131,26 @@ func (*ListCollectionsBatchCursor) projectNameElement(rawDoc bsoncore.Document) 
 	return filteredDoc, nil
 }
 
-// SetBatchSize sets the batchSize for future getMores.
+// SetBatchSize sets the number of documents to fetch from the database with
+// each iteration of the cursor's "Next" method. Note that some operations set
+// an initial cursor batch size, so this setting only affects subsequent
+// document batches fetched from the database.
 func (lcbc *ListCollectionsBatchCursor) SetBatchSize(size int32) {
 	lcbc.bc.SetBatchSize(size)
+}
+
+// SetMaxTime will set the maximum amount of time the server will allow the
+// operations to execute. The server will error if this field is set but the
+// cursor is not configured with awaitData=true.
+//
+// The time.Duration value passed by this setter will be converted and rounded
+// down to the nearest millisecond.
+func (lcbc *ListCollectionsBatchCursor) SetMaxTime(dur time.Duration) {
+	lcbc.bc.SetMaxTime(dur)
+}
+
+// SetComment will set a user-configurable comment that can be used to identify
+// the operation in server logs.
+func (lcbc *ListCollectionsBatchCursor) SetComment(comment interface{}) {
+	lcbc.bc.SetComment(comment)
 }

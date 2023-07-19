@@ -392,6 +392,10 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 				if elem.Value().Double() == 1 {
 					ok = true
 				}
+			case bson.TypeBoolean:
+				if elem.Value().Boolean() {
+					ok = true
+				}
 			}
 		case "errmsg":
 			if str, okay := elem.Value().StringValueOK(); okay {

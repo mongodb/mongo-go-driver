@@ -357,7 +357,7 @@ func TestDatabase(t *testing.T) {
 			{"cursor", bson.D{}},
 		}
 		pingCmd := bson.D{{"ping", 1}}
-		pingErr := errors.New("cursor should be an embedded document but is of BSON type invalid")
+		pingErr := errors.New("database response does not contain a cursor; try using RunCommand instead")
 
 		testCases := []struct {
 			name        string

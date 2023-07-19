@@ -414,7 +414,6 @@ func TestOperation(t *testing.T) {
 		)
 
 		rpPrimaryPreferred := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "primaryPreferred"))
-		rpPrimary := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "primary"))
 		rpSecondaryPreferred := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"))
 		rpSecondary := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "secondary"))
 		rpNearest := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendStringElement(nil, "mode", "nearest"))
@@ -431,7 +430,7 @@ func TestOperation(t *testing.T) {
 			{"nil/single/secondary", nil, description.RSSecondary, description.Single, false, rpPrimaryPreferred},
 			{"primary/mongos", readpref.Primary(), description.Mongos, description.Sharded, false, nil},
 			{"primary/single", readpref.Primary(), description.RSPrimary, description.Single, false, rpPrimaryPreferred},
-			{"primary/primary", readpref.Primary(), description.RSPrimary, description.ReplicaSet, false, rpPrimary},
+			{"primary/primary", readpref.Primary(), description.RSPrimary, description.ReplicaSet, false, nil},
 			{"primaryPreferred", readpref.PrimaryPreferred(), description.RSSecondary, description.ReplicaSet, false, rpPrimaryPreferred},
 			{"secondaryPreferred/mongos/opquery", readpref.SecondaryPreferred(), description.Mongos, description.Sharded, true, nil},
 			{"secondaryPreferred", readpref.SecondaryPreferred(), description.RSSecondary, description.ReplicaSet, false, rpSecondaryPreferred},
@@ -891,4 +890,23 @@ func TestConvertI64PtrToI32Ptr(t *testing.T) {
 			assert.Equal(t, test.want, got)
 		})
 	}
+}
+
+func TestDecodeOpReply(t *testing.T) {
+	t.Parallel()
+
+	// GODRIVER-2869: Prevent infinite loop caused by malformatted wiremessage with length of 0.
+	t.Run("malformatted wiremessage with length of 0", func(t *testing.T) {
+		t.Parallel()
+
+		var wm []byte
+		wm = wiremessage.AppendReplyFlags(wm, 0)
+		wm = wiremessage.AppendReplyCursorID(wm, int64(0))
+		wm = wiremessage.AppendReplyStartingFrom(wm, 0)
+		wm = wiremessage.AppendReplyNumberReturned(wm, 0)
+		idx, wm := bsoncore.ReserveLength(wm)
+		wm = bsoncore.UpdateLength(wm, idx, 0)
+		reply := Operation{}.decodeOpReply(wm)
+		assert.Equal(t, []bsoncore.Document(nil), reply.documents)
+	})
 }

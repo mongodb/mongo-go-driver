@@ -94,6 +94,9 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		Timeout(iv.coll.client.timeout)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
+
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(iv.coll.bsonOpts, iv.coll.registry)
+
 	lio := options.MergeListIndexesOptions(opts...)
 	if lio.BatchSize != nil {
 		op = op.BatchSize(*lio.BatchSize)
