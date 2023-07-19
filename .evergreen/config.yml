@@ -2763,7 +2763,7 @@ buildvariants:
     matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
-      - test_aws_lambda_task_group
+      - test-aws-lambda-task-group
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"
