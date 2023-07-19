@@ -158,8 +158,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 			// Assert that a client-side error is generated
 			// indicating that sessions are not supported
 			res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
-			assert.ErrorIs(mt, res.Err(), mongo.ErrSessionsNotSupported,
-				"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
+			assert.EqualError(mt, res.Err(), "current topology does not support sessions")
 		})
 
 		// Attempt to send a write command to the server (e.g.,
@@ -168,8 +167,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 			// Assert that a client-side error is generated
 			// indicating that sessions are not supported.
 			res := coll.FindOne(sessionCtx, bson.D{{"x", 1}})
-			assert.ErrorIs(mt, res.Err(), mongo.ErrSessionsNotSupported,
-				"expected %v, got %v", mongo.ErrSessionsNotSupported, res.Err())
+			assert.EqualError(mt, res.Err(), "current topology does not support sessions")
 		})
 	})
 }

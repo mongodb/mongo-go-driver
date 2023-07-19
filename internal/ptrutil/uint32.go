@@ -4,17 +4,16 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package internal
+package ptrutil
 
-// CompareUint32Ptr is a piecewise function with the following return
-// conditions:
+// CompareUint32 is a piecewise function with the following return conditions:
 //
 // (1)  2, ptr1 != nil AND ptr2 == nil
 // (2)  1, ptr1 > ptr2
 // (3)  0, ptr1 == ptr2
 // (4) -1, ptr1 < ptr2
 // (5) -2, ptr1 == nil AND ptr2 != nil
-func CompareUint32Ptr(ptr1, ptr2 *uint32) int {
+func CompareUint32(ptr1, ptr2 *uint32) int {
 	if ptr1 == ptr2 {
 		// This will catch the double nil or same-pointer cases.
 		return 0

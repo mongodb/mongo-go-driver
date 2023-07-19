@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
@@ -55,7 +55,7 @@ func newFSM() *fsm {
 // timeouts.
 func selectFSMSessionTimeout(f *fsm, s description.Server) *uint32 {
 	oldMinutes := f.SessionTimeoutMinutesPtr
-	comp := internal.CompareUint32Ptr(oldMinutes, s.SessionTimeoutMinutesPtr)
+	comp := ptrutil.CompareUint32(oldMinutes, s.SessionTimeoutMinutesPtr)
 
 	// If the server is data-bearing and the current timeout exists and is
 	// either:
@@ -84,7 +84,7 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *uint32 {
 		}
 
 		srvTimeout := server.SessionTimeoutMinutesPtr
-		comp := internal.CompareUint32Ptr(timeout, srvTimeout)
+		comp := ptrutil.CompareUint32(timeout, srvTimeout)
 
 		if comp <= 0 { // timeout <= srvTimout
 			continue

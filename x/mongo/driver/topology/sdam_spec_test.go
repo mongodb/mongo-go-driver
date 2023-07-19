@@ -19,8 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -462,7 +462,7 @@ func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, act
 	t.Helper()
 
 	// If they pointers are equal, then do nothing.
-	if internal.CompareUint32Ptr(expected, actual) == 0 {
+	if ptrutil.CompareUint32(expected, actual) == 0 {
 		return
 	}
 
@@ -470,14 +470,10 @@ func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, act
 	var expectedValue, actualValue interface{}
 	if expected != nil {
 		expectedValue = *expected
-	} else {
-		expectedValue = nil
 	}
 
 	if actual != nil {
 		actualValue = *actual
-	} else {
-		actualValue = nil
 	}
 
 	msg := fmt.Sprintf("expected desc.SessionTimeoutMinutesPtr to reference %v, got %v", expectedValue, actualValue)
