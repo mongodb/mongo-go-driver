@@ -35,10 +35,6 @@ var ErrNilValue = errors.New("value is nil")
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
 
-// ErrSessionsNotSupported is returned if a user defines an explicit
-// session but the topology does not support sessions.
-var ErrSessionsNotSupported = errors.New("current topology does not support sessions")
-
 // ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
 type ErrMapForOrderedArgument struct {
 	ParamName string
@@ -89,10 +85,6 @@ func replaceErrors(err error) error {
 	}
 	if me, ok := err.(mongocrypt.Error); ok {
 		return MongocryptError{Code: me.Code, Message: me.Message}
-	}
-
-	if errors.Is(err, driver.ErrSessionsNotSupported) {
-		return ErrSessionsNotSupported
 	}
 
 	return err

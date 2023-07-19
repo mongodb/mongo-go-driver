@@ -1379,7 +1379,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	// If the operation is defined for an explicit session but the server
 	// does not support sessions, then throw an error.
 	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutesPtr == nil {
-		return nil, ErrSessionsNotSupported
+		return nil, fmt.Errorf("current topology does not support sessions")
 	}
 
 	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutesPtr == nil {

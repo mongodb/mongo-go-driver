@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package internal
+package ptrutil
 
 import (
 	"testing"
@@ -69,7 +69,7 @@ func TestCompareUint32Ptr(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := CompareUint32Ptr(test.ptr1, test.ptr2)
+			got := CompareUint32(test.ptr1, test.ptr2)
 			assert.Equal(t, test.want, got, "compareUint32Ptr() = %v, wanted %v", got, test.want)
 		})
 	}

@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
 )
@@ -466,7 +467,7 @@ func (s Server) Equal(other Server) bool {
 		return false
 	}
 
-	if internal.CompareUint32Ptr(s.SessionTimeoutMinutesPtr, other.SessionTimeoutMinutesPtr) != 0 {
+	if ptrutil.CompareUint32(s.SessionTimeoutMinutesPtr, other.SessionTimeoutMinutesPtr) != 0 {
 		return false
 	}
 
