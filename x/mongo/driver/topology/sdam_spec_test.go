@@ -470,8 +470,6 @@ func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, act
 	var expectedValue, actualValue interface{}
 	if expected != nil {
 		expectedValue = *expected
-	} else {
-		expectedValue = nil
 	}
 
 	if actual != nil {
