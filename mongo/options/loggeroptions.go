@@ -56,9 +56,9 @@ type LogSink interface {
 	// the optional levels used to construct logging for a client. These
 	// are the following level mappings for V = "Verbosity":
 	//
-	// V(0) - off
-	// V(1) - informational
-	// V(2) - debugging
+	//  - V(0): off
+	//  - V(1): informational
+	//  - V(2): debugging
 	//
 	// This level mapping is taken from the go-logr/logr library
 	// specifications, specifically:
