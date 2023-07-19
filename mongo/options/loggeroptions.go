@@ -63,8 +63,8 @@ type LogSink interface {
 	// This level mapping is taken from the go-logr/logr library
 	// specifications, specifically:
 	//
-	// > Level V(0) is the default, and logger.V(0).Info() has the same
-	// > meaning as logger.Info().
+	// "Level V(0) is the default, and logger.V(0).Info() has the same meaning
+	// as logger.Info()."
 	Info(level int, message string, keysAndValues ...interface{})
 
 	// Error logs an error message with the given key/value pairs
