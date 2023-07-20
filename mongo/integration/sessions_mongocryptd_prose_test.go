@@ -144,9 +144,8 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		sessionCtx := mongo.NewSessionContext(context.TODO(), session)
 
-		if err = session.StartTransaction(); err != nil {
-			panic(err)
-		}
+                err = session.StartTransaction()
+		require.NoError(mt, err, "expected error to be nil, got %v", err)
 
 		coll := client.Database("db").Collection("coll")
 
