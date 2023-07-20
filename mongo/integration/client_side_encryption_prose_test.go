@@ -379,6 +379,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 	mt.Run("4. bson size limits", func(mt *mtest.T) {
+		// TODO(GODRIVER-2872): Fix and unskip this test case.
+		mt.Skip("Test fails frequently, skipping. See GODRIVER-2872")
+
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,

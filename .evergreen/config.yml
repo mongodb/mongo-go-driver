@@ -715,6 +715,17 @@ functions:
           # balancer is not running.
           DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
 
+  teardown-aws:
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
+          if [ -f "./aws_e2e_setup.json" ]; then
+            . ./activate-authawsvenv.sh
+            python ./lib/aws_assign_instance_profile.py
+          fi
+
   add-aws-auth-variables-to-file:
     - command: shell.exec
       type: test
@@ -1071,6 +1082,7 @@ functions:
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
           fi
+
     - command: shell.exec
       params:
         shell: "bash"
@@ -1082,6 +1094,27 @@ functions:
           else
             ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
           fi
+
+    - command: shell.exec
+      params:
+        script: |
+          # Ensure mock servers are running before starting tests.
+          await_server() {
+            for i in $(seq 300); do
+                # Exit code 7: "Failed to connect to host".
+                if curl -s "localhost:$2"; test $? -ne 7; then
+                  return 0
+                else
+                  sleep 1
+                fi
+            done
+            echo "could not detect '$1' server on port $2"
+          }
+          # * List servers to await here ...
+          await_server "KMS", 5698
+          await_server "Azure", 8080
+
+          echo "finished awaiting servers"
 
   run-kms-tls-test:
     - command: shell.exec
@@ -1151,33 +1184,6 @@ functions:
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
 
-  run-deployed-aws-lambda-tests:
-    - command: ec2.assume_role
-      params:
-        role_arn: ${LAMBDA_AWS_ROLE_ARN}
-        duration_seconds: 3600
-    - command: shell.exec
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        shell: bash
-        env:
-          PROJECT_DIRECTORY: ${PROJECT_DIRECTORY}
-          DRIVERS_TOOLS: ${DRIVERS_TOOLS}
-          DRIVERS_ATLAS_PUBLIC_API_KEY: ${DRIVERS_ATLAS_PUBLIC_API_KEY}
-          DRIVERS_ATLAS_PRIVATE_API_KEY: ${DRIVERS_ATLAS_PRIVATE_API_KEY}
-          DRIVERS_ATLAS_LAMBDA_USER: ${DRIVERS_ATLAS_LAMBDA_USER}
-          DRIVERS_ATLAS_LAMBDA_PASSWORD: ${DRIVERS_ATLAS_LAMBDA_PASSWORD}
-          DRIVERS_ATLAS_GROUP_ID: ${DRIVERS_ATLAS_GROUP_ID}
-          AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-          AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-          AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN}
-          TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
-          LAMBDA_STACK_NAME: dbx-go-lambda
-          AWS_REGION: us-east-1
-        script: |
-          ${PREPARE_SHELL}
-          .evergreen/run-deployed-lambda-aws-tests.sh
-
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -1193,6 +1199,7 @@ post:
         - "src/go.mongodb.org/mongo-driver/*.suite"
   - func: upload-mo-artifacts
   - func: stop-load-balancer
+  - func: teardown-aws
   - func: cleanup
 
 tasks:
@@ -2245,18 +2252,33 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
 
-  - name: "test-aws-lambda"
-    tags:
-      - latest
-      - lambda
+  - name: "test-aws-lambda-deployed"
     commands:
-      - func: bootstrap-mongo-orchestration
-      - func: run-deployed-aws-lambda-tests
+      - command: ec2.assume_role
+        params:
+          role_arn: ${LAMBDA_AWS_ROLE_ARN}
+          duration_seconds: 3600
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          add_expansions_to_env: true
+          env:
+            TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+          script: |
+            ${PREPARE_SHELL}
+            ./.evergreen/run-deployed-lambda-aws-tests.sh
 
 axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "7.0"
+        display_name: "7.0"
+        variables:
+          VERSION: "7.0"
       - id: "6.0"
         display_name: "6.0"
         variables:
@@ -2380,6 +2402,15 @@ axes:
       - id: "rhel80-large-go-1-20"
         display_name: "RHEL 8.0"
         run_on: rhel80-large
+        variables:
+          GO_DIST: "/opt/golang/go1.20"
+
+  - id: os-serverless
+    display_name: OS
+    values:
+      - id: "ubuntu2004-go-1-20"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-build
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2564,6 +2595,38 @@ task_groups:
     tasks:
       - testazurekms-task
 
+  - name: test-aws-lambda-task-group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - test-aws-lambda-deployed
 
 buildvariants:
   - name: static-analysis
@@ -2624,7 +2687,7 @@ buildvariants:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "latest"], os-ssl-40: "*" }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: "*" }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2636,20 +2699,20 @@ buildvariants:
       - name: ".test .enterprise-auth"
 
   - matrix_name: "aws-auth-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-aws-auth: "*" }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], os-aws-auth: "*" }
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-20"] }
     display_name: "OCSP ${version} ${ocsp-rhel-70}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2657,7 +2720,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "latest"], os-ssl-40: ["macos11-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["macos11-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2671,7 +2734,7 @@ buildvariants:
       - name: ".race"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { version: ["5.0", "6.0", "latest"], os-ssl-40: "*" }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: "*" }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
@@ -2684,14 +2747,14 @@ buildvariants:
 
   - matrix_name: "load-balancer-test"
     # The LB software is only available on Ubuntu 18.04, so we don't test on all OSes.
-    matrix_spec: { version: ["5.0", "6.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
-    matrix_spec: { os-ssl-40: ["ubuntu1804-64-go-1-20"] }
-    display_name: "Serverless ${os-ssl-40}"
+    matrix_spec: { os-serverless: "*" }
+    display_name: "Serverless ${os-serverless}"
     tasks:
       - "serverless_task_group"
 
@@ -2712,7 +2775,7 @@ buildvariants:
     matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
-      - test-aws-lambda
+      - test-aws-lambda-task-group
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"

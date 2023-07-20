@@ -44,10 +44,6 @@ func newLogMessage(level int, msg string, args ...interface{}) (*logMessage, err
 		}
 	}
 
-	if len(args) == 0 {
-		return logMessage, nil
-	}
-
 	// The argument slice must have an even number of elements, otherwise it
 	// would not maintain the key-value structure of the document.
 	if len(args)%2 != 0 {
@@ -78,8 +74,20 @@ func newLogMessage(level int, msg string, args ...interface{}) (*logMessage, err
 // clientLogMessages is a struct representing the expected "LogMessages" for a
 // client.
 type clientLogMessages struct {
-	Client      string        `bson:"client"`
-	LogMessages []*logMessage `bson:"messages"`
+	Client         string        `bson:"client"`
+	IgnoreMessages []*logMessage `bson:"ignoreMessages"`
+	LogMessages    []*logMessage `bson:"messages"`
+}
+
+// ignore checks to see if the message is in the "IgnoreMessages" slice.
+func (clm clientLogMessages) ignore(ctx context.Context, msg *logMessage) bool {
+	for _, ignoreMessage := range clm.IgnoreMessages {
+		if err := verifyLogMatch(ctx, ignoreMessage, msg); err == nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 // logMessageValidator defines the expectation for log messages across all
@@ -161,8 +169,19 @@ func isUnorderedLog(log *logMessage) bool {
 	// or close a connection first. Because of this, either log may be
 	// received in any order. To account for this behavior, we considered
 	// both logs to be "unordered".
+	//
+	// The connection pool must clear before the connection is closed.
+	// However, either of these conditions are valid:
+	//
+	//   1. connection checkout failed > connection pool cleared
+	//   2. connection pool cleared > connection checkout failed
+	//
+	// Therefore, the ConnectionPoolCleared literal is added to the
+	// unordered list. The check for cleared > closed is made in the
+	// matching logic.
 	return msgStr == logger.ConnectionCheckoutFailed ||
-		msgStr == logger.ConnectionClosed
+		msgStr == logger.ConnectionClosed ||
+		msgStr == logger.ConnectionPoolCleared
 }
 
 type logQueues struct {
@@ -171,6 +190,9 @@ type logQueues struct {
 	unordered <-chan *logMessage
 }
 
+// partitionLogQueue will partition the expected logs into "unordered" and
+// "ordered" log channels. This function will also remove any logs in the
+// "ignoreMessages" list for a client.
 func partitionLogQueue(ctx context.Context, exp *clientLogMessages) logQueues {
 	orderedLogCh := make(chan *logMessage, len(exp.LogMessages))
 	unorderedLogCh := make(chan *logMessage, len(exp.LogMessages))
@@ -219,6 +241,12 @@ func matchOrderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		defer close(errs)
 
 		for actual := range logs.ordered {
+			// Ignore logs that are in the "IngoreMessages" slice of
+			// the expected results.
+			if logs.expected.ignore(ctx, actual) {
+				continue
+			}
+
 			expected := expLogMessages[0]
 			if expected == nil {
 				continue
@@ -251,8 +279,21 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 	go func() {
 		defer close(errs)
 
+		// Record the message literals as they occur.
+		actualMessageSet := map[string]bool{}
+
 		for actual := range logs.unordered {
-			var err error
+			msg, err := actual.Data.LookupErr(logger.KeyMessage)
+			if err != nil {
+				errs <- fmt.Errorf("could not lookup message from unordered log: %w", err)
+
+				break
+			}
+
+			msgStr := msg.StringValue()
+			if msgStr == logger.ConnectionPoolCleared && actualMessageSet[logger.ConnectionClosed] {
+				errs <- fmt.Errorf("connection has been closed before the pool could clear")
+			}
 
 			// Iterate over the unordered log messages and verify
 			// that at least one of them matches the actual log
@@ -272,6 +313,8 @@ func matchUnorderedLogs(ctx context.Context, logs logQueues) <-chan error {
 			if err != nil {
 				errs <- err
 			}
+
+			actualMessageSet[msgStr] = true
 		}
 	}()
 

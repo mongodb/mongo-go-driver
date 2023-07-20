@@ -8,6 +8,8 @@ package integration
 
 import (
 	"context"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -681,6 +684,131 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		acfc, ok := acfcVal.BooleanOK()
 		assert.True(mt, ok, "expected field 'allChangesForCluster' to be boolean, got %v", acfcVal.Type.String())
 		assert.False(mt, acfc, "expected field 'allChangesForCluster' to be false, got %v", acfc)
+	})
+
+	withBSONOpts := mtest.NewOptions().ClientOptions(
+		options.Client().SetBSONOptions(&options.BSONOptions{
+			UseJSONStructTags: true,
+		}))
+	mt.RunOpts("with BSONOptions", withBSONOpts, func(mt *mtest.T) {
+		cs, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{})
+		require.NoError(mt, err, "Watch error")
+		defer closeStream(cs)
+
+		type myDocument struct {
+			A string `json:"x"`
+		}
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := mt.Coll.InsertOne(context.Background(), myDocument{A: "foo"})
+			require.NoError(mt, err, "InsertOne error")
+		}()
+
+		cs.Next(context.Background())
+
+		var got struct {
+			FullDocument myDocument `bson:"fullDocument"`
+		}
+		err = cs.Decode(&got)
+		require.NoError(mt, err, "Decode error")
+
+		want := myDocument{
+			A: "foo",
+		}
+		assert.Equal(mt, want, got.FullDocument, "expected and actual Decode results are different")
+
+		wg.Wait()
+	})
+
+	splitLargeChangesCollOpts := options.
+		CreateCollection().
+		SetChangeStreamPreAndPostImages(bson.M{"enabled": true})
+
+	splitLargeChangesOpts := mtOpts.
+		MinServerVersion("7.0.0").
+		CreateClient(true).
+		CollectionCreateOptions(splitLargeChangesCollOpts)
+
+	mt.RunOpts("split large changes", splitLargeChangesOpts, func(mt *mtest.T) {
+		type idValue struct {
+			ID    int32  `bson:"_id"`
+			Value string `bson:"value"`
+		}
+
+		doc := idValue{
+			ID:    1,
+			Value: "q" + strings.Repeat("q", 10*1024*1024),
+		}
+
+		// Insert the document
+		_, err := mt.Coll.InsertOne(context.Background(), doc)
+		require.NoError(t, err, "failed to insert idValue")
+
+		// Watch for change events
+		pipeline := mongo.Pipeline{
+			{{"$changeStreamSplitLargeEvent", bson.D{}}},
+		}
+
+		opts := options.ChangeStream().SetFullDocument(options.Required)
+
+		cs, err := mt.Coll.Watch(context.Background(), pipeline, opts)
+		require.NoError(t, err, "failed to watch collection")
+
+		defer closeStream(cs)
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			filter := bson.D{{"_id", int32(1)}}
+			update := bson.D{{"$set", bson.D{{"value", "z" + strings.Repeat("q", 10*1024*1024)}}}}
+
+			_, err := mt.Coll.UpdateOne(context.Background(), filter, update)
+			require.NoError(mt, err, "failed to update idValue")
+		}()
+
+		nextCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		t.Cleanup(cancel)
+
+		type splitEvent struct {
+			Fragment int32 `bson:"fragment"`
+			Of       int32 `bson:"of"`
+		}
+
+		got := struct {
+			SplitEvent splitEvent `bson:"splitEvent"`
+		}{}
+
+		cs.Next(nextCtx)
+
+		err = cs.Decode(&got)
+		require.NoError(mt, err, "failed to decode first iteration")
+
+		want := splitEvent{
+			Fragment: 1,
+			Of:       2,
+		}
+
+		assert.Equal(mt, want, got.SplitEvent, "expected and actual Decode results are different")
+
+		cs.Next(nextCtx)
+
+		err = cs.Decode(&got)
+		require.NoError(mt, err, "failed to decoded second iteration")
+
+		want = splitEvent{
+			Fragment: 2,
+			Of:       2,
+		}
+
+		assert.Equal(mt, want, got.SplitEvent, "expected and actual decode results are different")
+
+		wg.Wait()
 	})
 }
 

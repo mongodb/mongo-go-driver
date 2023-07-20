@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
@@ -501,6 +502,9 @@ func TestClient(t *testing.T) {
 		// When connected directly, the primary read preference should be overwritten to primaryPreferred.
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%s'", evt.CommandName)
+
+		// A direct connection will result in a single topology, and so
+		// the default readPreference mode should be "primaryPrefered".
 		modeVal, err := evt.Command.LookupErr("$readPreference", "mode")
 		assert.Nil(mt, err, "expected command %s to include $readPreference", evt.Command)
 
@@ -792,17 +796,133 @@ func TestClient(t *testing.T) {
 	})
 }
 
-func TestClientStress(t *testing.T) {
+func TestClient_BSONOptions(t *testing.T) {
 	t.Parallel()
 
+	mt := mtest.New(t, noClientOpts)
+	defer mt.Close()
+
+	type jsonTagsTest struct {
+		A string
+		B string `json:"x"`
+		C string `json:"y" bson:"3"`
+	}
+
+	testCases := []struct {
+		name       string
+		bsonOpts   *options.BSONOptions
+		doc        interface{}
+		decodeInto func() interface{}
+		want       interface{}
+		wantRaw    bson.Raw
+	}{
+		{
+			name: "UseJSONStructTags",
+			bsonOpts: &options.BSONOptions{
+				UseJSONStructTags: true,
+			},
+			doc: jsonTagsTest{
+				A: "apple",
+				B: "banana",
+				C: "carrot",
+			},
+			decodeInto: func() interface{} { return &jsonTagsTest{} },
+			want: &jsonTagsTest{
+				A: "apple",
+				B: "banana",
+				C: "carrot",
+			},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendString("a", "apple").
+				AppendString("x", "banana").
+				AppendString("3", "carrot").
+				Build()),
+		},
+		{
+			name: "IntMinSize",
+			bsonOpts: &options.BSONOptions{
+				IntMinSize: true,
+			},
+			doc:        bson.D{{Key: "x", Value: int64(1)}},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{Key: "x", Value: int32(1)}},
+			wantRaw: bson.Raw(bsoncore.NewDocumentBuilder().
+				AppendInt32("x", 1).
+				Build()),
+		},
+		{
+			name: "DefaultDocumentM",
+			bsonOpts: &options.BSONOptions{
+				DefaultDocumentM: true,
+			},
+			doc:        bson.D{{Key: "doc", Value: bson.D{{Key: "a", Value: int64(1)}}}},
+			decodeInto: func() interface{} { return &bson.D{} },
+			want:       &bson.D{{Key: "doc", Value: bson.M{"a": int64(1)}}},
+		},
+	}
+
+	for _, tc := range testCases {
+		opts := mtest.NewOptions().ClientOptions(
+			options.Client().SetBSONOptions(tc.bsonOpts))
+		mt.RunOpts(tc.name, opts, func(mt *mtest.T) {
+			res, err := mt.Coll.InsertOne(context.Background(), tc.doc)
+			require.NoError(mt, err, "InsertOne error")
+
+			sr := mt.Coll.FindOne(
+				context.Background(),
+				bson.D{{Key: "_id", Value: res.InsertedID}},
+				// Exclude the auto-generated "_id" field so we can make simple
+				// assertions on the return value.
+				options.FindOne().SetProjection(bson.D{{Key: "_id", Value: 0}}))
+
+			if tc.want != nil {
+				got := tc.decodeInto()
+				err := sr.Decode(got)
+				require.NoError(mt, err, "Decode error")
+
+				assert.Equal(mt, tc.want, got, "expected and actual decoded result are different")
+			}
+
+			if tc.wantRaw != nil {
+				got, err := sr.DecodeBytes()
+				require.NoError(mt, err, "DecodeBytes error")
+
+				assert.EqualBSON(mt, tc.wantRaw, got)
+			}
+		})
+	}
+
+	opts := mtest.NewOptions().ClientOptions(
+		options.Client().SetBSONOptions(&options.BSONOptions{
+			ErrorOnInlineDuplicates: true,
+		}))
+	mt.RunOpts("ErrorOnInlineDuplicates", opts, func(mt *mtest.T) {
+		type inlineDupInner struct {
+			A string
+		}
+
+		type inlineDupOuter struct {
+			A string
+			B *inlineDupInner `bson:"b,inline"`
+		}
+
+		_, err := mt.Coll.InsertOne(context.Background(), inlineDupOuter{
+			A: "outer",
+			B: &inlineDupInner{
+				A: "inner",
+			},
+		})
+		require.Error(mt, err, "expected InsertOne to return an error")
+	})
+}
+
+func TestClientStress(t *testing.T) {
 	mtOpts := mtest.NewOptions().CreateClient(false)
 	mt := mtest.New(t, mtOpts)
 	defer mt.Close()
 
 	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
 	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
-		mt.Parallel()
-
 		oid := primitive.NewObjectID()
 		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
 		_, err := mt.Coll.InsertOne(context.Background(), doc)
@@ -857,8 +977,6 @@ func TestClientStress(t *testing.T) {
 					SetPoolMonitor(tpm.PoolMonitor).
 					SetMaxPoolSize(maxPoolSize))
 			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
-				mt.Parallel()
-
 				// Print the count of connection created, connection closed, and pool clear events
 				// collected during the test to help with debugging.
 				defer func() {

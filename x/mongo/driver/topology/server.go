@@ -17,6 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -186,6 +187,39 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 	s.publishServerOpeningEvent(s.address)
 
 	return s
+}
+
+func mustLogServerMessage(srv *Server) bool {
+	return srv.cfg.logger != nil && srv.cfg.logger.LevelComponentEnabled(
+		logger.LevelDebug, logger.ComponentTopology)
+}
+
+func logServerMessage(srv *Server, msg string, keysAndValues ...interface{}) {
+	serverHost, serverPort, err := net.SplitHostPort(srv.address.String())
+	if err != nil {
+		serverHost = srv.address.String()
+		serverPort = ""
+	}
+
+	var driverConnectionID uint64
+	var serverConnectionID *int64
+
+	if srv.conn != nil {
+		driverConnectionID = srv.conn.driverConnectionID
+		serverConnectionID = srv.conn.serverConnectionID
+	}
+
+	srv.cfg.logger.Print(logger.LevelDebug,
+		logger.ComponentTopology,
+		msg,
+		logger.SerializeServer(logger.Server{
+			DriverConnectionID: driverConnectionID,
+			TopologyID:         srv.topologyID,
+			Message:            msg,
+			ServerConnectionID: serverConnectionID,
+			ServerHost:         serverHost,
+			ServerPort:         serverPort,
+		}, keysAndValues...)...)
 }
 
 // Connect initializes the Server by starting background monitoring goroutines.
@@ -497,7 +531,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	return driver.ConnectionPoolCleared
 }
 
-// update handles performing heartbeats and updating any subscribers of the
+// update handle performing heartbeats and updating any subscribers of the
 // newest description.Server retrieved.
 func (s *Server) update() {
 	defer s.closewg.Done()
@@ -763,8 +797,7 @@ func (s *Server) check() (description.Server, error) {
 	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
 		// Create a new connection if this is the first check, the connection was closed after an error during the previous
 		// check, or the previous check was cancelled.
-		isNilConn := s.conn == nil
-		if !isNilConn {
+		if s.conn != nil {
 			s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
 		}
 		// Create a new connection and add it's handshake RTT as a sample.
@@ -774,12 +807,12 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			if !isNilConn {
+			if s.conn != nil {
 				s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, s.conn.desc, false)
 			}
 		} else {
 			err = unwrapConnectionError(err)
-			if !isNilConn {
+			if s.conn != nil {
 				s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, false)
 			}
 		}
@@ -948,6 +981,10 @@ func (s *Server) publishServerOpeningEvent(addr address.Address) {
 	if s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerOpening != nil {
 		s.cfg.serverMonitor.ServerOpening(serverOpening)
 	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerOpening)
+	}
 }
 
 // publishes a ServerHeartbeatStartedEvent to indicate a hello command has started
@@ -959,6 +996,11 @@ func (s *Server) publishServerHeartbeatStartedEvent(connectionID string, await b
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatStarted != nil {
 		s.cfg.serverMonitor.ServerHeartbeatStarted(serverHeartbeatStarted)
+	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+			logger.KeyAwaited, await)
 	}
 }
 
@@ -979,6 +1021,13 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatSucceeded != nil {
 		s.cfg.serverMonitor.ServerHeartbeatSucceeded(serverHeartbeatSucceeded)
 	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+			logger.KeyAwaited, await,
+			logger.KeyDurationMS, duration.Milliseconds(),
+			logger.KeyReply, desc)
+	}
 }
 
 // publishes a ServerHeartbeatFailedEvent to indicate hello has failed
@@ -997,6 +1046,13 @@ func (s *Server) publishServerHeartbeatFailedEvent(connectionID string,
 
 	if s != nil && s.cfg.serverMonitor != nil && s.cfg.serverMonitor.ServerHeartbeatFailed != nil {
 		s.cfg.serverMonitor.ServerHeartbeatFailed(serverHeartbeatFailed)
+	}
+
+	if mustLogServerMessage(s) {
+		logServerMessage(s, logger.TopologyServerHeartbeatFailed,
+			logger.KeyAwaited, await,
+			logger.KeyDurationMS, duration.Milliseconds(),
+			logger.KeyFailure, err.Error())
 	}
 }
 

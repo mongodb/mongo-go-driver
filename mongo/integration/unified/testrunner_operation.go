@@ -172,6 +172,10 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 
 		for idx, entity := range createEntities {
 			for entityType, entityOptions := range entity {
+				if entityType == "client" && hasOperationalFailpoint(ctx) {
+					entityOptions.setHeartbeatFrequencyMS(lowHeartbeatFrequency)
+				}
+
 				if err := entities(ctx).addEntity(ctx, entityType, entityOptions); err != nil {
 					return fmt.Errorf("error creating entity at index %d: %v", idx, err)
 				}

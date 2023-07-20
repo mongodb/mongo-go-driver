@@ -14,44 +14,56 @@ import (
 )
 
 const (
-	CommandFailed             = "Command failed"
-	CommandStarted            = "Command started"
-	CommandSucceeded          = "Command succeeded"
-	ConnectionPoolCreated     = "Connection pool created"
-	ConnectionPoolReady       = "Connection pool ready"
-	ConnectionPoolCleared     = "Connection pool cleared"
-	ConnectionPoolClosed      = "Connection pool closed"
-	ConnectionCreated         = "Connection created"
-	ConnectionReady           = "Connection ready"
-	ConnectionClosed          = "Connection closed"
-	ConnectionCheckoutStarted = "Connection checkout started"
-	ConnectionCheckoutFailed  = "Connection checkout failed"
-	ConnectionCheckedOut      = "Connection checked out"
-	ConnectionCheckedIn       = "Connection checked in"
+	CommandFailed                    = "Command failed"
+	CommandStarted                   = "Command started"
+	CommandSucceeded                 = "Command succeeded"
+	ConnectionPoolCreated            = "Connection pool created"
+	ConnectionPoolReady              = "Connection pool ready"
+	ConnectionPoolCleared            = "Connection pool cleared"
+	ConnectionPoolClosed             = "Connection pool closed"
+	ConnectionCreated                = "Connection created"
+	ConnectionReady                  = "Connection ready"
+	ConnectionClosed                 = "Connection closed"
+	ConnectionCheckoutStarted        = "Connection checkout started"
+	ConnectionCheckoutFailed         = "Connection checkout failed"
+	ConnectionCheckedOut             = "Connection checked out"
+	ConnectionCheckedIn              = "Connection checked in"
+	TopologyClosed                   = "Stopped topology monitoring"
+	TopologyDescriptionChanged       = "Topology description changed"
+	TopologyOpening                  = "Starting topology monitoring"
+	TopologyServerClosed             = "Stopped server monitoring"
+	TopologyServerHeartbeatFailed    = "Server heartbeat failed"
+	TopologyServerHeartbeatStarted   = "Server heartbeat started"
+	TopologyServerHeartbeatSucceeded = "Server heartbeat succeeded"
+	TopologyServerOpening            = "Starting server monitoring"
 )
 
 const (
-	KeyCommand            = "command"
-	KeyCommandName        = "commandName"
-	KeyDatabaseName       = "databaseName"
-	KeyDriverConnectionID = "driverConnectionId"
-	KeyDurationMS         = "durationMS"
-	KeyError              = "error"
-	KeyFailure            = "failure"
-	KeyMaxConnecting      = "maxConnecting"
-	KeyMaxIdleTimeMS      = "maxIdleTimeMS"
-	KeyMaxPoolSize        = "maxPoolSize"
-	KeyMessage            = "message"
-	KeyMinPoolSize        = "minPoolSize"
-	KeyOperationID        = "operationId"
-	KeyReason             = "reason"
-	KeyReply              = "reply"
-	KeyRequestID          = "requestId"
-	KeyServerConnectionID = "serverConnectionId"
-	KeyServerHost         = "serverHost"
-	KeyServerPort         = "serverPort"
-	KeyServiceID          = "serviceId"
-	KeyTimestamp          = "timestamp"
+	KeyAwaited             = "awaited"
+	KeyCommand             = "command"
+	KeyCommandName         = "commandName"
+	KeyDatabaseName        = "databaseName"
+	KeyDriverConnectionID  = "driverConnectionId"
+	KeyDurationMS          = "durationMS"
+	KeyError               = "error"
+	KeyFailure             = "failure"
+	KeyMaxConnecting       = "maxConnecting"
+	KeyMaxIdleTimeMS       = "maxIdleTimeMS"
+	KeyMaxPoolSize         = "maxPoolSize"
+	KeyMessage             = "message"
+	KeyMinPoolSize         = "minPoolSize"
+	KeyNewDescription      = "newDescription"
+	KeyOperationID         = "operationId"
+	KeyPreviousDescription = "previousDescription"
+	KeyReason              = "reason"
+	KeyReply               = "reply"
+	KeyRequestID           = "requestId"
+	KeyServerConnectionID  = "serverConnectionId"
+	KeyServerHost          = "serverHost"
+	KeyServerPort          = "serverPort"
+	KeyServiceID           = "serviceId"
+	KeyTimestamp           = "timestamp"
+	KeyTopologyID          = "topologyId"
 )
 
 type KeyValues []interface{}
@@ -138,7 +150,7 @@ type Command struct {
 // SerializeCommand takes a command and a variable number of key-value pairs and
 // returns a slice of interface{} that can be passed to the logger for
 // structured logging.
-func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interface{} {
+func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyCommandName, cmd.Name,
@@ -155,7 +167,7 @@ func SerializeCommand(cmd Command, extraKeysAndValues ...interface{}) []interfac
 		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
 	}
 
-	port, err := strconv.ParseInt(cmd.ServerPort, 0, 32)
+	port, err := strconv.ParseInt(cmd.ServerPort, 10, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
 	}
@@ -180,9 +192,9 @@ type Connection struct {
 	ServerPort string // Port for the server
 }
 
-// SerializeConnection serializes a ConnectionMessage into a slice of keys
-// and values that can be passed to a logger.
-func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []interface{} {
+// SerializeConnection serializes a Connection message into a slice of keys and
+// values that can be passed to a logger.
+func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) KeyValues {
 	// Initialize the boilerplate keys and values.
 	keysAndValues := KeyValues{
 		KeyMessage, conn.Message,
@@ -194,9 +206,68 @@ func SerializeConnection(conn Connection, extraKeysAndValues ...interface{}) []i
 		keysAndValues.Add(extraKeysAndValues[i].(string), extraKeysAndValues[i+1])
 	}
 
-	port, err := strconv.ParseInt(conn.ServerPort, 0, 32)
+	port, err := strconv.ParseInt(conn.ServerPort, 10, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
+	}
+
+	return keysAndValues
+}
+
+// Server contains data that all server messages MAY contain.
+type Server struct {
+	DriverConnectionID uint64             // Driver's ID for the connection
+	TopologyID         primitive.ObjectID // Driver's unique ID for this topology
+	Message            string             // Message associated with the topology
+	ServerConnectionID *int64             // Server's ID for the connection
+	ServerHost         string             // Hostname or IP address for the server
+	ServerPort         string             // Port for the server
+}
+
+// SerializeServer serializes a Server message into a slice of keys and
+// values that can be passed to a logger.
+func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
+	// Initialize the boilerplate keys and values.
+	keysAndValues := KeyValues{
+		KeyDriverConnectionID, srv.DriverConnectionID,
+		KeyMessage, srv.Message,
+		KeyServerHost, srv.ServerHost,
+		KeyTopologyID, srv.TopologyID.Hex(),
+	}
+
+	if connID := srv.ServerConnectionID; connID != nil {
+		keysAndValues.Add(KeyServerConnectionID, *connID)
+	}
+
+	port, err := strconv.ParseInt(srv.ServerPort, 10, 32)
+	if err == nil {
+		keysAndValues.Add(KeyServerPort, port)
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKV); i += 2 {
+		keysAndValues.Add(extraKV[i].(string), extraKV[i+1])
+	}
+
+	return keysAndValues
+}
+
+// Topology contains data that all topology messages MAY contain.
+type Topology struct {
+	ID      primitive.ObjectID // Driver's unique ID for this topology
+	Message string             // Message associated with the topology
+}
+
+// SerializeTopology serializes a Topology message into a slice of keys and
+// values that can be passed to a logger.
+func SerializeTopology(topo Topology, extraKV ...interface{}) KeyValues {
+	keysAndValues := KeyValues{
+		KeyTopologyID, topo.ID.Hex(),
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKV); i += 2 {
+		keysAndValues.Add(extraKV[i].(string), extraKV[i+1])
 	}
 
 	return keysAndValues
