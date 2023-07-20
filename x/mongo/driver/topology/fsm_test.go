@@ -105,7 +105,15 @@ func TestFSMSessionTimeout(t *testing.T) {
 			t.Parallel()
 
 			got := selectFSMSessionTimeout(test.f, test.s)
-			assert.Equal(t, test.want, got, "minFSMServersTimeout() = %v, wanted %v", got, test.want)
+			gotStr := "nil"
+			wantStr := "nil"
+			if got != nil {
+				gotStr = fmt.Sprintf("%v", *got)
+			}
+			if test.want != nil {
+				wantStr = fmt.Sprintf("%v", *test.want)
+			}
+			assert.Equal(t, test.want, got, "minFSMServersTimeout() = %v (%v), wanted %v (%v).", got, gotStr, test.want, wantStr)
 		})
 	}
 }
