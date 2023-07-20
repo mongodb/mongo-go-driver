@@ -38,6 +38,7 @@ func TestSerializeCommand(t *testing.T) {
 			name: "empty",
 			want: KeyValues{
 				KeyCommandName, "",
+				KeyDatabaseName, "",
 				KeyDriverConnectionID, uint64(0),
 				KeyMessage, "",
 				KeyOperationID, int32(0),
@@ -50,6 +51,7 @@ func TestSerializeCommand(t *testing.T) {
 			cmd: Command{
 				DriverConnectionID: 1,
 				Name:               "foo",
+				DatabaseName:       "db",
 				Message:            "bar",
 				OperationID:        2,
 				RequestID:          3,
@@ -60,6 +62,7 @@ func TestSerializeCommand(t *testing.T) {
 			},
 			want: KeyValues{
 				KeyCommandName, "foo",
+				KeyDatabaseName, "db",
 				KeyDriverConnectionID, uint64(1),
 				KeyMessage, "bar",
 				KeyOperationID, int32(2),
