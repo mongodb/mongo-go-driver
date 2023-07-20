@@ -461,7 +461,7 @@ func findServerInTopology(topo description.Topology, addr address.Address) (desc
 func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, actual *uint32) {
 	t.Helper()
 
-	// If they pointers are equal, then do nothing.
+	// If the pointers are equal, then do nothing.
 	if ptrutil.CompareUint32(expected, actual) == 0 {
 		return
 	}
