@@ -82,7 +82,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	}
 
 	mtOpts := mtest.NewOptions().
-		MinServerVersion("5.0").
+		MinServerVersion("4.2").
 		Topologies(mtest.ReplicaSet, mtest.Sharded).
 		CreateCollection(false).
 		CreateClient(false)
