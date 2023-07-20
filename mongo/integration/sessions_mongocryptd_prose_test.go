@@ -72,9 +72,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	cmdMonitor := &event.CommandMonitor{
 		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 			_, err := evt.Command.LookupErr("lsid")
-			if !errors.Is(err, bsoncore.ErrElementNotFound) {
-				require.NoError(t, err, "expected error to be nil, got %v", err)
-			}
+			assert.ErrorIs(t, err, bsoncore.ErrElementNotFound)
 		},
 	}
 
