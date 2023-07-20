@@ -9,31 +9,33 @@ package unified
 import (
 	"strings"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 type monitoringEventType string
 
 const (
-	commandStartedEvent             monitoringEventType = "CommandStartedEvent"
-	commandSucceededEvent           monitoringEventType = "CommandSucceededEvent"
-	commandFailedEvent              monitoringEventType = "CommandFailedEvent"
-	poolCreatedEvent                monitoringEventType = "PoolCreatedEvent"
-	poolReadyEvent                  monitoringEventType = "PoolReadyEvent"
-	poolClearedEvent                monitoringEventType = "PoolClearedEvent"
-	poolClosedEvent                 monitoringEventType = "PoolClosedEvent"
-	connectionCreatedEvent          monitoringEventType = "ConnectionCreatedEvent"
-	connectionReadyEvent            monitoringEventType = "ConnectionReadyEvent"
-	connectionClosedEvent           monitoringEventType = "ConnectionClosedEvent"
-	connectionCheckOutStartedEvent  monitoringEventType = "ConnectionCheckOutStartedEvent"
-	connectionCheckOutFailedEvent   monitoringEventType = "ConnectionCheckOutFailedEvent"
-	connectionCheckedOutEvent       monitoringEventType = "ConnectionCheckedOutEvent"
-	connectionCheckedInEvent        monitoringEventType = "ConnectionCheckedInEvent"
-	serverDescriptionChangedEvent   monitoringEventType = "ServerDescriptionChangedEvent"
-	serverHeartbeatFailedEvent      monitoringEventType = "ServerHeartbeatFailedEvent"
-	serverHeartbeatStartedEvent     monitoringEventType = "ServerHeartbeatStartedEvent"
-	serverHeartbeatSucceededEvent   monitoringEventType = "ServerHeartbeatSucceededEvent"
-	topologyDescriptionChangedEvent monitoringEventType = "TopologyDescriptionChangedEvent"
+	commandStartedEvent              monitoringEventType = "CommandStartedEvent"
+	commandSucceededEvent            monitoringEventType = "CommandSucceededEvent"
+	commandFailedEvent               monitoringEventType = "CommandFailedEvent"
+	poolCreatedEvent                 monitoringEventType = "PoolCreatedEvent"
+	poolReadyEvent                   monitoringEventType = "PoolReadyEvent"
+	poolClearedEvent                 monitoringEventType = "PoolClearedEvent"
+	poolClosedEvent                  monitoringEventType = "PoolClosedEvent"
+	connectionCreatedEvent           monitoringEventType = "ConnectionCreatedEvent"
+	connectionReadyEvent             monitoringEventType = "ConnectionReadyEvent"
+	connectionClosedEvent            monitoringEventType = "ConnectionClosedEvent"
+	connectionCheckOutStartedEvent   monitoringEventType = "ConnectionCheckOutStartedEvent"
+	connectionCheckOutFailedEvent    monitoringEventType = "ConnectionCheckOutFailedEvent"
+	connectionCheckedOutEvent        monitoringEventType = "ConnectionCheckedOutEvent"
+	connectionCheckedInEvent         monitoringEventType = "ConnectionCheckedInEvent"
+	metServerDescriptionChangedEvent monitoringEventType = "ServerDescriptionChangedEvent"
+	serverHeartbeatFailedEvent       monitoringEventType = "ServerHeartbeatFailedEvent"
+	serverHeartbeatStartedEvent      monitoringEventType = "ServerHeartbeatStartedEvent"
+	serverHeartbeatSucceededEvent    monitoringEventType = "ServerHeartbeatSucceededEvent"
+	topologyDescriptionChangedEvent  monitoringEventType = "TopologyDescriptionChangedEvent"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
@@ -67,7 +69,7 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 	case "connectioncheckedinevent":
 		return connectionCheckedInEvent, true
 	case "serverdescriptionchangedevent":
-		return serverDescriptionChangedEvent, true
+		return metServerDescriptionChangedEvent, true
 	case "serverheartbeatfailedevent":
 		return serverHeartbeatFailedEvent, true
 	case "serverheartbeatstartedevent":
@@ -108,4 +110,68 @@ func monitoringEventTypeFromPoolEvent(evt *event.PoolEvent) monitoringEventType 
 	default:
 		return ""
 	}
+}
+
+// serverDescription represents a description of a server.
+type serverDescription struct {
+	// Type is the type of the server in the description. Test runners MUST
+	// assert that the type in the published event matches this value.
+	Type string
+}
+
+// serverDescriptionChangedEvent represents an event generated when the server
+// description changes.
+type serverDescriptionChangedEvent struct {
+	// NewDescription  corresponds to the server description as it was after
+	// the change that triggered this event.
+	NewDescription serverDescription
+
+	// PreviousDescription corresponds to the server description as it was
+	// before the change that triggered this event
+	PreviousDescription serverDescription
+}
+
+// newServerDescriptionChangedEvent returns a new serverDescriptionChangedEvent
+// instance for the given event.
+func newServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) *serverDescriptionChangedEvent {
+	return &serverDescriptionChangedEvent{
+		NewDescription: serverDescription{
+			Type: evt.NewDescription.Kind.String(),
+		},
+		PreviousDescription: serverDescription{
+			Type: evt.PreviousDescription.Kind.String(),
+		},
+	}
+}
+
+// UnmarshalBSON unmarshals the event from BSON, used when trying to create the
+// expected event from a unified spec test.
+func (evt *serverDescriptionChangedEvent) UnmarshalBSON(data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	var raw bson.Raw
+	if err := bson.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Set the default case to "Unknown" for the NewDescription.Type field.
+	evt.NewDescription.Type = description.TopologyKind(description.Unknown).String()
+
+	// Lookup the previous description, if any.
+	if newDescription, err := raw.LookupErr("newDescription"); err == nil {
+		evt.NewDescription.Type = newDescription.Document().Lookup("type").StringValue()
+	}
+
+	// Set the default case to "Unknown" for the PreviousDescription.Type
+	// field.
+	evt.PreviousDescription.Type = description.TopologyKind(description.Unknown).String()
+
+	// Lookup the previous description, if any.
+	if previousDescription, err := raw.LookupErr("previousDescription"); err == nil {
+		evt.PreviousDescription.Type = previousDescription.Document().Lookup("type").StringValue()
+	}
+
+	return nil
 }
