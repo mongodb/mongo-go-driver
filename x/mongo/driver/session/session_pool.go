@@ -25,7 +25,7 @@ type Node struct {
 // relevant for determining session expiration.
 type topologyDescription struct {
 	kind           description.TopologyKind
-	timeoutMinutes *uint32
+	timeoutMinutes *int64
 }
 
 // Pool is a pool of server sessions that can be reused.

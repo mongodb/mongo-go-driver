@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -144,7 +143,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		sessionCtx := mongo.NewSessionContext(context.TODO(), session)
 
-                err = session.StartTransaction()
+		err = session.StartTransaction()
 		require.NoError(mt, err, "expected error to be nil, got %v", err)
 
 		coll := client.Database("db").Collection("coll")

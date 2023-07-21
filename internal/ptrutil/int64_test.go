@@ -12,15 +12,15 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
-func TestCompareUint32Ptr(t *testing.T) {
+func TestCompareInt64(t *testing.T) {
 	t.Parallel()
 
-	uint32ToPtr := func(u uint32) *uint32 { return &u }
-	unitPtr := uint32ToPtr(1)
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
+	int64Ptr := int64ToPtr(1)
 
 	tests := []struct {
 		name       string
-		ptr1, ptr2 *uint32
+		ptr1, ptr2 *int64
 		want       int
 	}{
 		{
@@ -29,36 +29,36 @@ func TestCompareUint32Ptr(t *testing.T) {
 		},
 		{
 			name: "ptr1 nil",
-			ptr2: uint32ToPtr(1),
+			ptr2: int64ToPtr(1),
 			want: -2,
 		},
 		{
 			name: "ptr2 nil",
-			ptr1: uint32ToPtr(1),
+			ptr1: int64ToPtr(1),
 			want: 2,
 		},
 		{
 			name: "ptr1 and ptr2 have same value, different address",
-			ptr1: uint32ToPtr(1),
-			ptr2: uint32ToPtr(1),
+			ptr1: int64ToPtr(1),
+			ptr2: int64ToPtr(1),
 			want: 0,
 		},
 		{
 			name: "ptr1 and ptr2 have the same address",
-			ptr1: unitPtr,
-			ptr2: unitPtr,
+			ptr1: int64Ptr,
+			ptr2: int64Ptr,
 			want: 0,
 		},
 		{
 			name: "ptr1 GT ptr2",
-			ptr1: uint32ToPtr(1),
-			ptr2: uint32ToPtr(0),
+			ptr1: int64ToPtr(1),
+			ptr2: int64ToPtr(0),
 			want: 1,
 		},
 		{
 			name: "ptr1 LT ptr2",
-			ptr1: uint32ToPtr(0),
-			ptr2: uint32ToPtr(1),
+			ptr1: int64ToPtr(0),
+			ptr2: int64ToPtr(1),
 			want: -1,
 		},
 	}
@@ -69,8 +69,8 @@ func TestCompareUint32Ptr(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := CompareUint32(test.ptr1, test.ptr2)
-			assert.Equal(t, test.want, got, "compareUint32Ptr() = %v, wanted %v", got, test.want)
+			got := CompareInt64(test.ptr1, test.ptr2)
+			assert.Equal(t, test.want, got, "compareInt64() = %v, wanted %v", got, test.want)
 		})
 	}
 }

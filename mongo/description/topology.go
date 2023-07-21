@@ -19,7 +19,7 @@ type Topology struct {
 	Kind    TopologyKind
 	// Deprecated: Use SessionTimeoutMinutesPtr instead.
 	SessionTimeoutMinutes    uint32
-	SessionTimeoutMinutesPtr *uint32
+	SessionTimeoutMinutesPtr *int64
 	CompatibilityErr         error
 }
 

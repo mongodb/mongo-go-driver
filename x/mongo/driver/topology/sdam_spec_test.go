@@ -154,7 +154,7 @@ type outcome struct {
 	Servers                      map[string]server
 	TopologyType                 string
 	SetName                      string
-	LogicalSessionTimeoutMinutes *uint32
+	LogicalSessionTimeoutMinutes *int64
 	MaxSetVersion                uint32
 	MaxElectionID                primitive.ObjectID `bson:"maxElectionId"`
 	Compatible                   *bool
@@ -458,11 +458,11 @@ func findServerInTopology(topo description.Topology, addr address.Address) (desc
 	return description.Server{}, false
 }
 
-func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, actual *uint32) {
+func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *int64, actual *int64) {
 	t.Helper()
 
 	// If the pointers are equal, then do nothing.
-	if ptrutil.CompareUint32(expected, actual) == 0 {
+	if ptrutil.CompareInt64(expected, actual) == 0 {
 		return
 	}
 

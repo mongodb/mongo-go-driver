@@ -414,7 +414,7 @@ func TestServerSelection(t *testing.T) {
 }
 
 func TestSessionTimeout(t *testing.T) {
-	uint32ToPtr := func(u uint32) *uint32 { return &u }
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
 
 	t.Run("UpdateSessionTimeout", func(t *testing.T) {
 		topo, err := New(nil)
@@ -425,7 +425,7 @@ func TestSessionTimeout(t *testing.T) {
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
 
@@ -436,7 +436,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
 			SessionTimeoutMinutes:    60,
-			SessionTimeoutMinutesPtr: uint32ToPtr(30),
+			SessionTimeoutMinutesPtr: int64ToPtr(30),
 		}
 		topo.apply(ctx, desc)
 
@@ -459,13 +459,13 @@ func TestSessionTimeout(t *testing.T) {
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 			{
 				Addr:                     address.Address("bar").Canonicalize(),
 				Kind:                     description.RSSecondary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
 
@@ -476,7 +476,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
 			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: uint32ToPtr(30),
+			SessionTimeoutMinutesPtr: int64ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should update because new timeout is lower
@@ -484,7 +484,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "bar",
 			Kind:                     description.RSPrimary,
 			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: uint32ToPtr(20),
+			SessionTimeoutMinutesPtr: int64ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
@@ -507,13 +507,13 @@ func TestSessionTimeout(t *testing.T) {
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 			{
 				Addr:                     address.Address("bar").Canonicalize(),
 				Kind:                     description.RSSecondary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
 
@@ -524,7 +524,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
 			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: uint32ToPtr(20),
+			SessionTimeoutMinutesPtr: int64ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because new timeout is higher
@@ -532,7 +532,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "bar",
 			Kind:                     description.RSPrimary,
 			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesPtr: uint32ToPtr(30),
+			SessionTimeoutMinutesPtr: int64ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
@@ -555,13 +555,13 @@ func TestSessionTimeout(t *testing.T) {
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 			{
 				Addr:                     address.Address("bar").Canonicalize(),
 				Kind:                     description.RSSecondary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
 
@@ -572,7 +572,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
 			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: uint32ToPtr(20),
+			SessionTimeoutMinutesPtr: int64ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because not a data bearing server
@@ -580,7 +580,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     "bar",
 			Kind:                     description.Unknown,
 			SessionTimeoutMinutes:    10,
-			SessionTimeoutMinutesPtr: uint32ToPtr(10),
+			SessionTimeoutMinutesPtr: int64ToPtr(10),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
@@ -605,7 +605,7 @@ func TestSessionTimeout(t *testing.T) {
 				Addr:                     address.Address("one").Canonicalize(),
 				Kind:                     description.RSPrimary,
 				SessionTimeoutMinutes:    20,
-				SessionTimeoutMinutesPtr: uint32ToPtr(20),
+				SessionTimeoutMinutesPtr: int64ToPtr(20),
 			},
 			{
 				// does not support sessions
@@ -616,7 +616,7 @@ func TestSessionTimeout(t *testing.T) {
 				Addr:                     address.Address("three").Canonicalize(),
 				Kind:                     description.RSPrimary,
 				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: uint32ToPtr(60),
+				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
 
@@ -627,7 +627,7 @@ func TestSessionTimeout(t *testing.T) {
 			Addr:                     address.Address("three"),
 			Kind:                     description.RSSecondary,
 			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesPtr: uint32ToPtr(30),
+			SessionTimeoutMinutesPtr: int64ToPtr(30),
 		}
 
 		topo.apply(ctx, desc)

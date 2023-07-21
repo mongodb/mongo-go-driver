@@ -9,11 +9,11 @@ package ptrutil
 // CompareUint32 is a piecewise function with the following return conditions:
 //
 // (1)  2, ptr1 != nil AND ptr2 == nil
-// (2)  1, ptr1 > ptr2
-// (3)  0, ptr1 == ptr2
-// (4) -1, ptr1 < ptr2
+// (2)  1, *ptr1 > *ptr2
+// (3)  0, ptr1 == ptr2 or *ptr1 == *ptr2
+// (4) -1, *ptr1 < *ptr2
 // (5) -2, ptr1 == nil AND ptr2 != nil
-func CompareUint32(ptr1, ptr2 *uint32) int {
+func CompareInt64(ptr1, ptr2 *int64) int {
 	if ptr1 == ptr2 {
 		// This will catch the double nil or same-pointer cases.
 		return 0
