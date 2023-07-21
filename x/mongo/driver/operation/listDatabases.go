@@ -163,6 +163,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Crypt:          ld.crypt,
 		ServerAPI:      ld.serverAPI,
 		Timeout:        ld.timeout,
+		Name:           driver.ListDatabasesOp,
 	}.Execute(ctx)
 
 }

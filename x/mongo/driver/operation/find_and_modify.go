@@ -143,6 +143,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		Crypt:          fam.crypt,
 		ServerAPI:      fam.serverAPI,
 		Timeout:        fam.timeout,
+		Name:           driver.FindAndModifyOp,
 	}.Execute(ctx)
 
 }

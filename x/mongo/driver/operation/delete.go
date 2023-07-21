@@ -114,6 +114,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		ServerAPI:         d.serverAPI,
 		Timeout:           d.timeout,
 		Logger:            d.logger,
+		Name:              driver.DeleteOp,
 	}.Execute(ctx)
 
 }

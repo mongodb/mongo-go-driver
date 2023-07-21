@@ -165,6 +165,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		ServerAPI:         u.serverAPI,
 		Timeout:           u.timeout,
 		Logger:            u.logger,
+		Name:              driver.UpdateOp,
 	}.Execute(ctx)
 
 }

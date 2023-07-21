@@ -105,6 +105,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Selector:          d.selector,
 		ServerAPI:         d.serverAPI,
 		Timeout:           d.timeout,
+		Name:              driver.DistinctOp,
 	}.Execute(ctx)
 
 }

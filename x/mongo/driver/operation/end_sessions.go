@@ -59,6 +59,7 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Deployment:        es.deployment,
 		Selector:          es.selector,
 		ServerAPI:         es.serverAPI,
+		Name:              driver.EndSessionsOp,
 	}.Execute(ctx)
 
 }

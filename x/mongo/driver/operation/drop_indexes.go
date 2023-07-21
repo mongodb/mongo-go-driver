@@ -99,6 +99,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		WriteConcern:      di.writeConcern,
 		ServerAPI:         di.serverAPI,
 		Timeout:           di.timeout,
+		Name:              driver.DropIndexesOp,
 	}.Execute(ctx)
 
 }

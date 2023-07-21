@@ -286,13 +286,13 @@ type waitForEventArguments struct {
 }
 
 // getServerDescriptionChangedEventCount will return "true" if a specific
-// server description change event has occured, up to the description type.
+// server description change event has occurred, up to the description type.
 //
 // If the bson.Raw value is empty, then this function will only consider if a
-// serverDescriptionChangeEvent has occured at all.
+// serverDescriptionChangeEvent has occurred at all.
 //
 // If the bson.Raw contains newDescription and/or previousDescription, this
-// function will attemp to compare them to events up to the fields defined in
+// function will attempt to compare them to events up to the fields defined in
 // the UST specifications.
 func getServerDescriptionChangedEventCount(client *clientEntity, raw bson.Raw) int32 {
 	if len(raw) == 0 {

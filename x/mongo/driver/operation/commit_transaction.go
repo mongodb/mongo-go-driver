@@ -66,6 +66,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Selector:          ct.selector,
 		WriteConcern:      ct.writeConcern,
 		ServerAPI:         ct.serverAPI,
+		Name:              driver.CommitTransactionOp,
 	}.Execute(ctx)
 
 }

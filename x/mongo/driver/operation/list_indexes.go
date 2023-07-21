@@ -83,6 +83,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		Type:           driver.Read,
 		ServerAPI:      li.serverAPI,
 		Timeout:        li.timeout,
+		Name:           driver.ListIndexesOp,
 	}.Execute(ctx)
 
 }

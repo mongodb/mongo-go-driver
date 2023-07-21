@@ -189,9 +189,28 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	return bson.Raw{}
 }
 
+// Operation Names should be sourced from the command reference documentation:
+// https://www.mongodb.com/docs/manual/reference/command/
 const (
-	InsertOp = "insert"
-	FindOp   = "find"
+	AbortTransactionOp  = "abortTransaction"  // AbortTransactionOp is the name for aborting a transaction
+	AggregateOp         = "aggregate"         // AggregateOp is the name for aggregating
+	CommitTransactionOp = "commitTransaction" // CommitTransactionOp is the name for committing a transaction
+	CountOp             = "count"             // CountOp is the name for counting
+	CreateOp            = "create"            // CreateOp is the name for creating
+	CreateIndexesOp     = "createIndexes"     // CreateIndexesOp is the name for creating indexes
+	DeleteOp            = "delete"            // DeleteOp is the name for deleting
+	DistinctOp          = "distinct"          // DistinctOp is the name for distinct
+	DropOp              = "drop"              // DropOp is the name for dropping
+	DropDatabaseOp      = "dropDatabase"      // DropDatabaseOp is the name for dropping a database
+	DropIndexesOp       = "dropIndexes"       // DropIndexesOp is the name for dropping indexes
+	EndSessionsOp       = "endSessions"       // EndSessionsOp is the name for ending sessions
+	FindAndModifyOp     = "findAndModify"     // FindAndModifyOp is the name for finding and modifying
+	FindOp              = "find"              // FindOp is the name for finding
+	InsertOp            = "insert"            // InsertOp is the name for inserting
+	ListCollectionsOp   = "listCollections"   // ListCollectionsOp is the name for listing collections
+	ListIndexesOp       = "listIndexes"       // ListIndexesOp is the name for listing indexes
+	ListDatabasesOp     = "listDatabases"     // ListDatabasesOp is the name for listing databases
+	UpdateOp            = "update"            // UpdateOp is the name for updating
 )
 
 // Operation is used to execute an operation. It contains all of the common code required to
@@ -310,9 +329,6 @@ type Operation struct {
 	Timeout *time.Duration
 
 	Logger *logger.Logger
-
-	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
-	cmdName string
 
 	// Name is the name of the operation. This is used when serializing
 	// OP_MSG as well as for logging server selection data.
@@ -641,7 +657,15 @@ func (op Operation) Execute(ctx context.Context) error {
 		startedInfo.connID = conn.ID()
 		startedInfo.driverConnectionID = conn.DriverConnectionID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
-		op.cmdName = startedInfo.cmdName
+
+		// If the command name does not match the operation name, update
+		// the operation name as a sanity check. It's more correct to
+		// be aligned with the data passed to the server via the
+		// wire message.
+		if startedInfo.cmdName != op.Name {
+			op.Name = startedInfo.cmdName
+		}
+
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		startedInfo.serverConnID = conn.ServerConnectionID()
@@ -1001,7 +1025,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
-	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
+	if op.Name == FindOp || op.Name == AggregateOp || op.Name == DistinctOp {
 		op.Client.UpdateSnapshotTime(res)
 	}
 

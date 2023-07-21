@@ -126,6 +126,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		Selector:          c.selector,
 		ServerAPI:         c.serverAPI,
 		Timeout:           c.timeout,
+		Name:              driver.CountOp,
 	}.Execute(ctx)
 
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace

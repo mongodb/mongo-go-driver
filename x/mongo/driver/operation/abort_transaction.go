@@ -64,6 +64,7 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		Selector:          at.selector,
 		WriteConcern:      at.writeConcern,
 		ServerAPI:         at.serverAPI,
+		Name:              driver.AbortTransactionOp,
 	}.Execute(ctx)
 
 }

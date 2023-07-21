@@ -23,11 +23,6 @@ type ServerSelector interface {
 	SelectServer(Topology, []Server) ([]Server, error)
 }
 
-type ServerSelectorStringer interface {
-	ServerSelector
-	fmt.Stringer
-}
-
 // ServerSelectorFunc is a function that can be used as a ServerSelector.
 type ServerSelectorFunc func(Topology, []Server) ([]Server, error)
 
@@ -126,8 +121,8 @@ func LatencySelector(latency time.Duration) ServerSelector {
 	return &latencySelector{latency: latency}
 }
 
-func (ls *latencySelector) SelectServer(t Topology, candidates []Server) ([]Server, error) {
-	if ls.latency < 0 {
+func (selector *latencySelector) SelectServer(t Topology, candidates []Server) ([]Server, error) {
+	if selector.latency < 0 {
 		return candidates, nil
 	}
 	if t.Kind == LoadBalanced {
@@ -152,7 +147,7 @@ func (ls *latencySelector) SelectServer(t Topology, candidates []Server) ([]Serv
 			return candidates, nil
 		}
 
-		max := min + ls.latency
+		max := min + selector.latency
 
 		viableIndexes := make([]int, 0, len(candidates))
 		for i, candidate := range candidates {
@@ -228,8 +223,8 @@ func (selector readPrefServerSelector) String() string {
 	return selector.info().String()
 }
 
-func (rpss readPrefServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
-	return rpss.fn(t, s)
+func (selector readPrefServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
+	return selector.fn(t, s)
 }
 
 func readPrefSelectorFunc(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelectorFunc {
