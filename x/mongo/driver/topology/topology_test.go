@@ -475,7 +475,7 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
+			SessionTimeoutMinutes:    30,
 			SessionTimeoutMinutesPtr: int64ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -494,7 +494,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timout miniutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, int64(20),
+		require.Equal(t, int64(20), *currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
 	})
 	t.Run("NoUpdate", func(t *testing.T) {
@@ -542,7 +542,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, int64(20),
+		require.Equal(t, int64(20), *currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
 	})
 	t.Run("TimeoutDataBearing", func(t *testing.T) {
@@ -590,7 +590,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, int64(20),
+		require.Equal(t, int64(20), *currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
 	})
 	t.Run("MixedSessionSupport", func(t *testing.T) {
