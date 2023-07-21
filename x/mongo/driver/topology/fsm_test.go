@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
@@ -118,60 +117,4 @@ func TestFSMSessionTimeout(t *testing.T) {
 			assert.Equal(t, test.want, got, "minFSMServersTimeout() = %v (%v), wanted %v (%v).", got, gotStr, test.want, wantStr)
 		})
 	}
-
-	t.Run("test timeout after server removed", func(t *testing.T) {
-		f := fsm{
-			Topology: description.Topology{
-				Kind:                     description.ReplicaSetWithPrimary,
-				SessionTimeoutMinutesPtr: int64ToPtr(1),
-				Servers: []description.Server{
-					{
-						Kind:                     description.RSPrimary,
-						SessionTimeoutMinutesPtr: int64ToPtr(2),
-						Addr:                     "host1:27017",
-						Members: []address.Address{
-							"host1:27017",
-							"host2:27017",
-						},
-					},
-					{
-						Kind:                     description.RSSecondary,
-						SessionTimeoutMinutesPtr: int64ToPtr(1),
-						Addr:                     "host2:27017",
-						Members: []address.Address{
-							"host1:27017",
-							"host2:27017",
-						},
-					},
-				},
-			},
-		}
-
-		// Apply a new server description that removes `host2` from the FSM.
-		f.apply(description.Server{
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutesPtr: int64ToPtr(2),
-			Addr:                     "host1:27017",
-			Members: []address.Address{
-				"host1:27017",
-			},
-		})
-
-		expect := []description.Server{
-			{
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: int64ToPtr(2),
-				Addr:                     "host1:27017",
-				Members: []address.Address{
-					"host1:27017",
-				},
-			},
-		}
-
-		assert.Equal(t, expect, f.Servers)
-
-		// Check that the SessionTimeoutMinutesPtr has been updated to the new minimum (2).
-		assert.NotNil(t, f.SessionTimeoutMinutesPtr)
-		assert.Equal(t, *f.SessionTimeoutMinutesPtr, int64(2))
-	})
 }

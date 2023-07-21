@@ -106,10 +106,20 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
+	// Reset the logicalSessionTimeoutMinutes to the minimum of the FSM
+	// and the description.server/f.servers.
+	serverTimeoutMinutes := selectFSMSessionTimeout(f, s)
+
 	f.Topology = description.Topology{
 		Kind:    f.Kind,
 		Servers: newServers,
 		SetName: f.SetName,
+	}
+
+	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
+
+	if serverTimeoutMinutes != nil {
+		f.SessionTimeoutMinutes = uint32(*serverTimeoutMinutes)
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
@@ -162,22 +172,6 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 
 	f.compatible.Store(true)
 	f.compatibilityErr = nil
-
-	// Reset the logicalSessionTimeoutMinutes to the minimum of the FSM
-	// and the description.server/f.servers.
-	serverTimeoutMinutes := selectFSMSessionTimeout(f, s)
-
-	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
-
-	// TODO(GODRIVER-2885): This branch can be removed once legacy
-	// SessionTimeoutMinutes is removed.
-	f.SessionTimeoutMinutes = func() uint32 {
-		if serverTimeoutMinutes != nil {
-			return uint32(*serverTimeoutMinutes)
-		}
-
-		return 0
-	}()
 
 	return f.Topology, updatedDesc
 }

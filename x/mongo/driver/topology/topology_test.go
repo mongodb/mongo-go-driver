@@ -435,7 +435,7 @@ func TestSessionTimeout(t *testing.T) {
 		desc := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    60,
+			SessionTimeoutMinutes:    30,
 			SessionTimeoutMinutesPtr: int64ToPtr(30),
 		}
 		topo.apply(ctx, desc)
@@ -444,7 +444,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, uint32(30),
+		require.Equal(t, int64(30), *currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: %d. expected: 30", *currDesc.SessionTimeoutMinutesPtr)
 
 	})
@@ -494,7 +494,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timout miniutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, uint32(20),
+		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, int64(20),
 			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
 	})
 	t.Run("NoUpdate", func(t *testing.T) {
@@ -542,7 +542,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, uint32(20),
+		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, int64(20),
 			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
 	})
 	t.Run("TimeoutDataBearing", func(t *testing.T) {
@@ -590,7 +590,7 @@ func TestSessionTimeout(t *testing.T) {
 		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch. got: nil. expected: 20")
 
-		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, uint32(20),
+		require.Equal(t, *currDesc.SessionTimeoutMinutesPtr, int64(20),
 			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
 	})
 	t.Run("MixedSessionSupport", func(t *testing.T) {
