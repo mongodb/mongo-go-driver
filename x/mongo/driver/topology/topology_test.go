@@ -491,11 +491,9 @@ func TestSessionTimeout(t *testing.T) {
 		topo.apply(ctx, desc2)
 
 		currDesc := topo.Description()
-		require.NotNil(t, currDesc.SessionTimeoutMinutesPtr,
-			"session timout miniutes mismatch. got: nil. expected: 20")
-
-		require.Equal(t, int64(20), *currDesc.SessionTimeoutMinutesPtr,
-			"session timeout minutes mismatch. got: %d. expected: 20", *currDesc.SessionTimeoutMinutesPtr)
+		want := int64(20)
+		require.Equal(t, &want, currDesc.SessionTimeoutMinutesPtr,
+			"session timeout minutes mismatch")
 	})
 	t.Run("NoUpdate", func(t *testing.T) {
 		topo, err := New(nil)
