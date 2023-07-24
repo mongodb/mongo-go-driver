@@ -44,10 +44,6 @@ func newLogMessage(level int, msg string, args ...interface{}) (*logMessage, err
 		}
 	}
 
-	if len(args) == 0 {
-		return logMessage, nil
-	}
-
 	// The argument slice must have an even number of elements, otherwise it
 	// would not maintain the key-value structure of the document.
 	if len(args)%2 != 0 {
@@ -78,8 +74,20 @@ func newLogMessage(level int, msg string, args ...interface{}) (*logMessage, err
 // clientLogMessages is a struct representing the expected "LogMessages" for a
 // client.
 type clientLogMessages struct {
-	Client      string        `bson:"client"`
-	LogMessages []*logMessage `bson:"messages"`
+	Client         string        `bson:"client"`
+	IgnoreMessages []*logMessage `bson:"ignoreMessages"`
+	LogMessages    []*logMessage `bson:"messages"`
+}
+
+// ignore checks to see if the message is in the "IgnoreMessages" slice.
+func (clm clientLogMessages) ignore(ctx context.Context, msg *logMessage) bool {
+	for _, ignoreMessage := range clm.IgnoreMessages {
+		if err := verifyLogMatch(ctx, ignoreMessage, msg); err == nil {
+			return true
+		}
+	}
+
+	return false
 }
 
 // logMessageValidator defines the expectation for log messages across all
@@ -182,6 +190,9 @@ type logQueues struct {
 	unordered <-chan *logMessage
 }
 
+// partitionLogQueue will partition the expected logs into "unordered" and
+// "ordered" log channels. This function will also remove any logs in the
+// "ignoreMessages" list for a client.
 func partitionLogQueue(ctx context.Context, exp *clientLogMessages) logQueues {
 	orderedLogCh := make(chan *logMessage, len(exp.LogMessages))
 	unorderedLogCh := make(chan *logMessage, len(exp.LogMessages))
@@ -230,6 +241,12 @@ func matchOrderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		defer close(errs)
 
 		for actual := range logs.ordered {
+			// Ignore logs that are in the "IngoreMessages" slice of
+			// the expected results.
+			if logs.expected.ignore(ctx, actual) {
+				continue
+			}
+
 			expected := expLogMessages[0]
 			if expected == nil {
 				continue

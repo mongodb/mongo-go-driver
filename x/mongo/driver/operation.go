@@ -1514,6 +1514,9 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 	return op.ReadPreference, nil
 }
 
+// createReadPref will attempt to create a document with the "readPreference"
+// object and various related fields such as "mode", "tags", and
+// "maxStalenessSeconds".
 func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bool) (bsoncore.Document, error) {
 	// TODO(GODRIVER-2231): Instead of checking if isOutputAggregate and desc.Server.WireVersion.Max < 13, somehow check
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
@@ -1553,7 +1556,14 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
 		}
-		doc = bsoncore.AppendStringElement(doc, "mode", "primary")
+
+		// OP_MSG requires never sending read preference "primary"
+		// except for topology "single".
+		//
+		// It is important to note that although the Go Driver does not
+		// support legacy opcodes, OP_QUERY has different rules for
+		// adding read preference to commands.
+		return nil, nil
 	case readpref.PrimaryPreferredMode:
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
@@ -1785,14 +1795,14 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandStarted,
 				Name:               info.cmdName,
+				DatabaseName:       op.Database,
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
 				ServerPort:         port,
 				ServiceID:          info.serviceID,
 			},
-				logger.KeyCommand, formattedCmd,
-				logger.KeyDatabaseName, op.Database)...)
+				logger.KeyCommand, formattedCmd)...)
 
 	}
 
@@ -1838,6 +1848,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandSucceeded,
 				Name:               info.cmdName,
+				DatabaseName:       op.Database,
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
@@ -1860,6 +1871,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				DriverConnectionID: info.driverConnectionID,
 				Message:            logger.CommandFailed,
 				Name:               info.cmdName,
+				DatabaseName:       op.Database,
 				RequestID:          int64(info.requestID),
 				ServerConnectionID: info.serverConnID,
 				ServerHost:         host,
@@ -1877,6 +1889,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 	finished := event.CommandFinishedEvent{
 		CommandName:          info.cmdName,
+		DatabaseName:         op.Database,
 		RequestID:            int64(info.requestID),
 		ConnectionID:         info.connID,
 		Duration:             info.duration,

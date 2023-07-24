@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -513,7 +514,7 @@ func TestMarshalValue(t *testing.T) {
 		{
 			name:    "nil document",
 			value:   nil,
-			wantErr: ErrNilValue,
+			wantErr: codecutil.ErrNilValue,
 		},
 		{
 			name:  "value marshaler",

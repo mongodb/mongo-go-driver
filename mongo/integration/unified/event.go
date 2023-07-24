@@ -15,21 +15,25 @@ import (
 type monitoringEventType string
 
 const (
-	commandStartedEvent            monitoringEventType = "CommandStartedEvent"
-	commandSucceededEvent          monitoringEventType = "CommandSucceededEvent"
-	commandFailedEvent             monitoringEventType = "CommandFailedEvent"
-	poolCreatedEvent               monitoringEventType = "PoolCreatedEvent"
-	poolReadyEvent                 monitoringEventType = "PoolReadyEvent"
-	poolClearedEvent               monitoringEventType = "PoolClearedEvent"
-	poolClosedEvent                monitoringEventType = "PoolClosedEvent"
-	connectionCreatedEvent         monitoringEventType = "ConnectionCreatedEvent"
-	connectionReadyEvent           monitoringEventType = "ConnectionReadyEvent"
-	connectionClosedEvent          monitoringEventType = "ConnectionClosedEvent"
-	connectionCheckOutStartedEvent monitoringEventType = "ConnectionCheckOutStartedEvent"
-	connectionCheckOutFailedEvent  monitoringEventType = "ConnectionCheckOutFailedEvent"
-	connectionCheckedOutEvent      monitoringEventType = "ConnectionCheckedOutEvent"
-	connectionCheckedInEvent       monitoringEventType = "ConnectionCheckedInEvent"
-	serverDescriptionChangedEvent  monitoringEventType = "ServerDescriptionChangedEvent"
+	commandStartedEvent             monitoringEventType = "CommandStartedEvent"
+	commandSucceededEvent           monitoringEventType = "CommandSucceededEvent"
+	commandFailedEvent              monitoringEventType = "CommandFailedEvent"
+	poolCreatedEvent                monitoringEventType = "PoolCreatedEvent"
+	poolReadyEvent                  monitoringEventType = "PoolReadyEvent"
+	poolClearedEvent                monitoringEventType = "PoolClearedEvent"
+	poolClosedEvent                 monitoringEventType = "PoolClosedEvent"
+	connectionCreatedEvent          monitoringEventType = "ConnectionCreatedEvent"
+	connectionReadyEvent            monitoringEventType = "ConnectionReadyEvent"
+	connectionClosedEvent           monitoringEventType = "ConnectionClosedEvent"
+	connectionCheckOutStartedEvent  monitoringEventType = "ConnectionCheckOutStartedEvent"
+	connectionCheckOutFailedEvent   monitoringEventType = "ConnectionCheckOutFailedEvent"
+	connectionCheckedOutEvent       monitoringEventType = "ConnectionCheckedOutEvent"
+	connectionCheckedInEvent        monitoringEventType = "ConnectionCheckedInEvent"
+	serverDescriptionChangedEvent   monitoringEventType = "ServerDescriptionChangedEvent"
+	serverHeartbeatFailedEvent      monitoringEventType = "ServerHeartbeatFailedEvent"
+	serverHeartbeatStartedEvent     monitoringEventType = "ServerHeartbeatStartedEvent"
+	serverHeartbeatSucceededEvent   monitoringEventType = "ServerHeartbeatSucceededEvent"
+	topologyDescriptionChangedEvent monitoringEventType = "TopologyDescriptionChangedEvent"
 )
 
 func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) {
@@ -64,6 +68,14 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 		return connectionCheckedInEvent, true
 	case "serverdescriptionchangedevent":
 		return serverDescriptionChangedEvent, true
+	case "serverheartbeatfailedevent":
+		return serverHeartbeatFailedEvent, true
+	case "serverheartbeatstartedevent":
+		return serverHeartbeatStartedEvent, true
+	case "serverheartbeatsucceededevent":
+		return serverHeartbeatSucceededEvent, true
+	case "topologydescriptionchangedevent":
+		return topologyDescriptionChangedEvent, true
 	default:
 		return "", false
 	}

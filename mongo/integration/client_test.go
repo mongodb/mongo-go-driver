@@ -502,6 +502,9 @@ func TestClient(t *testing.T) {
 		// When connected directly, the primary read preference should be overwritten to primaryPreferred.
 		evt := mt.GetStartedEvent()
 		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%s'", evt.CommandName)
+
+		// A direct connection will result in a single topology, and so
+		// the default readPreference mode should be "primaryPrefered".
 		modeVal, err := evt.Command.LookupErr("$readPreference", "mode")
 		assert.Nil(mt, err, "expected command %s to include $readPreference", evt.Command)
 

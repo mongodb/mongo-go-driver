@@ -177,6 +177,9 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	switch cursorCommand {
 	case true:
 		cursorOpts := db.client.createBaseCursorOptions()
+
+		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
+
 		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
 	default:
 		op = operation.NewCommand(runCmdDoc)
@@ -254,6 +257,10 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 
 	if err = op.Execute(ctx); err != nil {
 		closeImplicitSession(sess)
+		if errors.Is(err, driver.ErrNoCursor) {
+			return nil, errors.New(
+				"database response does not contain a cursor; try using RunCommand instead")
+		}
 		return nil, replaceErrors(err)
 	}
 
@@ -395,6 +402,9 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout)
 
 	cursorOpts := db.client.createBaseCursorOptions()
+
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
+
 	if lco.NameOnly != nil {
 		op = op.NameOnly(*lco.NameOnly)
 	}

@@ -52,6 +52,7 @@ tests:
             component: command
             data:
               message: "Command succeeded"
+              databaseName: *databaseName
               commandName: *commandName
               reply: { $$type: string }
               requestId: { $$type: [int, long] }
@@ -85,6 +86,7 @@ tests:
             component: command
             data:
               message: "Command failed"
+              databaseName: *databaseName
               commandName: *commandName
               failure: { $$exists: true }
               requestId:  { $$type: [int, long] }

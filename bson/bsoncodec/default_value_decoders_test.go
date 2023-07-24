@@ -1530,8 +1530,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 					errors.New("copy error"),
 				},
 				{
-					"Unmarshaler",
+					// Only the pointer form of testUnmarshaler implements Unmarshaler
+					"value does not implement Unmarshaler",
 					testUnmarshaler{Val: bsoncore.AppendDouble(nil, 3.14159)},
+					nil,
+					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)},
+					bsonrwtest.ReadDouble,
+					nil,
+				},
+				{
+					"Unmarshaler",
+					&testUnmarshaler{Val: bsoncore.AppendDouble(nil, 3.14159)},
 					nil,
 					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)},
 					bsonrwtest.ReadDouble,

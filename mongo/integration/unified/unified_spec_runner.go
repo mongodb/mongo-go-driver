@@ -33,10 +33,7 @@ var (
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
-)
-
-const (
-	lowHeartbeatFrequency int32 = 50
+	lowHeartbeatFrequency      = 50 * time.Millisecond
 )
 
 // TestCase holds and runs a unified spec test case
@@ -104,7 +101,7 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 	content, err := ioutil.ReadFile(filepath)
 	assert.Nil(t, err, "ReadFile error for file %q: %v", filepath, err)
 
-	fileReqs, testCases := ParseTestFile(t, content, opts...)
+	fileReqs, testCases := ParseTestFile(t, content, expectValidFail, opts...)
 
 	mtOpts := mtest.NewOptions().
 		RunOn(fileReqs...).
@@ -160,11 +157,14 @@ func parseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*Te
 }
 
 // ParseTestFile create an array of TestCases from the testJSON json blob
-func ParseTestFile(t *testing.T, testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
+func ParseTestFile(t *testing.T, testJSON []byte, expectValidFail bool, opts ...*Options) ([]mtest.RunOnBlock, []*TestCase) {
 	t.Helper()
 
 	runOnRequirements, testCases, err := parseTestFile(testJSON, opts...)
-	assert.NoError(t, err, "error parsing test file")
+
+	if !expectValidFail {
+		assert.NoError(t, err, "error parsing test file")
+	}
 
 	return runOnRequirements, testCases
 }
@@ -228,7 +228,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		expectedLogCount += len(clientLog.LogMessages)
 	}
 
-	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount)
+	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount, tc.setsFailPoint())
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
@@ -266,16 +266,10 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	// a fail point, set a low heartbeatFrequencyMS value into the URI options map if one is not already present.
 	// This speeds up recovery time for the client if the fail point forces the server to return a state change
 	// error.
-	shouldSetHeartbeatFrequency := tc.setsFailPoint()
 	for idx, entity := range tc.createEntities {
 		for entityType, entityOptions := range entity {
-			if shouldSetHeartbeatFrequency && entityType == "client" {
-				if entityOptions.URIOptions == nil {
-					entityOptions.URIOptions = make(bson.M)
-				}
-				if _, ok := entityOptions.URIOptions["heartbeatFrequencyMS"]; !ok {
-					entityOptions.URIOptions["heartbeatFrequencyMS"] = lowHeartbeatFrequency
-				}
+			if entityType == "client" && hasOperationalFailpoint(testCtx) {
+				entityOptions.setHeartbeatFrequencyMS(lowHeartbeatFrequency)
 			}
 
 			if err := tc.entities.addEntity(testCtx, entityType, entityOptions); err != nil {
