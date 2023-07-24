@@ -6,7 +6,7 @@
 
 package ptrutil
 
-// CompareUint32 is a piecewise function with the following return conditions:
+// CompareInt64 is a piecewise function with the following return conditions:
 //
 // (1)  2, ptr1 != nil AND ptr2 == nil
 // (2)  1, *ptr1 > *ptr2
