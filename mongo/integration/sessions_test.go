@@ -596,7 +596,7 @@ func assertCollectionCount(mt *mtest.T, expectedCount int64) {
 	mt.Helper()
 
 	count, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
-	assert.Nil(mt, err, "CountDocuments error: %v", err)
+	require.NoError(mt, err, "CountDocuments error")
 	assert.Equal(mt, expectedCount, count, "expected CountDocuments result %v, got %v", expectedCount, count)
 }
 
