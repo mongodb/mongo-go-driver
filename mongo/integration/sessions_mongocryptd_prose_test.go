@@ -109,6 +109,10 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 	ctx := context.Background()
 
+	// Create the client using the mongo API rather than mtest. mtest will
+	// attempt to create a collection as a database operation, which will
+	// not work on a mongocryptd server. A mongocryptd server does not
+	// support operations on a database.
 	client, err := mongo.Connect(ctx, clientOpts)
 	require.NoError(t, err, "could not connect to mongocryptd: %v", err)
 

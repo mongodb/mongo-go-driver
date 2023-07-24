@@ -18,6 +18,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -286,22 +287,22 @@ func TestSessionsProse(t *testing.T) {
 		}
 	})
 
-	mt.RunOpts("6 no further operations can be performed using a session after endSession has been called",
-		noClientOpts, func(mt *mtest.T) {
-			// an ended session cannot be used in commands
+	const proseTest6 = "6 no further operations can be performed using a session after endSession has been called"
+	mt.RunOpts(proseTest6, noClientOpts, func(mt *mtest.T) {
+		// an ended session cannot be used in commands
 
-			sessionFunctions := createFunctionsSlice()
-			for _, sf := range sessionFunctions {
-				mt.Run(sf.name, func(mt *mtest.T) {
-					sess, err := mt.Client.StartSession()
-					assert.Nil(mt, err, "StartSession error: %v", err)
-					sess.EndSession(context.Background())
+		sessionFunctions := createFunctionsSlice()
+		for _, sf := range sessionFunctions {
+			mt.Run(sf.name, func(mt *mtest.T) {
+				sess, err := mt.Client.StartSession()
+				assert.Nil(mt, err, "StartSession error: %v", err)
+				sess.EndSession(context.Background())
 
-					err = sf.execute(mt, sess)
-					assert.Equal(mt, session.ErrSessionEnded, err, "expected error %v, got %v", session.ErrSessionEnded, err)
-				})
-			}
-		})
+				err = sf.execute(mt, sess)
+				assert.Equal(mt, session.ErrSessionEnded, err, "expected error %v, got %v", session.ErrSessionEnded, err)
+			})
+		}
+	})
 
 	mt.Run("7 authenticating as multiple users suppresses implicit sessions", func(mt *mtest.T) {
 		mt.Skip("Go Driver does not allow simultaneous authentication with multiple users.")
@@ -333,16 +334,12 @@ func TestSessionsProse(t *testing.T) {
 
 	mt.Run("9 client side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool",
 		func(mt *mtest.T) {
-			fmt.Println("start")
 			// Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
 
 			var docs []interface{}
 			for i := 0; i < 5; i++ {
 				docs = append(docs, bson.D{{"x", i}})
 			}
-
-			fmt.Println("before")
-			fmt.Println("coll: ", mt.Coll)
 
 			_, err := mt.Coll.InsertMany(context.Background(), docs)
 			assert.Nil(mt, err, "InsertMany error: %v", err)
