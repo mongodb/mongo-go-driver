@@ -134,6 +134,18 @@ func Majority() *WriteConcern {
 	return &WriteConcern{W: majority}
 }
 
+// MajorityWithJournaled MajorityWithJournaled returns a WriteConcern that requests acknowledgment that
+// write operations have been durably committed to the calculated majority of
+// the data-bearing voting members and have been written to the on-disk journal
+// on MongoDB.
+//
+// For more information about write concern "w: majority" and "j: true", see
+// https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-majority-
+func MajorityWithJournaled() *WriteConcern {
+	journal := true
+	return &WriteConcern{W: majority, Journal: &journal}
+}
+
 // Custom returns a WriteConcern that requests acknowledgment that write
 // operations have propagated to tagged members that satisfy the custom write
 // concern defined in "settings.getLastErrorModes".

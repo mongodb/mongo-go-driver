@@ -201,6 +201,12 @@ func TestWriteConcern(t *testing.T) {
 			wantIsValid:      false,
 		},
 		{
+			name:             "{w: majority, j: true}",
+			wc:               writeconcern.MajorityWithJournaled(),
+			wantAcknowledged: true,
+			wantIsValid:      true,
+		},
+		{
 			name:             "{w: custom}",
 			wc:               &writeconcern.WriteConcern{W: "custom"},
 			wantAcknowledged: true,
