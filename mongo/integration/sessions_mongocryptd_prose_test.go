@@ -61,7 +61,11 @@ func (p *mongocryptdProcess) close() error {
 	return nil
 }
 
-func TestSessionsMongocryptdProse(t *testing.T) {
+// newTestSessionMongocryptdProseClient will Create the client using the mongo
+// API rather than mtest. mtest will attempt to create a collection as
+// a database operation, which will not work on a mongocryptd server. A
+// mongocryptd server does not support operations on a database.
+func newTestSessionMongocryptdProseClient(mt *mtest.T) *mongo.Client {
 	const mongocryptdPort = 27022
 
 	// Monitor the lsid value on commands. If an operation run in any
@@ -71,7 +75,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	cmdMonitor := &event.CommandMonitor{
 		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 			_, err := evt.Command.LookupErr("lsid")
-			assert.ErrorIs(t, err, bsoncore.ErrElementNotFound)
+			assert.ErrorIs(mt, err, bsoncore.ErrElementNotFound)
 		},
 	}
 
@@ -80,6 +84,32 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 		Host:   net.JoinHostPort("localhost", strconv.Itoa(mongocryptdPort)),
 	}
 
+	proc := mongocryptdProcess{}
+
+	// Start a mongocryptd server.
+	err := proc.start(mongocryptdPort)
+	require.NoError(mt, err, "failed to create a mongocryptd process: %v", err)
+
+	mt.Cleanup(func() {
+		err := proc.close()
+		require.NoError(mt, err, "failed to close mongocryptd: %v", err)
+	})
+
+	clientOpts := options.
+		Client().
+		ApplyURI(uri.String()).
+		SetMonitor(cmdMonitor)
+
+	ctx := context.Background()
+
+	client, err := mongo.Connect(ctx, clientOpts)
+	require.NoError(mt, err, "could not connect to mongocryptd: %v", err)
+
+	return client
+
+}
+
+func TestSessionsMongocryptdProse(t *testing.T) {
 	mtOpts := mtest.NewOptions().
 		MinServerVersion("4.2").
 		Topologies(mtest.ReplicaSet, mtest.Sharded).
@@ -91,37 +121,15 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	mt := mtest.New(t, mtOpts)
 	mt.Cleanup(mt.Close)
 
-	proc := mongocryptdProcess{}
+	proseTest18 := "18. implicit session is ignored if connection does not support sessions"
+	mt.RunOpts(proseTest18, mtOpts, func(mt *mtest.T) {
+		client := newTestSessionMongocryptdProseClient(mt)
 
-	// Start a mongocryptd server.
-	err := proc.start(mongocryptdPort)
-	require.NoError(t, err, "failed to create a mongocryptd process: %v", err)
+		mt.Cleanup(func() {
+			err := client.Disconnect(context.Background())
+			require.NoError(mt, err, "mongocryptd client could not disconnect: %v", err)
+		})
 
-	t.Cleanup(func() {
-		err := proc.close()
-		require.NoError(t, err, "failed to close mongocryptd: %v", err)
-	})
-
-	clientOpts := options.
-		Client().
-		ApplyURI(uri.String()).
-		SetMonitor(cmdMonitor)
-
-	ctx := context.Background()
-
-	// Create the client using the mongo API rather than mtest. mtest will
-	// attempt to create a collection as a database operation, which will
-	// not work on a mongocryptd server. A mongocryptd server does not
-	// support operations on a database.
-	client, err := mongo.Connect(ctx, clientOpts)
-	require.NoError(t, err, "could not connect to mongocryptd: %v", err)
-
-	t.Cleanup(func() {
-		err := client.Disconnect(ctx)
-		require.NoError(t, err, "mongocryptd client could not disconnect: %v", err)
-	})
-
-	mt.RunOpts("18. implicit session is ignored if connection does not support sessions", mtOpts, func(mt *mtest.T) {
 		coll := client.Database("db").Collection("coll")
 
 		// Send a read command to the server (e.g., findOne), ignoring
@@ -137,7 +145,15 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("19. explicit session raises an error if connection does not support sessions", mtOpts, func(mt *mtest.T) {
+	proseTest19 := "19. explicit session raises an error if connection does not support sessions"
+	mt.RunOpts(proseTest19, mtOpts, func(mt *mtest.T) {
+		client := newTestSessionMongocryptdProseClient(mt)
+
+		mt.Cleanup(func() {
+			err := client.Disconnect(context.Background())
+			require.NoError(mt, err, "mongocryptd client could not disconnect: %v", err)
+		})
+
 		// Create a new explicit session by calling startSession (this
 		// MUST NOT error).
 		session, err := client.StartSession()
