@@ -65,6 +65,8 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestDefaultValueEncoders(t *testing.T) {
+	t.Parallel()
+
 	var pc PrimitiveCodecs
 
 	var wrong = func(string, string) string { return "wrong" }
@@ -106,6 +108,34 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					bsonrwtest.WriteDouble,
 					nil,
+				},
+				{
+					"RawValue Type is zero with non-zero value",
+					RawValue{
+						Type:  0x00,
+						Value: bsoncore.AppendDouble(nil, 3.14159),
+					},
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					bsoncodec.ValueEncoderError{
+						Name:  "RawValueEncodeValue",
+						Types: []reflect.Type{tRawValue},
+					},
+				},
+				{
+					"RawValue Type is invalid",
+					RawValue{
+						Type:  0x8F,
+						Value: bsoncore.AppendDouble(nil, 3.14159),
+					},
+					nil,
+					nil,
+					bsonrwtest.Nothing,
+					bsoncodec.ValueEncoderError{
+						Name:  "RawValueEncodeValue",
+						Types: []reflect.Type{tRawValue},
+					},
 				},
 			},
 		},
@@ -166,9 +196,17 @@ func TestDefaultValueEncoders(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc // Capture the range variable
+
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			for _, subtest := range tc.subtests {
+				subtest := subtest // Capture the range variable
+
 				t.Run(subtest.name, func(t *testing.T) {
+					t.Parallel()
+
 					var ec bsoncodec.EncodeContext
 					if subtest.ectx != nil {
 						ec = *subtest.ectx
@@ -192,6 +230,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 	}
 
 	t.Run("success path", func(t *testing.T) {
+		t.Parallel()
+
 		oid := primitive.NewObjectID()
 		oids := []primitive.ObjectID{primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()}
 		var str = new(string)
@@ -426,7 +466,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
+			tc := tc // Capture the range variable
+
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				b := make(bsonrw.SliceWriter, 0, 512)
 				vw, err := bsonrw.NewBSONValueWriter(&b)
 				noerr(t, err)
