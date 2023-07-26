@@ -15,11 +15,13 @@ import (
 )
 
 func TestSessionPool(t *testing.T) {
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
+
 	t.Run("TestLifo", func(t *testing.T) {
 		descChan := make(chan description.Topology)
 		p := NewPool(descChan)
 		p.latestTopology = topologyDescription{
-			timeoutMinutes: 30, // Set to some arbitrarily high number greater than 1 minute.
+			timeoutMinutes: int64ToPtr(30), // Set to some arbitrarily high number greater than 1 minute.
 		}
 
 		first, err := p.GetSession()

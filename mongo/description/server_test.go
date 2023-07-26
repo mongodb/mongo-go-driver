@@ -18,6 +18,8 @@ import (
 )
 
 func TestServer(t *testing.T) {
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
+
 	t.Run("equals", func(t *testing.T) {
 		defaultServer := Server{}
 		// Only some of the Server fields affect equality
@@ -46,7 +48,14 @@ func TestServer(t *testing.T) {
 			{"passive", Server{Passive: true}, true},
 			{"primary", Server{Primary: address.Address("foo")}, false},
 			{"readOnly", Server{ReadOnly: true}, true},
-			{"sessionTimeoutMinutes", Server{SessionTimeoutMinutes: 1}, false},
+			{
+				"sessionTimeoutMinutes",
+				Server{
+					SessionTimeoutMinutesPtr: int64ToPtr(1),
+					SessionTimeoutMinutes:    1,
+				},
+				false,
+			},
 			{"setName", Server{SetName: "foo"}, false},
 			{"setVersion", Server{SetVersion: 1}, false},
 			{"tags", Server{Tags: tag.Set{tag.Tag{"foo", "bar"}}}, false},
