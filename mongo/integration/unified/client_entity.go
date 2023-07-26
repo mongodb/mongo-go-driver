@@ -60,7 +60,7 @@ type clientEntity struct {
 
 	// These should not be changed after the clientEntity is initialized
 	observedEvents                      map[monitoringEventType]struct{}
-	storedEvents                        map[monitoringEventType][]string // maps an entity type to a slice of entityIDs for entities that store it.
+	storedEvents                        map[monitoringEventType][]string
 	eventsCount                         map[monitoringEventType]int32
 	serverDescriptionChangedEventsCount map[serverDescriptionChangedEvent]int32
 

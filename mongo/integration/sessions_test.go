@@ -333,7 +333,9 @@ func TestSessionsProse(t *testing.T) {
 		})
 
 	mt.Run("9 client side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool",
-		func(mt *mtest.T) { // Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
+		func(mt *mtest.T) {
+			// Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
+
 			var docs []interface{}
 			for i := 0; i < 5; i++ {
 				docs = append(docs, bson.D{{"x", i}})

@@ -1885,8 +1885,8 @@ func (pss pinnedServerSelector) SelectServer(
 }
 
 // pinnedSelectorFunc makes a selector for a pinned session with a pinned
-// server. Will attempt to do server selection on the pinned server but if that
-// fails it will go through a list of default selectors
+// server. It attempts to do server selection on the pinned server, but if that
+// fails, it will go through a list of default selectors.
 func pinnedSelectorFunc(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelectorFunc {
 	return func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
 		if sess != nil && sess.PinnedServer != nil {

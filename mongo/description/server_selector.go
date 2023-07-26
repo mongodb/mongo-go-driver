@@ -102,8 +102,6 @@ func (cs *compositeSelector) SelectServer(t Topology, candidates []Server) ([]Se
 	return candidates, nil
 }
 
-// How do we make the compositeSelector an fmt.Stringer? Do we concatenate?
-
 type latencySelector struct {
 	latency time.Duration
 }
