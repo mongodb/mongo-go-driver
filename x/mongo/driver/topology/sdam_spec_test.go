@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -456,28 +455,6 @@ func findServerInTopology(topo description.Topology, addr address.Address) (desc
 		}
 	}
 	return description.Server{}, false
-}
-
-func assertLogicalSessionTimeoutMinutesEqual(t *testing.T, expected *uint32, actual *uint32) {
-	t.Helper()
-
-	// If they pointers are equal, then do nothing.
-	if ptrutil.CompareUint32(expected, actual) == 0 {
-		return
-	}
-
-	// Otherwise, include the pointer values in the failure message.
-	var expectedValue, actualValue interface{}
-	if expected != nil {
-		expectedValue = *expected
-	}
-
-	if actual != nil {
-		actualValue = *actual
-	}
-
-	msg := fmt.Sprintf("expected desc.SessionTimeoutMinutesPtr to reference %v, got %v", expectedValue, actualValue)
-	assert.Fail(t, msg)
 }
 
 func runTest(t *testing.T, directory string, filename string) {
