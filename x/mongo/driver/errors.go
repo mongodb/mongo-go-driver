@@ -17,6 +17,9 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// LegacyNotPrimaryErrMsg is the error message that older MongoDB servers (see
+// SERVER-50412 for versions) return when a write operation is erroneously sent
+// to a non-primary node.
 const LegacyNotPrimaryErrMsg = "not master"
 
 var (
