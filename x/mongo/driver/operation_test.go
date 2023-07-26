@@ -56,7 +56,7 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestOperation(t *testing.T) {
-	uint32ToPtr := func(u uint32) *uint32 { return &u }
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
 
 	t.Run("selectServer", func(t *testing.T) {
 		t.Run("returns validation error", func(t *testing.T) {
@@ -149,19 +149,19 @@ func TestOperation(t *testing.T) {
 		descRetryable := description.Server{
 			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
 			SessionTimeoutMinutes:    1,
-			SessionTimeoutMinutesPtr: uint32ToPtr(1),
+			SessionTimeoutMinutesPtr: int64ToPtr(1),
 		}
 
 		descNotRetryableWireVersion := description.Server{
 			WireVersion:              &description.VersionRange{Min: 0, Max: 5},
 			SessionTimeoutMinutes:    1,
-			SessionTimeoutMinutesPtr: uint32ToPtr(1),
+			SessionTimeoutMinutesPtr: int64ToPtr(1),
 		}
 
 		descNotRetryableStandalone := description.Server{
 			WireVersion:              &description.VersionRange{Min: 0, Max: 7},
 			SessionTimeoutMinutes:    1,
-			SessionTimeoutMinutesPtr: uint32ToPtr(1),
+			SessionTimeoutMinutesPtr: int64ToPtr(1),
 			Kind:                     description.Standalone,
 		}
 

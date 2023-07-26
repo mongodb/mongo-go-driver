@@ -28,6 +28,7 @@ type commandMonitoringEvent struct {
 
 	CommandSucceededEvent *struct {
 		CommandName           *string  `bson:"commandName"`
+		DatabaseName          *string  `bson:"databaseName"`
 		Reply                 bson.Raw `bson:"reply"`
 		HasServerConnectionID *bool    `bson:"hasServerConnectionId"`
 		HasServiceID          *bool    `bson:"hasServiceId"`
@@ -35,6 +36,7 @@ type commandMonitoringEvent struct {
 
 	CommandFailedEvent *struct {
 		CommandName           *string `bson:"commandName"`
+		DatabaseName          *string `bson:"databaseName"`
 		HasServerConnectionID *bool   `bson:"hasServerConnectionId"`
 		HasServiceID          *bool   `bson:"hasServiceId"`
 	} `bson:"commandFailedEvent"`
@@ -198,6 +200,10 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				return newEventVerificationError(idx, client, "expected command name %q, got %q", *expected.CommandName,
 					actual.CommandName)
 			}
+			if expected.DatabaseName != nil && *expected.DatabaseName != actual.DatabaseName {
+				return newEventVerificationError(idx, client, "expected database name %q, got %q", *expected.DatabaseName,
+					actual.DatabaseName)
+			}
 			if expected.Reply != nil {
 				expectedDoc := documentToRawValue(expected.Reply)
 				actualDoc := documentToRawValue(actual.Reply)
@@ -237,6 +243,10 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 			if expected.CommandName != nil && *expected.CommandName != actual.CommandName {
 				return newEventVerificationError(idx, client, "expected command name %q, got %q", *expected.CommandName,
 					actual.CommandName)
+			}
+			if expected.DatabaseName != nil && *expected.DatabaseName != actual.DatabaseName {
+				return newEventVerificationError(idx, client, "expected database name %q, got %q", *expected.DatabaseName,
+					actual.DatabaseName)
 			}
 			if expected.HasServiceID != nil {
 				if err := verifyServiceID(*expected.HasServiceID, actual.ServiceID); err != nil {

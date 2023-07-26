@@ -53,9 +53,9 @@ func newFSM() *fsm {
 // In the case where the FSM timeout DNE, we check all servers to see if any
 // still do not have a timeout. This function chooses the lowest of the existing
 // timeouts.
-func selectFSMSessionTimeout(f *fsm, s description.Server) *uint32 {
+func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
 	oldMinutes := f.SessionTimeoutMinutesPtr
-	comp := ptrutil.CompareUint32(oldMinutes, s.SessionTimeoutMinutesPtr)
+	comp := ptrutil.CompareInt64(oldMinutes, s.SessionTimeoutMinutesPtr)
 
 	// If the server is data-bearing and the current timeout exists and is
 	// either:
@@ -84,7 +84,7 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *uint32 {
 		}
 
 		srvTimeout := server.SessionTimeoutMinutesPtr
-		comp := ptrutil.CompareUint32(timeout, srvTimeout)
+		comp := ptrutil.CompareInt64(timeout, srvTimeout)
 
 		if comp <= 0 { // timeout <= srvTimout
 			continue
@@ -111,20 +111,15 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 	serverTimeoutMinutes := selectFSMSessionTimeout(f, s)
 
 	f.Topology = description.Topology{
-		Kind:                     f.Kind,
-		Servers:                  newServers,
-		SetName:                  f.SetName,
-		SessionTimeoutMinutesPtr: serverTimeoutMinutes,
+		Kind:    f.Kind,
+		Servers: newServers,
+		SetName: f.SetName,
+	}
 
-		// TODO(GODRIVER-2885): This branch can be removed once legacy
-		// SessionTimeoutMinutes is removed.
-		SessionTimeoutMinutes: func() uint32 {
-			if serverTimeoutMinutes != nil {
-				return *serverTimeoutMinutes
-			}
+	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
 
-			return 0
-		}(),
+	if serverTimeoutMinutes != nil {
+		f.SessionTimeoutMinutes = uint32(*serverTimeoutMinutes)
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
@@ -177,6 +172,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 
 	f.compatible.Store(true)
 	f.compatibilityErr = nil
+
 	return f.Topology, updatedDesc
 }
 

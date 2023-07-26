@@ -18,7 +18,7 @@ import (
 )
 
 func TestServer(t *testing.T) {
-	uint32ToPtr := func(u uint32) *uint32 { return &u }
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
 
 	t.Run("equals", func(t *testing.T) {
 		defaultServer := Server{}
@@ -51,7 +51,7 @@ func TestServer(t *testing.T) {
 			{
 				"sessionTimeoutMinutes",
 				Server{
-					SessionTimeoutMinutesPtr: uint32ToPtr(1),
+					SessionTimeoutMinutesPtr: int64ToPtr(1),
 					SessionTimeoutMinutes:    1,
 				},
 				false,

@@ -28,7 +28,8 @@ const (
 )
 
 var (
-	sessionTimeoutMinutes uint32 = 30
+	sessionTimeoutMinutes      uint32 = 30
+	sessionTimeoutMinutesInt64        = int64(sessionTimeoutMinutes)
 
 	// MockDescription is the server description used for the mock deployment. Each mocked connection returns this
 	// value from its Description method.
@@ -40,7 +41,7 @@ var (
 		// TODO(GODRIVER-2885): This can be removed once legacy
 		// SessionTimeoutMinutes is removed.
 		SessionTimeoutMinutes:    sessionTimeoutMinutes,
-		SessionTimeoutMinutesPtr: &sessionTimeoutMinutes,
+		SessionTimeoutMinutesPtr: &sessionTimeoutMinutesInt64,
 		Kind:                     description.RSPrimary,
 		WireVersion: &description.VersionRange{
 			Max: topology.SupportedWireVersions.Max,
@@ -168,7 +169,7 @@ func (md *mockDeployment) Subscribe() (*driver.Subscription, error) {
 		md.updates = make(chan description.Topology, 1)
 
 		md.updates <- description.Topology{
-			SessionTimeoutMinutesPtr: &sessionTimeoutMinutes,
+			SessionTimeoutMinutesPtr: &sessionTimeoutMinutesInt64,
 
 			// TODO(GODRIVER-2885): This can be removed once legacy
 			// SessionTimeoutMinutes is removed.

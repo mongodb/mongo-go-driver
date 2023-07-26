@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"fmt"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -16,13 +17,13 @@ import (
 func TestFSMSessionTimeout(t *testing.T) {
 	t.Parallel()
 
-	uint32ToPtr := func(u uint32) *uint32 { return &u }
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
 
 	tests := []struct {
 		name string
 		f    *fsm
 		s    description.Server
-		want *uint32
+		want *int64
 	}{
 		{
 			name: "empty",
@@ -34,7 +35,7 @@ func TestFSMSessionTimeout(t *testing.T) {
 			name: "no session support on data-bearing server with session support on fsm",
 			f: &fsm{
 				Topology: description.Topology{
-					SessionTimeoutMinutesPtr: uint32ToPtr(1),
+					SessionTimeoutMinutesPtr: int64ToPtr(1),
 				},
 			},
 			s: description.Server{
@@ -46,23 +47,23 @@ func TestFSMSessionTimeout(t *testing.T) {
 			name: "lower timeout on data-bearing server with session support on fsm",
 			f: &fsm{
 				Topology: description.Topology{
-					SessionTimeoutMinutesPtr: uint32ToPtr(2),
+					SessionTimeoutMinutesPtr: int64ToPtr(2),
 				},
 			},
 			s: description.Server{
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: uint32ToPtr(1),
+				SessionTimeoutMinutesPtr: int64ToPtr(1),
 			},
-			want: uint32ToPtr(1),
+			want: int64ToPtr(1),
 		},
 		{
 			name: "session support on data-bearing server with no session support on fsm with no servers",
 			f:    &fsm{Topology: description.Topology{}},
 			s: description.Server{
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: uint32ToPtr(1),
+				SessionTimeoutMinutesPtr: int64ToPtr(1),
 			},
-			want: uint32ToPtr(1),
+			want: int64ToPtr(1),
 		},
 		{
 			name: "session support on data-bearing server with no session support on fsm and lower servers",
@@ -70,15 +71,15 @@ func TestFSMSessionTimeout(t *testing.T) {
 				Servers: []description.Server{
 					{
 						Kind:                     description.RSPrimary,
-						SessionTimeoutMinutesPtr: uint32ToPtr(1),
+						SessionTimeoutMinutesPtr: int64ToPtr(1),
 					},
 				},
 			}},
 			s: description.Server{
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: uint32ToPtr(2),
+				SessionTimeoutMinutesPtr: int64ToPtr(2),
 			},
-			want: uint32ToPtr(1),
+			want: int64ToPtr(1),
 		},
 		{
 			name: "session support on data-bearing server with no session support on fsm and higher servers",
@@ -86,15 +87,15 @@ func TestFSMSessionTimeout(t *testing.T) {
 				Servers: []description.Server{
 					{
 						Kind:                     description.RSPrimary,
-						SessionTimeoutMinutesPtr: uint32ToPtr(3),
+						SessionTimeoutMinutesPtr: int64ToPtr(3),
 					},
 				},
 			}},
 			s: description.Server{
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutesPtr: uint32ToPtr(2),
+				SessionTimeoutMinutesPtr: int64ToPtr(2),
 			},
-			want: uint32ToPtr(2),
+			want: int64ToPtr(2),
 		},
 	}
 
@@ -105,7 +106,15 @@ func TestFSMSessionTimeout(t *testing.T) {
 			t.Parallel()
 
 			got := selectFSMSessionTimeout(test.f, test.s)
-			assert.Equal(t, test.want, got, "minFSMServersTimeout() = %v, wanted %v", got, test.want)
+			gotStr := "nil"
+			wantStr := "nil"
+			if got != nil {
+				gotStr = fmt.Sprintf("%v", *got)
+			}
+			if test.want != nil {
+				wantStr = fmt.Sprintf("%v", *test.want)
+			}
+			assert.Equal(t, test.want, got, "minFSMServersTimeout() = %v (%v), wanted %v (%v).", got, gotStr, test.want, wantStr)
 		})
 	}
 }

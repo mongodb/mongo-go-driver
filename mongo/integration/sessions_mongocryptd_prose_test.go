@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -62,7 +61,11 @@ func (p *mongocryptdProcess) close() error {
 	return nil
 }
 
-func TestSessionsMongocryptdProse(t *testing.T) {
+// newTestSessionMongocryptdProseClient will Create the client using the mongo
+// API rather than mtest. mtest will attempt to create a collection as
+// a database operation, which will not work on a mongocryptd server. A
+// mongocryptd server does not support operations on a database.
+func newTestSessionMongocryptdProseClient(mt *mtest.T) *mongo.Client {
 	const mongocryptdPort = 27022
 
 	// Monitor the lsid value on commands. If an operation run in any
@@ -72,9 +75,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	cmdMonitor := &event.CommandMonitor{
 		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 			_, err := evt.Command.LookupErr("lsid")
-			if !errors.Is(err, bsoncore.ErrElementNotFound) {
-				require.NoError(t, err, "expected error to be nil, got %v", err)
-			}
+			assert.ErrorIs(mt, err, bsoncore.ErrElementNotFound)
 		},
 	}
 
@@ -83,26 +84,15 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 		Host:   net.JoinHostPort("localhost", strconv.Itoa(mongocryptdPort)),
 	}
 
-	mtOpts := mtest.NewOptions().
-		MinServerVersion("5.0").
-		Topologies(mtest.ReplicaSet, mtest.Sharded).
-		CreateCollection(false).
-		CreateClient(false)
-
-	// Create a new instance of mtest (MongoDB testing framework) for this
-	// test and configure it to control server versions.
-	mt := mtest.New(t, mtOpts)
-	mt.Cleanup(mt.Close)
-
 	proc := mongocryptdProcess{}
 
 	// Start a mongocryptd server.
 	err := proc.start(mongocryptdPort)
-	require.NoError(t, err, "failed to create a mongocryptd process: %v", err)
+	require.NoError(mt, err, "failed to create a mongocryptd process: %v", err)
 
-	t.Cleanup(func() {
+	mt.Cleanup(func() {
 		err := proc.close()
-		require.NoError(t, err, "failed to close mongocryptd: %v", err)
+		require.NoError(mt, err, "failed to close mongocryptd: %v", err)
 	})
 
 	clientOpts := options.
@@ -113,14 +103,33 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	ctx := context.Background()
 
 	client, err := mongo.Connect(ctx, clientOpts)
-	require.NoError(t, err, "could not connect to mongocryptd: %v", err)
+	require.NoError(mt, err, "could not connect to mongocryptd: %v", err)
 
-	t.Cleanup(func() {
-		err := client.Disconnect(ctx)
-		require.NoError(t, err, "mongocryptd client could not disconnect: %v", err)
-	})
+	return client
 
-	mt.RunOpts("18. implicit session is ignored if connection does not support sessions", mtOpts, func(mt *mtest.T) {
+}
+
+func TestSessionsMongocryptdProse(t *testing.T) {
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("4.2").
+		Topologies(mtest.ReplicaSet, mtest.Sharded).
+		CreateCollection(false).
+		CreateClient(false)
+
+	// Create a new instance of mtest (MongoDB testing framework) for this
+	// test and configure it to control server versions.
+	mt := mtest.New(t, mtOpts)
+	mt.Cleanup(mt.Close)
+
+	proseTest18 := "18. implicit session is ignored if connection does not support sessions"
+	mt.RunOpts(proseTest18, mtOpts, func(mt *mtest.T) {
+		client := newTestSessionMongocryptdProseClient(mt)
+
+		mt.Cleanup(func() {
+			err := client.Disconnect(context.Background())
+			require.NoError(mt, err, "mongocryptd client could not disconnect: %v", err)
+		})
+
 		coll := client.Database("db").Collection("coll")
 
 		// Send a read command to the server (e.g., findOne), ignoring
@@ -136,7 +145,15 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 		})
 	})
 
-	mt.RunOpts("19. explicit session raises an error if connection does not support sessions", mtOpts, func(mt *mtest.T) {
+	proseTest19 := "19. explicit session raises an error if connection does not support sessions"
+	mt.RunOpts(proseTest19, mtOpts, func(mt *mtest.T) {
+		client := newTestSessionMongocryptdProseClient(mt)
+
+		mt.Cleanup(func() {
+			err := client.Disconnect(context.Background())
+			require.NoError(mt, err, "mongocryptd client could not disconnect: %v", err)
+		})
+
 		// Create a new explicit session by calling startSession (this
 		// MUST NOT error).
 		session, err := client.StartSession()
@@ -146,9 +163,8 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		sessionCtx := mongo.NewSessionContext(context.TODO(), session)
 
-		if err = session.StartTransaction(); err != nil {
-			panic(err)
-		}
+		err = session.StartTransaction()
+		require.NoError(mt, err, "expected error to be nil, got %v", err)
 
 		coll := client.Database("db").Collection("coll")
 
