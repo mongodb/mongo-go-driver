@@ -61,7 +61,7 @@ func (PrimitiveCodecs) RawValueEncodeValue(_ bsoncodec.EncodeContext, vw bsonrw.
 
 	rawvalue := val.Interface().(RawValue)
 
-	if rawvalue.Type.String() == "invalid" && len(rawvalue.Value) > 0 {
+	if rawvalue.Type.String() == "invalid" {
 		return bsoncodec.ValueEncoderError{
 			Name:  "RawValueEncodeValue",
 			Types: []reflect.Type{tRawValue},
