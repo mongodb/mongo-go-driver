@@ -102,3 +102,8 @@ func (bt Type) String() string {
 		return "invalid"
 	}
 }
+
+// IsValid will return true if the Type is valid.
+func (bt Type) IsValid() bool {
+	return bt.String() != "invalid"
+}
