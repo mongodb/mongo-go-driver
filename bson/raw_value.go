@@ -38,8 +38,7 @@ type RawValue struct {
 }
 
 // IsZero reports whether the RawValue is zero, i.e. no data is present on
-// the RawValue. Since a RawValue is defined by the Type and Value, the
-// bsoncodec.Registry will not be considered when this method is called.
+// the RawValue. It returns true if Type is 0 and Value is empty or nil.
 func (rv RawValue) IsZero() bool {
 	return rv.Type == 0x00 && len(rv.Value) == 0
 }
