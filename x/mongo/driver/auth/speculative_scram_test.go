@@ -93,7 +93,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 				// Assert that the driver sent hello with the speculative authentication message.
 				assert.Equal(t, len(tc.payloads), len(conn.Written), "expected %d wire messages to be sent, got %d",
 					len(tc.payloads), (conn.Written))
-				helloCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				helloCmd, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing hello command: %v", err)
 				assertCommandName(t, helloCmd, internal.LegacyHello)
 
@@ -177,7 +177,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 
 				assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 					numResponses, len(conn.Written))
-				hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				hello, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing hello command: %v", err)
 				assertCommandName(t, hello, internal.LegacyHello)
 				_, err = hello.LookupErr("speculativeAuthenticate")

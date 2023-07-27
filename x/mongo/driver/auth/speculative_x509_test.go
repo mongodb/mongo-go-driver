@@ -58,7 +58,7 @@ func TestSpeculativeX509(t *testing.T) {
 
 		assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 			numResponses, len(conn.Written))
-		hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		hello, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 		assert.Nil(t, err, "error parsing hello command: %v", err)
 		assertCommandName(t, hello, internal.LegacyHello)
 
@@ -103,7 +103,7 @@ func TestSpeculativeX509(t *testing.T) {
 
 		assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 			numResponses, len(conn.Written))
-		hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		hello, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 		assert.Nil(t, err, "error parsing hello command: %v", err)
 		assertCommandName(t, hello, internal.LegacyHello)
 		_, err = hello.LookupErr("speculativeAuthenticate")

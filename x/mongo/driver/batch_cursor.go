@@ -189,7 +189,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 	if ds != nil {
 		bc.numReturned = int32(ds.DocumentCount())
 	}
-	if cr.Desc.WireVersion == nil || cr.Desc.WireVersion.Max < 4 {
+	if cr.Desc.WireVersion == nil {
 		bc.limit = opts.Limit
 
 		// Take as many documents from the batch as needed.

@@ -174,9 +174,6 @@ const (
 	DocumentSequence
 )
 
-// OpmsgWireVersion is the minimum wire version needed to use OP_MSG
-const OpmsgWireVersion = 6
-
 // CompressorID is the ID for each type of Compressor.
 type CompressorID uint8
 
