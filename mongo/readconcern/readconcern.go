@@ -17,11 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// ErrEmptyReadConcern indicates that a read concern has no fields set.
-//
-// Deprecated: ErrEmptyReadConcern will be removed in Go Driver 2.0.
-var ErrEmptyReadConcern = errors.New("a read concern must have the level field set")
-
 // A ReadConcern defines a MongoDB read concern, which allows you to control the consistency and
 // isolation properties of the data read from replica sets and replica set shards.
 //
@@ -114,7 +109,7 @@ func New(options ...Option) *ReadConcern {
 // Deprecated: Marshaling a ReadConcern to BSON will not be supported in Go Driver 2.0.
 func (rc *ReadConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if rc == nil {
-		return 0, nil, ErrEmptyReadConcern
+		return 0, nil, errors.New("cannot marshal nil ReadConcern")
 	}
 
 	var elems []byte

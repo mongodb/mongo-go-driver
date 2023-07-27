@@ -18,28 +18,31 @@ func TestReadConcern_MarshalBSONValue(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name      string
-		rc        *readconcern.ReadConcern
-		bytes     []byte
-		wantError error
+		name         string
+		rc           *readconcern.ReadConcern
+		bytes        []byte
+		wantErrorMsg *string
 	}{
 		{
-			name:      "local",
-			rc:        &readconcern.ReadConcern{Level: "local"},
-			bytes:     bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "level", "local")),
-			wantError: nil,
+			name:         "local",
+			rc:           readconcern.Local(),
+			bytes:        bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "level", "local")),
+			wantErrorMsg: nil,
 		},
 		{
-			name:      "empty",
-			rc:        &readconcern.ReadConcern{},
-			bytes:     bsoncore.BuildDocument(nil, nil),
-			wantError: nil,
+			name:         "empty",
+			rc:           readconcern.New(),
+			bytes:        bsoncore.BuildDocument(nil, nil),
+			wantErrorMsg: nil,
 		},
 		{
-			name:      "nil",
-			rc:        nil,
-			bytes:     nil,
-			wantError: readconcern.ErrEmptyReadConcern,
+			name:  "nil",
+			rc:    nil,
+			bytes: nil,
+			wantErrorMsg: func() *string {
+				msg := "cannot marshal nil ReadConcern"
+				return &msg
+			}(),
 		},
 	}
 
@@ -51,7 +54,11 @@ func TestReadConcern_MarshalBSONValue(t *testing.T) {
 
 			_, b, err := tc.rc.MarshalBSONValue()
 			assert.Equal(t, tc.bytes, b, "expected and actual outputs do not match")
-			assert.Equal(t, tc.wantError, err, "expected and actual errors do not match")
+			if tc.wantErrorMsg == nil {
+				assert.NoError(t, err, "an unexpected error is returned")
+			} else {
+				assert.ErrorContains(t, err, *tc.wantErrorMsg, "expected and actual errors do not match")
+			}
 		})
 	}
 }
