@@ -76,8 +76,7 @@ func chooseAuthMechanism(cfg *Config) string {
 				return v
 			}
 		}
-		return SCRAMSHA1
 	}
 
-	return MONGODBCR
+	return SCRAMSHA1
 }
