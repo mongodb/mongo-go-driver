@@ -8,6 +8,7 @@ package bson
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -62,10 +63,7 @@ func (PrimitiveCodecs) RawValueEncodeValue(_ bsoncodec.EncodeContext, vw bsonrw.
 	rawvalue := val.Interface().(RawValue)
 
 	if !rawvalue.Type.IsValid() {
-		return bsoncodec.ValueEncoderError{
-			Name:  "RawValueEncodeValue",
-			Types: []reflect.Type{tRawValue},
-		}
+		return fmt.Errorf("the RawValue Type specifies an invalid BSON type: %#x", byte(rawvalue.Type))
 	}
 
 	return bsonrw.Copier{}.CopyValueFromBytes(vw, rawvalue.Type, rawvalue.Value)

@@ -118,10 +118,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:  "RawValueEncodeValue",
-						Types: []reflect.Type{tRawValue},
-					},
+					fmt.Errorf("the RawValue Type specifies an invalid BSON type: 0x0"),
 				},
 				{
 					"RawValue Type is invalid",
@@ -132,10 +129,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
-						Name:  "RawValueEncodeValue",
-						Types: []reflect.Type{tRawValue},
-					},
+					fmt.Errorf("the RawValue Type specifies an invalid BSON type: 0x8f"),
 				},
 			},
 		},
