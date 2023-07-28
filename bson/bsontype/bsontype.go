@@ -102,3 +102,14 @@ func (bt Type) String() string {
 		return "invalid"
 	}
 }
+
+// IsValid will return true if the Type is valid.
+func (bt Type) IsValid() bool {
+	switch bt {
+	case Double, String, EmbeddedDocument, Array, Binary, Undefined, ObjectID, Boolean, DateTime, Null, Regex,
+		DBPointer, JavaScript, Symbol, CodeWithScope, Int32, Timestamp, Int64, Decimal128, MinKey, MaxKey:
+		return true
+	default:
+		return false
+	}
+}
