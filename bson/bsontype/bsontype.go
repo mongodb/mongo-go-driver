@@ -103,7 +103,14 @@ func (bt Type) String() string {
 	}
 }
 
-// IsValid will return true if the Type is valid.
+// IsValidType checks if the BSON type is valid or invalid using a switch
+// statement.
 func (bt Type) IsValid() bool {
-	return bt.String() != "invalid"
+	switch bt {
+	case Double, String, EmbeddedDocument, Array, Binary, Undefined, ObjectID, Boolean, DateTime, Null, Regex,
+		DBPointer, JavaScript, Symbol, CodeWithScope, Int32, Timestamp, Int64, Decimal128, MinKey, MaxKey:
+		return true
+	default:
+		return false
+	}
 }
