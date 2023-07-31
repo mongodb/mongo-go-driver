@@ -1069,16 +1069,6 @@ func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, e
 	return opcode, uncompressed, nil
 }
 
-//func (op Operation) createWireMessage(
-//	ctx context.Context,
-//	dst []byte,
-//	desc description.SelectedServer,
-//	maxTimeMS uint64,
-//	conn Connection,
-//) ([]byte, startedInformation, error) {
-//	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn)
-//}
-
 func (op Operation) addBatchArray(dst []byte) []byte {
 	aidx, dst := bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
 	for i, doc := range op.Batches.Current {
@@ -1254,7 +1244,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, err
 	}
 
-	if desc.WireVersion != nil && client != nil {
+	if sessionsSupported(desc.WireVersion) && client != nil {
 		if client.Consistent && client.OperationTime != nil {
 			data = data[:len(data)-1] // remove the null byte
 			data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)
