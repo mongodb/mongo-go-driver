@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package internal
+package mongo
 
 import "context"
 
@@ -16,9 +16,9 @@ type backgroundContext struct {
 	childValuesCtx context.Context
 }
 
-// NewBackgroundContext creates a new Context whose behavior matches that of context.Background(), but Value calls are
+// newBackgroundContext creates a new Context whose behavior matches that of context.Background(), but Value calls are
 // forwarded to the provided ctx parameter. If ctx is nil, context.Background() is returned.
-func NewBackgroundContext(ctx context.Context) context.Context {
+func newBackgroundContext(ctx context.Context) context.Context {
 	if ctx == nil {
 		return context.Background()
 	}

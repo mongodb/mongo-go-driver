@@ -18,8 +18,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -72,7 +71,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				})
 
 				// Reset the client with the appName specified in the failpoint and the pool monitor.
-				tpm := monitor.NewTestPoolMonitor()
+				tpm := eventtest.NewTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().
 					SetAppName(appName).
 					SetPoolMonitor(tpm.PoolMonitor).
@@ -87,7 +86,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				// Assert that the pool is cleared within 2 seconds.
-				helpers.AssertSoon(mt, func(ctx context.Context) {
+				assert.Soon(mt, func(ctx context.Context) {
 					ticker := time.NewTicker(100 * time.Millisecond)
 					defer ticker.Stop()
 
@@ -124,7 +123,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					})
 
 					// Reset the client with the appName specified in the failpoint.
-					tpm := monitor.NewTestPoolMonitor()
+					tpm := eventtest.NewTestPoolMonitor()
 					mt.ResetClient(baseClientOpts().
 						SetAppName(appName).
 						SetPoolMonitor(tpm.PoolMonitor).
@@ -132,7 +131,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 						SetMinPoolSize(5))
 
 					// Assert that the pool is cleared within 2 seconds.
-					helpers.AssertSoon(mt, func(ctx context.Context) {
+					assert.Soon(mt, func(ctx context.Context) {
 						ticker := time.NewTicker(100 * time.Millisecond)
 						defer ticker.Stop()
 
@@ -168,7 +167,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					})
 
 					// Reset the client with the appName specified in the failpoint.
-					tpm := monitor.NewTestPoolMonitor()
+					tpm := eventtest.NewTestPoolMonitor()
 					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 					_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
@@ -176,7 +175,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 
 					// Assert that the pool is cleared within 2 seconds.
-					helpers.AssertSoon(mt, func(ctx context.Context) {
+					assert.Soon(mt, func(ctx context.Context) {
 						ticker := time.NewTicker(100 * time.Millisecond)
 						defer ticker.Stop()
 
@@ -214,7 +213,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				})
 
 				// Reset the client with the appName specified in the failpoint.
-				tpm := monitor.NewTestPoolMonitor()
+				tpm := eventtest.NewTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
@@ -223,7 +222,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared but was not")
 			})
 			mt.Run("pool not cleared on timeout network error", func(mt *mtest.T) {
-				tpm := monitor.NewTestPoolMonitor()
+				tpm := eventtest.NewTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().SetPoolMonitor(tpm.PoolMonitor))
 
 				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
@@ -240,7 +239,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.False(mt, tpm.IsPoolCleared(), "expected pool to not be cleared but was")
 			})
 			mt.Run("pool not cleared on context cancellation", func(mt *mtest.T) {
-				tpm := monitor.NewTestPoolMonitor()
+				tpm := eventtest.NewTestPoolMonitor()
 				mt.ResetClient(baseClientOpts().SetPoolMonitor(tpm.PoolMonitor))
 
 				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
@@ -313,7 +312,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					})
 
 					// Reset the client with the appName specified in the failpoint.
-					tpm := monitor.NewTestPoolMonitor()
+					tpm := eventtest.NewTestPoolMonitor()
 					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 					runServerErrorsTest(mt, tc.isShutdownError, tpm)
@@ -337,7 +336,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					})
 
 					// Reset the client with the appName specified in the failpoint.
-					tpm := monitor.NewTestPoolMonitor()
+					tpm := eventtest.NewTestPoolMonitor()
 					mt.ResetClient(baseClientOpts().SetAppName(appName).SetPoolMonitor(tpm.PoolMonitor))
 
 					runServerErrorsTest(mt, tc.isShutdownError, tpm)
@@ -347,7 +346,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 	})
 }
 
-func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *monitor.TestPoolMonitor) {
+func runServerErrorsTest(mt *mtest.T, isShutdownError bool, tpm *eventtest.TestPoolMonitor) {
 	mt.Helper()
 
 	_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})

@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -89,7 +89,7 @@ type RTTMonitor interface {
 	Stats() string
 }
 
-var _ RTTMonitor = &internal.ZeroRTTMonitor{}
+var _ RTTMonitor = &csot.ZeroRTTMonitor{}
 
 // PinnedConnection represents a Connection that can be pinned by one or more cursors or transactions. Implementations
 // of this interface should maintain the following invariants:
@@ -224,7 +224,7 @@ func (ssd SingleConnectionDeployment) Connection(context.Context) (Connection, e
 
 // RTTMonitor implements the driver.Server interface.
 func (ssd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
-	return &internal.ZeroRTTMonitor{}
+	return &csot.ZeroRTTMonitor{}
 }
 
 // TODO(GODRIVER-617): We can likely use 1 type for both the Type and the RetryMode by using 2 bits for the mode and 1

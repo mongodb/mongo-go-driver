@@ -18,8 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -419,7 +418,7 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction is canceled within 500ms and not 2 seconds.
-		helpers.AssertSoon(t, callback, 500*time.Millisecond)
+		assert.Soon(t, callback, 500*time.Millisecond)
 
 		// Assert that AbortTransaction was started once and succeeded.
 		assert.Equal(t, 1, len(abortStarted), "expected 1 abortTransaction started event, got %d", len(abortStarted))
@@ -479,7 +478,7 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
-		helpers.AssertSoon(t, callback, 500*time.Millisecond)
+		assert.Soon(t, callback, 500*time.Millisecond)
 	})
 	t.Run("canceled context before callback does not retry", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
@@ -509,7 +508,7 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
-		helpers.AssertSoon(t, callback, 500*time.Millisecond)
+		assert.Soon(t, callback, 500*time.Millisecond)
 	})
 	t.Run("slow operation in callback retries", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
@@ -562,12 +561,12 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction passes within 2 seconds.
-		helpers.AssertSoon(t, callback, 2*time.Second)
+		assert.Soon(t, callback, 2*time.Second)
 	})
 }
 
 func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
-	cs := testutil.ConnString(t)
+	cs := integtest.ConnString(t)
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
 			switch evt.Type {
@@ -584,7 +583,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 		SetReadPreference(readpref.Primary()).
 		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).
 		SetPoolMonitor(poolMonitor)
-	testutil.AddTestServerAPIVersion(baseClientOpts)
+	integtest.AddTestServerAPIVersion(baseClientOpts)
 	fullClientOpts := []*options.ClientOptions{baseClientOpts}
 	fullClientOpts = append(fullClientOpts, extraClientOpts...)
 

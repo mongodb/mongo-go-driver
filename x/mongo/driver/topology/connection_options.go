@@ -15,7 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 )
@@ -72,7 +72,7 @@ func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
 		connectTimeout:      30 * time.Second,
 		dialer:              nil,
 		tlsConnectionSource: defaultTLSConnectionSource,
-		httpClient:          internal.DefaultHTTPClient,
+		httpClient:          httputil.DefaultHTTPClient,
 	}
 
 	for _, opt := range opts {

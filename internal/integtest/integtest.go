@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package testutil
+package integtest
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -73,6 +74,13 @@ func AddCompressorToURI(uri string) string {
 	}
 
 	return AddOptionsToURI(uri, "compressors=", comp)
+}
+
+// AddTestServerAPIVersion adds the latest server API version in a ServerAPIOptions to passed-in opts.
+func AddTestServerAPIVersion(opts *options.ClientOptions) {
+	if os.Getenv("REQUIRE_API_VERSION") == "true" {
+		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
+	}
 }
 
 // MonitoredTopology returns a new topology with the command monitor attached

@@ -4,9 +4,9 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package monitor provides test types that are used to monitor client state and actions via the
+// Package eventtest provides test types that are used to monitor client state and actions via the
 // various monitor types supported by the driver.
-package monitor
+package eventtest
 
 import (
 	"sync"
