@@ -23,7 +23,7 @@ import (
 	"github.com/youmark/pkcs8"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -249,7 +249,7 @@ type ClientOptions struct {
 // Client creates a new ClientOptions instance.
 func Client() *ClientOptions {
 	return &ClientOptions{
-		HTTPClient: internal.DefaultHTTPClient,
+		HTTPClient: httputil.DefaultHTTPClient,
 	}
 }
 
@@ -287,23 +287,23 @@ func (c *ClientOptions) validate() error {
 	// Validation for load-balanced mode.
 	if c.LoadBalanced != nil && *c.LoadBalanced {
 		if len(c.Hosts) > 1 {
-			return internal.ErrLoadBalancedWithMultipleHosts
+			return connstring.ErrLoadBalancedWithMultipleHosts
 		}
 		if c.ReplicaSet != nil {
-			return internal.ErrLoadBalancedWithReplicaSet
+			return connstring.ErrLoadBalancedWithReplicaSet
 		}
 		if c.Direct != nil && *c.Direct {
-			return internal.ErrLoadBalancedWithDirectConnection
+			return connstring.ErrLoadBalancedWithDirectConnection
 		}
 	}
 
 	// Validation for srvMaxHosts.
 	if c.SRVMaxHosts != nil && *c.SRVMaxHosts > 0 {
 		if c.ReplicaSet != nil {
-			return internal.ErrSRVMaxHostsWithReplicaSet
+			return connstring.ErrSRVMaxHostsWithReplicaSet
 		}
 		if c.LoadBalanced != nil && *c.LoadBalanced {
-			return internal.ErrSRVMaxHostsWithLoadBalanced
+			return connstring.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
 	return nil
@@ -872,7 +872,7 @@ func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
 
 // SetHTTPClient specifies the http.Client to be used for any HTTP requests.
 //
-// This should only be used to set custom HTTP client configurations. By default, the connection will use an internal.DefaultHTTPClient.
+// This should only be used to set custom HTTP client configurations. By default, the connection will use an httputil.DefaultHTTPClient.
 func (c *ClientOptions) SetHTTPClient(client *http.Client) *ClientOptions {
 	c.HTTPClient = client
 	return c

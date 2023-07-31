@@ -12,9 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -109,7 +108,7 @@ func TestSDAMProse(t *testing.T) {
 					Times: 1000,
 				},
 				Data: mtest.FailPointData{
-					FailCommands:    []string{internal.LegacyHello, "hello"},
+					FailCommands:    []string{handshake.LegacyHello, "hello"},
 					BlockConnection: true,
 					BlockTimeMS:     500,
 					AppName:         "streamingRttTest",
@@ -136,7 +135,7 @@ func TestSDAMProse(t *testing.T) {
 					time.Sleep(500 * time.Millisecond)
 				}
 			}
-			helpers.AssertSoon(t, callback, defaultCallbackTimeout)
+			assert.Soon(t, callback, defaultCallbackTimeout)
 		})
 	})
 
@@ -148,7 +147,7 @@ func TestSDAMProse(t *testing.T) {
 				Times: 5,
 			},
 			Data: mtest.FailPointData{
-				FailCommands: []string{internal.LegacyHello, "hello"},
+				FailCommands: []string{handshake.LegacyHello, "hello"},
 				ErrorCode:    1234,
 				AppName:      "SDAMMinHeartbeatFrequencyTest",
 			},

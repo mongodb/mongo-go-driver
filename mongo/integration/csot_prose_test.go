@@ -15,8 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -58,7 +57,7 @@ func TestCSOTProse(t *testing.T) {
 			SetTimeout(2 * time.Second).
 			SetMonitor(cm).
 			ApplyURI(mtest.ClusterURI())
-		testutil.AddTestServerAPIVersion(cliOptions)
+		integtest.AddTestServerAPIVersion(cliOptions)
 		cli, err := mongo.Connect(context.Background(), cliOptions)
 		assert.Nil(mt, err, "Connect error: %v", err)
 
@@ -97,7 +96,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
+			assert.Soon(mt, callback, 150*time.Millisecond)
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
@@ -111,7 +110,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
-			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
+			assert.Soon(mt, callback, 150*time.Millisecond)
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
@@ -125,7 +124,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
+			assert.Soon(mt, callback, 150*time.Millisecond)
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
@@ -139,7 +138,7 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			helpers.AssertSoon(mt, callback, 150*time.Millisecond)
+			assert.Soon(mt, callback, 150*time.Millisecond)
 		})
 	})
 }

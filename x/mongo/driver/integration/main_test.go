@@ -7,14 +7,22 @@
 package integration
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -110,4 +118,40 @@ func addCompressorToURI(uri string) string {
 	}
 
 	return uri + "compressors=" + comp
+}
+
+// runCommand runs an arbitrary command on a given database of target server
+func runCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
+	op := operation.NewCommand(cmd).
+		Database(db).Deployment(driver.SingleServerDeployment{Server: s})
+	err := op.Execute(context.Background())
+	res := op.Result()
+	return res, err
+}
+
+// dropCollection drops the collection in the test cluster.
+func dropCollection(t *testing.T, dbname, colname string) {
+	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
+		Database(dbname).ServerSelector(description.WriteSelector()).Deployment(integtest.Topology(t)).
+		Execute(context.Background())
+	if de, ok := err.(driver.Error); err != nil && !(ok && de.NamespaceNotFound()) {
+		require.NoError(t, err)
+	}
+}
+
+// autoInsertDocs inserts the docs into the test cluster.
+func autoInsertDocs(t *testing.T, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
+	insertDocs(t, integtest.DBName(t), integtest.ColName(t), writeConcern, docs...)
+}
+
+// insertDocs inserts the docs into the test cluster.
+func insertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern.WriteConcern, docs ...bsoncore.Document) {
+	err := operation.NewInsert(docs...).
+		Collection(colname).
+		Database(dbname).
+		Deployment(integtest.Topology(t)).
+		ServerSelector(description.WriteSelector()).
+		WriteConcern(writeConcern).
+		Execute(context.Background())
+	require.NoError(t, err)
 }

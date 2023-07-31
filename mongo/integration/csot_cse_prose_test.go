@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -47,7 +47,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 			aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).
 				SetExtraOptions(mongocryptdSpawnArgs)
 			cliOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
-			testutil.AddTestServerAPIVersion(cliOpts)
+			integtest.AddTestServerAPIVersion(cliOpts)
 			encClient, err := mongo.Connect(context.Background(), cliOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer func() {
@@ -70,7 +70,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 			}
 			mcryptOpts := options.Client().SetMonitor(mcryptMonitor).
 				ApplyURI("mongodb://localhost:23000/?timeoutMS=1000")
-			testutil.AddTestServerAPIVersion(mcryptOpts)
+			integtest.AddTestServerAPIVersion(mcryptOpts)
 			mcryptClient, err := mongo.Connect(context.Background(), mcryptOpts)
 			assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 			defer func() {

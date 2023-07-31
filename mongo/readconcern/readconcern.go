@@ -11,6 +11,8 @@
 package readconcern // import "go.mongodb.org/mongo-driver/mongo/readconcern"
 
 import (
+	"errors"
+
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -106,6 +108,10 @@ func New(options ...Option) *ReadConcern {
 //
 // Deprecated: Marshaling a ReadConcern to BSON will not be supported in Go Driver 2.0.
 func (rc *ReadConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	if rc == nil {
+		return 0, nil, errors.New("cannot marshal nil ReadConcern")
+	}
+
 	var elems []byte
 
 	if len(rc.Level) > 0 {
