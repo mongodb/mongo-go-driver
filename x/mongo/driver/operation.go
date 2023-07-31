@@ -615,7 +615,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createWireMessage(ctx, (*wm)[:0], desc, maxTimeMS, conn)
+		*wm, startedInfo, err = op.createMsgWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn)
+
 		if err != nil {
 			return err
 		}
@@ -1068,15 +1069,15 @@ func (Operation) decompressWireMessage(wm []byte) (wiremessage.OpCode, []byte, e
 	return opcode, uncompressed, nil
 }
 
-func (op Operation) createWireMessage(
-	ctx context.Context,
-	dst []byte,
-	desc description.SelectedServer,
-	maxTimeMS uint64,
-	conn Connection,
-) ([]byte, startedInformation, error) {
-	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn)
-}
+//func (op Operation) createWireMessage(
+//	ctx context.Context,
+//	dst []byte,
+//	desc description.SelectedServer,
+//	maxTimeMS uint64,
+//	conn Connection,
+//) ([]byte, startedInformation, error) {
+//	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn)
+//}
 
 func (op Operation) addBatchArray(dst []byte) []byte {
 	aidx, dst := bsoncore.AppendArrayElementStart(dst, op.Batches.Identifier)
@@ -1253,7 +1254,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, err
 	}
 
-	if sessionsSupported(desc.WireVersion) && client != nil {
+	if desc.WireVersion != nil && client != nil {
 		if client.Consistent && client.OperationTime != nil {
 			data = data[:len(data)-1] // remove the null byte
 			data = bsoncore.AppendTimestampElement(data, "afterClusterTime", client.OperationTime.T, client.OperationTime.I)

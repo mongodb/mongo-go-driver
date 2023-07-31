@@ -205,7 +205,6 @@ func selectServers(t *testing.T, test *testCase) error {
 			server.Tags = tag.NewTagSetFromMap(serverDescription.Tags)
 		}
 
-		// Max staleness can't be sent to servers older than 3.4.
 		if test.ReadPreference.MaxStaleness != nil && server.WireVersion == nil {
 			server.WireVersion = &VersionRange{Max: 21}
 		}
