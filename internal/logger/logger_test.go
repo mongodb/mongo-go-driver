@@ -500,7 +500,7 @@ func TestLogger_LevelComponentEnabled(t *testing.T) {
 			t.Parallel()
 
 			got := tcase.logger.LevelComponentEnabled(tcase.level, tcase.component)
-			assert.Equal(t, tcase.want, got)
+			assert.Equal(t, tcase.want, got, "unexpected result for LevelComponentEnabled")
 		})
 	}
 }
