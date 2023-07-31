@@ -15,13 +15,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestRetryableReadsProse(t *testing.T) {
-	tpm := monitor.NewTestPoolMonitor()
+	tpm := eventtest.NewTestPoolMonitor()
 
 	// Client options with MaxPoolSize of 1 and RetryReads used per the test description.
 	// Lower HeartbeatInterval used to speed the test up for any server that uses streaming

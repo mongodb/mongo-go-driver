@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -26,16 +26,16 @@ func TestCompression(t *testing.T) {
 	}
 
 	wc := writeconcern.New(writeconcern.WMajority())
-	collOne := testutil.ColName(t)
+	collOne := integtest.ColName(t)
 
-	testutil.DropCollection(t, testutil.DBName(t), collOne)
-	testutil.InsertDocs(t, testutil.DBName(t), collOne, wc,
+	dropCollection(t, integtest.DBName(t), collOne)
+	insertDocs(t, integtest.DBName(t), collOne, wc,
 		bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "name", "compression_test")),
 	)
 
 	cmd := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))).
-		Deployment(testutil.Topology(t)).
-		Database(testutil.DBName(t))
+		Deployment(integtest.Topology(t)).
+		Database(integtest.DBName(t))
 
 	ctx := context.Background()
 	err := cmd.Execute(ctx)
@@ -45,7 +45,7 @@ func TestCompression(t *testing.T) {
 	serverVersion, err := result.LookupErr("version")
 	noerr(t, err)
 
-	if testutil.CompareVersions(t, serverVersion.StringValue(), "3.4") < 0 {
+	if integtest.CompareVersions(t, serverVersion.StringValue(), "3.4") < 0 {
 		t.Skip("skipping compression test for version < 3.4")
 	}
 
@@ -61,7 +61,7 @@ func TestCompression(t *testing.T) {
 	noerr(t, err)
 
 	compressorKey := "compressor"
-	compareTo36 := testutil.CompareVersions(t, serverVersion.StringValue(), "3.6")
+	compareTo36 := integtest.CompareVersions(t, serverVersion.StringValue(), "3.6")
 	if compareTo36 < 0 {
 		compressorKey = "compressed"
 	}

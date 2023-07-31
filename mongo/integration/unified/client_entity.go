@@ -16,9 +16,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/handshake"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -172,7 +172,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
 	} else {
-		testutil.AddTestServerAPIVersion(clientOpts)
+		integtest.AddTestServerAPIVersion(clientOpts)
 	}
 	for _, cmd := range entityOptions.IgnoredCommands {
 		entity.ignoredCommands[cmd] = struct{}{}
@@ -231,7 +231,7 @@ func (c *clientEntity) isIgnoredEvent(commandName string, eventDoc bson.Raw) boo
 		return true
 	}
 
-	if commandName == "hello" || strings.ToLower(commandName) == internal.LegacyHelloLowercase {
+	if commandName == "hello" || strings.ToLower(commandName) == handshake.LegacyHelloLowercase {
 		// If observeSensitiveCommands is false (or unset) and hello command has been
 		// redacted at operation level, hello command should be ignored as it contained
 		// speculativeAuthenticate.

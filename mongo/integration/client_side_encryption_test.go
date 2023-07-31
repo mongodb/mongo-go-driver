@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -37,7 +37,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 		SetReadConcern(mtest.MajorityRc).
 		SetWriteConcern(mtest.MajorityWc)
 
-	testutil.AddTestServerAPIVersion(kvClientOpts)
+	integtest.AddTestServerAPIVersion(kvClientOpts)
 
 	kmsProvidersMap := map[string]map[string]interface{}{
 		"local": {"key": localMasterKey},
@@ -134,7 +134,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 			SetAutoEncryptionOptions(aeOpts).
 			SetMonitor(makeMonitor(mt, &capturedEvents))
 
-		testutil.AddTestServerAPIVersion(clientOpts)
+		integtest.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(context.Background(), clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
@@ -196,7 +196,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 			SetAutoEncryptionOptions(aeOpts).
 			SetMonitor(makeMonitor(mt, &capturedEvents))
 
-		testutil.AddTestServerAPIVersion(clientOpts)
+		integtest.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(context.Background(), clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
@@ -361,7 +361,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			SetAutoEncryptionOptions(aeOpts)
 		cc := &customCrypt{}
 		clientOpts.Crypt = cc
-		testutil.AddTestServerAPIVersion(clientOpts)
+		integtest.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(context.Background(), clientOpts)
 		defer client.Disconnect(context.Background())
@@ -509,7 +509,7 @@ func TestFLE2DocsExample(t *testing.T) {
 		// Create two data keys.
 		{
 			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
-			testutil.AddTestServerAPIVersion(cOpts)
+			integtest.AddTestServerAPIVersion(cOpts)
 			keyVaultClient, err := mongo.Connect(context.Background(), cOpts)
 			assert.Nil(mt, err, "error in Connect: %v", err)
 			defer keyVaultClient.Disconnect(context.Background())
@@ -550,7 +550,7 @@ func TestFLE2DocsExample(t *testing.T) {
 		var encryptedColl *mongo.Collection
 		{
 			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
-			testutil.AddTestServerAPIVersion(cOpts)
+			integtest.AddTestServerAPIVersion(cOpts)
 			aeOpts := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys").SetEncryptedFieldsMap(encryptedFieldsMap).SetExtraOptions(getCryptSharedLibExtraOptions())
 			cOpts.SetAutoEncryptionOptions(aeOpts)
 			encryptedClient, err := mongo.Connect(context.Background(), cOpts)

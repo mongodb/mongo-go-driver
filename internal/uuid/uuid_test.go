@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/israce"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/israce"
 )
 
 // GODRIVER-2349

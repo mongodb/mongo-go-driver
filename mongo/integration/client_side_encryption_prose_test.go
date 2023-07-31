@@ -27,9 +27,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/handshake"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -72,7 +72,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	defer mt.Close()
 
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
-	testutil.AddTestServerAPIVersion(defaultKvClientOptions)
+	integtest.AddTestServerAPIVersion(defaultKvClientOptions)
 	fullKmsProvidersMap := map[string]map[string]interface{}{
 		"aws": {
 			"accessKeyId":     awsAccessKeyID,
@@ -254,7 +254,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					},
 				}
 				kvClientOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetMonitor(monitor)
-				testutil.AddTestServerAPIVersion(kvClientOpts)
+				integtest.AddTestServerAPIVersion(kvClientOpts)
 				cpt := setup(mt, aeo, kvClientOpts, ceo)
 				defer cpt.teardown(mt)
 
@@ -353,7 +353,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						Username: "fake-user",
 						Password: "fake-password",
 					})
-					testutil.AddTestServerAPIVersion(externalKvOpts)
+					integtest.AddTestServerAPIVersion(externalKvOpts)
 					aeo.SetKeyVaultClientOptions(externalKvOpts)
 					kvClientOpts = externalKvOpts
 				}
@@ -1152,11 +1152,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
 					SetServerSelectionTimeout(1 * time.Second)
-				testutil.AddTestServerAPIVersion(mcryptOpts)
+				integtest.AddTestServerAPIVersion(mcryptOpts)
 				mcryptClient, err := mongo.Connect(context.Background(), mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
-				err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{internal.LegacyHelloLowercase, 1}}).Err()
+				err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{handshake.LegacyHelloLowercase, 1}}).Err()
 				assert.NotNil(mt, err, "expected mongocryptd legacy hello error, got nil")
 				assert.True(mt, strings.Contains(err.Error(), "server selection error"),
 					"expected mongocryptd server selection error, got %v", err)
@@ -1345,7 +1345,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 
 				if tc.keyVaultClientSet {
-					testutil.AddTestServerAPIVersion(d.clientKeyVaultOpts)
+					integtest.AddTestServerAPIVersion(d.clientKeyVaultOpts)
 					aeOpts.SetKeyVaultClientOptions(d.clientKeyVaultOpts)
 				}
 
@@ -1363,7 +1363,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetMaxPoolSize(tc.maxPoolSize).
 					SetAutoEncryptionOptions(aeOpts)
 
-				testutil.AddTestServerAPIVersion(ceOpts)
+				integtest.AddTestServerAPIVersion(ceOpts)
 				clientEncrypted, err := mongo.Connect(context.Background(), ceOpts)
 				assert.Nil(mt, err, "Connect error: %v", err)
 				defer clientEncrypted.Disconnect(context.Background())
@@ -2037,7 +2037,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 								co := options.Client().ApplyURI(mtest.ClusterURI())
 								keyVaultClient, err = mongo.Connect(context.Background(), co)
 								defer keyVaultClient.Disconnect(context.Background())
-								testutil.AddTestServerAPIVersion(co)
+								integtest.AddTestServerAPIVersion(co)
 								assert.Nil(mt, err, "error on Connect: %v", err)
 							}
 							ceOpts := options.ClientEncryption().
@@ -2079,7 +2079,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 								co := options.Client().ApplyURI(mtest.ClusterURI())
 								keyVaultClient, err = mongo.Connect(context.Background(), co)
 								defer keyVaultClient.Disconnect(context.Background())
-								testutil.AddTestServerAPIVersion(co)
+								integtest.AddTestServerAPIVersion(co)
 								assert.Nil(mt, err, "error on Connect: %v", err)
 							}
 							ceOpts := options.ClientEncryption().
@@ -2129,7 +2129,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					co := options.Client().ApplyURI(mtest.ClusterURI())
 					keyVaultClient, err = mongo.Connect(context.Background(), co)
 					defer keyVaultClient.Disconnect(context.Background())
-					testutil.AddTestServerAPIVersion(co)
+					integtest.AddTestServerAPIVersion(co)
 					assert.Nil(mt, err, "error on Connect: %v", err)
 				}
 				ceOpts := options.ClientEncryption().
@@ -2269,7 +2269,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			aeo := options.AutoEncryption().SetKmsProviders(kmsProviders).
 				SetExtraOptions(mongocryptdSpawnArgs)
 			cliOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
-			testutil.AddTestServerAPIVersion(cliOpts)
+			integtest.AddTestServerAPIVersion(cliOpts)
 			encClient, err := mongo.Connect(context.Background(), cliOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer func() {
@@ -2954,7 +2954,7 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 		}
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
 			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
-		testutil.AddTestServerAPIVersion(opts)
+		integtest.AddTestServerAPIVersion(opts)
 		cpt.cseClient, err = mongo.Connect(context.Background(), opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)
 		cpt.cseColl = cpt.cseClient.Database("db").Collection("coll")
@@ -3027,7 +3027,7 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 	var err error
 
 	clientTestOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc)
-	testutil.AddTestServerAPIVersion(clientTestOpts)
+	integtest.AddTestServerAPIVersion(clientTestOpts)
 	if d.clientTest, err = mongo.Connect(context.Background(), clientTestOpts); err != nil {
 		mt.Fatalf("Connect error: %v", err)
 	}
