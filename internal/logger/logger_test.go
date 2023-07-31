@@ -14,6 +14,8 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 type mockLogSink struct{}
@@ -333,4 +335,172 @@ func TestTruncate(t *testing.T) {
 		})
 	}
 
+}
+
+func TestLogger_LevelComponentEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		logger    Logger
+		level     Level
+		component Component
+		want      bool
+	}{
+		{
+			name: "nil",
+			want: false,
+		},
+		{
+			name: "empty",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{},
+			},
+			want: false, // LevelOff should never be considered enabled.
+		},
+		{
+			name: "one level below",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentCommand: LevelDebug,
+				},
+			},
+			level:     LevelInfo,
+			component: ComponentCommand,
+			want:      true,
+		},
+		{
+			name: "equal levels",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentCommand: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentCommand,
+			want:      true,
+		},
+		{
+			name: "one level above",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentCommand: LevelInfo,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentCommand,
+			want:      false,
+		},
+		{
+			name: "component mismatch",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentCommand: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentTopology,
+		},
+		{
+			name: "component all enables with topology",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentTopology,
+			want:      true,
+		},
+		{
+			name: "component all enables with server selection",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentServerSelection,
+			want:      true,
+		},
+		{
+			name: "component all enables with connection",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentConnection,
+			want:      true,
+		},
+		{
+			name: "component all enables with command",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentCommand,
+			want:      true,
+		},
+		{
+			name: "component all enables with all",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentAll,
+			want:      true,
+		},
+		{
+			name: "component all does not enable with lower level",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll: LevelInfo,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentCommand,
+			want:      false,
+		},
+		{
+			name: "component all has a lower log level than command",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll:     LevelInfo,
+					ComponentCommand: LevelDebug,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentCommand,
+			want:      true,
+		},
+		{
+			name: "component all has a higher log level than command",
+			logger: Logger{
+				ComponentLevels: map[Component]Level{
+					ComponentAll:     LevelDebug,
+					ComponentCommand: LevelInfo,
+				},
+			},
+			level:     LevelDebug,
+			component: ComponentCommand,
+			want:      true,
+		},
+	}
+
+	for _, tcase := range tests {
+		tcase := tcase // Capture the range variable.
+
+		t.Run(tcase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := tcase.logger.LevelComponentEnabled(tcase.level, tcase.component)
+			assert.Equal(t, tcase.want, got)
+		})
+	}
 }
