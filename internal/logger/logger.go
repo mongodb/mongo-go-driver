@@ -76,8 +76,8 @@ func (logger *Logger) Close() error {
 
 // LevelComponentEnabled will return true if the given LogLevel is enabled for
 // the given LogComponent. If the ComponentLevels on the logger are enabled for
-// "ComponentAll", then this function will return true for any component upto
-// the logging level defined for "ComponentAll".
+// "ComponentAll", then this function will return true for any level bound by
+// the level assigned to "ComponentAll".
 //
 // If the level is not enabled (i.e. LevelOff), then false is returned. This is
 // to avoid false positives, such as returning "true" for a component that is
