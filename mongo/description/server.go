@@ -13,7 +13,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
 )
@@ -78,7 +79,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		switch element.Key() {
 		case "arbiters":
 			var err error
-			desc.Arbiters, err = internal.StringSliceFromRawElement(element)
+			desc.Arbiters, err = stringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -91,7 +92,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "compression":
 			var err error
-			desc.Compression, err = internal.StringSliceFromRawElement(element)
+			desc.Compression, err = stringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -122,7 +123,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "hosts":
 			var err error
-			desc.Hosts, err = internal.StringSliceFromRawElement(element)
+			desc.Hosts, err = stringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -133,7 +134,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = fmt.Errorf("expected 'isWritablePrimary' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-		case internal.LegacyHelloLowercase:
+		case handshake.LegacyHelloLowercase:
 			isWritablePrimary, ok = element.Value().BooleanOK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected legacy hello to be a boolean but it's a BSON %s", element.Value().Type)
@@ -225,7 +226,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 		case "passives":
 			var err error
-			desc.Passives, err = internal.StringSliceFromRawElement(element)
+			desc.Passives, err = stringSliceFromRawElement(element)
 			if err != nil {
 				desc.LastError = err
 				return desc
@@ -485,4 +486,12 @@ func sliceStringEqual(a []string, b []string) bool {
 		}
 	}
 	return true
+}
+
+// stringSliceFromRawElement decodes the provided BSON element into a []string.
+// This internally calls StringSliceFromRawValue on the element's value. The
+// error conditions outlined in that function's documentation apply for this
+// function as well.
+func stringSliceFromRawElement(element bson.RawElement) ([]string, error) {
+	return bsonutil.StringSliceFromRawValue(element.Key(), element.Value())
 }

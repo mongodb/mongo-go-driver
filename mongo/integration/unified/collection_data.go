@@ -12,7 +12,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -71,7 +71,7 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		return nil
 	}
 
-	docs := helpers.RawToInterfaces(c.Documents...)
+	docs := bsonutil.RawToInterfaces(c.Documents...)
 	if _, err := coll.InsertMany(ctx, docs); err != nil {
 		return fmt.Errorf("error inserting data: %v", err)
 	}

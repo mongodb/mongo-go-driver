@@ -15,11 +15,38 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+)
+
+var (
+	// ErrLoadBalancedWithMultipleHosts is returned when loadBalanced=true is
+	// specified in a URI with multiple hosts.
+	ErrLoadBalancedWithMultipleHosts = errors.New(
+		"loadBalanced cannot be set to true if multiple hosts are specified")
+
+	// ErrLoadBalancedWithReplicaSet is returned when loadBalanced=true is
+	// specified in a URI with the replicaSet option.
+	ErrLoadBalancedWithReplicaSet = errors.New(
+		"loadBalanced cannot be set to true if a replica set name is specified")
+
+	// ErrLoadBalancedWithDirectConnection is returned when loadBalanced=true is
+	// specified in a URI with the directConnection option.
+	ErrLoadBalancedWithDirectConnection = errors.New(
+		"loadBalanced cannot be set to true if the direct connection option is specified")
+
+	// ErrSRVMaxHostsWithReplicaSet is returned when srvMaxHosts > 0 is
+	// specified in a URI with the replicaSet option.
+	ErrSRVMaxHostsWithReplicaSet = errors.New(
+		"srvMaxHosts cannot be a positive value if a replica set name is specified")
+
+	// ErrSRVMaxHostsWithLoadBalanced is returned when srvMaxHosts > 0 is
+	// specified in a URI with loadBalanced=true.
+	ErrSRVMaxHostsWithLoadBalanced = errors.New(
+		"srvMaxHosts cannot be a positive value if loadBalanced is set to true")
 )
 
 // random is a package-global pseudo-random number generator.
@@ -31,11 +58,11 @@ func ParseAndValidate(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {
-		return p.ConnString, internal.WrapErrorf(err, "error parsing uri")
+		return p.ConnString, errutil.WrapErrorf(err, "error parsing uri")
 	}
 	err = p.ConnString.Validate()
 	if err != nil {
-		return p.ConnString, internal.WrapErrorf(err, "error validating uri")
+		return p.ConnString, errutil.WrapErrorf(err, "error validating uri")
 	}
 	return p.ConnString, nil
 }
@@ -47,7 +74,7 @@ func Parse(s string) (ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	err := p.parse(s)
 	if err != nil {
-		err = internal.WrapErrorf(err, "error parsing uri")
+		err = errutil.WrapErrorf(err, "error parsing uri")
 	}
 	return p.ConnString, err
 }
@@ -235,7 +262,7 @@ func (p *parser) parse(original string) error {
 		}
 		p.Username, err = url.PathUnescape(username)
 		if err != nil {
-			return internal.WrapErrorf(err, "invalid username")
+			return errutil.WrapErrorf(err, "invalid username")
 		}
 		p.UsernameSet = true
 
@@ -248,7 +275,7 @@ func (p *parser) parse(original string) error {
 		}
 		p.Password, err = url.PathUnescape(password)
 		if err != nil {
-			return internal.WrapErrorf(err, "invalid password")
+			return errutil.WrapErrorf(err, "invalid password")
 		}
 	}
 
@@ -325,7 +352,7 @@ func (p *parser) parse(original string) error {
 	for _, host := range parsedHosts {
 		err = p.addHost(host)
 		if err != nil {
-			return internal.WrapErrorf(err, "invalid host %q", host)
+			return errutil.WrapErrorf(err, "invalid host %q", host)
 		}
 	}
 	if len(p.Hosts) == 0 {
@@ -371,27 +398,27 @@ func (p *parser) validate() error {
 			return errors.New("a direct connection cannot be made if an SRV URI is used")
 		}
 		if p.LoadBalancedSet && p.LoadBalanced {
-			return internal.ErrLoadBalancedWithDirectConnection
+			return ErrLoadBalancedWithDirectConnection
 		}
 	}
 
 	// Validation for load-balanced mode.
 	if p.LoadBalancedSet && p.LoadBalanced {
 		if len(p.Hosts) > 1 {
-			return internal.ErrLoadBalancedWithMultipleHosts
+			return ErrLoadBalancedWithMultipleHosts
 		}
 		if p.ReplicaSet != "" {
-			return internal.ErrLoadBalancedWithReplicaSet
+			return ErrLoadBalancedWithReplicaSet
 		}
 	}
 
 	// Check for invalid use of SRVMaxHosts.
 	if p.SRVMaxHosts > 0 {
 		if p.ReplicaSet != "" {
-			return internal.ErrSRVMaxHostsWithReplicaSet
+			return ErrSRVMaxHostsWithReplicaSet
 		}
 		if p.LoadBalanced {
-			return internal.ErrSRVMaxHostsWithLoadBalanced
+			return ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
 
@@ -570,7 +597,7 @@ func (p *parser) addHost(host string) error {
 	}
 	host, err := url.QueryUnescape(host)
 	if err != nil {
-		return internal.WrapErrorf(err, "invalid host %q", host)
+		return errutil.WrapErrorf(err, "invalid host %q", host)
 	}
 
 	_, port, err := net.SplitHostPort(host)
@@ -585,7 +612,7 @@ func (p *parser) addHost(host string) error {
 	if port != "" {
 		d, err := strconv.Atoi(port)
 		if err != nil {
-			return internal.WrapErrorf(err, "port must be an integer")
+			return errutil.WrapErrorf(err, "port must be an integer")
 		}
 		if d <= 0 || d >= 65536 {
 			return fmt.Errorf("port must be in the range [1, 65535]")
@@ -603,12 +630,12 @@ func (p *parser) addOption(pair string) error {
 
 	key, err := url.QueryUnescape(kv[0])
 	if err != nil {
-		return internal.WrapErrorf(err, "invalid option key %q", kv[0])
+		return errutil.WrapErrorf(err, "invalid option key %q", kv[0])
 	}
 
 	value, err := url.QueryUnescape(kv[1])
 	if err != nil {
-		return internal.WrapErrorf(err, "invalid option value %q", kv[1])
+		return errutil.WrapErrorf(err, "invalid option value %q", kv[1])
 	}
 
 	lowerKey := strings.ToLower(key)
@@ -1024,7 +1051,7 @@ func extractDatabaseFromURI(uri string) (extractedDatabase, error) {
 
 	escapedDatabase, err := url.QueryUnescape(database)
 	if err != nil {
-		return extractedDatabase{}, internal.WrapErrorf(err, "invalid database %q", database)
+		return extractedDatabase{}, errutil.WrapErrorf(err, "invalid database %q", database)
 	}
 
 	uri = uri[len(database):]

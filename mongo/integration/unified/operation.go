@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -93,7 +93,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	// Special handling for the "timeoutMS" field because it applies to (almost) all operations.
 	if tms, ok := op.Arguments.Lookup("timeoutMS").Int32OK(); ok {
 		timeout := time.Duration(tms) * time.Millisecond
-		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, timeout)
+		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
 		// Cancel the timeout-derived context at the end of run to avoid a context leak.

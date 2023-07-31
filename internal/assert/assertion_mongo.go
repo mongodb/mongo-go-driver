@@ -10,8 +10,10 @@
 package assert
 
 import (
+	"context"
 	"fmt"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -87,4 +89,38 @@ Expected: %s
 Actual  : %s`,
 		expected.(fmt.Stringer).String(),
 		actual.(fmt.Stringer).String())
+}
+
+// Soon runs the provided callback and fails the passed-in test if the callback
+// does not complete within timeout. The provided callback should respect the
+// passed-in context and cease execution when it has expired.
+//
+// Deprecated: This function will be removed with GODRIVER-2667, use
+// assert.Eventually instead.
+func Soon(t TestingT, callback func(ctx context.Context), timeout time.Duration) {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+
+	// Create context to manually cancel callback after Soon assertion.
+	callbackCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	done := make(chan struct{})
+	fullCallback := func() {
+		callback(callbackCtx)
+		done <- struct{}{}
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	go fullCallback()
+
+	select {
+	case <-done:
+		return
+	case <-timer.C:
+		t.Errorf("timed out in %s waiting for callback", timeout)
+	}
 }

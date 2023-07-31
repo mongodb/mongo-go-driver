@@ -15,8 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -47,7 +47,7 @@ func (set saturatedHosts) isSaturated(tolerance uint64) bool {
 // awaitSaturation uses CMAP events to ensure that the client's connection pools for N-mongoses have been saturated.
 // The qualification for a host to be "saturated" is for each host on the client to have a tolerable number of ready
 // connections.
-func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPoolMonitor, tolerance uint64) error {
+func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *eventtest.TestPoolMonitor, tolerance uint64) error {
 	set := make(saturatedHosts)
 	var err error
 	for !set.isSaturated(tolerance) {
@@ -71,7 +71,7 @@ func awaitSaturation(ctx context.Context, mt *mtest.T, monitor *monitor.TestPool
 // runsServerSelection will run opCount-many `FindOne` operations within threadCount-many go routines.  The purpose of
 // this is to test the reliability of the server selection algorithm, which can be verified with the `counts` map and
 // `event.PoolEvent` slice.
-func runsServerSelection(mt *mtest.T, monitor *monitor.TestPoolMonitor,
+func runsServerSelection(mt *mtest.T, monitor *eventtest.TestPoolMonitor,
 	threadCount, opCount int) (map[string]int, []*event.PoolEvent) {
 	var wg sync.WaitGroup
 	for i := 0; i < threadCount; i++ {
@@ -145,7 +145,7 @@ func TestServerSelectionProse(t *testing.T) {
 		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
 		// host descriptions to move from kind "Unknown" to kind "Mongos".
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
-		tpm := monitor.NewTestPoolMonitor()
+		tpm := eventtest.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetLocalThreshold(localThreshold).
 			SetMaxPoolSize(maxPoolSize).
@@ -196,7 +196,7 @@ func TestServerSelectionProse(t *testing.T) {
 		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos
 		// host descriptions to move from kind "Unknown" to kind "Mongos".
 		topologyEvents := make(chan *event.TopologyDescriptionChangedEvent, 10)
-		tpm := monitor.NewTestPoolMonitor()
+		tpm := eventtest.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetHosts(hosts[:2]).
 			SetPoolMonitor(tpm.PoolMonitor).

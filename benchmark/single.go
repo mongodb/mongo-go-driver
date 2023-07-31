@@ -11,8 +11,8 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/handshake"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -25,7 +25,7 @@ const (
 )
 
 func getClientDB(ctx context.Context) (*mongo.Database, error) {
-	cs, err := testutil.GetConnString()
+	cs, err := integtest.GetConnString()
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func getClientDB(ctx context.Context) (*mongo.Database, error) {
 		return nil, err
 	}
 
-	db := client.Database(testutil.GetDBName(cs))
+	db := client.Database(integtest.GetDBName(cs))
 	return db, nil
 }
 
@@ -51,7 +51,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 	}
 	defer db.Client().Disconnect(ctx)
 
-	cmd := bson.D{{internal.LegacyHelloLowercase, true}}
+	cmd := bson.D{{handshake.LegacyHelloLowercase, true}}
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {

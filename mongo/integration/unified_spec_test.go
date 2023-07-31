@@ -25,8 +25,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
@@ -468,7 +468,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 
 		targetHost := clientSession.PinnedServer.Addr.String()
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
-		testutil.AddTestServerAPIVersion(opts)
+		integtest.AddTestServerAPIVersion(opts)
 		client, err := mongo.Connect(context.Background(), opts)
 		if err != nil {
 			return fmt.Errorf("Connect error for targeted client: %v", err)
@@ -892,7 +892,7 @@ func setupSessions(mt *mtest.T, test *testCase) (mongo.Session, mongo.Session) {
 func insertDocuments(mt *mtest.T, coll *mongo.Collection, rawDocs []bson.Raw) {
 	mt.Helper()
 
-	docsToInsert := helpers.RawToInterfaces(rawDocs...)
+	docsToInsert := bsonutil.RawToInterfaces(rawDocs...)
 	if len(docsToInsert) == 0 {
 		return
 	}

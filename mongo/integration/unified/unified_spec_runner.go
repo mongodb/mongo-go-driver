@@ -17,7 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
@@ -92,7 +92,7 @@ type TestFile struct {
 // runTestDirectory runs the files in the given directory, which must be in the unified spec format, with
 // expectValidFail determining whether the tests should expect to pass or fail
 func runTestDirectory(t *testing.T, directoryPath string, expectValidFail bool) {
-	for _, filename := range helpers.FindJSONFilesInDir(t, directoryPath) {
+	for _, filename := range spectest.FindJSONFilesInDir(t, directoryPath) {
 		t.Run(filename, func(t *testing.T) {
 			runTestFile(t, path.Join(directoryPath, filename), expectValidFail)
 		})

@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -148,7 +148,7 @@ func TestSessions(t *testing.T) {
 			// handshake or the checks from the heartbeat or RTT monitors), expect that there is no
 			// "$clusterTime" because the connection doesn't know the server's wire version yet so
 			// it doesn't know if the connection supports "$clusterTime".
-			case internal.LegacyHello, "hello":
+			case handshake.LegacyHello, "hello":
 				assert.False(
 					mt,
 					hasClusterTime,
