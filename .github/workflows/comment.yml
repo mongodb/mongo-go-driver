@@ -18,11 +18,14 @@ jobs:
         comment-author: 'github-actions[bot]'
         body-includes: Build output
 
+    - name: Create the comment body
+      run: |
+        echo "Build output: $(date)" >> comment-body.md
+
     - name: Create or update comment
       uses: peter-evans/create-or-update-comment@v3
       with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
-        body: |
-          Build output: $(date)
+        body-path: 'comment-body.md'
         edit-mode: replace
