@@ -348,15 +348,20 @@ func TestLogger_LevelComponentEnabled(t *testing.T) {
 		want      bool
 	}{
 		{
-			name: "nil",
-			want: false,
+			name:      "zero",
+			logger:    Logger{},
+			level:     LevelOff,
+			component: ComponentCommand,
+			want:      false,
 		},
 		{
 			name: "empty",
 			logger: Logger{
 				ComponentLevels: map[Component]Level{},
 			},
-			want: false, // LevelOff should never be considered enabled.
+			level:     LevelOff,
+			component: ComponentCommand,
+			want:      false, // LevelOff should never be considered enabled.
 		},
 		{
 			name: "one level below",
@@ -400,6 +405,7 @@ func TestLogger_LevelComponentEnabled(t *testing.T) {
 			},
 			level:     LevelDebug,
 			component: ComponentTopology,
+			want:      false,
 		},
 		{
 			name: "component all enables with topology",
