@@ -12,6 +12,15 @@ import (
 	"sync/atomic"
 )
 
+// Runtime check that the kind encoder and decoder caches can store any valid
+// reflect.Kind constant.
+func init() {
+	if s := reflect.Kind(len(kindEncoderCache{}.entries)).String(); s != "kind27" {
+		panic("The capacity of kindEncoderCache is too small.\n" +
+			"This is due to a new type being added to reflect.Kind.")
+	}
+}
+
 // statically assert array size
 var _ = (kindEncoderCache{}).entries[reflect.UnsafePointer]
 var _ = (kindDecoderCache{}).entries[reflect.UnsafePointer]
