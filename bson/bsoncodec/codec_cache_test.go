@@ -13,6 +13,8 @@ import (
 	"testing"
 )
 
+// NB(charlie): the array size is a power of 2 because we use the remainder of
+// it (mod) in benchmarks and that is faster when the size is a power of 2.
 var codecCacheTestTypes = [16]reflect.Type{
 	reflect.TypeOf(uint8(0)),
 	reflect.TypeOf(uint16(0)),
