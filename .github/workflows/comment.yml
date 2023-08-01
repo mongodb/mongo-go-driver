@@ -7,6 +7,8 @@ on:
 jobs:
   comment:
     runs-on: ubuntu-latest
+    permissions:
+        pull-requests: write
     steps:
     - name: Find Comment
       uses: peter-evans/find-comment@v2
@@ -18,8 +20,6 @@ jobs:
 
     - name: Create or update comment
       uses: peter-evans/create-or-update-comment@v3
-      permissions:
-        pull-requests: write
       with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
