@@ -75,9 +75,25 @@ func (logger *Logger) Close() error {
 }
 
 // LevelComponentEnabled will return true if the given LogLevel is enabled for
-// the given LogComponent.
+// the given LogComponent. If the ComponentLevels on the logger are enabled for
+// "ComponentAll", then this function will return true for any level bound by
+// the level assigned to "ComponentAll".
+//
+// If the level is not enabled (i.e. LevelOff), then false is returned. This is
+// to avoid false positives, such as returning "true" for a component that is
+// not enabled. For example, without this condition, an empty LevelComponent
+// would be considered "enabled" for "LevelOff".
 func (logger *Logger) LevelComponentEnabled(level Level, component Component) bool {
-	return logger.ComponentLevels[component] >= level
+	if level == LevelOff {
+		return false
+	}
+
+	if logger.ComponentLevels == nil {
+		return false
+	}
+
+	return logger.ComponentLevels[component] >= level ||
+		logger.ComponentLevels[ComponentAll] >= level
 }
 
 // Print will synchronously print the given message to the configured LogSink.
