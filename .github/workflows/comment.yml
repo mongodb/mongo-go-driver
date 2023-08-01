@@ -1,8 +1,6 @@
 name: Comment
 on:
-  push:
   pull_request:
-
 
 jobs:
   comment:
