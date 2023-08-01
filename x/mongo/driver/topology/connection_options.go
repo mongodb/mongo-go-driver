@@ -83,6 +83,8 @@ func newConnectionConfig(opts ...ConnectionOption) *connectionConfig {
 	}
 
 	if cfg.dialer == nil {
+		// Use a zero value of net.Dialer when nothing is specified, so the Go driver applies default default behaviors
+		// such as Timeout, KeepAlive, DNS resolving, etc. See https://golang.org/pkg/net/#Dialer for more information.
 		cfg.dialer = &net.Dialer{}
 	}
 
