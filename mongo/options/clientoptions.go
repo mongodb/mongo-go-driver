@@ -586,18 +586,17 @@ func (c *ClientOptions) SetCompressors(comps []string) *ClientOptions {
 	return c
 }
 
-// SetConnectTimeout specifies a timeout that is used for creating connections to the server. If a custom Dialer is
-// specified through SetDialer, this option must not be used. This can be set through ApplyURI with the
-// "connectTimeoutMS" (e.g "connectTimeoutMS=30") option. If set to 0, no timeout will be used. The default is 30
-// seconds.
+// SetConnectTimeout specifies a timeout that is used for creating connections to the server. This can be set through
+// ApplyURI with the "connectTimeoutMS" (e.g "connectTimeoutMS=30") option. If set to 0, no timeout will be used. The
+// default is 30 seconds.
 func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
 	c.ConnectTimeout = &d
 	return c
 }
 
-// SetDialer specifies a custom ContextDialer to be used to create new connections to the server. The default is a
-// net.Dialer with the Timeout field set to ConnectTimeout. See https://golang.org/pkg/net/#Dialer for more information
-// about the net.Dialer type.
+// SetDialer specifies a custom ContextDialer to be used to create new connections to the server. This method overrides
+// the default net.Dialer, so dialer options such as Timeout, KeepAlive, Resolver, etc can be set.
+// See https://golang.org/pkg/net/#Dialer for more information about the net.Dialer type.
 func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 	c.Dialer = d
 	return c
