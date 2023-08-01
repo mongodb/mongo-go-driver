@@ -730,7 +730,7 @@ func TestClient(t *testing.T) {
 		msgPairs := mt.GetProxiedMessages()
 		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
 
-		// First message should a be connection handshake.
+		// The first message should be a connection handshake.
 		pair := msgPairs[0]
 		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
 			handshake.LegacyHello, pair.CommandName)
