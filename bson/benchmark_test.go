@@ -404,7 +404,7 @@ func BenchmarkCodeUnmarshal(b *testing.B) {
 				}
 			}
 		})
-		b.SetBytes(int64(len(codeJSON)))
+		b.SetBytes(int64(len(codeBSON)))
 	})
 	b.Run("JSON", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
@@ -434,7 +434,7 @@ func BenchmarkCodeMarshal(b *testing.B) {
 				}
 			}
 		})
-		b.SetBytes(int64(len(codeJSON)))
+		b.SetBytes(int64(len(codeBSON)))
 	})
 	b.Run("JSON", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
