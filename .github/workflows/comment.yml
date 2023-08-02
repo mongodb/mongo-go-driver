@@ -9,6 +9,8 @@ jobs:
         pull-requests: write
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Find Comment
       uses: peter-evans/find-comment@v2
       id: fc

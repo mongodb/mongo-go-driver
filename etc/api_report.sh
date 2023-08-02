@@ -6,6 +6,7 @@ set -eux
 cmd=$(command -v gorelease || true)
 
 if [ -z $cmd ]; then
+    export GOPATH=$(go env GOPATH)
     go install golang.org/x/exp/cmd/gorelease@latest
     cmd="$(go env GOPATH)/gorelease"
 fi
