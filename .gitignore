@@ -21,3 +21,6 @@ internal/test/faas/awslambda/events/event.json
 # Ignore compiled binaries from the compilecheck
 internal/test/compilecheck/compilecheck
 internal/test/compilecheck/compilecheck.so
+
+# Ignore api report file
+api-report.md
