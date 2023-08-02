@@ -20,6 +20,7 @@ jobs:
 
     - name: Create the comment body
       run: |
+        git checkout -b my-new-branch
         make api-report
         cat api-report.md
 
