@@ -33,5 +33,5 @@ jobs:
       with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
-        body-path: 'api-report.md'
+        body-path: 'mongo-go-driver/api-report.md'
         edit-mode: replace
