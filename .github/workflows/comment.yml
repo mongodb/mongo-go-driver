@@ -18,7 +18,7 @@ jobs:
 
     - name: Create the comment body
       run: |
-        echo "Build output: $(date)" >> comment-body.md
+        make api-report > comment-body.md
 
     - name: Create or update comment
       uses: peter-evans/create-or-update-comment@v3
