@@ -12,8 +12,9 @@ fi
 if [ -n "$GITHUB_BASE_REF" ]; then
     branch=$GITHUB_BASE_REF
     git fetch origin $GITHUB_BASE_REF
-    git checkout -b my-new-branch
     sha=$(git rev-parse origin/$branch)
+    git checkout -b my-new-branch
+    git status --porcelain
 else
     branch=$(git rev-parse --abbrev-ref HEAD)
     sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
