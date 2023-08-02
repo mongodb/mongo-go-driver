@@ -20,18 +20,18 @@ jobs:
     - name: Create the comment body
       run: |
         set -eux
-        git clone https://github.com/blink1073/mongo-go-driver
+        git clone https://github.com/$GITHUB_REPOSITORY
         cd mongo-go-driver
         git fetch origin $GITHUB_BASE_REF
         git fetch origin $GITHUB_HEAD_REF
         git checkout $GITHUB_HEAD_REF
         make api-report
-        #cat api-report.md
+        cat api-report.md
 
-    # - name: Create or update comment
-    #   uses: peter-evans/create-or-update-comment@v3
-    #   with:
-    #     comment-id: ${{ steps.fc.outputs.comment-id }}
-    #     issue-number: ${{ github.event.pull_request.number }}
-    #     body-path: 'api-report.md'
-    #     edit-mode: replace
+    - name: Create or update comment
+      uses: peter-evans/create-or-update-comment@v3
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body-path: 'api-report.md'
+        edit-mode: replace

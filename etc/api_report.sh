@@ -9,7 +9,7 @@ if [ -z $cmd ]; then
     go install golang.org/x/exp/cmd/gorelease@latest
 fi
 
-branch=$(git rev-parse --abbrev-ref HEAD)
-sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
+branch=${GITHUB_BASE_REF:-master}
+sha=$(git merge-base $branch HEAD)
 
 gorelease -base=$sha > $1
