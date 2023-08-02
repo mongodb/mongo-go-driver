@@ -3,10 +3,7 @@
 set -o errexit  # Exit the script with error if any of the commands fail.
 
 VARLIST=(
-	AWS_ACCESS_KEY_ID
 	AWS_REGION
-	AWS_SECRET_ACCESS_KEY
-	AWS_SESSION_TOKEN
 	DRIVERS_TOOLS
 	DRIVERS_ATLAS_PUBLIC_API_KEY
 	DRIVERS_ATLAS_PRIVATE_API_KEY
