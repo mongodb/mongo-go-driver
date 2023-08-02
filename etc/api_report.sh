@@ -20,4 +20,6 @@ else
     sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
 fi
 
-gorelease -base=$sha > $1 || true
+git status --porcelain
+git --no-pager show
+gorelease -base=$sha > $1
