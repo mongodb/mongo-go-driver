@@ -20,11 +20,8 @@ jobs:
 
     - name: Create the comment body
       run: |
-        git checkout -b my-new-branch
-        git status
-
-    #     make api-report
-    #     cat api-report.md
+        make api-report
+        cat api-report.md
 
     # - name: Create or update comment
     #   uses: peter-evans/create-or-update-comment@v3
