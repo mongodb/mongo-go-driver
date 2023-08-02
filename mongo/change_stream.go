@@ -527,6 +527,16 @@ func (cs *ChangeStream) ID() int64 {
 	return cs.cursor.ID()
 }
 
+// SetBatchSize sets the number of documents to fetch from the database with
+// each iteration of the ChangeStream's "Next" or "TryNext" method. This setting
+// only affects subsequent document batches fetched from the database.
+func (cs *ChangeStream) SetBatchSize(size int32) {
+	// Set batch size on the cursor options also so any "resumed" change stream
+	// cursors will pick up the latest batch size setting.
+	cs.cursorOptions.BatchSize = size
+	cs.cursor.SetBatchSize(size)
+}
+
 // Decode will unmarshal the current event document into val and return any errors from the unmarshalling process
 // without any modification. If val is nil or is a typed nil, an error will be returned.
 func (cs *ChangeStream) Decode(val interface{}) error {
