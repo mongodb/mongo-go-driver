@@ -8,7 +8,6 @@ jobs:
     permissions:
         pull-requests: write
     steps:
-    - uses: actions/checkout@v2
     - uses: actions/setup-go@v4
     - name: Find Comment
       uses: peter-evans/find-comment@v2
@@ -20,6 +19,10 @@ jobs:
 
     - name: Create the comment body
       run: |
+        git clone https://github.com/blink1073/mongo-go-driver
+        cd mongo-go-driver
+        git fetch origin GODRIVER-2923
+        git checkout GODRIVER-2923
         make api-report
         cat api-report.md
 
