@@ -22,8 +22,8 @@ jobs:
         git clone https://github.com/blink1073/mongo-go-driver
         cd mongo-go-driver
         git fetch origin $GITHUB_BASE_REF
-        git fetch origin GODRIVER-2923
-        git checkout GODRIVER-2923
+        git fetch origin $GITHUB_SOURCE_REF
+        git checkout $GITHUB_SOURCE_REF
         make api-report
         #cat api-report.md
 
