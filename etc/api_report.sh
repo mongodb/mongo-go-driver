@@ -11,14 +11,12 @@ fi
 
 if [ -n "$GITHUB_BASE_REF" ]; then
     branch=$GITHUB_BASE_REF
-    git status
     git fetch origin $GITHUB_BASE_REF
     git checkout -b my-new-branch
-    git status
     sha=$(git rev-parse origin/$branch)
 else
     branch=$(git rev-parse --abbrev-ref HEAD)
     sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
 fi
 
-#gorelease -base=$sha > $1 || true
+gorelease -base=$sha > $1 || true
