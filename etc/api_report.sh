@@ -12,7 +12,9 @@ if [ -z $cmd ]; then
 fi
 
 if [ -n "$GITHUB_BASE_REF" ]; then
-    sha=$GITHUB_BASE_REF
+    branch=$GITHUB_BASE_REF
+    git fetch origin $branch
+    sha=$(git rev-parse origin/$branch)
 else
     branch=$(git rev-parse --abbrev-ref HEAD)
     sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
