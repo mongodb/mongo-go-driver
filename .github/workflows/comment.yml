@@ -21,13 +21,15 @@ jobs:
     - name: Create the comment body
       run: |
         git checkout -b my-new-branch
-        make api-report
-        cat api-report.md
+        git status
 
-    - name: Create or update comment
-      uses: peter-evans/create-or-update-comment@v3
-      with:
-        comment-id: ${{ steps.fc.outputs.comment-id }}
-        issue-number: ${{ github.event.pull_request.number }}
-        body-path: 'api-report.md'
-        edit-mode: replace
+    #     make api-report
+    #     cat api-report.md
+
+    # - name: Create or update comment
+    #   uses: peter-evans/create-or-update-comment@v3
+    #   with:
+    #     comment-id: ${{ steps.fc.outputs.comment-id }}
+    #     issue-number: ${{ github.event.pull_request.number }}
+    #     body-path: 'api-report.md'
+    #     edit-mode: replace
