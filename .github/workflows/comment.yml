@@ -23,8 +23,10 @@ jobs:
         cd mongo-go-driver
         git fetch origin GODRIVER-2923
         git checkout GODRIVER-2923
-        make api-report
-        cat api-report.md
+        git --no-pager log | head
+        git describe
+        #make api-report
+        #cat api-report.md
 
     # - name: Create or update comment
     #   uses: peter-evans/create-or-update-comment@v3
