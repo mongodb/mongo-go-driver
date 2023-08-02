@@ -20,6 +20,7 @@ jobs:
     - name: Create the comment body
       run: |
         make api-report &> comment-body.md
+        cat comment-body.md
 
     - name: Create or update comment
       uses: peter-evans/create-or-update-comment@v3
