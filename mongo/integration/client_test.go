@@ -730,13 +730,12 @@ func TestClient(t *testing.T) {
 		msgPairs := mt.GetProxiedMessages()
 		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
 
-		// First message should a be connection handshake. This handshake should use OP_QUERY as the OpCode, as wire
-		// version is not yet known.
+		// The first message should be a connection handshake.
 		pair := msgPairs[0]
 		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
 			handshake.LegacyHello, pair.CommandName)
-		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
-			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
+			"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
 
 		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
 		// version is now known to be >= 6.
