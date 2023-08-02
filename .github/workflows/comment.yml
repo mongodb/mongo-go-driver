@@ -21,11 +21,10 @@ jobs:
       run: |
         git clone https://github.com/blink1073/mongo-go-driver
         cd mongo-go-driver
+        git fetch origin $GITHUB_BASE_REF
         git fetch origin GODRIVER-2923
         git checkout GODRIVER-2923
-        git --no-pager log | head
-        git describe
-        #make api-report
+        make api-report
         #cat api-report.md
 
     # - name: Create or update comment
