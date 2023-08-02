@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # api-report
-# generates a markdown report of API changes
+# Generates a markdown report of Go Driver API changes
 set -eux
 
-go install golang.org/x/exp/cmd/gorelease@latest
+cmd=$(command -v gorelease)
+
+if [ -z $cmd ]; then
+    go install golang.org/x/exp/cmd/gorelease@latest
+fi
 branch=$(git rev-parse --abbrev-ref HEAD)
 sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
-output=$(gorelease -base=$sha || true)
+output=$($cmd -base=$sha || true)
 
 echo $output
