@@ -27,8 +27,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/errutil"
+	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -40,7 +41,7 @@ var tClientOptions = reflect.TypeOf(&ClientOptions{})
 func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
 		uri := "not-mongo-db-uri://"
-		want := internal.WrapErrorf(
+		want := errutil.WrapErrorf(
 			errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 		)
 		co := Client().ApplyURI(uri).ApplyURI("mongodb://localhost/")
@@ -208,10 +209,10 @@ func TestClientOptions(t *testing.T) {
 				"ParseError",
 				"not-mongo-db-uri://",
 				&ClientOptions{
-					err: internal.WrapErrorf(
+					err: errutil.WrapErrorf(
 						errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
 					),
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -220,7 +221,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        fmt.Errorf("unknown read preference %v", ""),
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -229,7 +230,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        errors.New("can not specify tags, max staleness, or hedge with mode primary"),
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -238,7 +239,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -247,7 +248,7 @@ func TestClientOptions(t *testing.T) {
 				&ClientOptions{
 					err:        &os.PathError{Op: "open", Path: "testdata/doesntexist"},
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -284,11 +285,11 @@ func TestClientOptions(t *testing.T) {
 				"Unescaped slash in username",
 				"mongodb:///:pwd@localhost",
 				&ClientOptions{
-					err: internal.WrapErrorf(
+					err: errutil.WrapErrorf(
 						errors.New("unescaped slash in username"),
 						"error parsing uri",
 					),
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -471,34 +472,34 @@ func TestClientOptions(t *testing.T) {
 				"TLS only tlsCertificateFile",
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
 				&ClientOptions{
-					err: internal.WrapErrorf(
+					err: errutil.WrapErrorf(
 						errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
 						"error validating uri",
 					),
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
 				"TLS only tlsPrivateKeyFile",
 				"mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
 				&ClientOptions{
-					err: internal.WrapErrorf(
+					err: errutil.WrapErrorf(
 						errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
 						"error validating uri",
 					),
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
 				"TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
 				&ClientOptions{
-					err: internal.WrapErrorf(
+					err: errutil.WrapErrorf(
 						errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
 							"along with tlsCertificateFile or tlsPrivateKeyFile"),
 						"error validating uri",
 					),
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
 			{
@@ -524,7 +525,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCAFile=testdata/empty-ca.pem",
 				&ClientOptions{
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
@@ -533,7 +534,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCAFile=testdata/ca-key.pem",
 				&ClientOptions{
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
@@ -542,7 +543,7 @@ func TestClientOptions(t *testing.T) {
 				"mongodb://localhost/?tlsCAFile=testdata/malformed-ca.pem",
 				&ClientOptions{
 					Hosts:      []string{"localhost"},
-					HTTPClient: internal.DefaultHTTPClient,
+					HTTPClient: httputil.DefaultHTTPClient,
 					err:        errors.New("the specified CA file does not contain any valid certificates"),
 				},
 			},
@@ -649,10 +650,10 @@ func TestClientOptions(t *testing.T) {
 			opts *ClientOptions
 			err  error
 		}{
-			{"multiple hosts in URI", Client().ApplyURI("mongodb://foo,bar"), internal.ErrLoadBalancedWithMultipleHosts},
-			{"multiple hosts in options", Client().SetHosts([]string{"foo", "bar"}), internal.ErrLoadBalancedWithMultipleHosts},
-			{"replica set name", Client().SetReplicaSet("foo"), internal.ErrLoadBalancedWithReplicaSet},
-			{"directConnection=true", Client().SetDirect(true), internal.ErrLoadBalancedWithDirectConnection},
+			{"multiple hosts in URI", Client().ApplyURI("mongodb://foo,bar"), connstring.ErrLoadBalancedWithMultipleHosts},
+			{"multiple hosts in options", Client().SetHosts([]string{"foo", "bar"}), connstring.ErrLoadBalancedWithMultipleHosts},
+			{"replica set name", Client().SetReplicaSet("foo"), connstring.ErrLoadBalancedWithReplicaSet},
+			{"directConnection=true", Client().SetDirect(true), connstring.ErrLoadBalancedWithDirectConnection},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -710,8 +711,8 @@ func TestClientOptions(t *testing.T) {
 			opts *ClientOptions
 			err  error
 		}{
-			{"replica set name", Client().SetReplicaSet("foo"), internal.ErrSRVMaxHostsWithReplicaSet},
-			{"loadBalanced=true", Client().SetLoadBalanced(true), internal.ErrSRVMaxHostsWithLoadBalanced},
+			{"replica set name", Client().SetReplicaSet("foo"), connstring.ErrSRVMaxHostsWithReplicaSet},
+			{"loadBalanced=true", Client().SetLoadBalanced(true), connstring.ErrSRVMaxHostsWithLoadBalanced},
 			{"loadBalanced=false", Client().SetLoadBalanced(false), nil},
 		}
 		for _, tc := range testCases {

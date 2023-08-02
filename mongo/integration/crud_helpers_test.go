@@ -19,8 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -121,7 +121,7 @@ func killSessions(mt *mtest.T) {
 // replica sets, the command is run against the primary. sharded clusters, the command is run against each mongos.
 func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	opts := options.Client().ApplyURI(mtest.ClusterURI())
-	testutil.AddTestServerAPIVersion(opts)
+	integtest.AddTestServerAPIVersion(opts)
 
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
 		client, err := mongo.Connect(context.Background(), opts)
@@ -172,7 +172,7 @@ func executeAggregate(mt *mtest.T, agg aggregator, sess mongo.Session, args bson
 
 		switch key {
 		case "pipeline":
-			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
 		case "batchSize":
 			opts.SetBatchSize(val.Int32())
 		case "collation":
@@ -210,7 +210,7 @@ func executeWatch(mt *mtest.T, w watcher, sess mongo.Session, args bson.Raw) (*m
 
 		switch key {
 		case "pipeline":
-			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
 		default:
 			mt.Fatalf("unrecognized watch option: %v", key)
 		}
@@ -313,7 +313,7 @@ func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.I
 
 		switch key {
 		case "documents":
-			docs = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
+			docs = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
 		case "options":
 			// Some of the older tests use this to set the "ordered" option
 			optsDoc := val.Document()
@@ -700,7 +700,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 			update = createUpdate(mt, val)
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
 			})
 		case "sort":
 			opts = opts.SetSort(val.Document())
@@ -882,7 +882,7 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 			update = createUpdate(mt, val)
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
 			})
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
@@ -930,7 +930,7 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			update = createUpdate(mt, val)
 		case "arrayFilters":
 			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
 			})
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
@@ -1116,7 +1116,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
 			uom.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(arrayFilters.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(arrayFilters.Array())...),
 			})
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
@@ -1139,7 +1139,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
 			umm.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(arrayFilters.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(arrayFilters.Array())...),
 			})
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
@@ -1384,7 +1384,7 @@ func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) err
 func executeAdminCommand(mt *mtest.T, op *operation) {
 	// Per the streamable hello test format description, a separate client must be used to execute this operation.
 	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
-	testutil.AddTestServerAPIVersion(clientOpts)
+	integtest.AddTestServerAPIVersion(clientOpts)
 	client, err := mongo.Connect(context.Background(), clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 	defer func() {

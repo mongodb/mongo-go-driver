@@ -10,7 +10,7 @@ import (
 	"path"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/spectest"
 )
 
 const maxStalenessTestsDir = "../../testdata/max-staleness"
@@ -24,7 +24,7 @@ func TestMaxStalenessSpec(t *testing.T) {
 		"Single",
 		"Unknown",
 	} {
-		for _, file := range helpers.FindJSONFilesInDir(t,
+		for _, file := range spectest.FindJSONFilesInDir(t,
 			path.Join(maxStalenessTestsDir, topology)) {
 
 			runTest(t, maxStalenessTestsDir, topology, file)

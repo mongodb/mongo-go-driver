@@ -18,9 +18,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -244,7 +242,7 @@ func TestConnection(t *testing.T) {
 
 							connectErr = conn.connect(connectCtx)
 						}
-						helpers.AssertSoon(t, callback, tc.maxConnectTime)
+						assert.Soon(t, callback, tc.maxConnectTime)
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
@@ -279,7 +277,7 @@ func TestConnection(t *testing.T) {
 
 							connectErr = conn.connect(connectCtx)
 						}
-						helpers.AssertSoon(t, callback, tc.maxConnectTime)
+						assert.Soon(t, callback, tc.maxConnectTime)
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
@@ -1196,7 +1194,7 @@ func (d *dialer) lenclosed() int {
 }
 
 type testCancellationListener struct {
-	listener         *internal.CancellationListener
+	listener         *cancellListener
 	numListen        int
 	numStopListening int
 	aborted          bool
@@ -1206,7 +1204,7 @@ type testCancellationListener struct {
 // returned by the StopListening method.
 func newTestCancellationListener(aborted bool) *testCancellationListener {
 	return &testCancellationListener{
-		listener: internal.NewCancellationListener(),
+		listener: newCancellListener(),
 		aborted:  aborted,
 	}
 }

@@ -15,8 +15,8 @@ import (
 	"net/url"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/aws/credentials"
+	"go.mongodb.org/mongo-driver/internal/errutil"
 )
 
 const (
@@ -47,7 +47,7 @@ func (a *AzureProvider) RetrieveWithContext(ctx context.Context) (credentials.Va
 	v := credentials.Value{ProviderName: AzureProviderName}
 	req, err := http.NewRequest(http.MethodGet, azureURI, nil)
 	if err != nil {
-		return v, internal.WrapErrorf(err, "unable to retrieve Azure credentials")
+		return v, errutil.WrapErrorf(err, "unable to retrieve Azure credentials")
 	}
 	q := make(url.Values)
 	q.Set("api-version", "2018-02-01")
@@ -58,15 +58,15 @@ func (a *AzureProvider) RetrieveWithContext(ctx context.Context) (credentials.Va
 
 	resp, err := a.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return v, internal.WrapErrorf(err, "unable to retrieve Azure credentials")
+		return v, errutil.WrapErrorf(err, "unable to retrieve Azure credentials")
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return v, internal.WrapErrorf(err, "unable to retrieve Azure credentials: error reading response body")
+		return v, errutil.WrapErrorf(err, "unable to retrieve Azure credentials: error reading response body")
 	}
 	if resp.StatusCode != http.StatusOK {
-		return v, internal.WrapErrorf(err, "unable to retrieve Azure credentials: expected StatusCode 200, got StatusCode: %v. Response body: %s", resp.StatusCode, body)
+		return v, errutil.WrapErrorf(err, "unable to retrieve Azure credentials: expected StatusCode 200, got StatusCode: %v. Response body: %s", resp.StatusCode, body)
 	}
 	var tokenResponse struct {
 		AccessToken string `json:"access_token"`
@@ -75,7 +75,7 @@ func (a *AzureProvider) RetrieveWithContext(ctx context.Context) (credentials.Va
 	// Attempt to read body as JSON
 	err = json.Unmarshal(body, &tokenResponse)
 	if err != nil {
-		return v, internal.WrapErrorf(err, "unable to retrieve Azure credentials: error reading body JSON. Response body: %s", body)
+		return v, errutil.WrapErrorf(err, "unable to retrieve Azure credentials: error reading body JSON. Response body: %s", body)
 	}
 	if tokenResponse.AccessToken == "" {
 		return v, fmt.Errorf("unable to retrieve Azure credentials: got unexpected empty accessToken from Azure Metadata Server. Response body: %s", body)

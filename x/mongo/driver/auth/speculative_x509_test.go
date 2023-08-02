@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
@@ -58,9 +58,9 @@ func TestSpeculativeX509(t *testing.T) {
 
 		assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 			numResponses, len(conn.Written))
-		hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		hello, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 		assert.Nil(t, err, "error parsing hello command: %v", err)
-		assertCommandName(t, hello, internal.LegacyHello)
+		assertCommandName(t, hello, handshake.LegacyHello)
 
 		authDocVal, err := hello.LookupErr("speculativeAuthenticate")
 		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
@@ -103,9 +103,9 @@ func TestSpeculativeX509(t *testing.T) {
 
 		assert.Equal(t, numResponses, len(conn.Written), "expected %d wire messages to be sent, got %d",
 			numResponses, len(conn.Written))
-		hello, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+		hello, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 		assert.Nil(t, err, "error parsing hello command: %v", err)
-		assertCommandName(t, hello, internal.LegacyHello)
+		assertCommandName(t, hello, handshake.LegacyHello)
 		_, err = hello.LookupErr("speculativeAuthenticate")
 		assert.Nil(t, err, "expected command %s to contain 'speculativeAuthenticate'", bson.Raw(hello))
 

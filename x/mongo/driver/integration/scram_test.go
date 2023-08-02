@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -33,7 +33,7 @@ func TestSCRAM(t *testing.T) {
 		t.Skip("Skipping because authentication is required")
 	}
 
-	server, err := testutil.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := integtest.Topology(t).SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 	serverConnection, err := server.Connection(context.Background())
 	noerr(t, err)
@@ -60,9 +60,9 @@ func TestSCRAM(t *testing.T) {
 	// Verify that test (root) user is authenticated.  If this fails, the
 	// rest of the test can't succeed.
 	wc := writeconcern.New(writeconcern.WMajority())
-	collOne := testutil.ColName(t)
-	testutil.DropCollection(t, testutil.DBName(t), collOne)
-	testutil.InsertDocs(t, testutil.DBName(t),
+	collOne := integtest.ColName(t)
+	dropCollection(t, integtest.DBName(t), collOne)
+	insertDocs(t, integtest.DBName(t),
 		collOne, wc, bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "name", "scram_test")),
 	)
 
@@ -129,7 +129,7 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 	credential := options.Credential{
 		Username:   c.username,
 		Password:   c.password,
-		AuthSource: testutil.DBName(t),
+		AuthSource: integtest.DBName(t),
 	}
 	switch mech {
 	case "negotiate":
@@ -142,17 +142,17 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 
 func runScramAuthTest(t *testing.T, credential options.Credential) error {
 	t.Helper()
-	topology := testutil.TopologyWithCredential(t, credential)
+	topology := integtest.TopologyWithCredential(t, credential)
 	server, err := topology.SelectServer(context.Background(), description.WriteSelector())
 	noerr(t, err)
 
 	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))
-	_, err = testutil.RunCommand(server, testutil.DBName(t), cmd)
+	_, err = runCommand(server, integtest.DBName(t), cmd)
 	return err
 }
 
 func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) error {
-	db := testutil.DBName(t)
+	db := integtest.DBName(t)
 	for _, c := range cases {
 		var values []bsoncore.Value
 		for _, v := range c.mechanisms {
@@ -169,9 +169,9 @@ func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) erro
 			)),
 			bsoncore.AppendArrayElement(nil, "mechanisms", bsoncore.BuildArray(nil, values...)),
 		)
-		_, err := testutil.RunCommand(s, db, newUserCmd)
+		_, err := runCommand(s, db, newUserCmd)
 		if err != nil {
-			return fmt.Errorf("Couldn't create user '%s' on db '%s': %v", c.username, testutil.DBName(t), err)
+			return fmt.Errorf("Couldn't create user '%s' on db '%s': %v", c.username, integtest.DBName(t), err)
 		}
 	}
 	return nil

@@ -21,12 +21,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
+	"go.mongodb.org/mongo-driver/internal/handshake"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -184,7 +183,7 @@ func TestClient(t *testing.T) {
 					tc.password,
 				)
 				authClientOpts := options.Client().ApplyURI(cs)
-				testutil.AddTestServerAPIVersion(authClientOpts)
+				integtest.AddTestServerAPIVersion(authClientOpts)
 				authClient, err := mongo.Connect(context.Background(), authClientOpts)
 				assert.Nil(mt, err, "authClient Connect error: %v", err)
 				defer func() { _ = authClient.Disconnect(context.Background()) }()
@@ -329,7 +328,7 @@ func TestClient(t *testing.T) {
 			invalidClientOpts := options.Client().
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
 				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
-			testutil.AddTestServerAPIVersion(invalidClientOpts)
+			integtest.AddTestServerAPIVersion(invalidClientOpts)
 			client, err := mongo.Connect(context.Background(), invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			err = client.Ping(context.Background(), readpref.Primary())
@@ -467,7 +466,7 @@ func TestClient(t *testing.T) {
 		// First two messages should be connection handshakes: one for the heartbeat connection and the other for the
 		// application connection.
 		for idx, pair := range msgPairs[:2] {
-			helloCommand := internal.LegacyHello
+			helloCommand := handshake.LegacyHello
 			//  Expect "hello" command name with API version.
 			if os.Getenv("REQUIRE_API_VERSION") == "true" {
 				helloCommand = "hello"
@@ -530,7 +529,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		helpers.AssertSoon(mt, func(ctx context.Context) {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -570,7 +569,7 @@ func TestClient(t *testing.T) {
 
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples.
-		tpm := monitor.NewTestPoolMonitor()
+		tpm := eventtest.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
 			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
@@ -578,7 +577,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		helpers.AssertSoon(mt, func(ctx context.Context) {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -629,7 +628,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
-		helpers.AssertSoon(mt, func(ctx context.Context) {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -671,7 +670,7 @@ func TestClient(t *testing.T) {
 		// heartbeat interval to 100ms to reduce the time it takes to collect RTT samples, and
 		// set a Timeout of 0 (infinite) on the Client to ensure that RTT90 is used as a sending
 		// threshold.
-		tpm := monitor.NewTestPoolMonitor()
+		tpm := eventtest.NewTestPoolMonitor()
 		mt.ResetClient(options.Client().
 			SetPoolMonitor(tpm.PoolMonitor).
 			SetDialer(newSlowConnDialer(slowConnDialerDelay)).
@@ -680,7 +679,7 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >275ms.
 		topo := getTopologyFromClient(mt.Client)
-		helpers.AssertSoon(mt, func(ctx context.Context) {
+		assert.Soon(mt, func(ctx context.Context) {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
@@ -731,13 +730,12 @@ func TestClient(t *testing.T) {
 		msgPairs := mt.GetProxiedMessages()
 		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
 
-		// First message should a be connection handshake. This handshake should use OP_QUERY as the OpCode, as wire
-		// version is not yet known.
+		// The first message should be a connection handshake.
 		pair := msgPairs[0]
-		assert.Equal(mt, internal.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
-			internal.LegacyHello, pair.CommandName)
-		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
-			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
+			handshake.LegacyHello, pair.CommandName)
+		assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
+			"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
 
 		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
 		// version is now known to be >= 6.
@@ -971,7 +969,7 @@ func TestClientStress(t *testing.T) {
 		// pool configurations.
 		maxPoolSizes := []uint64{1, 10, 100}
 		for _, maxPoolSize := range maxPoolSizes {
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
 				options.Client().
 					SetPoolMonitor(tpm.PoolMonitor).

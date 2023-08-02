@@ -13,17 +13,17 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestClientOptions_CustomDialer(t *testing.T) {
 	td := &testDialer{d: &net.Dialer{}}
-	cs := testutil.ConnString(t)
+	cs := integtest.ConnString(t)
 	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
-	testutil.AddTestServerAPIVersion(opts)
+	integtest.AddTestServerAPIVersion(opts)
 	client, err := mongo.NewClient(opts)
 	require.NoError(t, err)
 	err = client.Connect(context.Background())

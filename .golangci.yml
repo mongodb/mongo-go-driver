@@ -114,7 +114,7 @@ issues:
     # Ignore missing package comments for directories that aren't frequently used by external users.
     - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
       text: should have a package comment
-    # Disable unused linter for "golang.org/x/exp/rand" package in internal/randutil/rand.
-    - path: internal/randutil/rand
+    # Disable unused linter for "golang.org/x/exp/rand" package in internal/rand.
+    - path: internal/rand
       linters:
         - unused

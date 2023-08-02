@@ -18,10 +18,9 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -100,8 +99,8 @@ func TestServerSelection(t *testing.T) {
 			Kind: description.Single,
 			Servers: []description.Server{
 				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
-				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
-				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 6}},
+				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 6}},
 			},
 		}
 		want := fmt.Errorf(
@@ -122,7 +121,7 @@ func TestServerSelection(t *testing.T) {
 		desc := description.Topology{
 			Kind: description.Single,
 			Servers: []description.Server{
-				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 1, Min: 1}},
+				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 21, Min: 6}},
 				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
@@ -342,7 +341,7 @@ func TestServerSelection(t *testing.T) {
 		serv, err := topo.FindServer(desc.Servers[0])
 		noerr(t, err)
 		atomic.StoreInt64(&serv.state, serverConnected)
-		_ = serv.ProcessError(driver.Error{Message: internal.LegacyNotPrimary}, initConnection{})
+		_ = serv.ProcessError(driver.Error{Message: driver.LegacyNotPrimaryErrMsg}, initConnection{})
 
 		resp := make(chan []description.Server)
 
@@ -732,7 +731,7 @@ type inWindowTestCase struct {
 func TestServerSelectionSpecInWindow(t *testing.T) {
 	const testsDir = "../../../../testdata/server-selection/in_window"
 
-	files := helpers.FindJSONFilesInDir(t, testsDir)
+	files := spectest.FindJSONFilesInDir(t, testsDir)
 
 	for _, file := range files {
 		t.Run(file, func(t *testing.T) {
@@ -939,7 +938,7 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 				LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 				LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
 				Kind:              description.Mongos,
-				WireVersion:       &description.VersionRange{Min: 0, Max: 5},
+				WireVersion:       &description.VersionRange{Min: 6, Max: 21},
 			}
 			servers := make([]description.Server, 100)
 			for i := 0; i < len(servers); i++ {

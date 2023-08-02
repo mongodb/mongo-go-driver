@@ -14,8 +14,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -47,12 +47,12 @@ func skipIfBelow32(ctx context.Context, t *testing.T, topo *topology.Topology) {
 	noerr(t, err)
 
 	versionCmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))
-	serverStatus, err := testutil.RunCommand(server, dbName, versionCmd)
+	serverStatus, err := runCommand(server, dbName, versionCmd)
 	noerr(t, err)
 	version, err := serverStatus.LookupErr("version")
 	noerr(t, err)
 
-	if testutil.CompareVersions(t, version.StringValue(), "3.2") < 0 {
+	if integtest.CompareVersions(t, version.StringValue(), "3.2") < 0 {
 		t.Skip()
 	}
 }
@@ -67,7 +67,7 @@ func TestAggregate(t *testing.T) {
 		monitor, started, succeeded, failed := setUpMonitor()
 		dbName := "TestAggMaxTimeDB"
 		collName := "TestAggMaxTimeColl"
-		top := testutil.MonitoredTopology(t, dbName, monitor)
+		top := integtest.MonitoredTopology(t, dbName, monitor)
 		clearChannels(started, succeeded, failed)
 		skipIfBelow32(ctx, t, top)
 
@@ -122,7 +122,7 @@ func TestAggregate(t *testing.T) {
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 5)),
 		}
 		wc := writeconcern.New(writeconcern.WMajority())
-		testutil.AutoInsertDocs(t, wc, ds...)
+		autoInsertDocs(t, wc, ds...)
 
 		op := operation.NewAggregate(bsoncore.BuildArray(nil,
 			bsoncore.BuildDocumentValue(
@@ -137,7 +137,7 @@ func TestAggregate(t *testing.T) {
 					"$sort", bsoncore.AppendInt32Element(nil, "_id", 1),
 				),
 			),
-		)).Collection(testutil.ColName(t)).Database(dbName).Deployment(testutil.Topology(t)).
+		)).Collection(integtest.ColName(t)).Database(dbName).Deployment(integtest.Topology(t)).
 			ServerSelector(description.WriteSelector()).BatchSize(2)
 		err := op.Execute(context.Background())
 		noerr(t, err)
@@ -170,10 +170,10 @@ func TestAggregate(t *testing.T) {
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 2)),
 		}
 		wc := writeconcern.New(writeconcern.WMajority())
-		testutil.AutoInsertDocs(t, wc, ds...)
+		autoInsertDocs(t, wc, ds...)
 
-		op := operation.NewAggregate(bsoncore.BuildArray(nil)).Collection(testutil.ColName(t)).Database(dbName).
-			Deployment(testutil.Topology(t)).ServerSelector(description.WriteSelector()).AllowDiskUse(true)
+		op := operation.NewAggregate(bsoncore.BuildArray(nil)).Collection(integtest.ColName(t)).Database(dbName).
+			Deployment(integtest.Topology(t)).ServerSelector(description.WriteSelector()).AllowDiskUse(true)
 		err := op.Execute(context.Background())
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)

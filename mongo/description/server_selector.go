@@ -234,16 +234,6 @@ func readPrefSelectorFunc(rp *readpref.ReadPref, isOutputAggregate bool) ServerS
 			return candidates, nil
 		}
 
-		if _, set := rp.MaxStaleness(); set {
-			for _, s := range candidates {
-				if s.Kind != Unknown {
-					if err := maxStalenessSupported(s.WireVersion); err != nil {
-						return nil, err
-					}
-				}
-			}
-		}
-
 		switch t.Kind {
 		case Single:
 			return candidates, nil
@@ -273,15 +263,6 @@ func OutputAggregateSelector(rp *readpref.ReadPref) ServerSelector {
 		stringer: rp,
 		fn:       readPrefSelectorFunc(rp, true),
 	}
-}
-
-// maxStalenessSupported returns an error if the given server version does not support max staleness.
-func maxStalenessSupported(wireVersion *VersionRange) error {
-	if wireVersion != nil && wireVersion.Max < 5 {
-		return fmt.Errorf("max staleness is only supported for servers 3.4 or newer")
-	}
-
-	return nil
 }
 
 func selectForReplicaSet(rp *readpref.ReadPref, isOutputAggregate bool, t Topology, candidates []Server) ([]Server, error) {
