@@ -6,9 +6,7 @@ set -eux
 cmd=$(command -v gorelease || true)
 
 if [ -z $cmd ]; then
-    export GOPATH=$(go env GOPATH)
     go install golang.org/x/exp/cmd/gorelease@latest
-    cmd="$(go env GOPATH)/gorelease"
 fi
 
 if [ -n "$GITHUB_BASE_REF" ]; then
@@ -20,7 +18,4 @@ else
     sha=$(git --no-pager reflog show $branch | tail -n 1 | awk '{print $1;}')
 fi
 
-output=$($cmd -base=$sha || true)
-
-echo "hello"
-echo $output
+gorelease -base=$sha > $1 || true

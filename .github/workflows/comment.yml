@@ -9,6 +9,7 @@ jobs:
         pull-requests: write
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/setup-go@v4
     - name: Find Comment
       uses: peter-evans/find-comment@v2
       id: fc
@@ -19,13 +20,13 @@ jobs:
 
     - name: Create the comment body
       run: |
-        make api-report &> comment-body.md
-        cat comment-body.md
+        make api-report
+        cat api-report.md
 
     - name: Create or update comment
       uses: peter-evans/create-or-update-comment@v3
       with:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
-        body-path: 'comment-body.md'
+        body-path: 'api-report.md'
         edit-mode: replace
