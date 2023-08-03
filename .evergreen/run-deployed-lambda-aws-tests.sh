@@ -22,4 +22,4 @@ for VARNAME in ${VARLIST[*]}; do
 done
 
 echo "Starting deployment"
-. ${DRIVERS_TOOLS}/.evergreen/run-deployed-lambda-aws-tests.sh
+. ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
