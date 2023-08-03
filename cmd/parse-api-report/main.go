@@ -61,7 +61,7 @@ func main() {
         	line = "##" + line
         }
         if !suppress {
-        	fmt.Fprint(f_write, "%s\n", line)
+        	fmt.Fprint(f_write, line)
         	found_change = true
         }
         if len(line) == 0 {
