@@ -17,29 +17,29 @@ import (
 func main() {
 	var line string
 	var suppress bool
-	var found_change bool = false
-	var found_summary bool = false
+	var found_change = false
+	var found_summary = false
 
 	// open file to read
-	f_read, err := os.Open("api-report.txt")
+	fRead, err := os.Open("api-report.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	// remember to close the file at the end of the program
-	defer f_read.Close()
+	defer fRead.Close()
 
 	// open file to write
-	f_write, err := os.Create("api-report.md")
+	fWrite, err := os.Create("api-report.md")
 	if err != nil {
 		log.Fatal(err)
 	}
 	// remember to close the file at the end of the program
-	defer f_write.Close()
+	defer fWrite.Close()
 
-	fmt.Fprint(f_write, "## API Change Report\n")
+	fmt.Fprint(fWrite, "## API Change Report\n")
 
 	// read the file line by line using scanner
-	scanner := bufio.NewScanner(f_read)
+	scanner := bufio.NewScanner(fRead)
 
 	for scanner.Scan() {
 		// do something with a line
@@ -61,7 +61,7 @@ func main() {
 			line = "##" + line
 		}
 		if !suppress {
-			fmt.Fprintf(f_write, "%s\n", line)
+			fmt.Fprintf(fWrite, "%s\n", line)
 			found_change = true
 		}
 		if len(line) == 0 {
@@ -70,7 +70,7 @@ func main() {
 	}
 
 	if !found_change {
-		fmt.Fprint(f_write, "No changes found!\n")
+		fmt.Fprint(fWrite, "No changes found!\n")
 	}
 
 	if !found_summary {
