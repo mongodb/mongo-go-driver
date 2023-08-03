@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2022-present.batch_cursor
+// Copyright (C) MongoDB, Inc. 2022-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -331,7 +331,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		// resulting in the default read preference: "primaryPreferred".
 		// Since this could be confusing, and there is no requirement
 		// to use a read preference here, we omit it.
-		OmitReadPreference: true,
+		omitReadPreference: true,
 	}.Execute(ctx)
 }
 
@@ -437,7 +437,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		// resulting in the default read preference: "primaryPreferred".
 		// Since this could be confusing, and there is no requirement
 		// to use a read preference here, we omit it.
-		OmitReadPreference: true,
+		omitReadPreference: true,
 	}.Execute(ctx)
 
 	// Once the cursor has been drained, we can unpin the connection if one is currently pinned.
