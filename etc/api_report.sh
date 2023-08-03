@@ -12,6 +12,7 @@ fi
 branch=${GITHUB_BASE_REF:-master}
 sha=$(git merge-base $branch HEAD)
 
+sha=3efbd23a061a4069af96e56b894f4f72bcd51999
 gorelease -base=$sha > api-report.txt || true
 
 go run ./cmd/parse-api-report/main.go
