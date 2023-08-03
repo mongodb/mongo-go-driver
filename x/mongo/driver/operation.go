@@ -228,6 +228,12 @@ type Operation struct {
 	// not specified a default read preference of primary will be used.
 	ReadPreference *readpref.ReadPref
 
+	// OmitReadPreference is a boolean that indicates whether to omit the
+	// read preference from the command. This omition includes the case
+	// where a default read preference is used when the operation
+	// ReadPreference is not specified.
+	OmitReadPreference bool
+
 	// ReadConcern is the read concern used when running read commands. This field should not be set
 	// for write operations. If this field is set, it will be encoded onto the commands sent to the
 	// server.
@@ -1437,6 +1443,10 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 // object and various related fields such as "mode", "tags", and
 // "maxStalenessSeconds".
 func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bool) (bsoncore.Document, error) {
+	if op.OmitReadPreference {
+		return nil, nil
+	}
+
 	// TODO(GODRIVER-2231): Instead of checking if isOutputAggregate and desc.Server.WireVersion.Max < 13, somehow check
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.Standalone || (isOpQuery && desc.Server.Kind != description.Mongos) ||
