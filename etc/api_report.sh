@@ -11,5 +11,6 @@ fi
 
 branch=${GITHUB_BASE_REF:-master}
 sha=$(git merge-base $branch HEAD)
+sha=v1.12.0
 
 gorelease -base=$sha > $1 || true
