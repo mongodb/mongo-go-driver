@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # api-report
-# Generates a markdown report of Go Driver API changes
+# Generates a report of Go Driver API changes for the current branch.
 set -eux
 
 cmd=$(command -v gorelease || true)
@@ -11,6 +11,9 @@ fi
 
 branch=${GITHUB_BASE_REF:-master}
 sha=$(git merge-base $branch HEAD)
-sha=v1.12.0
 
-gorelease -base=$sha > $1 || true
+gorelease -base=$sha > api-report.txt || true
+
+go run ./cmd/parse-api-report/main.go
+
+rm api-report.txt

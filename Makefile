@@ -27,7 +27,7 @@ build-tests:
 
 .PHONY: api-report
 api-report:
-	etc/api_report.sh api-report.md
+	etc/api_report.sh
 
 .PHONY: build-compile-check
 build-compile-check:
