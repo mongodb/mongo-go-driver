@@ -17,8 +17,8 @@ import (
 func main() {
 	var line string
 	var suppress bool
-	var found_change = false
-	var found_summary = false
+	var foundChange = false
+	var foundSummary = false
 
 	// open file to read
 	fRead, err := os.Open("api-report.txt")
@@ -53,7 +53,7 @@ func main() {
 		}
 		if strings.Index(line, "# summary") == 0 {
 			suppress = true
-			found_summary = true
+			foundSummary = true
 		}
 
 		if strings.Contains(line, "go.mongodb.org/mongo-driver") {
@@ -62,18 +62,18 @@ func main() {
 		}
 		if !suppress {
 			fmt.Fprintf(fWrite, "%s\n", line)
-			found_change = true
+			foundChange = true
 		}
 		if len(line) == 0 {
 			suppress = false
 		}
 	}
 
-	if !found_change {
+	if !foundChange {
 		fmt.Fprint(fWrite, "No changes found!\n")
 	}
 
-	if !found_summary {
+	if !foundSummary {
 		log.Fatal("Could not parse api summary")
 	}
 
