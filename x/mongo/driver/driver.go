@@ -223,7 +223,7 @@ func (scd SingleConnectionDeployment) Connection(context.Context) (Connection, e
 }
 
 // RTTMonitor implements the driver.Server interface.
-func (ssd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
+func (scd SingleConnectionDeployment) RTTMonitor() RTTMonitor {
 	return &csot.ZeroRTTMonitor{}
 }
 
