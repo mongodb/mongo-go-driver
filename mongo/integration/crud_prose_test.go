@@ -26,7 +26,6 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.0").Topologies(mtest.ReplicaSet).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	label := "ExampleError"
 	mt.Run("InsertMany errors with label", func(mt *mtest.T) {
@@ -124,7 +123,6 @@ func TestWriteErrorsDetails(t *testing.T) {
 		CreateClient(false)
 
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	mt.Run("JSON Schema validation", func(mt *mtest.T) {
 		// Create a JSON Schema validator document that requires properties "a" and "b". Use it in
@@ -293,7 +291,6 @@ func TestWriteErrorsDetails(t *testing.T) {
 func TestHintErrors(t *testing.T) {
 	mtOpts := mtest.NewOptions().MaxServerVersion("3.2").CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	expected := errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 	mt.Run("UpdateMany", func(mt *mtest.T) {
@@ -325,7 +322,6 @@ func TestHintErrors(t *testing.T) {
 
 func TestWriteConcernError(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	defer mt.Close()
 
 	errInfoOpts := mtest.NewOptions().MinServerVersion("4.0").Topologies(mtest.ReplicaSet)
 	mt.RunOpts("errInfo is propagated", errInfoOpts, func(mt *mtest.T) {
@@ -372,7 +368,6 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 		Topologies(mtest.ReplicaSet).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	mt.RunOpts("command error", mtest.NewOptions().MinServerVersion("3.4"), func(mt *mtest.T) {
 		// codeName is propagated in an ok:0 error.

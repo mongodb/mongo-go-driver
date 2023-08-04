@@ -107,7 +107,6 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 		RunOn(fileReqs...).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	for _, testCase := range testCases {
 		mtOpts := mtest.NewOptions().

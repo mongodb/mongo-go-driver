@@ -26,7 +26,6 @@ import (
 func TestCSOTClientSideEncryptionProse(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").CreateClient(false))
-	defer mt.Close()
 
 	mt.RunOpts("2. maxTimeMS is not set for commands sent to mongocryptd",
 		noClientOpts, func(mt *mtest.T) {

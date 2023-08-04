@@ -40,7 +40,6 @@ var (
 
 func TestCollection(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
 
 	mt.RunOpts("insert one", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {

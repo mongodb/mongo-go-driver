@@ -220,7 +220,6 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 	t.Parallel()
 
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
 
 	for _, tcase := range []struct {
 		// name is the name of the test case
