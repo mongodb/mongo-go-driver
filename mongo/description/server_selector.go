@@ -177,7 +177,7 @@ func (selector writeServerSelector) String() string {
 	return selector.info().String()
 }
 
-func (writeServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
+func (writeServerSelector) SelectServer(t Topology, candidates []Server) ([]Server, error) {
 	switch t.Kind {
 	case Single, LoadBalanced:
 		return candidates, nil
@@ -218,26 +218,24 @@ func (selector readPrefServerSelector) String() string {
 	return selector.info().String()
 }
 
-func (selector readPrefServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
-	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
-		if t.Kind == LoadBalanced {
-			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
-			// this before checking MaxStaleness support because there's no monitoring in this mode, so the candidate
-			// server wouldn't have a wire version set, which would result in an error.
-			return candidates, nil
-		}
+func (selector readPrefServerSelector) SelectServer(t Topology, candidates []Server) ([]Server, error) {
+	if t.Kind == LoadBalanced {
+		// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
+		// this before checking MaxStaleness support because there's no monitoring in this mode, so the candidate
+		// server wouldn't have a wire version set, which would result in an error.
+		return candidates, nil
+	}
 
-		switch t.Kind {
-		case Single:
-			return candidates, nil
-		case ReplicaSetNoPrimary, ReplicaSetWithPrimary:
-			return selectForReplicaSet(selector.rp, selector.isOutputAggregate, t, candidates)
-		case Sharded:
-			return selectByKind(candidates, Mongos), nil
-		}
+	switch t.Kind {
+	case Single:
+		return candidates, nil
+	case ReplicaSetNoPrimary, ReplicaSetWithPrimary:
+		return selectForReplicaSet(selector.rp, selector.isOutputAggregate, t, candidates)
+	case Sharded:
+		return selectByKind(candidates, Mongos), nil
+	}
 
-		return nil, nil
-	})
+	return nil, nil
 }
 
 // OutputAggregateSelector selects servers based on the provided read preference
