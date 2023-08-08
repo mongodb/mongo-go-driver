@@ -302,7 +302,7 @@ func getServerDescriptionChangedEventCount(client *clientEntity, raw bson.Raw) i
 	// If the document has no values, then we assume that the UST only
 	// intends to check that the event happened.
 	if values, _ := raw.Values(); len(values) == 0 {
-		return client.getEventCount(metServerDescriptionChangedEvent)
+		return client.getEventCount(serverDescriptionChangedInfo)
 	}
 
 	var expectedEvt serverDescriptionChangedEvent
@@ -323,7 +323,7 @@ func (args waitForEventArguments) eventCompleted(client *clientEntity) bool {
 		}
 
 		switch eventType {
-		case metServerDescriptionChangedEvent:
+		case serverDescriptionChangedInfo:
 			if getServerDescriptionChangedEventCount(client, eventDoc) < args.Count {
 				return false
 			}

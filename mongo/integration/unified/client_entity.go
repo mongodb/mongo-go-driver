@@ -475,7 +475,7 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 		return
 	}
 
-	if _, ok := c.observedEvents[metServerDescriptionChangedEvent]; ok {
+	if _, ok := c.observedEvents[serverDescriptionChangedInfo]; ok {
 		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
 	}
 
@@ -483,7 +483,7 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 	c.addServerDescriptionChangedEventCount(*newServerDescriptionChangedEvent(evt))
 
 	// Record the event generally.
-	c.addEventsCount(metServerDescriptionChangedEvent)
+	c.addEventsCount(serverDescriptionChangedInfo)
 }
 
 func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartbeatFailedEvent) {

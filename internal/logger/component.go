@@ -74,17 +74,10 @@ const (
 	KeyTopologyID          = "topologyId"
 )
 
-// ContextKey is a custom type used to prevent key collisions when using the
-// context package.
-type ContextKey string
-
-const (
-	ContextKeyOperation   ContextKey = KeyOperation
-	ContextKeyOperationID ContextKey = KeyOperationID
-)
-
+// KeyValues is a list of key-value pairs.
 type KeyValues []interface{}
 
+// Add adds a key-value pair to an instance of a KeyValues list.
 func (kvs *KeyValues) Add(key string, value interface{}) {
 	*kvs = append(*kvs, key, value)
 }
@@ -273,8 +266,8 @@ func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
 // contain.
 type ServerSelection struct {
 	Selector            string
-	OperationID         interface{}
-	Operation           interface{}
+	OperationID         *int32
+	Operation           string
 	TopologyDescription string
 }
 
@@ -288,7 +281,7 @@ func SerializeServerSelection(srvSelection ServerSelection, extraKV ...interface
 	}
 
 	if srvSelection.OperationID != nil {
-		keysAndValues.Add(KeyOperationID, srvSelection.OperationID)
+		keysAndValues.Add(KeyOperationID, *srvSelection.OperationID)
 	}
 
 	// Add the optional keys and values.

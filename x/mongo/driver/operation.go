@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -188,30 +189,6 @@ func redactFinishedInformationResponse(info finishedInformation) bson.Raw {
 	return bson.Raw{}
 }
 
-// Operation Names should be sourced from the command reference documentation:
-// https://www.mongodb.com/docs/manual/reference/command/
-const (
-	AbortTransactionOp  = "abortTransaction"  // AbortTransactionOp is the name for aborting a transaction
-	AggregateOp         = "aggregate"         // AggregateOp is the name for aggregating
-	CommitTransactionOp = "commitTransaction" // CommitTransactionOp is the name for committing a transaction
-	CountOp             = "count"             // CountOp is the name for counting
-	CreateOp            = "create"            // CreateOp is the name for creating
-	CreateIndexesOp     = "createIndexes"     // CreateIndexesOp is the name for creating indexes
-	DeleteOp            = "delete"            // DeleteOp is the name for deleting
-	DistinctOp          = "distinct"          // DistinctOp is the name for distinct
-	DropOp              = "drop"              // DropOp is the name for dropping
-	DropDatabaseOp      = "dropDatabase"      // DropDatabaseOp is the name for dropping a database
-	DropIndexesOp       = "dropIndexes"       // DropIndexesOp is the name for dropping indexes
-	EndSessionsOp       = "endSessions"       // EndSessionsOp is the name for ending sessions
-	FindAndModifyOp     = "findAndModify"     // FindAndModifyOp is the name for finding and modifying
-	FindOp              = "find"              // FindOp is the name for finding
-	InsertOp            = "insert"            // InsertOp is the name for inserting
-	ListCollectionsOp   = "listCollections"   // ListCollectionsOp is the name for listing collections
-	ListIndexesOp       = "listIndexes"       // ListIndexesOp is the name for listing indexes
-	ListDatabasesOp     = "listDatabases"     // ListDatabasesOp is the name for listing databases
-	UpdateOp            = "update"            // UpdateOp is the name for updating
-)
-
 // Operation is used to execute an operation. It contains all of the common code required to
 // select a server, transform an operation into a command, write the command to a connection from
 // the selected server, read a response from that connection, process the response, and potentially
@@ -357,8 +334,8 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		})
 	}
 
-	ctx = context.WithValue(ctx, logger.ContextKeyOperation, op.Name)
-	ctx = context.WithValue(ctx, logger.ContextKeyOperationID, wiremessage.CurrentRequestID())
+	ctx = logger.WithOperationName(ctx, op.Name)
+	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
 
 	return op.Deployment.SelectServer(ctx, selector)
 }
@@ -1025,7 +1002,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
-	if op.Name == FindOp || op.Name == AggregateOp || op.Name == DistinctOp {
+	if op.Name == driverutil.FindOp || op.Name == driverutil.AggregateOp || op.Name == driverutil.DistinctOp {
 		op.Client.UpdateSnapshotTime(res)
 	}
 

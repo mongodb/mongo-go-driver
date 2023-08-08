@@ -34,10 +34,9 @@ func (ssf ServerSelectorFunc) SelectServer(t Topology, s []Server) ([]Server, er
 // serverSelectorInfo contains metadata concerning the server selector for the
 // purpose of publication.
 type serverSelectorInfo struct {
-	Type           string
-	CustomSelector bool
-	Data           string               `json:",omitempty"`
-	Selectors      []serverSelectorInfo `json:",omitempty"`
+	Type      string
+	Data      string               `json:",omitempty"`
+	Selectors []serverSelectorInfo `json:",omitempty"`
 }
 
 // String returns the JSON string representation of the serverSelectorInfo.
@@ -58,10 +57,7 @@ type compositeSelector struct {
 }
 
 func (cs *compositeSelector) info() serverSelectorInfo {
-	cssInfo := &serverSelectorInfo{
-		Type:           "compositeSelector",
-		CustomSelector: true,
-	}
+	cssInfo := &serverSelectorInfo{Type: "compositeSelector"}
 
 	for _, sel := range cs.selectors {
 		if getter, ok := sel.(serverSelectorInfoGetter); ok {
@@ -106,17 +102,17 @@ type latencySelector struct {
 	latency time.Duration
 }
 
+// LatencySelector creates a ServerSelector which selects servers based on their average RTT values.
+func LatencySelector(latency time.Duration) ServerSelector {
+	return &latencySelector{latency: latency}
+}
+
 func (latencySelector) info() serverSelectorInfo {
-	return serverSelectorInfo{Type: "latencySelector", CustomSelector: true}
+	return serverSelectorInfo{Type: "latencySelector"}
 }
 
 func (selector latencySelector) String() string {
 	return selector.info().String()
-}
-
-// LatencySelector creates a ServerSelector which selects servers based on their average RTT values.
-func LatencySelector(latency time.Duration) ServerSelector {
-	return &latencySelector{latency: latency}
 }
 
 func (selector *latencySelector) SelectServer(t Topology, candidates []Server) ([]Server, error) {
@@ -166,23 +162,22 @@ func (selector *latencySelector) SelectServer(t Topology, candidates []Server) (
 	}
 }
 
-type writeServerSelector struct {
-	fn ServerSelectorFunc
+type writeServerSelector struct{}
+
+// WriteSelector selects all the writable servers.
+func WriteSelector() ServerSelector {
+	return writeServerSelector{}
 }
 
 func (writeServerSelector) info() serverSelectorInfo {
-	return serverSelectorInfo{Type: "writeSelector", CustomSelector: true}
+	return serverSelectorInfo{Type: "writeSelector"}
 }
 
 func (selector writeServerSelector) String() string {
 	return selector.info().String()
 }
 
-func (selector writeServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
-	return selector.fn(t, s)
-}
-
-func writeSelectorFunc(t Topology, candidates []Server) ([]Server, error) {
+func (writeServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
 	switch t.Kind {
 	case Single, LoadBalanced:
 		return candidates, nil
@@ -198,22 +193,24 @@ func writeSelectorFunc(t Topology, candidates []Server) ([]Server, error) {
 	}
 }
 
-// WriteSelector selects all the writable servers.
-func WriteSelector() ServerSelector {
-	return writeServerSelector{
-		fn: writeSelectorFunc,
-	}
+type readPrefServerSelector struct {
+	rp                *readpref.ReadPref
+	isOutputAggregate bool
 }
 
-type readPrefServerSelector struct {
-	stringer fmt.Stringer
-	fn       ServerSelectorFunc
+// ReadPrefSelector selects servers based on the provided read preference.
+func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
+	return readPrefServerSelector{
+		rp:                rp,
+		isOutputAggregate: false,
+	}
+
 }
 
 func (selector readPrefServerSelector) info() serverSelectorInfo {
 	return serverSelectorInfo{
 		Type: "readPrefSelector",
-		Data: selector.stringer.String(),
+		Data: selector.rp.String(),
 	}
 }
 
@@ -222,10 +219,6 @@ func (selector readPrefServerSelector) String() string {
 }
 
 func (selector readPrefServerSelector) SelectServer(t Topology, s []Server) ([]Server, error) {
-	return selector.fn(t, s)
-}
-
-func readPrefSelectorFunc(rp *readpref.ReadPref, isOutputAggregate bool) ServerSelectorFunc {
 	return ServerSelectorFunc(func(t Topology, candidates []Server) ([]Server, error) {
 		if t.Kind == LoadBalanced {
 			// In LoadBalanced mode, there should only be one server in the topology and it must be selected. We check
@@ -238,7 +231,7 @@ func readPrefSelectorFunc(rp *readpref.ReadPref, isOutputAggregate bool) ServerS
 		case Single:
 			return candidates, nil
 		case ReplicaSetNoPrimary, ReplicaSetWithPrimary:
-			return selectForReplicaSet(rp, isOutputAggregate, t, candidates)
+			return selectForReplicaSet(selector.rp, selector.isOutputAggregate, t, candidates)
 		case Sharded:
 			return selectByKind(candidates, Mongos), nil
 		}
@@ -247,21 +240,12 @@ func readPrefSelectorFunc(rp *readpref.ReadPref, isOutputAggregate bool) ServerS
 	})
 }
 
-// ReadPrefSelector selects servers based on the provided read preference.
-func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
-	return readPrefServerSelector{
-		stringer: rp,
-		fn:       readPrefSelectorFunc(rp, false),
-	}
-
-}
-
 // OutputAggregateSelector selects servers based on the provided read preference
 // given that the underlying operation is aggregate with an output stage.
 func OutputAggregateSelector(rp *readpref.ReadPref) ServerSelector {
 	return readPrefServerSelector{
-		stringer: rp,
-		fn:       readPrefSelectorFunc(rp, true),
+		rp:                rp,
+		isOutputAggregate: true,
 	}
 }
 

@@ -194,13 +194,16 @@ func logServerSelectionMessage(
 		srvSelectorString = selectorStringer.String()
 	}
 
+	operationName, _ := logger.OperationName(ctx)
+	operationID, _ := logger.OperationID(ctx)
+
 	topo.cfg.logger.Print(level,
 		logger.ComponentServerSelection,
 		msg,
 		logger.SerializeServerSelection(logger.ServerSelection{
 			Selector:            srvSelectorString,
-			Operation:           ctx.Value(logger.ContextKeyOperation),
-			OperationID:         ctx.Value(logger.ContextKeyOperationID),
+			Operation:           operationName,
+			OperationID:         &operationID,
 			TopologyDescription: topo.String(),
 		}, keysAndValues...)...)
 }

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -81,7 +82,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		Legacy:            driver.LegacyListCollections,
 		ServerAPI:         lc.serverAPI,
 		Timeout:           lc.timeout,
-		Name:              driver.ListCollectionsOp,
+		Name:              driverutil.ListCollectionsOp,
 	}.Execute(ctx)
 
 }
