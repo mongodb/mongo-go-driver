@@ -6,7 +6,6 @@
 
 // Package logger provides the internal logging solution for the MongoDB Go
 // Driver.
-
 package logger
 
 import (
