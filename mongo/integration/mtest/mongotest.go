@@ -180,17 +180,14 @@ func New(wrapped *testing.T, opts ...*Options) *T {
 		t.createTestClient()
 	}
 
-	wrapped.Cleanup(t.Close)
+	wrapped.Cleanup(t.cleanup)
 
 	return t
 }
 
-// Close cleans up any resources associated with a T.
-//
-// Deprecated: Close is now called automatically by [testing.T.Cleanup] at the
-// end of a test, so it does not need to be called explicitly. It is safe to
-// call multiple times.
-func (t *T) Close() {
+// cleanup cleans up any resources associated with a T. It is intended to be
+// called by [testing.T.Cleanup].
+func (t *T) cleanup() {
 	if t.Client == nil {
 		return
 	}
@@ -204,9 +201,6 @@ func (t *T) Close() {
 	// always disconnect the client regardless of clientType because Client.Disconnect will work against
 	// all deployments
 	_ = t.Client.Disconnect(context.Background())
-
-	// Set the Client to nil so that subsequent calls to Close have no effect.
-	t.Client = nil
 }
 
 // Run creates a new T instance for a sub-test and runs the given callback. It also creates a new collection using the
