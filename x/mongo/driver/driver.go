@@ -23,6 +23,43 @@ type Deployment interface {
 	Kind() description.TopologyKind
 }
 
+// TODO: Can we integrate this into a type that we pass into
+// getServerAndConnection instead of type-asserting it there?
+// TODO: Name?
+type ConnDeployment interface {
+	SelectServerAndConnection(context.Context, description.ServerSelector) (Server, Connection, error)
+}
+
+var _ ConnDeployment = &connDeployment{}
+
+// TODO: Name?
+type connDeployment struct {
+	deployment Deployment
+}
+
+func (cd *connDeployment) SelectServerAndConnection(
+	ctx context.Context,
+	selector description.ServerSelector,
+) (Server, Connection, error) {
+	server, err := cd.deployment.SelectServer(ctx, selector)
+	if err != nil {
+		return nil, nil, err
+	}
+	conn, err := server.Connection(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	return server, conn, nil
+}
+
+// TODO: Name?
+func makeConnDeployment(d Deployment) ConnDeployment {
+	if cd, ok := d.(ConnDeployment); ok {
+		return cd
+	}
+	return &connDeployment{deployment: d}
+}
+
 // Connector represents a type that can connect to a server.
 type Connector interface {
 	Connect() error
@@ -258,12 +295,9 @@ const (
 	// is not specified. For example, if an insert is batch split into 4 commands then each of
 	// those commands is eligible for one retry.
 	RetryOncePerCommand
-	// RetryContext will enable retrying until the context.Context's deadline is exceeded or it is
-	// cancelled.
-	RetryContext
 )
 
 // Enabled returns if this RetryMode enables retrying.
 func (rm RetryMode) Enabled() bool {
-	return rm == RetryOnce || rm == RetryOncePerCommand || rm == RetryContext
+	return rm == RetryOnce || rm == RetryOncePerCommand
 }

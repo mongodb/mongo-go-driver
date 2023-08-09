@@ -24,6 +24,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -618,6 +619,64 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			logServerSelectionSucceeded(ctx, t, ss, server2)
 		}
 		return server2, nil
+	}
+}
+
+func (t *Topology) SelectServerAndConnection(
+	ctx context.Context,
+	ss description.ServerSelector,
+) (driver.Server, driver.Connection, error) {
+	if atomic.LoadInt64(&t.state) != topologyConnected {
+		if mustLogServerSelection(t, logger.LevelDebug) {
+			logServerSelectionFailed(ctx, t, ss, ErrTopologyClosed)
+		}
+
+		return nil, nil, ErrTopologyClosed
+	}
+
+	// Retry selecting a server and checking out a connection until
+	// TODO:?
+
+	var server driver.Server
+	var conn driver.Connection
+	var errs []error
+	start := time.Now()
+	for {
+		if ctx.Err() != nil {
+			// If the context is expired, append the context error and break out
+			// of the loop. Note that this may result in a duplicated context
+			// error in the errors list if a previous retry error wraps the
+			// context error, but it's better to have too much information here
+			// than not enough.
+			errs = append(errs, ctx.Err())
+			return nil, nil, errutil.Join(errs...)
+		}
+		// TODO: Should we add connect timeout?
+		if timeout := t.cfg.ServerSelectionTimeout; timeout > 0 && time.Since(start) > timeout {
+			// TODO: What error here?
+			errs = append(errs, ServerSelectionError{
+				Wrapped: ErrServerSelectionTimeout,
+				Desc:    t.Description(),
+			})
+			return nil, nil, errutil.Join(errs...)
+		}
+
+		var err error
+		server, err = t.SelectServer(ctx, ss)
+		if err != nil {
+			// TODO: Are there any SelectServer errors that should be retried?
+			errs = append(errs, fmt.Errorf("error selecting a server: %w", err))
+			return nil, nil, errutil.Join(errs...)
+		}
+
+		conn, err = server.Connection(ctx)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error checking out a connection: %w", err))
+			continue
+		}
+
+		// We successfully got a server and connection. Return.
+		return server, conn, nil
 	}
 }
 

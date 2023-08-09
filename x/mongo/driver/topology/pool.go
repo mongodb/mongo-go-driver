@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // Connection pool state constants.
@@ -46,8 +45,8 @@ type PoolError string
 
 func (pe PoolError) Error() string { return string(pe) }
 
-// poolClearedError is an error returned when the connection pool is cleared or currently paused. It
-// is a retryable error.
+// poolClearedError is an error returned when the connection pool is cleared or
+// currently paused.
 type poolClearedError struct {
 	err     error
 	address address.Address
@@ -59,12 +58,6 @@ func (pce poolClearedError) Error() string {
 		pce.address,
 		pce.err)
 }
-
-// Retryable returns true. All poolClearedErrors are retryable.
-func (poolClearedError) Retryable() bool { return true }
-
-// Assert that poolClearedError is a driver.RetryablePoolError.
-var _ driver.RetryablePoolError = poolClearedError{}
 
 // poolConfig contains all aspects of the pool that can be configured
 type poolConfig struct {

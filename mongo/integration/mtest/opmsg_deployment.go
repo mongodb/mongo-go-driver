@@ -124,6 +124,7 @@ type mockDeployment struct {
 }
 
 var _ driver.Deployment = &mockDeployment{}
+var _ driver.ConnDeployment = &mockDeployment{}
 var _ driver.Server = &mockDeployment{}
 var _ driver.Connector = &mockDeployment{}
 var _ driver.Disconnector = &mockDeployment{}
@@ -139,6 +140,15 @@ func (md *mockDeployment) SelectServer(context.Context, description.ServerSelect
 // Kind implements the Deployment interface. It always returns description.Single.
 func (md *mockDeployment) Kind() description.TopologyKind {
 	return description.Single
+}
+
+// TODO: How should this behave?
+func (md *mockDeployment) SelectServerAndConnection(
+	ctx context.Context,
+	_ description.ServerSelector,
+) (driver.Server, driver.Connection, error) {
+	conn, err := md.Connection(ctx)
+	return md, conn, err
 }
 
 // Connection implements the driver.Server interface.

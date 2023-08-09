@@ -56,47 +56,43 @@ func compareErrors(err1, err2 error) bool {
 	return true
 }
 
+// TODO:
+// func TestOperationExecute(t *testing.T) {
+// 	t.Run("uses specified server selector", func(t *testing.T) {
+// 		want := new(mockServerSelector)
+// 		d := new(mockDeployment)
+// 		op := &Operation{
+// 			CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
+// 			Deployment: d,
+// 			Database:   "testing",
+// 			Selector:   want,
+// 		}
+// 		_, err := op.getServerAndConnection(context.Background())
+// 		noerr(t, err)
+// 		got := d.params.selector
+// 		if !cmp.Equal(got, want) {
+// 			t.Errorf("Did not get expected server selector. got %v; want %v", got, want)
+// 		}
+// 	})
+// 	t.Run("uses a default server selector", func(t *testing.T) {
+// 		d := new(mockDeployment)
+// 		op := &Operation{
+// 			CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
+// 			Deployment: d,
+// 			Database:   "testing",
+// 		}
+// 		err := op.Execute(context.Background())
+// 		require.NoError(t, err, "Execute error")
+
+// 		if d.params.selector == nil {
+// 			t.Error("The selectServer method should use a default selector when not specified on Operation, but it passed <nil>.")
+// 		}
+// 	})
+// }
+
 func TestOperation(t *testing.T) {
 	int64ToPtr := func(i64 int64) *int64 { return &i64 }
 
-	t.Run("selectServer", func(t *testing.T) {
-		t.Run("returns validation error", func(t *testing.T) {
-			op := &Operation{}
-			_, err := op.selectServer(context.Background())
-			if err == nil {
-				t.Error("Expected a validation error from selectServer, but got <nil>")
-			}
-		})
-		t.Run("uses specified server selector", func(t *testing.T) {
-			want := new(mockServerSelector)
-			d := new(mockDeployment)
-			op := &Operation{
-				CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
-				Deployment: d,
-				Database:   "testing",
-				Selector:   want,
-			}
-			_, err := op.selectServer(context.Background())
-			noerr(t, err)
-			got := d.params.selector
-			if !cmp.Equal(got, want) {
-				t.Errorf("Did not get expected server selector. got %v; want %v", got, want)
-			}
-		})
-		t.Run("uses a default server selector", func(t *testing.T) {
-			d := new(mockDeployment)
-			op := &Operation{
-				CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
-				Deployment: d,
-				Database:   "testing",
-			}
-			_, err := op.selectServer(context.Background())
-			noerr(t, err)
-			if d.params.selector == nil {
-				t.Error("The selectServer method should use a default selector when not specified on Operation, but it passed <nil>.")
-			}
-		})
-	})
 	t.Run("Validate", func(t *testing.T) {
 		cmdFn := func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil }
 		d := new(mockDeployment)
@@ -746,14 +742,6 @@ func (m *mockConnection) ReadWireMessage(_ context.Context) ([]byte, error) {
 	return m.rReadWM, m.rReadErr
 }
 
-type retryableError struct {
-	error
-}
-
-func (retryableError) Retryable() bool { return true }
-
-var _ RetryablePoolError = retryableError{}
-
 // mockRetryServer is used to test retry of connection checkout. Returns a retryable error from
 // Connection().
 type mockRetryServer struct {
@@ -770,7 +758,7 @@ func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
 	}
 
 	time.Sleep(1 * time.Millisecond)
-	return nil, retryableError{error: errors.New("test error")}
+	return nil, errors.New("test error")
 }
 
 func (ms *mockRetryServer) RTTMonitor() RTTMonitor {
@@ -778,36 +766,7 @@ func (ms *mockRetryServer) RTTMonitor() RTTMonitor {
 }
 
 func TestRetry(t *testing.T) {
-	t.Run("retries multiple times with RetryContext", func(t *testing.T) {
-		d := new(mockDeployment)
-		ms := new(mockRetryServer)
-		d.returns.server = ms
-
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
-
-		retry := RetryContext
-		err := Operation{
-			CommandFn:  func([]byte, description.SelectedServer) ([]byte, error) { return nil, nil },
-			Deployment: d,
-			Database:   "testing",
-			RetryMode:  &retry,
-			Type:       Read,
-		}.Execute(ctx)
-		assert.NotNil(t, err, "expected an error from Execute()")
-
-		// Expect Connection() to be called at least 3 times. The first call is the initial attempt
-		// to run the operation and the second is the retry. The third indicates that we retried
-		// more than once, which is the behavior we want to assert.
-		assert.True(t,
-			ms.numCallsToConnection >= 3,
-			"expected Connection() to be called at least 3 times")
-
-		deadline, _ := ctx.Deadline()
-		assert.True(t,
-			time.Now().After(deadline),
-			"expected operation to complete only after the context deadline is exceeded")
-	})
+	// TODO: ?
 }
 
 func TestConvertI64PtrToI32Ptr(t *testing.T) {

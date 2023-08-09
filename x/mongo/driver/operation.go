@@ -59,11 +59,6 @@ const (
 	readSnapshotMinWireVersion int32 = 13
 )
 
-// RetryablePoolError is a connection pool error that can be retried while executing an operation.
-type RetryablePoolError interface {
-	Retryable() bool
-}
-
 // labeledError is an error that can have error labels added to it.
 type labeledError interface {
 	error
@@ -259,11 +254,11 @@ type Operation struct {
 	// cluster clocks to be only updated as far as the last command that's been run.
 	Clock *session.ClusterClock
 
-	// RetryMode specifies how to retry. There are three modes that enable retry: RetryOnce,
-	// RetryOncePerCommand, and RetryContext. For more information about what these modes do, please
-	// refer to their definitions. Both RetryMode and Type must be set for retryability to be enabled.
-	// If Timeout is set on the Client, the operation will automatically retry as many times as
-	// possible unless RetryNone is used.
+	// RetryMode specifies how to retry. There are two modes that enable retry: RetryOnce and
+	// RetryOncePerCommand. For more information about what these modes do, please refer to their
+	// definitions. Both RetryMode and Type must be set for retryability to be enabled. If Timeout
+	// is set on the Client, the operation will automatically retry as many times as possible unless
+	// RetryNone is used.
 	RetryMode *RetryMode
 
 	// Type specifies the kind of operation this is. There is only one mode that enables retry: Write.
@@ -321,54 +316,36 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
-// selectServer handles performing server selection for an operation.
-func (op Operation) selectServer(ctx context.Context) (Server, error) {
-	if err := op.Validate(); err != nil {
-		return nil, err
+// TODO: Rewrite comment.
+// getServerAndConnection should be used to retrieve a Server and Connection to
+// execute an operation.
+func (op Operation) getServerAndConnection(
+	ctx context.Context,
+	selector description.ServerSelector,
+) (Server, Connection, error) {
+	var server Server
+	var conn Connection
+	var err error
+
+	if op.Client != nil && op.Client.PinnedConnection != nil {
+		// If the provided client session has a pinned connection, it should be
+		// used for the operation because this indicates that we're in a
+		// transaction and the target server is behind a load balancer.
+		conn = op.Client.PinnedConnection
+		server, err = op.Deployment.SelectServer(ctx, selector)
+	} else {
+		cd := makeConnDeployment(op.Deployment)
+		server, conn, err = cd.SelectServerAndConnection(ctx, selector)
 	}
-
-	selector := op.Selector
-	if selector == nil {
-		rp := op.ReadPreference
-		if rp == nil {
-			rp = readpref.Primary()
-		}
-		selector = description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(rp),
-			description.LatencySelector(defaultLocalThreshold),
-		})
-	}
-
-	ctx = logger.WithOperationName(ctx, op.Name)
-	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
-
-	return op.Deployment.SelectServer(ctx, selector)
-}
-
-// getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
-func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connection, error) {
-	server, err := op.selectServer(ctx)
 	if err != nil {
-		if op.Client != nil &&
-			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
-			err = Error{
+		if op.Client != nil && !(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
+			return nil, nil, Error{
+				// TODO: Don't cause a repeating error message.
 				Message: err.Error(),
 				Labels:  []string{TransientTransactionError},
 				Wrapped: err,
 			}
 		}
-		return nil, nil, err
-	}
-
-	// If the provided client session has a pinned connection, it should be used for the operation because this
-	// indicates that we're in a transaction and the target server is behind a load balancer.
-	if op.Client != nil && op.Client.PinnedConnection != nil {
-		return server, op.Client.PinnedConnection, nil
-	}
-
-	// Otherwise, default to checking out a connection from the server's pool.
-	conn, err := server.Connection(ctx)
-	if err != nil {
 		return nil, nil, err
 	}
 
@@ -450,15 +427,11 @@ func (op Operation) Execute(ctx context.Context) error {
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
 				retries = 1
-			case RetryContext:
-				retries = -1
 			}
 		case Read:
 			switch *op.RetryMode {
 			case RetryOnce, RetryOncePerCommand:
 				retries = 1
-			case RetryContext:
-				retries = -1
 			}
 		}
 	}
@@ -529,17 +502,36 @@ func (op Operation) Execute(ctx context.Context) error {
 			memoryPool.Put(wm)
 		}
 	}()
+
+	// TODO: Comment?
+	selector := op.Selector
+	if selector == nil {
+		rp := op.ReadPreference
+		if rp == nil {
+			rp = readpref.Primary()
+		}
+		selector = description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(rp),
+			description.LatencySelector(defaultLocalThreshold),
+		})
+	}
+
+	ctx = logger.WithOperationName(ctx, op.Name)
+	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
+
 	for {
 		wiremessage.NextRequestID()
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
-			srvr, conn, err = op.getServerAndConnection(ctx)
+			srvr, conn, err = op.getServerAndConnection(ctx, selector)
 			if err != nil {
-				// If the returned error is retryable and there are retries remaining (negative
-				// retries means retry indefinitely), then retry the operation. Set the server
-				// and connection to nil to request a new server and connection.
-				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && retries != 0 {
+				if retrySupported && ctx.Err() == nil && retries > 0 {
+					if op.Client != nil && op.Client.Committing {
+						// Apply majority write concern for retries
+						op.Client.UpdateCommitTransactionWriteConcern()
+						op.WriteConcern = op.Client.CurrentWc
+					}
 					resetForRetry(err)
 					continue
 				}
