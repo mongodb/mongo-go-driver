@@ -160,6 +160,10 @@ evg-test-load-balancers:
 	go test $(BUILD_TAGS) ./mongo/integration -run TestLoadBalancerSupport -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration/unified -run TestUnifiedSpec -v -timeout $(TEST_TIMEOUT)s >> test.suite
 
+.PHONY: evg-test-search-index
+evg-test-search-index:
+	go test ./mongo -run TestSearchIndexProse -v -timeout $(TEST_TIMEOUT)s
+
 .PHONY: evg-test-ocsp
 evg-test-ocsp:
 	go test -v ./mongo -run TestOCSP $(OCSP_TLS_SHOULD_SUCCEED) >> test.suite

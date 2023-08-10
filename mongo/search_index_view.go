@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -194,7 +195,11 @@ func (siv SearchIndexView) DropOne(ctx context.Context, name string, _ ...*optio
 		Deployment(siv.coll.client.deployment).ServerAPI(siv.coll.client.serverAPI).
 		Timeout(siv.coll.client.timeout)
 
-	return op.Execute(ctx)
+	err = op.Execute(ctx)
+	if de, ok := err.(driver.Error); ok && de.NamespaceNotFound() {
+		return nil
+	}
+	return err
 }
 
 // UpdateOne executes a updateSearchIndex operation to update a search index on the collection.
