@@ -8,7 +8,6 @@ jobs:
     permissions:
         pull-requests: write
     steps:
-    - uses: actions/checkout@v3
     - uses: actions/setup-go@v4
     - name: Find Comment
       uses: peter-evans/find-comment@v2
@@ -21,7 +20,12 @@ jobs:
     - name: Create the comment body
       run: |
         set -eux
+        env
+        git clone https://github.com/$GITHUB_REPOSITORY
+        cd mongo-go-driver
         git fetch origin $GITHUB_BASE_REF
+        git fetch origin $GITHUB_HEAD_REF
+        git checkout $GITHUB_HEAD_REF
         make api-report
         cat api-report.md
 
