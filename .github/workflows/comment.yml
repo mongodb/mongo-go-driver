@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
         pull-requests: write
+        issues: write
     steps:
     - uses: actions/setup-go@v4
     - name: Find Comment
