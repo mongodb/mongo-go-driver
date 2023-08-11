@@ -1,4 +1,4 @@
-name: Comment
+name: PR API Report
 on:
   pull_request_target:
 
