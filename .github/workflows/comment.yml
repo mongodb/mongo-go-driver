@@ -21,12 +21,7 @@ jobs:
     - name: Create the comment body
       run: |
         set -eux
-        git remote -v
-        git clone https://github.com/$GITHUB_REPOSITORY
-        cd mongo-go-driver
         git fetch origin $GITHUB_BASE_REF
-        git fetch origin $GITHUB_HEAD_REF
-        git checkout $GITHUB_HEAD_REF
         make api-report
         cat api-report.md
 
