@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const timeout = 600 * time.Second
+const timeout = 60 * time.Second
 
 // eventListener supports command, heartbeat, and pool event handlers to record
 // event durations, as well as the number of heartbeats, commands, and open
