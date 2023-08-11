@@ -9,8 +9,8 @@ package driver
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -18,17 +18,17 @@ func TestCommandMonitoring(t *testing.T) {
 	t.Run("redactCommand", func(t *testing.T) {
 		emptyDoc := bsoncore.BuildDocumentFromElements(nil)
 		legacyHello := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, internal.LegacyHello, 1),
+			bsoncore.AppendInt32Element(nil, handshake.LegacyHello, 1),
 		)
 		legacyHelloLowercase := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, internal.LegacyHelloLowercase, 1),
+			bsoncore.AppendInt32Element(nil, handshake.LegacyHelloLowercase, 1),
 		)
 		legacyHelloSpeculative := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, internal.LegacyHello, 1),
+			bsoncore.AppendInt32Element(nil, handshake.LegacyHello, 1),
 			bsoncore.AppendDocumentElement(nil, "speculativeAuthenticate", emptyDoc),
 		)
 		legacyHelloSpeculativeLowercase := bsoncore.BuildDocumentFromElements(nil,
-			bsoncore.AppendInt32Element(nil, internal.LegacyHelloLowercase, 1),
+			bsoncore.AppendInt32Element(nil, handshake.LegacyHelloLowercase, 1),
 			bsoncore.AppendDocumentElement(nil, "speculativeAuthenticate", emptyDoc),
 		)
 
@@ -38,10 +38,10 @@ func TestCommandMonitoring(t *testing.T) {
 			command     bsoncore.Document
 			redacted    bool
 		}{
-			{"legacy hello", internal.LegacyHello, legacyHello, false},
-			{"legacy hello lowercase", internal.LegacyHelloLowercase, legacyHelloLowercase, false},
-			{"legacy hello speculative auth", internal.LegacyHello, legacyHelloSpeculative, true},
-			{"legacy hello speculative auth lowercase", internal.LegacyHello, legacyHelloSpeculativeLowercase, true},
+			{"legacy hello", handshake.LegacyHello, legacyHello, false},
+			{"legacy hello lowercase", handshake.LegacyHelloLowercase, legacyHelloLowercase, false},
+			{"legacy hello speculative auth", handshake.LegacyHello, legacyHelloSpeculative, true},
+			{"legacy hello speculative auth lowercase", handshake.LegacyHello, legacyHelloSpeculativeLowercase, true},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {

@@ -65,7 +65,7 @@ func TestSCRAM(t *testing.T) {
 
 				desc := description.Server{
 					WireVersion: &description.VersionRange{
-						Max: 4,
+						Max: 21,
 					},
 				}
 				conn := &drivertest.ChannelConn{
@@ -79,7 +79,7 @@ func TestSCRAM(t *testing.T) {
 
 				// Verify that the first command sent is saslStart.
 				assert.True(t, len(conn.Written) > 1, "wire messages were written to the connection")
-				startCmd, err := drivertest.GetCommandFromQueryWireMessage(<-conn.Written)
+				startCmd, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
 				assert.Nil(t, err, "error parsing wire message: %v", err)
 				cmdName := startCmd.Index(0).Key()
 				assert.Equal(t, cmdName, "saslStart", "cmd name mismatch; expected 'saslStart', got %v", cmdName)

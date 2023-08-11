@@ -27,15 +27,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 type channelNetConnDialer struct{}
@@ -161,7 +159,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			wg.Add(1)
 
 			errors := &errorQueue{errors: tc.ioErrors}
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address("localhost:27017"),
 				primitive.NewObjectID(),
@@ -289,7 +287,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 				_ = l.Close()
 			}()
 
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address(l.Addr().String()),
 				primitive.NewObjectID(),
@@ -663,7 +661,7 @@ func TestServer(t *testing.T) {
 		if wm == nil {
 			t.Fatal("no wire message written for handshake")
 		}
-		if !includesMetadata(t, wm) {
+		if !includesClientMetadata(t, wm) {
 			t.Fatal("client metadata expected in handshake but not found")
 		}
 
@@ -678,7 +676,7 @@ func TestServer(t *testing.T) {
 		if wm == nil {
 			t.Fatal("no wire message written for heartbeat")
 		}
-		if includesMetadata(t, wm) {
+		if includesClientMetadata(t, wm) {
 			t.Fatal("client metadata not expected in heartbeat but found")
 		}
 	})
@@ -1204,41 +1202,17 @@ func TestServer_ProcessError(t *testing.T) {
 	}
 }
 
-func includesMetadata(t *testing.T, wm []byte) bool {
-	var ok bool
-	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
-	if !ok {
-		t.Fatal("could not read header")
-	}
-	_, wm, ok = wiremessage.ReadQueryFlags(wm)
-	if !ok {
-		t.Fatal("could not read flags")
-	}
-	_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
-	if !ok {
-		t.Fatal("could not read fullCollectionName")
-	}
-	_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
-	if !ok {
-		t.Fatal("could not read numberToSkip")
-	}
-	_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
-	if !ok {
-		t.Fatal("could not read numberToReturn")
-	}
-	var query bsoncore.Document
-	query, wm, ok = wiremessage.ReadQueryQuery(wm)
-	if !ok {
-		t.Fatal("could not read query")
-	}
+// includesClientMetadata will return true if the wire message includes the
+// "client" field.
+func includesClientMetadata(t *testing.T, wm []byte) bool {
+	t.Helper()
 
-	if _, err := query.LookupErr("client"); err == nil {
-		return true
-	}
-	if _, err := query.LookupErr("$query", "client"); err == nil {
-		return true
-	}
-	return false
+	doc, err := drivertest.GetCommandFromMsgWireMessage(wm)
+	assert.NoError(t, err)
+
+	_, err = doc.LookupErr("client")
+
+	return err == nil
 }
 
 // processErrorTestConn is a driver.Connection implementation used by tests

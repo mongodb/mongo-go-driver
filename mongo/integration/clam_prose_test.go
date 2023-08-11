@@ -14,8 +14,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/internal/testutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -320,7 +320,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 				ctx, cancel := context.WithTimeout(ctx, deadline)
 				defer cancel()
 
-				testutil.AddTestServerAPIVersion(clientOpts)
+				integtest.AddTestServerAPIVersion(clientOpts)
 
 				client, err := mongo.Connect(ctx, clientOpts)
 				assert.Nil(mt, err, "Connect error in setup: %v", err)
@@ -378,7 +378,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 			clientOpts := options.Client().SetLoggerOptions(loggerOpts).ApplyURI(mtest.ClusterURI())
 
-			testutil.AddTestServerAPIVersion(clientOpts)
+			integtest.AddTestServerAPIVersion(clientOpts)
 
 			client, err := mongo.Connect(context.Background(), clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)

@@ -17,8 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/monitor"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -517,7 +517,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// by ChangeStream when executing an aggregate.
 
 		mt.Run("errors are processed for SDAM on initial aggregate", func(mt *mtest.T) {
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			mt.ResetClient(options.Client().
 				SetPoolMonitor(tpm.PoolMonitor).
 				SetWriteConcern(mtest.MajorityWc).
@@ -540,7 +540,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
 		})
 		mt.Run("errors are processed for SDAM on getMore", func(mt *mtest.T) {
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			mt.ResetClient(options.Client().
 				SetPoolMonitor(tpm.PoolMonitor).
 				SetWriteConcern(mtest.MajorityWc).
@@ -570,7 +570,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			assert.True(mt, tpm.IsPoolCleared(), "expected pool to be cleared after non-timeout network error but was not")
 		})
 		mt.Run("errors are processed for SDAM on retried aggregate", func(mt *mtest.T) {
-			tpm := monitor.NewTestPoolMonitor()
+			tpm := eventtest.NewTestPoolMonitor()
 			mt.ResetClient(options.Client().
 				SetPoolMonitor(tpm.PoolMonitor).
 				SetRetryReads(true))

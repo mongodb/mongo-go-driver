@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
@@ -55,7 +54,7 @@ func TestTopologyErrors(t *testing.T) {
 				subCh := make(<-chan description.Topology)
 				_, serverSelectionErr = topo.selectServerFromSubscription(selectServerCtx, subCh, state)
 			}
-			helpers.AssertSoon(t, callback, 150*time.Millisecond)
+			assert.Soon(t, callback, 150*time.Millisecond)
 			assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, received %v",
 				context.DeadlineExceeded, serverSelectionErr)
 		})

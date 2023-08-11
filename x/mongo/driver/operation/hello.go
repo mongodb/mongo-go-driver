@@ -15,7 +15,8 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/version"
@@ -498,7 +499,7 @@ func (h *Hello) command(dst []byte, desc description.SelectedServer) ([]byte, er
 	if desc.Kind == description.LoadBalanced || h.serverAPI != nil || desc.Server.HelloOK {
 		dst = bsoncore.AppendInt32Element(dst, "hello", 1)
 	} else {
-		dst = bsoncore.AppendInt32Element(dst, internal.LegacyHello, 1)
+		dst = bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1)
 	}
 	dst = bsoncore.AppendBooleanElement(dst, "helloOk", true)
 
@@ -580,7 +581,7 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	// Cast to bson.Raw to lookup saslSupportedMechs to avoid converting from bsoncore.Value to bson.RawValue for the
 	// StringSliceFromRawValue call.
 	if saslSupportedMechs, lookupErr := bson.Raw(h.res).LookupErr("saslSupportedMechs"); lookupErr == nil {
-		info.SaslSupportedMechs, err = internal.StringSliceFromRawValue("saslSupportedMechs", saslSupportedMechs)
+		info.SaslSupportedMechs, err = bsonutil.StringSliceFromRawValue("saslSupportedMechs", saslSupportedMechs)
 	}
 	return info, err
 }

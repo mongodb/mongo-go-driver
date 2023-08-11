@@ -10,7 +10,7 @@ import (
 	"path"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/spectest"
 )
 
 const selectorTestsDir = "../../testdata/server-selection/server_selection"
@@ -28,7 +28,7 @@ func TestServerSelectionSpec(t *testing.T) {
 		for _, subdir := range [...]string{"read", "write"} {
 			subdirPath := path.Join(topology, subdir)
 
-			for _, file := range helpers.FindJSONFilesInDir(t,
+			for _, file := range spectest.FindJSONFilesInDir(t,
 				path.Join(selectorTestsDir, subdirPath)) {
 
 				runTest(t, selectorTestsDir, subdirPath, file)
