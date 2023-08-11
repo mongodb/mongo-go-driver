@@ -33,6 +33,7 @@ jobs:
     - name: Create or update comment
       uses: peter-evans/create-or-update-comment@v3
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
         body-path: 'mongo-go-driver/api-report.md'
