@@ -3,10 +3,7 @@
 set -o errexit  # Exit the script with error if any of the commands fail.
 
 VARLIST=(
-	AWS_ACCESS_KEY_ID
 	AWS_REGION
-	AWS_SECRET_ACCESS_KEY
-	AWS_SESSION_TOKEN
 	DRIVERS_TOOLS
 	DRIVERS_ATLAS_PUBLIC_API_KEY
 	DRIVERS_ATLAS_PRIVATE_API_KEY
@@ -25,4 +22,4 @@ for VARNAME in ${VARLIST[*]}; do
 done
 
 echo "Starting deployment"
-. ${DRIVERS_TOOLS}/.evergreen/run-deployed-lambda-aws-tests.sh
+. ${DRIVERS_TOOLS}/.evergreen/aws_lambda/run-deployed-lambda-aws-tests.sh
