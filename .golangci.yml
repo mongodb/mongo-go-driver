@@ -1,5 +1,12 @@
 run:
   timeout: 5m
+  skip-dirs-use-default: false
+  skip-dirs:
+    - (^|/)vendor($|/)
+    - (^|/)testdata($|/)
+    - (^|/)etc($|/)
+    # Disable all linters for "golang.org/x/exp/rand" package in internal/rand.
+    - internal/rand
 
 linters:
   disable-all: true
@@ -83,11 +90,6 @@ issues:
     - "ineffectual assignment to wm"
     - "ineffectual assignment to rem"
 
-  skip-dirs-use-default: false
-  skip-dirs:
-    - (^|/)vendor($|/)
-    - (^|/)testdata($|/)
-    - (^|/)etc($|/)
   exclude-rules:
     # Ignore some linters for example code that is intentionally simplified.
     - path: examples/
@@ -114,7 +116,3 @@ issues:
     # Ignore missing package comments for directories that aren't frequently used by external users.
     - path: (internal\/|benchmark\/|x\/|cmd\/|mongo\/integration\/)
       text: should have a package comment
-    # Disable unused linter for "golang.org/x/exp/rand" package in internal/rand.
-    - path: internal/rand
-      linters:
-        - unused
