@@ -3,6 +3,7 @@ module go.mongodb.org/mongo-driver
 go 1.13
 
 retract (
+	v1.11.8 // Contains minor changes meant for v1.12.1.
 	v1.11.5 // Contains import failure.
 
 	// Retract v1.11.0 through v1.11.2 because they contain a data race bug in

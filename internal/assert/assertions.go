@@ -899,6 +899,29 @@ func EqualError(t TestingT, theError error, errString string, msgAndArgs ...inte
 	return true
 }
 
+// ErrorIs asserts that at least one of the errors in err's chain matches target.
+// This is a wrapper for errors.Is.
+func ErrorIs(t TestingT, err, target error, msgAndArgs ...interface{}) bool {
+	if h, ok := t.(tHelper); ok {
+		h.Helper()
+	}
+	if errors.Is(err, target) {
+		return true
+	}
+
+	var expectedText string
+	if target != nil {
+		expectedText = target.Error()
+	}
+
+	chain := buildErrorChainString(err)
+
+	return Fail(t, fmt.Sprintf("Target error should be in err chain:\n"+
+		"expected: %q\n"+
+		"in chain: %s", expectedText, chain,
+	), msgAndArgs...)
+}
+
 // ErrorContains asserts that a function returned an error (i.e. not `nil`)
 // and that the error contains the specified substring.
 //
@@ -1035,4 +1058,18 @@ func Eventually(t TestingT, condition func() bool, waitFor time.Duration, tick t
 			tick = ticker.C
 		}
 	}
+}
+
+func buildErrorChainString(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	e := errors.Unwrap(err)
+	chain := fmt.Sprintf("%q", err.Error())
+	for e != nil {
+		chain += fmt.Sprintf("\n\t%q", e.Error())
+		e = errors.Unwrap(e)
+	}
+	return chain
 }

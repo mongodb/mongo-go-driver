@@ -96,11 +96,11 @@
         },
         {
             "description": "Bad $regularExpression (pattern is number, not string)",
-            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": 42, \"$options\" : \"\"}}}"
+            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": 42, \"options\" : \"\"}}}"
         },
         {
             "description": "Bad $regularExpression (options are number, not string)",
-            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": \"a\", \"$options\" : 0}}}"
+            "string": "{\"x\" : {\"$regularExpression\" : { \"pattern\": \"a\", \"options\" : 0}}}"
         },
         {
             "description" : "Bad $regularExpression (missing pattern field)",

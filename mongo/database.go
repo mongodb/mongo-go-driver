@@ -14,7 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/internal"
+	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -627,7 +627,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	stateCollectionOpts := options.CreateCollection().
 		SetClusteredIndex(bson.D{{"key", bson.D{{"_id", 1}}}, {"unique", true}})
 	// Create ESCCollection.
-	escCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedStateCollection)
+	escCollection, err := csfle.GetEncryptedStateCollectionName(efBSON, name, csfle.EncryptedStateCollection)
 	if err != nil {
 		return err
 	}
@@ -637,7 +637,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	}
 
 	// Create ECOCCollection.
-	ecocCollection, err := internal.GetEncryptedStateCollectionName(efBSON, name, internal.EncryptedCompactionCollection)
+	ecocCollection, err := csfle.GetEncryptedStateCollectionName(efBSON, name, csfle.EncryptedCompactionCollection)
 	if err != nil {
 		return err
 	}

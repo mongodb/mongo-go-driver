@@ -9,6 +9,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -16,8 +17,8 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -31,30 +32,6 @@ func TestSessionPool(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("3.6").CreateClient(false))
 	defer mt.Close()
 
-	mt.Run("pool LIFO", func(mt *mtest.T) {
-		aSess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-		bSess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-
-		// end the sessions to return them to the pool
-		aSess.EndSession(context.Background())
-		bSess.EndSession(context.Background())
-
-		firstSess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-		defer firstSess.EndSession(context.Background())
-		want := bSess.ID()
-		got := firstSess.ID()
-		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
-
-		secondSess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-		defer secondSess.EndSession(context.Background())
-		want = aSess.ID()
-		got = secondSess.ID()
-		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
-	})
 	mt.Run("last use time updated", func(mt *mtest.T) {
 		sess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
@@ -76,225 +53,10 @@ func TestSessions(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.ReplicaSet, mtest.Sharded).
 		CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
-
-	// Pin to a single mongos so heartbeats/handshakes to other mongoses won't cause errors.
-	clusterTimeOpts := mtest.NewOptions().
-		ClientOptions(options.Client().SetHeartbeatInterval(50 * time.Second)).
-		ClientType(mtest.Pinned).
-		CreateClient(false)
-	mt.RunOpts("cluster time", clusterTimeOpts, func(mt *mtest.T) {
-		// $clusterTime included in commands
-
-		serverStatus := sessionFunction{"server status", "database", "RunCommand", []interface{}{bson.D{{"serverStatus", 1}}}}
-		insert := sessionFunction{"insert one", "collection", "InsertOne", []interface{}{bson.D{{"x", 1}}}}
-		agg := sessionFunction{"aggregate", "collection", "Aggregate", []interface{}{mongo.Pipeline{}}}
-		find := sessionFunction{"find", "collection", "Find", []interface{}{bson.D{}}}
-
-		sessionFunctions := []sessionFunction{serverStatus, insert, agg, find}
-		for _, sf := range sessionFunctions {
-			mt.Run(sf.name, func(mt *mtest.T) {
-				err := sf.execute(mt, nil)
-				assert.Nil(mt, err, "%v error: %v", sf.name, err)
-
-				// assert $clusterTime was sent to server
-				started := mt.GetStartedEvent()
-				assert.NotNil(mt, started, "expected started event, got nil")
-				_, err = started.Command.LookupErr("$clusterTime")
-				assert.Nil(mt, err, "$clusterTime not sent")
-
-				// record response cluster time
-				succeeded := mt.GetSucceededEvent()
-				assert.NotNil(mt, succeeded, "expected succeeded event, got nil")
-				replyClusterTimeVal, err := succeeded.Reply.LookupErr("$clusterTime")
-				assert.Nil(mt, err, "$clusterTime not found in response")
-
-				// call function again
-				err = sf.execute(mt, nil)
-				assert.Nil(mt, err, "%v error: %v", sf.name, err)
-
-				// find cluster time sent to server and assert it is the same as the one in the previous response
-				sentClusterTimeVal, err := mt.GetStartedEvent().Command.LookupErr("$clusterTime")
-				assert.Nil(mt, err, "$clusterTime not sent")
-				replyClusterTimeDoc := replyClusterTimeVal.Document()
-				sentClusterTimeDoc := sentClusterTimeVal.Document()
-				assert.Equal(mt, replyClusterTimeDoc, sentClusterTimeDoc,
-					"expected cluster time %v, got %v", replyClusterTimeDoc, sentClusterTimeDoc)
-			})
-		}
-	})
-
-	clusterTimeHandshakeOpts := options.Client().
-		SetHosts(hosts[:1]). // Prevent handshakes to other hosts from updating the cluster time.
-		SetDirect(true).
-		SetHeartbeatInterval(50 * time.Second) // Prevent extra heartbeats from updating the cluster time.
-	clusterTimeHandshakeMtOpts := mtest.NewOptions().
-		ClientType(mtest.Proxy).
-		ClientOptions(clusterTimeHandshakeOpts).
-		CreateCollection(false).
-		SSL(false) // The proxy dialer doesn't work for SSL connections.
-	mt.RunOpts("cluster time is updated from handshakes", clusterTimeHandshakeMtOpts, func(mt *mtest.T) {
-		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
-		assert.Nil(mt, err, "Ping error: %v", err)
-
-		// Assert that all sent commands (including handshake commands) include a "$clusterTime" in
-		// the command document.
-		for _, pair := range mt.GetProxiedMessages() {
-			_, err := pair.Sent.Command.LookupErr("$clusterTime")
-			hasClusterTime := err == nil
-
-			switch pair.CommandName {
-			// If the command is either legacy hello or "hello" (used as the first message in any
-			// handshake or the checks from the heartbeat or RTT monitors), expect that there is no
-			// "$clusterTime" because the connection doesn't know the server's wire version yet so
-			// it doesn't know if the connection supports "$clusterTime".
-			case internal.LegacyHello, "hello":
-				assert.False(
-					mt,
-					hasClusterTime,
-					"expected no $clusterTime field in command %s",
-					pair.Sent.Command)
-			// If the command is anything else (including other handshake commands), assert that the
-			// command includes "$clusterTime".
-			default:
-				assert.True(
-					mt,
-					hasClusterTime,
-					"expected $clusterTime field in in Ping command %s",
-					pair.Sent.Command)
-			}
-		}
-	})
-
-	mt.RunOpts("explicit implicit session arguments", noClientOpts, func(mt *mtest.T) {
-		// lsid is included in commands with explicit and implicit sessions
-
-		sessionFunctions := createFunctionsSlice()
-		for _, sf := range sessionFunctions {
-			mt.Run(sf.name, func(mt *mtest.T) {
-				// explicit session
-				sess, err := mt.Client.StartSession()
-				assert.Nil(mt, err, "StartSession error: %v", err)
-				defer sess.EndSession(context.Background())
-				mt.ClearEvents()
-
-				_ = sf.execute(mt, sess) // don't check error because we only care about lsid
-				_, wantID := sess.ID().Lookup("id").Binary()
-				gotID := extractSentSessionID(mt)
-				assert.True(mt, bytes.Equal(wantID, gotID), "expected session ID %v, got %v", wantID, gotID)
-
-				// implicit session
-				_ = sf.execute(mt, nil)
-				gotID = extractSentSessionID(mt)
-				assert.NotNil(mt, gotID, "expected lsid, got nil")
-			})
-		}
-	})
-	mt.Run("wrong client", func(mt *mtest.T) {
-		// a session can only be used in commands associated with the client that created it
-
-		sessionFunctions := createFunctionsSlice()
-		sess, err := mt.Client.StartSession()
-		assert.Nil(mt, err, "StartSession error: %v", err)
-		defer sess.EndSession(context.Background())
-
-		for _, sf := range sessionFunctions {
-			mt.Run(sf.name, func(mt *mtest.T) {
-				err = sf.execute(mt, sess)
-				assert.Equal(mt, mongo.ErrWrongClient, err, "expected error %v, got %v", mongo.ErrWrongClient, err)
-			})
-		}
-	})
-	mt.RunOpts("ended session", noClientOpts, func(mt *mtest.T) {
-		// an ended session cannot be used in commands
-
-		sessionFunctions := createFunctionsSlice()
-		for _, sf := range sessionFunctions {
-			mt.Run(sf.name, func(mt *mtest.T) {
-				sess, err := mt.Client.StartSession()
-				assert.Nil(mt, err, "StartSession error: %v", err)
-				sess.EndSession(context.Background())
-
-				err = sf.execute(mt, sess)
-				assert.Equal(mt, session.ErrSessionEnded, err, "expected error %v, got %v", session.ErrSessionEnded, err)
-			})
-		}
-	})
-	mt.Run("implicit session returned", func(mt *mtest.T) {
-		// implicit sessions are returned to the server session pool
-
-		doc := bson.D{{"x", 1}}
-		_, err := mt.Coll.InsertOne(context.Background(), doc)
-		assert.Nil(mt, err, "InsertOne error: %v", err)
-		_, err = mt.Coll.InsertOne(context.Background(), doc)
-		assert.Nil(mt, err, "InsertOne error: %v", err)
-
-		// create a cursor that will hold onto an implicit session and record the sent session ID
-		mt.ClearEvents()
-		cursor, err := mt.Coll.Find(context.Background(), bson.D{})
-		assert.Nil(mt, err, "Find error: %v", err)
-		findID := extractSentSessionID(mt)
-		assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false")
-
-		// execute another operation and verify the find session ID was reused
-		_, err = mt.Coll.DeleteOne(context.Background(), bson.D{})
-		assert.Nil(mt, err, "DeleteOne error: %v", err)
-		deleteID := extractSentSessionID(mt)
-		assert.Equal(mt, findID, deleteID, "expected session ID %v, got %v", findID, deleteID)
-	})
-	mt.Run("implicit session returned from getMore", func(mt *mtest.T) {
-		// Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
-
-		var docs []interface{}
-		for i := 0; i < 5; i++ {
-			docs = append(docs, bson.D{{"x", i}})
-		}
-		_, err := mt.Coll.InsertMany(context.Background(), docs)
-		assert.Nil(mt, err, "InsertMany error: %v", err)
-
-		// run a find that will hold onto the implicit session and record the session ID
-		mt.ClearEvents()
-		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(3))
-		assert.Nil(mt, err, "Find error: %v", err)
-		findID := extractSentSessionID(mt)
-
-		// iterate past 4 documents, forcing a getMore. session should be returned to pool after getMore
-		for i := 0; i < 4; i++ {
-			assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
-		}
-
-		// execute another operation and verify the find session ID was reused
-		_, err = mt.Coll.DeleteOne(context.Background(), bson.D{})
-		assert.Nil(mt, err, "DeleteOne error: %v", err)
-		deleteID := extractSentSessionID(mt)
-		assert.Equal(mt, findID, deleteID, "expected session ID %v, got %v", findID, deleteID)
-	})
-	mt.Run("find and getMore use same ID", func(mt *mtest.T) {
-		var docs []interface{}
-		for i := 0; i < 3; i++ {
-			docs = append(docs, bson.D{{"x", i}})
-		}
-		_, err := mt.Coll.InsertMany(context.Background(), docs)
-		assert.Nil(mt, err, "InsertMany error: %v", err)
-
-		// run a find that will hold onto an implicit session and record the session ID
-		mt.ClearEvents()
-		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
-		assert.Nil(mt, err, "Find error: %v", err)
-		findID := extractSentSessionID(mt)
-		assert.NotNil(mt, findID, "expected session ID for find, got nil")
-
-		// iterate over all documents and record the session ID of the getMore
-		for i := 0; i < 3; i++ {
-			assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
-		}
-		getMoreID := extractSentSessionID(mt)
-		assert.Equal(mt, findID, getMoreID, "expected session ID %v, got %v", findID, getMoreID)
-	})
 
 	mt.Run("imperative API", func(mt *mtest.T) {
 		mt.Run("round trip Session object", func(mt *mtest.T) {
-			// Rountrip a Session object through NewSessionContext/ContextFromSession and assert that it is correctly
+			// Roundtrip a Session object through NewSessionContext/ContextFromSession and assert that it is correctly
 			// stored/retrieved.
 
 			sess, err := mt.Client.StartSession()
@@ -362,9 +124,274 @@ func TestSessions(t *testing.T) {
 			"expected ErrUnacknowledgedWrite on unacknowledged write in session, got %v", err)
 	})
 
+	// Regression test for GODRIVER-2533. Note that this test assumes the race
+	// detector is enabled (GODRIVER-2072).
+	mt.Run("NumberSessionsInProgress data race", func(mt *mtest.T) {
+		// Use two goroutines to execute a few simultaneous runs of NumberSessionsInProgress
+		// and a basic collection operation (CountDocuments).
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < 100; i++ {
+				time.Sleep(100 * time.Microsecond)
+				_ = mt.Client.NumberSessionsInProgress()
+			}
+		}()
+		go func() {
+			defer wg.Done()
+
+			for i := 0; i < 100; i++ {
+				time.Sleep(100 * time.Microsecond)
+				_, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
+				assert.Nil(mt, err, "CountDocument error: %v", err)
+			}
+		}()
+
+		wg.Wait()
+	})
+}
+
+func TestSessionsProse(t *testing.T) {
+	mtOpts := mtest.
+		NewOptions().
+		MinServerVersion("3.6").
+		Topologies(mtest.ReplicaSet, mtest.Sharded).
+		CreateClient(false)
+
+	mt := mtest.New(t, mtOpts)
+	defer mt.Close()
+
+	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+
+	mt.Run("1 setting both snapshot and causalConsistency to true is not allowed", func(mt *mtest.T) {
+		// causalConsistency and snapshot are mutually exclusive
+		sessOpts := options.Session().SetCausalConsistency(true).SetSnapshot(true)
+		_, err := mt.Client.StartSession(sessOpts)
+		assert.NotNil(mt, err, "expected StartSession error, got nil")
+		expectedErr := errors.New("causal consistency and snapshot cannot both be set for a session")
+		assert.Equal(mt, expectedErr, err, "expected error %v, got %v", expectedErr, err)
+	})
+
+	mt.Run("2 pool is LIFO", func(mt *mtest.T) {
+		aSess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		bSess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+
+		// end the sessions to return them to the pool
+		aSess.EndSession(context.Background())
+		bSess.EndSession(context.Background())
+
+		firstSess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer firstSess.EndSession(context.Background())
+		want := bSess.ID()
+		got := firstSess.ID()
+		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
+
+		secondSess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer secondSess.EndSession(context.Background())
+		want = aSess.ID()
+		got = secondSess.ID()
+		assert.True(mt, sessionIDsEqual(mt, want, got), "expected session ID %v, got %v", want, got)
+	})
+
+	// Pin to a single mongos so heartbeats/handshakes to other mongoses
+	// won't cause errors.
+	clusterTimeOpts := mtest.NewOptions().
+		ClientOptions(options.Client().SetHeartbeatInterval(50 * time.Second)).
+		ClientType(mtest.Pinned).
+		CreateClient(false)
+
+	mt.RunOpts("3 clusterTime in commands", clusterTimeOpts, func(mt *mtest.T) {
+		serverStatus := sessionFunction{"server status", "database", "RunCommand", []interface{}{bson.D{{"serverStatus", 1}}}}
+		insert := sessionFunction{"insert one", "collection", "InsertOne", []interface{}{bson.D{{"x", 1}}}}
+		agg := sessionFunction{"aggregate", "collection", "Aggregate", []interface{}{mongo.Pipeline{}}}
+		find := sessionFunction{"find", "collection", "Find", []interface{}{bson.D{}}}
+
+		sessionFunctions := []sessionFunction{serverStatus, insert, agg, find}
+		for _, sf := range sessionFunctions {
+			mt.Run(sf.name, func(mt *mtest.T) {
+				err := sf.execute(mt, nil)
+				assert.Nil(mt, err, "%v error: %v", sf.name, err)
+
+				// assert $clusterTime was sent to server
+				started := mt.GetStartedEvent()
+				assert.NotNil(mt, started, "expected started event, got nil")
+				_, err = started.Command.LookupErr("$clusterTime")
+				assert.Nil(mt, err, "$clusterTime not sent")
+
+				// record response cluster time
+				succeeded := mt.GetSucceededEvent()
+				assert.NotNil(mt, succeeded, "expected succeeded event, got nil")
+				replyClusterTimeVal, err := succeeded.Reply.LookupErr("$clusterTime")
+				assert.Nil(mt, err, "$clusterTime not found in response")
+
+				// call function again
+				err = sf.execute(mt, nil)
+				assert.Nil(mt, err, "%v error: %v", sf.name, err)
+
+				// find cluster time sent to server and assert it is the same as the one in the previous response
+				sentClusterTimeVal, err := mt.GetStartedEvent().Command.LookupErr("$clusterTime")
+				assert.Nil(mt, err, "$clusterTime not sent")
+				replyClusterTimeDoc := replyClusterTimeVal.Document()
+				sentClusterTimeDoc := sentClusterTimeVal.Document()
+				assert.Equal(mt, replyClusterTimeDoc, sentClusterTimeDoc,
+					"expected cluster time %v, got %v", replyClusterTimeDoc, sentClusterTimeDoc)
+			})
+		}
+	})
+
+	mt.RunOpts("4 explicit and implicit session arguments", noClientOpts, func(mt *mtest.T) {
+		// lsid is included in commands with explicit and implicit sessions
+
+		sessionFunctions := createFunctionsSlice()
+		for _, sf := range sessionFunctions {
+			mt.Run(sf.name, func(mt *mtest.T) {
+				// explicit session
+				sess, err := mt.Client.StartSession()
+				assert.Nil(mt, err, "StartSession error: %v", err)
+				defer sess.EndSession(context.Background())
+				mt.ClearEvents()
+
+				_ = sf.execute(mt, sess) // don't check error because we only care about lsid
+				_, wantID := sess.ID().Lookup("id").Binary()
+				gotID := extractSentSessionID(mt)
+				assert.True(mt, bytes.Equal(wantID, gotID), "expected session ID %v, got %v", wantID, gotID)
+
+				// implicit session
+				_ = sf.execute(mt, nil)
+				gotID = extractSentSessionID(mt)
+				assert.NotNil(mt, gotID, "expected lsid, got nil")
+			})
+		}
+	})
+
+	mt.Run("5 session argument is for the right client", func(mt *mtest.T) {
+		// a session can only be used in commands associated with the client that created it
+
+		sessionFunctions := createFunctionsSlice()
+		sess, err := mt.Client.StartSession()
+		assert.Nil(mt, err, "StartSession error: %v", err)
+		defer sess.EndSession(context.Background())
+
+		for _, sf := range sessionFunctions {
+			mt.Run(sf.name, func(mt *mtest.T) {
+				err = sf.execute(mt, sess)
+				assert.Equal(mt, mongo.ErrWrongClient, err, "expected error %v, got %v", mongo.ErrWrongClient, err)
+			})
+		}
+	})
+
+	const proseTest6 = "6 no further operations can be performed using a session after endSession has been called"
+	mt.RunOpts(proseTest6, noClientOpts, func(mt *mtest.T) {
+		// an ended session cannot be used in commands
+
+		sessionFunctions := createFunctionsSlice()
+		for _, sf := range sessionFunctions {
+			mt.Run(sf.name, func(mt *mtest.T) {
+				sess, err := mt.Client.StartSession()
+				assert.Nil(mt, err, "StartSession error: %v", err)
+				sess.EndSession(context.Background())
+
+				err = sf.execute(mt, sess)
+				assert.Equal(mt, session.ErrSessionEnded, err, "expected error %v, got %v", session.ErrSessionEnded, err)
+			})
+		}
+	})
+
+	mt.Run("7 authenticating as multiple users suppresses implicit sessions", func(mt *mtest.T) {
+		mt.Skip("Go Driver does not allow simultaneous authentication with multiple users.")
+	})
+
+	mt.Run("8 client side cursor that exhausts the results on the initial query immediately returns the implicit session to the pool",
+		func(mt *mtest.T) {
+			// implicit sessions are returned to the server session pool
+
+			doc := bson.D{{"x", 1}}
+			_, err := mt.Coll.InsertOne(context.Background(), doc)
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+			_, err = mt.Coll.InsertOne(context.Background(), doc)
+			assert.Nil(mt, err, "InsertOne error: %v", err)
+
+			// create a cursor that will hold onto an implicit session and record the sent session ID
+			mt.ClearEvents()
+			cursor, err := mt.Coll.Find(context.Background(), bson.D{})
+			assert.Nil(mt, err, "Find error: %v", err)
+			findID := extractSentSessionID(mt)
+			assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false")
+
+			// execute another operation and verify the find session ID was reused
+			_, err = mt.Coll.DeleteOne(context.Background(), bson.D{})
+			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			deleteID := extractSentSessionID(mt)
+			assert.Equal(mt, findID, deleteID, "expected session ID %v, got %v", findID, deleteID)
+		})
+
+	mt.Run("9 client side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool",
+		func(mt *mtest.T) {
+			// Client-side cursor that exhausts the results after a getMore immediately returns the implicit session to the pool.
+
+			var docs []interface{}
+			for i := 0; i < 5; i++ {
+				docs = append(docs, bson.D{{"x", i}})
+			}
+
+			_, err := mt.Coll.InsertMany(context.Background(), docs)
+			assert.Nil(mt, err, "InsertMany error: %v", err)
+
+			// run a find that will hold onto the implicit session and record the session ID
+			mt.ClearEvents()
+			cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(3))
+			assert.Nil(mt, err, "Find error: %v", err)
+			findID := extractSentSessionID(mt)
+
+			// iterate past 4 documents, forcing a getMore. session should be returned to pool after getMore
+			for i := 0; i < 4; i++ {
+				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
+			}
+
+			// execute another operation and verify the find session ID was reused
+			_, err = mt.Coll.DeleteOne(context.Background(), bson.D{})
+			assert.Nil(mt, err, "DeleteOne error: %v", err)
+			deleteID := extractSentSessionID(mt)
+			assert.Equal(mt, findID, deleteID, "expected session ID %v, got %v", findID, deleteID)
+		})
+
+	mt.Run("10 no remaining sessions are checked out after each functional test", func(mt *mtest.T) {
+		mt.Skip("This is tested individually in each functional test.")
+	})
+
+	mt.Run("11 for every combination of topology and readPreference, ensure that find and getMore both send the same session id", func(mt *mtest.T) {
+		var docs []interface{}
+		for i := 0; i < 3; i++ {
+			docs = append(docs, bson.D{{"x", i}})
+		}
+		_, err := mt.Coll.InsertMany(context.Background(), docs)
+		assert.Nil(mt, err, "InsertMany error: %v", err)
+
+		// run a find that will hold onto an implicit session and record the session ID
+		mt.ClearEvents()
+		cursor, err := mt.Coll.Find(context.Background(), bson.D{}, options.Find().SetBatchSize(2))
+		assert.Nil(mt, err, "Find error: %v", err)
+		findID := extractSentSessionID(mt)
+		assert.NotNil(mt, findID, "expected session ID for find, got nil")
+
+		// iterate over all documents and record the session ID of the getMore
+		for i := 0; i < 3; i++ {
+			assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
+		}
+		getMoreID := extractSentSessionID(mt)
+		assert.Equal(mt, findID, getMoreID, "expected session ID %v, got %v", findID, getMoreID)
+	})
+
 	sessallocopts := mtest.NewOptions().ClientOptions(options.Client().SetMaxPoolSize(1).SetRetryWrites(true).
 		SetHosts(hosts[:1]))
-	mt.RunOpts("14. implicit session allocation", sessallocopts, func(mt *mtest.T) {
+	mt.RunOpts("14 implicit session allocation", sessallocopts, func(mt *mtest.T) {
 		// TODO(GODRIVER-2844): Fix and unskip this test case.
 		mt.Skip("Test fails frequently, skipping. See GODRIVER-2844")
 
@@ -479,43 +506,6 @@ func TestSessions(t *testing.T) {
 		assert.True(mt, limitedSessionUse, limitedSessMsg, len(ops))
 
 	})
-
-	// Regression test for GODRIVER-2533. Note that this test assumes the race
-	// detector is enabled (GODRIVER-2072).
-	mt.Run("NumberSessionsInProgress data race", func(mt *mtest.T) {
-		// Use two goroutines to execute a few simultaneous runs of NumberSessionsInProgress
-		// and a basic collection operation (CountDocuments).
-		var wg sync.WaitGroup
-		wg.Add(2)
-
-		go func() {
-			defer wg.Done()
-
-			for i := 0; i < 100; i++ {
-				time.Sleep(100 * time.Microsecond)
-				_ = mt.Client.NumberSessionsInProgress()
-			}
-		}()
-		go func() {
-			defer wg.Done()
-
-			for i := 0; i < 100; i++ {
-				time.Sleep(100 * time.Microsecond)
-				_, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
-				assert.Nil(mt, err, "CountDocument error: %v", err)
-			}
-		}()
-
-		wg.Wait()
-	})
-}
-
-func assertCollectionCount(mt *mtest.T, expectedCount int64) {
-	mt.Helper()
-
-	count, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
-	assert.Nil(mt, err, "CountDocuments error: %v", err)
-	assert.Equal(mt, expectedCount, count, "expected CountDocuments result %v, got %v", expectedCount, count)
 }
 
 type sessionFunction struct {
@@ -597,6 +587,14 @@ func createFunctionsSlice() []sessionFunction {
 		{"drop all indexes", "indexView", "DropAll", nil},
 		{"list indexes", "indexView", "List", nil},
 	}
+}
+
+func assertCollectionCount(mt *mtest.T, expectedCount int64) {
+	mt.Helper()
+
+	count, err := mt.Coll.CountDocuments(context.Background(), bson.D{})
+	require.NoError(mt, err, "CountDocuments error")
+	assert.Equal(mt, expectedCount, count, "expected CountDocuments result %v, got %v", expectedCount, count)
 }
 
 func sessionIDsEqual(mt *mtest.T, id1, id2 bson.Raw) bool {

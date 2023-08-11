@@ -15,6 +15,8 @@ import (
 )
 
 func TestServerSession(t *testing.T) {
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
+
 	t.Run("Expired", func(t *testing.T) {
 		t.Run("non-lb mode", func(t *testing.T) {
 			sess, err := newServerSession()
@@ -23,7 +25,7 @@ func TestServerSession(t *testing.T) {
 			// The session should be expired if timeoutMinutes is 0 or if its last used time is too old.
 			assert.True(t, sess.expired(topologyDescription{}), "expected session to be expired when timeoutMinutes=0")
 			sess.LastUsed = time.Now().Add(-30 * time.Minute)
-			topoDesc := topologyDescription{timeoutMinutes: 30}
+			topoDesc := topologyDescription{timeoutMinutes: int64ToPtr(30)}
 			assert.True(t, sess.expired(topoDesc), "expected session to be expired when timeoutMinutes=30")
 		})
 		t.Run("lb mode", func(t *testing.T) {
@@ -35,7 +37,7 @@ func TestServerSession(t *testing.T) {
 			assert.False(t, sess.expired(topoDesc), "session reported that it was expired in LB mode with timeoutMinutes=0")
 
 			sess.LastUsed = time.Now().Add(-30 * time.Minute)
-			topoDesc.timeoutMinutes = 10
+			topoDesc.timeoutMinutes = int64ToPtr(10)
 			assert.False(t, sess.expired(topoDesc), "session reported that it was expired in LB mode with timeoutMinutes=10")
 		})
 	})

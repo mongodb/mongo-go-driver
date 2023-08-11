@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -153,7 +153,7 @@ type outcome struct {
 	Servers                      map[string]server
 	TopologyType                 string
 	SetName                      string
-	LogicalSessionTimeoutMinutes uint32
+	LogicalSessionTimeoutMinutes *int64
 	MaxSetVersion                uint32
 	MaxElectionID                primitive.ObjectID `bson:"maxElectionId"`
 	Compatible                   *bool
@@ -501,8 +501,12 @@ func runTest(t *testing.T, directory string, filename string) {
 				"expected SetName to be %v, got %v", phase.Outcome.SetName, topo.fsm.SetName)
 			assert.Equal(t, len(phase.Outcome.Servers), len(desc.Servers),
 				"expected %v servers, got %v", len(phase.Outcome.Servers), len(desc.Servers))
-			assert.Equal(t, phase.Outcome.LogicalSessionTimeoutMinutes, desc.SessionTimeoutMinutes,
-				"expected SessionTimeoutMinutes to be %v, got %v", phase.Outcome.LogicalSessionTimeoutMinutes, desc.SessionTimeoutMinutes)
+
+			assert.Equal(t,
+				phase.Outcome.LogicalSessionTimeoutMinutes,
+				desc.SessionTimeoutMinutesPtr,
+				"expected and actual logical session timeout minutes are different")
+
 			assert.Equal(t, phase.Outcome.MaxSetVersion, topo.fsm.maxSetVersion,
 				"expected maxSetVersion to be %v, got %v", phase.Outcome.MaxSetVersion, topo.fsm.maxSetVersion)
 			assert.Equal(t, phase.Outcome.MaxElectionID, topo.fsm.maxElectionID,
@@ -556,7 +560,7 @@ func runTest(t *testing.T, directory string, filename string) {
 // Test case for all SDAM spec tests.
 func TestSDAMSpec(t *testing.T) {
 	for _, subdir := range []string{"single", "rs", "sharded", "load-balanced", "errors", "monitoring"} {
-		for _, file := range helpers.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
+		for _, file := range spectest.FindJSONFilesInDir(t, path.Join(testsDir, subdir)) {
 			runTest(t, subdir, file)
 		}
 	}

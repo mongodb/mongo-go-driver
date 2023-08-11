@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
@@ -170,13 +170,13 @@ func runTest(t *testing.T, filename string, test testCase, warningsError bool) {
 
 // Test case for all connection string spec tests.
 func TestConnStringSpec(t *testing.T) {
-	for _, file := range helpers.FindJSONFilesInDir(t, connstringTestsDir) {
+	for _, file := range spectest.FindJSONFilesInDir(t, connstringTestsDir) {
 		runTestsInFile(t, connstringTestsDir, file, false)
 	}
 }
 
 func TestURIOptionsSpec(t *testing.T) {
-	for _, file := range helpers.FindJSONFilesInDir(t, urioptionsTestDir) {
+	for _, file := range spectest.FindJSONFilesInDir(t, urioptionsTestDir) {
 		runTestsInFile(t, urioptionsTestDir, file, true)
 	}
 }

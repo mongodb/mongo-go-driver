@@ -17,8 +17,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -56,6 +57,8 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestOperation(t *testing.T) {
+	int64ToPtr := func(i64 int64) *int64 { return &i64 }
+
 	t.Run("selectServer", func(t *testing.T) {
 		t.Run("returns validation error", func(t *testing.T) {
 			op := &Operation{}
@@ -144,9 +147,24 @@ func TestOperation(t *testing.T) {
 		wcAck := writeconcern.New(writeconcern.WMajority())
 		wcUnack := writeconcern.New(writeconcern.W(0))
 
-		descRetryable := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1}
-		descNotRetryableWireVersion := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 5}, SessionTimeoutMinutes: 1}
-		descNotRetryableStandalone := description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}, SessionTimeoutMinutes: 1, Kind: description.Standalone}
+		descRetryable := description.Server{
+			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesPtr: int64ToPtr(1),
+		}
+
+		descNotRetryableWireVersion := description.Server{
+			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesPtr: int64ToPtr(1),
+		}
+
+		descNotRetryableStandalone := description.Server{
+			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes:    1,
+			SessionTimeoutMinutesPtr: int64ToPtr(1),
+			Kind:                     description.Standalone,
+		}
 
 		testCases := []struct {
 			name string
@@ -242,7 +260,7 @@ func TestOperation(t *testing.T) {
 			noerr(t, err)
 
 			got := Operation{Client: sess, Clock: clusterClock}.addClusterTime(nil, description.SelectedServer{
-				Server: description.Server{WireVersion: &description.VersionRange{Min: 0, Max: 7}},
+				Server: description.Server{WireVersion: &description.VersionRange{Min: 6, Max: 21}},
 			})
 			if !bytes.Equal(got, want) {
 				t.Errorf("ClusterTimes do not match. got %v; want %v", got, want)
@@ -255,7 +273,7 @@ func TestOperation(t *testing.T) {
 		negMaxTime := -2 * time.Second
 		shortRTT := 50 * time.Millisecond
 		longRTT := 10 * time.Second
-		timeoutCtx, cancel := internal.MakeTimeoutContext(context.Background(), timeout)
+		timeoutCtx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 
 		testCases := []struct {
@@ -529,58 +547,6 @@ func TestOperation(t *testing.T) {
 			}
 		})
 	})
-	t.Run("$query to mongos only", func(t *testing.T) {
-		testCases := []struct {
-			name   string
-			server description.ServerKind
-			topo   description.TopologyKind
-			rp     *readpref.ReadPref
-			want   bool
-		}{
-			{"mongos/primaryPreferred", description.Mongos, description.Sharded, readpref.PrimaryPreferred(), true},
-			{"mongos/primary", description.Mongos, description.Sharded, readpref.Primary(), false},
-			{"primary/primaryPreferred", description.RSPrimary, description.ReplicaSet, readpref.PrimaryPreferred(), false},
-			{"primary/primary", description.RSPrimary, description.ReplicaSet, readpref.Primary(), false},
-			{"secondary/primaryPreferred", description.RSSecondary, description.ReplicaSet, readpref.PrimaryPreferred(), false},
-			{"secondary/primary", description.RSSecondary, description.ReplicaSet, readpref.Primary(), false},
-			{"none/none", description.ServerKind(0), description.TopologyKind(0), nil, false},
-		}
-
-		for _, tc := range testCases {
-			t.Run(tc.name, func(t *testing.T) {
-				conn := new(mockConnection)
-
-				op := Operation{
-					Database:   "foobar",
-					Deployment: SingleConnectionDeployment{C: conn},
-					CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
-						dst = bsoncore.AppendInt32Element(dst, "ping", 1)
-						return dst, nil
-					},
-					ReadPreference: tc.rp,
-				}
-				var wm []byte
-				desc := description.SelectedServer{
-					Kind: tc.topo,
-					Server: description.Server{
-						Kind: tc.server,
-					},
-				}
-				wm, _, err := op.createQueryWireMessage(0, wm, desc)
-				noerr(t, err)
-
-				// We know where the $query would be within the OP_QUERY, so we'll just index into there.
-				// 16 (msg header) + 4 (flags) + 12 (foobar.$cmd) + 4 (number to skip) + 4 (number to return) + 4 (length) + 1 (document type)
-				if len(wm) < 45 {
-					t.Fatalf("wire message is too short. Need at least 40 bytes, but only have %d", len(wm))
-				}
-				got := bytes.HasPrefix(wm[45:], []byte{'$', 'q', 'u', 'e', 'r', 'y', 0x00})
-				if got != tc.want {
-					t.Errorf("Wiremessage did not have the proper setting for $query. got %t; want %t", got, tc.want)
-				}
-			})
-		}
-	})
 	t.Run("ExecuteExhaust", func(t *testing.T) {
 		t.Run("errors if connection is not streaming", func(t *testing.T) {
 			conn := &mockConnection{
@@ -612,7 +578,7 @@ func TestOperation(t *testing.T) {
 		}
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
-				return bsoncore.AppendInt32Element(dst, internal.LegacyHello, 1), nil
+				return bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1), nil
 			},
 			Database:   "admin",
 			Deployment: SingleConnectionDeployment{conn},
@@ -804,7 +770,7 @@ func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
 }
 
 func (ms *mockRetryServer) RTTMonitor() RTTMonitor {
-	return &internal.ZeroRTTMonitor{}
+	return &csot.ZeroRTTMonitor{}
 }
 
 func TestRetry(t *testing.T) {

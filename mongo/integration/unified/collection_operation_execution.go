@@ -13,7 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/testutil/helpers"
+	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -78,7 +78,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
-			pipeline = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
 		case "let":
 			opts.SetLet(val.Document())
 		default:
@@ -910,7 +910,7 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "arrayFilters":
 			opts.SetArrayFilters(options.ArrayFilters{
-				Filters: helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
 			})
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
@@ -997,7 +997,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		case "comment":
 			opts.SetComment(val)
 		case "documents":
-			documents = helpers.RawToInterfaces(helpers.RawToDocuments(val.Array())...)
+			documents = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
 		default:

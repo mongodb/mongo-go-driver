@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/testutil"
+	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -81,7 +81,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		uri = *opts.URI
 	default:
 		var err error
-		uri, err = testutil.MongoDBURI()
+		uri, err = integtest.MongoDBURI()
 		if err != nil {
 			return fmt.Errorf("error getting uri: %v", err)
 		}
@@ -96,7 +96,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	testContext.requireAPIVersion = os.Getenv("REQUIRE_API_VERSION") == "true"
 
 	clientOpts := options.Client().ApplyURI(uri)
-	testutil.AddTestServerAPIVersion(clientOpts)
+	integtest.AddTestServerAPIVersion(clientOpts)
 
 	cfg, err := topology.NewConfig(clientOpts, nil)
 	if err != nil {

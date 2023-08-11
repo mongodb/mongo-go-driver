@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/version"
@@ -188,7 +188,7 @@ func TestHandshakeProse(t *testing.T) {
 
 			// First two messages are handshake messages
 			for idx, pair := range messages[:2] {
-				hello := internal.LegacyHello
+				hello := handshake.LegacyHello
 				//  Expect "hello" command name with API version.
 				if os.Getenv("REQUIRE_API_VERSION") == "true" {
 					hello = "hello"

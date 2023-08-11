@@ -13,10 +13,14 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
+
+// LegacyNotPrimaryErrMsg is the error message that older MongoDB servers (see
+// SERVER-50412 for versions) return when a write operation is erroneously sent
+// to a non-primary node.
+const LegacyNotPrimaryErrMsg = "not master"
 
 var (
 	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
@@ -206,7 +210,7 @@ func (wce WriteConcernError) NotPrimary() bool {
 		}
 	}
 	hasNoCode := wce.Code == 0
-	return hasNoCode && strings.Contains(wce.Message, internal.LegacyNotPrimary)
+	return hasNoCode && strings.Contains(wce.Message, LegacyNotPrimaryErrMsg)
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -354,7 +358,7 @@ func (e Error) NotPrimary() bool {
 		}
 	}
 	hasNoCode := e.Code == 0
-	return hasNoCode && strings.Contains(e.Message, internal.LegacyNotPrimary)
+	return hasNoCode && strings.Contains(e.Message, LegacyNotPrimaryErrMsg)
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
