@@ -1,12 +1,13 @@
-name: Comment
+name: PR API Report
 on:
-  pull_request:
+  pull_request_target:
 
 jobs:
   comment:
     runs-on: ubuntu-latest
     permissions:
         pull-requests: write
+        issues: write
     steps:
     - uses: actions/setup-go@v4
     - name: Find Comment
@@ -20,10 +21,11 @@ jobs:
     - name: Create the comment body
       run: |
         set -eux
-        git clone https://github.com/$GITHUB_REPOSITORY
+        git clone https://github.com/mongodb/mongo-go-driver
         cd mongo-go-driver
+        git remote add source https://github.com/$GITHUB_ACTOR/mongo-go-driver
         git fetch origin $GITHUB_BASE_REF
-        git fetch origin $GITHUB_HEAD_REF
+        git fetch source $GITHUB_HEAD_REF
         git checkout $GITHUB_HEAD_REF
         make api-report
         cat api-report.md
