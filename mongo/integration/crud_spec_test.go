@@ -96,7 +96,6 @@ func runCrudFile(t *testing.T, file string) {
 	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
 
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion(testFile.MinServerVersion).MaxServerVersion(testFile.MaxServerVersion))
-	defer mt.Close()
 
 	// Skip test if serverless requirements are not met.
 	if err = verifyServerlessConstraint(mt, testFile.Serverless); err != nil {

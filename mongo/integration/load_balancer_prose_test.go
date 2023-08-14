@@ -23,7 +23,6 @@ import (
 
 func TestLoadBalancerSupport(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().Topologies(mtest.LoadBalanced).CreateClient(false))
-	defer mt.Close()
 
 	mt.Run("RunCommandCursor pins to a connection", func(mt *mtest.T) {
 		// The LB spec tests cover the behavior for cursors created by CRUD operations, but RunCommandCursor is

@@ -38,7 +38,6 @@ var (
 
 func TestDatabase(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
 
 	mt.RunOpts("run command", noClientOpts, func(mt *mtest.T) {
 		mt.Run("decode raw", func(mt *mtest.T) {

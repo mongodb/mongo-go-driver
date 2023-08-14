@@ -309,6 +309,12 @@ type Operation struct {
 	// Name is the name of the operation. This is used when serializing
 	// OP_MSG as well as for logging server selection data.
 	Name string
+
+	// omitReadPreference is a boolean that indicates whether to omit the
+	// read preference from the command. This omition includes the case
+	// where a default read preference is used when the operation
+	// ReadPreference is not specified.
+	omitReadPreference bool
 }
 
 // shouldEncrypt returns true if this operation should automatically be encrypted.
@@ -1452,6 +1458,10 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 // object and various related fields such as "mode", "tags", and
 // "maxStalenessSeconds".
 func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bool) (bsoncore.Document, error) {
+	if op.omitReadPreference {
+		return nil, nil
+	}
+
 	// TODO(GODRIVER-2231): Instead of checking if isOutputAggregate and desc.Server.WireVersion.Max < 13, somehow check
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
 	if desc.Server.Kind == description.Standalone || (isOpQuery && desc.Server.Kind != description.Mongos) ||

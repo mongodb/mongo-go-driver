@@ -96,7 +96,6 @@ func makeMonitor(mt *mtest.T, captured *[]event.CommandStartedEvent) *event.Comm
 func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
-	defer mt.Close()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
 		"local": {"key": localMasterKey},
@@ -345,7 +344,6 @@ func (c *customCrypt) RewrapDataKey(_ context.Context, _ []byte,
 
 func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
-	defer mt.Close()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
 		"local": {"key": localMasterKey},
@@ -414,7 +412,6 @@ func TestFLE2CreateCollection(t *testing.T) {
 			mtest.LoadBalanced,
 			mtest.ShardedReplicaSet)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	efJSON := `
 	{
@@ -488,7 +485,6 @@ func TestFLE2DocsExample(t *testing.T) {
 			mtest.LoadBalanced,
 			mtest.ShardedReplicaSet)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	mt.Run("Auto Encryption", func(mt *mtest.T) {
 		// Drop data from prior test runs.

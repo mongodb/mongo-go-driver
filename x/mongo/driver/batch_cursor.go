@@ -326,6 +326,12 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		Legacy:         LegacyKillCursors,
 		CommandMonitor: bc.cmdMonitor,
 		ServerAPI:      bc.serverAPI,
+
+		// No read preference is passed to the killCursor command,
+		// resulting in the default read preference: "primaryPreferred".
+		// Since this could be confusing, and there is no requirement
+		// to use a read preference here, we omit it.
+		omitReadPreference: true,
 	}.Execute(ctx)
 }
 
@@ -426,6 +432,12 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		CommandMonitor: bc.cmdMonitor,
 		Crypt:          bc.crypt,
 		ServerAPI:      bc.serverAPI,
+
+		// No read preference is passed to the getMore command,
+		// resulting in the default read preference: "primaryPreferred".
+		// Since this could be confusing, and there is no requirement
+		// to use a read preference here, we omit it.
+		omitReadPreference: true,
 	}.Execute(ctx)
 
 	// Once the cursor has been drained, we can unpin the connection if one is currently pinned.

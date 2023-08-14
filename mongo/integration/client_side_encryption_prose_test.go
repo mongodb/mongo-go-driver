@@ -60,7 +60,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 	verifyClientSideEncryptionVarsSet(t)
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
-	defer mt.Close()
 
 	defaultKvClientOptions := options.Client().ApplyURI(mtest.ClusterURI())
 	integtest.AddTestServerAPIVersion(defaultKvClientOptions)

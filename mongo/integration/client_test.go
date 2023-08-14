@@ -102,7 +102,6 @@ func (sc *slowConn) Read(b []byte) (n int, err error) {
 
 func TestClient(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	defer mt.Close()
 
 	registryOpts := options.Client().
 		SetRegistry(bson.NewRegistryBuilder().RegisterCodec(reflect.TypeOf(int64(0)), &negateCodec{}).Build())
@@ -798,7 +797,6 @@ func TestClient_BSONOptions(t *testing.T) {
 	t.Parallel()
 
 	mt := mtest.New(t, noClientOpts)
-	defer mt.Close()
 
 	type jsonTagsTest struct {
 		A string
@@ -917,7 +915,6 @@ func TestClient_BSONOptions(t *testing.T) {
 func TestClientStress(t *testing.T) {
 	mtOpts := mtest.NewOptions().CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
 	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
