@@ -21,7 +21,6 @@ import (
 
 func TestSDAMProse(t *testing.T) {
 	mt := mtest.New(t)
-	defer mt.Close()
 
 	// Server limits non-streaming heartbeats and explicit server transition checks to at most one
 	// per 500ms. Set the test interval to 500ms to minimize the difference between the behavior of

@@ -21,7 +21,6 @@ func TestAtlasDataLake(t *testing.T) {
 	// Prose tests against Atlas Data Lake.
 
 	mt := mtest.New(t, mtest.NewOptions().AtlasDataLake(true).CreateClient(false))
-	defer mt.Close()
 	getMtOpts := func() *mtest.Options {
 		return mtest.NewOptions().CollectionName("driverdata")
 	}

@@ -88,7 +88,6 @@ func TestDocumentationExamples(t *testing.T) {
 	})
 
 	mt := mtest.New(t)
-	defer mt.Close()
 
 	// Stable API is supported in 5.0+
 	mtOpts := mtest.NewOptions().MinServerVersion("5.0")

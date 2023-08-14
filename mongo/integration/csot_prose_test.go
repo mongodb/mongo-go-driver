@@ -23,7 +23,6 @@ import (
 
 func TestCSOTProse(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
 
 	mt.RunOpts("1. multi-batch writes", mtest.NewOptions().MinServerVersion("4.4").
 		Topologies(mtest.Single), func(mt *mtest.T) {

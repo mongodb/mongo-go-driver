@@ -33,7 +33,6 @@ func TestRetryableReadsProse(t *testing.T) {
 
 	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.3")
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	mt.Run("PoolClearedError retryability", func(mt *mtest.T) {
 		if mtest.ClusterTopologyKind() == mtest.LoadBalanced {

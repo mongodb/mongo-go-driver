@@ -28,7 +28,6 @@ type index struct {
 
 func TestIndexView(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	defer mt.Close()
 
 	var pbool = func(b bool) *bool { return &b }
 	var pint32 = func(i int32) *int32 { return &i }

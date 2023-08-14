@@ -28,7 +28,6 @@ import (
 
 func TestGridFS(x *testing.T) {
 	mt := mtest.New(x, noClientOpts)
-	defer mt.Close()
 
 	mt.Run("skipping download", func(mt *mtest.T) {
 		data := []byte("abc.def.ghi")
