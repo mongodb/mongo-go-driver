@@ -62,7 +62,7 @@ type clientEntity struct {
 	observedEvents                      map[monitoringEventType]struct{}
 	storedEvents                        map[monitoringEventType][]string
 	eventsCount                         map[monitoringEventType]int32
-	serverDescriptionChangedEventsCount map[serverDescriptionChangedEvent]int32
+	serverDescriptionChangedEventsCount map[serverDescriptionChangedEventInfo]int32
 
 	eventsCountLock                         sync.RWMutex
 	serverDescriptionChangedEventsCountLock sync.RWMutex
@@ -89,7 +89,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		observedEvents:                      make(map[monitoringEventType]struct{}),
 		storedEvents:                        make(map[monitoringEventType][]string),
 		eventsCount:                         make(map[monitoringEventType]int32),
-		serverDescriptionChangedEventsCount: make(map[serverDescriptionChangedEvent]int32),
+		serverDescriptionChangedEventsCount: make(map[serverDescriptionChangedEventInfo]int32),
 		entityMap:                           em,
 		observeSensitiveCommands:            entityOptions.ObserveSensitiveCommands,
 	}
@@ -302,7 +302,7 @@ func (c *clientEntity) addEventsCount(eventType monitoringEventType) {
 	c.eventsCount[eventType]++
 }
 
-func (c *clientEntity) addServerDescriptionChangedEventCount(evt serverDescriptionChangedEvent) {
+func (c *clientEntity) addServerDescriptionChangedEventCount(evt serverDescriptionChangedEventInfo) {
 	c.serverDescriptionChangedEventsCountLock.Lock()
 	defer c.serverDescriptionChangedEventsCountLock.Unlock()
 
@@ -316,7 +316,7 @@ func (c *clientEntity) getEventCount(eventType monitoringEventType) int32 {
 	return c.eventsCount[eventType]
 }
 
-func (c *clientEntity) getServerDescriptionChangedEventCount(evt serverDescriptionChangedEvent) int32 {
+func (c *clientEntity) getServerDescriptionChangedEventCount(evt serverDescriptionChangedEventInfo) int32 {
 	c.serverDescriptionChangedEventsCountLock.Lock()
 	defer c.serverDescriptionChangedEventsCountLock.Unlock()
 
@@ -475,15 +475,15 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 		return
 	}
 
-	if _, ok := c.observedEvents[serverDescriptionChangedInfo]; ok {
+	if _, ok := c.observedEvents[serverDescriptionChangedEvent]; ok {
 		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
 	}
 
 	// Record object-specific unified spec test data on an event.
-	c.addServerDescriptionChangedEventCount(*newServerDescriptionChangedEvent(evt))
+	c.addServerDescriptionChangedEventCount(*newServerDescriptionChangedEventInfo(evt))
 
 	// Record the event generally.
-	c.addEventsCount(serverDescriptionChangedInfo)
+	c.addEventsCount(serverDescriptionChangedEvent)
 }
 
 func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartbeatFailedEvent) {

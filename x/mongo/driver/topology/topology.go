@@ -109,8 +109,10 @@ type Topology struct {
 	id primitive.ObjectID
 }
 
-var _ driver.Deployment = &Topology{}
-var _ driver.Subscriber = &Topology{}
+var (
+	_ driver.Deployment = &Topology{}
+	_ driver.Subscriber = &Topology{}
+)
 
 type serverSelectionState struct {
 	selector    description.ServerSelector
@@ -174,12 +176,12 @@ func logTopologyMessage(topo *Topology, msg string, keysAndValues ...interface{}
 		}, keysAndValues...)...)
 }
 
-func mustLogServerSelectionMessage(topo *Topology, level logger.Level) bool {
+func mustLogServerSelection(topo *Topology, level logger.Level) bool {
 	return topo.cfg.logger != nil && topo.cfg.logger.LevelComponentEnabled(
 		level, logger.ComponentServerSelection)
 }
 
-func logServerSelectionMessage(
+func logServerSelection(
 	ctx context.Context,
 	level logger.Level,
 	topo *Topology,
@@ -208,7 +210,7 @@ func logServerSelectionMessage(
 		}, keysAndValues...)...)
 }
 
-func logServerSelectionSucceededMessage(
+func logServerSelectionSucceeded(
 	ctx context.Context,
 	topo *Topology,
 	srvSelector description.ServerSelector,
@@ -222,18 +224,18 @@ func logServerSelectionSucceededMessage(
 
 	portInt64, _ := strconv.ParseInt(port, 10, 32)
 
-	logServerSelectionMessage(ctx, logger.LevelDebug, topo, logger.ServerSelectionSucceeded, srvSelector,
+	logServerSelection(ctx, logger.LevelDebug, topo, logger.ServerSelectionSucceeded, srvSelector,
 		logger.KeyServerHost, host,
 		logger.KeyServerPort, portInt64)
 }
 
-func logServerSelectionFailedMessage(
+func logServerSelectionFailed(
 	ctx context.Context,
 	topo *Topology,
 	srvSelector description.ServerSelector,
 	err error,
 ) {
-	logServerSelectionMessage(ctx, logger.LevelDebug, topo, logger.ServerSelectionFailed, srvSelector,
+	logServerSelection(ctx, logger.LevelDebug, topo, logger.ServerSelectionFailed, srvSelector,
 		logger.KeyFailure, err.Error())
 }
 
@@ -464,8 +466,8 @@ func (t *Topology) RequestImmediateCheck() {
 // parent context is done.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
 	if atomic.LoadInt64(&t.state) != topologyConnected {
-		if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-			logServerSelectionFailedMessage(ctx, t, ss, ErrTopologyClosed)
+		if mustLogServerSelection(t, logger.LevelDebug) {
+			logServerSelectionFailed(ctx, t, ss, ErrTopologyClosed)
 		}
 
 		return nil, ErrTopologyClosed
@@ -489,8 +491,8 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		var selectErr error
 
 		if !doneOnce {
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionMessage(ctx, logger.LevelDebug, t, logger.ServerSelectionStarted, ss)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelection(ctx, logger.LevelDebug, t, logger.ServerSelectionStarted, ss)
 			}
 
 			// for the first pass, select a server from the current description.
@@ -504,8 +506,8 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 				var err error
 				sub, err = t.Subscribe()
 				if err != nil {
-					if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-						logServerSelectionFailedMessage(ctx, t, ss, err)
+					if mustLogServerSelection(t, logger.LevelDebug) {
+						logServerSelectionFailed(ctx, t, ss, err)
 					}
 
 					return nil, err
@@ -516,8 +518,8 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			suitable, selectErr = t.selectServerFromSubscription(ctx, sub.Updates, selectionState)
 		}
 		if selectErr != nil {
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionFailedMessage(ctx, t, ss, selectErr)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelectionFailed(ctx, t, ss, selectErr)
 			}
 
 			return nil, selectErr
@@ -525,11 +527,11 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 		if len(suitable) == 0 {
 			// try again if there are no servers available
-			if mustLogServerSelectionMessage(t, logger.LevelInfo) {
+			if mustLogServerSelection(t, logger.LevelInfo) {
 				elapsed := time.Since(startTime)
 				remainingTimeMS := t.cfg.ServerSelectionTimeout - elapsed
 
-				logServerSelectionMessage(ctx, logger.LevelInfo, t, logger.ServerSelectionWaiting, ss,
+				logServerSelection(ctx, logger.LevelInfo, t, logger.ServerSelectionWaiting, ss,
 					logger.KeyRemainingTimeMS, remainingTimeMS.Milliseconds())
 			}
 
@@ -541,8 +543,8 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		if len(suitable) == 1 {
 			server, err := t.FindServer(suitable[0])
 			if err != nil {
-				if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-					logServerSelectionFailedMessage(ctx, t, ss, err)
+				if mustLogServerSelection(t, logger.LevelDebug) {
+					logServerSelectionFailed(ctx, t, ss, err)
 				}
 
 				return nil, err
@@ -551,8 +553,8 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 				continue
 			}
 
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionSucceededMessage(ctx, t, ss, server)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelectionSucceeded(ctx, t, ss, server)
 			}
 
 			return server, nil
@@ -563,16 +565,16 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		desc1, desc2 := pick2(suitable)
 		server1, err := t.FindServer(desc1)
 		if err != nil {
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionFailedMessage(ctx, t, ss, err)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelectionFailed(ctx, t, ss, err)
 			}
 
 			return nil, err
 		}
 		server2, err := t.FindServer(desc2)
 		if err != nil {
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionFailedMessage(ctx, t, ss, err)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelectionFailed(ctx, t, ss, err)
 			}
 
 			return nil, err
@@ -588,14 +590,14 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 			}
 
 			if server1 != nil {
-				if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-					logServerSelectionSucceededMessage(ctx, t, ss, server1)
+				if mustLogServerSelection(t, logger.LevelDebug) {
+					logServerSelectionSucceeded(ctx, t, ss, server1)
 				}
 				return server1, nil
 			}
 
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionSucceededMessage(ctx, t, ss, server2)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelectionSucceeded(ctx, t, ss, server2)
 			}
 
 			return server2, nil
@@ -605,15 +607,15 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 		// We use in-use connections as an analog for in-progress operations because they are almost
 		// always the same value for a given server.
 		if server1.OperationCount() < server2.OperationCount() {
-			if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-				logServerSelectionSucceededMessage(ctx, t, ss, server1)
+			if mustLogServerSelection(t, logger.LevelDebug) {
+				logServerSelectionSucceeded(ctx, t, ss, server1)
 			}
 
 			return server1, nil
 		}
 
-		if mustLogServerSelectionMessage(t, logger.LevelDebug) {
-			logServerSelectionSucceededMessage(ctx, t, ss, server2)
+		if mustLogServerSelection(t, logger.LevelDebug) {
+			logServerSelectionSucceeded(ctx, t, ss, server2)
 		}
 		return server2, nil
 	}
@@ -824,7 +826,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		t.fsm.addServer(addr)
 	}
 
-	//store new description
+	// store new description
 	newDesc := description.Topology{
 		Kind:                     t.fsm.Kind,
 		Servers:                  t.fsm.Servers,

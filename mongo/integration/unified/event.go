@@ -31,7 +31,7 @@ const (
 	connectionCheckOutFailedEvent   monitoringEventType = "ConnectionCheckOutFailedEvent"
 	connectionCheckedOutEvent       monitoringEventType = "ConnectionCheckedOutEvent"
 	connectionCheckedInEvent        monitoringEventType = "ConnectionCheckedInEvent"
-	serverDescriptionChangedInfo    monitoringEventType = "ServerDescriptionChangedEvent"
+	serverDescriptionChangedEvent   monitoringEventType = "ServerDescriptionChangedEvent"
 	serverHeartbeatFailedEvent      monitoringEventType = "ServerHeartbeatFailedEvent"
 	serverHeartbeatStartedEvent     monitoringEventType = "ServerHeartbeatStartedEvent"
 	serverHeartbeatSucceededEvent   monitoringEventType = "ServerHeartbeatSucceededEvent"
@@ -69,7 +69,7 @@ func monitoringEventTypeFromString(eventStr string) (monitoringEventType, bool) 
 	case "connectioncheckedinevent":
 		return connectionCheckedInEvent, true
 	case "serverdescriptionchangedevent":
-		return serverDescriptionChangedInfo, true
+		return serverDescriptionChangedEvent, true
 	case "serverheartbeatfailedevent":
 		return serverHeartbeatFailedEvent, true
 	case "serverheartbeatstartedevent":
@@ -119,9 +119,9 @@ type serverDescription struct {
 	Type string
 }
 
-// serverDescriptionChangedEvent represents an event generated when the server
+// serverDescriptionChangedEventInfo represents an event generated when the server
 // description changes.
-type serverDescriptionChangedEvent struct {
+type serverDescriptionChangedEventInfo struct {
 	// NewDescription  corresponds to the server description as it was after
 	// the change that triggered this event.
 	NewDescription serverDescription
@@ -131,10 +131,10 @@ type serverDescriptionChangedEvent struct {
 	PreviousDescription serverDescription
 }
 
-// newServerDescriptionChangedEvent returns a new serverDescriptionChangedEvent
+// newServerDescriptionChangedEventInfo returns a new serverDescriptionChangedEvent
 // instance for the given event.
-func newServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) *serverDescriptionChangedEvent {
-	return &serverDescriptionChangedEvent{
+func newServerDescriptionChangedEventInfo(evt *event.ServerDescriptionChangedEvent) *serverDescriptionChangedEventInfo {
+	return &serverDescriptionChangedEventInfo{
 		NewDescription: serverDescription{
 			Type: evt.NewDescription.Kind.String(),
 		},
@@ -146,7 +146,7 @@ func newServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) 
 
 // UnmarshalBSON unmarshals the event from BSON, used when trying to create the
 // expected event from a unified spec test.
-func (evt *serverDescriptionChangedEvent) UnmarshalBSON(data []byte) error {
+func (evt *serverDescriptionChangedEventInfo) UnmarshalBSON(data []byte) error {
 	if len(data) == 0 {
 		return nil
 	}

@@ -57,15 +57,15 @@ type compositeSelector struct {
 }
 
 func (cs *compositeSelector) info() serverSelectorInfo {
-	cssInfo := &serverSelectorInfo{Type: "compositeSelector"}
+	csInfo := serverSelectorInfo{Type: "compositeSelector"}
 
 	for _, sel := range cs.selectors {
 		if getter, ok := sel.(serverSelectorInfoGetter); ok {
-			cssInfo.Selectors = append(cssInfo.Selectors, getter.info())
+			csInfo.Selectors = append(csInfo.Selectors, getter.info())
 		}
 	}
 
-	return *cssInfo
+	return csInfo
 }
 
 // String returns the JSON string representation of the compositeSelector.
@@ -204,7 +204,6 @@ func ReadPrefSelector(rp *readpref.ReadPref) ServerSelector {
 		rp:                rp,
 		isOutputAggregate: false,
 	}
-
 }
 
 func (selector readPrefServerSelector) info() serverSelectorInfo {
