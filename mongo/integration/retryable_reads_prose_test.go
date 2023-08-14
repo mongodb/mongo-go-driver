@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -102,5 +104,82 @@ func TestRetryableReadsProse(t *testing.T) {
 			assert.Equal(mt, cmdEvt.CommandName, "find",
 				"expected a find event, got a(n) %v event", cmdEvt.CommandName)
 		}
+	})
+
+	mtOpts = mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("4.2").
+		Topologies(mtest.Sharded)
+
+	mt.RunOpts("retry on different mongos", mtOpts, func(mt *mtest.T) {
+		const hostCount = 3
+
+		hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+		require.GreaterOrEqualf(mt, len(hosts), hostCount, "test cluster must have at least 2 mongos hosts")
+
+		// Configure a failpoint for the first mongos host.
+		failPoint := mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 1,
+			},
+			Data: mtest.FailPointData{
+				FailCommands:    []string{"find"},
+				ErrorCode:       11600,
+				CloseConnection: false,
+			},
+		}
+
+		// In order to ensure that each mongos in the hostCount-many mongos hosts
+		// are tried at least once (i.e. failures are deprioritized), we set a
+		// failpoint on all mongos hosts. The idea is that if we get hostCount-many
+		// failures, then by the pigeonhole principal all mongos hosts must have
+		// been tried.
+		for i := 0; i < hostCount; i++ {
+			mt.ResetClient(options.Client().SetHosts([]string{hosts[i]}))
+			mt.SetFailPoint(failPoint)
+
+			// The automatic failpoint clearing may not clear failpoints set on
+			// specific hosts, so manually clear the failpoint we set on the specific
+			// mongos when the test is done.
+			defer mt.ResetClient(options.Client().SetHosts([]string{hosts[i]}))
+			defer mt.ClearFailPoints()
+		}
+
+		findCommandFailedCount := 0
+
+		commandMonitor := &event.CommandMonitor{
+			Failed: func(_ context.Context, _ *event.CommandFailedEvent) {
+				findCommandFailedCount++
+			},
+		}
+
+		// Reset the client with exactly hostCount-many mongos hosts.
+		mt.ResetClient(options.Client().
+			SetHosts(hosts[:hostCount]).
+			SetTimeout(10000 * time.Millisecond).
+			SetRetryReads(true).
+			SetMonitor(commandMonitor))
+
+		// ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		// defer cancel()
+
+		err := mt.Coll.FindOne(context.Background(), bson.D{}).Err()
+		fmt.Println("err: ", err)
+
+		assert.Equal(mt, hostCount, findCommandFailedCount)
+
+		// Create a connection to a database for each mongos host
+		// mongosOpts := options.Client().ApplyURI(hosts[0])
+
+		// firstMongos, err := mongo.Connect(context.Background(), mongosOpts)
+		// require.NoError(mt, err)
+
+		// result := firstMongos.Database("admin").RunCommand(context.Background(), doc)
+		// require.NoError(mt, result.Err())
+
+		// secondMongos, err := mongo.Connect(context.Background(), mongosOpts)
+		// require.NoError(mt, err)
+
+		// result = secondMongos.Database("admin").RunCommand(context.Background(), doc)
+		// require.NoError(mt, result.Err())
 	})
 }

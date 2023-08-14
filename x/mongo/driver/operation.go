@@ -419,6 +419,11 @@ func (op Operation) Execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	//fmt.Println("")
+	//_, deadlineSet := ctx.Deadline()
+	//fmt.Println("!deadlineSet: ", !deadlineSet)
+	//fmt.Println("op.Timeout != nil : ", op.Timeout != nil)
+	//fmt.Println("!csot.IsTimeoutContext(ctx): ", !csot.IsTimeoutContext(ctx))
 
 	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
 	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
@@ -479,6 +484,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
 	resetForRetry := func(err error) {
+		fmt.Println("resetting for retry: ", retries)
 		retries--
 		prevErr = err
 
@@ -506,6 +512,10 @@ func (op Operation) Execute(ctx context.Context) error {
 		if conn != nil {
 			conn.Close()
 		}
+
+		// NOTE: We can no longer just nullify the server here. We need to
+		// NOTE: "remember" the server and pass it down to the server selector so
+		// NOTE: that it can be ignored when trying to select a new server.
 		// Set the server and connection to nil to request a new server and connection.
 		srvr = nil
 		conn = nil
@@ -528,6 +538,8 @@ func (op Operation) Execute(ctx context.Context) error {
 	for {
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
+			// NOTE: Each time a "retry" occurs, the server will be reset and this
+			// NOTE: branch will be entered.
 			srvr, conn, err = op.getServerAndConnection(ctx)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
