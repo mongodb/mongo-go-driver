@@ -2408,9 +2408,9 @@ axes:
   - id: os-serverless
     display_name: OS
     values:
-      - id: "ubuntu2004-go-1-20"
-        display_name: "Ubuntu 20.04"
-        run_on: ubuntu2004-build
+      - id: "ubuntu2204-go-1-20"
+        display_name: "Ubuntu 22.04"
+        run_on: ubuntu2204-build
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2516,6 +2516,7 @@ task_groups:
           display_name: "mongodb-logs.tar.gz"
     tasks:
       - ".serverless"
+
   - name: testgcpkms_task_group
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
