@@ -62,7 +62,7 @@ var (
 		"CreateCollection from encryptedFields.":           godriver2413SkipReason,
 		"DropCollection from encryptedFields":              godriver2413SkipReason,
 		"DropCollection from remote encryptedFields":       godriver2413SkipReason,
-		"Topology lifecycle":                               godriver2943SkipReason,
+		"Topology_lifecycle":                               godriver2943SkipReason,
 	}
 )
 
