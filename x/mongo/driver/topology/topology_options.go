@@ -354,7 +354,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		)
 	}
 
-	lgr, err := newLogger(opts)
+	lgr, err := newLogger(co.LoggerOptions)
 	if err != nil {
 		return nil, err
 	}
