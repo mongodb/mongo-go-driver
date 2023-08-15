@@ -2410,7 +2410,7 @@ axes:
     values:
       - id: "ubuntu2204-go-1-20"
         display_name: "Ubuntu 22.04"
-        run_on: ubuntu2204-build
+        run_on: ubuntu2204-small
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
