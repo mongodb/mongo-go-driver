@@ -60,7 +60,7 @@ var (
 		"Network error on minPoolSize background creation": godriver2123SkipReason,
 		"CreateCollection from encryptedFields.":           godriver2413SkipReason,
 		"DropCollection from encryptedFields":              godriver2413SkipReason,
-		"DropCollection from remote encryptedFields":       godriver2413SkipReason
+		"DropCollection from remote encryptedFields":       godriver2413SkipReason,
 	}
 )
 
