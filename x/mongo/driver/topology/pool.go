@@ -100,7 +100,7 @@ type pool struct {
 	// handshaking.
 	handshakeErrFn func(error, uint64, *primitive.ObjectID)
 
-	connOpts   []ConnectionOption
+	connCfg    *connectionConfig
 	generation *poolGenerationMap
 
 	maintainInterval time.Duration   // maintainInterval is the maintain() loop interval.
@@ -209,7 +209,6 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		monitor:               config.PoolMonitor,
 		logger:                config.Logger,
 		handshakeErrFn:        config.handshakeErrFn,
-		connOpts:              connOpts,
 		generation:            newPoolGenerationMap(),
 		state:                 poolPaused,
 		maintainInterval:      maintainInterval,
@@ -223,7 +222,8 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
 		pool.minSize = pool.maxSize
 	}
-	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
+	connOpts = append(connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
+	pool.connCfg = newConnectionConfig(connOpts...)
 
 	pool.generation.connect()
 
@@ -235,7 +235,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 
 	for i := 0; i < int(pool.maxConnecting); i++ {
 		pool.backgroundDone.Add(1)
-		go pool.createConnections(ctx, pool.backgroundDone)
+		go pool.createConnections(ctx, pool.backgroundDone, connOpts...)
 	}
 
 	// If maintainInterval is not positive, don't start the maintain() goroutine. Expect that
@@ -574,6 +574,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	p.stateMu.RUnlock()
 
 	// Wait for either the wantConn to be ready or for the Context to time out.
+	start := time.Now()
 	select {
 	case <-w.ready:
 		if w.err != nil {
@@ -615,6 +616,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 		return w.conn, nil
 	case <-ctx.Done():
+		duration := time.Since(start)
+
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
 				logger.KeyReason, logger.ReasonConnCheckoutFailedTimout,
@@ -632,13 +635,20 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			})
 		}
 
-		return nil, WaitQueueTimeoutError{
-			Wrapped:                      ctx.Err(),
-			PinnedCursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
-			PinnedTransactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
-			maxPoolSize:                  p.maxSize,
-			totalConnectionCount:         p.totalConnectionCount(),
+		err := WaitQueueTimeoutError{
+			Wrapped:                  ctx.Err(),
+			maxPoolSize:              p.maxSize,
+			totalConnectionCount:     p.totalConnectionCount(),
+			availableConnectionCount: p.availableConnectionCount(),
+			waitDuration:             duration,
 		}
+		if cfg := p.connCfg; cfg != nil && cfg.loadBalanced {
+			err.pinnedConnections = &pinnedConnections{
+				cursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
+				transactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
+			}
+		}
+		return nil, err
 	}
 }
 
@@ -952,7 +962,7 @@ func (p *pool) availableConnectionCount() int {
 }
 
 // createConnections creates connections for wantConn requests on the newConnWait queue.
-func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
+func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup, opts ...ConnectionOption) {
 	defer wg.Done()
 
 	// condition returns true if the createConnections() loop should continue and false if it should
@@ -987,7 +997,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			return nil, nil, false
 		}
 
-		conn := newConnection(p.address, p.connOpts...)
+		conn := newConnection(p.address, opts...)
 		conn.pool = p
 		conn.driverConnectionID = atomic.AddUint64(&p.nextID, 1)
 		p.conns[conn.driverConnectionID] = conn

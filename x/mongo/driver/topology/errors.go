@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
@@ -69,11 +70,17 @@ func (e ServerSelectionError) Unwrap() error {
 
 // WaitQueueTimeoutError represents a timeout when requesting a connection from the pool
 type WaitQueueTimeoutError struct {
-	Wrapped                      error
-	PinnedCursorConnections      uint64
-	PinnedTransactionConnections uint64
-	maxPoolSize                  uint64
-	totalConnectionCount         int
+	Wrapped                  error
+	pinnedConnections        *pinnedConnections
+	maxPoolSize              uint64
+	totalConnectionCount     int
+	availableConnectionCount int
+	waitDuration             time.Duration
+}
+
+type pinnedConnections struct {
+	cursorConnections      uint64
+	transactionConnections uint64
 }
 
 // Error implements the error interface.
@@ -95,14 +102,23 @@ func (w WaitQueueTimeoutError) Error() string {
 		)
 	}
 
+	var msg string
+	openConnectionCount := uint64(w.totalConnectionCount)
+	if pinnedConnections := w.pinnedConnections; pinnedConnections != nil {
+		openConnectionCount -= (*pinnedConnections).cursorConnections
+		msg += fmt.Sprintf("connections in use by cursors: %d, ", (*pinnedConnections).cursorConnections)
+		openConnectionCount -= (*pinnedConnections).transactionConnections
+		msg += fmt.Sprintf("connections in use by transactions: %d, ", (*pinnedConnections).transactionConnections)
+	}
 	return fmt.Sprintf(
-		"%s; maxPoolSize: %d, connections in use by cursors: %d"+
-			", connections in use by transactions: %d, connections in use by other operations: %d",
+		"%s; maxPoolSize: %d, %sconnections in use by other operations: %d, idle connections: %d, wait duration: %s",
 		errorMsg,
 		w.maxPoolSize,
-		w.PinnedCursorConnections,
-		w.PinnedTransactionConnections,
-		uint64(w.totalConnectionCount)-w.PinnedCursorConnections-w.PinnedTransactionConnections)
+		msg,
+		openConnectionCount,
+		w.availableConnectionCount,
+		w.waitDuration.String(),
+	)
 }
 
 // Unwrap returns the underlying error.
