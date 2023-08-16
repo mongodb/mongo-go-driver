@@ -726,7 +726,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		SetChangeStreamPreAndPostImages(bson.M{"enabled": true})
 
 	splitLargeChangesOpts := mtOpts.
-		MinServerVersion("7.0.0").
+		MinServerVersion("6.0.9").
 		CreateClient(true).
 		CollectionCreateOptions(splitLargeChangesCollOpts)
 
