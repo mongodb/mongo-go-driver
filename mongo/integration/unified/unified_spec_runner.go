@@ -30,6 +30,9 @@ var (
 		// TODO(GODRIVER-2843): Fix and unskip these test cases.
 		"Find operation with snapshot":                                      "Test fails frequently. See GODRIVER-2843",
 		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",
+		// TODO(GODRIVER-2943): Fix and unskip this test case.
+		"Topology lifecycle": 												 "
+			Test times out.  See GODRIVER-2943"
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

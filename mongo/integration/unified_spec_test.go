@@ -44,7 +44,6 @@ const (
 	spec1403SkipReason     = "servers less than 4.2 do not have mongocryptd; see SPEC-1403"
 	godriver2123SkipReason = "failpoints and timeouts together cause failures; see GODRIVER-2123"
 	godriver2413SkipReason = "encryptedFields argument is not supported on Collection.Drop; see GODRIVER-2413"
-	godriver2943SkipReason = "logging test is failing"
 )
 
 var (
@@ -61,8 +60,7 @@ var (
 		"Network error on minPoolSize background creation": godriver2123SkipReason,
 		"CreateCollection from encryptedFields.":           godriver2413SkipReason,
 		"DropCollection from encryptedFields":              godriver2413SkipReason,
-		"DropCollection from remote encryptedFields":       godriver2413SkipReason,
-		"Topology_lifecycle":                               godriver2943SkipReason,
+		"DropCollection from remote encryptedFields":       godriver2413SkipReason
 	}
 )
 
