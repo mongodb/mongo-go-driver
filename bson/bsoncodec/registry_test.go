@@ -65,7 +65,7 @@ func TestRegistryBuilder(t *testing.T) {
 			got := reg.typeEncoders
 			for _, s := range want {
 				wantT, wantC := s.t, s.c
-				gotC, exists := got[wantT]
+				gotC, exists := got.Load(wantT)
 				if !exists {
 					t.Errorf("Did not find type in the type registry: %v", wantT)
 				}
@@ -94,7 +94,7 @@ func TestRegistryBuilder(t *testing.T) {
 			got := reg.kindEncoders
 			for _, s := range want {
 				wantK, wantC := s.k, s.c
-				gotC, exists := got[wantK]
+				gotC, exists := got.Load(wantK)
 				if !exists {
 					t.Errorf("Did not find kind in the kind registry: %v", wantK)
 				}
@@ -111,14 +111,14 @@ func TestRegistryBuilder(t *testing.T) {
 
 				rb.RegisterDefaultEncoder(reflect.Map, codec)
 				reg := rb.Build()
-				if reg.kindEncoders[reflect.Map] != codec {
-					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Map], codec)
+				if reg.kindEncoders.get(reflect.Map) != codec {
+					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Map), codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Map, codec2)
 				reg = rb.Build()
-				if reg.kindEncoders[reflect.Map] != codec2 {
-					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Map], codec2)
+				if reg.kindEncoders.get(reflect.Map) != codec2 {
+					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Map), codec2)
 				}
 			})
 			t.Run("StructCodec", func(t *testing.T) {
@@ -128,14 +128,14 @@ func TestRegistryBuilder(t *testing.T) {
 
 				rb.RegisterDefaultEncoder(reflect.Struct, codec)
 				reg := rb.Build()
-				if reg.kindEncoders[reflect.Struct] != codec {
-					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Struct], codec)
+				if reg.kindEncoders.get(reflect.Struct) != codec {
+					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Struct), codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Struct, codec2)
 				reg = rb.Build()
-				if reg.kindEncoders[reflect.Struct] != codec2 {
-					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Struct], codec2)
+				if reg.kindEncoders.get(reflect.Struct) != codec2 {
+					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Struct), codec2)
 				}
 			})
 			t.Run("SliceCodec", func(t *testing.T) {
@@ -145,14 +145,14 @@ func TestRegistryBuilder(t *testing.T) {
 
 				rb.RegisterDefaultEncoder(reflect.Slice, codec)
 				reg := rb.Build()
-				if reg.kindEncoders[reflect.Slice] != codec {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Slice], codec)
+				if reg.kindEncoders.get(reflect.Slice) != codec {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Slice), codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Slice, codec2)
 				reg = rb.Build()
-				if reg.kindEncoders[reflect.Slice] != codec2 {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Slice], codec2)
+				if reg.kindEncoders.get(reflect.Slice) != codec2 {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Slice), codec2)
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
@@ -162,14 +162,14 @@ func TestRegistryBuilder(t *testing.T) {
 
 				rb.RegisterDefaultEncoder(reflect.Array, codec)
 				reg := rb.Build()
-				if reg.kindEncoders[reflect.Array] != codec {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Array], codec)
+				if reg.kindEncoders.get(reflect.Array) != codec {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Array), codec)
 				}
 
 				rb.RegisterDefaultEncoder(reflect.Array, codec2)
 				reg = rb.Build()
-				if reg.kindEncoders[reflect.Array] != codec2 {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Array], codec2)
+				if reg.kindEncoders.get(reflect.Array) != codec2 {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Array), codec2)
 				}
 			})
 		})
@@ -485,7 +485,7 @@ func TestRegistry(t *testing.T) {
 			got := reg.typeEncoders
 			for _, s := range want {
 				wantT, wantC := s.t, s.c
-				gotC, exists := got[wantT]
+				gotC, exists := got.Load(wantT)
 				if !exists {
 					t.Errorf("type missing in registry: %v", wantT)
 				}
@@ -515,7 +515,7 @@ func TestRegistry(t *testing.T) {
 			got := reg.kindEncoders
 			for _, s := range want {
 				wantK, wantC := s.k, s.c
-				gotC, exists := got[wantK]
+				gotC, exists := got.Load(wantK)
 				if !exists {
 					t.Errorf("type missing in registry: %v", wantK)
 				}
@@ -534,12 +534,12 @@ func TestRegistry(t *testing.T) {
 				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Map, codec)
-				if reg.kindEncoders[reflect.Map] != codec {
-					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Map], codec)
+				if reg.kindEncoders.get(reflect.Map) != codec {
+					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Map), codec)
 				}
 				reg.RegisterKindEncoder(reflect.Map, codec2)
-				if reg.kindEncoders[reflect.Map] != codec2 {
-					t.Errorf("map codec properly set: got %#v, want %#v", reg.kindEncoders[reflect.Map], codec2)
+				if reg.kindEncoders.get(reflect.Map) != codec2 {
+					t.Errorf("map codec properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Map), codec2)
 				}
 			})
 			t.Run("StructCodec", func(t *testing.T) {
@@ -549,12 +549,12 @@ func TestRegistry(t *testing.T) {
 				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Struct, codec)
-				if reg.kindEncoders[reflect.Struct] != codec {
-					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Struct], codec)
+				if reg.kindEncoders.get(reflect.Struct) != codec {
+					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Struct), codec)
 				}
 				reg.RegisterKindEncoder(reflect.Struct, codec2)
-				if reg.kindEncoders[reflect.Struct] != codec2 {
-					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Struct], codec2)
+				if reg.kindEncoders.get(reflect.Struct) != codec2 {
+					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Struct), codec2)
 				}
 			})
 			t.Run("SliceCodec", func(t *testing.T) {
@@ -564,12 +564,12 @@ func TestRegistry(t *testing.T) {
 				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Slice, codec)
-				if reg.kindEncoders[reflect.Slice] != codec {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Slice], codec)
+				if reg.kindEncoders.get(reflect.Slice) != codec {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Slice), codec)
 				}
 				reg.RegisterKindEncoder(reflect.Slice, codec2)
-				if reg.kindEncoders[reflect.Slice] != codec2 {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Slice], codec2)
+				if reg.kindEncoders.get(reflect.Slice) != codec2 {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Slice), codec2)
 				}
 			})
 			t.Run("ArrayCodec", func(t *testing.T) {
@@ -579,12 +579,12 @@ func TestRegistry(t *testing.T) {
 				codec2 := &fakeCodec{num: 2}
 				reg := NewRegistry()
 				reg.RegisterKindEncoder(reflect.Array, codec)
-				if reg.kindEncoders[reflect.Array] != codec {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Array], codec)
+				if reg.kindEncoders.get(reflect.Array) != codec {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Array), codec)
 				}
 				reg.RegisterKindEncoder(reflect.Array, codec2)
-				if reg.kindEncoders[reflect.Array] != codec2 {
-					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders[reflect.Array], codec2)
+				if reg.kindEncoders.get(reflect.Array) != codec2 {
+					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Array), codec2)
 				}
 			})
 		})
@@ -857,6 +857,52 @@ func TestRegistry(t *testing.T) {
 		if got != want {
 			t.Errorf("unexpected error: got %#v, want %#v", got, want)
 		}
+	})
+}
+
+// get is only for testing as it does return if the value was found
+func (c *kindEncoderCache) get(rt reflect.Kind) ValueEncoder {
+	e, _ := c.Load(rt)
+	return e
+}
+
+func BenchmarkLookupEncoder(b *testing.B) {
+	type childStruct struct {
+		V1, V2, V3, V4 int
+	}
+	type nestedStruct struct {
+		childStruct
+		A struct{ C1, C2, C3, C4 childStruct }
+		B struct{ C1, C2, C3, C4 childStruct }
+		C struct{ M1, M2, M3, M4 map[int]int }
+	}
+	types := [...]reflect.Type{
+		reflect.TypeOf(int64(1)),
+		reflect.TypeOf(&fakeCodec{}),
+		reflect.TypeOf(&testInterface1Impl{}),
+		reflect.TypeOf(&nestedStruct{}),
+	}
+	r := NewRegistry()
+	for _, typ := range types {
+		r.RegisterTypeEncoder(typ, &fakeCodec{})
+	}
+	b.Run("Serial", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			_, err := r.LookupEncoder(types[i%len(types)])
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("Parallel", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for i := 0; pb.Next(); i++ {
+				_, err := r.LookupEncoder(types[i%len(types)])
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	})
 }
 
