@@ -8,6 +8,7 @@ package driver
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -51,9 +52,12 @@ var (
 	// ErrUnsupportedStorageEngine is returned when a retryable write is attempted against a server
 	// that uses a storage engine that does not support retryable writes
 	ErrUnsupportedStorageEngine = errors.New("this MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string")
-	// ErrDeadlineWouldBeExceeded is returned when a Timeout set on an operation would be exceeded
-	// if the operation were sent to the server.
-	ErrDeadlineWouldBeExceeded = errors.New("operation not sent to server, as Timeout would be exceeded")
+	// ErrDeadlineWouldBeExceeded is returned when a Timeout set on an operation
+	// would be exceeded if the operation were sent to the server. It wraps
+	// context.DeadlineExceeded.
+	ErrDeadlineWouldBeExceeded = fmt.Errorf(
+		"operation not sent to server, as Timeout would be exceeded: %w",
+		context.DeadlineExceeded)
 	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
 	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
