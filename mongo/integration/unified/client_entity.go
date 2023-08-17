@@ -59,11 +59,13 @@ type clientEntity struct {
 	numConnsCheckedOut          int32
 
 	// These should not be changed after the clientEntity is initialized
-	observedEvents map[monitoringEventType]struct{}
-	storedEvents   map[monitoringEventType][]string // maps an entity type to a slice of entityIDs for entities that store it.
-	eventsCount    map[monitoringEventType]int32
+	observedEvents                      map[monitoringEventType]struct{}
+	storedEvents                        map[monitoringEventType][]string
+	eventsCount                         map[monitoringEventType]int32
+	serverDescriptionChangedEventsCount map[serverDescriptionChangedEventInfo]int32
 
-	eventsCountLock sync.RWMutex
+	eventsCountLock                         sync.RWMutex
+	serverDescriptionChangedEventsCountLock sync.RWMutex
 
 	entityMap *EntityMap
 
@@ -83,12 +85,13 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	entity := &clientEntity{
-		ignoredCommands:          ignoredCommands,
-		observedEvents:           make(map[monitoringEventType]struct{}),
-		storedEvents:             make(map[monitoringEventType][]string),
-		eventsCount:              make(map[monitoringEventType]int32),
-		entityMap:                em,
-		observeSensitiveCommands: entityOptions.ObserveSensitiveCommands,
+		ignoredCommands:                     ignoredCommands,
+		observedEvents:                      make(map[monitoringEventType]struct{}),
+		storedEvents:                        make(map[monitoringEventType][]string),
+		eventsCount:                         make(map[monitoringEventType]int32),
+		serverDescriptionChangedEventsCount: make(map[serverDescriptionChangedEventInfo]int32),
+		entityMap:                           em,
+		observeSensitiveCommands:            entityOptions.ObserveSensitiveCommands,
 	}
 	entity.setRecordEvents(true)
 
@@ -299,11 +302,25 @@ func (c *clientEntity) addEventsCount(eventType monitoringEventType) {
 	c.eventsCount[eventType]++
 }
 
+func (c *clientEntity) addServerDescriptionChangedEventCount(evt serverDescriptionChangedEventInfo) {
+	c.serverDescriptionChangedEventsCountLock.Lock()
+	defer c.serverDescriptionChangedEventsCountLock.Unlock()
+
+	c.serverDescriptionChangedEventsCount[evt]++
+}
+
 func (c *clientEntity) getEventCount(eventType monitoringEventType) int32 {
 	c.eventsCountLock.RLock()
 	defer c.eventsCountLock.RUnlock()
 
 	return c.eventsCount[eventType]
+}
+
+func (c *clientEntity) getServerDescriptionChangedEventCount(evt serverDescriptionChangedEventInfo) int32 {
+	c.serverDescriptionChangedEventsCountLock.Lock()
+	defer c.serverDescriptionChangedEventsCountLock.Unlock()
+
+	return c.serverDescriptionChangedEventsCount[evt]
 }
 
 func getSecondsSinceEpoch() float64 {
@@ -462,6 +479,10 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 		c.serverDescriptionChanged = append(c.serverDescriptionChanged, evt)
 	}
 
+	// Record object-specific unified spec test data on an event.
+	c.addServerDescriptionChangedEventCount(*newServerDescriptionChangedEventInfo(evt))
+
+	// Record the event generally.
 	c.addEventsCount(serverDescriptionChangedEvent)
 }
 
@@ -528,38 +549,40 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 	var wcSet bool
 
 	for key, value := range uriOpts {
-		switch key {
+		switch strings.ToLower(key) {
 		case "appname":
 			clientOpts.SetAppName(value.(string))
-		case "heartbeatFrequencyMS":
+		case "heartbeatfrequencyms":
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
-		case "loadBalanced":
+		case "loadbalanced":
 			clientOpts.SetLoadBalanced(value.(bool))
-		case "maxIdleTimeMS":
+		case "maxidletimems":
 			clientOpts.SetMaxConnIdleTime(time.Duration(value.(int32)) * time.Millisecond)
-		case "minPoolSize":
+		case "minpoolsize":
 			clientOpts.SetMinPoolSize(uint64(value.(int32)))
-		case "maxPoolSize":
+		case "maxpoolsize":
 			clientOpts.SetMaxPoolSize(uint64(value.(int32)))
-		case "maxConnecting":
+		case "maxconnecting":
 			clientOpts.SetMaxConnecting(uint64(value.(int32)))
-		case "readConcernLevel":
+		case "readconcernlevel":
 			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
-		case "retryReads":
+		case "retryreads":
 			clientOpts.SetRetryReads(value.(bool))
-		case "retryWrites":
+		case "retrywrites":
 			clientOpts.SetRetryWrites(value.(bool))
-		case "socketTimeoutMS":
+		case "sockettimeoutms":
 			clientOpts.SetSocketTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		case "w":
 			wc.W = value
 			wcSet = true
-		case "waitQueueTimeoutMS":
+		case "waitqueuetimeoutms":
 			return newSkipTestError("the waitQueueTimeoutMS client option is not supported")
-		case "waitQueueSize":
+		case "waitqueuesize":
 			return newSkipTestError("the waitQueueSize client option is not supported")
-		case "timeoutMS":
+		case "timeoutms":
 			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
+		case "serverselectiontimeoutms":
+			clientOpts.SetServerSelectionTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}

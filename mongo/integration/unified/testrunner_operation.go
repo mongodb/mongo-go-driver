@@ -281,21 +281,56 @@ func executeLoop(ctx context.Context, args *loopArgs, loopDone <-chan struct{}) 
 
 type waitForEventArguments struct {
 	ClientID string              `bson:"client"`
-	Event    map[string]struct{} `bson:"event"`
+	Event    map[string]bson.Raw `bson:"event"`
 	Count    int32               `bson:"count"`
+}
+
+// getServerDescriptionChangedEventCount will return "true" if a specific
+// server description change event has occurred, up to the description type.
+//
+// If the bson.Raw value is empty, then this function will only consider if a
+// serverDescriptionChangeEvent has occurred at all.
+//
+// If the bson.Raw contains newDescription and/or previousDescription, this
+// function will attempt to compare them to events up to the fields defined in
+// the UST specifications.
+func getServerDescriptionChangedEventCount(client *clientEntity, raw bson.Raw) int32 {
+	if len(raw) == 0 {
+		return 0
+	}
+
+	// If the document has no values, then we assume that the UST only
+	// intends to check that the event happened.
+	if values, _ := raw.Values(); len(values) == 0 {
+		return client.getEventCount(serverDescriptionChangedEvent)
+	}
+
+	var expectedEvt serverDescriptionChangedEventInfo
+	if err := bson.Unmarshal(raw, &expectedEvt); err != nil {
+		return 0
+	}
+
+	return client.getServerDescriptionChangedEventCount(expectedEvt)
 }
 
 // eventCompleted will check all of the events in the event map and return true if all of the events have at least the
 // specified number of occurrences. If the event map is empty, it will return true.
 func (args waitForEventArguments) eventCompleted(client *clientEntity) bool {
-	for rawEventType := range args.Event {
+	for rawEventType, eventDoc := range args.Event {
 		eventType, ok := monitoringEventTypeFromString(rawEventType)
 		if !ok {
 			return false
 		}
 
-		if client.getEventCount(eventType) < args.Count {
-			return false
+		switch eventType {
+		case serverDescriptionChangedEvent:
+			if getServerDescriptionChangedEventCount(client, eventDoc) < args.Count {
+				return false
+			}
+		default:
+			if client.getEventCount(eventType) < args.Count {
+				return false
+			}
 		}
 	}
 

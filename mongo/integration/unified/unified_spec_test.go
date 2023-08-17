@@ -29,6 +29,7 @@ var (
 		"client-side-encryption/unified",
 		"client-side-operations-timeout",
 		"gridfs",
+		"server-selection/logging",
 		"server-discovery-and-monitoring/unified",
 		"run-command",
 	}

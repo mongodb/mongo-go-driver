@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -305,8 +306,9 @@ type Operation struct {
 
 	Logger *logger.Logger
 
-	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
-	cmdName string
+	// Name is the name of the operation. This is used when serializing
+	// OP_MSG as well as for logging server selection data.
+	Name string
 
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
@@ -337,6 +339,9 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 			description.LatencySelector(defaultLocalThreshold),
 		})
 	}
+
+	ctx = logger.WithOperationName(ctx, op.Name)
+	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
 
 	return op.Deployment.SelectServer(ctx, selector)
 }
@@ -526,6 +531,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
+		wiremessage.NextRequestID()
+
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx)
@@ -633,7 +640,15 @@ func (op Operation) Execute(ctx context.Context) error {
 		startedInfo.connID = conn.ID()
 		startedInfo.driverConnectionID = conn.DriverConnectionID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
-		op.cmdName = startedInfo.cmdName
+
+		// If the command name does not match the operation name, update
+		// the operation name as a sanity check. It's more correct to
+		// be aligned with the data passed to the server via the
+		// wire message.
+		if startedInfo.cmdName != op.Name {
+			op.Name = startedInfo.cmdName
+		}
+
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		startedInfo.serverConnID = conn.ServerConnectionID()
@@ -993,7 +1008,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
-	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
+	if op.Name == driverutil.FindOp || op.Name == driverutil.AggregateOp || op.Name == driverutil.DistinctOp {
 		op.Client.UpdateSnapshotTime(res)
 	}
 
@@ -1103,7 +1118,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 		flags |= wiremessage.ExhaustAllowed
 	}
 
-	info.requestID = wiremessage.NextRequestID()
+	info.requestID = wiremessage.CurrentRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body
