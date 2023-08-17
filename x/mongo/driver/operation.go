@@ -23,7 +23,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -690,8 +689,11 @@ func (op Operation) Execute(ctx context.Context) error {
 			err = ctx.Err()
 		} else if deadline, ok := ctx.Deadline(); ok {
 			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
-				err = errutil.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"remaining time %v until context deadline is less than 90th percentile RTT\n%v", time.Until(deadline), srvr.RTTMonitor().Stats())
+				err = fmt.Errorf(
+					"remaining time %v until context deadline is less than 90th percentile RTT: %w\n%v",
+					time.Until(deadline),
+					ErrDeadlineWouldBeExceeded,
+					srvr.RTTMonitor().Stats())
 			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
 				err = context.DeadlineExceeded
 			}
@@ -1376,9 +1378,11 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration,
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 			if maxTimeMS <= 0 {
-				return 0, errutil.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"remaining time %v until context deadline is less than or equal to 90th percentile RTT\n%v",
-					remainingTimeout, rttStats)
+				return 0, fmt.Errorf(
+					"remaining time %v until context deadline is less than or equal to 90th percentile RTT: %w\n%v",
+					remainingTimeout,
+					ErrDeadlineWouldBeExceeded,
+					rttStats)
 			}
 			return uint64(maxTimeMS), nil
 		}
