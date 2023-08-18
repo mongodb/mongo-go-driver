@@ -23,7 +23,6 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
@@ -512,7 +511,7 @@ func (m *MongoCrypt) GetKmsProviders(ctx context.Context) (bsoncore.Document, er
 	for k, p := range m.kmsProviders {
 		doc, err := p.GetCredentialsDoc(ctx)
 		if err != nil {
-			return nil, errutil.WrapErrorf(err, "unable to retrieve %s credentials", k)
+			return nil, fmt.Errorf("unable to retrieve %s credentials: %w", k, err)
 		}
 		builder.AppendDocument(k, doc)
 	}
