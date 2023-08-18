@@ -587,6 +587,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			conn.Close()
 		}
 
+		// Set the server and connection to nil to request a new server and connection.
 		srvr = nil
 		conn = nil
 	}
