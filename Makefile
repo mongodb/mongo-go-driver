@@ -166,7 +166,7 @@ evg-test-load-balancers:
 
 .PHONY: evg-test-search-index
 evg-test-search-index:
-	go test ./mongo -run TestSearchIndexProse -v -timeout $(TEST_TIMEOUT)s
+	go test ./mongo/integration -run TestSearchIndexProse -v -timeout $(TEST_TIMEOUT)s
 
 .PHONY: evg-test-ocsp
 evg-test-ocsp:
