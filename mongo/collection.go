@@ -1226,8 +1226,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 	fo := options.MergeFindOptions(opts...)
 
-	fmt.Println("timeout on client: ", coll.client.timeout)
-
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).

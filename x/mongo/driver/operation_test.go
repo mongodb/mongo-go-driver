@@ -1,5 +1,5 @@
 // Copyright (C) MongoDB, Inc. 2022-present.
-//
+//x/mongo/driver/operation_test
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -62,7 +62,7 @@ func TestOperation(t *testing.T) {
 	t.Run("selectServer", func(t *testing.T) {
 		t.Run("returns validation error", func(t *testing.T) {
 			op := &Operation{}
-			_, err := op.selectServer(context.Background())
+			_, err := op.selectServer(context.Background(), nil)
 			if err == nil {
 				t.Error("Expected a validation error from selectServer, but got <nil>")
 			}
@@ -76,10 +76,15 @@ func TestOperation(t *testing.T) {
 				Database:   "testing",
 				Selector:   want,
 			}
-			_, err := op.selectServer(context.Background())
+			_, err := op.selectServer(context.Background(), nil)
 			noerr(t, err)
-			got := d.params.selector
-			if !cmp.Equal(got, want) {
+			//got := d.params.selector
+
+			// Assert the the selector is an operation selector wrapper.
+			got, ok := d.params.selector.(*opServerSelector)
+			assert.True(t, ok)
+
+			if !cmp.Equal(got.selector, want) {
 				t.Errorf("Did not get expected server selector. got %v; want %v", got, want)
 			}
 		})
@@ -90,7 +95,7 @@ func TestOperation(t *testing.T) {
 				Deployment: d,
 				Database:   "testing",
 			}
-			_, err := op.selectServer(context.Background())
+			_, err := op.selectServer(context.Background(), nil)
 			noerr(t, err)
 			if d.params.selector == nil {
 				t.Error("The selectServer method should use a default selector when not specified on Operation, but it passed <nil>.")
@@ -875,4 +880,125 @@ func TestDecodeOpReply(t *testing.T) {
 		reply := Operation{}.decodeOpReply(wm)
 		assert.Equal(t, []bsoncore.Document(nil), reply.documents)
 	})
+}
+
+func TestFilterDeprioritizedServers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		oss        opServerSelector
+		candidates []description.Server
+		want       []description.Server
+	}{
+		{
+			name:       "empty",
+			oss:        opServerSelector{},
+			candidates: []description.Server{},
+			want:       []description.Server{},
+		},
+		{
+			name:       "nil candidates",
+			oss:        opServerSelector{},
+			candidates: nil,
+			want:       []description.Server{},
+		},
+		{
+			name: "nil deprioritized server list",
+			oss:  opServerSelector{deprioritizedServers: nil},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+		},
+		{
+			name: "deprioritize single server candidate list",
+			oss: opServerSelector{
+				deprioritizedServers: map[address.Address]bool{
+					"mongodb://localhost:27017": true,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+			want: []description.Server{
+				// Since all available servers were deprioritized, then the selector
+				// should return all candidates.
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+			},
+		},
+		{
+			name: "depriotirize one server in multi server candidate list",
+			oss: opServerSelector{
+				deprioritizedServers: map[address.Address]bool{
+					"mongodb://localhost:27017": true,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+		},
+		{
+			name: "depriotirize multiple servers in multi server candidate list",
+			oss: opServerSelector{
+				deprioritizedServers: map[address.Address]bool{
+					"mongodb://localhost:27017": true,
+					"mongodb://localhost:27018": true,
+				},
+			},
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			want: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc // Capture the range variable.
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := filterDeprioritizedServers(tc.oss, tc.candidates)
+			assert.ElementsMatch(t, got, tc.want)
+		})
+	}
 }
