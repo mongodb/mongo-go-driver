@@ -185,8 +185,8 @@ func (coll *Collection) Database() *Database {
 //
 // The opts parameter can be used to specify options for the operation (see the options.BulkWriteOptions documentation.)
 func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
-	opts ...*options.BulkWriteOptions,
-) (*BulkWriteResult, error) {
+	opts ...*options.BulkWriteOptions) (*BulkWriteResult, error) {
+
 	if len(models) == 0 {
 		return nil, ErrEmptySlice
 	}
@@ -242,8 +242,8 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 }
 
 func (coll *Collection) insert(ctx context.Context, documents []interface{},
-	opts ...*options.InsertManyOptions,
-) ([]interface{}, error) {
+	opts ...*options.InsertManyOptions) ([]interface{}, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -343,8 +343,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...*options.InsertOneOptions,
-) (*InsertOneResult, error) {
+	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
+
 	ioOpts := options.MergeInsertOneOptions(opts...)
 	imOpts := options.InsertMany()
 
@@ -375,8 +375,8 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
-	opts ...*options.InsertManyOptions,
-) (*InsertManyResult, error) {
+	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
+
 	if len(documents) == 0 {
 		return nil, ErrEmptySlice
 	}
@@ -410,8 +410,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 }
 
 func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOne bool, expectedRr returnResult,
-	opts ...*options.DeleteOptions,
-) (*DeleteResult, error) {
+	opts ...*options.DeleteOptions) (*DeleteResult, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -514,8 +514,8 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/delete/.
 func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
-	opts ...*options.DeleteOptions,
-) (*DeleteResult, error) {
+	opts ...*options.DeleteOptions) (*DeleteResult, error) {
+
 	return coll.delete(ctx, filter, true, rrOne, opts...)
 }
 
@@ -530,14 +530,14 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/delete/.
 func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
-	opts ...*options.DeleteOptions,
-) (*DeleteResult, error) {
+	opts ...*options.DeleteOptions) (*DeleteResult, error) {
+
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
 func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool,
-	expectedRr returnResult, checkDollarKey bool, opts ...*options.UpdateOptions,
-) (*UpdateResult, error) {
+	expectedRr returnResult, checkDollarKey bool, opts ...*options.UpdateOptions) (*UpdateResult, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -648,8 +648,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) UpdateByID(ctx context.Context, id interface{}, update interface{},
-	opts ...*options.UpdateOptions,
-) (*UpdateResult, error) {
+	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 	if id == nil {
 		return nil, ErrNilValue
 	}
@@ -671,8 +670,8 @@ func (coll *Collection) UpdateByID(ctx context.Context, id interface{}, update i
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions,
-) (*UpdateResult, error) {
+	opts ...*options.UpdateOptions) (*UpdateResult, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -699,8 +698,8 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions,
-) (*UpdateResult, error) {
+	opts ...*options.UpdateOptions) (*UpdateResult, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -727,8 +726,8 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
 func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.ReplaceOptions,
-) (*UpdateResult, error) {
+	replacement interface{}, opts ...*options.ReplaceOptions) (*UpdateResult, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -777,8 +776,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
 func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions,
-) (*Cursor, error) {
+	opts ...*options.AggregateOptions) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
 		pipeline:       pipeline,
@@ -954,8 +952,8 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
-	opts ...*options.CountOptions,
-) (int64, error) {
+	opts ...*options.CountOptions) (int64, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1039,8 +1037,8 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/count/.
 func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
-	opts ...*options.EstimatedDocumentCountOptions,
-) (int64, error) {
+	opts ...*options.EstimatedDocumentCountOptions) (int64, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1101,8 +1099,8 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/distinct/.
 func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
-	opts ...*options.DistinctOptions,
-) ([]interface{}, error) {
+	opts ...*options.DistinctOptions) ([]interface{}, error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1192,8 +1190,8 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...*options.FindOptions,
-) (cur *Cursor, err error) {
+	opts ...*options.FindOptions) (cur *Cursor, err error) {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1351,7 +1349,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
-
 	op = op.Retry(retry)
 
 	if err = op.Execute(ctx); err != nil {
@@ -1375,8 +1372,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions,
-) *SingleResult {
+	opts ...*options.FindOneOptions) *SingleResult {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1489,8 +1486,8 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...*options.FindOneAndDeleteOptions,
-) *SingleResult {
+	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
+
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -1561,8 +1558,8 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.FindOneAndReplaceOptions,
-) *SingleResult {
+	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult {
+
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
@@ -1651,8 +1648,8 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
-	update interface{}, opts ...*options.FindOneAndUpdateOptions,
-) *SingleResult {
+	update interface{}, opts ...*options.FindOneAndUpdateOptions) *SingleResult {
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1755,8 +1752,8 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions,
-) (*ChangeStream, error) {
+	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+
 	csConfig := changeStreamConfig{
 		readConcern:    coll.readConcern,
 		readPreference: coll.readPreference,
@@ -1871,26 +1868,52 @@ func (coll *Collection) drop(ctx context.Context) error {
 	return nil
 }
 
-// makePinnedSelector makes a selector for a pinned session with a pinned server. Will attempt to do server selection on
-// the pinned server but if that fails it will go through a list of default selectors
-func makePinnedSelector(sess *session.Client, defaultSelector description.ServerSelector) description.ServerSelectorFunc {
-	return func(t description.Topology, svrs []description.Server) ([]description.Server, error) {
-		if sess != nil && sess.PinnedServer != nil {
-			// If there is a pinned server, try to find it in the list of candidates.
-			for _, candidate := range svrs {
-				if candidate.Addr == sess.PinnedServer.Addr {
-					return []description.Server{candidate}, nil
-				}
-			}
-
-			return nil, nil
-		}
-
-		return defaultSelector.SelectServer(t, svrs)
-	}
+type pinnedServerSelector struct {
+	stringer fmt.Stringer
+	fallback description.ServerSelector
+	session  *session.Client
 }
 
-func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelectorFunc {
+func (pss pinnedServerSelector) String() string {
+	if pss.stringer == nil {
+		return ""
+	}
+
+	return pss.stringer.String()
+}
+
+func (pss pinnedServerSelector) SelectServer(
+	t description.Topology,
+	svrs []description.Server,
+) ([]description.Server, error) {
+	if pss.session != nil && pss.session.PinnedServer != nil {
+		// If there is a pinned server, try to find it in the list of candidates.
+		for _, candidate := range svrs {
+			if candidate.Addr == pss.session.PinnedServer.Addr {
+				return []description.Server{candidate}, nil
+			}
+		}
+
+		return nil, nil
+	}
+
+	return pss.fallback.SelectServer(t, svrs)
+}
+
+func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) description.ServerSelector {
+	pss := pinnedServerSelector{
+		session:  sess,
+		fallback: fallback,
+	}
+
+	if srvSelectorStringer, ok := fallback.(fmt.Stringer); ok {
+		pss.stringer = srvSelectorStringer
+	}
+
+	return pss
+}
+
+func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		selector = description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(sess.CurrentRp),
@@ -1901,7 +1924,7 @@ func makeReadPrefSelector(sess *session.Client, selector description.ServerSelec
 	return makePinnedSelector(sess, selector)
 }
 
-func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelectorFunc {
+func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		// Use current transaction's read preference if available
 		rp = sess.CurrentRp
