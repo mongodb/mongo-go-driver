@@ -443,7 +443,6 @@ func TestSessionTimeout(t *testing.T) {
 		want := int64(30)
 		require.Equal(t, &want, currDesc.SessionTimeoutMinutesPtr,
 			"session timeout minutes mismatch")
-
 	})
 	t.Run("MultipleUpdates", func(t *testing.T) {
 		topo, err := New(nil)

@@ -30,7 +30,6 @@ import (
 
 func TestSessionPool(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("3.6").CreateClient(false))
-	defer mt.Close()
 
 	mt.Run("last use time updated", func(mt *mtest.T) {
 		sess, err := mt.Client.StartSession()
@@ -162,7 +161,6 @@ func TestSessionsProse(t *testing.T) {
 		CreateClient(false)
 
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
 

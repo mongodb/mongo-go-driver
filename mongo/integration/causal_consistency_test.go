@@ -29,7 +29,6 @@ var readConcernOperations = map[string]struct{}{
 
 func TestCausalConsistency_Supported(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("3.6").Topologies(mtest.ReplicaSet, mtest.Sharded).CreateClient(false))
-	defer mt.Close()
 
 	mt.Run("operation time nil", func(mt *mtest.T) {
 		// when a ClientSession is first created, the operation time is nil
@@ -211,7 +210,6 @@ func TestCausalConsistency_NotSupported(t *testing.T) {
 		{Topology: []mtest.TopologyKind{mtest.Single}},
 	}
 	mt := mtest.New(t, mtest.NewOptions().RunOn(rob...).CreateClient(false))
-	defer mt.Close()
 
 	mt.Run("afterClusterTime not included", func(mt *mtest.T) {
 		// a read in a causally consistent session does not include afterClusterTime in a deployment that does not

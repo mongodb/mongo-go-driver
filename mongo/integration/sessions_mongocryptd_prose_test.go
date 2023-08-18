@@ -119,7 +119,6 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 	// Create a new instance of mtest (MongoDB testing framework) for this
 	// test and configure it to control server versions.
 	mt := mtest.New(t, mtOpts)
-	mt.Cleanup(mt.Close)
 
 	proseTest18 := "18. implicit session is ignored if connection does not support sessions"
 	mt.RunOpts(proseTest18, mtOpts, func(mt *mtest.T) {

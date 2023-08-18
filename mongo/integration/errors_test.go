@@ -59,7 +59,6 @@ func (we wrappedError) Unwrap() error {
 
 func TestErrors(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	defer mt.Close()
 
 	mt.RunOpts("errors are wrapped", noClientOpts, func(mt *mtest.T) {
 		mt.Run("network error during application operation", func(mt *mtest.T) {

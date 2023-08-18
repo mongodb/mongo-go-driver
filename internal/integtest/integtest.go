@@ -8,6 +8,7 @@ package integtest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -202,7 +203,7 @@ func AddServerlessAuthCredentials(uri string) (string, error) {
 	} else if strings.HasPrefix(uri, "mongodb://") {
 		scheme = "mongodb://"
 	} else {
-		return "", fmt.Errorf("scheme must be \"mongodb\" or \"mongodb+srv\"")
+		return "", errors.New(`scheme must be "mongodb" or "mongodb+srv"`)
 	}
 
 	uri = scheme + user + ":" + password + "@" + uri[len(scheme):]

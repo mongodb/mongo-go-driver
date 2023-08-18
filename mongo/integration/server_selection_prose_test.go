@@ -107,7 +107,6 @@ func TestServerSelectionProse(t *testing.T) {
 	const localThreshold = 30 * time.Second
 
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
 
 	mtOpts := mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.9")
 	mt.RunOpts("operationCount-based selection within latency window, with failpoint", mtOpts, func(mt *mtest.T) {

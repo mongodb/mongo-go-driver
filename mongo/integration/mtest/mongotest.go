@@ -180,11 +180,14 @@ func New(wrapped *testing.T, opts ...*Options) *T {
 		t.createTestClient()
 	}
 
+	wrapped.Cleanup(t.cleanup)
+
 	return t
 }
 
-// Close cleans up any resources associated with a T. There should be one Close corresponding to every New.
-func (t *T) Close() {
+// cleanup cleans up any resources associated with a T. It is intended to be
+// called by [testing.T.Cleanup].
+func (t *T) cleanup() {
 	if t.Client == nil {
 		return
 	}

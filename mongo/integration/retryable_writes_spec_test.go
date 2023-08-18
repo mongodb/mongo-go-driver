@@ -50,7 +50,6 @@ func runRetryableWritesFile(t *testing.T, filePath string) {
 	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
 
 	mt := mtest.New(t, mtest.NewOptions().RunOn(testFile.RunOn...).CreateClient(false))
-	defer mt.Close()
 
 	for _, test := range testFile.Tests {
 		runRetryableWritesTest(mt, test, testFile)

@@ -69,7 +69,6 @@ func getItems(f finder) ([]ShopItem, error) {
 
 func TestMockFind(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
-	defer mt.Close()
 
 	insertItems := []interface{}{
 		ShopItem{ID: 0, Price: 1.5},

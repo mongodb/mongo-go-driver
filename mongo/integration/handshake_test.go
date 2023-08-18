@@ -24,7 +24,6 @@ import (
 
 func TestHandshakeProse(t *testing.T) {
 	mt := mtest.New(t)
-	defer mt.Close()
 
 	opts := mtest.NewOptions().
 		CreateCollection(false).
