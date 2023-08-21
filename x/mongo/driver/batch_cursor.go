@@ -508,11 +508,9 @@ type loadBalancedCursorDeployment struct {
 	conn           PinnedConnection
 }
 
-var (
-	_ Deployment     = (*loadBalancedCursorDeployment)(nil)
-	_ Server         = (*loadBalancedCursorDeployment)(nil)
-	_ ErrorProcessor = (*loadBalancedCursorDeployment)(nil)
-)
+var _ Deployment = (*loadBalancedCursorDeployment)(nil)
+var _ Server = (*loadBalancedCursorDeployment)(nil)
+var _ ErrorProcessor = (*loadBalancedCursorDeployment)(nil)
 
 func (lbcd *loadBalancedCursorDeployment) SelectServer(_ context.Context, _ description.ServerSelector) (Server, error) {
 	return lbcd, nil

@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/handshake"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -78,14 +79,13 @@ func TestOperation(t *testing.T) {
 			}
 			_, err := op.selectServer(context.Background(), nil)
 			noerr(t, err)
-			//got := d.params.selector
 
 			// Assert the the selector is an operation selector wrapper.
-			got, ok := d.params.selector.(*opServerSelector)
-			assert.True(t, ok)
+			oss, ok := d.params.selector.(*opServerSelector)
+			require.True(t, ok)
 
-			if !cmp.Equal(got.selector, want) {
-				t.Errorf("Did not get expected server selector. got %v; want %v", got, want)
+			if !cmp.Equal(oss.selector, want) {
+				t.Errorf("Did not get expected server selector. got %v; want %v", oss.selector, want)
 			}
 		})
 		t.Run("uses a default server selector", func(t *testing.T) {
@@ -890,26 +890,23 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		oss        opServerSelector
-		candidates []description.Server
-		want       []description.Server
+		name          string
+		deprioritized []description.Server
+		candidates    []description.Server
+		want          []description.Server
 	}{
 		{
 			name:       "empty",
-			oss:        opServerSelector{},
 			candidates: []description.Server{},
 			want:       []description.Server{},
 		},
 		{
 			name:       "nil candidates",
-			oss:        opServerSelector{},
 			candidates: nil,
 			want:       []description.Server{},
 		},
 		{
 			name: "nil deprioritized server list",
-			oss:  opServerSelector{deprioritizedServers: nil},
 			candidates: []description.Server{
 				{
 					Addr: address.Address("mongodb://localhost:27017"),
@@ -923,12 +920,12 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 		},
 		{
 			name: "deprioritize single server candidate list",
-			oss: opServerSelector{
-				deprioritizedServers: map[address.Address]bool{
-					"mongodb://localhost:27017": true,
+			candidates: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
 				},
 			},
-			candidates: []description.Server{
+			deprioritized: []description.Server{
 				{
 					Addr: address.Address("mongodb://localhost:27017"),
 				},
@@ -943,11 +940,6 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 		},
 		{
 			name: "depriotirize one server in multi server candidate list",
-			oss: opServerSelector{
-				deprioritizedServers: map[address.Address]bool{
-					"mongodb://localhost:27017": true,
-				},
-			},
 			candidates: []description.Server{
 				{
 					Addr: address.Address("mongodb://localhost:27017"),
@@ -957,6 +949,11 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 				},
 				{
 					Addr: address.Address("mongodb://localhost:27019"),
+				},
+			},
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
 				},
 			},
 			want: []description.Server{
@@ -970,10 +967,12 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 		},
 		{
 			name: "depriotirize multiple servers in multi server candidate list",
-			oss: opServerSelector{
-				deprioritizedServers: map[address.Address]bool{
-					"mongodb://localhost:27017": true,
-					"mongodb://localhost:27018": true,
+			deprioritized: []description.Server{
+				{
+					Addr: address.Address("mongodb://localhost:27017"),
+				},
+				{
+					Addr: address.Address("mongodb://localhost:27018"),
 				},
 			},
 			candidates: []description.Server{
@@ -1001,7 +1000,7 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := filterDeprioritizedServers(tc.oss, tc.candidates)
+			got := filterDeprioritizedServers(tc.candidates, tc.deprioritized)
 			assert.ElementsMatch(t, got, tc.want)
 		})
 	}

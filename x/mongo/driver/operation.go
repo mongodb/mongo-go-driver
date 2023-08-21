@@ -321,22 +321,6 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
-// opServerSelector is a wrapper for the server selector that is assigned to the
-// operation. The purpose of this wrapper is to filter candidates with
-// operation-specific logic, such as deprioritizing failing servers.
-type opServerSelector struct {
-	selector             description.ServerSelector
-	deprioritizedServers map[address.Address]bool
-}
-
-func (oss *opServerSelector) setDeprioritizedServers(dpa []address.Address) {
-	oss.deprioritizedServers = make(map[address.Address]bool)
-
-	for _, addr := range dpa {
-		oss.deprioritizedServers[addr] = true
-	}
-}
-
 // filterDeprioritizedServers will filter out the server candidates that have
 // been deprioritized by the operation due to failure.
 //
@@ -344,13 +328,22 @@ func (oss *opServerSelector) setDeprioritizedServers(dpa []address.Address) {
 // deprioritization list. However, if this is not possible (e.g. there are no
 // other healthy servers in the cluster), the selector may return a
 // deprioritized server.
-func filterDeprioritizedServers(oss opServerSelector, candidates []description.Server) []description.Server {
+func filterDeprioritizedServers(candidates, deprioritized []description.Server) []description.Server {
+	if len(deprioritized) == 0 {
+		return candidates
+	}
+
+	dpaSet := make(map[address.Address]*description.Server)
+	for _, srv := range deprioritized {
+		dpaSet[srv.Addr] = &srv
+	}
+
 	allowedIndexes := make([]int, 0, len(candidates))
 
 	// Iterate over the candidates and append them to the allowdIndexes slice if
 	// they are not in the deprioritizedServers list.
 	for i, candidate := range candidates {
-		if !oss.deprioritizedServers[candidate.Addr] {
+		if srv := dpaSet[candidate.Addr]; srv == nil || !srv.Equal(candidate) {
 			allowedIndexes = append(allowedIndexes, i)
 		}
 	}
@@ -370,22 +363,32 @@ func filterDeprioritizedServers(oss opServerSelector, candidates []description.S
 	return allowed
 }
 
+// opServerSelector is a wrapper for the server selector that is assigned to the
+// operation. The purpose of this wrapper is to filter candidates with
+// operation-specific logic, such as deprioritizing failing servers.
+type opServerSelector struct {
+	selector             description.ServerSelector
+	deprioritizedServers []description.Server
+}
+
 // SelectServer will filter candidates with operation-specific logic before
 // passing them onto the user-defined or defualt selector.
-func (oss opServerSelector) SelectServer(
+func (oss *opServerSelector) SelectServer(
 	topo description.Topology,
 	candidates []description.Server,
 ) ([]description.Server, error) {
-	if oss.selector == nil {
-		return []description.Server{}, nil
+	selectedServers, err := oss.selector.SelectServer(topo, candidates)
+	if err != nil {
+		return nil, err
 	}
 
-	candidates = filterDeprioritizedServers(oss, candidates)
-	return oss.selector.SelectServer(topo, candidates)
+	filteredServers := filterDeprioritizedServers(selectedServers, oss.deprioritizedServers)
+
+	return filteredServers, nil
 }
 
 // selectServer handles performing server selection for an operation.
-func (op Operation) selectServer(ctx context.Context, dpa []address.Address) (Server, error) {
+func (op Operation) selectServer(ctx context.Context, deprioritized []description.Server) (Server, error) {
 	if err := op.Validate(); err != nil {
 		return nil, err
 	}
@@ -402,10 +405,9 @@ func (op Operation) selectServer(ctx context.Context, dpa []address.Address) (Se
 		})
 	}
 
-	oss := opServerSelector{selector: selector}
-
-	if len(dpa) > 0 {
-		oss.setDeprioritizedServers(dpa)
+	oss := &opServerSelector{
+		selector:             selector,
+		deprioritizedServers: deprioritized,
 	}
 
 	ctx = logger.WithOperationName(ctx, op.Name)
@@ -415,8 +417,11 @@ func (op Operation) selectServer(ctx context.Context, dpa []address.Address) (Se
 }
 
 // getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
-func (op Operation) getServerAndConnection(ctx context.Context, dpa []address.Address) (Server, Connection, error) {
-	server, err := op.selectServer(ctx, dpa)
+func (op Operation) getServerAndConnection(
+	ctx context.Context,
+	deprioritized []description.Server,
+) (Server, Connection, error) {
+	server, err := op.selectServer(ctx, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
 			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
@@ -551,9 +556,8 @@ func (op Operation) Execute(ctx context.Context) error {
 
 	// deprioritizedServers are a running list of servers that should be
 	// deprioritized during server selection. Per the specifications, we should
-	// only ever deprioritize the "previous server". Therefore, this list is
-	// initialized with a length of 1.
-	deprioritizedServers := []address.Address{}
+	// only ever deprioritize the "previous server".
+	var deprioritizedServers []description.Server
 
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
@@ -580,12 +584,12 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 		}
 
-		// If we got a connection, close it immediately to release pool resources for
-		// subsequent retries.
+		// If we got a connection, close it immediately to release pool resources
+		// for subsequent retries.
+
 		if conn != nil {
-			// Empty the deprioritizedServer list and
-			if desc := conn.Description; desc != nil {
-				deprioritizedServers = []address.Address{conn.Description().Addr}
+			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.Sharded {
+				deprioritizedServers = []description.Server{conn.Description()}
 			}
 
 			conn.Close()
@@ -615,8 +619,6 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
-			// NOTE: Each time a "retry" occurs, the server will be reset and this
-			// NOTE: branch will be entered.
 			srvr, conn, err = op.getServerAndConnection(ctx, deprioritizedServers)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
