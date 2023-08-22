@@ -334,8 +334,8 @@ func filterDeprioritizedServers(candidates, deprioritized []description.Server) 
 	}
 
 	dpaSet := make(map[address.Address]*description.Server)
-	for _, srv := range deprioritized {
-		dpaSet[srv.Addr] = &srv
+	for i, srv := range deprioritized {
+		dpaSet[srv.Addr] = &deprioritized[i]
 	}
 
 	allowedIndexes := make([]int, 0, len(candidates))
@@ -372,7 +372,7 @@ type opServerSelector struct {
 }
 
 // SelectServer will filter candidates with operation-specific logic before
-// passing them onto the user-defined or defualt selector.
+// passing them onto the user-defined or default selector.
 func (oss *opServerSelector) SelectServer(
 	topo description.Topology,
 	candidates []description.Server,

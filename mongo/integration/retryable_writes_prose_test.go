@@ -369,7 +369,7 @@ func TestRetryableWritesProse(t *testing.T) {
 					SetRetryWrites(true).
 					SetMonitor(commandMonitor))
 
-				mt.Coll.InsertOne(context.Background(), bson.D{})
+				_, _ = mt.Coll.InsertOne(context.Background(), bson.D{})
 
 				assert.Equal(mt, tc.expectedFailCount, failCount)
 				assert.Equal(mt, tc.expectedSuccessCount, successCount)
