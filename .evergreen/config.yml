@@ -1696,6 +1696,9 @@ tasks:
           LOAD_BALANCER: "true"
       - func: run-load-balancer
       - func: run-load-balancer-tests
+        vars:
+          AUTH: "noauth"
+          SSL: "nossl"
 
   - name: test-load-balancer-auth-ssl
     tags: ["load-balancer"]
@@ -1708,6 +1711,9 @@ tasks:
           LOAD_BALANCER: "true"
       - func: run-load-balancer
       - func: run-load-balancer-tests
+        vars:
+          AUTH: "auth"
+          SSL: "ssl"
 
   - name: test-race
     tags: ["race"]
