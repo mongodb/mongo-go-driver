@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -59,10 +58,6 @@ var skippedTestDescriptions = map[string]string{
 	// that request a new connection cannot be satisfied by a check-in.
 	// TODO(DRIVERS-2223): Re-enable this test once the spec test is updated to support the Go pool check-in behavior.
 	"threads blocked by maxConnecting check out returned connections": "test requires a checked-in connections cannot satisfy a check-out waiting on a new connection (DRIVERS-2223)",
-	// TODO(GODRIVER-2852): Fix and unskip this test case.
-	"must be able to start a pool with minPoolSize connections": "test fails frequently, skipping; see GODRIVER-2852",
-	// TODO(GODRIVER-2852): Fix and unskip this test case.
-	"pool clear halts background minPoolSize establishments": "test fails frequently, skipping; see GODRIVER-2852",
 }
 
 type cmapEvent struct {
@@ -142,9 +137,6 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		t.Skip(msg)
 	}
 
-	l, err := net.Listen("tcp", "localhost:0")
-	require.NoError(t, err, "unable to create listener")
-
 	testInfo := &testInfo{
 		objects:                make(map[string]interface{}),
 		originalEventChan:      make(chan *event.PoolEvent, 200),
@@ -177,43 +169,44 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		}),
 	}
 
-	// If there's a failpoint configured in the test, use a dialer that returns connections that
-	// mock the configured failpoint. If "blockConnection" is true and "blockTimeMS" is specified,
-	// use a mock connection that delays reads by the configured amount. If "closeConnection" is
-	// true, close the connection so it always returns an error on read and write.
+	var delay time.Duration
+	var closeConnection bool
+
 	if test.FailPoint != nil {
 		data, ok := test.FailPoint["data"].(map[string]interface{})
 		if !ok {
 			t.Fatalf("expected to find \"data\" map in failPoint (%v)", test.FailPoint)
 		}
 
-		var delay time.Duration
 		blockConnection, _ := data["blockConnection"].(bool)
 		if blockTimeMS, ok := data["blockTimeMS"].(float64); ok && blockConnection {
 			delay = time.Duration(blockTimeMS) * time.Millisecond
 		}
 
-		closeConnection, _ := data["closeConnection"].(bool)
-
-		sOpts = append(sOpts, WithConnectionOptions(func(...ConnectionOption) []ConnectionOption {
-			return []ConnectionOption{
-				WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-						msc := newMockSlowConn(makeHelloReply(), delay)
-						if closeConnection {
-							msc.Close()
-						}
-						return msc, nil
-					})
-				}),
-				WithHandshaker(func(h Handshaker) Handshaker {
-					return operation.NewHello()
-				}),
-			}
-		}))
+		closeConnection, _ = data["closeConnection"].(bool)
 	}
 
-	s := NewServer(address.Address(l.Addr().String()), primitive.NewObjectID(), sOpts...)
+	// Use a dialer that returns mock connections that always respond with a
+	// "hello" reply. If there's a failpoint configured in the test, use a
+	// dialer that returns connections that mock the configured failpoint.
+	sOpts = append(sOpts, WithConnectionOptions(func(...ConnectionOption) []ConnectionOption {
+		return []ConnectionOption{
+			WithDialer(func(Dialer) Dialer {
+				return DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+					msc := newMockSlowConn(makeHelloReply(), delay)
+					if closeConnection {
+						msc.Close()
+					}
+					return msc, nil
+				})
+			}),
+			WithHandshaker(func(h Handshaker) Handshaker {
+				return operation.NewHello()
+			}),
+		}
+	}))
+
+	s := NewServer("mongodb://fake", primitive.NewObjectID(), sOpts...)
 	s.state = serverConnected
 	require.NoError(t, err, "error connecting connection pool")
 	defer s.pool.close(context.Background())
