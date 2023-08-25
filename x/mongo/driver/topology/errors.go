@@ -102,23 +102,19 @@ func (w WaitQueueTimeoutError) Error() string {
 		)
 	}
 
-	var msg string
-	openConnectionCount := uint64(w.totalConnectionCount)
+	msg := fmt.Sprintf("%s; maxPoolSize: %d, ", errorMsg, w.maxPoolSize)
 	if pinnedConnections := w.pinnedConnections; pinnedConnections != nil {
-		openConnectionCount -= (*pinnedConnections).cursorConnections
-		msg += fmt.Sprintf("connections in use by cursors: %d, ", (*pinnedConnections).cursorConnections)
-		openConnectionCount -= (*pinnedConnections).transactionConnections
-		msg += fmt.Sprintf("connections in use by transactions: %d, ", (*pinnedConnections).transactionConnections)
+		openConnectionCount := uint64(w.totalConnectionCount) -
+			(*pinnedConnections).cursorConnections -
+			(*pinnedConnections).transactionConnections
+		msg += fmt.Sprintf("connections in use by cursors: %d, connections in use by transactions: %d, connections in use by other operations: %d, ",
+			(*pinnedConnections).cursorConnections,
+			(*pinnedConnections).transactionConnections,
+			openConnectionCount,
+		)
 	}
-	return fmt.Sprintf(
-		"%s; maxPoolSize: %d, %sconnections in use by other operations: %d, idle connections: %d, wait duration: %s",
-		errorMsg,
-		w.maxPoolSize,
-		msg,
-		openConnectionCount,
-		w.availableConnectionCount,
-		w.waitDuration.String(),
-	)
+	msg += fmt.Sprintf("idle connections: %d, wait duration: %s", w.availableConnectionCount, w.waitDuration.String())
+	return msg
 }
 
 // Unwrap returns the underlying error.

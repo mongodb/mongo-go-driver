@@ -74,6 +74,7 @@ type poolConfig struct {
 	MaxConnecting    uint64
 	MaxIdleTime      time.Duration
 	MaintainInterval time.Duration
+	LoadBalanced     bool
 	PoolMonitor      *event.PoolMonitor
 	Logger           *logger.Logger
 	handshakeErrFn   func(error, uint64, *primitive.ObjectID)
@@ -93,6 +94,7 @@ type pool struct {
 	minSize       uint64
 	maxSize       uint64
 	maxConnecting uint64
+	loadBalanced  bool
 	monitor       *event.PoolMonitor
 	logger        *logger.Logger
 
@@ -100,7 +102,7 @@ type pool struct {
 	// handshaking.
 	handshakeErrFn func(error, uint64, *primitive.ObjectID)
 
-	connCfg    *connectionConfig
+	connOpts   []ConnectionOption
 	generation *poolGenerationMap
 
 	maintainInterval time.Duration   // maintainInterval is the maintain() loop interval.
@@ -206,9 +208,11 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		minSize:               config.MinPoolSize,
 		maxSize:               config.MaxPoolSize,
 		maxConnecting:         maxConnecting,
+		loadBalanced:          config.LoadBalanced,
 		monitor:               config.PoolMonitor,
 		logger:                config.Logger,
 		handshakeErrFn:        config.handshakeErrFn,
+		connOpts:              connOpts,
 		generation:            newPoolGenerationMap(),
 		state:                 poolPaused,
 		maintainInterval:      maintainInterval,
@@ -222,8 +226,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
 		pool.minSize = pool.maxSize
 	}
-	connOpts = append(connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
-	pool.connCfg = newConnectionConfig(connOpts...)
+	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
 	pool.generation.connect()
 
@@ -235,7 +238,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 
 	for i := 0; i < int(pool.maxConnecting); i++ {
 		pool.backgroundDone.Add(1)
-		go pool.createConnections(ctx, pool.backgroundDone, connOpts...)
+		go pool.createConnections(ctx, pool.backgroundDone)
 	}
 
 	// If maintainInterval is not positive, don't start the maintain() goroutine. Expect that
@@ -642,7 +645,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			availableConnectionCount: p.availableConnectionCount(),
 			waitDuration:             duration,
 		}
-		if cfg := p.connCfg; cfg != nil && cfg.loadBalanced {
+		if p.loadBalanced {
 			err.pinnedConnections = &pinnedConnections{
 				cursorConnections:      atomic.LoadUint64(&p.pinnedCursorConnections),
 				transactionConnections: atomic.LoadUint64(&p.pinnedTransactionConnections),
@@ -962,7 +965,7 @@ func (p *pool) availableConnectionCount() int {
 }
 
 // createConnections creates connections for wantConn requests on the newConnWait queue.
-func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup, opts ...ConnectionOption) {
+func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	// condition returns true if the createConnections() loop should continue and false if it should
@@ -997,7 +1000,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup, opts .
 			return nil, nil, false
 		}
 
-		conn := newConnection(p.address, opts...)
+		conn := newConnection(p.address, p.connOpts...)
 		conn.pool = p
 		conn.driverConnectionID = atomic.AddUint64(&p.nextID, 1)
 		p.conns[conn.driverConnectionID] = conn
