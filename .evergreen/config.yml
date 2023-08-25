@@ -2384,6 +2384,11 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
+      - id: "rhel80-64-go-1-20"
+        display_name: "RHEL 8.0"
+        run_on: rhel80-test 
+        variables:
+          GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
         display_name: "MacOS 11.0"
         run_on: macos-1100
