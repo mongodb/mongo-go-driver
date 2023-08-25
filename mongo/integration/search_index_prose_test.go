@@ -34,7 +34,6 @@ func TestSearchIndexProse(t *testing.T) {
 
 	opts := options.Client().ApplyURI(uri).SetTimeout(timeout)
 	mt := mtest.New(t, mtest.NewOptions().ClientOptions(opts).MinServerVersion("7.0").Topologies(mtest.ReplicaSet))
-	defer mt.Close()
 
 	mt.Run("case 1: Driver can successfully create and list search indexes", func(mt *mtest.T) {
 		ctx := context.Background()
