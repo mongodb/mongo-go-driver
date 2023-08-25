@@ -15,8 +15,8 @@ fi
 export GOROOT="${GOROOT}"
 export PATH="${GOROOT}/bin:${GCC_PATH}:$GOPATH/bin:$PATH"
 export PROJECT="${project}"
-export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
-export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
 export GOFLAGS=-mod=vendor
 
 SSL=${SSL:-nossl}
