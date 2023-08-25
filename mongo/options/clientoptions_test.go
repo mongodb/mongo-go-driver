@@ -28,7 +28,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/errutil"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -41,9 +40,9 @@ var tClientOptions = reflect.TypeOf(&ClientOptions{})
 func TestClientOptions(t *testing.T) {
 	t.Run("ApplyURI/doesn't overwrite previous errors", func(t *testing.T) {
 		uri := "not-mongo-db-uri://"
-		want := errutil.WrapErrorf(
-			errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
-		)
+		want := fmt.Errorf(
+			"error parsing uri: %w",
+			errors.New(`scheme must be "mongodb" or "mongodb+srv"`))
 		co := Client().ApplyURI(uri).ApplyURI("mongodb://localhost/")
 		got := co.Validate()
 		if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
@@ -209,9 +208,9 @@ func TestClientOptions(t *testing.T) {
 				"ParseError",
 				"not-mongo-db-uri://",
 				&ClientOptions{
-					err: errutil.WrapErrorf(
-						errors.New(`scheme must be "mongodb" or "mongodb+srv"`), "error parsing uri",
-					),
+					err: fmt.Errorf(
+						"error parsing uri: %w",
+						errors.New(`scheme must be "mongodb" or "mongodb+srv"`)),
 					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
@@ -285,10 +284,9 @@ func TestClientOptions(t *testing.T) {
 				"Unescaped slash in username",
 				"mongodb:///:pwd@localhost",
 				&ClientOptions{
-					err: errutil.WrapErrorf(
-						errors.New("unescaped slash in username"),
-						"error parsing uri",
-					),
+					err: fmt.Errorf(
+						"error parsing uri: %w",
+						errors.New("unescaped slash in username")),
 					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
@@ -472,10 +470,9 @@ func TestClientOptions(t *testing.T) {
 				"TLS only tlsCertificateFile",
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem",
 				&ClientOptions{
-					err: errutil.WrapErrorf(
-						errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified"),
-						"error validating uri",
-					),
+					err: fmt.Errorf(
+						"error validating uri: %w",
+						errors.New("the tlsPrivateKeyFile URI option must be provided if the tlsCertificateFile option is specified")),
 					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
@@ -483,10 +480,9 @@ func TestClientOptions(t *testing.T) {
 				"TLS only tlsPrivateKeyFile",
 				"mongodb://localhost/?tlsPrivateKeyFile=testdata/nopass/key.pem",
 				&ClientOptions{
-					err: errutil.WrapErrorf(
-						errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified"),
-						"error validating uri",
-					),
+					err: fmt.Errorf(
+						"error validating uri: %w",
+						errors.New("the tlsCertificateFile URI option must be provided if the tlsPrivateKeyFile option is specified")),
 					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},
@@ -494,11 +490,10 @@ func TestClientOptions(t *testing.T) {
 				"TLS tlsCertificateFile and tlsPrivateKeyFile and tlsCertificateKeyFile",
 				"mongodb://localhost/?tlsCertificateFile=testdata/nopass/cert.pem&tlsPrivateKeyFile=testdata/nopass/key.pem&tlsCertificateKeyFile=testdata/nopass/certificate.pem",
 				&ClientOptions{
-					err: errutil.WrapErrorf(
+					err: fmt.Errorf(
+						"error validating uri: %w",
 						errors.New("the sslClientCertificateKeyFile/tlsCertificateKeyFile URI option cannot be provided "+
-							"along with tlsCertificateFile or tlsPrivateKeyFile"),
-						"error validating uri",
-					),
+							"along with tlsCertificateFile or tlsPrivateKeyFile")),
 					HTTPClient: httputil.DefaultHTTPClient,
 				},
 			},

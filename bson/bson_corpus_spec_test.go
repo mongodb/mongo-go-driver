@@ -14,6 +14,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -407,8 +408,8 @@ func runTest(t *testing.T, file string) {
 					// and assert that there was no error if any of the string or DBPointer values contain invalid UTF-8
 					// characters.
 					for _, elem := range doc {
-						str, ok := elem.Value.(string)
-						invalidString := ok && !utf8.ValidString(str)
+						value := reflect.ValueOf(elem.Value)
+						invalidString := (value.Kind() == reflect.String) && !utf8.ValidString(value.String())
 						dbPtr, ok := elem.Value.(primitive.DBPointer)
 						invalidDBPtr := ok && !utf8.ValidString(dbPtr.DB)
 

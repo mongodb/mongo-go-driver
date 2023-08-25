@@ -45,7 +45,6 @@ type seedlistTest struct {
 
 func TestInitialDNSSeedlistDiscoverySpec(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	defer mt.Close()
 
 	mt.RunOpts("replica set", mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false), func(mt *mtest.T) {
 		mt.Parallel()

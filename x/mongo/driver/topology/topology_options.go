@@ -53,7 +53,11 @@ func ConvertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOpt
 	return driverOpts
 }
 
-func newLogger(opts options.LoggerOptions) (*logger.Logger, error) {
+func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
+	if opts == nil {
+		opts = options.Logger()
+	}
+
 	componentLevels := make(map[logger.Component]logger.Level)
 	for component, level := range opts.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
@@ -350,19 +354,17 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		)
 	}
 
-	if opts := co.LoggerOptions; opts != nil {
-		lgr, err := newLogger(*opts)
-		if err != nil {
-			return nil, err
-		}
-
-		serverOpts = append(
-			serverOpts,
-			withLogger(func() *logger.Logger { return lgr }),
-		)
-
-		cfgp.logger = lgr
+	lgr, err := newLogger(co.LoggerOptions)
+	if err != nil {
+		return nil, err
 	}
+
+	serverOpts = append(
+		serverOpts,
+		withLogger(func() *logger.Logger { return lgr }),
+	)
+
+	cfgp.logger = lgr
 
 	serverOpts = append(
 		serverOpts,

@@ -22,7 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/errutil"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -305,8 +305,9 @@ type Operation struct {
 
 	Logger *logger.Logger
 
-	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
-	cmdName string
+	// Name is the name of the operation. This is used when serializing
+	// OP_MSG as well as for logging server selection data.
+	Name string
 
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
@@ -337,6 +338,9 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 			description.LatencySelector(defaultLocalThreshold),
 		})
 	}
+
+	ctx = logger.WithOperationName(ctx, op.Name)
+	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
 
 	return op.Deployment.SelectServer(ctx, selector)
 }
@@ -526,6 +530,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
+		wiremessage.NextRequestID()
+
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
 			srvr, conn, err = op.getServerAndConnection(ctx)
@@ -633,7 +639,15 @@ func (op Operation) Execute(ctx context.Context) error {
 		startedInfo.connID = conn.ID()
 		startedInfo.driverConnectionID = conn.DriverConnectionID()
 		startedInfo.cmdName = op.getCommandName(startedInfo.cmd)
-		op.cmdName = startedInfo.cmdName
+
+		// If the command name does not match the operation name, update
+		// the operation name as a sanity check. It's more correct to
+		// be aligned with the data passed to the server via the
+		// wire message.
+		if startedInfo.cmdName != op.Name {
+			op.Name = startedInfo.cmdName
+		}
+
 		startedInfo.redacted = op.redactCommand(startedInfo.cmdName, startedInfo.cmd)
 		startedInfo.serviceID = conn.Description().ServiceID
 		startedInfo.serverConnID = conn.ServerConnectionID()
@@ -675,8 +689,11 @@ func (op Operation) Execute(ctx context.Context) error {
 			err = ctx.Err()
 		} else if deadline, ok := ctx.Deadline(); ok {
 			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
-				err = errutil.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"remaining time %v until context deadline is less than 90th percentile RTT\n%v", time.Until(deadline), srvr.RTTMonitor().Stats())
+				err = fmt.Errorf(
+					"remaining time %v until context deadline is less than 90th percentile RTT: %w\n%v",
+					time.Until(deadline),
+					ErrDeadlineWouldBeExceeded,
+					srvr.RTTMonitor().Stats())
 			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
 				err = context.DeadlineExceeded
 			}
@@ -993,7 +1010,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
 	// Update snapshot time if operation was a "find", "aggregate" or "distinct".
-	if op.cmdName == "find" || op.cmdName == "aggregate" || op.cmdName == "distinct" {
+	if op.Name == driverutil.FindOp || op.Name == driverutil.AggregateOp || op.Name == driverutil.DistinctOp {
 		op.Client.UpdateSnapshotTime(res)
 	}
 
@@ -1103,7 +1120,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 		flags |= wiremessage.ExhaustAllowed
 	}
 
-	info.requestID = wiremessage.NextRequestID()
+	info.requestID = wiremessage.CurrentRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body
@@ -1361,9 +1378,11 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration,
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 			if maxTimeMS <= 0 {
-				return 0, errutil.WrapErrorf(ErrDeadlineWouldBeExceeded,
-					"remaining time %v until context deadline is less than or equal to 90th percentile RTT\n%v",
-					remainingTimeout, rttStats)
+				return 0, fmt.Errorf(
+					"remaining time %v until context deadline is less than or equal to 90th percentile RTT: %w\n%v",
+					remainingTimeout,
+					ErrDeadlineWouldBeExceeded,
+					rttStats)
 			}
 			return uint64(maxTimeMS), nil
 		}

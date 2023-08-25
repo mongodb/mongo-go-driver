@@ -31,7 +31,6 @@ func TestRetryableWritesProse(t *testing.T) {
 		SetReadConcern(mtest.MajorityRc)
 	mtOpts := mtest.NewOptions().ClientOptions(clientOpts).MinServerVersion("3.6").CreateClient(false)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	includeOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded).CreateClient(false)
 	mt.RunOpts("txn number included", includeOpts, func(mt *mtest.T) {

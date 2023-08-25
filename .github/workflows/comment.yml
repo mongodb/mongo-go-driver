@@ -8,6 +8,8 @@ jobs:
     permissions:
         pull-requests: write
         issues: write
+    environment:
+        api-report
     steps:
     - uses: actions/setup-go@v4
     - name: Find Comment

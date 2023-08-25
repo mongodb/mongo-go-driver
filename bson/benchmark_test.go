@@ -7,12 +7,15 @@
 package bson
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
+	"sync"
 	"testing"
 )
 
@@ -129,10 +132,20 @@ var nestedInstance = nestedtest1{
 
 const extendedBSONDir = "../testdata/extended_bson"
 
+var (
+	extJSONFiles   map[string]map[string]interface{}
+	extJSONFilesMu sync.Mutex
+)
+
 // readExtJSONFile reads the GZIP-compressed extended JSON document from the given filename in the
 // "extended BSON" test data directory (../testdata/extended_bson) and returns it as a
 // map[string]interface{}. It panics on any errors.
 func readExtJSONFile(filename string) map[string]interface{} {
+	extJSONFilesMu.Lock()
+	defer extJSONFilesMu.Unlock()
+	if v, ok := extJSONFiles[filename]; ok {
+		return v
+	}
 	filePath := path.Join(extendedBSONDir, filename)
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -161,6 +174,10 @@ func readExtJSONFile(filename string) map[string]interface{} {
 		panic(fmt.Sprintf("error unmarshalling extended JSON: %s", err))
 	}
 
+	if extJSONFiles == nil {
+		extJSONFiles = make(map[string]map[string]interface{})
+	}
+	extJSONFiles[filename] = v
 	return v
 }
 
@@ -304,4 +321,129 @@ func BenchmarkUnmarshal(b *testing.B) {
 			})
 		})
 	}
+}
+
+// The following benchmarks are copied from the Go standard library's
+// encoding/json package.
+
+type codeResponse struct {
+	Tree     *codeNode `json:"tree"`
+	Username string    `json:"username"`
+}
+
+type codeNode struct {
+	Name     string      `json:"name"`
+	Kids     []*codeNode `json:"kids"`
+	CLWeight float64     `json:"cl_weight"`
+	Touches  int         `json:"touches"`
+	MinT     int64       `json:"min_t"`
+	MaxT     int64       `json:"max_t"`
+	MeanT    int64       `json:"mean_t"`
+}
+
+var codeJSON []byte
+var codeBSON []byte
+var codeStruct codeResponse
+
+func codeInit() {
+	f, err := os.Open("testdata/code.json.gz")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		panic(err)
+	}
+	data, err := io.ReadAll(gz)
+	if err != nil {
+		panic(err)
+	}
+
+	codeJSON = data
+
+	if err := json.Unmarshal(codeJSON, &codeStruct); err != nil {
+		panic("json.Unmarshal code.json: " + err.Error())
+	}
+
+	if data, err = json.Marshal(&codeStruct); err != nil {
+		panic("json.Marshal code.json: " + err.Error())
+	}
+
+	if codeBSON, err = Marshal(&codeStruct); err != nil {
+		panic("Marshal code.json: " + err.Error())
+	}
+
+	if !bytes.Equal(data, codeJSON) {
+		println("different lengths", len(data), len(codeJSON))
+		for i := 0; i < len(data) && i < len(codeJSON); i++ {
+			if data[i] != codeJSON[i] {
+				println("re-marshal: changed at byte", i)
+				println("orig: ", string(codeJSON[i-10:i+10]))
+				println("new: ", string(data[i-10:i+10]))
+				break
+			}
+		}
+		panic("re-marshal code.json: different result")
+	}
+}
+
+func BenchmarkCodeUnmarshal(b *testing.B) {
+	b.ReportAllocs()
+	if codeJSON == nil {
+		b.StopTimer()
+		codeInit()
+		b.StartTimer()
+	}
+	b.Run("BSON", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				var r codeResponse
+				if err := Unmarshal(codeBSON, &r); err != nil {
+					b.Fatal("Unmarshal:", err)
+				}
+			}
+		})
+		b.SetBytes(int64(len(codeBSON)))
+	})
+	b.Run("JSON", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				var r codeResponse
+				if err := json.Unmarshal(codeJSON, &r); err != nil {
+					b.Fatal("json.Unmarshal:", err)
+				}
+			}
+		})
+		b.SetBytes(int64(len(codeJSON)))
+	})
+}
+
+func BenchmarkCodeMarshal(b *testing.B) {
+	b.ReportAllocs()
+	if codeJSON == nil {
+		b.StopTimer()
+		codeInit()
+		b.StartTimer()
+	}
+	b.Run("BSON", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				if _, err := Marshal(&codeStruct); err != nil {
+					b.Fatal("Marshal:", err)
+				}
+			}
+		})
+		b.SetBytes(int64(len(codeBSON)))
+	})
+	b.Run("JSON", func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				if _, err := json.Marshal(&codeStruct); err != nil {
+					b.Fatal("json.Marshal:", err)
+				}
+			}
+		})
+		b.SetBytes(int64(len(codeJSON)))
+	})
 }

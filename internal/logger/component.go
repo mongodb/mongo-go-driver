@@ -28,6 +28,10 @@ const (
 	ConnectionCheckoutFailed         = "Connection checkout failed"
 	ConnectionCheckedOut             = "Connection checked out"
 	ConnectionCheckedIn              = "Connection checked in"
+	ServerSelectionFailed            = "Server selection failed"
+	ServerSelectionStarted           = "Server selection started"
+	ServerSelectionSucceeded         = "Server selection succeeded"
+	ServerSelectionWaiting           = "Waiting for suitable server to become available"
 	TopologyClosed                   = "Stopped topology monitoring"
 	TopologyDescriptionChanged       = "Topology description changed"
 	TopologyOpening                  = "Starting topology monitoring"
@@ -53,21 +57,27 @@ const (
 	KeyMessage             = "message"
 	KeyMinPoolSize         = "minPoolSize"
 	KeyNewDescription      = "newDescription"
+	KeyOperation           = "operation"
 	KeyOperationID         = "operationId"
 	KeyPreviousDescription = "previousDescription"
+	KeyRemainingTimeMS     = "remainingTimeMS"
 	KeyReason              = "reason"
 	KeyReply               = "reply"
 	KeyRequestID           = "requestId"
+	KeySelector            = "selector"
 	KeyServerConnectionID  = "serverConnectionId"
 	KeyServerHost          = "serverHost"
 	KeyServerPort          = "serverPort"
 	KeyServiceID           = "serviceId"
 	KeyTimestamp           = "timestamp"
+	KeyTopologyDescription = "topologyDescription"
 	KeyTopologyID          = "topologyId"
 )
 
+// KeyValues is a list of key-value pairs.
 type KeyValues []interface{}
 
+// Add adds a key-value pair to an instance of a KeyValues list.
 func (kvs *KeyValues) Add(key string, value interface{}) {
 	*kvs = append(*kvs, key, value)
 }
@@ -242,6 +252,36 @@ func SerializeServer(srv Server, extraKV ...interface{}) KeyValues {
 	port, err := strconv.ParseInt(srv.ServerPort, 10, 32)
 	if err == nil {
 		keysAndValues.Add(KeyServerPort, port)
+	}
+
+	// Add the optional keys and values.
+	for i := 0; i < len(extraKV); i += 2 {
+		keysAndValues.Add(extraKV[i].(string), extraKV[i+1])
+	}
+
+	return keysAndValues
+}
+
+// ServerSelection contains data that all server selection messages MUST
+// contain.
+type ServerSelection struct {
+	Selector            string
+	OperationID         *int32
+	Operation           string
+	TopologyDescription string
+}
+
+// SerializeServerSelection serializes a Topology message into a slice of keys
+// and values that can be passed to a logger.
+func SerializeServerSelection(srvSelection ServerSelection, extraKV ...interface{}) KeyValues {
+	keysAndValues := KeyValues{
+		KeySelector, srvSelection.Selector,
+		KeyOperation, srvSelection.Operation,
+		KeyTopologyDescription, srvSelection.TopologyDescription,
+	}
+
+	if srvSelection.OperationID != nil {
+		keysAndValues.Add(KeyOperationID, *srvSelection.OperationID)
 	}
 
 	// Add the optional keys and values.

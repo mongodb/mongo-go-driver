@@ -26,7 +26,6 @@ const (
 
 func TestConnectionsSurvivePrimaryStepDown(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().Topologies(mtest.ReplicaSet).CreateClient(false))
-	defer mt.Close()
 
 	getMoreOpts := mtest.NewOptions().MinServerVersion("4.2")
 	mt.RunOpts("getMore iteration", getMoreOpts, func(mt *mtest.T) {

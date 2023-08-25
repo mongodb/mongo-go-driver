@@ -49,7 +49,6 @@ const (
 func TestChangeStream_Standalone(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion(minChangeStreamVersion).CreateClient(false).Topologies(mtest.Single)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	mt.Run("no custom standalone error", func(mt *mtest.T) {
 		_, err := mt.Coll.Watch(context.Background(), mongo.Pipeline{})
@@ -61,7 +60,6 @@ func TestChangeStream_Standalone(t *testing.T) {
 func TestChangeStream_ReplicaSet(t *testing.T) {
 	mtOpts := mtest.NewOptions().MinServerVersion(minChangeStreamVersion).CreateClient(false).Topologies(mtest.ReplicaSet)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	mt.Run("first stage is $changeStream", func(mt *mtest.T) {
 		// first stage in the aggregate pipeline must be $changeStream
@@ -728,7 +726,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		SetChangeStreamPreAndPostImages(bson.M{"enabled": true})
 
 	splitLargeChangesOpts := mtOpts.
-		MinServerVersion("7.0.0").
+		MinServerVersion("6.0.9").
 		CreateClient(true).
 		CollectionCreateOptions(splitLargeChangesCollOpts)
 

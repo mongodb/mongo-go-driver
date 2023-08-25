@@ -63,8 +63,7 @@ type Zeroer interface {
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
 // StructCodec registered.
 type StructCodec struct {
-	cache  map[reflect.Type]*structDescription
-	l      sync.RWMutex
+	cache  sync.Map // map[reflect.Type]*structDescription
 	parser StructTagParser
 
 	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
@@ -115,7 +114,6 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 	structOpt := bsonoptions.MergeStructCodecOptions(opts...)
 
 	codec := &StructCodec{
-		cache:  make(map[reflect.Type]*structDescription),
 		parser: p,
 	}
 
@@ -502,13 +500,27 @@ func (sc *StructCodec) describeStruct(
 ) (*structDescription, error) {
 	// We need to analyze the struct, including getting the tags, collecting
 	// information about inlining, and create a map of the field name to the field.
-	sc.l.RLock()
-	ds, exists := sc.cache[t]
-	sc.l.RUnlock()
-	if exists {
-		return ds, nil
+	if v, ok := sc.cache.Load(t); ok {
+		return v.(*structDescription), nil
 	}
+	// TODO(charlie): Only describe the struct once when called
+	// concurrently with the same type.
+	ds, err := sc.describeStructSlow(r, t, useJSONStructTags, errorOnDuplicates)
+	if err != nil {
+		return nil, err
+	}
+	if v, loaded := sc.cache.LoadOrStore(t, ds); loaded {
+		ds = v.(*structDescription)
+	}
+	return ds, nil
+}
 
+func (sc *StructCodec) describeStructSlow(
+	r *Registry,
+	t reflect.Type,
+	useJSONStructTags bool,
+	errorOnDuplicates bool,
+) (*structDescription, error) {
 	numFields := t.NumField()
 	sd := &structDescription{
 		fm:        make(map[string]fieldDescription, numFields),
@@ -638,10 +650,6 @@ func (sc *StructCodec) describeStruct(
 	}
 
 	sort.Sort(byIndex(sd.fl))
-
-	sc.l.Lock()
-	sc.cache[t] = sd
-	sc.l.Unlock()
 
 	return sd, nil
 }

@@ -24,7 +24,6 @@ func TestMongosPinning(t *testing.T) {
 	mtOpts := mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.1").CreateClient(false).
 		ClientOptions(clientOpts)
 	mt := mtest.New(t, mtOpts)
-	defer mt.Close()
 
 	if len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts) < 2 {
 		mt.Skip("skipping because at least 2 mongoses are required")
