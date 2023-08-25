@@ -38,21 +38,23 @@ type SearchIndexModel struct {
 
 // List executes a listSearchIndexes command and returns a cursor over the search indexes in the collection.
 //
-// The aggregateOpts parameter is the aggregation options.
+// The name parameter specifies the index name. A nil pointer matches all indexes.
 //
 // The opts parameter can be used to specify options for this operation (see the options.ListSearchIndexesOptions
 // documentation).
-func (siv SearchIndexView) List(ctx context.Context, name *string,
-	aggregateOpts []*options.AggregateOptions, _ ...*options.ListSearchIndexesOptions) (*Cursor, error) {
+func (siv SearchIndexView) List(ctx context.Context, name *string, opts ...*options.ListSearchIndexesOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	var index bson.D
-	if name != nil && len(*name) > 0 {
+	index := bson.D{}
+	if name != nil {
 		index = bson.D{{"name", *name}}
-	} else {
-		index = bson.D{}
+	}
+
+	aggregateOpts := make([]*options.AggregateOptions, len(opts))
+	for i, opt := range opts {
+		aggregateOpts[i] = opt.AggregateOpts
 	}
 
 	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts...)
@@ -92,7 +94,7 @@ func (siv SearchIndexView) CreateMany(ctx context.Context, models []SearchIndexM
 
 		var iidx int32
 		iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
-		if model.Name != nil && len(*model.Name) > 0 {
+		if model.Name != nil {
 			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Name)
 		}
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)

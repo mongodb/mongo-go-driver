@@ -56,7 +56,7 @@ func TestSearchIndexProse(t *testing.T) {
 
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, &index, nil)
+			cursor, err := view.List(ctx, &index)
 			require.NoError(mt, err, "failed to list")
 
 			if !cursor.Next(ctx) {
@@ -86,29 +86,26 @@ func TestSearchIndexProse(t *testing.T) {
 		view := mt.Coll.SearchIndexes()
 
 		definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
-		searchName0 := "test-search-index-1"
-		searchName1 := "test-search-index-2"
-		models := []mongo.SearchIndexModel{
-			{
+		searchNames := []string{"test-search-index-1", "test-search-index-2"}
+		models := make([]mongo.SearchIndexModel, len(searchNames))
+		for i := range searchNames {
+			models[i] = mongo.SearchIndexModel{
 				Definition: definition,
-				Name:       &searchName0,
-			},
-			{
-				Definition: definition,
-				Name:       &searchName1,
-			},
+				Name:       &searchNames[i],
+			}
 		}
 		indexes, err := view.CreateMany(ctx, models)
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
-		require.Contains(mt, indexes, searchName0)
-		require.Contains(mt, indexes, searchName1)
+		for _, searchName := range searchNames {
+			require.Contains(mt, indexes, searchName)
+		}
 
 		getDocument := func(index string) bson.Raw {
 			t.Helper()
 
 			for {
-				cursor, err := view.List(ctx, &index, nil)
+				cursor, err := view.List(ctx, &index)
 				require.NoError(mt, err, "failed to list")
 
 				if !cursor.Next(ctx) {
@@ -123,29 +120,20 @@ func TestSearchIndexProse(t *testing.T) {
 		}
 
 		var wg sync.WaitGroup
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
+		wg.Add(len(searchNames))
+		for i := range searchNames {
+			go func(name string) {
+				defer wg.Done()
 
-			doc := getDocument(searchName0)
-			require.NotNil(mt, doc, "got empty document")
-			assert.Equal(mt, searchName0, doc.Lookup("name").StringValue(), "unmatched name")
-			expected, err := bson.Marshal(definition)
-			require.NoError(mt, err, "failed to marshal definition")
-			actual := doc.Lookup("latestDefinition").Value
-			assert.Equal(mt, expected, actual, "unmatched definition")
-		}()
-		go func() {
-			defer wg.Done()
-
-			doc := getDocument(searchName1)
-			require.NotNil(mt, doc, "got empty document")
-			assert.Equal(mt, searchName1, doc.Lookup("name").StringValue(), "unmatched name")
-			expected, err := bson.Marshal(definition)
-			require.NoError(mt, err, "failed to marshal definition")
-			actual := doc.Lookup("latestDefinition").Value
-			assert.Equal(mt, expected, actual, "unmatched definition")
-		}()
+				doc := getDocument(name)
+				require.NotNil(mt, doc, "got empty document")
+				assert.Equal(mt, name, doc.Lookup("name").StringValue(), "unmatched name")
+				expected, err := bson.Marshal(definition)
+				require.NoError(mt, err, "failed to marshal definition")
+				actual := doc.Lookup("latestDefinition").Value
+				assert.Equal(mt, expected, actual, "unmatched definition")
+			}(searchNames[i])
+		}
 		wg.Wait()
 	})
 
@@ -169,7 +157,7 @@ func TestSearchIndexProse(t *testing.T) {
 
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, &index, nil)
+			cursor, err := view.List(ctx, &index)
 			require.NoError(mt, err, "failed to list")
 
 			if !cursor.Next(ctx) {
@@ -188,7 +176,7 @@ func TestSearchIndexProse(t *testing.T) {
 		err = view.DropOne(ctx, searchName)
 		require.NoError(mt, err, "failed to drop index")
 		for {
-			cursor, err := view.List(ctx, &index, nil)
+			cursor, err := view.List(ctx, &index)
 			require.NoError(mt, err, "failed to list")
 
 			if !cursor.Next(ctx) {
@@ -221,7 +209,7 @@ func TestSearchIndexProse(t *testing.T) {
 			t.Helper()
 
 			for {
-				cursor, err := view.List(ctx, &index, nil)
+				cursor, err := view.List(ctx, &index)
 				require.NoError(mt, err, "failed to list")
 
 				if !cursor.Next(ctx) {

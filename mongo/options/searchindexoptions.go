@@ -13,6 +13,7 @@ type CreateSearchIndexesOptions struct {
 
 // ListSearchIndexesOptions represents options that can be used to configure a SearchIndexView.List operation.
 type ListSearchIndexesOptions struct {
+	AggregateOpts *AggregateOptions
 }
 
 // DropSearchIndexOptions represents options that can be used to configure a SearchIndexView.DropOne operation.

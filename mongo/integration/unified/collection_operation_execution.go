@@ -1118,7 +1118,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	var name *string
-	var opts []*options.AggregateOptions
+	var opts []*options.ListSearchIndexesOptions
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1138,13 +1138,15 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 			if err != nil {
 				return nil, err
 			}
-			opts = append(opts, &opt)
+			opts = append(opts, &options.ListSearchIndexesOptions{
+				AggregateOpts: &opt,
+			})
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}
 	}
 
-	_, err = coll.SearchIndexes().List(ctx, name, opts)
+	_, err = coll.SearchIndexes().List(ctx, name, opts...)
 	return newValueResult(bsontype.Null, nil, err), nil
 }
 
