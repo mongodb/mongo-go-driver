@@ -2806,7 +2806,10 @@ buildvariants:
   - name: testazurekms-variant
     display_name: "AZURE KMS"
     run_on:
-      #- debian11-small
+      # RHEL 8.0 is not supported for azurekms, see here for supported distros:
+      # https://github.com/mongodb-labs/drivers-evergreen-tools/blob/master/.evergreen/csfle/azurekms/README.md
+      #
+      # This test will fail until BUILD-17857 is completed.
       - rhel80-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
