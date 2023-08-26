@@ -199,9 +199,7 @@ functions:
         shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          if [ -f $MONGO_ORCHESTRATION_HOME/server.log ]; then
-            find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
-          fi
+          find $MONGO_ORCHESTRATION_HOME -name \*.log | xargs tar czf mongodb-logs.tar.gz
     - command: s3.put
       params:
         aws_key: ${aws_key}
@@ -286,14 +284,12 @@ functions:
           ${PREPARE_SHELL}
           cd "$MONGO_ORCHESTRATION_HOME"
           # source the mongo-orchestration virtualenv if it exists
-          # and stop the orchestration
           if [ -f venv/bin/activate ]; then
             . venv/bin/activate
-            mongo-orchestration stop
           elif [ -f venv/Scripts/activate ]; then
             . venv/Scripts/activate
-            mongo-orchestration stop
           fi
+          mongo-orchestration stop
           cd -
           rm -rf $DRIVERS_TOOLS || true
 
@@ -444,9 +440,9 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: "arn:aws:iam::857654397073:role/drivers-test-secrets-role"
-    - command: shell.exec
-      type: test
-      params:
+     - command: shell.exec
+       type: test
+       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
