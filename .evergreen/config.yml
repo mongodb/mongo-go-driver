@@ -284,12 +284,14 @@ functions:
           ${PREPARE_SHELL}
           cd "$MONGO_ORCHESTRATION_HOME"
           # source the mongo-orchestration virtualenv if it exists
+          # and stop the orchestration
           if [ -f venv/bin/activate ]; then
             . venv/bin/activate
+            mongo-orchestration stop
           elif [ -f venv/Scripts/activate ]; then
             . venv/Scripts/activate
+            mongo-orchestration stop
           fi
-          mongo-orchestration stop
           cd -
           rm -rf $DRIVERS_TOOLS || true
 
