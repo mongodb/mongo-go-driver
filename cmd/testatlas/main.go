@@ -23,7 +23,11 @@ func main() {
 	uris := flag.Args()
 	ctx := context.Background()
 
+	fmt.Printf("Running atlas tests for %d uris\n", len(uris))
+
 	for idx, uri := range uris {
+		fmt.Printf("Running test %d\n", idx)
+
 		// Set a low server selection timeout so we fail fast if there are errors.
 		clientOpts := options.Client().
 			ApplyURI(uri).
