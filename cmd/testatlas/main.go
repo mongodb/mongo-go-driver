@@ -45,6 +45,8 @@ func main() {
 			panic(fmt.Sprintf("error running test with tlsInsecure at index %d: %v", idx, err))
 		}
 	}
+
+	fmt.Println("Finished!")
 }
 
 func runTest(ctx context.Context, clientOpts *options.ClientOptions) error {
