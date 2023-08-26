@@ -8,13 +8,8 @@ if [ -z "$DRIVERS_TOOLS" ]; then
     exit 1
 fi
 
-# TODO: this should be built into activate-authawsvenv.sh
-export PIP_QUIET=1
 pushd ${DRIVERS_TOOLS}/.evergreen/auth_aws
 . ./activate-authawsvenv.sh
-# TODO: this should be built into activate-authawsvenv.sh
-pip install pyyaml
-# TODO: make the python3 finder less verbose
 popd
 
 # TODO: add note in setup_secrets.py about setup and using
