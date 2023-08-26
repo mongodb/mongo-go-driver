@@ -447,7 +447,8 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash etc/run-atlas-test.sh
+          ${PREPARE_SHELL}
+          bash etc/run-atlas-test.sh
 
   run-ocsp-test:
     - command: shell.exec
