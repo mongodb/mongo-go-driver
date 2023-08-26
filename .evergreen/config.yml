@@ -440,9 +440,9 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: "arn:aws:iam::857654397073:role/drivers-test-secrets-role"
-     - command: shell.exec
-       type: test
-       params:
+    - command: shell.exec
+      type: test
+      params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
