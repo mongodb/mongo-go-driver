@@ -439,7 +439,7 @@ functions:
   run-atlas-test:
     - command: ec2.assume_role
       params:
-        role_arn: "arn:aws:iam::857654397073:role/drivers-test-secrets-role"
+        role_arn: "${aws_test_secrets_role}"
     - command: shell.exec
       type: test
       params:
