@@ -33,9 +33,11 @@ func TestCompression(t *testing.T) {
 		bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "name", "compression_test")),
 	)
 
-	cmd := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))).
-		Deployment(integtest.Topology(t)).
-		Database(integtest.DBName(t))
+	cmd := &operation.Command{
+		Command:    bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1)),
+		Deployment: integtest.Topology(t),
+		Database:   integtest.DBName(t),
+	}
 
 	ctx := context.Background()
 	err := cmd.Execute(ctx)

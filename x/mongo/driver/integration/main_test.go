@@ -122,8 +122,11 @@ func addCompressorToURI(uri string) string {
 
 // runCommand runs an arbitrary command on a given database of target server
 func runCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Document, error) {
-	op := operation.NewCommand(cmd).
-		Database(db).Deployment(driver.SingleServerDeployment{Server: s})
+	op := &operation.Command{
+		Command:    cmd,
+		Database:   db,
+		Deployment: driver.SingleServerDeployment{Server: s},
+	}
 	err := op.Execute(context.Background())
 	res := op.Result()
 	return res, err
@@ -131,9 +134,13 @@ func runCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Doc
 
 // dropCollection drops the collection in the test cluster.
 func dropCollection(t *testing.T, dbname, colname string) {
-	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
-		Database(dbname).ServerSelector(description.WriteSelector()).Deployment(integtest.Topology(t)).
-		Execute(context.Background())
+	op := &operation.Command{
+		Command:    bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname)),
+		Database:   dbname,
+		Selector:   description.WriteSelector(),
+		Deployment: integtest.Topology(t),
+	}
+	err := op.Execute(context.Background())
 	if de, ok := err.(driver.Error); err != nil && !(ok && de.NamespaceNotFound()) {
 		require.NoError(t, err)
 	}

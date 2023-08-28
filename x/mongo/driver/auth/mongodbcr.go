@@ -58,11 +58,13 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	}
 
 	doc := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
-	cmd := operation.NewCommand(doc).
-		Database(db).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
+	cmd := &operation.Command{
+		Command:    doc,
+		Database:   db,
+		Deployment: driver.SingleConnectionDeployment{cfg.Connection},
+		Clock:      cfg.ClusterClock,
+		ServerAPI:  cfg.ServerAPI,
+	}
 	err := cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)
@@ -84,11 +86,13 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 		bsoncore.AppendStringElement(nil, "nonce", getNonceResult.Nonce),
 		bsoncore.AppendStringElement(nil, "key", a.createKey(getNonceResult.Nonce)),
 	)
-	cmd = operation.NewCommand(doc).
-		Database(db).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
+	cmd = &operation.Command{
+		Command:    doc,
+		Database:   db,
+		Deployment: driver.SingleConnectionDeployment{cfg.Connection},
+		Clock:      cfg.ClusterClock,
+		ServerAPI:  cfg.ServerAPI,
+	}
 	err = cmd.Execute(ctx)
 	if err != nil {
 		return newError(err, MONGODBCR)

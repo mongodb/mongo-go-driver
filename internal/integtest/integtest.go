@@ -101,9 +101,13 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 	} else {
 		_ = monitoredTopology.Connect()
 
-		err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-			Database(dbName).ServerSelector(description.WriteSelector()).Deployment(monitoredTopology).Execute(context.Background())
-
+		op := &operation.Command{
+			Command:    bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1)),
+			Database:   dbName,
+			Selector:   description.WriteSelector(),
+			Deployment: monitoredTopology,
+		}
+		err = op.Execute(context.Background())
 		require.NoError(t, err)
 	}
 
@@ -125,8 +129,13 @@ func Topology(t *testing.T) *topology.Topology {
 		} else {
 			_ = liveTopology.Connect()
 
-			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-				Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(liveTopology).Execute(context.Background())
+			op := &operation.Command{
+				Command:    bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1)),
+				Database:   DBName(t),
+				Selector:   description.WriteSelector(),
+				Deployment: liveTopology,
+			}
+			err = op.Execute(context.Background())
 			require.NoError(t, err)
 		}
 	})

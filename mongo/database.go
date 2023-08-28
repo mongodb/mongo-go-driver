@@ -180,19 +180,32 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 
 		cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
-		op = operation.NewCursorCommand(runCmdDoc, cursorOpts)
+		op = &operation.Command{
+			Command:      runCmdDoc,
+			CreateCursor: true,
+			CursorOpts:   cursorOpts,
+		}
 	default:
-		op = operation.NewCommand(runCmdDoc)
+		op = &operation.Command{
+			Command: runCmdDoc,
+		}
 	}
 
-	// TODO(GODRIVER-2649): ReadConcern(db.readConcern) will not actually pass the database's
-	// read concern. Remove this note once readConcern is correctly passed to the operation
-	// level.
-	return op.Session(sess).CommandMonitor(db.client.monitor).
-		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
-		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.client.timeout).Logger(db.client.logger), sess, nil
+	// TODO(GODRIVER-2649): Set read concern on the operation once the Command
+	// TODO type actually supports it.
+	op.Session = sess
+	op.Monitor = db.client.monitor
+	op.Selector = readSelect
+	op.Clock = db.client.clock
+	op.Database = db.name
+	op.Deployment = db.client.deployment
+	op.Crypt = db.client.cryptFLE
+	op.ReadPreference = ro.ReadPreference
+	op.ServerAPI = db.client.serverAPI
+	op.Timeout = db.client.timeout
+	op.Logger = db.client.logger
+
+	return op, sess, nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read

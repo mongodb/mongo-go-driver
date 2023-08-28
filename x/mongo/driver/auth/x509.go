@@ -63,12 +63,13 @@ func (a *MongoDBX509Authenticator) CreateSpeculativeConversation() (SpeculativeC
 // Auth authenticates the provided connection by conducting an X509 authentication conversation.
 func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *Config) error {
 	requestDoc := createFirstX509Message()
-	authCmd := operation.
-		NewCommand(requestDoc).
-		Database("$external").
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
+	authCmd := &operation.Command{
+		Command:    requestDoc,
+		Database:   "$external",
+		Deployment: driver.SingleConnectionDeployment{C: cfg.Connection},
+		Clock:      cfg.ClusterClock,
+		ServerAPI:  cfg.ServerAPI,
+	}
 	err := authCmd.Execute(ctx)
 	if err != nil {
 		return newAuthError("round trip error", err)

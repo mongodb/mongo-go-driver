@@ -132,11 +132,13 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 			bsoncore.AppendInt32Element(nil, "conversationId", int32(cid)),
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
-		saslContinueCmd := operation.NewCommand(doc).
-			Database(sc.source).
-			Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-			ClusterClock(cfg.ClusterClock).
-			ServerAPI(cfg.ServerAPI)
+		saslContinueCmd := &operation.Command{
+			Command:    doc,
+			Database:   sc.source,
+			Deployment: driver.SingleConnectionDeployment{C: cfg.Connection},
+			Clock:      cfg.ClusterClock,
+			ServerAPI:  cfg.ServerAPI,
+		}
 
 		err = saslContinueCmd.Execute(ctx)
 		if err != nil {
@@ -161,11 +163,13 @@ func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
-	saslStartCmd := operation.NewCommand(saslStartDoc).
-		Database(authSource).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
-		ClusterClock(cfg.ClusterClock).
-		ServerAPI(cfg.ServerAPI)
+	saslStartCmd := &operation.Command{
+		Command:    saslStartDoc,
+		Database:   authSource,
+		Deployment: driver.SingleConnectionDeployment{C: cfg.Connection},
+		Clock:      cfg.ClusterClock,
+		ServerAPI:  cfg.ServerAPI,
+	}
 	if err := saslStartCmd.Execute(ctx); err != nil {
 		return newError(err, conversation.mechanism)
 	}
