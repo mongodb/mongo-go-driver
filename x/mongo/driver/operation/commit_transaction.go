@@ -22,23 +22,42 @@ import (
 
 // CommitTransaction attempts to commit a transaction.
 type CommitTransaction struct {
-	maxTime       *time.Duration
-	recoveryToken bsoncore.Document
-	session       *session.Client
-	clock         *session.ClusterClock
-	monitor       *event.CommandMonitor
-	crypt         driver.Crypt
-	database      string
-	deployment    driver.Deployment
-	selector      description.ServerSelector
-	writeConcern  *writeconcern.WriteConcern
-	retry         *driver.RetryMode
-	serverAPI     *driver.ServerAPIOptions
-}
+	// MaxTime is the maximum amount of time to allow the query to run on the
+	// server.
+	MaxTime *time.Duration
 
-// NewCommitTransaction constructs and returns a new CommitTransaction.
-func NewCommitTransaction() *CommitTransaction {
-	return &CommitTransaction{}
+	// RecoveryToken is the recovery token to use when committing or aborting a
+	// sharded transaction.
+	RecoveryToken bsoncore.Document
+
+	// Session is the session for this operation.
+	Session *session.Client
+
+	// Clock is the cluster clock for this operation.
+	Clock *session.ClusterClock
+
+	// Monitor is the monitor to use for APM events.
+	Monitor *event.CommandMonitor
+
+	// Crypt is the Crypt object to use for automatic encryption and decryption.
+	Crypt driver.Crypt
+
+	// Deployment is the deployment to use for this operation.
+	Deployment driver.Deployment
+
+	// Selector is the selector used to retrieve a server.
+	Selector description.ServerSelector
+
+	// WriteConcern is the write concern for this operation.
+	WriteConcern *writeconcern.WriteConcern
+
+	// Retry enables retryable mode for this operation. Retries are handled
+	// automatically in driver.Operation.Execute based on how the operation is
+	// set.
+	Retry *driver.RetryMode
+
+	// ServerAPI is the server API version for this operation.
+	ServerAPI *driver.ServerAPIOptions
 }
 
 func (ct *CommitTransaction) processResponse(driver.ResponseInfo) error {
@@ -48,156 +67,34 @@ func (ct *CommitTransaction) processResponse(driver.ResponseInfo) error {
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
 func (ct *CommitTransaction) Execute(ctx context.Context) error {
-	if ct.deployment == nil {
+	if ct.Deployment == nil {
 		return errors.New("the CommitTransaction operation must have a Deployment set before Execute can be called")
 	}
 
 	return driver.Operation{
 		CommandFn:         ct.command,
 		ProcessResponseFn: ct.processResponse,
-		RetryMode:         ct.retry,
+		RetryMode:         ct.Retry,
 		Type:              driver.Write,
-		Client:            ct.session,
-		Clock:             ct.clock,
-		CommandMonitor:    ct.monitor,
-		Crypt:             ct.crypt,
-		Database:          ct.database,
-		Deployment:        ct.deployment,
-		MaxTime:           ct.maxTime,
-		Selector:          ct.selector,
-		WriteConcern:      ct.writeConcern,
-		ServerAPI:         ct.serverAPI,
+		Client:            ct.Session,
+		Clock:             ct.Clock,
+		CommandMonitor:    ct.Monitor,
+		Crypt:             ct.Crypt,
+		Database:          "admin",
+		Deployment:        ct.Deployment,
+		MaxTime:           ct.MaxTime,
+		Selector:          ct.Selector,
+		WriteConcern:      ct.WriteConcern,
+		ServerAPI:         ct.ServerAPI,
 		Name:              driverutil.CommitTransactionOp,
 	}.Execute(ctx)
 
 }
 
 func (ct *CommitTransaction) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
-
 	dst = bsoncore.AppendInt32Element(dst, "commitTransaction", 1)
-	if ct.recoveryToken != nil {
-		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.recoveryToken)
+	if ct.RecoveryToken != nil {
+		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.RecoveryToken)
 	}
 	return dst, nil
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (ct *CommitTransaction) MaxTime(maxTime *time.Duration) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.maxTime = maxTime
-	return ct
-}
-
-// RecoveryToken sets the recovery token to use when committing or aborting a sharded transaction.
-func (ct *CommitTransaction) RecoveryToken(recoveryToken bsoncore.Document) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.recoveryToken = recoveryToken
-	return ct
-}
-
-// Session sets the session for this operation.
-func (ct *CommitTransaction) Session(session *session.Client) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.session = session
-	return ct
-}
-
-// ClusterClock sets the cluster clock for this operation.
-func (ct *CommitTransaction) ClusterClock(clock *session.ClusterClock) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.clock = clock
-	return ct
-}
-
-// CommandMonitor sets the monitor to use for APM events.
-func (ct *CommitTransaction) CommandMonitor(monitor *event.CommandMonitor) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.monitor = monitor
-	return ct
-}
-
-// Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (ct *CommitTransaction) Crypt(crypt driver.Crypt) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.crypt = crypt
-	return ct
-}
-
-// Database sets the database to run this operation against.
-func (ct *CommitTransaction) Database(database string) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.database = database
-	return ct
-}
-
-// Deployment sets the deployment to use for this operation.
-func (ct *CommitTransaction) Deployment(deployment driver.Deployment) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.deployment = deployment
-	return ct
-}
-
-// ServerSelector sets the selector used to retrieve a server.
-func (ct *CommitTransaction) ServerSelector(selector description.ServerSelector) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.selector = selector
-	return ct
-}
-
-// WriteConcern sets the write concern for this operation.
-func (ct *CommitTransaction) WriteConcern(writeConcern *writeconcern.WriteConcern) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.writeConcern = writeConcern
-	return ct
-}
-
-// Retry enables retryable mode for this operation. Retries are handled automatically in driver.Operation.Execute based
-// on how the operation is set.
-func (ct *CommitTransaction) Retry(retry driver.RetryMode) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.retry = &retry
-	return ct
-}
-
-// ServerAPI sets the server API version for this operation.
-func (ct *CommitTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.serverAPI = serverAPI
-	return ct
 }

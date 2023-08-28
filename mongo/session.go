@@ -293,10 +293,20 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Aborting = true
-	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
-		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
-		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
-		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).Execute(ctx)
+
+	retry := driver.RetryOncePerCommand
+	op := &operation.AbortTransaction{
+		Session:       s.clientSession,
+		Clock:         s.client.clock,
+		Deployment:    s.deployment,
+		WriteConcern:  s.clientSession.CurrentWc,
+		Selector:      selector,
+		Retry:         &retry,
+		Monitor:       s.client.monitor,
+		RecoveryToken: bsoncore.Document(s.clientSession.RecoveryToken),
+		ServerAPI:     s.client.serverAPI,
+	}
+	_ = op.Execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
@@ -324,11 +334,18 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Committing = true
-	op := operation.NewCommitTransaction().
-		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
-		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
-		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
-		ServerAPI(s.client.serverAPI).MaxTime(s.clientSession.CurrentMct)
+
+	retry := driver.RetryOncePerCommand
+	op := &operation.CommitTransaction{
+		Session:      s.clientSession,
+		Clock:        s.client.clock,
+		Deployment:   s.deployment,
+		WriteConcern: s.clientSession.CurrentWc,
+		Selector:     selector,
+		Retry:        &retry,
+		ServerAPI:    s.client.serverAPI,
+		MaxTime:      s.clientSession.CurrentMct,
+	}
 
 	err = op.Execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
