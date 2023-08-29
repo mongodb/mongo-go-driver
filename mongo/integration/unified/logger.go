@@ -8,7 +8,6 @@ package unified
 
 import (
 	"context"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
@@ -30,7 +29,6 @@ type Logger struct {
 }
 
 func newLogger(olm *observeLogMessages, bufSize int, ignoreMessages []*logMessage) *Logger {
-	fmt.Println("bufSize: ", bufSize)
 	if olm == nil {
 		return nil
 	}
@@ -49,9 +47,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	if log.logQueue == nil {
 		return
 	}
-
-	//fmt.Println("ignore list", log.ignoreMessages)
-	//fmt.Println("log message: ", logMessage)
 
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
@@ -74,8 +69,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		}
 	}
 
-	fmt.Println("incoming: ", level, msg)
-
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
@@ -86,8 +79,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}
-
-	fmt.Println("  sent")
 
 	log.lastOrder++
 }
