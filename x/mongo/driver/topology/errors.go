@@ -70,12 +70,12 @@ func (e ServerSelectionError) Unwrap() error {
 
 // WaitQueueTimeoutError represents a timeout when requesting a connection from the pool
 type WaitQueueTimeoutError struct {
-	Wrapped                  error
-	pinnedConnections        *pinnedConnections
-	maxPoolSize              uint64
-	totalConnectionCount     int
-	availableConnectionCount int
-	waitDuration             time.Duration
+	Wrapped              error
+	pinnedConnections    *pinnedConnections
+	maxPoolSize          uint64
+	totalConnections     int
+	availableConnections int
+	waitDuration         time.Duration
 }
 
 type pinnedConnections struct {
@@ -102,18 +102,18 @@ func (w WaitQueueTimeoutError) Error() string {
 		)
 	}
 
-	msg := fmt.Sprintf("%s; maxPoolSize: %d, ", errorMsg, w.maxPoolSize)
+	msg := fmt.Sprintf("%s; total connections: %d, maxPoolSize: %d, ", errorMsg, w.totalConnections, w.maxPoolSize)
 	if pinnedConnections := w.pinnedConnections; pinnedConnections != nil {
-		openConnectionCount := uint64(w.totalConnectionCount) -
-			(*pinnedConnections).cursorConnections -
-			(*pinnedConnections).transactionConnections
+		openConnectionCount := uint64(w.totalConnections) -
+			pinnedConnections.cursorConnections -
+			pinnedConnections.transactionConnections
 		msg += fmt.Sprintf("connections in use by cursors: %d, connections in use by transactions: %d, connections in use by other operations: %d, ",
-			(*pinnedConnections).cursorConnections,
-			(*pinnedConnections).transactionConnections,
+			pinnedConnections.cursorConnections,
+			pinnedConnections.transactionConnections,
 			openConnectionCount,
 		)
 	}
-	msg += fmt.Sprintf("idle connections: %d, wait duration: %s", w.availableConnectionCount, w.waitDuration.String())
+	msg += fmt.Sprintf("idle connections: %d, wait duration: %s", w.availableConnections, w.waitDuration.String())
 	return msg
 }
 

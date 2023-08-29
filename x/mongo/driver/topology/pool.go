@@ -639,11 +639,11 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 		}
 
 		err := WaitQueueTimeoutError{
-			Wrapped:                  ctx.Err(),
-			maxPoolSize:              p.maxSize,
-			totalConnectionCount:     p.totalConnectionCount(),
-			availableConnectionCount: p.availableConnectionCount(),
-			waitDuration:             duration,
+			Wrapped:              ctx.Err(),
+			maxPoolSize:          p.maxSize,
+			totalConnections:     p.totalConnectionCount(),
+			availableConnections: p.availableConnectionCount(),
+			waitDuration:         duration,
 		}
 		if p.loadBalanced {
 			err.pinnedConnections = &pinnedConnections{
