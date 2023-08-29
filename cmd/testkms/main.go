@@ -24,8 +24,8 @@ var datakeyopts = map[string]primitive.M{
 		"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
 	},
 	"azure": bson.M{
-		"keyVaultEndpoint": "https://keyvault-drivers-2411.vault.azure.net/keys/",
-		"keyName":          "KEY-NAME",
+		"keyVaultEndpoint": "",
+		"keyName":          "",
 	},
 	"gcp": bson.M{
 		"projectId": "devprod-drivers",
@@ -53,6 +53,18 @@ func main() {
 	default:
 		ok = true
 	}
+	azurekms_key_name := os.Getenv("AZUREKMS_KEY_NAME")
+	azurekms_key_vault_endpoint := os.Getenv("AZUREKMS_KEY_VAULT_ENDPOINT")
+	if provider == "azure" {
+		if azurekms_key_name == "" {
+			fmt.Println("ERROR: Please set required AZUREKMS_KEY_NAME environment variable.")
+			ok = false
+		}
+		if azurekms_key_vault_endpoint == "" {
+			fmt.Println("ERROR: Please set required AZUREKMS_KEY_VAULT_ENDPOINT environment variable.")
+			ok = false
+		}
+	}
 	if !ok {
 		providers := make([]string, 0, len(datakeyopts))
 		for p := range datakeyopts {
@@ -63,6 +75,8 @@ func main() {
 		fmt.Println("- MONGODB_URI as a MongoDB URI. Example: 'mongodb://localhost:27017'")
 		fmt.Println("- EXPECT_ERROR as an optional expected error substring.")
 		fmt.Println("- PROVIDER as a KMS provider, which supports:", strings.Join(providers, ", "))
+		fmt.Println("- AZUREKMS_KEY_NAME as the Azure key name. Required if PROVIDER=azure.")
+		fmt.Println("- AZUREKMS_KEY_VAULT_ENDPOINT as the Azure key name. Required if PROVIDER=azure.")
 		os.Exit(1)
 	}
 
