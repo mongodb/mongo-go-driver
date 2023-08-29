@@ -7,6 +7,9 @@
 package unified
 
 import (
+	"context"
+	"fmt"
+
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -20,20 +23,23 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
-	lastOrder int
-	logQueue  chan orderedLogMessage
-	bufSize   int
+	lastOrder      int
+	logQueue       chan orderedLogMessage
+	bufSize        int
+	ignoreMessages []*logMessage
 }
 
-func newLogger(olm *observeLogMessages, bufSize int) *Logger {
+func newLogger(olm *observeLogMessages, bufSize int, ignoreMessages []*logMessage) *Logger {
+	fmt.Println("bufSize: ", bufSize)
 	if olm == nil {
 		return nil
 	}
 
 	return &Logger{
-		lastOrder: 1,
-		logQueue:  make(chan orderedLogMessage, bufSize),
-		bufSize:   bufSize,
+		lastOrder:      1,
+		logQueue:       make(chan orderedLogMessage, bufSize),
+		bufSize:        bufSize,
+		ignoreMessages: ignoreMessages,
 	}
 }
 
@@ -44,7 +50,8 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		return
 	}
 
-	defer func() { log.lastOrder++ }()
+	//fmt.Println("ignore list", log.ignoreMessages)
+	//fmt.Println("log message: ", logMessage)
 
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
@@ -61,17 +68,28 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		panic(err)
 	}
 
+	for _, ignoreMessage := range log.ignoreMessages {
+		if err := verifyLogMatch(context.Background(), ignoreMessage, logMessage); err == nil {
+			return
+		}
+	}
+
+	fmt.Println("incoming: ", level, msg)
+
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
 		order:      log.lastOrder + 1,
-		logMessage: logMessage,
-	}
+		logMessage: logMessage}
 
-	// If the order has reached the buffer size, then close the channe.
+	// If the order has reached the buffer size, then close the channel.
 	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}
+
+	fmt.Println("  sent")
+
+	log.lastOrder++
 }
 
 // Error implements the logger.Sink interface's "Error" method for printing log

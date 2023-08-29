@@ -106,7 +106,10 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	}
 
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
-		clientLogger := newLogger(olm, expectedLogMessageCount(ctx))
+		expectedLogMessagesCount := expectedLogMessagesCount(ctx, entityOptions.ID)
+		ignoreLogMessages := ignoreLogMessages(ctx, entityOptions.ID)
+
+		clientLogger := newLogger(olm, expectedLogMessagesCount, ignoreLogMessages)
 
 		wrap := func(str string) options.LogLevel {
 			return options.LogLevel(logger.ParseLevel(str))

@@ -1023,10 +1023,10 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
-		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+		logServerMessage(s, logger.TopologyServerHeartbeatSucceeded,
 			logger.KeyAwaited, await,
 			logger.KeyDurationMS, duration.Milliseconds(),
-			logger.KeyReply, desc)
+			logger.KeyReply, desc.String())
 	}
 }
 
