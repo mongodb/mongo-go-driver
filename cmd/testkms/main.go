@@ -64,6 +64,8 @@ func main() {
 			fmt.Println("ERROR: Please set required AZUREKMS_KEY_VAULT_ENDPOINT environment variable.")
 			ok = false
 		}
+		datakeyopts["azure"]["keyName"] = azurekms_key_name
+		datakeyopts["azure"]["keyVaultEndpoint"] = azurekms_key_vault_endpoint
 	}
 	if !ok {
 		providers := make([]string, 0, len(datakeyopts))
