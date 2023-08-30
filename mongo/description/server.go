@@ -64,6 +64,7 @@ type Server struct {
 	TopologyVersion          *TopologyVersion
 	Kind                     ServerKind
 	WireVersion              *VersionRange
+	Ok                       int32
 }
 
 // NewServer creates a new server description from the given hello command response.
@@ -229,6 +230,8 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				desc.LastError = errors.New("not ok")
 				return desc
 			}
+
+			desc.Ok = okay
 		case "passives":
 			var err error
 			desc.Passives, err = stringSliceFromRawElement(element)

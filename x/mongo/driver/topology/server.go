@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -1023,10 +1024,12 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
+		descRaw, _ := bson.Marshal(desc)
+
 		logServerMessage(s, logger.TopologyServerHeartbeatSucceeded,
 			logger.KeyAwaited, await,
 			logger.KeyDurationMS, duration.Milliseconds(),
-			logger.KeyReply, desc.String())
+			logger.KeyReply, bson.Raw(descRaw).String())
 	}
 }
 
