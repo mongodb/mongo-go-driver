@@ -53,19 +53,19 @@ func main() {
 	default:
 		ok = true
 	}
-	azurekms_key_name := os.Getenv("AZUREKMS_KEY_NAME")
-	azurekms_key_vault_endpoint := os.Getenv("AZUREKMS_KEY_VAULT_ENDPOINT")
+	azureKmsKeyName := os.Getenv("AZUREKMS_KEY_NAME")
+	azureKmsKeyVaultEndpoint := os.Getenv("AZUREKMS_KEY_VAULT_ENDPOINT")
 	if provider == "azure" {
-		if azurekms_key_name == "" {
+		if azureKmsKeyName == "" {
 			fmt.Println("ERROR: Please set required AZUREKMS_KEY_NAME environment variable.")
 			ok = false
 		}
-		if azurekms_key_vault_endpoint == "" {
+		if azureKmsKeyVaultEndpoint == "" {
 			fmt.Println("ERROR: Please set required AZUREKMS_KEY_VAULT_ENDPOINT environment variable.")
 			ok = false
 		}
-		datakeyopts["azure"]["keyName"] = azurekms_key_name
-		datakeyopts["azure"]["keyVaultEndpoint"] = azurekms_key_vault_endpoint
+		datakeyopts["azure"]["keyName"] = azureKmsKeyName
+		datakeyopts["azure"]["keyVaultEndpoint"] = azureKmsKeyVaultEndpoint
 	}
 	if !ok {
 		providers := make([]string, 0, len(datakeyopts))
