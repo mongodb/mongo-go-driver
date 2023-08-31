@@ -2231,7 +2231,7 @@ tasks:
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
           echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
           export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -2253,7 +2253,7 @@ tasks:
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' \
+          PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' \
             ./testkms
 
   - name: "test-fuzz"
@@ -2353,8 +2353,8 @@ axes:
           GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
       - id: "rhel80-64-go-1-20"
-        display_name: "RHEL 8.0"
-        run_on: rhel80-build
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2385,8 +2385,8 @@ axes:
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
       - id: "rhel80-64-go-1-20"
-        display_name: "RHEL 8.0"
-        run_on: rhel80-test 
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2403,8 +2403,8 @@ axes:
     display_name: OS
     values:
       - id: "rhel80-large-go-1-20"
-        display_name: "RHEL 8.0"
-        run_on: rhel80-large
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2412,8 +2412,8 @@ axes:
     display_name: OS
     values:
       - id: "rhel80-go-1-20"
-        display_name: "RHEL 8.0"
-        run_on: rhel80-small
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-small
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2636,7 +2636,7 @@ buildvariants:
   - name: static-analysis
     display_name: "Static Analysis"
     run_on:
-      - rhel80-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2645,7 +2645,7 @@ buildvariants:
   - name: perf
     display_name: "Performance"
     run_on:
-      - rhel80-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2654,7 +2654,7 @@ buildvariants:
   - name: build-check
     display_name: "Compile Only Checks"
     run_on:
-      - rhel80-test
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2663,7 +2663,7 @@ buildvariants:
   - name: atlas-test
     display_name: "Atlas test"
     run_on:
-      - rhel80-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2672,7 +2672,7 @@ buildvariants:
   - name: atlas-data-lake-test
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel80-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
