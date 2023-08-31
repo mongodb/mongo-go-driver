@@ -338,19 +338,14 @@ func filterDeprioritizedServers(candidates, deprioritized []description.Server) 
 		dpaSet[srv.Addr] = &deprioritized[i]
 	}
 
-	allowedIndexes := make([]int, 0, len(candidates))
+	allowed := []description.Server{}
 
 	// Iterate over the candidates and append them to the allowdIndexes slice if
 	// they are not in the deprioritizedServers list.
-	for i, candidate := range candidates {
-		if srv := dpaSet[candidate.Addr]; srv == nil || !srv.Equal(candidate) {
-			allowedIndexes = append(allowedIndexes, i)
+	for _, candidate := range candidates {
+		if srv, ok := dpaSet[candidate.Addr]; !ok || !srv.Equal(candidate) {
+			allowed = append(allowed, candidate)
 		}
-	}
-
-	allowed := make([]description.Server, len(allowedIndexes))
-	for i, idx := range allowedIndexes {
-		allowed[i] = candidates[idx]
 	}
 
 	// If nothing is allowed, then all available servers must have been
