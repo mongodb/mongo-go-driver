@@ -711,7 +711,7 @@ func TestClient(t *testing.T) {
 			err := mt.Client.Ping(ctx, nil)
 			cancel()
 			assert.NotNil(mt, err, "expected Ping to return an error")
-			assert.True(mt, mongo.IsTimeout(err), "expected a timeout error: got %v", err)
+			assert.True(mt, mongo.IsTimeout(err), "expected a timeout error, got: %v", err)
 		}
 
 		// Assert that the Ping timeouts result in no connections being closed.
