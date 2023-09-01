@@ -21,3 +21,7 @@ internal/test/faas/awslambda/events/event.json
 # Ignore compiled binaries from the compilecheck
 internal/test/compilecheck/compilecheck
 internal/test/compilecheck/compilecheck.so
+
+# Ignore secrets files
+secrets-expansion.yml
+secrets-export.sh
