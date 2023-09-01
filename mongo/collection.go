@@ -846,42 +846,43 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(a.bsonOpts, a.registry)
 
-	op := operation.NewAggregate(pipelineArr).
-		Session(sess).
-		WriteConcern(wc).
-		ReadConcern(rc).
-		ReadPreference(a.readPreference).
-		CommandMonitor(a.client.monitor).
-		ServerSelector(selector).
-		ClusterClock(a.client.clock).
-		Database(a.db).
-		Collection(a.col).
-		Deployment(a.client.deployment).
-		Crypt(a.client.cryptFLE).
-		ServerAPI(a.client.serverAPI).
-		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout).
-		MaxTime(ao.MaxTime)
-
-	if ao.AllowDiskUse != nil {
-		op.AllowDiskUse(*ao.AllowDiskUse)
+	op := &operation.Aggregate{
+		Pipeline:       pipelineArr,
+		Session:        sess,
+		WriteConcern:   wc,
+		ReadConcern:    rc,
+		ReadPreference: a.readPreference,
+		Monitor:        a.client.monitor,
+		Selector:       selector,
+		Clock:          a.client.clock,
+		Database:       a.db,
+		Collection:     a.col,
+		Deployment:     a.client.deployment,
+		Crypt:          a.client.cryptFLE,
+		ServerAPI:      a.client.serverAPI,
+		HasOutputStage: hasOutputStage,
+		Timeout:        a.client.timeout,
+		MaxTime:        ao.MaxTime,
+		AllowDiskUse:   ao.AllowDiskUse,
+		Comment:        ao.Comment,
 	}
+
 	// ignore batchSize of 0 with $out
 	if ao.BatchSize != nil && !(*ao.BatchSize == 0 && hasOutputStage) {
-		op.BatchSize(*ao.BatchSize)
+		op.BatchSize = ao.BatchSize
 		cursorOpts.BatchSize = *ao.BatchSize
 	}
 	if ao.BypassDocumentValidation != nil && *ao.BypassDocumentValidation {
-		op.BypassDocumentValidation(*ao.BypassDocumentValidation)
+		op.BypassDocumentValidation = ao.BypassDocumentValidation
 	}
 	if ao.Collation != nil {
-		op.Collation(bsoncore.Document(ao.Collation.ToDocument()))
+		op.Collation = bsoncore.Document(ao.Collation.ToDocument())
 	}
 	if ao.MaxAwaitTime != nil {
 		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
 	}
 	if ao.Comment != nil {
-		op.Comment(*ao.Comment)
+		op.Comment = ao.Comment
 
 		commentVal, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
 		if err != nil {
@@ -897,14 +898,14 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		if err != nil {
 			return nil, err
 		}
-		op.Hint(hintVal)
+		op.Hint = hintVal
 	}
 	if ao.Let != nil {
 		let, err := marshal(ao.Let, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
-		op.Let(let)
+		op.Let = let
 	}
 	if ao.Custom != nil {
 		// Marshal all custom options before passing to the aggregate operation. Return
@@ -918,14 +919,14 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
-		op.CustomOptions(customOptions)
+		op.CustomOptions = customOptions
 	}
 
 	retry := driver.RetryNone
 	if a.retryRead && !hasOutputStage {
 		retry = driver.RetryOncePerCommand
 	}
-	op = op.Retry(retry)
+	op.Retry = &retry
 
 	err = op.Execute(a.ctx)
 	if err != nil {
@@ -980,15 +981,26 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	}
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
-		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
-		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(countOpts.MaxTime)
-	if countOpts.Collation != nil {
-		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
+	op := &operation.Aggregate{
+		Pipeline:       pipelineArr,
+		Session:        sess,
+		ReadConcern:    rc,
+		ReadPreference: coll.readPreference,
+		Monitor:        coll.client.monitor,
+		Selector:       selector,
+		Clock:          coll.client.clock,
+		Database:       coll.db.name,
+		Collection:     coll.name,
+		Deployment:     coll.client.deployment,
+		Crypt:          coll.client.cryptFLE,
+		ServerAPI:      coll.client.serverAPI,
+		Timeout:        coll.client.timeout,
+		MaxTime:        countOpts.MaxTime,
+		Comment:        countOpts.Comment,
 	}
-	if countOpts.Comment != nil {
-		op.Comment(*countOpts.Comment)
+
+	if countOpts.Collation != nil {
+		op.Collation = bsoncore.Document(countOpts.Collation.ToDocument())
 	}
 	if countOpts.Hint != nil {
 		if isUnorderedMap(countOpts.Hint) {
@@ -998,13 +1010,14 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		if err != nil {
 			return 0, err
 		}
-		op.Hint(hintVal)
+		op.Hint = hintVal
 	}
+
 	retry := driver.RetryNone
 	if coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
 	}
-	op = op.Retry(retry)
+	op.Retry = &retry
 
 	err = op.Execute(ctx)
 	if err != nil {

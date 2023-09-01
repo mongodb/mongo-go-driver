@@ -133,17 +133,26 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		return nil, cs.Err()
 	}
 
-	cs.aggregate = operation.NewAggregate(nil).
-		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
-		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
-		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
+	retry := driver.RetryNone
+	cs.aggregate = &operation.Aggregate{
+		ReadPreference: config.readPreference,
+		ReadConcern:    config.readConcern,
+		Deployment:     cs.client.deployment,
+		Clock:          cs.client.clock,
+		Monitor:        cs.client.monitor,
+		Session:        cs.sess,
+		Selector:       cs.selector,
+		Retry:          &retry,
+		ServerAPI:      cs.client.serverAPI,
+		Crypt:          config.crypt,
+		Timeout:        cs.client.timeout,
+	}
 
 	if cs.options.Collation != nil {
-		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
+		cs.aggregate.Collation = bsoncore.Document(cs.options.Collation.ToDocument())
 	}
 	if comment := cs.options.Comment; comment != nil {
-		cs.aggregate.Comment(*comment)
+		cs.aggregate.Comment = comment
 
 		commentVal, err := marshalValue(comment, cs.bsonOpts, cs.registry)
 		if err != nil {
@@ -152,7 +161,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.Comment = commentVal
 	}
 	if cs.options.BatchSize != nil {
-		cs.aggregate.BatchSize(*cs.options.BatchSize)
+		cs.aggregate.BatchSize = cs.options.BatchSize
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
@@ -172,7 +181,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
-		cs.aggregate.CustomOptions(customOptions)
+		cs.aggregate.CustomOptions = customOptions
 	}
 	if cs.options.CustomPipeline != nil {
 		// Marshal all custom pipeline options before building pipeline slice. Return
@@ -192,11 +201,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	switch cs.streamType {
 	case ClientStream:
-		cs.aggregate.Database("admin")
+		cs.aggregate.Database = "admin"
 	case DatabaseStream:
-		cs.aggregate.Database(config.databaseName)
+		cs.aggregate.Database = config.databaseName
 	case CollectionStream:
-		cs.aggregate.Collection(config.collectionName).Database(config.databaseName)
+		cs.aggregate.Collection = config.collectionName
+		cs.aggregate.Database = config.databaseName
 	default:
 		closeImplicitSession(cs.sess)
 		return nil, fmt.Errorf("must supply a valid StreamType in config, instead of %v", cs.streamType)
@@ -223,7 +233,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	}
 	var pipelineArr bsoncore.Document
 	pipelineArr, cs.err = cs.pipelineToBSON()
-	cs.aggregate.Pipeline(pipelineArr)
+	cs.aggregate.Pipeline = pipelineArr
 
 	if cs.err = cs.executeOperation(ctx, false); cs.err != nil {
 		closeImplicitSession(cs.sess)
@@ -254,7 +264,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	defer conn.Close()
 	cs.wireVersion = conn.Description().WireVersion
 
-	cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
+	cs.aggregate.Deployment = cs.createOperationDeployment(server, conn)
 
 	if resuming {
 		cs.replaceOptions(cs.wireVersion)
@@ -274,7 +284,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		if plArr, cs.err = cs.pipelineToBSON(); cs.err != nil {
 			return cs.Err()
 		}
-		cs.aggregate.Pipeline(plArr)
+		cs.aggregate.Pipeline = plArr
 	}
 
 	// If no deadline is set on the passed-in context, cs.client.timeout is set, and context is not already
@@ -333,7 +343,7 @@ AggregateExecuteLoop:
 			cs.wireVersion = conn.Description().WireVersion
 
 			// Reset deployment.
-			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
+			cs.aggregate.Deployment = cs.createOperationDeployment(server, conn)
 		default:
 			// Do not retry if error is not a driver error.
 			break AggregateExecuteLoop

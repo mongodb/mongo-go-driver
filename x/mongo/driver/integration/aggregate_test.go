@@ -81,9 +81,17 @@ func TestAggregate(t *testing.T) {
 		noerr(t, err)
 
 		clearChannels(started, succeeded, failed)
-		op := operation.NewAggregate(bsoncore.BuildDocumentFromElements(nil)).
-			Collection(collName).Database(dbName).Deployment(top).ServerSelector(description.WriteSelector()).
-			CommandMonitor(monitor).BatchSize(2)
+
+		var batchSize int32 = 2
+		op := &operation.Aggregate{
+			Pipeline:   bsoncore.BuildDocumentFromElements(nil),
+			Collection: collName,
+			Database:   dbName,
+			Deployment: top,
+			Selector:   description.WriteSelector(),
+			Monitor:    monitor,
+			BatchSize:  &batchSize,
+		}
 		err = op.Execute(context.Background())
 		noerr(t, err)
 		batchCursor, err := op.Result(driver.CursorOptions{MaxTimeMS: 10, BatchSize: 2, CommandMonitor: monitor})
@@ -124,21 +132,28 @@ func TestAggregate(t *testing.T) {
 		wc := writeconcern.New(writeconcern.WMajority())
 		autoInsertDocs(t, wc, ds...)
 
-		op := operation.NewAggregate(bsoncore.BuildArray(nil,
-			bsoncore.BuildDocumentValue(
-				bsoncore.BuildDocumentElement(nil,
-					"$match", bsoncore.BuildDocumentElement(nil,
-						"_id", bsoncore.AppendInt32Element(nil, "$gt", 2),
+		var batchSize int32 = 2
+		op := &operation.Aggregate{
+			Pipeline: bsoncore.BuildArray(nil,
+				bsoncore.BuildDocumentValue(
+					bsoncore.BuildDocumentElement(nil,
+						"$match", bsoncore.BuildDocumentElement(nil,
+							"_id", bsoncore.AppendInt32Element(nil, "$gt", 2),
+						),
+					),
+				),
+				bsoncore.BuildDocumentValue(
+					bsoncore.BuildDocumentElement(nil,
+						"$sort", bsoncore.AppendInt32Element(nil, "_id", 1),
 					),
 				),
 			),
-			bsoncore.BuildDocumentValue(
-				bsoncore.BuildDocumentElement(nil,
-					"$sort", bsoncore.AppendInt32Element(nil, "_id", 1),
-				),
-			),
-		)).Collection(integtest.ColName(t)).Database(dbName).Deployment(integtest.Topology(t)).
-			ServerSelector(description.WriteSelector()).BatchSize(2)
+			Collection: integtest.ColName(t),
+			Database:   dbName,
+			Deployment: integtest.Topology(t),
+			Selector:   description.WriteSelector(),
+			BatchSize:  &batchSize,
+		}
 		err := op.Execute(context.Background())
 		noerr(t, err)
 		cursor, err := op.Result(driver.CursorOptions{BatchSize: 2})
@@ -172,8 +187,15 @@ func TestAggregate(t *testing.T) {
 		wc := writeconcern.New(writeconcern.WMajority())
 		autoInsertDocs(t, wc, ds...)
 
-		op := operation.NewAggregate(bsoncore.BuildArray(nil)).Collection(integtest.ColName(t)).Database(dbName).
-			Deployment(integtest.Topology(t)).ServerSelector(description.WriteSelector()).AllowDiskUse(true)
+		allowDiskUse := true
+		op := &operation.Aggregate{
+			Pipeline:     bsoncore.BuildArray(nil),
+			Collection:   integtest.ColName(t),
+			Database:     dbName,
+			Deployment:   integtest.Topology(t),
+			Selector:     description.WriteSelector(),
+			AllowDiskUse: &allowDiskUse,
+		}
 		err := op.Execute(context.Background())
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)
