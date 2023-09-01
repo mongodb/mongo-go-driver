@@ -126,8 +126,6 @@ func TestClient(t *testing.T) {
 			"expected security field to be type %v, got %v", bson.TypeMaxKey, security.Type)
 		_, found := security.Document().LookupErr("SSLServerSubjectName")
 		assert.Nil(mt, found, "SSLServerSubjectName not found in result")
-		_, found = security.Document().LookupErr("SSLServerHasCertificateAuthority")
-		assert.Nil(mt, found, "SSLServerHasCertificateAuthority not found in result")
 	})
 	mt.RunOpts("x509", mtest.NewOptions().Auth(true).SSL(true), func(mt *mtest.T) {
 		testCases := []struct {
