@@ -105,6 +105,7 @@ func (ss serverSorter) Less(i, j int) bool {
 }
 
 func compareHosts(t *testing.T, received []description.Server, expected []string) {
+	t.Helper()
 	if len(received) != len(expected) {
 		t.Fatalf("Number of hosts in topology does not match expected value. Got %v; want %v.", len(received), len(expected))
 	}

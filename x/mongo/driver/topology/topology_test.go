@@ -693,6 +693,212 @@ func TestTopologyConstruction(t *testing.T) {
 	})
 }
 
+type mockLogSink struct {
+	msgs []string
+}
+
+func (s *mockLogSink) Info(level int, msg string, keysAndValues ...interface{}) {
+	s.msgs = append(s.msgs, msg)
+}
+func (*mockLogSink) Error(error, string, ...interface{}) {
+	// Do nothing.
+}
+
+// Note: SRV connection strings are intentionally untested, since initial
+// lookup responses cannot be easily mocked.
+func TestTopologyConstructionLogging(t *testing.T) {
+	sink := &mockLogSink{}
+	loggerOptions := options.
+		Logger().
+		SetSink(sink).
+		SetComponentLevel(options.LogComponentTopology, options.LogLevelInfo)
+	t.Run("CosmosDB URIs", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			uri  string
+			msgs []string
+		}{
+			{
+				name: "normal",
+				uri:  "mongodb://a.mongo.cosmos.azure.com:19555/",
+				msgs: []string{CosmosDBLog},
+			},
+			{
+				name: "multiple hosts",
+				uri:  "mongodb://a.mongo.cosmos.azure.com:1955,b.mongo.cosmos.azure.com:19555/",
+				msgs: []string{CosmosDBLog},
+			},
+			{
+				name: "case-insensitive matching",
+				uri:  "mongodb://a.MONGO.COSMOS.AZURE.COM:19555/",
+				msgs: []string{},
+			},
+			{
+				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
+				uri:  "mongodb://a.example.com:27017,b.mongo.cosmos.azure.com:19555/",
+				msgs: []string{CosmosDBLog},
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				defer func() {
+					sink.msgs = []string{}
+				}()
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				require.Nil(t, err, "error constructing topology config: %v", err)
+
+				topo, err := New(cfg)
+				require.Nil(t, err, "topology.New error: %v", err)
+
+				err = topo.Connect()
+				require.Nil(t, err, "Connect error: %v", err)
+
+				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+			})
+		}
+	})
+	t.Run("DocumentDB URIs", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			uri  string
+			msgs []string
+		}{
+			{
+				name: "normal",
+				uri:  "mongodb://a.docdb.amazonaws.com:27017/",
+				msgs: []string{DoumentDBLog},
+			},
+			{
+				name: "normal",
+				uri:  "mongodb://a.docdb-elastic.amazonaws.com:27017/",
+				msgs: []string{DoumentDBLog},
+			},
+			{
+				name: "multiple hosts",
+				uri:  "mongodb://a.docdb.amazonaws.com:27017,a.docdb-elastic.amazonaws.com:27017/",
+				msgs: []string{DoumentDBLog},
+			},
+			{
+				name: "case-insensitive matching",
+				uri:  "mongodb://a.DOCDB.AMAZONAWS.COM:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "case-insensitive matching",
+				uri:  "mongodb://a.DOCDB-ELASTIC.AMAZONAWS.COM:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
+				uri:  "mongodb://a.example.com:27017,b.docdb.amazonaws.com:27017/",
+				msgs: []string{DoumentDBLog},
+			},
+			{
+				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
+				uri:  "mongodb://a.example.com:27017,b.docdb-elastic.amazonaws.com:27017/",
+				msgs: []string{DoumentDBLog},
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				defer func() {
+					sink.msgs = []string{}
+				}()
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				require.Nil(t, err, "error constructing topology config: %v", err)
+
+				topo, err := New(cfg)
+				require.Nil(t, err, "topology.New error: %v", err)
+
+				err = topo.Connect()
+				require.Nil(t, err, "Connect error: %v", err)
+
+				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+			})
+		}
+	})
+	t.Run("Mixing CosmosDB and DocumentDB URIs", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			uri  string
+			msgs []string
+		}{
+			{
+				name: "Mixing hosts",
+				uri:  "mongodb://a.mongo.cosmos.azure.com:19555,a.docdb.amazonaws.com:27017/",
+				msgs: []string{CosmosDBLog, DoumentDBLog},
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				defer func() {
+					sink.msgs = []string{}
+				}()
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				require.Nil(t, err, "error constructing topology config: %v", err)
+
+				topo, err := New(cfg)
+				require.Nil(t, err, "topology.New error: %v", err)
+
+				err = topo.Connect()
+				require.Nil(t, err, "Connect error: %v", err)
+
+				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+			})
+		}
+	})
+	t.Run("genuine URIs", func(t *testing.T) {
+		testCases := []struct {
+			name string
+			uri  string
+			msgs []string
+		}{
+			{
+				name: "normal",
+				uri:  "mongodb://a.example.com:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "multiple hosts",
+				uri:  "mongodb://a.example.com:27017,b.example.com:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "unexpected suffix",
+				uri:  "mongodb://a.mongo.cosmos.azure.com.tld:19555/",
+				msgs: []string{},
+			},
+			{
+				name: "unexpected suffix",
+				uri:  "mongodb://a.docdb.amazonaws.com.tld:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "unexpected suffix",
+				uri:  "mongodb://a.docdb-elastic.amazonaws.com.tld:27017/",
+				msgs: []string{},
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				defer func() {
+					sink.msgs = []string{}
+				}()
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				require.Nil(t, err, "error constructing topology config: %v", err)
+
+				topo, err := New(cfg)
+				require.Nil(t, err, "topology.New error: %v", err)
+
+				err = topo.Connect()
+				require.Nil(t, err, "Connect error: %v", err)
+
+				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+			})
+		}
+	})
+}
+
 type inWindowServer struct {
 	Address  string `json:"address"`
 	Type     string `json:"type"`

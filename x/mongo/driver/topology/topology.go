@@ -69,6 +69,63 @@ const (
 	SingleMode
 )
 
+type hostEnv int
+
+const (
+	genuine hostEnv = iota
+	cosmosDB
+	doumentDB
+)
+
+var (
+	CosmosDBLog  = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
+	DoumentDBLog = `You appear to be connected to a DoumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
+)
+
+type envMap struct {
+	host string
+	env  hostEnv
+}
+
+type hostLogger struct {
+	logger *logger.Logger
+	envs   []envMap
+	logs   map[hostEnv]*string
+}
+
+func newHostLogger(l *logger.Logger) *hostLogger {
+	return &hostLogger{
+		logger: l,
+		envs: []envMap{
+			{".cosmos.azure.com", cosmosDB},
+			{".docdb.amazonaws.com", doumentDB},
+			{".docdb-elastic.amazonaws.com", doumentDB},
+		},
+		logs: map[hostEnv]*string{
+			cosmosDB:  &CosmosDBLog,
+			doumentDB: &DoumentDBLog,
+		},
+	}
+}
+
+func (l *hostLogger) log(host string) {
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	for _, em := range l.envs {
+		if strings.HasSuffix(host, em.host) {
+			if log, ok := l.logs[em.env]; ok && log != nil {
+				l.logger.Print(logger.LevelInfo,
+					logger.ComponentTopology,
+					*log,
+				)
+				l.logs[em.env] = nil
+			}
+			break
+		}
+	}
+}
+
 // Topology represents a MongoDB deployment.
 type Topology struct {
 	state int64
@@ -321,13 +378,14 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
+	uri, err := url.Parse(t.cfg.URI)
+	if err != nil {
+		return err
+	}
+	parsedHosts := strings.Split(uri.Host, ",")
 	if t.pollingRequired {
-		uri, err := url.Parse(t.cfg.URI)
-		if err != nil {
-			return err
-		}
 		// sanity check before passing the hostname to resolver
-		if parsedHosts := strings.Split(uri.Host, ","); len(parsedHosts) != 1 {
+		if len(parsedHosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
 		_, _, err = net.SplitHostPort(uri.Host)
@@ -338,6 +396,11 @@ func (t *Topology) Connect() error {
 		}
 		go t.pollSRVRecords(uri.Host)
 		t.pollingwg.Add(1)
+	} else {
+		logger := newHostLogger(t.cfg.logger)
+		for _, host := range parsedHosts {
+			logger.log(host)
+		}
 	}
 
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
@@ -817,10 +880,12 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		})
 	}
 	// Add all added hosts until the number of servers reaches srvMaxHosts.
+	logger := newHostLogger(t.cfg.logger)
 	for _, a := range diff.Added {
 		if t.cfg.SRVMaxHosts > 0 && len(t.servers) >= t.cfg.SRVMaxHosts {
 			break
 		}
+		logger.log(a)
 		addr := address.Address(a).Canonicalize()
 		_ = t.addServer(addr)
 		t.fsm.addServer(addr)
