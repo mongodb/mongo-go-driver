@@ -393,7 +393,7 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val 
 
 func isZero(v reflect.Value, omitZeroStruct bool) bool {
 	kind := v.Kind()
-	if (kind != reflect.Pointer || !v.IsNil()) && v.Type().Implements(tZeroer) {
+	if (kind != reflect.Ptr || !v.IsNil()) && v.Type().Implements(tZeroer) {
 		return v.Interface().(Zeroer).IsZero()
 	}
 	if kind == reflect.Struct {
