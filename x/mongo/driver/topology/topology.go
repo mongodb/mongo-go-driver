@@ -78,8 +78,8 @@ const (
 )
 
 var (
-	CosmosDBLog  = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
-	DoumentDBLog = `You appear to be connected to a DoumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
+	cosmosDBLog  = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
+	doumentDBLog = `You appear to be connected to a DoumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
 )
 
 type envMap struct {
@@ -102,8 +102,8 @@ func newHostLogger(l *logger.Logger) *hostLogger {
 			{".docdb-elastic.amazonaws.com", doumentDB},
 		},
 		logs: map[hostEnv]*string{
-			cosmosDB:  &CosmosDBLog,
-			doumentDB: &DoumentDBLog,
+			cosmosDB:  &cosmosDBLog,
+			doumentDB: &doumentDBLog,
 		},
 	}
 }
