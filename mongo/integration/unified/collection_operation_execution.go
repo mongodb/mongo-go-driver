@@ -1117,7 +1117,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		return nil, err
 	}
 
-	var name *string
+	searchIdxOpts := options.SearchIndexes()
 	var opts []*options.ListSearchIndexesOptions
 
 	elems, err := operation.Arguments.Elements()
@@ -1130,8 +1130,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 
 		switch key {
 		case "name":
-			n := val.StringValue()
-			name = &n
+			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
 			var opt options.AggregateOptions
 			err = bson.Unmarshal(val.Document(), &opt)
@@ -1146,7 +1145,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		}
 	}
 
-	_, err = coll.SearchIndexes().List(ctx, name, opts...)
+	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, opts...)
 	return newValueResult(bsontype.Null, nil, err), nil
 }
 

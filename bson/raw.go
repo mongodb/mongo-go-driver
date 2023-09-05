@@ -60,16 +60,17 @@ func (r Raw) LookupErr(key ...string) (RawValue, error) {
 // elements. If the document is not valid, the elements up to the invalid point will be returned
 // along with an error.
 func (r Raw) Elements() ([]RawElement, error) {
-	var relems []RawElement
-	if doc := bsoncore.Document(r); len(doc) > 0 {
-		elems, err := doc.Elements()
-		if err != nil {
-			return relems, err
-		}
-		relems = make([]RawElement, 0, len(elems))
-		for _, elem := range elems {
-			relems = append(relems, RawElement(elem))
-		}
+	doc := bsoncore.Document(r)
+	if len(doc) == 0 {
+		return nil, nil
+	}
+	elems, err := doc.Elements()
+	if err != nil {
+		return nil, err
+	}
+	relems := make([]RawElement, 0, len(elems))
+	for _, elem := range elems {
+		relems = append(relems, RawElement(elem))
 	}
 	return relems, nil
 }

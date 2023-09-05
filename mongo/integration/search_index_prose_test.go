@@ -45,17 +45,17 @@ func TestSearchIndexProse(t *testing.T) {
 
 		definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
 		searchName := "test-search-index"
-		model := mongo.SearchIndexModel{
+		opts := options.SearchIndexes().SetName(searchName)
+		index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
 			Definition: definition,
-			Name:       &searchName,
-		}
-		index, err := view.CreateOne(ctx, model)
+			Options:    opts,
+		})
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, &index)
+			cursor, err := view.List(ctx, opts)
 			require.NoError(mt, err, "failed to list")
 
 			if !cursor.Next(ctx) {
@@ -85,26 +85,26 @@ func TestSearchIndexProse(t *testing.T) {
 		view := mt.Coll.SearchIndexes()
 
 		definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
-		searchNames := []string{"test-search-index-1", "test-search-index-2"}
-		models := make([]mongo.SearchIndexModel, len(searchNames))
-		for i := range searchNames {
-			models[i] = mongo.SearchIndexModel{
+		models := []mongo.SearchIndexModel{
+			{
 				Definition: definition,
-				Name:       &searchNames[i],
-			}
+				Options:    options.SearchIndexes().SetName("test-search-index-1"),
+			},
+			{
+				Definition: definition,
+				Options:    options.SearchIndexes().SetName("test-search-index-2"),
+			},
 		}
 		indexes, err := view.CreateMany(ctx, models)
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
-		for _, searchName := range searchNames {
-			require.Contains(mt, indexes, searchName)
+		for _, model := range models {
+			require.Contains(mt, indexes, *model.Options.Name)
 		}
 
-		getDocument := func(index string) bson.Raw {
-			t.Helper()
-
+		getDocument := func(opts *options.SearchIndexesOptions) bson.Raw {
 			for {
-				cursor, err := view.List(ctx, &index)
+				cursor, err := view.List(ctx, opts)
 				require.NoError(mt, err, "failed to list")
 
 				if !cursor.Next(ctx) {
@@ -119,19 +119,19 @@ func TestSearchIndexProse(t *testing.T) {
 		}
 
 		var wg sync.WaitGroup
-		wg.Add(len(searchNames))
-		for i := range searchNames {
-			go func(name string) {
+		wg.Add(len(models))
+		for i := range models {
+			go func(opts *options.SearchIndexesOptions) {
 				defer wg.Done()
 
-				doc := getDocument(name)
+				doc := getDocument(opts)
 				require.NotNil(mt, doc, "got empty document")
-				assert.Equal(mt, name, doc.Lookup("name").StringValue(), "unmatched name")
+				assert.Equal(mt, *opts.Name, doc.Lookup("name").StringValue(), "unmatched name")
 				expected, err := bson.Marshal(definition)
 				require.NoError(mt, err, "failed to marshal definition")
 				actual := doc.Lookup("latestDefinition").Value
 				assert.Equal(mt, expected, actual, "unmatched definition")
-			}(searchNames[i])
+			}(models[i].Options)
 		}
 		wg.Wait()
 	})
@@ -146,17 +146,17 @@ func TestSearchIndexProse(t *testing.T) {
 
 		definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
 		searchName := "test-search-index"
-		model := mongo.SearchIndexModel{
+		opts := options.SearchIndexes().SetName(searchName)
+		index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
 			Definition: definition,
-			Name:       &searchName,
-		}
-		index, err := view.CreateOne(ctx, model)
+			Options:    opts,
+		})
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
 		var doc bson.Raw
 		for doc == nil {
-			cursor, err := view.List(ctx, &index)
+			cursor, err := view.List(ctx, opts)
 			require.NoError(mt, err, "failed to list")
 
 			if !cursor.Next(ctx) {
@@ -175,7 +175,7 @@ func TestSearchIndexProse(t *testing.T) {
 		err = view.DropOne(ctx, searchName)
 		require.NoError(mt, err, "failed to drop index")
 		for {
-			cursor, err := view.List(ctx, &index)
+			cursor, err := view.List(ctx, opts)
 			require.NoError(mt, err, "failed to list")
 
 			if !cursor.Next(ctx) {
@@ -196,19 +196,17 @@ func TestSearchIndexProse(t *testing.T) {
 
 		definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
 		searchName := "test-search-index"
-		model := mongo.SearchIndexModel{
+		opts := options.SearchIndexes().SetName(searchName)
+		index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
 			Definition: definition,
-			Name:       &searchName,
-		}
-		index, err := view.CreateOne(ctx, model)
+			Options:    opts,
+		})
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
-		getDocument := func(index string) bson.Raw {
-			t.Helper()
-
+		getDocument := func() bson.Raw {
 			for {
-				cursor, err := view.List(ctx, &index)
+				cursor, err := view.List(ctx, opts)
 				require.NoError(mt, err, "failed to list")
 
 				if !cursor.Next(ctx) {
@@ -222,14 +220,14 @@ func TestSearchIndexProse(t *testing.T) {
 			}
 		}
 
-		doc := getDocument(searchName)
+		doc := getDocument()
 		require.NotNil(mt, doc, "got empty document")
 		require.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
 
 		definition = bson.D{{"mappings", bson.D{{"dynamic", true}}}}
 		err = view.UpdateOne(ctx, searchName, definition)
 		require.NoError(mt, err, "failed to drop index")
-		doc = getDocument(searchName)
+		doc = getDocument()
 		require.NotNil(mt, doc, "got empty document")
 		assert.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
 		assert.Equal(mt, "READY", doc.Lookup("status").StringValue(), "unexpected status")

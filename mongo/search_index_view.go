@@ -32,8 +32,8 @@ type SearchIndexModel struct {
 	// See https://www.mongodb.com/docs/atlas/atlas-search/create-index/ for reference.
 	Definition interface{}
 
-	// The name for the index, if present.
-	Name *string
+	// The search index options.
+	Options *options.SearchIndexesOptions
 }
 
 // List executes a listSearchIndexes command and returns a cursor over the search indexes in the collection.
@@ -42,14 +42,14 @@ type SearchIndexModel struct {
 //
 // The opts parameter can be used to specify options for this operation (see the options.ListSearchIndexesOptions
 // documentation).
-func (siv SearchIndexView) List(ctx context.Context, name *string, opts ...*options.ListSearchIndexesOptions) (*Cursor, error) {
+func (siv SearchIndexView) List(ctx context.Context, searchIdxOpts *options.SearchIndexesOptions, opts ...*options.ListSearchIndexesOptions) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	index := bson.D{}
-	if name != nil {
-		index = bson.D{{"name", *name}}
+	if searchIdxOpts != nil && searchIdxOpts.Name != nil {
+		index = bson.D{{"name", *searchIdxOpts.Name}}
 	}
 
 	aggregateOpts := make([]*options.AggregateOptions, len(opts))
@@ -94,8 +94,8 @@ func (siv SearchIndexView) CreateMany(ctx context.Context, models []SearchIndexM
 
 		var iidx int32
 		iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
-		if model.Name != nil {
-			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Name)
+		if model.Options != nil && model.Options.Name != nil {
+			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Options.Name)
 		}
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)
 
