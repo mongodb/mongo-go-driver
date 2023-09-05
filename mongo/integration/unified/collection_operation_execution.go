@@ -322,10 +322,17 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 
 		switch key {
 		case "model":
-			err = bson.Unmarshal(val.Document(), &model)
+			var m struct {
+				Definition interface{}
+				Name       *string
+			}
+			err = bson.Unmarshal(val.Document(), &m)
 			if err != nil {
 				return nil, err
 			}
+			model.Definition = m.Definition
+			model.Options = options.SearchIndexes()
+			model.Options.Name = m.Name
 		default:
 			return nil, fmt.Errorf("unrecognized createSearchIndex option %q", key)
 		}
@@ -358,11 +365,19 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 				return nil, err
 			}
 			for _, val := range vals {
-				var model mongo.SearchIndexModel
-				err = bson.Unmarshal(val.Value, &model)
+				var m struct {
+					Definition interface{}
+					Name       *string
+				}
+				err = bson.Unmarshal(val.Value, &m)
 				if err != nil {
 					return nil, err
 				}
+				model := mongo.SearchIndexModel{
+					Definition: m.Definition,
+					Options:    options.SearchIndexes(),
+				}
+				model.Options.Name = m.Name
 				models = append(models, model)
 			}
 		default:
