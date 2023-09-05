@@ -47,13 +47,6 @@ func TestCompression(t *testing.T) {
 }
 
 func TestCompressionLevels(t *testing.T) {
-	errEq := func(e1, e2 error) bool {
-		if e1 == nil || e2 == nil {
-			return (e1 == nil) == (e2 == nil)
-		}
-		return e1.Error() == e2.Error()
-	}
-
 	in := []byte("abc")
 	wr := new(bytes.Buffer)
 
@@ -65,8 +58,10 @@ func TestCompressionLevels(t *testing.T) {
 			opts.ZlibLevel = lvl
 			_, err1 := CompressPayload(in, opts)
 			_, err2 := zlib.NewWriterLevel(wr, lvl)
-			if !errEq(err1, err2) {
-				t.Fatalf("%d: error: %v, want: %v", lvl, err1, err2)
+			if err2 != nil {
+				assert.Error(t, err1, "expected an error for ZLib level %d", lvl)
+			} else {
+				assert.NoError(t, err1, "unexpected error for ZLib level %d", lvl)
 			}
 		}
 	})
@@ -79,8 +74,10 @@ func TestCompressionLevels(t *testing.T) {
 			opts.ZstdLevel = int(lvl)
 			_, err1 := CompressPayload(in, opts)
 			_, err2 := zstd.NewWriter(wr, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(opts.ZstdLevel)))
-			if !errEq(err1, err2) {
-				t.Fatalf("%d: error: %v, want: %v", lvl, err1, err2)
+			if err2 != nil {
+				assert.Error(t, err1, "expected an error for Zstd level %d", lvl)
+			} else {
+				assert.NoError(t, err1, "unexpected error for Zstd level %d", lvl)
 			}
 		}
 	})
