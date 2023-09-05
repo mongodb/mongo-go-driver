@@ -12,10 +12,10 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -31,7 +31,6 @@ import (
 // sharded clusters is 512.
 const maxClientMetadataSize = 512
 
-const awsLambdaPrefix = "AWS_Lambda_"
 const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
@@ -125,99 +124,6 @@ func (h *Hello) Result(addr address.Address) description.Server {
 	return description.NewServer(addr, bson.Raw(h.res))
 }
 
-const (
-	// FaaS environment variable names
-	envVarAWSExecutionEnv        = "AWS_EXECUTION_ENV"
-	envVarAWSLambdaRuntimeAPI    = "AWS_LAMBDA_RUNTIME_API"
-	envVarFunctionsWorkerRuntime = "FUNCTIONS_WORKER_RUNTIME"
-	envVarKService               = "K_SERVICE"
-	envVarFunctionName           = "FUNCTION_NAME"
-	envVarVercel                 = "VERCEL"
-)
-
-const (
-	// FaaS environment variable names
-	envVarAWSRegion                   = "AWS_REGION"
-	envVarAWSLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
-	envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
-	envVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
-	envVarFunctionRegion              = "FUNCTION_REGION"
-	envVarVercelRegion                = "VERCEL_REGION"
-)
-
-const (
-	// FaaS environment names used by the client
-	envNameAWSLambda = "aws.lambda"
-	envNameAzureFunc = "azure.func"
-	envNameGCPFunc   = "gcp.func"
-	envNameVercel    = "vercel"
-)
-
-// getFaasEnvName parses the FaaS environment variable name and returns the
-// corresponding name used by the client. If none of the variables or variables
-// for multiple names are populated the client.env value MUST be entirely
-// omitted. When variables for multiple "client.env.name" values are present,
-// "vercel" takes precedence over "aws.lambda"; any other combination MUST cause
-// "client.env" to be entirely omitted.
-func getFaasEnvName() string {
-	envVars := []string{
-		envVarAWSExecutionEnv,
-		envVarAWSLambdaRuntimeAPI,
-		envVarFunctionsWorkerRuntime,
-		envVarKService,
-		envVarFunctionName,
-		envVarVercel,
-	}
-
-	// If none of the variables are populated the client.env value MUST be
-	// entirely omitted.
-	names := make(map[string]struct{})
-
-	for _, envVar := range envVars {
-		val := os.Getenv(envVar)
-		if val == "" {
-			continue
-		}
-
-		var name string
-
-		switch envVar {
-		case envVarAWSExecutionEnv:
-			if !strings.HasPrefix(val, awsLambdaPrefix) {
-				continue
-			}
-
-			name = envNameAWSLambda
-		case envVarAWSLambdaRuntimeAPI:
-			name = envNameAWSLambda
-		case envVarFunctionsWorkerRuntime:
-			name = envNameAzureFunc
-		case envVarKService, envVarFunctionName:
-			name = envNameGCPFunc
-		case envVarVercel:
-			// "vercel" takes precedence over "aws.lambda".
-			delete(names, envNameAWSLambda)
-
-			name = envNameVercel
-		}
-
-		names[name] = struct{}{}
-		if len(names) > 1 {
-			// If multiple names are populated the client.env value
-			// MUST be entirely omitted.
-			names = nil
-
-			break
-		}
-	}
-
-	for name := range names {
-		return name
-	}
-
-	return ""
-}
-
 // appendClientAppName appends the application metadata to the dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
@@ -255,7 +161,7 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 		return dst, nil
 	}
 
-	name := getFaasEnvName()
+	name := driverutil.GetFaasEnvName()
 	if name == "" {
 		return dst, nil
 	}
@@ -307,15 +213,15 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 
 	if !omitNonName {
 		switch name {
-		case envNameAWSLambda:
-			dst = addMem(envVarAWSLambdaFunctionMemorySize)
-			dst = addRegion(envVarAWSRegion)
-		case envNameGCPFunc:
-			dst = addMem(envVarFunctionMemoryMB)
-			dst = addRegion(envVarFunctionRegion)
-			dst = addTimeout(envVarFunctionTimeoutSec)
-		case envNameVercel:
-			dst = addRegion(envVarVercelRegion)
+		case driverutil.EnvNameAWSLambda:
+			dst = addMem(driverutil.EnvVarAWSLambdaFunctionMemorySize)
+			dst = addRegion(driverutil.EnvVarAWSRegion)
+		case driverutil.EnvNameGCPFunc:
+			dst = addMem(driverutil.EnvVarFunctionMemoryMB)
+			dst = addRegion(driverutil.EnvVarFunctionRegion)
+			dst = addTimeout(driverutil.EnvVarFunctionTimeoutSec)
+		case driverutil.EnvNameVercel:
+			dst = addRegion(driverutil.EnvVarVercelRegion)
 		}
 	}
 

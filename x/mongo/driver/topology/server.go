@@ -17,10 +17,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -131,7 +133,12 @@ type updateTopologyCallback func(description.Server) description.Server
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, topologyID primitive.ObjectID, opts ...ServerOption) (*Server, error) {
+func ConnectServer(
+	addr address.Address,
+	updateCallback updateTopologyCallback,
+	topologyID primitive.ObjectID,
+	opts ...ServerOption,
+) (*Server, error) {
 	srvr := NewServer(addr, topologyID, opts...)
 	err := srvr.Connect(updateCallback)
 	if err != nil {
@@ -785,8 +792,27 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 	return operation.
 		NewHello().
 		ClusterClock(s.cfg.clock).
-		Deployment(driver.SingleConnectionDeployment{conn}).
+		Deployment(driver.SingleConnectionDeployment{C: conn}).
 		ServerAPI(s.cfg.serverAPI)
+}
+
+// isStreamable returns whether or not we can use the streaming protocol to
+// optimally reduces the time it takes for a client to discover server state
+// changes. Streaming must be disabled if any of the following are true:
+//
+//   - the client is configured with serverMonitoringMode=poll [P], or
+//   - the client is configured with serverMonitoringMode=auto [A] and a FaaS
+//     platform is detected [F], or
+//   - the server does not support streaming (eg MongoDB <4.4) [S].
+//
+// I.e, streaming must be disabled if: P ∨ (A ∧ F) ∨ (~S) ≡ ~P ∧ (~A ∨ ~F) ∧ S
+func isStreamable(previousDesc description.Server, srv *Server) bool {
+	srvMonitoringMode := srv.cfg.serverMonitoringMode
+	faas := driverutil.GetFaasEnvName()
+
+	return srvMonitoringMode != connstring.ServerMonitoringModePoll && // P
+		(srvMonitoringMode != connstring.ServerMonitoringModeAuto || faas == "") && // (~A ∨ ~F)
+		previousDesc.TopologyVersion != nil // S
 }
 
 func (s *Server) check() (description.Server, error) {
@@ -824,7 +850,7 @@ func (s *Server) check() (description.Server, error) {
 		heartbeatConn := initConnection{s.conn}
 		baseOperation := s.createBaseOperation(heartbeatConn)
 		previousDescription := s.Description()
-		streamable := previousDescription.TopologyVersion != nil
+		streamable := isStreamable(previousDescription, s)
 
 		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
 		switch {

@@ -21,6 +21,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+const (
+	ServerMonitoringModeAuto   = "auto"
+	ServerMonitoringModePoll   = "poll"
+	ServerMonitoringModeStream = "stream"
+)
+
 var (
 	// ErrLoadBalancedWithMultipleHosts is returned when loadBalanced=true is
 	// specified in a URI with multiple hosts.
@@ -125,6 +131,7 @@ type ConnString struct {
 	MaxStalenessSet                    bool
 	ReplicaSet                         string
 	Scheme                             string
+	ServerMonitoringMode               string
 	ServerSelectionTimeout             time.Duration
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
@@ -621,6 +628,12 @@ func (p *parser) addHost(host string) error {
 	return nil
 }
 
+func IsValidServerMonitoringMode(mode string) bool {
+	return mode == ServerMonitoringModeAuto ||
+		mode == ServerMonitoringModeStream ||
+		mode == ServerMonitoringModePoll
+}
+
 func (p *parser) addOption(pair string) error {
 	kv := strings.SplitN(pair, "=", 2)
 	if len(kv) != 2 || kv[0] == "" {
@@ -823,6 +836,12 @@ func (p *parser) addOption(pair string) error {
 		}
 
 		p.RetryReadsSet = true
+	case "servermonitoringmode":
+		if !IsValidServerMonitoringMode(value) {
+			return fmt.Errorf("invalid value for %q: %q", key, value)
+		}
+
+		p.ServerMonitoringMode = value
 	case "serverselectiontimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {

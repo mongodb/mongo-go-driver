@@ -1,0 +1,67 @@
+description: serverMonitoringMode
+
+schemaVersion: "1.3"
+
+tests:
+  - description: "connect with serverMonitoringMode=auto"
+    operations:
+      - name: createEntities
+        object: testRunner
+        arguments:
+          entities:
+            - client:
+                id: &client0 client0
+                uriOptions:
+                  serverMonitoringMode: "auto"
+            - database:
+                id: &dbSdamModeAuto dbSdamModeAuto
+                client: *client0
+                databaseName: sdam-tests
+      - name: runCommand
+        object: *dbSdamModeAuto
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+        expectResult: { ok: 1 }
+
+  - description: "connect with serverMonitoringMode=stream"
+    operations:
+      - name: createEntities
+        object: testRunner
+        arguments:
+          entities:
+            - client:
+                id: &client1 client1
+                uriOptions:
+                  serverMonitoringMode: "stream"
+            - database:
+                id: &dbSdamModeStream dbSdamModeStream
+                client: *client1
+                databaseName: sdam-tests
+      - name: runCommand
+        object: *dbSdamModeStream
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+        expectResult: { ok: 1 }
+
+  - description: "connect with serverMonitoringMode=poll"
+    operations:
+      - name: createEntities
+        object: testRunner
+        arguments:
+          entities:
+            - client:
+                id: &client2 client2
+                uriOptions:
+                  serverMonitoringMode: "poll"
+            - database:
+                id: &dbSdamModePoll dbSdamModePoll
+                client: *client2
+                databaseName: sdam-tests
+      - name: runCommand
+        object: *dbSdamModePoll
+        arguments:
+          commandName: ping
+          command: { ping: 1 }
+        expectResult: { ok: 1 }

@@ -33,6 +33,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+const (
+	ServerMonitoringModeAuto   = connstring.ServerMonitoringModeAuto
+	ServerMonitoringModePoll   = connstring.ServerMonitoringModePoll
+	ServerMonitoringModeStream = connstring.ServerMonitoringModeStream
+)
+
 // ContextDialer is an interface that can be implemented by types that can create connections. It should be used to
 // provide a custom dialer when configuring a Client.
 //
@@ -206,6 +212,7 @@ type ClientOptions struct {
 	RetryReads               *bool
 	RetryWrites              *bool
 	ServerAPIOptions         *ServerAPIOptions
+	ServerMonitoringMode     *string
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
 	SRVServiceName           *string
@@ -306,6 +313,11 @@ func (c *ClientOptions) validate() error {
 			return connstring.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
+
+	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
+		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	}
+
 	return nil
 }
 
@@ -945,6 +957,27 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 	return c
 }
 
+// SetServerMonitoringMode specifies the server monitoring protocol to use.
+//
+// Valid modes are:
+//   - "stream": The client will use a streaming protocol when the server
+//     supports it. The streaming protocol optimally reduces the time it takes
+//     for a client to discover server state changes.
+//   - "poll": The client will periodically check the server using a hello or
+//     legacy hello command and then sleep for heartbeatFrequencyMS milliseconds
+//     before running another check.
+//   - "auto": The client will behave like "poll" mode when running on a FaaS
+//     (Function as a Service) platform, or like "stream" mode otherwise. The
+//     client detects its execution environment by following the rules for
+//     generating the "client.env" handshake metadata field as specified in the
+//     MongoDB Handshake specification. This is the deafult mode.
+func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
+	fmt.Println("mode: ", mode)
+	c.ServerMonitoringMode = &mode
+
+	return c
+}
+
 // SetSRVMaxHosts specifies the maximum number of SRV results to randomly select during polling. To limit the number
 // of hosts selected in SRV discovery, this function must be called before ApplyURI. This can also be set through
 // the "srvMaxHosts" URI option.
@@ -1106,6 +1139,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.LoggerOptions != nil {
 			c.LoggerOptions = opt.LoggerOptions
+		}
+		if opt.ServerMonitoringMode != nil {
+			c.ServerMonitoringMode = opt.ServerMonitoringMode
 		}
 	}
 
