@@ -255,7 +255,6 @@ func (vw *valueWriter) writeElementHeader(t bsontype.Type, destination mode, cal
 		}
 		vw.appendHeader(t, key)
 	case mValue:
-		// TODO: Do this with a cache of the first 1000 or so array keys.
 		vw.appendIntHeader(t, frame.arrkey)
 	default:
 		modes := []mode{mElement, mValue}
@@ -611,6 +610,12 @@ func (vw *valueWriter) writeLength() error {
 }
 
 func isValidCString(cs string) bool {
+	// Disallow the zero byte in a cstring because the zero byte is used as the
+	// terminating character. It's safe to check bytes instead of runes because
+	// all multibyte UTF-8 code points start with "11xxxxxx" or "10xxxxxx", so
+	// "00000000" will never be part of a multibyte UTF-8 code point.
+	//
+	// See https://en.wikipedia.org/wiki/UTF-8#Encoding for details.
 	return strings.IndexByte(cs, 0) == -1
 }
 
