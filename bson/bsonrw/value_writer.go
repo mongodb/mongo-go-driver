@@ -611,11 +611,15 @@ func (vw *valueWriter) writeLength() error {
 
 func isValidCString(cs string) bool {
 	// Disallow the zero byte in a cstring because the zero byte is used as the
-	// terminating character. It's safe to check bytes instead of runes because
-	// all multibyte UTF-8 code points start with "11xxxxxx" or "10xxxxxx", so
-	// "00000000" will never be part of a multibyte UTF-8 code point.
+	// terminating character.
 	//
-	// See https://en.wikipedia.org/wiki/UTF-8#Encoding for details.
+	// It's safe to check bytes instead of runes because all multibyte UTF-8
+	// code points start with (binary) 11xxxxxx or 10xxxxxx, so 00000000 (i.e.
+	// 0) will never be part of a multibyte UTF-8 code point. This logic is the
+	// same as the "r < utf8.RuneSelf" case in strings.IndexRune but can be
+	// inlined.
+	//
+	// https://cs.opensource.google/go/go/+/refs/tags/go1.21.1:src/strings/strings.go;l=127
 	return strings.IndexByte(cs, 0) == -1
 }
 
