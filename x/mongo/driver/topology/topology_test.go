@@ -766,17 +766,17 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "normal",
 				uri:  "mongodb://a.docdb.amazonaws.com:27017/",
-				msgs: []string{doumentDBLog},
+				msgs: []string{documentDBLog},
 			},
 			{
 				name: "normal",
 				uri:  "mongodb://a.docdb-elastic.amazonaws.com:27017/",
-				msgs: []string{doumentDBLog},
+				msgs: []string{documentDBLog},
 			},
 			{
 				name: "multiple hosts",
 				uri:  "mongodb://a.docdb.amazonaws.com:27017,a.docdb-elastic.amazonaws.com:27017/",
-				msgs: []string{doumentDBLog},
+				msgs: []string{documentDBLog},
 			},
 			{
 				name: "case-insensitive matching",
@@ -791,12 +791,12 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
 				uri:  "mongodb://a.example.com:27017,b.docdb.amazonaws.com:27017/",
-				msgs: []string{doumentDBLog},
+				msgs: []string{documentDBLog},
 			},
 			{
 				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
 				uri:  "mongodb://a.example.com:27017,b.docdb-elastic.amazonaws.com:27017/",
-				msgs: []string{doumentDBLog},
+				msgs: []string{documentDBLog},
 			},
 		}
 		for _, tc := range testCases {
@@ -826,7 +826,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "Mixing hosts",
 				uri:  "mongodb://a.mongo.cosmos.azure.com:19555,a.docdb.amazonaws.com:27017/",
-				msgs: []string{cosmosDBLog, doumentDBLog},
+				msgs: []string{cosmosDBLog, documentDBLog},
 			},
 		}
 		for _, tc := range testCases {
