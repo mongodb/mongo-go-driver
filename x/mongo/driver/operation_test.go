@@ -652,7 +652,8 @@ func TestOperation(t *testing.T) {
 }
 
 func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {
-	idx, wm := wiremessage.AppendHeaderStart(nil, 0, wiremessage.CurrentRequestID()+1, wiremessage.OpMsg)
+	const psuedoRequestID = 1
+	idx, wm := wiremessage.AppendHeaderStart(nil, 0, psuedoRequestID, wiremessage.OpMsg)
 	var flags wiremessage.MsgFlag
 	if moreToCome {
 		flags = wiremessage.MoreToCome
