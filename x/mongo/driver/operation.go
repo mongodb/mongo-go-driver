@@ -1266,17 +1266,12 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
-// isLegacyHandshake returns "true" if the operation is the first message of
-// the initial handshake and should use a legacy hello. The requirement for
-// using a legacy hello as defined by the specifications is as follows:
-//
-// > If server API version is not requested and loadBalanced: False, drivers
-// > MUST use legacy hello for the first message of the initial handshake with
-// > the OP_QUERY protocol
+// isLegacyHandshake returns True if the operation is the first message of
+// the initial handshake and should use a legacy hello.
 func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
 	isInitialHandshake := desc.WireVersion == nil || desc.WireVersion.Max == 0
 
-	return desc.Kind != description.LoadBalanced && op.ServerAPI == nil && isInitialHandshake
+	return op.Legacy == LegacyHandshake && isInitialHandshake
 }
 
 func (op Operation) createWireMessage(
@@ -1936,8 +1931,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 				logger.KeyDurationMS, info.duration.Milliseconds(),
 				logger.KeyFailure, formattedReply)...)
 	}
-
-	//fmt.Println("->", redactFinishedInformationResponse(info))
 
 	// If the finished event cannot be published, return early.
 	if !op.canPublishFinishedEvent(info) {
