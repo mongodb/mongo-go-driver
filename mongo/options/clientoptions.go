@@ -976,7 +976,6 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 // ServerMonitoringModeStream for more information about valid server
 // monitoring modes.
 func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
-	fmt.Println("mode: ", mode)
 	c.ServerMonitoringMode = &mode
 
 	return c
