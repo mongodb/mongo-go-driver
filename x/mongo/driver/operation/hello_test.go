@@ -598,7 +598,7 @@ func TestParseFaasEnvName(t *testing.T) {
 				t.Setenv(key, value)
 			}
 
-			got := getFaasEnvName()
+			got := driverutil.GetFaasEnvName()
 			if got != test.want {
 				t.Errorf("parseFaasEnvName(%s) = %s, want %s", test.name, got, test.want)
 			}
