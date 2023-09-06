@@ -62,7 +62,7 @@ func TestOperation(t *testing.T) {
 	t.Run("selectServer", func(t *testing.T) {
 		t.Run("returns validation error", func(t *testing.T) {
 			op := &Operation{}
-			_, err := op.selectServer(context.Background())
+			_, err := op.selectServer(context.Background(), 1)
 			if err == nil {
 				t.Error("Expected a validation error from selectServer, but got <nil>")
 			}
@@ -76,7 +76,7 @@ func TestOperation(t *testing.T) {
 				Database:   "testing",
 				Selector:   want,
 			}
-			_, err := op.selectServer(context.Background())
+			_, err := op.selectServer(context.Background(), 1)
 			noerr(t, err)
 			got := d.params.selector
 			if !cmp.Equal(got, want) {
@@ -90,7 +90,7 @@ func TestOperation(t *testing.T) {
 				Deployment: d,
 				Database:   "testing",
 			}
-			_, err := op.selectServer(context.Background())
+			_, err := op.selectServer(context.Background(), 1)
 			noerr(t, err)
 			if d.params.selector == nil {
 				t.Error("The selectServer method should use a default selector when not specified on Operation, but it passed <nil>.")
