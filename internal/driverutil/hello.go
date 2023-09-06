@@ -9,30 +9,49 @@ const AwsLambdaPrefix = "AWS_Lambda_"
 
 const (
 	// FaaS environment variable names
-	EnvVarAWSExecutionEnv        = "AWS_EXECUTION_ENV"
-	EnvVarAWSLambdaRuntimeAPI    = "AWS_LAMBDA_RUNTIME_API"
+
+	// EnvVarAWSExecutionEnv is the AWS Execution environment variable.
+	EnvVarAWSExecutionEnv = "AWS_EXECUTION_ENV"
+	// EnvVarAWSLambdaRuntimeAPI is the AWS Lambda runtime API variable.
+	EnvVarAWSLambdaRuntimeAPI = "AWS_LAMBDA_RUNTIME_API"
+	// EnvVarFunctionsWorkerRuntime is the functions worker runtime variable.
 	EnvVarFunctionsWorkerRuntime = "FUNCTIONS_WORKER_RUNTIME"
-	EnvVarKService               = "K_SERVICE"
-	EnvVarFunctionName           = "FUNCTION_NAME"
-	EnvVarVercel                 = "VERCEL"
+	// EnvVarKService is the K Service variable.
+	EnvVarKService = "K_SERVICE"
+	// EnvVarFunctionName is the function name variable.
+	EnvVarFunctionName = "FUNCTION_NAME"
+	// EnvVarVercel is the Vercel variable.
+	EnvVarVercel = "VERCEL"
 )
 
 const (
 	// FaaS environment variable names
-	EnvVarAWSRegion                   = "AWS_REGION"
+
+	// EnvVarAWSRegion is the AWS region variable.
+	EnvVarAWSRegion = "AWS_REGION"
+	// EnvVarAWSLambdaFunctionMemorySize is the AWS Lambda function memory size variable.
 	EnvVarAWSLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
-	EnvVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
-	EnvVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
-	EnvVarFunctionRegion              = "FUNCTION_REGION"
-	EnvVarVercelRegion                = "VERCEL_REGION"
+	// EnvVarFunctionMemoryMB is the function memory in megabytes variable.
+	EnvVarFunctionMemoryMB = "FUNCTION_MEMORY_MB"
+	// EnvVarFunctionTimeoutSec is the function timeout in seconds variable.
+	EnvVarFunctionTimeoutSec = "FUNCTION_TIMEOUT_SEC"
+	// EnvVarFunctionRegion is the function region variable.
+	EnvVarFunctionRegion = "FUNCTION_REGION"
+	// EnvVarVercelRegion is the Vercel region variable.
+	EnvVarVercelRegion = "VERCEL_REGION"
 )
 
 const (
 	// FaaS environment names used by the client
+
+	// EnvNameAWSLambda is the AWS Lambda environment name.
 	EnvNameAWSLambda = "aws.lambda"
+	// EnvNameAzureFunc is the Azure Function environment name.
 	EnvNameAzureFunc = "azure.func"
-	EnvNameGCPFunc   = "gcp.func"
-	EnvNameVercel    = "vercel"
+	// EnvNameGCPFunc is the Google Cloud Function environment name.
+	EnvNameGCPFunc = "gcp.func"
+	// EnvNameVercel is the Vercel environment name.
+	EnvNameVercel = "vercel"
 )
 
 // GetFaasEnvName parses the FaaS environment variable name and returns the

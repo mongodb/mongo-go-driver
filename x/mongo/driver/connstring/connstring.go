@@ -22,8 +22,22 @@ import (
 )
 
 const (
-	ServerMonitoringModeAuto   = "auto"
-	ServerMonitoringModePoll   = "poll"
+	// ServerMonitoringModeAuto indicates that the client will behave like "poll"
+	// mode when running on a FaaS (Function as a Service) platform, or like
+	// "stream" mode otherwise. The client detects its execution environment by
+	// following the rules for generating the "client.env" handshake metadata field
+	// as specified in the MongoDB Handshake specification. This is the default
+	// mode.
+	ServerMonitoringModeAuto = "auto"
+
+	// ServerMonitoringModePoll indicates that the client will periodically check
+	// the server using a hello or legacy hello command and then sleep for
+	// heartbeatFrequencyMS milliseconds before running another check.
+	ServerMonitoringModePoll = "poll"
+
+	// ServerMonitoringModeStream indicates that the client will use a streaming
+	// protocol when the server supports it. The streaming protocol optimally
+	// reduces the time it takes for a client to discover server state changes.
 	ServerMonitoringModeStream = "stream"
 )
 
@@ -628,6 +642,8 @@ func (p *parser) addHost(host string) error {
 	return nil
 }
 
+// IsValidServerMonitoringMode will return true if the given string matches a
+// valid server monitoring mode.
 func IsValidServerMonitoringMode(mode string) bool {
 	return mode == ServerMonitoringModeAuto ||
 		mode == ServerMonitoringModeStream ||

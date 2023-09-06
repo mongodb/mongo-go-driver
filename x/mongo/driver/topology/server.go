@@ -1,4 +1,4 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
+/// Copyright (C) MongoDB, Inc. 2017-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
@@ -807,7 +807,6 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 //
 // I.e, streaming must be disabled if: P ∨ (A ∧ F) ∨ (~S) ≡ ~P ∧ (~A ∨ ~F) ∧ S
 func isStreamable(previousDesc description.Server, srv *Server) bool {
-	return previousDesc.TopologyVersion != nil
 	srvMonitoringMode := srv.cfg.serverMonitoringMode
 	faas := driverutil.GetFaasEnvName()
 

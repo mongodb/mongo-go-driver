@@ -34,8 +34,22 @@ import (
 )
 
 const (
-	ServerMonitoringModeAuto   = connstring.ServerMonitoringModeAuto
-	ServerMonitoringModePoll   = connstring.ServerMonitoringModePoll
+	// ServerMonitoringModeAuto indicates that the client will behave like "poll"
+	// mode when running on a FaaS (Function as a Service) platform, or like
+	// "stream" mode otherwise. The client detects its execution environment by
+	// following the rules for generating the "client.env" handshake metadata field
+	// as specified in the MongoDB Handshake specification. This is the default
+	// mode.
+	ServerMonitoringModeAuto = connstring.ServerMonitoringModeAuto
+
+	// ServerMonitoringModePoll indicates that the client will periodically check
+	// the server using a hello or legacy hello command and then sleep for
+	// heartbeatFrequencyMS milliseconds before running another check.
+	ServerMonitoringModePoll = connstring.ServerMonitoringModePoll
+
+	// ServerMonitoringModeStream indicates that the client will use a streaming
+	// protocol when the server supports it. The streaming protocol optimally
+	// reduces the time it takes for a client to discover server state changes.
 	ServerMonitoringModeStream = connstring.ServerMonitoringModeStream
 )
 
@@ -957,20 +971,10 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 	return c
 }
 
-// SetServerMonitoringMode specifies the server monitoring protocol to use.
-//
-// Valid modes are:
-//   - "stream": The client will use a streaming protocol when the server
-//     supports it. The streaming protocol optimally reduces the time it takes
-//     for a client to discover server state changes.
-//   - "poll": The client will periodically check the server using a hello or
-//     legacy hello command and then sleep for heartbeatFrequencyMS milliseconds
-//     before running another check.
-//   - "auto": The client will behave like "poll" mode when running on a FaaS
-//     (Function as a Service) platform, or like "stream" mode otherwise. The
-//     client detects its execution environment by following the rules for
-//     generating the "client.env" handshake metadata field as specified in the
-//     MongoDB Handshake specification. This is the deafult mode.
+// SetServerMonitoringMode specifies the server monitoring protocol to use. See
+// the helper constants ServerMonitoringModeAuto, ServerMonitoringModePoll, and
+// ServerMonitoringModeStream for more information about valid server
+// monitoring modes.
 func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
 	fmt.Println("mode: ", mode)
 	c.ServerMonitoringMode = &mode
