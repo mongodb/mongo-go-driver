@@ -56,23 +56,21 @@ type errorQueue struct {
 	mutex  sync.Mutex
 }
 
-func (eq *errorQueue) head() (error, int) {
+func (eq *errorQueue) head() (int, error) {
 	eq.mutex.Lock()
 	defer eq.mutex.Unlock()
 	if l := len(eq.errors); l > 0 {
-		return eq.errors[0], l
+		return l, eq.errors[0]
 	}
-	return nil, 0
+	return 0, nil
 }
 
-func (eq *errorQueue) dequeue() bool {
+func (eq *errorQueue) dequeue() {
 	eq.mutex.Lock()
 	defer eq.mutex.Unlock()
 	if len(eq.errors) > 0 {
 		eq.errors = eq.errors[1:]
-		return true
 	}
-	return false
 }
 
 type timeoutConn struct {
@@ -83,7 +81,7 @@ type timeoutConn struct {
 
 func (c *timeoutConn) Read(b []byte) (int, error) {
 	var n int
-	err, l := c.errors.head()
+	l, err := c.errors.head()
 	defer func(l int) {
 		c.ch <- l
 	}(l)
@@ -95,7 +93,7 @@ func (c *timeoutConn) Read(b []byte) (int, error) {
 
 func (c *timeoutConn) Write(b []byte) (int, error) {
 	var n int
-	err, l := c.errors.head()
+	l, err := c.errors.head()
 	defer func(l int) {
 		c.ch <- l
 	}(l)
