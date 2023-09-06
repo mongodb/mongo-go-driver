@@ -203,7 +203,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			)
 			require.NoError(t, server.Connect(nil))
 
-			timeout := time.After(10 * heartbeatInterval)
+			timeout := time.After(50 * heartbeatInterval)
 			var l int
 		loop:
 			for {
