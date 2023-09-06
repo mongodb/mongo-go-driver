@@ -807,6 +807,7 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 //
 // I.e, streaming must be disabled if: P ∨ (A ∧ F) ∨ (~S) ≡ ~P ∧ (~A ∨ ~F) ∧ S
 func isStreamable(previousDesc description.Server, srv *Server) bool {
+	return previousDesc.TopologyVersion != nil
 	srvMonitoringMode := srv.cfg.serverMonitoringMode
 	faas := driverutil.GetFaasEnvName()
 
