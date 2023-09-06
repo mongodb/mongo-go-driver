@@ -443,8 +443,16 @@ func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnecti
 	return h.createOperation().ExecuteExhaust(ctx, conn)
 }
 
+// isLegacyHandshake returns True if server API version is not requested and
+// loadBalanced is False. If this is the case, then the drivers MUST use legacy
+// hello for the first message of the initial handshake with the OP_QUERY
+// protocol
+func isLegacyHandshake(h *Hello) bool {
+	return h.serverAPI == nil && h.d.Kind() != description.LoadBalanced
+}
+
 func (h *Hello) createOperation() driver.Operation {
-	return driver.Operation{
+	op := driver.Operation{
 		Clock:      h.clock,
 		CommandFn:  h.command,
 		Database:   "admin",
@@ -455,6 +463,12 @@ func (h *Hello) createOperation() driver.Operation {
 		},
 		ServerAPI: h.serverAPI,
 	}
+
+	if isLegacyHandshake(h) {
+		op.Legacy = driver.LegacyHandshake
+	}
+
+	return op
 }
 
 // GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
