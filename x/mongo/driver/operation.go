@@ -1109,13 +1109,14 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	dst []byte,
 	desc description.SelectedServer,
 ) ([]byte, startedInformation, error) {
-	var dollarCmd = [...]byte{'.', '$', 'c', 'm', 'd'}
 	var info startedInformation
 	flags := op.secondaryOK(desc)
 	var wmindex int32
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
 	dst = wiremessage.AppendQueryFlags(dst, flags)
+
+	var dollarCmd = [...]byte{'.', '$', 'c', 'm', 'd'}
 
 	// FullCollectionName
 	dst = append(dst, op.Database...)

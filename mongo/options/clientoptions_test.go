@@ -763,8 +763,6 @@ func TestClientOptions(t *testing.T) {
 	t.Run("server monitoring mode validation", func(t *testing.T) {
 		t.Parallel()
 
-		// := fmt.Errorf("invalid server monitoring mode: %q", *mode)
-
 		testCases := []struct {
 			name string
 			opts *ClientOptions
@@ -801,6 +799,8 @@ func TestClientOptions(t *testing.T) {
 			tc := tc // Capture the range variable
 
 			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
 				err := tc.opts.Validate()
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
