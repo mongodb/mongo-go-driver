@@ -322,7 +322,7 @@ func (op Operation) shouldEncrypt() bool {
 }
 
 // selectServer handles performing server selection for an operation.
-func (op Operation) selectServer(ctx context.Context) (Server, error) {
+func (op Operation) selectServer(ctx context.Context, requestID int32) (Server, error) {
 	if err := op.Validate(); err != nil {
 		return nil, err
 	}
@@ -340,14 +340,14 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 	}
 
 	ctx = logger.WithOperationName(ctx, op.Name)
-	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
+	ctx = logger.WithOperationID(ctx, requestID)
 
 	return op.Deployment.SelectServer(ctx, selector)
 }
 
 // getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
-func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connection, error) {
-	server, err := op.selectServer(ctx)
+func (op Operation) getServerAndConnection(ctx context.Context, requestID int32) (Server, Connection, error) {
+	server, err := op.selectServer(ctx, requestID)
 	if err != nil {
 		if op.Client != nil &&
 			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
@@ -530,11 +530,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
-		wiremessage.NextRequestID()
+		requestID := wiremessage.NextRequestID()
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
-			srvr, conn, err = op.getServerAndConnection(ctx)
+			srvr, conn, err = op.getServerAndConnection(ctx, requestID)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
@@ -629,7 +629,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createMsgWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn)
+		*wm, startedInfo, err = op.createMsgWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
 
 		if err != nil {
 			return err
@@ -1103,8 +1103,13 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, dst []byte, desc description.SelectedServer,
+func (op Operation) createMsgWireMessage(
+	ctx context.Context,
+	maxTimeMS uint64,
+	dst []byte,
+	desc description.SelectedServer,
 	conn Connection,
+	requestID int32,
 ) ([]byte, startedInformation, error) {
 	var info startedInformation
 	var flags wiremessage.MsgFlag
@@ -1120,7 +1125,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 		flags |= wiremessage.ExhaustAllowed
 	}
 
-	info.requestID = wiremessage.CurrentRequestID()
+	info.requestID = requestID
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body
