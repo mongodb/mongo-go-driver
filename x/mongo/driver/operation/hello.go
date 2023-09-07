@@ -541,8 +541,8 @@ func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnecti
 // loadBalanced is False. If this is the case, then the drivers MUST use legacy
 // hello for the first message of the initial handshake with the OP_QUERY
 // protocol
-func isLegacyHandshake(h *Hello) bool {
-	return h.serverAPI == nil && h.d.Kind() != description.LoadBalanced
+func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, deployment driver.Deployment) bool {
+	return srvAPI == nil && deployment.Kind() != description.LoadBalanced
 }
 
 func (h *Hello) createOperation() driver.Operation {
@@ -558,7 +558,7 @@ func (h *Hello) createOperation() driver.Operation {
 		ServerAPI: h.serverAPI,
 	}
 
-	if isLegacyHandshake(h) {
+	if isLegacyHandshake(h.serverAPI, h.d) {
 		op.Legacy = driver.LegacyHandshake
 	}
 
@@ -568,18 +568,25 @@ func (h *Hello) createOperation() driver.Operation {
 // GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
 // information about the server. This function implements the driver.Handshaker interface.
 func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-	err := driver.Operation{
+	deployment := driver.SingleConnectionDeployment{C: c}
+
+	op := driver.Operation{
 		Clock:      h.clock,
 		CommandFn:  h.handshakeCommand,
-		Deployment: driver.SingleConnectionDeployment{C: c},
+		Deployment: deployment,
 		Database:   "admin",
 		ProcessResponseFn: func(info driver.ResponseInfo) error {
 			h.res = info.ServerResponse
 			return nil
 		},
 		ServerAPI: h.serverAPI,
-	}.Execute(ctx)
-	if err != nil {
+	}
+
+	if isLegacyHandshake(h.serverAPI, deployment) {
+		op.Legacy = driver.LegacyHandshake
+	}
+
+	if err := op.Execute(ctx); err != nil {
 		return driver.HandshakeInformation{}, err
 	}
 
@@ -592,6 +599,9 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	if serverConnectionID, ok := h.res.Lookup("connectionId").AsInt64OK(); ok {
 		info.ServerConnectionID = &serverConnectionID
 	}
+
+	var err error
+
 	// Cast to bson.Raw to lookup saslSupportedMechs to avoid converting from bsoncore.Value to bson.RawValue for the
 	// StringSliceFromRawValue call.
 	if saslSupportedMechs, lookupErr := bson.Raw(h.res).LookupErr("saslSupportedMechs"); lookupErr == nil {
