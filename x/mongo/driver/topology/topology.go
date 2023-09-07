@@ -74,57 +74,26 @@ type hostEnv int
 const (
 	genuine hostEnv = iota
 	cosmosDB
-	doumentDB
+	documentDB
+)
+
+const (
+	cosmosDBMsg   = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
+	documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
 )
 
 var (
-	cosmosDBLog   = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
-	documentDBLog = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
+	thirdPartySuffixes = map[string]hostEnv{
+		".cosmos.azure.com":            cosmosDB,
+		".docdb.amazonaws.com":         documentDB,
+		".docdb-elastic.amazonaws.com": documentDB,
+	}
+
+	thirdPartyMessages = map[hostEnv]string{
+		cosmosDB:   cosmosDBMsg,
+		documentDB: documentDBMsg,
+	}
 )
-
-type envMap struct {
-	host string
-	env  hostEnv
-}
-
-type hostLogger struct {
-	logger *logger.Logger
-	envs   []envMap
-	logs   map[hostEnv]*string
-}
-
-func newHostLogger(l *logger.Logger) *hostLogger {
-	return &hostLogger{
-		logger: l,
-		envs: []envMap{
-			{".cosmos.azure.com", cosmosDB},
-			{".docdb.amazonaws.com", doumentDB},
-			{".docdb-elastic.amazonaws.com", doumentDB},
-		},
-		logs: map[hostEnv]*string{
-			cosmosDB:  &cosmosDBLog,
-			doumentDB: &documentDBLog,
-		},
-	}
-}
-
-func (l *hostLogger) log(host string) {
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		host = h
-	}
-	for _, em := range l.envs {
-		if strings.HasSuffix(host, em.host) {
-			if log, ok := l.logs[em.env]; ok && log != nil {
-				l.logger.Print(logger.LevelInfo,
-					logger.ComponentTopology,
-					*log,
-				)
-				l.logs[em.env] = nil
-			}
-			break
-		}
-	}
-}
 
 // Topology represents a MongoDB deployment.
 type Topology struct {
@@ -218,13 +187,13 @@ func New(cfg *Config) (*Topology, error) {
 	return t, nil
 }
 
-func mustLogTopologyMessage(topo *Topology) bool {
+func mustLogTopologyMessage(topo *Topology, level logger.Level) bool {
 	return topo.cfg.logger != nil && topo.cfg.logger.LevelComponentEnabled(
-		logger.LevelDebug, logger.ComponentTopology)
+		level, logger.ComponentTopology)
 }
 
-func logTopologyMessage(topo *Topology, msg string, keysAndValues ...interface{}) {
-	topo.cfg.logger.Print(logger.LevelDebug,
+func logTopologyMessage(topo *Topology, level logger.Level, msg string, keysAndValues ...interface{}) {
+	topo.cfg.logger.Print(level,
 		logger.ComponentTopology,
 		msg,
 		logger.SerializeTopology(logger.Topology{
@@ -240,8 +209,8 @@ func mustLogServerSelection(topo *Topology, level logger.Level) bool {
 
 func logServerSelection(
 	ctx context.Context,
-	level logger.Level,
 	topo *Topology,
+	level logger.Level,
 	msg string,
 	srvSelector description.ServerSelector,
 	keysAndValues ...interface{},
@@ -281,7 +250,7 @@ func logServerSelectionSucceeded(
 
 	portInt64, _ := strconv.ParseInt(port, 10, 32)
 
-	logServerSelection(ctx, logger.LevelDebug, topo, logger.ServerSelectionSucceeded, srvSelector,
+	logServerSelection(ctx, topo, logger.LevelDebug, logger.ServerSelectionSucceeded, srvSelector,
 		logger.KeyServerHost, host,
 		logger.KeyServerPort, portInt64)
 }
@@ -292,7 +261,7 @@ func logServerSelectionFailed(
 	srvSelector description.ServerSelector,
 	err error,
 ) {
-	logServerSelection(ctx, logger.LevelDebug, topo, logger.ServerSelectionFailed, srvSelector,
+	logServerSelection(ctx, topo, logger.LevelDebug, logger.ServerSelectionFailed, srvSelector,
 		logger.KeyFailure, err.Error())
 }
 
@@ -383,6 +352,25 @@ func (t *Topology) Connect() error {
 		return err
 	}
 	parsedHosts := strings.Split(uri.Host, ",")
+	if mustLogTopologyMessage(t, logger.LevelInfo) {
+		hostSet := make(map[hostEnv]bool)
+		for _, host := range parsedHosts {
+			if h, _, err := net.SplitHostPort(host); err == nil {
+				host = h
+			}
+			for suffix, env := range thirdPartySuffixes {
+				if !strings.HasSuffix(host, suffix) {
+					continue
+				}
+				if logged, ok := hostSet[env]; ok && logged {
+					break
+				} else {
+					hostSet[env] = true
+					logTopologyMessage(t, logger.LevelInfo, thirdPartyMessages[env])
+				}
+			}
+		}
+	}
 	if t.pollingRequired {
 		// sanity check before passing the hostname to resolver
 		if len(parsedHosts) != 1 {
@@ -396,11 +384,6 @@ func (t *Topology) Connect() error {
 		}
 		go t.pollSRVRecords(uri.Host)
 		t.pollingwg.Add(1)
-	} else {
-		logger := newHostLogger(t.cfg.logger)
-		for _, host := range parsedHosts {
-			logger.log(host)
-		}
 	}
 
 	t.subscriptionsClosed = false // explicitly set in case topology was disconnected and then reconnected
@@ -555,7 +538,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 		if !doneOnce {
 			if mustLogServerSelection(t, logger.LevelDebug) {
-				logServerSelection(ctx, logger.LevelDebug, t, logger.ServerSelectionStarted, ss)
+				logServerSelection(ctx, t, logger.LevelDebug, logger.ServerSelectionStarted, ss)
 			}
 
 			// for the first pass, select a server from the current description.
@@ -594,7 +577,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 				elapsed := time.Since(startTime)
 				remainingTimeMS := t.cfg.ServerSelectionTimeout - elapsed
 
-				logServerSelection(ctx, logger.LevelInfo, t, logger.ServerSelectionWaiting, ss,
+				logServerSelection(ctx, t, logger.LevelInfo, logger.ServerSelectionWaiting, ss,
 					logger.KeyRemainingTimeMS, remainingTimeMS.Milliseconds())
 			}
 
@@ -880,12 +863,10 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		})
 	}
 	// Add all added hosts until the number of servers reaches srvMaxHosts.
-	logger := newHostLogger(t.cfg.logger)
 	for _, a := range diff.Added {
 		if t.cfg.SRVMaxHosts > 0 && len(t.servers) >= t.cfg.SRVMaxHosts {
 			break
 		}
-		logger.log(a)
 		addr := address.Address(a).Canonicalize()
 		_ = t.addServer(addr)
 		t.fsm.addServer(addr)
@@ -1035,7 +1016,7 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 		t.cfg.ServerMonitor.ServerClosed(serverClosed)
 	}
 
-	if mustLogTopologyMessage(t) {
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
 		serverHost, serverPort, err := net.SplitHostPort(addr.String())
 		if err != nil {
 			serverHost = addr.String()
@@ -1044,7 +1025,7 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 
 		portInt64, _ := strconv.ParseInt(serverPort, 10, 32)
 
-		logTopologyMessage(t, logger.TopologyServerClosed,
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyServerClosed,
 			logger.KeyServerHost, serverHost,
 			logger.KeyServerPort, portInt64)
 	}
@@ -1062,8 +1043,8 @@ func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topol
 		t.cfg.ServerMonitor.TopologyDescriptionChanged(topologyDescriptionChanged)
 	}
 
-	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyDescriptionChanged,
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyDescriptionChanged,
 			logger.KeyPreviousDescription, prev.String(),
 			logger.KeyNewDescription, current.String())
 	}
@@ -1079,8 +1060,8 @@ func (t *Topology) publishTopologyOpeningEvent() {
 		t.cfg.ServerMonitor.TopologyOpening(topologyOpening)
 	}
 
-	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyOpening)
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyOpening)
 	}
 }
 
@@ -1094,7 +1075,7 @@ func (t *Topology) publishTopologyClosedEvent() {
 		t.cfg.ServerMonitor.TopologyClosed(topologyClosed)
 	}
 
-	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyClosed)
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyClosed)
 	}
 }

@@ -721,12 +721,12 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "normal",
 				uri:  "mongodb://a.mongo.cosmos.azure.com:19555/",
-				msgs: []string{cosmosDBLog},
+				msgs: []string{cosmosDBMsg},
 			},
 			{
 				name: "multiple hosts",
 				uri:  "mongodb://a.mongo.cosmos.azure.com:1955,b.mongo.cosmos.azure.com:19555/",
-				msgs: []string{cosmosDBLog},
+				msgs: []string{cosmosDBMsg},
 			},
 			{
 				name: "case-insensitive matching",
@@ -736,7 +736,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
 				uri:  "mongodb://a.example.com:27017,b.mongo.cosmos.azure.com:19555/",
-				msgs: []string{cosmosDBLog},
+				msgs: []string{cosmosDBMsg},
 			},
 		}
 		for _, tc := range testCases {
@@ -766,17 +766,17 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "normal",
 				uri:  "mongodb://a.docdb.amazonaws.com:27017/",
-				msgs: []string{documentDBLog},
+				msgs: []string{documentDBMsg},
 			},
 			{
 				name: "normal",
 				uri:  "mongodb://a.docdb-elastic.amazonaws.com:27017/",
-				msgs: []string{documentDBLog},
+				msgs: []string{documentDBMsg},
 			},
 			{
 				name: "multiple hosts",
 				uri:  "mongodb://a.docdb.amazonaws.com:27017,a.docdb-elastic.amazonaws.com:27017/",
-				msgs: []string{documentDBLog},
+				msgs: []string{documentDBMsg},
 			},
 			{
 				name: "case-insensitive matching",
@@ -791,12 +791,12 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
 				uri:  "mongodb://a.example.com:27017,b.docdb.amazonaws.com:27017/",
-				msgs: []string{documentDBLog},
+				msgs: []string{documentDBMsg},
 			},
 			{
 				name: "Mixing genuine and nongenuine hosts (unlikely in practice)",
 				uri:  "mongodb://a.example.com:27017,b.docdb-elastic.amazonaws.com:27017/",
-				msgs: []string{documentDBLog},
+				msgs: []string{documentDBMsg},
 			},
 		}
 		for _, tc := range testCases {
@@ -826,7 +826,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "Mixing hosts",
 				uri:  "mongodb://a.mongo.cosmos.azure.com:19555,a.docdb.amazonaws.com:27017/",
-				msgs: []string{cosmosDBLog, documentDBLog},
+				msgs: []string{cosmosDBMsg, documentDBMsg},
 			},
 		}
 		for _, tc := range testCases {
@@ -856,6 +856,11 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "normal",
 				uri:  "mongodb://a.example.com:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "srv",
+				uri:  "mongodb+srv://test22.test.build.10gen.cc/?srvServiceName=customname",
 				msgs: []string{},
 			},
 			{
