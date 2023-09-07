@@ -630,7 +630,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createWireMessage(ctx, (*wm)[:0], desc, maxTimeMS, conn, requestID)
+		*wm, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
 
 		if err != nil {
 			return err
@@ -1116,6 +1116,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	info.requestID = wiremessage.NextRequestID()
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
 	dst = wiremessage.AppendQueryFlags(dst, flags)
+
 	// FullCollectionName
 	dst = append(dst, op.Database...)
 	dst = append(dst, dollarCmd[:]...)
@@ -1279,9 +1280,9 @@ func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
 
 func (op Operation) createWireMessage(
 	ctx context.Context,
+	maxTimeMS uint64,
 	dst []byte,
 	desc description.SelectedServer,
-	maxTimeMS uint64,
 	conn Connection,
 	requestID int32,
 ) ([]byte, startedInformation, error) {
