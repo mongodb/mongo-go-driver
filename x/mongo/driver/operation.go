@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
@@ -629,7 +630,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createMsgWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
+		*wm, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
 
 		if err != nil {
 			return err
@@ -1103,6 +1104,85 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
+func (op Operation) createLegacyHandshakeWireMessage(
+	maxTimeMS uint64,
+	dst []byte,
+	desc description.SelectedServer,
+) ([]byte, startedInformation, error) {
+	var info startedInformation
+	flags := op.secondaryOK(desc)
+	var wmindex int32
+	info.requestID = wiremessage.NextRequestID()
+	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
+	dst = wiremessage.AppendQueryFlags(dst, flags)
+
+	dollarCmd := [...]byte{'.', '$', 'c', 'm', 'd'}
+
+	// FullCollectionName
+	dst = append(dst, op.Database...)
+	dst = append(dst, dollarCmd[:]...)
+	dst = append(dst, 0x00)
+	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
+	dst = wiremessage.AppendQueryNumberToReturn(dst, -1)
+
+	wrapper := int32(-1)
+	rp, err := op.createReadPref(desc, true)
+	if err != nil {
+		return dst, info, err
+	}
+	if len(rp) > 0 {
+		wrapper, dst = bsoncore.AppendDocumentStart(dst)
+		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
+	}
+	idx, dst := bsoncore.AppendDocumentStart(dst)
+	dst, err = op.CommandFn(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	if op.Batches != nil && len(op.Batches.Current) > 0 {
+		dst = op.addBatchArray(dst)
+	}
+
+	dst, err = op.addReadConcern(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	dst, err = op.addWriteConcern(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	dst, err = op.addSession(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	dst = op.addClusterTime(dst, desc)
+	dst = op.addServerAPI(dst)
+	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
+	// specifies the default behavior of no timeout server-side.
+	if maxTimeMS > 0 {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+	}
+
+	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
+	// Command monitoring only reports the document inside $query
+	info.cmd = dst[idx:]
+
+	if len(rp) > 0 {
+		var err error
+		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
+		dst, err = bsoncore.AppendDocumentEnd(dst, wrapper)
+		if err != nil {
+			return dst, info, err
+		}
+	}
+
+	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
 func (op Operation) createMsgWireMessage(
 	ctx context.Context,
 	maxTimeMS uint64,
@@ -1189,6 +1269,29 @@ func (op Operation) createMsgWireMessage(
 	}
 
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
+// isLegacyHandshake returns True if the operation is the first message of
+// the initial handshake and should use a legacy hello.
+func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
+	isInitialHandshake := desc.WireVersion == nil || desc.WireVersion.Max == 0
+
+	return op.Legacy == LegacyHandshake && isInitialHandshake
+}
+
+func (op Operation) createWireMessage(
+	ctx context.Context,
+	maxTimeMS uint64,
+	dst []byte,
+	desc description.SelectedServer,
+	conn Connection,
+	requestID int32,
+) ([]byte, startedInformation, error) {
+	if isLegacyHandshake(op, desc) {
+		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
+	}
+
+	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
 }
 
 // addCommandFields adds the fields for a command to the wire message in dst. This assumes that the start of the document
