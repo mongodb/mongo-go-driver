@@ -51,6 +51,7 @@ type rttMonitor struct {
 	cfg      *rttConfig
 	ctx      context.Context
 	cancelFn context.CancelFunc
+	started  bool
 }
 
 var _ driver.RTTMonitor = &rttMonitor{}
@@ -75,6 +76,7 @@ func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 
 func (r *rttMonitor) connect() {
 	r.closeWg.Add(1)
+	r.started = true
 	go r.start()
 }
 
@@ -89,6 +91,8 @@ func (r *rttMonitor) start() {
 
 	var conn *connection
 	defer func() {
+		r.started = false
+
 		if conn != nil {
 			// If the connection exists, we need to wait for it to be connected because
 			// conn.connect() and conn.close() cannot be called concurrently. If the connection
