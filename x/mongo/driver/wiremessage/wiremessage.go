@@ -19,9 +19,6 @@ type WireMessage []byte
 
 var globalRequestID int32
 
-// CurrentRequestID returns the current request ID.
-func CurrentRequestID() int32 { return atomic.LoadInt32(&globalRequestID) }
-
 // NextRequestID returns the next request ID.
 func NextRequestID() int32 { return atomic.AddInt32(&globalRequestID, 1) }
 
