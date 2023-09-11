@@ -63,7 +63,7 @@ func TestOperation(t *testing.T) {
 	t.Run("selectServer", func(t *testing.T) {
 		t.Run("returns validation error", func(t *testing.T) {
 			op := &Operation{}
-			_, err := op.selectServer(context.Background(), nil)
+			_, err := op.selectServer(context.Background(), 1, nil)
 			if err == nil {
 				t.Error("Expected a validation error from selectServer, but got <nil>")
 			}
@@ -77,7 +77,7 @@ func TestOperation(t *testing.T) {
 				Database:   "testing",
 				Selector:   want,
 			}
-			_, err := op.selectServer(context.Background(), nil)
+			_, err := op.selectServer(context.Background(), 1, nil)
 			noerr(t, err)
 
 			// Assert the the selector is an operation selector wrapper.
@@ -95,7 +95,7 @@ func TestOperation(t *testing.T) {
 				Deployment: d,
 				Database:   "testing",
 			}
-			_, err := op.selectServer(context.Background(), nil)
+			_, err := op.selectServer(context.Background(), 1, nil)
 			noerr(t, err)
 			if d.params.selector == nil {
 				t.Error("The selectServer method should use a default selector when not specified on Operation, but it passed <nil>.")
@@ -657,7 +657,8 @@ func TestOperation(t *testing.T) {
 }
 
 func createExhaustServerResponse(response bsoncore.Document, moreToCome bool) []byte {
-	idx, wm := wiremessage.AppendHeaderStart(nil, 0, wiremessage.CurrentRequestID()+1, wiremessage.OpMsg)
+	const psuedoRequestID = 1
+	idx, wm := wiremessage.AppendHeaderStart(nil, 0, psuedoRequestID, wiremessage.OpMsg)
 	var flags wiremessage.MsgFlag
 	if moreToCome {
 		flags = wiremessage.MoreToCome

@@ -99,6 +99,38 @@ func MakeReply(doc bsoncore.Document) []byte {
 	return bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
 }
 
+// GetCommandFromQueryWireMessage returns the command sent in an OP_QUERY wire message.
+func GetCommandFromQueryWireMessage(wm []byte) (bsoncore.Document, error) {
+	var ok bool
+	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	if !ok {
+		return nil, errors.New("could not read header")
+	}
+	_, wm, ok = wiremessage.ReadQueryFlags(wm)
+	if !ok {
+		return nil, errors.New("could not read flags")
+	}
+	_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
+	if !ok {
+		return nil, errors.New("could not read fullCollectionName")
+	}
+	_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
+	if !ok {
+		return nil, errors.New("could not read numberToSkip")
+	}
+	_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
+	if !ok {
+		return nil, errors.New("could not read numberToReturn")
+	}
+
+	var query bsoncore.Document
+	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	if !ok {
+		return nil, errors.New("could not read query")
+	}
+	return query, nil
+}
+
 // GetCommandFromMsgWireMessage returns the command document sent in an OP_MSG wire message.
 func GetCommandFromMsgWireMessage(wm []byte) (bsoncore.Document, error) {
 	var ok bool

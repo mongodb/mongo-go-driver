@@ -126,8 +126,6 @@ func TestClient(t *testing.T) {
 			"expected security field to be type %v, got %v", bson.TypeMaxKey, security.Type)
 		_, found := security.Document().LookupErr("SSLServerSubjectName")
 		assert.Nil(mt, found, "SSLServerSubjectName not found in result")
-		_, found = security.Document().LookupErr("SSLServerHasCertificateAuthority")
-		assert.Nil(mt, found, "SSLServerHasCertificateAuthority not found in result")
 	})
 	mt.RunOpts("x509", mtest.NewOptions().Auth(true).SSL(true), func(mt *mtest.T) {
 		testCases := []struct {
@@ -711,7 +709,7 @@ func TestClient(t *testing.T) {
 			err := mt.Client.Ping(ctx, nil)
 			cancel()
 			assert.NotNil(mt, err, "expected Ping to return an error")
-			assert.True(mt, mongo.IsTimeout(err), "expected a timeout error: got %v", err)
+			assert.True(mt, mongo.IsTimeout(err), "expected a timeout error, got: %v", err)
 		}
 
 		// Assert that the Ping timeouts result in no connections being closed.
@@ -733,8 +731,8 @@ func TestClient(t *testing.T) {
 		pair := msgPairs[0]
 		assert.Equal(mt, handshake.LegacyHello, pair.CommandName, "expected command name %s at index 0, got %s",
 			handshake.LegacyHello, pair.CommandName)
-		assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-			"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
+		assert.Equal(mt, wiremessage.OpQuery, pair.Sent.OpCode,
+			"expected 'OP_QUERY' OpCode in wire message, got %q", pair.Sent.OpCode.String())
 
 		// Look for a saslContinue in the remaining proxied messages and assert that it uses the OP_MSG OpCode, as wire
 		// version is now known to be >= 6.
