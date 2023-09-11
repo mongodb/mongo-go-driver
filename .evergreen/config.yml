@@ -2791,7 +2791,7 @@ buildvariants:
       # https://github.com/mongodb-labs/drivers-evergreen-tools/blob/master/.evergreen/csfle/azurekms/README.md
       #
       # This test will fail until BUILD-17857 is completed.
-      - rhel80-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
