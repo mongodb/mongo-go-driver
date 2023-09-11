@@ -440,37 +440,18 @@ functions:
           make -s evg-test-enterprise-auth
 
   run-atlas-test:
+    - command: ec2.assume_role
+      params:
+        role_arn: "${aws_test_secrets_role}"
     - command: shell.exec
       type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export ATLAS_FREE="${atlas_free_tier_uri}"
-          export ATLAS_REPLSET="${atlas_replica_set_uri}"
-          export ATLAS_SHARD="${atlas_sharded_uri}"
-          export ATLAS_TLS11="${atlas_tls_v11_uri}"
-          export ATLAS_TLS12="${atlas_tls_v12_uri}"
-          export ATLAS_FREE_SRV="${atlas_free_tier_uri_srv}"
-          export ATLAS_REPLSET_SRV="${atlas_replica_set_uri_srv}"
-          export ATLAS_SHARD_SRV="${atlas_sharded_uri_srv}"
-          export ATLAS_TLS11_SRV="${atlas_tls_v11_uri_srv}"
-          export ATLAS_TLS12_SRV="${atlas_tls_v12_uri_srv}"
-          export ATLAS_SERVERLESS="${atlas_serverless_uri}"
-          export ATLAS_SERVERLESS_SRV="${atlas_serverless_uri_srv}"
-          make -s evg-test-atlas
+          ${PREPARE_SHELL}
+          bash etc/run-atlas-test.sh
 
   run-ocsp-test:
     - command: shell.exec
