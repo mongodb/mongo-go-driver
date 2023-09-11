@@ -163,9 +163,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-          #git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
-          #
-            git clone --branch godriver-2792 https://github.com/prestonvasquez/drivers-evergreen-tools $DRIVERS_TOOLS
+            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -2333,7 +2331,7 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
-      - id: "rhel80-64-go-1-20"
+      - id: "rhel87-64-go-1-20"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
@@ -2345,12 +2343,12 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
-  - id: ocsp-rhel-70
+  - id: ocsp-rhel-87
     display_name: OS
     values:
-      - id: "rhel70-go-1-20"
-        display_name: "RHEL 7.0"
-        run_on: rhel70-build
+      - id: "rhel87-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2365,9 +2363,11 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
-      - id: "rhel80-64-go-1-20"
-        display_name: "RHEL 8.7"
-        run_on: rhel8.7-large
+      # TODO(BUILD-17329): Update this to RHEL 8.7 after we add a new ECS task
+      # definition that targets RHEL 8.
+      - id: "ubuntu1804-64-go-1-20"
+        display_name: "Ubuntu 18.04"
+        run_on: ubuntu1804-test
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2383,7 +2383,7 @@ axes:
   - id: os-faas-80
     display_name: OS
     values:
-      - id: "rhel80-large-go-1-20"
+      - id: "rhel87-large-go-1-20"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-large
         variables:
@@ -2392,7 +2392,7 @@ axes:
   - id: os-serverless
     display_name: OS
     values:
-      - id: "rhel80-go-1-20"
+      - id: "rhel87-go-1-20"
         display_name: "RHEL 8.7"
         run_on: rhel8.7-small
         variables:
@@ -2640,11 +2640,11 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
-
+  
   - name: atlas-test
     display_name: "Atlas test"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-large 
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2653,7 +2653,7 @@ buildvariants:
   - name: atlas-data-lake-test
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel8.7-large
+      - rhel8.7-large 
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2690,8 +2690,8 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-20"] }
-    display_name: "OCSP ${version} ${ocsp-rhel-70}"
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], ocsp-rhel-87: ["rhel87-go-1-20"] }
+    display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
@@ -2713,7 +2713,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "race-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel80-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
@@ -2725,13 +2725,13 @@ buildvariants:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel80-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel80-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
@@ -2743,20 +2743,20 @@ buildvariants:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel80-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
 
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel80-64-go-1-20"] }
+    matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
 
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-faas-80: ["rhel87-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
@@ -2764,8 +2764,7 @@ buildvariants:
   - name: testgcpkms-variant
     display_name: "GCP KMS"
     run_on:
-      #- debian11-small
-      - rhel80-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2776,8 +2775,7 @@ buildvariants:
   - name: testawskms-variant
     display_name: "AWS KMS"
     run_on:
-      #- debian11-small
-      - rhel80-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2787,10 +2785,6 @@ buildvariants:
   - name: testazurekms-variant
     display_name: "AZURE KMS"
     run_on:
-      # RHEL 8.0 is not supported for azurekms, see here for supported distros:
-      # https://github.com/mongodb-labs/drivers-evergreen-tools/blob/master/.evergreen/csfle/azurekms/README.md
-      #
-      # This test will fail until BUILD-17857 is completed.
       - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
