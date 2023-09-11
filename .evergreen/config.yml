@@ -2312,6 +2312,11 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
+      - id: "rhel87-64-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large 
+        variables:
+          GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
         display_name: "MacOS 11.0"
         run_on: macos-1100
@@ -2786,7 +2791,6 @@ buildvariants:
     display_name: "AZURE KMS"
     run_on:
       - debian11-small
-    expansions:
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
