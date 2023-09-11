@@ -707,12 +707,21 @@ func (*mockLogSink) Error(error, string, ...interface{}) {
 // Note: SRV connection strings are intentionally untested, since initial
 // lookup responses cannot be easily mocked.
 func TestTopologyConstructionLogging(t *testing.T) {
-	sink := &mockLogSink{}
-	loggerOptions := options.
-		Logger().
-		SetSink(sink).
-		SetComponentLevel(options.LogComponentTopology, options.LogLevelInfo)
+	const (
+		cosmosDBMsg   = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
+		documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
+	)
+
+	newLoggerOptions := func(sink options.LogSink) *options.LoggerOptions {
+		return options.
+			Logger().
+			SetSink(sink).
+			SetComponentLevel(options.LogComponentTopology, options.LogLevelInfo)
+	}
+
 	t.Run("CosmosDB URIs", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name string
 			uri  string
@@ -740,24 +749,28 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			},
 		}
 		for _, tc := range testCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
-				defer func() {
-					sink.msgs = []string{}
-				}()
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				t.Parallel()
+
+				sink := &mockLogSink{}
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
 				require.Nil(t, err, "topology.New error: %v", err)
 
 				err = topo.Connect()
-				require.Nil(t, err, "Connect error: %v", err)
+				assert.Nil(t, err, "Connect error: %v", err)
 
-				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+				assert.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
 			})
 		}
 	})
 	t.Run("DocumentDB URIs", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name string
 			uri  string
@@ -800,24 +813,28 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			},
 		}
 		for _, tc := range testCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
-				defer func() {
-					sink.msgs = []string{}
-				}()
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				t.Parallel()
+
+				sink := &mockLogSink{}
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
 				require.Nil(t, err, "topology.New error: %v", err)
 
 				err = topo.Connect()
-				require.Nil(t, err, "Connect error: %v", err)
+				assert.Nil(t, err, "Connect error: %v", err)
 
-				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+				assert.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
 			})
 		}
 	})
 	t.Run("Mixing CosmosDB and DocumentDB URIs", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name string
 			uri  string
@@ -830,24 +847,28 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			},
 		}
 		for _, tc := range testCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
-				defer func() {
-					sink.msgs = []string{}
-				}()
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				t.Parallel()
+
+				sink := &mockLogSink{}
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
 				require.Nil(t, err, "topology.New error: %v", err)
 
 				err = topo.Connect()
-				require.Nil(t, err, "Connect error: %v", err)
+				assert.Nil(t, err, "Connect error: %v", err)
 
-				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+				assert.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
 			})
 		}
 	})
 	t.Run("genuine URIs", func(t *testing.T) {
+		t.Parallel()
+
 		testCases := []struct {
 			name string
 			uri  string
@@ -885,20 +906,22 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			},
 		}
 		for _, tc := range testCases {
+			tc := tc
+
 			t.Run(tc.name, func(t *testing.T) {
-				defer func() {
-					sink.msgs = []string{}
-				}()
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(loggerOptions), nil)
+				t.Parallel()
+
+				sink := &mockLogSink{}
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
 				require.Nil(t, err, "topology.New error: %v", err)
 
 				err = topo.Connect()
-				require.Nil(t, err, "Connect error: %v", err)
+				assert.Nil(t, err, "Connect error: %v", err)
 
-				require.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
+				assert.ElementsMatch(t, tc.msgs, sink.msgs, "expected messages to be %v, got %v", tc.msgs, sink.msgs)
 			})
 		}
 	})

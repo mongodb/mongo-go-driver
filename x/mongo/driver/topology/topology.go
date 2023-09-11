@@ -69,32 +69,6 @@ const (
 	SingleMode
 )
 
-type hostEnv int
-
-const (
-	genuine hostEnv = iota
-	cosmosDB
-	documentDB
-)
-
-const (
-	cosmosDBMsg   = `You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`
-	documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
-)
-
-var (
-	thirdPartySuffixes = map[string]hostEnv{
-		".cosmos.azure.com":            cosmosDB,
-		".docdb.amazonaws.com":         documentDB,
-		".docdb-elastic.amazonaws.com": documentDB,
-	}
-
-	thirdPartyMessages = map[hostEnv]string{
-		cosmosDB:   cosmosDBMsg,
-		documentDB: documentDBMsg,
-	}
-)
-
 // Topology represents a MongoDB deployment.
 type Topology struct {
 	state int64
@@ -200,6 +174,36 @@ func logTopologyMessage(topo *Topology, level logger.Level, msg string, keysAndV
 			ID:      topo.id,
 			Message: msg,
 		}, keysAndValues...)...)
+}
+
+func logTopologyThirdPartyUsage(topo *Topology, parsedHosts []string) {
+	thirdPartyMessages := [2]string{
+		`You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`,
+		`You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`,
+	}
+
+	thirdPartySuffixes := map[string]int{
+		".cosmos.azure.com":            0,
+		".docdb.amazonaws.com":         1,
+		".docdb-elastic.amazonaws.com": 1,
+	}
+
+	hostSet := make([]bool, len(thirdPartyMessages))
+	for _, host := range parsedHosts {
+		if h, _, err := net.SplitHostPort(host); err == nil {
+			host = h
+		}
+		for suffix, env := range thirdPartySuffixes {
+			if !strings.HasSuffix(host, suffix) {
+				continue
+			}
+			if hostSet[env] {
+				break
+			}
+			hostSet[env] = true
+			logTopologyMessage(topo, logger.LevelInfo, thirdPartyMessages[env])
+		}
+	}
 }
 
 func mustLogServerSelection(topo *Topology, level logger.Level) bool {
@@ -353,23 +357,7 @@ func (t *Topology) Connect() error {
 	}
 	parsedHosts := strings.Split(uri.Host, ",")
 	if mustLogTopologyMessage(t, logger.LevelInfo) {
-		hostSet := make(map[hostEnv]bool)
-		for _, host := range parsedHosts {
-			if h, _, err := net.SplitHostPort(host); err == nil {
-				host = h
-			}
-			for suffix, env := range thirdPartySuffixes {
-				if !strings.HasSuffix(host, suffix) {
-					continue
-				}
-				if logged, ok := hostSet[env]; ok && logged {
-					break
-				} else {
-					hostSet[env] = true
-					logTopologyMessage(t, logger.LevelInfo, thirdPartyMessages[env])
-				}
-			}
-		}
+		logTopologyThirdPartyUsage(t, parsedHosts)
 	}
 	if t.pollingRequired {
 		// sanity check before passing the hostname to resolver
