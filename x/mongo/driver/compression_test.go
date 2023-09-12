@@ -7,8 +7,13 @@
 package driver
 
 import (
+	"bytes"
+	"compress/zlib"
 	"os"
 	"testing"
+
+	"github.com/golang/snappy"
+	"github.com/klauspost/compress/zstd"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -41,6 +46,43 @@ func TestCompression(t *testing.T) {
 	}
 }
 
+func TestCompressionLevels(t *testing.T) {
+	in := []byte("abc")
+	wr := new(bytes.Buffer)
+
+	t.Run("ZLib", func(t *testing.T) {
+		opts := CompressionOpts{
+			Compressor: wiremessage.CompressorZLib,
+		}
+		for lvl := zlib.HuffmanOnly - 2; lvl < zlib.BestCompression+2; lvl++ {
+			opts.ZlibLevel = lvl
+			_, err1 := CompressPayload(in, opts)
+			_, err2 := zlib.NewWriterLevel(wr, lvl)
+			if err2 != nil {
+				assert.Error(t, err1, "expected an error for ZLib level %d", lvl)
+			} else {
+				assert.NoError(t, err1, "unexpected error for ZLib level %d", lvl)
+			}
+		}
+	})
+
+	t.Run("Zstd", func(t *testing.T) {
+		opts := CompressionOpts{
+			Compressor: wiremessage.CompressorZstd,
+		}
+		for lvl := zstd.SpeedFastest - 2; lvl < zstd.SpeedBestCompression+2; lvl++ {
+			opts.ZstdLevel = int(lvl)
+			_, err1 := CompressPayload(in, opts)
+			_, err2 := zstd.NewWriter(wr, zstd.WithEncoderLevel(zstd.EncoderLevelFromZstd(opts.ZstdLevel)))
+			if err2 != nil {
+				assert.Error(t, err1, "expected an error for Zstd level %d", lvl)
+			} else {
+				assert.NoError(t, err1, "unexpected error for Zstd level %d", lvl)
+			}
+		}
+	})
+}
+
 func TestDecompressFailures(t *testing.T) {
 	t.Parallel()
 
@@ -62,18 +104,57 @@ func TestDecompressFailures(t *testing.T) {
 	})
 }
 
-func BenchmarkCompressPayload(b *testing.B) {
-	payload := func() []byte {
-		buf, err := os.ReadFile("compression.go")
+var (
+	compressionPayload      []byte
+	compressedSnappyPayload []byte
+	compressedZLibPayload   []byte
+	compressedZstdPayload   []byte
+)
+
+func initCompressionPayload(b *testing.B) {
+	if compressionPayload != nil {
+		return
+	}
+	data, err := os.ReadFile("testdata/compression.go")
+	if err != nil {
+		b.Fatal(err)
+	}
+	for i := 1; i < 10; i++ {
+		data = append(data, data...)
+	}
+	compressionPayload = data
+
+	compressedSnappyPayload = snappy.Encode(compressedSnappyPayload[:0], data)
+
+	{
+		var buf bytes.Buffer
+		enc, err := zstd.NewWriter(&buf, zstd.WithEncoderLevel(zstd.SpeedDefault))
 		if err != nil {
-			b.Log(err)
-			b.FailNow()
+			b.Fatal(err)
 		}
-		for i := 1; i < 10; i++ {
-			buf = append(buf, buf...)
+		compressedZstdPayload = enc.EncodeAll(data, nil)
+	}
+
+	{
+		var buf bytes.Buffer
+		enc := zlib.NewWriter(&buf)
+		if _, err := enc.Write(data); err != nil {
+			b.Fatal(err)
 		}
-		return buf
-	}()
+		if err := enc.Close(); err != nil {
+			b.Fatal(err)
+		}
+		if err := enc.Close(); err != nil {
+			b.Fatal(err)
+		}
+		compressedZLibPayload = append(compressedZLibPayload[:0], buf.Bytes()...)
+	}
+
+	b.ResetTimer()
+}
+
+func BenchmarkCompressPayload(b *testing.B) {
+	initCompressionPayload(b)
 
 	compressors := []wiremessage.CompressorID{
 		wiremessage.CompressorSnappy,
@@ -88,11 +169,49 @@ func BenchmarkCompressPayload(b *testing.B) {
 				ZlibLevel:  wiremessage.DefaultZlibLevel,
 				ZstdLevel:  wiremessage.DefaultZstdLevel,
 			}
+			payload := compressionPayload
+			b.SetBytes(int64(len(payload)))
+			b.ReportAllocs()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
 					_, err := CompressPayload(payload, opts)
 					if err != nil {
 						b.Error(err)
+					}
+				}
+			})
+		})
+	}
+}
+
+func BenchmarkDecompressPayload(b *testing.B) {
+	initCompressionPayload(b)
+
+	benchmarks := []struct {
+		compressor wiremessage.CompressorID
+		payload    []byte
+	}{
+		{wiremessage.CompressorSnappy, compressedSnappyPayload},
+		{wiremessage.CompressorZLib, compressedZLibPayload},
+		{wiremessage.CompressorZstd, compressedZstdPayload},
+	}
+
+	for _, bench := range benchmarks {
+		b.Run(bench.compressor.String(), func(b *testing.B) {
+			opts := CompressionOpts{
+				Compressor:       bench.compressor,
+				ZlibLevel:        wiremessage.DefaultZlibLevel,
+				ZstdLevel:        wiremessage.DefaultZstdLevel,
+				UncompressedSize: int32(len(compressionPayload)),
+			}
+			payload := bench.payload
+			b.SetBytes(int64(len(compressionPayload)))
+			b.ReportAllocs()
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					_, err := DecompressPayload(payload, opts)
+					if err != nil {
+						b.Fatal(err)
 					}
 				}
 			})
