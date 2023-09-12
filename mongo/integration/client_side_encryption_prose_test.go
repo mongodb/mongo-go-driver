@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -54,6 +53,16 @@ const (
 	cryptMaxBatchSizeBytes        = 2097152             // max bytes in write batch when auto encryption is enabled
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
+
+func containsSubstring(possibleSubstrings []string, str string) bool {
+	for _, possibleSubstring := range possibleSubstrings {
+		if strings.Contains(str, possibleSubstring) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func TestClientSideEncryptionProse(t *testing.T) {
 	t.Parallel()
@@ -865,26 +874,119 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"endpoint": "doesnotexist.local:5698",
 		}
 
+		const (
+			errConnectionRefused           = "connection refused"
+			errInvalidKMSResponse          = "Invalid KMS response"
+			errMongocryptError             = "mongocrypt error"
+			errNoSuchHost                  = "no such host"
+			errServerMisbehaving           = "server misbehaving"
+			errWindowsTLSConnectionRefused = "No connection could be made because the target machine actively refused it"
+		)
+
 		testCases := []struct {
 			name                                  string
 			provider                              string
 			masterKey                             interface{}
-			errorSubstring                        string
+			errorSubstring                        []string
 			testInvalidClientEncryption           bool
-			invalidClientEncryptionErrorSubstring string
+			invalidClientEncryptionErrorSubstring []string
 		}{
-			{"Case 1: aws success without endpoint", "aws", awsSuccessWithoutEndpoint, "", false, ""},
-			{"Case 2: aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
-			{"Case 3: aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
-			{"Case 4: aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
-			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "mongocrypt error", false, ""},
-			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "no such host", false, ""},
-			{"Case 7: azure success", "azure", azure, "", true, "no such host"},
-			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "no such host"},
-			{"Case 9: gcp failure", "gcp", gcpFailure, "Invalid KMS response", false, ""},
-			{"Case 10: kmip success without endpoint", "kmip", kmipSuccessWithoutEndpoint, "", true, "no such host"},
-			{"Case 11: kmip success with endpoint", "kmip", kmipSuccessWithEndpoint, "", false, ""},
-			{"Case 12: kmip failure with invalid endpoint", "kmip", kmipFailureInvalidEndpoint, "no such host", false, ""},
+			{
+				name:                                  "Case 1: aws success without endpoint",
+				provider:                              "aws",
+				masterKey:                             awsSuccessWithoutEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 2: aws success with endpoint",
+				provider:                              "aws",
+				masterKey:                             awsSuccessWithEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 3: aws success with https endpoint",
+				provider:                              "aws",
+				masterKey:                             awsSuccessWithHTTPSEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 4: aws failure with connection error",
+				provider:                              "aws",
+				masterKey:                             awsFailureConnectionError,
+				errorSubstring:                        []string{errConnectionRefused, errWindowsTLSConnectionRefused},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 5: aws failure with wrong endpoint",
+				provider:                              "aws",
+				masterKey:                             awsFailureInvalidEndpoint,
+				errorSubstring:                        []string{errMongocryptError},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 6: aws failure with parse error",
+				provider:                              "aws",
+				masterKey:                             awsFailureParseError,
+				errorSubstring:                        []string{errNoSuchHost, errServerMisbehaving},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 7: azure success",
+				provider:                              "azure",
+				masterKey:                             azure,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           true,
+				invalidClientEncryptionErrorSubstring: []string{errNoSuchHost, errServerMisbehaving},
+			},
+			{
+				name:                                  "Case 8: gcp success",
+				provider:                              "gcp",
+				masterKey:                             gcpSuccess,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           true,
+				invalidClientEncryptionErrorSubstring: []string{errNoSuchHost, errServerMisbehaving},
+			},
+			{
+				name:                                  "Case 9: gcp failure",
+				provider:                              "gcp",
+				masterKey:                             gcpFailure,
+				errorSubstring:                        []string{errInvalidKMSResponse},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 10: kmip success without endpoint",
+				provider:                              "kmip",
+				masterKey:                             kmipSuccessWithoutEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           true,
+				invalidClientEncryptionErrorSubstring: []string{errNoSuchHost, errServerMisbehaving},
+			},
+			{
+				name:                                  "Case 11: kmip success with endpoint",
+				provider:                              "kmip",
+				masterKey:                             kmipSuccessWithEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 12: kmip failure with invalid endpoint",
+				provider:                              "kmip",
+				masterKey:                             kmipFailureInvalidEndpoint,
+				errorSubstring:                        []string{errNoSuchHost, errServerMisbehaving},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -896,16 +998,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				dkOpts := options.DataKey().SetMasterKey(tc.masterKey)
 				createdKey, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.provider, dkOpts)
-				if tc.errorSubstring != "" {
+				if len(tc.errorSubstring) > 0 {
 					assert.NotNil(mt, err, "expected error, got nil")
-					errSubstr := tc.errorSubstring
-					if runtime.GOOS == "windows" && errSubstr == "connection refused" {
-						// tls.Dial returns an error that does not contain the substring "connection refused"
-						// on Windows machines
-						errSubstr = "No connection could be made because the target machine actively refused it"
-					}
-					assert.True(mt, strings.Contains(err.Error(), errSubstr),
-						"expected error '%s' to contain '%s'", err.Error(), errSubstr)
+
+					assert.True(t, containsSubstring(tc.errorSubstring, err.Error()),
+						"expected tc.errorSubstring=%v to contain %v, but it didn't", tc.errorSubstring, err.Error())
+
 					return
 				}
 				assert.Nil(mt, err, "CreateDataKey error: %v", err)
@@ -932,8 +1030,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				invalidKeyOpts := options.DataKey().SetMasterKey(tc.masterKey)
 				_, err = invalidClientEncryption.CreateDataKey(context.Background(), tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
-				assert.True(mt, strings.Contains(err.Error(), tc.invalidClientEncryptionErrorSubstring),
-					"expected error %v to contain substring '%v'", err, tc.invalidClientEncryptionErrorSubstring)
+
+				assert.True(t, containsSubstring(tc.invalidClientEncryptionErrorSubstring, err.Error()),
+					"expected tc.invalidClientEncryptionErrorSubstring=%v to contain %v, but it didn't",
+					tc.invalidClientEncryptionErrorSubstring, err.Error())
 			})
 		}
 	})
