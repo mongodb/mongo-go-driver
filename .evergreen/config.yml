@@ -1,5 +1,5 @@
 ########################################
-# Evergreen Template for MongoDB Drivers
+# Evergreen Template for MongoDB Drivers test
 ########################################
 
 # When a task that used to pass starts to fail
