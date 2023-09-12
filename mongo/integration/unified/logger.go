@@ -7,6 +7,9 @@
 package unified
 
 import (
+	"sync"
+	"sync/atomic"
+
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -20,12 +23,13 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
-	lastOrder int
+	bufSize   uint64
+	lastOrder uint64
 	logQueue  chan orderedLogMessage
-	bufSize   int
+	mu        sync.RWMutex
 }
 
-func newLogger(olm *observeLogMessages, bufSize int) *Logger {
+func newLogger(olm *observeLogMessages, bufSize uint64) *Logger {
 	if olm == nil {
 		return nil
 	}
@@ -40,11 +44,14 @@ func newLogger(olm *observeLogMessages, bufSize int) *Logger {
 // Info implements the logger.Sink interface's "Info" method for printing log
 // messages.
 func (log *Logger) Info(level int, msg string, args ...interface{}) {
+	log.mu.Lock()
+	defer log.mu.Unlock()
+
 	if log.logQueue == nil {
 		return
 	}
 
-	defer func() { log.lastOrder++ }()
+	defer func() { atomic.AddUint64(&log.lastOrder, 1) }()
 
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
@@ -64,7 +71,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
-		order:      log.lastOrder + 1,
+		order:      int(log.lastOrder + 1),
 		logMessage: logMessage,
 	}
 
