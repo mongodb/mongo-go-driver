@@ -2368,8 +2368,8 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
-      # TODO(BUILD-17329): Update this to RHEL 8.7 after we add a new ECS task
-      # definition that targets RHEL 8.
+      # TODO(BUILD-17329): Update this to Ubuntu 22 after we add a new ECS task
+      # definition.
       - id: "ubuntu1804-64-go-1-20"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
