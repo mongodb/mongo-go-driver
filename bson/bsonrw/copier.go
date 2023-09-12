@@ -193,7 +193,7 @@ func (c Copier) AppendDocumentBytes(dst []byte, src ValueReader) ([]byte, error)
 	}
 
 	vw := vwPool.Get().(*valueWriter)
-	defer vwPool.Put(vw)
+	defer putValueWriter(vw)
 
 	vw.reset(dst)
 
@@ -213,7 +213,7 @@ func (c Copier) AppendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 	}
 
 	vw := vwPool.Get().(*valueWriter)
-	defer vwPool.Put(vw)
+	defer putValueWriter(vw)
 
 	vw.reset(dst)
 
@@ -258,7 +258,7 @@ func (c Copier) AppendValueBytes(dst []byte, src ValueReader) (bsontype.Type, []
 	}
 
 	vw := vwPool.Get().(*valueWriter)
-	defer vwPool.Put(vw)
+	defer putValueWriter(vw)
 
 	start := len(dst)
 
