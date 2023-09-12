@@ -2168,7 +2168,7 @@ tasks:
 
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='${atlas_free_tier_uri}' \
-          EXPECT_ERROR='unable to retrieve aws credentials' \
+          EXPECT_ERROR='status=400' \
           PROVIDER='aws' \
             ./testkms
 
