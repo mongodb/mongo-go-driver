@@ -322,8 +322,73 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
+// filterDeprioritizedServers will filter out the server candidates that have
+// been deprioritized by the operation due to failure.
+//
+// The server selector should try to select a server that is not in the
+// deprioritization list. However, if this is not possible (e.g. there are no
+// other healthy servers in the cluster), the selector may return a
+// deprioritized server.
+func filterDeprioritizedServers(candidates, deprioritized []description.Server) []description.Server {
+	if len(deprioritized) == 0 {
+		return candidates
+	}
+
+	dpaSet := make(map[address.Address]*description.Server)
+	for i, srv := range deprioritized {
+		dpaSet[srv.Addr] = &deprioritized[i]
+	}
+
+	allowed := []description.Server{}
+
+	// Iterate over the candidates and append them to the allowdIndexes slice if
+	// they are not in the deprioritizedServers list.
+	for _, candidate := range candidates {
+		if srv, ok := dpaSet[candidate.Addr]; !ok || !srv.Equal(candidate) {
+			allowed = append(allowed, candidate)
+		}
+	}
+
+	// If nothing is allowed, then all available servers must have been
+	// deprioritized. In this case, return the candidates list as-is so that the
+	// selector can find a suitable server
+	if len(allowed) == 0 {
+		return candidates
+	}
+
+	return allowed
+}
+
+// opServerSelector is a wrapper for the server selector that is assigned to the
+// operation. The purpose of this wrapper is to filter candidates with
+// operation-specific logic, such as deprioritizing failing servers.
+type opServerSelector struct {
+	selector             description.ServerSelector
+	deprioritizedServers []description.Server
+}
+
+// SelectServer will filter candidates with operation-specific logic before
+// passing them onto the user-defined or default selector.
+func (oss *opServerSelector) SelectServer(
+	topo description.Topology,
+	candidates []description.Server,
+) ([]description.Server, error) {
+	selectedServers, err := oss.selector.SelectServer(topo, candidates)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredServers := filterDeprioritizedServers(selectedServers, oss.deprioritizedServers)
+
+	return filteredServers, nil
+}
+
 // selectServer handles performing server selection for an operation.
-func (op Operation) selectServer(ctx context.Context, requestID int32) (Server, error) {
+func (op Operation) selectServer(
+	ctx context.Context,
+	requestID int32,
+	deprioritized []description.Server,
+) (Server, error) {
 	if err := op.Validate(); err != nil {
 		return nil, err
 	}
@@ -340,15 +405,24 @@ func (op Operation) selectServer(ctx context.Context, requestID int32) (Server, 
 		})
 	}
 
+	oss := &opServerSelector{
+		selector:             selector,
+		deprioritizedServers: deprioritized,
+	}
+
 	ctx = logger.WithOperationName(ctx, op.Name)
 	ctx = logger.WithOperationID(ctx, requestID)
 
-	return op.Deployment.SelectServer(ctx, selector)
+	return op.Deployment.SelectServer(ctx, oss)
 }
 
 // getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
-func (op Operation) getServerAndConnection(ctx context.Context, requestID int32) (Server, Connection, error) {
-	server, err := op.selectServer(ctx, requestID)
+func (op Operation) getServerAndConnection(
+	ctx context.Context,
+	requestID int32,
+	deprioritized []description.Server,
+) (Server, Connection, error) {
+	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
 			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
@@ -481,6 +555,11 @@ func (op Operation) Execute(ctx context.Context) error {
 	first := true
 	currIndex := 0
 
+	// deprioritizedServers are a running list of servers that should be
+	// deprioritized during server selection. Per the specifications, we should
+	// only ever deprioritize the "previous server".
+	var deprioritizedServers []description.Server
+
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
 	resetForRetry := func(err error) {
@@ -506,11 +585,18 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 		}
 
-		// If we got a connection, close it immediately to release pool resources for
-		// subsequent retries.
+		// If we got a connection, close it immediately to release pool resources
+		// for subsequent retries.
 		if conn != nil {
+			// If we are dealing with a sharded cluster, then mark the failed server
+			// as "deprioritized".
+			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.Sharded {
+				deprioritizedServers = []description.Server{conn.Description()}
+			}
+
 			conn.Close()
 		}
+
 		// Set the server and connection to nil to request a new server and connection.
 		srvr = nil
 		conn = nil
@@ -535,7 +621,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
-			srvr, conn, err = op.getServerAndConnection(ctx, requestID)
+			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
