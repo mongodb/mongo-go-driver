@@ -25,8 +25,10 @@ bash $DRIVERS_TOOLS/.evergreen/run-orchestration.sh
 
 cd /src
 export GOPATH=$(go env GOPATH)
-export GOCACHE="$(pwd)/.cache"
+export GOCACHE="$HOME/.cache"
 export LD_LIBRARY_PATH=$HOME/install/libmongocrypt/lib
 export PKG_CONFIG_PATH=$HOME/install/libmongocrypt/lib/pkgconfig:$HOME/install/mongo-c-driver/lib/pkgconfig
 export BUILD_TAGS="-tags=cse"
+go mod download
+go mod verify
 make evg-test
