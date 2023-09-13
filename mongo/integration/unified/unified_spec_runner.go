@@ -224,9 +224,9 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	}
 
 	// Count the number of expected log messages over all clients.
-	var expectedLogCount uint64
+	var expectedLogCount int
 	for _, clientLog := range tc.ExpectLogMessages {
-		expectedLogCount += uint64(len(clientLog.LogMessages))
+		expectedLogCount += len(clientLog.LogMessages)
 	}
 
 	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount, tc.setsFailPoint())

@@ -37,7 +37,7 @@ const (
 func newTestContext(
 	ctx context.Context,
 	entityMap *EntityMap,
-	expectedLogMessageCount uint64,
+	expectedLogMessageCount int,
 	hasOperationalFailPoint bool,
 ) context.Context {
 	ctx = context.WithValue(ctx, operationalFailPointKey, hasOperationalFailPoint)
@@ -84,6 +84,6 @@ func entities(ctx context.Context) *EntityMap {
 	return ctx.Value(entitiesKey).(*EntityMap)
 }
 
-func expectedLogMessageCount(ctx context.Context) uint64 {
-	return ctx.Value(expectedLogMessageCountKey).(uint64)
+func expectedLogMessageCount(ctx context.Context) int {
+	return ctx.Value(expectedLogMessageCountKey).(int)
 }

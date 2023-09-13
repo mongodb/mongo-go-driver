@@ -7,7 +7,6 @@
 package unified
 
 import (
-	"sync"
 	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -23,13 +22,12 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
-	bufSize   uint64
-	lastOrder uint64
+	bufSize   int
+	lastOrder int32
 	logQueue  chan orderedLogMessage
-	mu        sync.RWMutex
 }
 
-func newLogger(olm *observeLogMessages, bufSize uint64) *Logger {
+func newLogger(olm *observeLogMessages, bufSize int) *Logger {
 	if olm == nil {
 		return nil
 	}
@@ -44,18 +42,13 @@ func newLogger(olm *observeLogMessages, bufSize uint64) *Logger {
 // Info implements the logger.Sink interface's "Info" method for printing log
 // messages.
 func (log *Logger) Info(level int, msg string, args ...interface{}) {
-	log.mu.Lock()
-	defer log.mu.Unlock()
-
 	if log.logQueue == nil {
 		return
 	}
 
-	defer func() { atomic.AddUint64(&log.lastOrder, 1) }()
-
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
-	if log.lastOrder > log.bufSize {
+	if log.lastOrder > int32(log.bufSize) {
 		return
 	}
 
@@ -75,10 +68,12 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		logMessage: logMessage,
 	}
 
-	// If the order has reached the buffer size, then close the channe.
-	if log.lastOrder == log.bufSize {
+	// If the order has reached the buffer size, then close the channel.
+	if log.lastOrder == int32(log.bufSize) {
 		close(log.logQueue)
 	}
+
+	atomic.AddInt32(&log.lastOrder, 1)
 }
 
 // Error implements the logger.Sink interface's "Error" method for printing log
