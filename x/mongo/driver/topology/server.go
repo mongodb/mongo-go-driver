@@ -799,6 +799,11 @@ func (s *Server) check() (description.Server, error) {
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
 	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
+		connID := "0"
+		if s.conn != nil {
+			connID = s.conn.ID()
+		}
+		s.publishServerHeartbeatStartedEvent(connID, false)
 		// Create a new connection and add it's handshake RTT as a sample.
 		err = s.setupHeartbeatConnection()
 		duration = time.Since(start)
