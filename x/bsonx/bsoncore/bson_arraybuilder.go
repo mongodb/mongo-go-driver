@@ -9,8 +9,8 @@ package bsoncore
 import (
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 )
 
 // ArrayBuilder builds a bson array

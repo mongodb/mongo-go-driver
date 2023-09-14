@@ -11,9 +11,9 @@ import (
 	"math"
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
 )
 
 // UIntCodec is the Codec used for uint values.

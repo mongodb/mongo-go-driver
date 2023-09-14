@@ -7,7 +7,7 @@
 package mongo
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // IndexOptionsBuilder specifies options for a new index.

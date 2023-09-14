@@ -9,9 +9,9 @@ package session
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/uuid"
+	"go.mongodb.org/mongo-driver/v2/mongo/description"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // Server is an open session with the server.

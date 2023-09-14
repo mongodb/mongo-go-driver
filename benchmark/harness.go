@@ -4,14 +4,14 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package benchmark // import "go.mongodb.org/mongo-driver/benchmark"
+package benchmark // import "go.mongodb.org/mongo-driver/v2/benchmark"
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 const (

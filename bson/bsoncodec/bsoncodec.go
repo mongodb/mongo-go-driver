@@ -4,16 +4,16 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bsoncodec // import "go.mongodb.org/mongo-driver/bson/bsoncodec"
+package bsoncodec // import "go.mongodb.org/mongo-driver/v2/bson/bsoncodec"
 
 import (
 	"fmt"
 	"reflect"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 )
 
 var (

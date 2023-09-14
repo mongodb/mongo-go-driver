@@ -10,9 +10,9 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func newTestLogMessage(t *testing.T, level int, msg string, args ...interface{}) *logMessage {

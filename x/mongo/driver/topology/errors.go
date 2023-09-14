@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/v2/mongo/description"
 )
 
 // ConnectionError represents a connection error.

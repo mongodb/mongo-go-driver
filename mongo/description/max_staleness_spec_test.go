@@ -10,7 +10,7 @@ import (
 	"path"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 const maxStalenessTestsDir = "../../testdata/max-staleness"

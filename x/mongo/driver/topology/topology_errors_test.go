@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/mongo/description"
 )
 
 var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package bsoncore // import "go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+package bsoncore // import "go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 )
 
 const (

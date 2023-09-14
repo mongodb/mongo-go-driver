@@ -9,8 +9,8 @@ package bsoncodec
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
 )
 
 var _ ValueEncoder = &PointerCodec{}

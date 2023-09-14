@@ -11,10 +11,10 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
 )
 
 var (

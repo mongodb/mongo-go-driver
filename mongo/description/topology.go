@@ -9,7 +9,7 @@ package description
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // Topology contains information about a MongoDB cluster.

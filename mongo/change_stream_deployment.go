@@ -9,8 +9,8 @@ package mongo
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/mongo/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 type changeStreamDeployment struct {

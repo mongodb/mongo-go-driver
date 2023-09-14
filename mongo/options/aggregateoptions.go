@@ -9,7 +9,7 @@ package options
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // AggregateOptions represents options that can be used to configure an Aggregate operation.

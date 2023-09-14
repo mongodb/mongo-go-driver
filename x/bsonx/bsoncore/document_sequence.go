@@ -10,7 +10,7 @@ import (
 	"errors"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
 )
 
 // DocumentSequenceStyle is used to represent how a document sequence is laid out in a slice of

@@ -10,7 +10,7 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
 )
 
 // AutoEncryptionOptions represents options used to configure auto encryption/decryption behavior for a mongo.Client

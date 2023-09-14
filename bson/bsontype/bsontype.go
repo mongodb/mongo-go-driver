@@ -6,7 +6,7 @@
 
 // Package bsontype is a utility package that contains types for each BSON type and the
 // a stringifier for the Type to enable easier debugging when working with BSON.
-package bsontype // import "go.mongodb.org/mongo-driver/bson/bsontype"
+package bsontype // import "go.mongodb.org/mongo-driver/v2/bson/bsontype"
 
 // BSON element types as described in https://bsonspec.org/spec.html.
 //

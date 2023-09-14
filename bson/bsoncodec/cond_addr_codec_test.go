@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonrw/bsonrwtest"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestCondAddrCodec(t *testing.T) {

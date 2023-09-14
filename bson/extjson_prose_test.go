@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestExtJSON(t *testing.T) {

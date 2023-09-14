@@ -12,8 +12,8 @@ import (
 	"math"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/tag"
 )
 
 // ServerSelector is an interface implemented by types that can perform server selection given a topology description

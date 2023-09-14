@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // WireMessage represents a MongoDB wire message in binary form.

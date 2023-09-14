@@ -9,7 +9,7 @@ package bsonutil
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // StringSliceFromRawValue decodes the provided BSON value into a []string. This function returns an error if the value

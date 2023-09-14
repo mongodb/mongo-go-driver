@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func executeIterateOnce(ctx context.Context, operation *operation) (*operationResult, error) {

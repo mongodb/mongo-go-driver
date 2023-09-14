@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo/integration/mtest"
 )
 
 var (

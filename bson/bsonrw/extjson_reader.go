@@ -11,8 +11,8 @@ import (
 	"io"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/v2/bson/primitive"
 )
 
 // ExtJSONValueReaderPool is a pool for ValueReaders that read ExtJSON.
