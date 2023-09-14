@@ -6,7 +6,7 @@
   <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
-# MongoDB Go Driver V1 Test
+# MongoDB Go Driver V1 Test 1
 
 The MongoDB supported driver for Go.
 
