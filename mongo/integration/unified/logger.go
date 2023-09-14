@@ -26,9 +26,9 @@ type Logger struct {
 	// unified spec test.
 	bufSize int
 
-	// order increments each time the "Info" method is called, and is used to
+	// lastOrder increments each time the "Info" method is called, and is used to
 	// determine when to close the logQueue.
-	order int
+	lastOrder int
 
 	// orderMu guards the order value, which increments each time the "Info"
 	// method is called. This is necessary since "Info" could be called from
@@ -43,9 +43,9 @@ func newLogger(olm *observeLogMessages, bufSize int) *Logger {
 	}
 
 	return &Logger{
-		order:    1,
-		logQueue: make(chan orderedLogMessage, bufSize),
-		bufSize:  bufSize,
+		lastOrder: 1,
+		logQueue:  make(chan orderedLogMessage, bufSize),
+		bufSize:   bufSize,
 	}
 }
 
@@ -58,14 +58,14 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
-	if log.order > log.bufSize {
+	if log.lastOrder > log.bufSize {
 		return
 	}
 
 	log.orderMu.Lock()
 	defer log.orderMu.Unlock()
 
-	defer func() { log.order++ }()
+	defer func() { log.lastOrder++ }()
 
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
@@ -79,12 +79,12 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
-		order:      int(log.order + 1),
+		order:      log.lastOrder + 1,
 		logMessage: logMessage,
 	}
 
 	// If the order has reached the buffer size, then close the channel.
-	if log.order == log.bufSize {
+	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}
 }
