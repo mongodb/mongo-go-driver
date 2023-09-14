@@ -7,6 +7,8 @@
 package unified
 
 import (
+	"sync"
+
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -20,9 +22,19 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
-	bufSize   int
-	lastOrder int
-	logQueue  chan orderedLogMessage
+	// bufSize is the number of logs expected to be sent to the logger for a
+	// unified spec test.
+	bufSize int
+
+	// order increments each time the "Info" method is called, and is used to
+	// determine when to close the logQueue.
+	order int
+
+	// orderMu guards the order value, which increments each time the "Info"
+	// method is called. This is necessary since "Info" could be called from
+	// multiple go routines, e.g. SDAM logs.
+	orderMu  sync.RWMutex
+	logQueue chan orderedLogMessage
 }
 
 func newLogger(olm *observeLogMessages, bufSize int) *Logger {
@@ -31,9 +43,9 @@ func newLogger(olm *observeLogMessages, bufSize int) *Logger {
 	}
 
 	return &Logger{
-		lastOrder: 1,
-		logQueue:  make(chan orderedLogMessage, bufSize),
-		bufSize:   bufSize,
+		order:    1,
+		logQueue: make(chan orderedLogMessage, bufSize),
+		bufSize:  bufSize,
 	}
 }
 
@@ -46,9 +58,14 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
-	if log.lastOrder > log.bufSize {
+	if log.order > log.bufSize {
 		return
 	}
+
+	log.orderMu.Lock()
+	defer log.orderMu.Unlock()
+
+	defer func() { log.order++ }()
 
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
@@ -62,16 +79,14 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
-		order:      int(log.lastOrder + 1),
+		order:      int(log.order + 1),
 		logMessage: logMessage,
 	}
 
 	// If the order has reached the buffer size, then close the channel.
-	if log.lastOrder == log.bufSize {
+	if log.order == log.bufSize {
 		close(log.logQueue)
 	}
-
-	log.lastOrder++
 }
 
 // Error implements the logger.Sink interface's "Error" method for printing log
