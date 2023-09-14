@@ -7,8 +7,6 @@
 package unified
 
 import (
-	"sync/atomic"
-
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -23,7 +21,7 @@ type orderedLogMessage struct {
 // the unified spec tests.
 type Logger struct {
 	bufSize   int
-	lastOrder int32
+	lastOrder int
 	logQueue  chan orderedLogMessage
 }
 
@@ -48,7 +46,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
-	if log.lastOrder > int32(log.bufSize) {
+	if log.lastOrder > log.bufSize {
 		return
 	}
 
@@ -69,11 +67,11 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	}
 
 	// If the order has reached the buffer size, then close the channel.
-	if log.lastOrder == int32(log.bufSize) {
+	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}
 
-	atomic.AddInt32(&log.lastOrder, 1)
+	log.lastOrder++
 }
 
 // Error implements the logger.Sink interface's "Error" method for printing log
