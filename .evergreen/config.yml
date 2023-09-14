@@ -2741,12 +2741,14 @@ buildvariants:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
+    tags: ["pullrequest"]
     matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
+    tags: ["pullrequest"]
     matrix_spec: { os-serverless: "*" }
     display_name: "Serverless ${os-serverless}"
     tasks:
