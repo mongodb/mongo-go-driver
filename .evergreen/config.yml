@@ -2620,6 +2620,7 @@ task_groups:
 
 buildvariants:
   - name: static-analysis
+    tags: ["pullrequest"]
     display_name: "Static Analysis"
     run_on:
       - rhel8.7-large
@@ -2648,6 +2649,7 @@ buildvariants:
       - name: ".compile-check"
   
   - name: atlas-test
+    tags: ["pullrequest"]
     display_name: "Atlas test"
     run_on:
       - rhel8.7-large 
@@ -2657,6 +2659,7 @@ buildvariants:
       - name: "atlas-test"
 
   - name: atlas-data-lake-test
+    tags: ["pullrequest"]
     display_name: "Atlas Data Lake Test"
     run_on:
       - rhel8.7-large 
