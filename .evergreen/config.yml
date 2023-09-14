@@ -2638,6 +2638,7 @@ buildvariants:
       - name: ".performance"
 
   - name: build-check
+    tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
       - rhel8.7-large
@@ -2718,6 +2719,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "race-test"
+    tags: ["pullrequest"]
     matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
