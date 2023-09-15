@@ -297,6 +297,14 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 		return dst, nil
 	}
 
+	var idx int32
+
+	idx, dst = bsoncore.AppendDocumentElementStart(dst, "env")
+
+	if name != "" {
+		dst = bsoncore.AppendStringElement(dst, "name", name)
+	}
+
 	addMem := func(envVar string) []byte {
 		mem := os.Getenv(envVar)
 		if mem == "" {
@@ -337,23 +345,17 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 		return bsoncore.AppendInt32Element(dst, "timeout_sec", timeoutInt32)
 	}
 
-	var idx int32
-	idx, dst = bsoncore.AppendDocumentElementStart(dst, "env")
-
-	if name != "" {
-		dst = bsoncore.AppendStringElement(dst, "name", name)
-		if !omitNonName {
-			switch name {
-			case envNameAWSLambda:
-				dst = addMem(envVarAWSLambdaFunctionMemorySize)
-				dst = addRegion(envVarAWSRegion)
-			case envNameGCPFunc:
-				dst = addMem(envVarFunctionMemoryMB)
-				dst = addRegion(envVarFunctionRegion)
-				dst = addTimeout(envVarFunctionTimeoutSec)
-			case envNameVercel:
-				dst = addRegion(envVarVercelRegion)
-			}
+	if !omitNonName {
+		switch name {
+		case envNameAWSLambda:
+			dst = addMem(envVarAWSLambdaFunctionMemorySize)
+			dst = addRegion(envVarAWSRegion)
+		case envNameGCPFunc:
+			dst = addMem(envVarFunctionMemoryMB)
+			dst = addRegion(envVarFunctionRegion)
+			dst = addTimeout(envVarFunctionTimeoutSec)
+		case envNameVercel:
+			dst = addRegion(envVarVercelRegion)
 		}
 	}
 
