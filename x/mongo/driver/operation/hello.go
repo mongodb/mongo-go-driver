@@ -293,6 +293,8 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 
 	name := getFaasEnvName()
 	container := getContainerEnvInfo()
+	// Omit the entire 'env' if both name and container are empty because other
+	// fields depend on either of them.
 	if name == "" && container == nil {
 		return dst, nil
 	}
@@ -346,6 +348,7 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 	}
 
 	if !omitNonName {
+		// No other FaaS fields will be populated if the name is empty.
 		switch name {
 		case envNameAWSLambda:
 			dst = addMem(envVarAWSLambdaFunctionMemorySize)
