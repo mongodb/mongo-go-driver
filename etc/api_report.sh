@@ -10,6 +10,7 @@ if [ -z $cmd ]; then
 fi
 
 branch=${GITHUB_BASE_REF:-master}
+git fetch origin $branch:$branch
 sha=$(git merge-base $branch HEAD)
 
 gorelease -base=$sha > api-report.txt || true
