@@ -7,6 +7,8 @@
 package unified
 
 import (
+	"sync"
+
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
@@ -20,9 +22,19 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
+	// bufSize is the number of logs expected to be sent to the logger for a
+	// unified spec test.
+	bufSize int
+
+	// lastOrder increments each time the "Info" method is called, and is used to
+	// determine when to close the logQueue.
 	lastOrder int
-	logQueue  chan orderedLogMessage
-	bufSize   int
+
+	// orderMu guards the order value, which increments each time the "Info"
+	// method is called. This is necessary since "Info" could be called from
+	// multiple go routines, e.g. SDAM logs.
+	orderMu  sync.RWMutex
+	logQueue chan orderedLogMessage
 }
 
 func newLogger(olm *observeLogMessages, bufSize int) *Logger {
@@ -44,13 +56,16 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		return
 	}
 
-	defer func() { log.lastOrder++ }()
-
 	// If the order is greater than the buffer size, we must return. This
 	// would indicate that the logQueue channel has been closed.
 	if log.lastOrder > log.bufSize {
 		return
 	}
+
+	log.orderMu.Lock()
+	defer log.orderMu.Unlock()
+
+	defer func() { log.lastOrder++ }()
 
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
@@ -68,7 +83,7 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		logMessage: logMessage,
 	}
 
-	// If the order has reached the buffer size, then close the channe.
+	// If the order has reached the buffer size, then close the channel.
 	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}
