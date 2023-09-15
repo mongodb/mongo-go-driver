@@ -59,6 +59,7 @@ var crudRegistry = bson.NewRegistryBuilder().
 	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).Build()
 
 func TestCrudSpec(t *testing.T) {
+	panic(1)
 	for _, dir := range []string{crudReadDir, crudWriteDir} {
 		for _, file := range jsonFilesInDir(t, path.Join(crudTestsDir, dir)) {
 			t.Run(file, func(t *testing.T) {
