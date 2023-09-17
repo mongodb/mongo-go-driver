@@ -111,6 +111,19 @@ The usage of host.docker.internal comes from the [Docker networking documentatio
 
 There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
 
+### Testing in Docker
+
+We have a ``Dockerfile`` and supporting files to be used for local testing in a Linux environment.
+Ensure ``docker`` is installed and running, and then run:
+
+```bash
+bash etc/run_docker.sh
+```
+
+The script takes an optional argument for the ``MAKEFILE_TARGET`` and allows for some environment variable overrides.
+The docker container will have the required binaries, including libmongocrypt.
+The entry script starts a mongodb topology, and then executes the desired ``MAKEFILE_TARGET``.
+
 ## Talk To Us
 
 If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).

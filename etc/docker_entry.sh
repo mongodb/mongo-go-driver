@@ -4,31 +4,26 @@
 #
 set -eux
 
-# TODO: make some things configurable
-
-export MONGODB_VERSION=latest
-export TOPOLOGY=replica_set
-export ORCHESTRATION_FILE=basic.json
+# Handle env variables.
 export DRIVERS_TOOLS=$HOME/drivers-evergreen-tools
 export PROJECT_ORCHESTRATION_HOME=$DRIVERS_TOOLS/.evergreen/orchestration
 export MONGO_ORCHESTRATION_HOME=$HOME
 
+# Clone DRIVERS_TOOLS if necessary.
 if [ ! -d $DRIVERS_TOOLS ]; then
     git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
 fi
 
-# Disable ipv6
+# Disable ipv6.
 sed -i "s/\"ipv6\": true,/\"ipv6\": false,/g" $PROJECT_ORCHESTRATION_HOME/configs/${TOPOLOGY}s/$ORCHESTRATION_FILE
 
-
+# Start the server.
 bash $DRIVERS_TOOLS/.evergreen/run-orchestration.sh
 
+# Prep files.
 cd /src
-export GOPATH=$(go env GOPATH)
-export GOCACHE="$HOME/.cache"
-export LD_LIBRARY_PATH=$HOME/install/libmongocrypt/lib
-export PKG_CONFIG_PATH=$HOME/install/libmongocrypt/lib/pkgconfig:$HOME/install/mongo-c-driver/lib/pkgconfig
-export BUILD_TAGS="-tags=cse"
-go mod download
-go mod verify
-make evg-test
+rm -f test.suite
+cp -r $HOME/install ./install
+
+# Run the test.
+bash ./.evergreen/run-tests.sh
