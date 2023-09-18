@@ -196,7 +196,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 
 	testContext.authEnabled = os.Getenv("AUTH") == "auth"
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
-	biRes, err := testContext.client.Database("admin").RunCommand(context.Background(), bson.D{{"buildInfo", 1}}).DecodeBytes()
+	biRes, err := testContext.client.Database("admin").RunCommand(context.Background(), bson.D{{"buildInfo", 1}}).Raw()
 	if err != nil {
 		return fmt.Errorf("buildInfo error: %v", err)
 	}
@@ -215,7 +215,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	// Get server parameters if test is not running against ADL; ADL does not have "getParameter" command.
 	if !testContext.dataLake {
 		db := testContext.client.Database("admin")
-		testContext.serverParameters, err = db.RunCommand(context.Background(), bson.D{{"getParameter", "*"}}).DecodeBytes()
+		testContext.serverParameters, err = db.RunCommand(context.Background(), bson.D{{"getParameter", "*"}}).Raw()
 		if err != nil {
 			return fmt.Errorf("error getting serverParameters: %v", err)
 		}

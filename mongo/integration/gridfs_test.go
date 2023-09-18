@@ -297,7 +297,7 @@ func TestGridFS(x *testing.T) {
 					// The uploadDate field is calculated when the upload is complete. Manually fetch it from the
 					// fs.files collection to use in assertions.
 					filesColl := mt.DB.Collection("fs.files")
-					uploadedFileDoc, err := filesColl.FindOne(context.Background(), bson.D{}).DecodeBytes()
+					uploadedFileDoc, err := filesColl.FindOne(context.Background(), bson.D{}).Raw()
 					assert.Nil(mt, err, "FindOne error: %v", err)
 					uploadTime := uploadedFileDoc.Lookup("uploadDate").Time().UTC()
 

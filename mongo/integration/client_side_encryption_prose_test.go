@@ -124,7 +124,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		// document from the collection.
 		coll := cse.kvClient.Database(kvDatabase).Collection(dkCollection)
 
-		keydoc, err := coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
+		keydoc, err := coll.FindOne(context.Background(), bson.D{}).Raw()
 		assert.Nil(mt, err, "error in decoding bytes: %v", err)
 
 		// Remove the key document from the collection.
@@ -299,7 +299,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
 				// find the inserted document. the value should be decrypted automatically
-				resBytes, err := cpt.cseColl.FindOne(context.Background(), bson.D{{"_id", tc.provider}}).DecodeBytes()
+				resBytes, err := cpt.cseColl.FindOne(context.Background(), bson.D{{"_id", tc.provider}}).Raw()
 				assert.Nil(mt, err, "Find error: %v", err)
 				foundVal := resBytes.Lookup("value").StringValue()
 				assert.Equal(mt, valueToEncrypt, foundVal, "expected value %v, got %v", valueToEncrypt, foundVal)
@@ -697,13 +697,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "InsertOne error for corpus document: %v", err)
 
 				// find document using client with encryption and assert it matches original
-				decryptedDoc, err := cpt.cseColl.FindOne(context.Background(), bson.D{}).DecodeBytes()
+				decryptedDoc, err := cpt.cseColl.FindOne(context.Background(), bson.D{}).Raw()
 				assert.Nil(mt, err, "Find error with encrypted client: %v", err)
 				assert.Equal(mt, corpus, decryptedDoc, "expected document %v, got %v", corpus, decryptedDoc)
 
 				// find document using a client without encryption enabled and assert fields remain encrypted
 				corpusEncrypted := readJSONFile(mt, "corpus-encrypted.json")
-				foundDoc, err := cpt.coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
+				foundDoc, err := cpt.coll.FindOne(context.Background(), bson.D{}).Raw()
 				assert.Nil(mt, err, "Find error with unencrypted client: %v", err)
 
 				encryptedElems, _ := corpusEncrypted.Elements()
@@ -1376,7 +1376,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
-				raw, err := coll.FindOne(context.Background(), bson.M{"_id": 0}).DecodeBytes()
+				raw, err := coll.FindOne(context.Background(), bson.M{"_id": 0}).Raw()
 				assert.Nil(mt, err, "FindOne error: %v", err)
 
 				expected := bsoncore.NewDocumentBuilder().
@@ -1727,8 +1727,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// Find.
 			res := coll.FindOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
 			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
-			got, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			got, err := res.Raw()
+			assert.Nil(mt, err, "error in Raw: %v", err)
 			gotValue, err := got.LookupErr("encryptedIndexed")
 			assert.Nil(mt, err, "error in LookupErr: %v", err)
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
@@ -1808,8 +1808,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// Find.
 			res := coll.FindOne(context.Background(), bson.D{{"_id", 1}})
 			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
-			got, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			got, err := res.Raw()
+			assert.Nil(mt, err, "error in Raw: %v", err)
 			gotValue, err := got.LookupErr("encryptedUnindexed")
 			assert.Nil(mt, err, "error in LookupErr: %v", err)
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
@@ -1899,7 +1899,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
 			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
-			resbytes, err := res.DecodeBytes()
+			resbytes, err := res.Raw()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
 			idsubtype, iddata := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: resbytes}.
@@ -1907,7 +1907,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", idsubtype, iddata).Build()
 
 			ctx := context.Background()
-			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).DecodeBytes()
+			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).Raw()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
 			updated := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: updatedData}
