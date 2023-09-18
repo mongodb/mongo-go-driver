@@ -31,6 +31,12 @@ If you are working on a bug or feature listed in Jira, please include the ticket
 
 ### Cherry-picking between branches
 
+You must first install the `gh` cli (`brew install gh`), then set your GitHub username:
+
+```bash
+git config --global github.user <github_handle>
+```
+
 If a Pull Request needs to be cherry-picked to a new branch, get the sha of the commit in the base branch, and then run
 
 ```bash
@@ -40,12 +46,6 @@ bash etc/cherry-picker.sh <sha>
 The cherry-picker script is configured to use `v1` as the base branch and `master` as the target branch.
 It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
 prompt before creating a PR to the target branch.
-
-If you set your GitHub username, it will create the branch on your fork,
-
-```bash
-git config --global github.user <github_handle>
-```
 
 ## Testing / Development
 
