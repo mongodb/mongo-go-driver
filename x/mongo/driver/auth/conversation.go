@@ -9,7 +9,7 @@ package auth
 import (
 	"context"
 
-	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // SpeculativeConversation represents an authentication conversation that can be merged with the initial connection

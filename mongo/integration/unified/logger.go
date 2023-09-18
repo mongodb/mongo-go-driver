@@ -7,7 +7,7 @@
 package unified
 
 import (
-	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/logger"
 )
 
 // orderedLogMessage is a logMessage with an "order" field representing the

@@ -11,8 +11,8 @@ import (
 	"reflect"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/v2/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 // This pool is used to keep the allocations of Encoders down. This is only used for the Marshal*

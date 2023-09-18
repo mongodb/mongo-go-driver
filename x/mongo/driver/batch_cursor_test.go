@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 func TestBatchCursor(t *testing.T) {

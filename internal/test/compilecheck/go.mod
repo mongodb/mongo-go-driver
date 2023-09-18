@@ -2,12 +2,12 @@ module go.mongodb.go/mongo-driver/internal/test/compilecheck
 
 go 1.18
 
-replace go.mongodb.org/mongo-driver/v2 => ../../../
+replace go.mongodb.org/mongo-driver => ../../../
 
 // Note that the Go driver version is replaced with the local Go driver code by
 // the replace directive above.
-//require go.mongodb.org/mongo-driver/v2
-require go.mongodb.org/mongo-driver/v2 v2.0.0-00010101000000-000000000000
+//require go.mongodb.org/mongo-driver
+require go.mongodb.org/mongo-driver v1.11.7
 
 require (
 	github.com/golang/snappy v0.0.1 // indirect

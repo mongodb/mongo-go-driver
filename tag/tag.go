@@ -8,7 +8,7 @@
 //
 // For more information about read preference tags, see
 // https://www.mongodb.com/docs/manual/core/read-preference-tags/
-package tag // import "go.mongodb.org/mongo-driver/v2/tag"
+package tag // import "go.mongodb.org/mongo-driver/tag"
 
 import (
 	"bytes"

@@ -12,9 +12,9 @@ import (
 	"reflect"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/v2/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 var defaultMapCodec = NewMapCodec()

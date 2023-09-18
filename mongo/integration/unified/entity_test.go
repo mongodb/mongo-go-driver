@@ -10,8 +10,8 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 func TestEntityMap(t *testing.T) {

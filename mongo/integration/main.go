@@ -9,5 +9,5 @@ package integration
 // This file exists to allow the build scripts (and standard Go builds for some early Go versions)
 // to succeed. Without it, the build may encounter an error like:
 //
-//   go build go.mongodb.org/mongo-driver/v2/mongo/integration: build constraints exclude all Go files in ./go.mongodb.org/mongo-driver/v2/mongo/integration
+//   go build go.mongodb.org/mongo-driver/mongo/integration: build constraints exclude all Go files in ./go.mongodb.org/mongo-driver/mongo/integration
 //

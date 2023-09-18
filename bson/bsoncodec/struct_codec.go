@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/v2/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.

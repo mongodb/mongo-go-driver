@@ -5,7 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package version defines the Go Driver version.
-package version // import "go.mongodb.org/mongo-driver/v2/version"
+package version // import "go.mongodb.org/mongo-driver/version"
 
 // Driver is the current version of the driver.
 var Driver = "v2.0.0-prerelease"

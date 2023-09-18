@@ -2,14 +2,14 @@ module go.mongodb.go/mongo-driver/internal/test/mongodb
 
 go 1.20
 
-replace go.mongodb.org/mongo-driver/v2 => ../../../../../
+replace go.mongodb.org/mongo-driver => ../../../../../
 
 require (
 	github.com/aws/aws-lambda-go v1.41.0
+
 	// Note that the Go driver version is replaced with the local Go driver code
 	// by the replace directive above.
-
-	go.mongodb.org/mongo-driver/v2 v2.0.0-00010101000000-000000000000
+	go.mongodb.org/mongo-driver v1.11.7
 )
 
 require (

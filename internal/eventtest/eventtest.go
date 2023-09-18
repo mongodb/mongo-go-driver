@@ -11,7 +11,7 @@ package eventtest
 import (
 	"sync"
 
-	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/event"
 )
 
 // TestPoolMonitor exposes an *event.TestPoolMonitor and collects all events logged to that

@@ -7,8 +7,8 @@
 package bsonrw
 
 import (
-	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ArrayWriter is the interface used to create a BSON or BSON adjacent array.

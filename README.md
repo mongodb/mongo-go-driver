@@ -1,8 +1,8 @@
 <p align="center"><img src="etc/assets/mongo-gopher.png" width="250"></p>
 <p align="center">
-  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver/v2"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver/v2"></a>
-  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
-  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
+  <a href="https://goreportcard.com/report/go.mongodb.org/mongo-driver"><img src="https://goreportcard.com/badge/go.mongodb.org/mongo-driver"></a>
+  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo"><img src="etc/assets/godev-mongo-blue.svg" alt="docs"></a>
+  <a href="https://pkg.go.dev/go.mongodb.org/mongo-driver/bson"><img src="etc/assets/godev-bson-blue.svg" alt="docs"></a>
   <a href="https://www.mongodb.com/docs/drivers/go/current/"><img src="etc/assets/docs-mongodb-green.svg"></a>
 </p>
 
@@ -44,9 +44,9 @@ import (
     "context"
     "time"
 
-    "go.mongodb.org/mongo-driver/v2/mongo"
-    "go.mongodb.org/mongo-driver/v2/mongo/options"
-    "go.mongodb.org/mongo-driver/v2/mongo/readpref"
+    "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -64,7 +64,7 @@ defer func() {
 }()
 ```
 
-For more advanced configuration and authentication, see the [documentation for mongo.Connect](https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo#Connect).
+For more advanced configuration and authentication, see the [documentation for mongo.Connect](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo#Connect).
 
 Calling `Connect` does not block for server discovery. If you wish to know if a MongoDB server has been found and connected to,
 use the `Ping` method:
@@ -90,7 +90,7 @@ res, err := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}}
 id := res.InsertedID
 ```
 
-To use `bson.D`, you will need to add `"go.mongodb.org/mongo-driver/v2/bson"` to your imports.
+To use `bson.D`, you will need to add `"go.mongodb.org/mongo-driver/bson"` to your imports.
 
 Your import statement should now look like this:
 
@@ -100,10 +100,10 @@ import (
     "log"
     "time"
 
-    "go.mongodb.org/mongo-driver/v2/bson"
-    "go.mongodb.org/mongo-driver/v2/mongo"
-    "go.mongodb.org/mongo-driver/v2/mongo/options"
-    "go.mongodb.org/mongo-driver/v2/mongo/readpref"
+    "go.mongodb.org/mongo-driver/bson"
+    "go.mongodb.org/mongo-driver/mongo"
+    "go.mongodb.org/mongo-driver/mongo/options"
+    "go.mongodb.org/mongo-driver/mongo/readpref"
 )
 ```
 

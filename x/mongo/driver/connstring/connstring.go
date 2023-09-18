@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package connstring // import "go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
+package connstring // import "go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 
 import (
 	"errors"
@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/v2/internal/randutil"
-	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/internal/randutil"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 var (

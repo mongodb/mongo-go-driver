@@ -7,7 +7,7 @@
 package bson
 
 import (
-	"go.mongodb.org/mongo-driver/v2/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // BSON element types as described in https://bsonspec.org/spec.html.

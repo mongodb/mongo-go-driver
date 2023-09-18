@@ -7,10 +7,10 @@
 // Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
 // See THIRD-PARTY-NOTICES for original license terms.
 
-package bson // import "go.mongodb.org/mongo-driver/v2/bson"
+package bson // import "go.mongodb.org/mongo-driver/bson"
 
 import (
-	"go.mongodb.org/mongo-driver/v2/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Zeroer allows custom struct types to implement a report of zero
