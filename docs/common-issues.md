@@ -34,7 +34,7 @@ sort := bson.D{}
 
 ## Convert BSON Document to JSON
 
-There are a variety of marshalers that can be used to encode a BSON document as JSON, including [MarshalExtJSON](https://pkg.go.dev/github.com/mongodb/mongo-go-driver/v2/bson#MarshalExtJSON):
+There are a variety of marshalers that can be used to encode a BSON document as JSON, including [MarshalExtJSON](https://pkg.go.dev/github.com/mongodb/mongo-go-driver/bson#MarshalExtJSON):
 
 ```go
 doc := bson.D{{"x", 1}}
