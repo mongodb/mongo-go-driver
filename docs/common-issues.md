@@ -4,7 +4,7 @@ These are fixes or information for common issues encountered by Go Driver users.
 
 ## `WriteXXX` can only write while positioned on a Element or Value but is positioned on a TopLevel
 
-The [`bson.Marshal`](https://pkg.go.dev/go.mongodb.org/mongo-driver/bson#Marshal) function requires a parameter that can be decoded into a BSON Document, i.e. a [`primitive.D`](https://github.com/mongodb/mongo-go-driver/v2/blob/master/bson/bson.go#L31). Therefore the error message
+The [`bson.Marshal`](https://pkg.go.dev/go.mongodb.org/mongo-driver/bson#Marshal) function requires a parameter that can be decoded into a BSON Document, i.e. a [`primitive.D`](https://github.com/mongodb/mongo-go-driver/blob/master/bson/bson.go#L31). Therefore the error message
 
 > `WriteXXX` can only write while positioned on a Element or Value but is positioned on a TopLevel
 
