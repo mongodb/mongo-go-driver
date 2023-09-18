@@ -770,7 +770,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 			require.NoError(mt, err, "failed to update idValue")
 		}()
 
-		nextCtx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+		nextCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		t.Cleanup(cancel)
 
 		type splitEvent struct {

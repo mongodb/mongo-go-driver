@@ -161,19 +161,49 @@ func New(cfg *Config) (*Topology, error) {
 	return t, nil
 }
 
-func mustLogTopologyMessage(topo *Topology) bool {
+func mustLogTopologyMessage(topo *Topology, level logger.Level) bool {
 	return topo.cfg.logger != nil && topo.cfg.logger.LevelComponentEnabled(
-		logger.LevelDebug, logger.ComponentTopology)
+		level, logger.ComponentTopology)
 }
 
-func logTopologyMessage(topo *Topology, msg string, keysAndValues ...interface{}) {
-	topo.cfg.logger.Print(logger.LevelDebug,
+func logTopologyMessage(topo *Topology, level logger.Level, msg string, keysAndValues ...interface{}) {
+	topo.cfg.logger.Print(level,
 		logger.ComponentTopology,
 		msg,
 		logger.SerializeTopology(logger.Topology{
 			ID:      topo.id,
 			Message: msg,
 		}, keysAndValues...)...)
+}
+
+func logTopologyThirdPartyUsage(topo *Topology, parsedHosts []string) {
+	thirdPartyMessages := [2]string{
+		`You appear to be connected to a CosmosDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/cosmosdb`,
+		`You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`,
+	}
+
+	thirdPartySuffixes := map[string]int{
+		".cosmos.azure.com":            0,
+		".docdb.amazonaws.com":         1,
+		".docdb-elastic.amazonaws.com": 1,
+	}
+
+	hostSet := make([]bool, len(thirdPartyMessages))
+	for _, host := range parsedHosts {
+		if h, _, err := net.SplitHostPort(host); err == nil {
+			host = h
+		}
+		for suffix, env := range thirdPartySuffixes {
+			if !strings.HasSuffix(host, suffix) {
+				continue
+			}
+			if hostSet[env] {
+				break
+			}
+			hostSet[env] = true
+			logTopologyMessage(topo, logger.LevelInfo, thirdPartyMessages[env])
+		}
+	}
 }
 
 func mustLogServerSelection(topo *Topology, level logger.Level) bool {
@@ -183,8 +213,8 @@ func mustLogServerSelection(topo *Topology, level logger.Level) bool {
 
 func logServerSelection(
 	ctx context.Context,
-	level logger.Level,
 	topo *Topology,
+	level logger.Level,
 	msg string,
 	srvSelector description.ServerSelector,
 	keysAndValues ...interface{},
@@ -224,7 +254,7 @@ func logServerSelectionSucceeded(
 
 	portInt64, _ := strconv.ParseInt(port, 10, 32)
 
-	logServerSelection(ctx, logger.LevelDebug, topo, logger.ServerSelectionSucceeded, srvSelector,
+	logServerSelection(ctx, topo, logger.LevelDebug, logger.ServerSelectionSucceeded, srvSelector,
 		logger.KeyServerHost, host,
 		logger.KeyServerPort, portInt64)
 }
@@ -235,7 +265,7 @@ func logServerSelectionFailed(
 	srvSelector description.ServerSelector,
 	err error,
 ) {
-	logServerSelection(ctx, logger.LevelDebug, topo, logger.ServerSelectionFailed, srvSelector,
+	logServerSelection(ctx, topo, logger.LevelDebug, logger.ServerSelectionFailed, srvSelector,
 		logger.KeyFailure, err.Error())
 }
 
@@ -321,13 +351,17 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
+	uri, err := url.Parse(t.cfg.URI)
+	if err != nil {
+		return err
+	}
+	parsedHosts := strings.Split(uri.Host, ",")
+	if mustLogTopologyMessage(t, logger.LevelInfo) {
+		logTopologyThirdPartyUsage(t, parsedHosts)
+	}
 	if t.pollingRequired {
-		uri, err := url.Parse(t.cfg.URI)
-		if err != nil {
-			return err
-		}
 		// sanity check before passing the hostname to resolver
-		if parsedHosts := strings.Split(uri.Host, ","); len(parsedHosts) != 1 {
+		if len(parsedHosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
 		_, _, err = net.SplitHostPort(uri.Host)
@@ -492,7 +526,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 		if !doneOnce {
 			if mustLogServerSelection(t, logger.LevelDebug) {
-				logServerSelection(ctx, logger.LevelDebug, t, logger.ServerSelectionStarted, ss)
+				logServerSelection(ctx, t, logger.LevelDebug, logger.ServerSelectionStarted, ss)
 			}
 
 			// for the first pass, select a server from the current description.
@@ -531,7 +565,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 				elapsed := time.Since(startTime)
 				remainingTimeMS := t.cfg.ServerSelectionTimeout - elapsed
 
-				logServerSelection(ctx, logger.LevelInfo, t, logger.ServerSelectionWaiting, ss,
+				logServerSelection(ctx, t, logger.LevelInfo, logger.ServerSelectionWaiting, ss,
 					logger.KeyRemainingTimeMS, remainingTimeMS.Milliseconds())
 			}
 
@@ -970,7 +1004,7 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 		t.cfg.ServerMonitor.ServerClosed(serverClosed)
 	}
 
-	if mustLogTopologyMessage(t) {
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
 		serverHost, serverPort, err := net.SplitHostPort(addr.String())
 		if err != nil {
 			serverHost = addr.String()
@@ -979,7 +1013,7 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 
 		portInt64, _ := strconv.ParseInt(serverPort, 10, 32)
 
-		logTopologyMessage(t, logger.TopologyServerClosed,
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyServerClosed,
 			logger.KeyServerHost, serverHost,
 			logger.KeyServerPort, portInt64)
 	}
@@ -997,8 +1031,8 @@ func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topol
 		t.cfg.ServerMonitor.TopologyDescriptionChanged(topologyDescriptionChanged)
 	}
 
-	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyDescriptionChanged,
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyDescriptionChanged,
 			logger.KeyPreviousDescription, prev.String(),
 			logger.KeyNewDescription, current.String())
 	}
@@ -1014,8 +1048,8 @@ func (t *Topology) publishTopologyOpeningEvent() {
 		t.cfg.ServerMonitor.TopologyOpening(topologyOpening)
 	}
 
-	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyOpening)
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyOpening)
 	}
 }
 
@@ -1029,7 +1063,7 @@ func (t *Topology) publishTopologyClosedEvent() {
 		t.cfg.ServerMonitor.TopologyClosed(topologyClosed)
 	}
 
-	if mustLogTopologyMessage(t) {
-		logTopologyMessage(t, logger.TopologyClosed)
+	if mustLogTopologyMessage(t, logger.LevelDebug) {
+		logTopologyMessage(t, logger.LevelDebug, logger.TopologyClosed)
 	}
 }

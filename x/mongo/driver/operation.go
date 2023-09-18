@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
@@ -321,8 +322,73 @@ func (op Operation) shouldEncrypt() bool {
 	return op.Crypt != nil && !op.Crypt.BypassAutoEncryption()
 }
 
+// filterDeprioritizedServers will filter out the server candidates that have
+// been deprioritized by the operation due to failure.
+//
+// The server selector should try to select a server that is not in the
+// deprioritization list. However, if this is not possible (e.g. there are no
+// other healthy servers in the cluster), the selector may return a
+// deprioritized server.
+func filterDeprioritizedServers(candidates, deprioritized []description.Server) []description.Server {
+	if len(deprioritized) == 0 {
+		return candidates
+	}
+
+	dpaSet := make(map[address.Address]*description.Server)
+	for i, srv := range deprioritized {
+		dpaSet[srv.Addr] = &deprioritized[i]
+	}
+
+	allowed := []description.Server{}
+
+	// Iterate over the candidates and append them to the allowdIndexes slice if
+	// they are not in the deprioritizedServers list.
+	for _, candidate := range candidates {
+		if srv, ok := dpaSet[candidate.Addr]; !ok || !srv.Equal(candidate) {
+			allowed = append(allowed, candidate)
+		}
+	}
+
+	// If nothing is allowed, then all available servers must have been
+	// deprioritized. In this case, return the candidates list as-is so that the
+	// selector can find a suitable server
+	if len(allowed) == 0 {
+		return candidates
+	}
+
+	return allowed
+}
+
+// opServerSelector is a wrapper for the server selector that is assigned to the
+// operation. The purpose of this wrapper is to filter candidates with
+// operation-specific logic, such as deprioritizing failing servers.
+type opServerSelector struct {
+	selector             description.ServerSelector
+	deprioritizedServers []description.Server
+}
+
+// SelectServer will filter candidates with operation-specific logic before
+// passing them onto the user-defined or default selector.
+func (oss *opServerSelector) SelectServer(
+	topo description.Topology,
+	candidates []description.Server,
+) ([]description.Server, error) {
+	selectedServers, err := oss.selector.SelectServer(topo, candidates)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredServers := filterDeprioritizedServers(selectedServers, oss.deprioritizedServers)
+
+	return filteredServers, nil
+}
+
 // selectServer handles performing server selection for an operation.
-func (op Operation) selectServer(ctx context.Context) (Server, error) {
+func (op Operation) selectServer(
+	ctx context.Context,
+	requestID int32,
+	deprioritized []description.Server,
+) (Server, error) {
 	if err := op.Validate(); err != nil {
 		return nil, err
 	}
@@ -339,15 +405,24 @@ func (op Operation) selectServer(ctx context.Context) (Server, error) {
 		})
 	}
 
-	ctx = logger.WithOperationName(ctx, op.Name)
-	ctx = logger.WithOperationID(ctx, wiremessage.CurrentRequestID())
+	oss := &opServerSelector{
+		selector:             selector,
+		deprioritizedServers: deprioritized,
+	}
 
-	return op.Deployment.SelectServer(ctx, selector)
+	ctx = logger.WithOperationName(ctx, op.Name)
+	ctx = logger.WithOperationID(ctx, requestID)
+
+	return op.Deployment.SelectServer(ctx, oss)
 }
 
 // getServerAndConnection should be used to retrieve a Server and Connection to execute an operation.
-func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connection, error) {
-	server, err := op.selectServer(ctx)
+func (op Operation) getServerAndConnection(
+	ctx context.Context,
+	requestID int32,
+	deprioritized []description.Server,
+) (Server, Connection, error) {
+	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
 			!(op.Client.Committing || op.Client.Aborting) && op.Client.TransactionRunning() {
@@ -480,6 +555,11 @@ func (op Operation) Execute(ctx context.Context) error {
 	first := true
 	currIndex := 0
 
+	// deprioritizedServers are a running list of servers that should be
+	// deprioritized during server selection. Per the specifications, we should
+	// only ever deprioritize the "previous server".
+	var deprioritizedServers []description.Server
+
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
 	resetForRetry := func(err error) {
@@ -505,11 +585,18 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 		}
 
-		// If we got a connection, close it immediately to release pool resources for
-		// subsequent retries.
+		// If we got a connection, close it immediately to release pool resources
+		// for subsequent retries.
 		if conn != nil {
+			// If we are dealing with a sharded cluster, then mark the failed server
+			// as "deprioritized".
+			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.Sharded {
+				deprioritizedServers = []description.Server{conn.Description()}
+			}
+
 			conn.Close()
 		}
+
 		// Set the server and connection to nil to request a new server and connection.
 		srvr = nil
 		conn = nil
@@ -530,11 +617,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
-		wiremessage.NextRequestID()
+		requestID := wiremessage.NextRequestID()
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
 		if srvr == nil || conn == nil {
-			srvr, conn, err = op.getServerAndConnection(ctx)
+			srvr, conn, err = op.getServerAndConnection(ctx, requestID, deprioritizedServers)
 			if err != nil {
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
@@ -629,7 +716,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		var startedInfo startedInformation
-		*wm, startedInfo, err = op.createMsgWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn)
+		*wm, startedInfo, err = op.createWireMessage(ctx, maxTimeMS, (*wm)[:0], desc, conn, requestID)
 
 		if err != nil {
 			return err
@@ -1103,8 +1190,92 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 	return dst
 }
 
-func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, dst []byte, desc description.SelectedServer,
+func (op Operation) createLegacyHandshakeWireMessage(
+	maxTimeMS uint64,
+	dst []byte,
+	desc description.SelectedServer,
+) ([]byte, startedInformation, error) {
+	var info startedInformation
+	flags := op.secondaryOK(desc)
+	var wmindex int32
+	info.requestID = wiremessage.NextRequestID()
+	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpQuery)
+	dst = wiremessage.AppendQueryFlags(dst, flags)
+
+	dollarCmd := [...]byte{'.', '$', 'c', 'm', 'd'}
+
+	// FullCollectionName
+	dst = append(dst, op.Database...)
+	dst = append(dst, dollarCmd[:]...)
+	dst = append(dst, 0x00)
+	dst = wiremessage.AppendQueryNumberToSkip(dst, 0)
+	dst = wiremessage.AppendQueryNumberToReturn(dst, -1)
+
+	wrapper := int32(-1)
+	rp, err := op.createReadPref(desc, true)
+	if err != nil {
+		return dst, info, err
+	}
+	if len(rp) > 0 {
+		wrapper, dst = bsoncore.AppendDocumentStart(dst)
+		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
+	}
+	idx, dst := bsoncore.AppendDocumentStart(dst)
+	dst, err = op.CommandFn(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	if op.Batches != nil && len(op.Batches.Current) > 0 {
+		dst = op.addBatchArray(dst)
+	}
+
+	dst, err = op.addReadConcern(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	dst, err = op.addWriteConcern(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	dst, err = op.addSession(dst, desc)
+	if err != nil {
+		return dst, info, err
+	}
+
+	dst = op.addClusterTime(dst, desc)
+	dst = op.addServerAPI(dst)
+	// If maxTimeMS is greater than 0 append it to wire message. A maxTimeMS value of 0 only explicitly
+	// specifies the default behavior of no timeout server-side.
+	if maxTimeMS > 0 {
+		dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(maxTimeMS))
+	}
+
+	dst, _ = bsoncore.AppendDocumentEnd(dst, idx)
+	// Command monitoring only reports the document inside $query
+	info.cmd = dst[idx:]
+
+	if len(rp) > 0 {
+		var err error
+		dst = bsoncore.AppendDocumentElement(dst, "$readPreference", rp)
+		dst, err = bsoncore.AppendDocumentEnd(dst, wrapper)
+		if err != nil {
+			return dst, info, err
+		}
+	}
+
+	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
+func (op Operation) createMsgWireMessage(
+	ctx context.Context,
+	maxTimeMS uint64,
+	dst []byte,
+	desc description.SelectedServer,
 	conn Connection,
+	requestID int32,
 ) ([]byte, startedInformation, error) {
 	var info startedInformation
 	var flags wiremessage.MsgFlag
@@ -1120,7 +1291,7 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 		flags |= wiremessage.ExhaustAllowed
 	}
 
-	info.requestID = wiremessage.CurrentRequestID()
+	info.requestID = requestID
 	wmindex, dst = wiremessage.AppendHeaderStart(dst, info.requestID, 0, wiremessage.OpMsg)
 	dst = wiremessage.AppendMsgFlags(dst, flags)
 	// Body
@@ -1184,6 +1355,29 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 	}
 
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
+// isLegacyHandshake returns True if the operation is the first message of
+// the initial handshake and should use a legacy hello.
+func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
+	isInitialHandshake := desc.WireVersion == nil || desc.WireVersion.Max == 0
+
+	return op.Legacy == LegacyHandshake && isInitialHandshake
+}
+
+func (op Operation) createWireMessage(
+	ctx context.Context,
+	maxTimeMS uint64,
+	dst []byte,
+	desc description.SelectedServer,
+	conn Connection,
+	requestID int32,
+) ([]byte, startedInformation, error) {
+	if isLegacyHandshake(op, desc) {
+		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
+	}
+
+	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
 }
 
 // addCommandFields adds the fields for a command to the wire message in dst. This assumes that the start of the document
