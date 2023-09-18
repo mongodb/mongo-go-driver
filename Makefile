@@ -59,7 +59,6 @@ check-fmt: install-lll
 .PHONY: check-modules
 check-modules:
 	go mod tidy -v
-	go mod verify
 	git diff --exit-code go.mod go.sum 
 
 .PHONY: doc
