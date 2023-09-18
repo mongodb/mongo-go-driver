@@ -29,6 +29,18 @@ If any tests do not pass, or relevant tests are not included, the patch will not
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
 
+### Cherry-picking between branches
+
+If a Pull Request needs to be cherry-picked to a new branch, get the sha of the commit in the base branch, and then run
+
+```bash
+bash etc/cherry-picker.sh <sha>
+```
+
+The cherry-picker script is configured to use `v1` as the base branch and `master` as the target branch.
+It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
+prompt before creating a PR to the target branch.
+
 ## Testing / Development
 
 The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`). This will run coverage, run go-lint, run go-vet, and build the examples.
