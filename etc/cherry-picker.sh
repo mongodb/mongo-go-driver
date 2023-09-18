@@ -15,11 +15,16 @@ git cherry-pick -x $sha
 
 old_title=$(git --no-pager log  -1 --pretty=%B | head -n 1)
 ticket=$(echo $old_title | sed -r 's/([A-Z]+-[0-9]+).*/\1/')
-echo "ticket $ticket"
 text=$(echo $old_title | sed -r 's/([A-Z]+-[0-9]+) (.*) \(#[0-9]*\)/\2/')
-echo "text $text"
 pr_number=$(echo $old_title| sed -r 's/.*(#[0-9]*)\)/\1/')
-echo "pr number: $pr_number"
+user=$(git config github.user)
+
+if [ -n "$user" ]; then
+    head="$user:$branch"
+else
+    head="$origin:$branch"
+fi
+
 title="$ticket [$target] $text"
 body="Cherry-pick of $pr_number from $base to $target"
 
@@ -27,9 +32,11 @@ echo
 echo "Creating PR..."
 echo "Title: $title"
 echo "Body: $body"
+echo "Base: $base"
+echo "Head: $head"
 echo
 
 read -p 'Push changes? (Y/n) ' choice
 if [[ "$choice" == "Y" || "$choice" == "y" || -z "$choice" ]]; then
-    gh pr create --title "$title" --base $target --body "$body"
+    gh pr create --title "$title" --base $target --head $head --body "$body"
 fi

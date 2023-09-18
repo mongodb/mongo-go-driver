@@ -41,6 +41,12 @@ The cherry-picker script is configured to use `v1` as the base branch and `maste
 It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
 prompt before creating a PR to the target branch.
 
+If you set your GitHub username, it will create the branch on your fork,
+
+```bash
+git config --global github.user <github_handle>
+```
+
 ## Testing / Development
 
 The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`). This will run coverage, run go-lint, run go-vet, and build the examples.
