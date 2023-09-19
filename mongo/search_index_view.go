@@ -42,7 +42,11 @@ type SearchIndexModel struct {
 //
 // The opts parameter can be used to specify options for this operation (see the options.ListSearchIndexesOptions
 // documentation).
-func (siv SearchIndexView) List(ctx context.Context, searchIdxOpts *options.SearchIndexesOptions, opts ...*options.ListSearchIndexesOptions) (*Cursor, error) {
+func (siv SearchIndexView) List(
+	ctx context.Context,
+	searchIdxOpts *options.SearchIndexesOptions,
+	opts ...*options.ListSearchIndexesOptions,
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -62,7 +66,11 @@ func (siv SearchIndexView) List(ctx context.Context, searchIdxOpts *options.Sear
 
 // CreateOne executes a createSearchIndexes command to create a search index on the collection and returns the name of the new
 // search index. See the SearchIndexView.CreateMany documentation for more information and an example.
-func (siv SearchIndexView) CreateOne(ctx context.Context, model SearchIndexModel, opts ...*options.CreateSearchIndexesOptions) (string, error) {
+func (siv SearchIndexView) CreateOne(
+	ctx context.Context,
+	model SearchIndexModel,
+	opts ...*options.CreateSearchIndexesOptions,
+) (string, error) {
 	names, err := siv.CreateMany(ctx, []SearchIndexModel{model}, opts...)
 	if err != nil {
 		return "", err
@@ -78,7 +86,11 @@ func (siv SearchIndexView) CreateOne(ctx context.Context, model SearchIndexModel
 //
 // The opts parameter can be used to specify options for this operation (see the options.CreateSearchIndexesOptions
 // documentation).
-func (siv SearchIndexView) CreateMany(ctx context.Context, models []SearchIndexModel, _ ...*options.CreateSearchIndexesOptions) ([]string, error) {
+func (siv SearchIndexView) CreateMany(
+	ctx context.Context,
+	models []SearchIndexModel,
+	_ ...*options.CreateSearchIndexesOptions,
+) ([]string, error) {
 	var indexes bsoncore.Document
 	aidx, indexes := bsoncore.AppendArrayStart(indexes)
 
@@ -160,7 +172,11 @@ func (siv SearchIndexView) CreateMany(ctx context.Context, models []SearchIndexM
 //
 // The opts parameter can be used to specify options for this operation (see the options.DropSearchIndexOptions
 // documentation).
-func (siv SearchIndexView) DropOne(ctx context.Context, name string, _ ...*options.DropSearchIndexOptions) error {
+func (siv SearchIndexView) DropOne(
+	ctx context.Context,
+	name string,
+	_ ...*options.DropSearchIndexOptions,
+) error {
 	if name == "*" {
 		return ErrMultipleIndexDrop
 	}
@@ -212,7 +228,12 @@ func (siv SearchIndexView) DropOne(ctx context.Context, name string, _ ...*optio
 //
 // The opts parameter can be used to specify options for this operation (see the options.UpdateSearchIndexOptions
 // documentation).
-func (siv SearchIndexView) UpdateOne(ctx context.Context, name string, definition interface{}, _ ...*options.UpdateSearchIndexOptions) error {
+func (siv SearchIndexView) UpdateOne(
+	ctx context.Context,
+	name string,
+	definition interface{},
+	_ ...*options.UpdateSearchIndexOptions,
+) error {
 	if definition == nil {
 		return fmt.Errorf("search index definition cannot be nil")
 	}
