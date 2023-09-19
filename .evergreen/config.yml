@@ -688,6 +688,17 @@ functions:
       params:
         file: lb-expansion.yml
 
+  run-search-index-tests:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          TEST_INDEX_URI="${TEST_INDEX_URI}" \
+          make evg-test-search-index
+
   stop-load-balancer:
     - command: shell.exec
       params:
@@ -2259,6 +2270,14 @@ tasks:
             ${PREPARE_SHELL}
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
+  - name: "test-search-index"
+    commands:
+      - func: "bootstrap-mongo-orchestration"
+        vars:
+          VERSION: "latest"
+          TOPOLOGY: "replica_set"
+      - func: "run-search-index-tests"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -2618,6 +2637,44 @@ task_groups:
     tasks:
       - test-aws-lambda-deployed
 
+  - name: test-search-index-task-group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            MONGODB_VERSION: "7.0"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          script: |-
+            echo "TEST_INDEX_URI: ${MONGODB_URI}" > atlas-expansion.yml
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - test-search-index
+
 buildvariants:
   - name: static-analysis
     display_name: "Static Analysis"
@@ -2765,6 +2822,12 @@ buildvariants:
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
+
+  - matrix_name: "searchindex-test"
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel80-large-go-1-20"] }
+    display_name: "Search Index ${version} ${os-faas-80}"
+    tasks:
+      - test-search-index-task-group
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"
