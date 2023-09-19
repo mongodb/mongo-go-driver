@@ -2333,7 +2333,7 @@ axes:
           VENV_BIN_DIR: "Scripts"
       - id: "rhel87-64-go-1-20"
         display_name: "RHEL 8.7"
-        run_on: rhel8.7-large 
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2702,11 +2702,11 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
-  
+
   - name: atlas-test
     display_name: "Atlas test"
     run_on:
-      - rhel8.7-large 
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2715,7 +2715,7 @@ buildvariants:
   - name: atlas-data-lake-test
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel8.7-large 
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2824,7 +2824,7 @@ buildvariants:
       - test-aws-lambda-task-group
 
   - matrix_name: "searchindex-test"
-    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel80-large-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
     display_name: "Search Index ${version} ${os-faas-80}"
     tasks:
       - test-search-index-task-group
