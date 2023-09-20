@@ -118,10 +118,6 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 
 	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
 
-	if serverTimeoutMinutes != nil {
-		f.SessionTimeoutMinutes = uint32(*serverTimeoutMinutes)
-	}
-
 	if _, ok := f.findServer(s.Addr); !ok {
 		return f.Topology, s
 	}

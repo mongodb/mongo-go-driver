@@ -333,10 +333,6 @@ func (t *Topology) Connect() error {
 			Kind:                     t.fsm.Kind,
 			Servers:                  t.fsm.Servers,
 			SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
-
-			// TODO(GODRIVER-2885): This field can be removed once
-			// legacy SessionTimeoutMinutes is removed.
-			SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 		}
 		t.desc.Store(newDesc)
 		t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
@@ -865,10 +861,6 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 		Kind:                     t.fsm.Kind,
 		Servers:                  t.fsm.Servers,
 		SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
-
-		// TODO(GODRIVER-2885): This field can be removed once legacy
-		// SessionTimeoutMinutes is removed.
-		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 	}
 	t.desc.Store(newDesc)
 
