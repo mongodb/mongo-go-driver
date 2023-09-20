@@ -222,7 +222,24 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		}
 	}
 
-	bwo := options.MergeBulkWriteOptions(opts...)
+	bwo := options.BulkWrite()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Comment != nil {
+			bwo.Comment = opt.Comment
+		}
+		if opt.Ordered != nil {
+			bwo.Ordered = opt.Ordered
+		}
+		if opt.BypassDocumentValidation != nil {
+			bwo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Let != nil {
+			bwo.Let = opt.Let
+		}
+	}
 
 	op := bulkWrite{
 		comment:                  bwo.Comment,
@@ -796,6 +813,49 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	return aggregate(a)
 }
 
+// mergeAggregateOptions combines the given AggregateOptions instances into a single AggregateOptions in a last-one-wins
+// fashion.
+func mergeAggregateOptions(opts ...*options.AggregateOptions) *options.AggregateOptions {
+	aggOpts := options.Aggregate()
+	for _, ao := range opts {
+		if ao == nil {
+			continue
+		}
+		if ao.AllowDiskUse != nil {
+			aggOpts.AllowDiskUse = ao.AllowDiskUse
+		}
+		if ao.BatchSize != nil {
+			aggOpts.BatchSize = ao.BatchSize
+		}
+		if ao.BypassDocumentValidation != nil {
+			aggOpts.BypassDocumentValidation = ao.BypassDocumentValidation
+		}
+		if ao.Collation != nil {
+			aggOpts.Collation = ao.Collation
+		}
+		if ao.MaxTime != nil {
+			aggOpts.MaxTime = ao.MaxTime
+		}
+		if ao.MaxAwaitTime != nil {
+			aggOpts.MaxAwaitTime = ao.MaxAwaitTime
+		}
+		if ao.Comment != nil {
+			aggOpts.Comment = ao.Comment
+		}
+		if ao.Hint != nil {
+			aggOpts.Hint = ao.Hint
+		}
+		if ao.Let != nil {
+			aggOpts.Let = ao.Let
+		}
+		if ao.Custom != nil {
+			aggOpts.Custom = ao.Custom
+		}
+	}
+
+	return aggOpts
+}
+
 // aggregate is the helper method for Aggregate
 func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if a.ctx == nil {
@@ -840,7 +900,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
-	ao := options.MergeAggregateOptions(a.opts...)
+	ao := mergeAggregateOptions(a.opts...)
 
 	cursorOpts := a.client.createBaseCursorOptions()
 
