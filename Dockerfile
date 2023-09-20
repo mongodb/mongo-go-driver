@@ -18,7 +18,7 @@ RUN apt-get -qq update && apt-get -qqy -o DPkg::Lock::Timeout=-1 install --no-in
   net-tools \
  && rm -rf /var/lib/apt/lists/*
 
-RUN export LIBMONGOCRYPT_TAG="1.8.0-alpha1" && \
+RUN export LIBMONGOCRYPT_TAG="1.8.2" && \
     cd $HOME && \
     git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG && \
     PKG_CONFIG_PATH=$HOME/install/libmongocrypt/lib/pkgconfig:$HOME/install/mongo-c-driver/lib/pkgconfig \

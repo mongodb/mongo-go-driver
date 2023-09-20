@@ -123,6 +123,12 @@ The script takes an optional argument for the ``MAKEFILE_TARGET`` and allows for
 The docker container has the required binaries, including libmongocrypt.
 The entry script starts a MongoDB topology, and then executes the desired ``MAKEFILE_TARGET``.
 
+For example, to test against a sharded cluster, using enterprise auth, run:
+
+```bash
+TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
+```
+
 ## Talk To Us
 
 If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).

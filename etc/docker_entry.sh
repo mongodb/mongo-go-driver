@@ -14,7 +14,7 @@ if [ ! -d $DRIVERS_TOOLS ]; then
     git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
 fi
 
-# Disable ipv6.
+# Disable ipv6, otherwise the connection would be refused.  This is a docker limitation.
 sed -i "s/\"ipv6\": true,/\"ipv6\": false,/g" $PROJECT_ORCHESTRATION_HOME/configs/${TOPOLOGY}s/$ORCHESTRATION_FILE
 
 # Start the server.
