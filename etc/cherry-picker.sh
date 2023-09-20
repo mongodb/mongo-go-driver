@@ -1,9 +1,10 @@
 #!/bin/bash
+set -e
 
 sha=$1
 base=v1
 target=master
-dirname="/tmp/go-driver-$(openssl rand -hex 12)"
+dirname=$(mktemp -d)
 user=$(git config github.user)
 
 if [ -z "$user" ]; then
@@ -13,9 +14,21 @@ if [ -z "$user" ]; then
 fi
 
 mkdir -p $dirname
-git clone git@github.com:mongodb/mongo-go-driver.git $dirname
+if [ -z $AUTH_TOKEN ]; then
+    git clone git@github.com:mongodb/mongo-go-driver.git $dirname
+else
+    echo "$AUTH_TOKEN" > mytoken.txt
+    gh auth login --with-token < mytoken.txt
+    git clone https://github.com/mongodb/mongo-go-driver.git $dirname
+fi
+
 cd $dirname
-git remote add $user git@github.com:$user/mongo-go-driver.git
+if [ -z $AUTH_TOKEN ]; then
+    git remote add $user git@github.com:$user/mongo-go-driver.git
+else
+    git remote add $user https://$user:${AUTH_TOKEN}@github.com/$user/mongo-go-driver.git
+fi
+
 gh repo set-default mongodb/mongo-go-driver
 branch="cherry-pick-$sha"
 head="$user:$branch"
@@ -40,7 +53,12 @@ echo "Base: $target"
 echo "Head: $head"
 echo
 
-read -p 'Push changes? (Y/n) ' choice
+if [ -n $GITHUB_ACTOR ]; then
+    choice=Y
+else
+    read -p 'Push changes? (Y/n) ' choice
+fi
+
 if [[ "$choice" == "Y" || "$choice" == "y" || -z "$choice" ]]; then
     if [ -n $user ]; then
         git push $user
