@@ -11,7 +11,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -117,22 +116,6 @@ type finishedInformation struct {
 	serviceID          *primitive.ObjectID
 	serverAddress      address.Address
 	duration           time.Duration
-}
-
-// convertInt64PtrToInt32Ptr will convert an int64 pointer reference to an int32 pointer
-// reference. If the int64 value cannot be converted to int32 without causing
-// an overflow, then this function will return nil.
-func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
-	if i64 == nil {
-		return nil
-	}
-
-	if *i64 > math.MaxInt32 || *i64 < math.MinInt32 {
-		return nil
-	}
-
-	i32 := int32(*i64)
-	return &i32
 }
 
 // success returns true if there was no command error or the command error is a
@@ -1955,7 +1938,6 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 			CommandName:          info.cmdName,
 			RequestID:            int64(info.requestID),
 			ConnectionID:         info.connID,
-			ServerConnectionID:   convertInt64PtrToInt32Ptr(info.serverConnID),
 			ServerConnectionID64: info.serverConnID,
 			ServiceID:            info.serviceID,
 		}
@@ -2035,8 +2017,6 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		RequestID:            int64(info.requestID),
 		ConnectionID:         info.connID,
 		Duration:             info.duration,
-		DurationNanos:        info.duration.Nanoseconds(),
-		ServerConnectionID:   convertInt64PtrToInt32Ptr(info.serverConnID),
 		ServerConnectionID64: info.serverConnID,
 		ServiceID:            info.serviceID,
 	}

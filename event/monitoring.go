@@ -23,12 +23,6 @@ type CommandStartedEvent struct {
 	CommandName  string
 	RequestID    int64
 	ConnectionID string
-	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset. If the server connection ID would cause an int32 overflow, then
-	// then this field will be nil.
-	//
-	// Deprecated: Use ServerConnectionID64.
-	ServerConnectionID *int32
 	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
 	// return this value (e.g. on MDB < 4.2), it is unset.
 	ServerConnectionID64 *int64
@@ -39,19 +33,11 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
-	// Deprecated: Use Duration instead.
-	DurationNanos int64
-	Duration      time.Duration
-	CommandName   string
-	DatabaseName  string
-	RequestID     int64
-	ConnectionID  string
-	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset.If the server connection ID would cause an int32 overflow, then
-	// this field will be nil.
-	//
-	// Deprecated: Use ServerConnectionID64.
-	ServerConnectionID *int32
+	Duration     time.Duration
+	CommandName  string
+	DatabaseName string
+	RequestID    int64
+	ConnectionID string
 	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
 	// return this value (e.g. on MDB < 4.2), it is unset.
 	ServerConnectionID64 *int64
@@ -174,22 +160,18 @@ type ServerHeartbeatStartedEvent struct {
 
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
-	// Deprecated: Use Duration instead.
-	DurationNanos int64
-	Duration      time.Duration
-	Reply         description.Server
-	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool   // If this heartbeat was awaitable
+	Duration     time.Duration
+	Reply        description.Server
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
 type ServerHeartbeatFailedEvent struct {
-	// Deprecated: Use Duration instead.
-	DurationNanos int64
-	Duration      time.Duration
-	Failure       error
-	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool   // If this heartbeat was awaitable
+	Duration     time.Duration
+	Failure      error
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client

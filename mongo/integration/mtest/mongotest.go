@@ -689,13 +689,13 @@ func (t *T) createTestClient() {
 		// pin to first mongos
 		pinnedHostList := []string{testContext.connString.Hosts[0]}
 		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
-		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
+		t.Client, err = mongo.Connect(context.Background(), uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
-		t.Client, err = mongo.NewClient(clientOpts)
+		t.Client, err = mongo.Connect(context.Background(), clientOpts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()
 		clientOpts.SetDialer(t.proxyDialer)
@@ -713,13 +713,10 @@ func (t *T) createTestClient() {
 		}
 
 		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
-		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
+		t.Client, err = mongo.Connect(context.Background(), uriOpts, clientOpts)
 	}
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)
-	}
-	if err := t.Client.Connect(context.Background()); err != nil {
-		t.Fatalf("error connecting client: %v", err)
 	}
 }
 
