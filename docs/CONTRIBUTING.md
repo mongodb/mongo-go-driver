@@ -121,7 +121,7 @@ bash etc/run_docker.sh
 
 The script takes an optional argument for the ``MAKEFILE_TARGET`` and allows for some environment variable overrides.
 The docker container has the required binaries, including libmongocrypt.
-The entry script starts a mongodb topology, and then executes the desired ``MAKEFILE_TARGET``.
+The entry script starts a MongoDB topology, and then executes the desired ``MAKEFILE_TARGET``.
 
 ## Talk To Us
 
