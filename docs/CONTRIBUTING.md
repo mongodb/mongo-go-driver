@@ -113,8 +113,7 @@ There is currently no arm64 support for the go1.x runtime, see [here](https://do
 
 ### Testing in Docker
 
-We have a ``Dockerfile`` and supporting files to be used for local testing in a Linux environment.
-Ensure ``docker`` is installed and running, and then run:
+We support local testing in Docker. Ensure ``docker`` is installed and running, and then run:
 
 ```bash
 bash etc/run_docker.sh
