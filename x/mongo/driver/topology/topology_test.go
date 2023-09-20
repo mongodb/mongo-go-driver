@@ -423,7 +423,6 @@ func TestSessionTimeout(t *testing.T) {
 			{
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
@@ -434,7 +433,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
 			SessionTimeoutMinutesPtr: int64ToPtr(30),
 		}
 		topo.apply(ctx, desc)
@@ -454,13 +452,11 @@ func TestSessionTimeout(t *testing.T) {
 			{
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 			{
 				Addr:                     address.Address("bar").Canonicalize(),
 				Kind:                     description.RSSecondary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
@@ -471,7 +467,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
 			SessionTimeoutMinutesPtr: int64ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -479,7 +474,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc2 := description.Server{
 			Addr:                     "bar",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
 			SessionTimeoutMinutesPtr: int64ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -500,13 +494,11 @@ func TestSessionTimeout(t *testing.T) {
 			{
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 			{
 				Addr:                     address.Address("bar").Canonicalize(),
 				Kind:                     description.RSSecondary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
@@ -517,7 +509,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
 			SessionTimeoutMinutesPtr: int64ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -525,7 +516,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc2 := description.Server{
 			Addr:                     "bar",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
 			SessionTimeoutMinutesPtr: int64ToPtr(30),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -546,13 +536,11 @@ func TestSessionTimeout(t *testing.T) {
 			{
 				Addr:                     address.Address("foo").Canonicalize(),
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 			{
 				Addr:                     address.Address("bar").Canonicalize(),
 				Kind:                     description.RSSecondary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
@@ -563,7 +551,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc1 := description.Server{
 			Addr:                     "foo",
 			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
 			SessionTimeoutMinutesPtr: int64ToPtr(20),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -571,7 +558,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc2 := description.Server{
 			Addr:                     "bar",
 			Kind:                     description.Unknown,
-			SessionTimeoutMinutes:    10,
 			SessionTimeoutMinutesPtr: int64ToPtr(10),
 			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -594,7 +580,6 @@ func TestSessionTimeout(t *testing.T) {
 			{
 				Addr:                     address.Address("one").Canonicalize(),
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    20,
 				SessionTimeoutMinutesPtr: int64ToPtr(20),
 			},
 			{
@@ -605,7 +590,6 @@ func TestSessionTimeout(t *testing.T) {
 			{
 				Addr:                     address.Address("three").Canonicalize(),
 				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
 				SessionTimeoutMinutesPtr: int64ToPtr(60),
 			},
 		}
@@ -616,7 +600,6 @@ func TestSessionTimeout(t *testing.T) {
 		desc := description.Server{
 			Addr:                     address.Address("three"),
 			Kind:                     description.RSSecondary,
-			SessionTimeoutMinutes:    30,
 			SessionTimeoutMinutesPtr: int64ToPtr(30),
 		}
 
