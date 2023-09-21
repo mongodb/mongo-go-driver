@@ -18,4 +18,6 @@ ENV="$ENV -e MAKEFILE_TARGET=$MAKEFILE_TARGET -e AUTH=$AUTH"
 ENV="$ENV -e ORCHESTRATION_FILE=$ORCHESTRATION_FILE -e SSL=$SSL"
 ENV="$ENV -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
 docker run --rm -v "`pwd`:/src" $ENV -t go-test
-tail test.suite
+if [ -f "test.suite" ]; then
+    tail test.suite
+fi

@@ -1,6 +1,9 @@
 FROM ubuntu:22.04
 
-RUN apt-get -qq update && apt-get -qqy -o DPkg::Lock::Timeout=-1 install --no-install-recommends \
+RUN export DEBIAN_FRONTEND=noninteractive && \
+  export TZ=Etc/UTC && \
+  apt-get -qq update && \
+  apt-get -qqy -o DPkg::Lock::Timeout=-1 install --no-install-recommends \
   git \
   ca-certificates \
   curl \
@@ -13,6 +16,7 @@ RUN apt-get -qq update && apt-get -qqy -o DPkg::Lock::Timeout=-1 install --no-in
   golang-go \
   pkg-config \
   libssl-dev \
+  tzdata \
   make \
   lsof \
   net-tools \
