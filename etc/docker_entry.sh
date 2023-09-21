@@ -26,4 +26,5 @@ rm -f test.suite
 cp -r $HOME/install ./install
 
 # Run the test.
+export DOCKER_RUNNING=true
 bash ./.evergreen/run-tests.sh
