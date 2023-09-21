@@ -17,5 +17,5 @@ ENV="-e MONGODB_VERSION=$MONGODB_VERSION -e TOPOLOGY=$TOPOLOGY"
 ENV="$ENV -e MAKEFILE_TARGET=$MAKEFILE_TARGET -e AUTH=$AUTH"
 ENV="$ENV -e ORCHESTRATION_FILE=$ORCHESTRATION_FILE -e SSL=$SSL"
 ENV="$ENV -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
-docker run --rm -v "`pwd`:/src" $ENV -it go-test
+docker run --rm -v "`pwd`:/src" $ENV -t go-test
 tail test.suite
