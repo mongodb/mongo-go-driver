@@ -622,6 +622,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          alias docker=podman
           bash etc/run_docker.sh
           TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
 
@@ -2682,7 +2683,7 @@ buildvariants:
   - name: docker-runner-test
     display_name: "Docker Runner Test"
     run_on:
-      - ubuntu2204-large
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
