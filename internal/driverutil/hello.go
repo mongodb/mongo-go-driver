@@ -28,6 +28,8 @@ const (
 	EnvVarFunctionName = "FUNCTION_NAME"
 	// EnvVarVercel is the Vercel variable.
 	EnvVarVercel = "VERCEL"
+	// EnvVarK8s is the K8s veriable.
+	EnvVarK8s = "KUBERNETES_SERVICE_HOST"
 )
 
 const (

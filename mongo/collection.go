@@ -1773,6 +1773,13 @@ func (coll *Collection) Indexes() IndexView {
 	return IndexView{coll: coll}
 }
 
+// SearchIndexes returns a SearchIndexView instance that can be used to perform operations on the search indexes for the collection.
+func (coll *Collection) SearchIndexes() SearchIndexView {
+	return SearchIndexView{
+		coll: coll,
+	}
+}
+
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
 func (coll *Collection) Drop(ctx context.Context) error {

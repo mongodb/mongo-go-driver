@@ -55,18 +55,18 @@ func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bson
 // ensure that the local environment does not effect the outcome of a unit
 // test.
 func clearTestEnv(t *testing.T) {
-	t.Setenv(driverutil.EnvVarAWSExecutionEnv, "")
-	t.Setenv(driverutil.EnvVarAWSLambdaRuntimeAPI, "")
-	t.Setenv(driverutil.EnvVarFunctionsWorkerRuntime, "")
-	t.Setenv(driverutil.EnvVarKService, "")
-	t.Setenv(driverutil.EnvVarFunctionName, "")
-	t.Setenv(driverutil.EnvVarVercel, "")
-	t.Setenv(driverutil.EnvVarAWSRegion, "")
-	t.Setenv(driverutil.EnvVarAWSLambdaFunctionMemorySize, "")
-	t.Setenv(driverutil.EnvVarFunctionMemoryMB, "")
-	t.Setenv(driverutil.EnvVarFunctionTimeoutSec, "")
-	t.Setenv(driverutil.EnvVarFunctionRegion, "")
-	t.Setenv(driverutil.EnvVarVercelRegion, "")
+	t.Setenv("AWS_EXECUTION_ENV", "")
+	t.Setenv("AWS_LAMBDA_RUNTIME_API", "")
+	t.Setenv("FUNCTIONS_WORKER_RUNTIME", "")
+	t.Setenv("K_SERVICE", "")
+	t.Setenv("FUNCTION_NAME", "")
+	t.Setenv("VERCEL", "")
+	t.Setenv("AWS_REGION", "")
+	t.Setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "")
+	t.Setenv("FUNCTION_MEMORY_MB", "")
+	t.Setenv("FUNCTION_TIMEOUT_SEC", "")
+	t.Setenv("FUNCTION_REGION", "")
+	t.Setenv("VERCEL_REGION", "")
 }
 
 func TestAppendClientName(t *testing.T) {
@@ -160,32 +160,32 @@ func TestAppendClientEnv(t *testing.T) {
 		{
 			name: "aws only",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "AWS_Lambda_foo",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda"}}`),
 		},
 		{
 			name: "aws mem only",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:             "AWS_Lambda_foo",
-				driverutil.EnvVarAWSLambdaFunctionMemorySize: "1024",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_foo",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","memory_mb":1024}}`),
 		},
 		{
 			name: "aws region only",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "AWS_Lambda_foo",
-				driverutil.EnvVarAWSRegion:       "us-east-2",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
+				"AWS_REGION":        "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","region":"us-east-2"}}`),
 		},
 		{
 			name: "aws mem and region",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:             "AWS_Lambda_foo",
-				driverutil.EnvVarAWSLambdaFunctionMemorySize: "1024",
-				driverutil.EnvVarAWSRegion:                   "us-east-2",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_foo",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				"AWS_REGION":                      "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","memory_mb":1024,"region":"us-east-2"}}`),
 		},
@@ -193,50 +193,50 @@ func TestAppendClientEnv(t *testing.T) {
 			name:          "aws mem and region with omit fields",
 			omitEnvFields: true,
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:             "AWS_Lambda_foo",
-				driverutil.EnvVarAWSLambdaFunctionMemorySize: "1024",
-				driverutil.EnvVarAWSRegion:                   "us-east-2",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_foo",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				"AWS_REGION":                      "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda"}}`),
 		},
 		{
 			name: "gcp only",
 			env: map[string]string{
-				driverutil.EnvVarKService: "servicename",
+				"K_SERVICE": "servicename",
 			},
 			want: []byte(`{"env":{"name":"gcp.func"}}`),
 		},
 		{
 			name: "gcp mem",
 			env: map[string]string{
-				driverutil.EnvVarKService:         "servicename",
-				driverutil.EnvVarFunctionMemoryMB: "1024",
+				"K_SERVICE":          "servicename",
+				"FUNCTION_MEMORY_MB": "1024",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","memory_mb":1024}}`),
 		},
 		{
 			name: "gcp region",
 			env: map[string]string{
-				driverutil.EnvVarKService:       "servicename",
-				driverutil.EnvVarFunctionRegion: "us-east-2",
+				"K_SERVICE":       "servicename",
+				"FUNCTION_REGION": "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","region":"us-east-2"}}`),
 		},
 		{
 			name: "gcp timeout",
 			env: map[string]string{
-				driverutil.EnvVarKService:           "servicename",
-				driverutil.EnvVarFunctionTimeoutSec: "1",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_TIMEOUT_SEC": "1",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","timeout_sec":1}}`),
 		},
 		{
 			name: "gcp mem, region, and timeout",
 			env: map[string]string{
-				driverutil.EnvVarKService:           "servicename",
-				driverutil.EnvVarFunctionTimeoutSec: "1",
-				driverutil.EnvVarFunctionRegion:     "us-east-2",
-				driverutil.EnvVarFunctionMemoryMB:   "1024",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_TIMEOUT_SEC": "1",
+				"FUNCTION_REGION":      "us-east-2",
+				"FUNCTION_MEMORY_MB":   "1024",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","memory_mb":1024,"region":"us-east-2","timeout_sec":1}}`),
 		},
@@ -244,35 +244,43 @@ func TestAppendClientEnv(t *testing.T) {
 			name:          "gcp mem, region, and timeout with omit fields",
 			omitEnvFields: true,
 			env: map[string]string{
-				driverutil.EnvVarKService:           "servicename",
-				driverutil.EnvVarFunctionTimeoutSec: "1",
-				driverutil.EnvVarFunctionRegion:     "us-east-2",
-				driverutil.EnvVarFunctionMemoryMB:   "1024",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_TIMEOUT_SEC": "1",
+				"FUNCTION_REGION":      "us-east-2",
+				"FUNCTION_MEMORY_MB":   "1024",
 			},
 			want: []byte(`{"env":{"name":"gcp.func"}}`),
 		},
 		{
 			name: "vercel only",
 			env: map[string]string{
-				driverutil.EnvVarVercel: "1",
+				"VERCEL": "1",
 			},
 			want: []byte(`{"env":{"name":"vercel"}}`),
 		},
 		{
 			name: "vercel region",
 			env: map[string]string{
-				driverutil.EnvVarVercel:       "1",
-				driverutil.EnvVarVercelRegion: "us-east-2",
+				"VERCEL":        "1",
+				"VERCEL_REGION": "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"vercel","region":"us-east-2"}}`),
 		},
 		{
 			name: "azure only",
 			env: map[string]string{
-				driverutil.EnvVarFunctionsWorkerRuntime: "go1.x",
+				"FUNCTIONS_WORKER_RUNTIME": "go1.x",
 			},
 			want: []byte(`{"env":{"name":"azure.func"}}`),
 		},
+		{
+			name: "k8s",
+			env: map[string]string{
+				"KUBERNETES_SERVICE_HOST": "0.0.0.0",
+			},
+			want: []byte(`{"env":{"container":{"orchestrator":"kubernetes"}}}`),
+		},
+		// client.env.container.runtime is untested.
 	}
 
 	for _, test := range tests {
@@ -383,11 +391,17 @@ func TestEncodeClientMetadata(t *testing.T) {
 		Architecture string `bson:"architecture,omitempty"`
 	}
 
+	type container struct {
+		Runtime      string `bson:"runtime,omitempty"`
+		Orchestrator string `bson:"orchestrator,omitempty"`
+	}
+
 	type env struct {
-		Name       string `bson:"name,omitempty"`
-		TimeoutSec int64  `bson:"timeout_sec,omitempty"`
-		MemoryMB   int32  `bson:"memory_mb,omitempty"`
-		Region     string `bson:"region,omitempty"`
+		Name       string     `bson:"name,omitempty"`
+		TimeoutSec int64      `bson:"timeout_sec,omitempty"`
+		MemoryMB   int32      `bson:"memory_mb,omitempty"`
+		Region     string     `bson:"region,omitempty"`
+		Container  *container `bson:"container,omitempty"`
 	}
 
 	type clientMetadata struct {
@@ -406,9 +420,10 @@ func TestEncodeClientMetadata(t *testing.T) {
 	}
 
 	// Set environment variables to add `env` field to handshake.
-	t.Setenv(driverutil.EnvVarAWSLambdaRuntimeAPI, "lambda")
-	t.Setenv(driverutil.EnvVarAWSLambdaFunctionMemorySize, "123")
-	t.Setenv(driverutil.EnvVarAWSRegion, "us-east-2")
+	t.Setenv("AWS_LAMBDA_RUNTIME_API", "lambda")
+	t.Setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "123")
+	t.Setenv("AWS_REGION", "us-east-2")
+	t.Setenv("KUBERNETES_SERVICE_HOST", "0.0.0.0")
 
 	t.Run("nothing is omitted", func(t *testing.T) {
 		got, err := encodeClientMetadata("foo", maxClientMetadataSize)
@@ -419,7 +434,14 @@ func TestEncodeClientMetadata(t *testing.T) {
 			Driver:      &driver{Name: driverName, Version: version.Driver},
 			OS:          &dist{Type: runtime.GOOS, Architecture: runtime.GOARCH},
 			Platform:    runtime.Version(),
-			Env:         &env{Name: driverutil.EnvNameAWSLambda, MemoryMB: 123, Region: "us-east-2"},
+			Env: &env{
+				Name:     "aws.lambda",
+				MemoryMB: 123,
+				Region:   "us-east-2",
+				Container: &container{
+					Orchestrator: "kubernetes",
+				},
+			},
 		})
 
 		assertDocsEqual(t, got, want)
@@ -438,7 +460,12 @@ func TestEncodeClientMetadata(t *testing.T) {
 			Driver:      &driver{Name: driverName, Version: version.Driver},
 			OS:          &dist{Type: runtime.GOOS, Architecture: runtime.GOARCH},
 			Platform:    runtime.Version(),
-			Env:         &env{Name: driverutil.EnvNameAWSLambda},
+			Env: &env{
+				Name: "aws.lambda",
+				Container: &container{
+					Orchestrator: "kubernetes",
+				},
+			},
 		})
 
 		assertDocsEqual(t, got, want)
@@ -454,7 +481,11 @@ func TestEncodeClientMetadata(t *testing.T) {
 		require.NoError(t, err, "error constructing env template: %v", err)
 
 		// Calculate what the env.name costs.
-		ndst := bsoncore.AppendStringElement(nil, "name", driverutil.EnvNameAWSLambda)
+		ndst := bsoncore.AppendStringElement(nil, "name", "aws.lambda")
+		idx, ndst := bsoncore.AppendDocumentElementStart(ndst, "container")
+		ndst = bsoncore.AppendStringElement(ndst, "orchestrator", "kubernetes")
+		ndst, err = bsoncore.AppendDocumentEnd(ndst, idx)
+		require.NoError(t, err)
 
 		// Environment sub name.
 		envSubName := len(edst) - len(ndst)
@@ -467,7 +498,12 @@ func TestEncodeClientMetadata(t *testing.T) {
 			Driver:      &driver{Name: driverName, Version: version.Driver},
 			OS:          &dist{Type: runtime.GOOS},
 			Platform:    runtime.Version(),
-			Env:         &env{Name: driverutil.EnvNameAWSLambda},
+			Env: &env{
+				Name: "aws.lambda",
+				Container: &container{
+					Orchestrator: "kubernetes",
+				},
+			},
 		})
 
 		assertDocsEqual(t, got, want)
@@ -553,38 +589,38 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "one aws",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "AWS_Lambda_foo",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
 			},
-			want: driverutil.EnvNameAWSLambda,
+			want: "aws.lambda",
 		},
 		{
 			name: "both aws options",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:     "AWS_Lambda_foo",
-				driverutil.EnvVarAWSLambdaRuntimeAPI: "hello",
+				"AWS_EXECUTION_ENV":      "AWS_Lambda_foo",
+				"AWS_LAMBDA_RUNTIME_API": "hello",
 			},
-			want: driverutil.EnvNameAWSLambda,
+			want: "aws.lambda",
 		},
 		{
 			name: "multiple variables",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:        "AWS_Lambda_foo",
-				driverutil.EnvVarFunctionsWorkerRuntime: "hello",
+				"AWS_EXECUTION_ENV":        "AWS_Lambda_foo",
+				"FUNCTIONS_WORKER_RUNTIME": "hello",
 			},
 			want: "",
 		},
 		{
 			name: "vercel and aws lambda",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "AWS_Lambda_foo",
-				driverutil.EnvVarVercel:          "hello",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
+				"VERCEL":            "hello",
 			},
-			want: driverutil.EnvNameVercel,
+			want: "vercel",
 		},
 		{
 			name: "invalid aws prefix",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "foo",
+				"AWS_EXECUTION_ENV": "foo",
 			},
 			want: "",
 		},
@@ -624,14 +660,14 @@ func BenchmarkClientMetadtaLargeEnv(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	b.Setenv(driverutil.EnvNameAWSLambda, "foo")
+	b.Setenv("aws.lambda", "foo")
 
 	str := ""
 	for i := 0; i < 512; i++ {
 		str += "a"
 	}
 
-	b.Setenv(driverutil.EnvVarAWSLambdaRuntimeAPI, str)
+	b.Setenv("AWS_LAMBDA_RUNTIME_API", str)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

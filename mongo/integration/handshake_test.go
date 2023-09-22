@@ -15,7 +15,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -54,16 +53,16 @@ func TestHandshakeProse(t *testing.T) {
 
 	// Reset the environment variables to avoid environment namespace
 	// collision.
-	t.Setenv(driverutil.EnvVarAWSExecutionEnv, "")
-	t.Setenv(driverutil.EnvVarFunctionsWorkerRuntime, "")
-	t.Setenv(driverutil.EnvVarKService, "")
-	t.Setenv(driverutil.EnvVarVercel, "")
-	t.Setenv(driverutil.EnvVarAWSRegion, "")
-	t.Setenv(driverutil.EnvVarAWSLambdaFunctionMemorySize, "")
-	t.Setenv(driverutil.EnvVarFunctionMemoryMB, "")
-	t.Setenv(driverutil.EnvVarFunctionTimeoutSec, "")
-	t.Setenv(driverutil.EnvVarFunctionRegion, "")
-	t.Setenv(driverutil.EnvVarVercelRegion, "")
+	t.Setenv("AWS_EXECUTION_ENV", "")
+	t.Setenv("FUNCTIONS_WORKER_RUNTIME", "")
+	t.Setenv("K_SERVICE", "")
+	t.Setenv("VERCEL", "")
+	t.Setenv("AWS_REGION", "")
+	t.Setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "")
+	t.Setenv("FUNCTION_MEMORY_MB", "")
+	t.Setenv("FUNCTION_TIMEOUT_SEC", "")
+	t.Setenv("FUNCTION_REGION", "")
+	t.Setenv("VERCEL_REGION", "")
 
 	for _, test := range []struct {
 		name string
@@ -73,9 +72,9 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "1. valid AWS",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:             "AWS_Lambda_java8",
-				driverutil.EnvVarAWSRegion:                   "us-east-2",
-				driverutil.EnvVarAWSLambdaFunctionMemorySize: "1024",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
+				"AWS_REGION":                      "us-east-2",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
@@ -86,7 +85,7 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "2. valid Azure",
 			env: map[string]string{
-				driverutil.EnvVarFunctionsWorkerRuntime: "node",
+				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "azure.func"},
@@ -95,10 +94,10 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "3. valid GCP",
 			env: map[string]string{
-				driverutil.EnvVarKService:           "servicename",
-				driverutil.EnvVarFunctionMemoryMB:   "1024",
-				driverutil.EnvVarFunctionTimeoutSec: "60",
-				driverutil.EnvVarFunctionRegion:     "us-central1",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_MEMORY_MB":   "1024",
+				"FUNCTION_TIMEOUT_SEC": "60",
+				"FUNCTION_REGION":      "us-central1",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "gcp.func"},
@@ -110,8 +109,8 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "4. valid Vercel",
 			env: map[string]string{
-				driverutil.EnvVarVercel:       "1",
-				driverutil.EnvVarVercelRegion: "cdg1",
+				"VERCEL":        "1",
+				"VERCEL_REGION": "cdg1",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "vercel"},
@@ -121,16 +120,16 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "5. invalid multiple providers",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:        "AWS_Lambda_java8",
-				driverutil.EnvVarFunctionsWorkerRuntime: "node",
+				"AWS_EXECUTION_ENV":        "AWS_Lambda_java8",
+				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			want: clientMetadata(nil),
 		},
 		{
 			name: "6. invalid long string",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "AWS_Lambda_java8",
-				driverutil.EnvVarAWSRegion: func() string {
+				"AWS_EXECUTION_ENV": "AWS_Lambda_java8",
+				"AWS_REGION": func() string {
 					var s string
 					for i := 0; i < 512; i++ {
 						s += "a"
@@ -145,8 +144,8 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "7. invalid wrong types",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv:             "AWS_Lambda_java8",
-				driverutil.EnvVarAWSLambdaFunctionMemorySize: "big",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "big",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
@@ -155,7 +154,7 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "8. Invalid - AWS_EXECUTION_ENV does not start with \"AWS_Lambda_\"",
 			env: map[string]string{
-				driverutil.EnvVarAWSExecutionEnv: "EC2",
+				"AWS_EXECUTION_ENV": "EC2",
 			},
 			want: clientMetadata(nil),
 		},

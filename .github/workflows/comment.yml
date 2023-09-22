@@ -1,6 +1,7 @@
 name: PR API Report
 on:
   pull_request_target:
+    types: [review_requested]
 
 jobs:
   comment:
@@ -25,7 +26,7 @@ jobs:
         set -eux
         git clone https://github.com/mongodb/mongo-go-driver
         cd mongo-go-driver
-        git remote add source https://github.com/$GITHUB_ACTOR/mongo-go-driver
+        git remote add source https://github.com/$GITHUB_REPOSITORY_OWNER/mongo-go-driver
         git fetch origin $GITHUB_BASE_REF
         git fetch source $GITHUB_HEAD_REF
         git checkout $GITHUB_HEAD_REF

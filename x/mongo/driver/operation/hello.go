@@ -12,6 +12,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
@@ -124,6 +125,106 @@ func (h *Hello) Result(addr address.Address) description.Server {
 	return description.NewServer(addr, bson.Raw(h.res))
 }
 
+const dockerEnvPath = "/.dockerenv"
+
+const (
+	// Runtime names
+	runtimeNameDocker = "docker"
+
+	// Orchestrator names
+	orchestratorNameK8s = "kubernetes"
+)
+
+// getFaasEnvName parses the FaaS environment variable name and returns the
+// corresponding name used by the client. If none of the variables or variables
+// for multiple names are populated the FaaS values MUST be entirely omitted.
+// When variables for multiple "client.env.name" values are present, "vercel"
+// takes precedence over "aws.lambda"; any other combination MUST cause FaaS
+// values to be entirely omitted.
+func getFaasEnvName() string {
+	envVars := []string{
+		driverutil.EnvVarAWSExecutionEnv,
+		driverutil.EnvVarAWSLambdaRuntimeAPI,
+		driverutil.EnvVarFunctionsWorkerRuntime,
+		driverutil.EnvVarKService,
+		driverutil.EnvVarFunctionName,
+		driverutil.EnvVarVercel,
+	}
+
+	// If none of the variables are populated the client.env value MUST be
+	// entirely omitted.
+	names := make(map[string]struct{})
+
+	for _, envVar := range envVars {
+		val := os.Getenv(envVar)
+		if val == "" {
+			continue
+		}
+
+		var name string
+
+		switch envVar {
+		case driverutil.EnvVarAWSExecutionEnv:
+			if !strings.HasPrefix(val, driverutil.AwsLambdaPrefix) {
+				continue
+			}
+
+			name = driverutil.EnvNameAWSLambda
+		case driverutil.EnvVarAWSLambdaRuntimeAPI:
+			name = driverutil.EnvNameAWSLambda
+		case driverutil.EnvVarFunctionsWorkerRuntime:
+			name = driverutil.EnvNameAzureFunc
+		case driverutil.EnvVarKService, driverutil.EnvVarFunctionName:
+			name = driverutil.EnvNameGCPFunc
+		case driverutil.EnvVarVercel:
+			// "vercel" takes precedence over "aws.lambda".
+			delete(names, driverutil.EnvNameAWSLambda)
+
+			name = driverutil.EnvNameVercel
+		}
+
+		names[name] = struct{}{}
+		if len(names) > 1 {
+			// If multiple names are populated the client.env value
+			// MUST be entirely omitted.
+			names = nil
+
+			break
+		}
+	}
+
+	for name := range names {
+		return name
+	}
+
+	return ""
+}
+
+type containerInfo struct {
+	runtime      string
+	orchestrator string
+}
+
+// getContainerEnvInfo returns runtime and orchestrator of a container.
+// If no fields is populated, the client.env.container value MUST be entirely
+// omitted.
+func getContainerEnvInfo() *containerInfo {
+	var runtime, orchestrator string
+	if _, err := os.Stat(dockerEnvPath); !os.IsNotExist(err) {
+		runtime = runtimeNameDocker
+	}
+	if v := os.Getenv(driverutil.EnvVarK8s); v != "" {
+		orchestrator = orchestratorNameK8s
+	}
+	if runtime != "" || orchestrator != "" {
+		return &containerInfo{
+			runtime:      runtime,
+			orchestrator: orchestrator,
+		}
+	}
+	return nil
+}
+
 // appendClientAppName appends the application metadata to the dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
@@ -161,15 +262,21 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 		return dst, nil
 	}
 
-	name := driverutil.GetFaasEnvName()
-	if name == "" {
+	name := getFaasEnvName()
+	container := getContainerEnvInfo()
+	// Omit the entire 'env' if both name and container are empty because other
+	// fields depend on either of them.
+	if name == "" && container == nil {
 		return dst, nil
 	}
 
 	var idx int32
 
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "env")
-	dst = bsoncore.AppendStringElement(dst, "name", name)
+
+	if name != "" {
+		dst = bsoncore.AppendStringElement(dst, "name", name)
+	}
 
 	addMem := func(envVar string) []byte {
 		mem := os.Getenv(envVar)
@@ -212,6 +319,7 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 	}
 
 	if !omitNonName {
+		// No other FaaS fields will be populated if the name is empty.
 		switch name {
 		case driverutil.EnvNameAWSLambda:
 			dst = addMem(driverutil.EnvVarAWSLambdaFunctionMemorySize)
@@ -222,6 +330,22 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 			dst = addTimeout(driverutil.EnvVarFunctionTimeoutSec)
 		case driverutil.EnvNameVercel:
 			dst = addRegion(driverutil.EnvVarVercelRegion)
+		}
+	}
+
+	if container != nil {
+		var idxCntnr int32
+		idxCntnr, dst = bsoncore.AppendDocumentElementStart(dst, "container")
+		if container.runtime != "" {
+			dst = bsoncore.AppendStringElement(dst, "runtime", container.runtime)
+		}
+		if container.orchestrator != "" {
+			dst = bsoncore.AppendStringElement(dst, "orchestrator", container.orchestrator)
+		}
+		var err error
+		dst, err = bsoncore.AppendDocumentEnd(dst, idxCntnr)
+		if err != nil {
+			return dst, err
 		}
 	}
 
@@ -264,21 +388,25 @@ func appendClientPlatform(dst []byte) []byte {
 //			name: "<string>"
 //		},
 //		driver: {
-//		      	name: "<string>",
-//		        version: "<string>"
+//			name: "<string>",
+//			version: "<string>"
 //		},
 //		platform: "<string>",
 //		os: {
-//		        type: "<string>",
-//		        name: "<string>",
-//		        architecture: "<string>",
-//		        version: "<string>"
+//			type: "<string>",
+//			name: "<string>",
+//			architecture: "<string>",
+//			version: "<string>"
 //		},
 //		env: {
-//		        name: "<string>",
-//		        timeout_sec: 42,
-//		        memory_mb: 1024,
-//		        region: "<string>",
+//			name: "<string>",
+//			timeout_sec: 42,
+//			memory_mb: 1024,
+//			region: "<string>",
+//			container: {
+//				runtime: "<string>",
+//				orchestrator: "<string>"
+//			}
 //		}
 //	}
 func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
