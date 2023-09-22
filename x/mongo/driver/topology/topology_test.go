@@ -607,7 +607,7 @@ func TestSessionTimeout(t *testing.T) {
 
 		currDesc := topo.desc.Load().(description.Topology)
 		require.Nil(t, currDesc.SessionTimeoutMinutesPtr,
-			"session timeout minutes mismatch. got: %d. expected: nil", *currDesc.SessionTimeoutMinutesPtr)
+			"session timeout minutes mismatch. expected: nil")
 	})
 }
 

@@ -341,7 +341,7 @@ func TestClient(t *testing.T) {
 	})
 	mt.RunOpts("watch", noClientOpts, func(mt *mtest.T) {
 		mt.Run("disconnected", func(mt *mtest.T) {
-			c, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
+			c, err := mongo.NewClient(options.Client().ApplyURI(mtest.ClusterURI()))
 			assert.Nil(mt, err, "NewClient error: %v", err)
 			_, err = c.Watch(context.Background(), mongo.Pipeline{})
 			assert.Equal(mt, mongo.ErrClientDisconnected, err, "expected error %v, got %v", mongo.ErrClientDisconnected, err)

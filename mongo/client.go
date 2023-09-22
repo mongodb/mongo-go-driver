@@ -81,7 +81,8 @@ type Client struct {
 	encryptedFieldsMap map[string]interface{}
 }
 
-// Connect creates a new Client and then initializes it using the Connect method.
+// Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
+// NewClient followed by Client.Connect.
 //
 // When creating an options.ClientOptions, the order the methods are called matters. Later Set*
 // methods will overwrite the values from previous Set* method invocations. This includes the
@@ -103,18 +104,18 @@ type Client struct {
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
 func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, error) {
-	c, err := newClient(opts...)
+	c, err := NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
-	err = c.connect(ctx)
+	err = c.Connect(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-// newClient creates a new client to connect to a deployment specified by the uri.
+// NewClient creates a new client to connect to a deployment specified by the uri.
 //
 // When creating an options.ClientOptions, the order the methods are called matters. Later Set*
 // methods will overwrite the values from previous Set* method invocations. This includes the
@@ -127,7 +128,9 @@ func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, erro
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func newClient(opts ...*options.ClientOptions) (*Client, error) {
+//
+// Deprecated: Use [Connect] instead.
+func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	clientOpt := options.MergeClientOptions(opts...)
 
 	id, err := uuid.New()
@@ -232,12 +235,14 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	return client, nil
 }
 
-// connect initializes the Client by starting background monitoring goroutines.
+// Connect initializes the Client by starting background monitoring goroutines.
 // If the Client was created using the NewClient function, this method must be called before a Client can be used.
 //
 // Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main
 // goroutine. The Client.Ping method can be used to verify that the connection was created successfully.
-func (c *Client) connect(ctx context.Context) error {
+//
+// Deprecated: Use [mongo.Connect] instead.
+func (c *Client) Connect(ctx context.Context) error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
 		if err != nil {
@@ -252,19 +257,19 @@ func (c *Client) connect(ctx context.Context) error {
 	}
 
 	if c.internalClientFLE != nil {
-		if err := c.internalClientFLE.connect(ctx); err != nil {
+		if err := c.internalClientFLE.Connect(ctx); err != nil {
 			return err
 		}
 	}
 
 	if c.keyVaultClientFLE != nil && c.keyVaultClientFLE != c.internalClientFLE && c.keyVaultClientFLE != c {
-		if err := c.keyVaultClientFLE.connect(ctx); err != nil {
+		if err := c.keyVaultClientFLE.Connect(ctx); err != nil {
 			return err
 		}
 	}
 
 	if c.metadataClientFLE != nil && c.metadataClientFLE != c.internalClientFLE && c.metadataClientFLE != c {
-		if err := c.metadataClientFLE.connect(ctx); err != nil {
+		if err := c.metadataClientFLE.Connect(ctx); err != nil {
 			return err
 		}
 	}
@@ -484,7 +489,7 @@ func (c *Client) getOrCreateInternalClient(clientOpts *options.ClientOptions) (*
 	internalClientOpts.AutoEncryptionOptions = nil
 	internalClientOpts.SetMinPoolSize(0)
 	var err error
-	c.internalClientFLE, err = newClient(internalClientOpts)
+	c.internalClientFLE, err = NewClient(internalClientOpts)
 	return c.internalClientFLE, err
 }
 
@@ -494,7 +499,7 @@ func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) e
 	aeOpts := clientOpts.AutoEncryptionOptions
 	switch {
 	case aeOpts.KeyVaultClientOptions != nil:
-		c.keyVaultClientFLE, err = newClient(aeOpts.KeyVaultClientOptions)
+		c.keyVaultClientFLE, err = NewClient(aeOpts.KeyVaultClientOptions)
 	case clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0:
 		c.keyVaultClientFLE = c
 	default:
