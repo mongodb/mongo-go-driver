@@ -91,8 +91,6 @@ func (r *rttMonitor) start() {
 
 	var conn *connection
 	defer func() {
-		r.started = false
-
 		if conn != nil {
 			// If the connection exists, we need to wait for it to be connected because
 			// conn.connect() and conn.close() cannot be called concurrently. If the connection

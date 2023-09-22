@@ -799,17 +799,14 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 }
 
 func isStreamingEnabled(srv *Server) bool {
-	mode := srv.cfg.serverMonitoringMode
-
-	if mode == connstring.ServerMonitoringModeStream {
+	switch srv.cfg.serverMonitoringMode {
+	case connstring.ServerMonitoringModeStream:
 		return true
-	}
-
-	if mode == connstring.ServerMonitoringModeAuto {
+	case connstring.ServerMonitoringModePoll:
+		return false
+	default:
 		return driverutil.GetFaasEnvName() == ""
 	}
-
-	return false
 }
 
 func isStreamable(srv *Server) bool {
