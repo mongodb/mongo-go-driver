@@ -38,7 +38,25 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	ce := &ClientEncryption{
 		keyVaultClient: keyVaultClient,
 	}
-	ceo := options.MergeClientEncryptionOptions(opts...)
+	ceo := options.ClientEncryption()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.KeyVaultNamespace != "" {
+			ceo.KeyVaultNamespace = opt.KeyVaultNamespace
+		}
+		if opt.KmsProviders != nil {
+			ceo.KmsProviders = opt.KmsProviders
+		}
+		if opt.TLSConfig != nil {
+			ceo.TLSConfig = opt.TLSConfig
+		}
+		if opt.HTTPClient != nil {
+			ceo.HTTPClient = opt.HTTPClient
+		}
+	}
 
 	// create keyVaultColl
 	db, coll := splitNamespace(ceo.KeyVaultNamespace)
@@ -144,7 +162,22 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
 
 	// translate opts to mcopts.DataKeyOptions
-	dko := options.MergeDataKeyOptions(opts...)
+	dko := options.DataKey()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.MasterKey != nil {
+			dko.MasterKey = opt.MasterKey
+		}
+		if opt.KeyAltNames != nil {
+			dko.KeyAltNames = opt.KeyAltNames
+		}
+		if opt.KeyMaterial != nil {
+			dko.KeyMaterial = opt.KeyMaterial
+		}
+	}
 	co := mcopts.DataKey().SetKeyAltNames(dko.KeyAltNames)
 	if dko.MasterKey != nil {
 		keyDoc, err := marshal(

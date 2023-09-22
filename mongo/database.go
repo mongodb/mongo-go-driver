@@ -44,7 +44,24 @@ type Database struct {
 }
 
 func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
-	dbOpt := options.MergeDatabaseOptions(opts...)
+	dbOpt := options.Database()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ReadConcern != nil {
+			dbOpt.ReadConcern = opt.ReadConcern
+		}
+		if opt.WriteConcern != nil {
+			dbOpt.WriteConcern = opt.WriteConcern
+		}
+		if opt.ReadPreference != nil {
+			dbOpt.ReadPreference = opt.ReadPreference
+		}
+		if opt.Registry != nil {
+			dbOpt.Registry = opt.Registry
+		}
+	}
 
 	rc := client.readConcern
 	if dbOpt.ReadConcern != nil {
@@ -523,6 +540,63 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
 
+// mergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
+// CreateCollectionOptions in a last-one-wins fashion.
+func mergeCreateCollectionOptions(opts ...*options.CreateCollectionOptions) *options.CreateCollectionOptions {
+	cc := options.CreateCollection()
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.Capped != nil {
+			cc.Capped = opt.Capped
+		}
+		if opt.Collation != nil {
+			cc.Collation = opt.Collation
+		}
+		if opt.ChangeStreamPreAndPostImages != nil {
+			cc.ChangeStreamPreAndPostImages = opt.ChangeStreamPreAndPostImages
+		}
+		if opt.DefaultIndexOptions != nil {
+			cc.DefaultIndexOptions = opt.DefaultIndexOptions
+		}
+		if opt.MaxDocuments != nil {
+			cc.MaxDocuments = opt.MaxDocuments
+		}
+		if opt.SizeInBytes != nil {
+			cc.SizeInBytes = opt.SizeInBytes
+		}
+		if opt.StorageEngine != nil {
+			cc.StorageEngine = opt.StorageEngine
+		}
+		if opt.ValidationAction != nil {
+			cc.ValidationAction = opt.ValidationAction
+		}
+		if opt.ValidationLevel != nil {
+			cc.ValidationLevel = opt.ValidationLevel
+		}
+		if opt.Validator != nil {
+			cc.Validator = opt.Validator
+		}
+		if opt.ExpireAfterSeconds != nil {
+			cc.ExpireAfterSeconds = opt.ExpireAfterSeconds
+		}
+		if opt.TimeSeriesOptions != nil {
+			cc.TimeSeriesOptions = opt.TimeSeriesOptions
+		}
+		if opt.EncryptedFields != nil {
+			cc.EncryptedFields = opt.EncryptedFields
+		}
+		if opt.ClusteredIndex != nil {
+			cc.ClusteredIndex = opt.ClusteredIndex
+		}
+	}
+
+	return cc
+}
+
 // CreateCollection executes a create command to explicitly create a new collection with the specified name on the
 // server. If the collection being created already exists, this method will return a mongo.CommandError. This method
 // requires driver version 1.4.0 or higher.
@@ -532,7 +606,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	cco := options.MergeCreateCollectionOptions(opts...)
+	cco := mergeCreateCollectionOptions(opts...)
 	// Follow Client-Side Encryption specification to check for encryptedFields.
 	// Check for encryptedFields from create options.
 	ef := cco.EncryptedFields
@@ -675,7 +749,7 @@ func (db *Database) createCollection(ctx context.Context, name string, opts ...*
 }
 
 func (db *Database) createCollectionOperation(name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
-	cco := options.MergeCreateCollectionOptions(opts...)
+	cco := mergeCreateCollectionOptions(opts...)
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
 
 	if cco.Capped != nil {
@@ -778,6 +852,24 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 	return op, nil
 }
 
+// mergeCreateViewOptions combines the given CreateViewOptions instances into a single CreateViewOptions in a
+// last-one-wins fashion.
+func mergeCreateViewOptions(opts ...*options.CreateViewOptions) *options.CreateViewOptions {
+	cv := options.CreateView()
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.Collation != nil {
+			cv.Collation = opt.Collation
+		}
+	}
+
+	return cv
+}
+
 // CreateView executes a create command to explicitly create a view on the server. See
 // https://www.mongodb.com/docs/manual/core/views/ for more information about views. This method requires driver version >=
 // 1.4.0 and MongoDB version >= 3.4.
@@ -803,7 +895,7 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		ViewOn(viewOn).
 		Pipeline(pipelineArray).
 		ServerAPI(db.client.serverAPI)
-	cvo := options.MergeCreateViewOptions(opts...)
+	cvo := mergeCreateViewOptions(opts...)
 	if cvo.Collation != nil {
 		op.Collation(bsoncore.Document(cvo.Collation.ToDocument()))
 	}

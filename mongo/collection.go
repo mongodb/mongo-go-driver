@@ -68,8 +68,34 @@ func closeImplicitSession(sess *session.Client) {
 	}
 }
 
+// mergeCollectionOptions combines the given CollectionOptions instances into a single *CollectionOptions in a
+// last-one-wins fashion.
+func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.CollectionOptions {
+	c := options.Collection()
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ReadConcern != nil {
+			c.ReadConcern = opt.ReadConcern
+		}
+		if opt.WriteConcern != nil {
+			c.WriteConcern = opt.WriteConcern
+		}
+		if opt.ReadPreference != nil {
+			c.ReadPreference = opt.ReadPreference
+		}
+		if opt.Registry != nil {
+			c.Registry = opt.Registry
+		}
+	}
+
+	return c
+}
+
 func newCollection(db *Database, name string, opts ...*options.CollectionOptions) *Collection {
-	collOpt := options.MergeCollectionOptions(opts...)
+	collOpt := mergeCollectionOptions(opts...)
 
 	rc := db.readConcern
 	if collOpt.ReadConcern != nil {
@@ -141,7 +167,7 @@ func (coll *Collection) copy() *Collection {
 // precedence.
 func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, error) {
 	copyColl := coll.copy()
-	optsColl := options.MergeCollectionOptions(opts...)
+	optsColl := mergeCollectionOptions(opts...)
 
 	if optsColl.ReadConcern != nil {
 		copyColl.readConcern = optsColl.ReadConcern
@@ -1018,7 +1044,30 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	countOpts := options.MergeCountOptions(opts...)
+	countOpts := options.Count()
+	for _, co := range opts {
+		if co == nil {
+			continue
+		}
+		if co.Collation != nil {
+			countOpts.Collation = co.Collation
+		}
+		if co.Comment != nil {
+			countOpts.Comment = co.Comment
+		}
+		if co.Hint != nil {
+			countOpts.Hint = co.Hint
+		}
+		if co.Limit != nil {
+			countOpts.Limit = co.Limit
+		}
+		if co.MaxTime != nil {
+			countOpts.MaxTime = co.MaxTime
+		}
+		if co.Skip != nil {
+			countOpts.Skip = co.Skip
+		}
+	}
 
 	pipelineArr, err := countDocumentsAggregatePipeline(filter, coll.bsonOpts, coll.registry, countOpts)
 	if err != nil {
