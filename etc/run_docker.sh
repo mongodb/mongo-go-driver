@@ -29,9 +29,6 @@ ENV="$ENV -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
 VOL="-v `pwd`:/src"
 VOL="$VOL -v $DRIVERS_TOOLS:/root/drivers-evergreen-tools"
 
-# Remove old mongodb binaries to save time.
-rm -rf $DRIVERS_TOOLS/mongodb
-
 docker run --rm $VOL $ENV -t go-test
 if [ -f "test.suite" ]; then
     tail test.suite
