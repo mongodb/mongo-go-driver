@@ -1,25 +1,17 @@
-FROM ubuntu:22.04
+FROM drivers-evergreen-tools
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
+  add-apt-repository ppa:longsleep/golang-backports && \
   apt-get -qq update && \
-  apt-get -qqy -o DPkg::Lock::Timeout=-1 install --no-install-recommends \
-  git \
-  ca-certificates \
-  curl \
-  wget \
-  sudo \
+  apt-get -qqy install --no-install-recommends \
   gnupg \
-  python3 \
-  python3.10-venv \
-  build-essential \
   golang-go \
   pkg-config \
   libssl-dev \
+  build-essential \
   tzdata \
   make \
-  lsof \
-  net-tools \
  && rm -rf /var/lib/apt/lists/*
 
 RUN export LIBMONGOCRYPT_TAG="1.8.2" && \
