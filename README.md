@@ -150,7 +150,7 @@ Additional examples and documentation can be found under the examples directory 
 
 ### Network Compression
 
-Network Compression will reduce bandwidth requirements between MongoDB and the application. 
+Network compression will reduce bandwidth requirements between MongoDB and the application. 
 
 The Go Driver supports the following compression algorithms:
 
@@ -160,7 +160,7 @@ The Go Driver supports the following compression algorithms:
 
 #### Specify Compression Algorithms
 
-Compression can be enabled using the `compressors` parameter on the connection string or by using [`ClientOptions.SetCompressor`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetCompressors):
+Compression can be enabled using the `compressors` parameter on the connection string or by using [`ClientOptions.SetCompressors`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetCompressors):
 
 ```
 opts := options.Client().ApplyURI("mongodb://localhost:27017/?compressors=snappy,zlib,zstd")
