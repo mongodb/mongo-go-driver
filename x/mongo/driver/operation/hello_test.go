@@ -272,6 +272,14 @@ func TestAppendClientEnv(t *testing.T) {
 			},
 			want: []byte(`{"env":{"name":"azure.func"}}`),
 		},
+		{
+			name: "k8s",
+			env: map[string]string{
+				envVarK8s: "0.0.0.0",
+			},
+			want: []byte(`{"env":{"container":{"orchestrator":"kubernetes"}}}`),
+		},
+		// client.env.container.runtime is untested.
 	}
 
 	for _, test := range tests {
@@ -382,11 +390,17 @@ func TestEncodeClientMetadata(t *testing.T) {
 		Architecture string `bson:"architecture,omitempty"`
 	}
 
+	type container struct {
+		Runtime      string `bson:"runtime,omitempty"`
+		Orchestrator string `bson:"orchestrator,omitempty"`
+	}
+
 	type env struct {
-		Name       string `bson:"name,omitempty"`
-		TimeoutSec int64  `bson:"timeout_sec,omitempty"`
-		MemoryMB   int32  `bson:"memory_mb,omitempty"`
-		Region     string `bson:"region,omitempty"`
+		Name       string     `bson:"name,omitempty"`
+		TimeoutSec int64      `bson:"timeout_sec,omitempty"`
+		MemoryMB   int32      `bson:"memory_mb,omitempty"`
+		Region     string     `bson:"region,omitempty"`
+		Container  *container `bson:"container,omitempty"`
 	}
 
 	type clientMetadata struct {
@@ -408,6 +422,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 	t.Setenv(envVarAWSLambdaRuntimeAPI, "lambda")
 	t.Setenv(envVarAWSLambdaFunctionMemorySize, "123")
 	t.Setenv(envVarAWSRegion, "us-east-2")
+	t.Setenv(envVarK8s, "0.0.0.0")
 
 	t.Run("nothing is omitted", func(t *testing.T) {
 		got, err := encodeClientMetadata("foo", maxClientMetadataSize)
@@ -418,7 +433,14 @@ func TestEncodeClientMetadata(t *testing.T) {
 			Driver:      &driver{Name: driverName, Version: version.Driver},
 			OS:          &dist{Type: runtime.GOOS, Architecture: runtime.GOARCH},
 			Platform:    runtime.Version(),
-			Env:         &env{Name: envNameAWSLambda, MemoryMB: 123, Region: "us-east-2"},
+			Env: &env{
+				Name:     envNameAWSLambda,
+				MemoryMB: 123,
+				Region:   "us-east-2",
+				Container: &container{
+					Orchestrator: "kubernetes",
+				},
+			},
 		})
 
 		assertDocsEqual(t, got, want)
@@ -437,7 +459,12 @@ func TestEncodeClientMetadata(t *testing.T) {
 			Driver:      &driver{Name: driverName, Version: version.Driver},
 			OS:          &dist{Type: runtime.GOOS, Architecture: runtime.GOARCH},
 			Platform:    runtime.Version(),
-			Env:         &env{Name: envNameAWSLambda},
+			Env: &env{
+				Name: envNameAWSLambda,
+				Container: &container{
+					Orchestrator: "kubernetes",
+				},
+			},
 		})
 
 		assertDocsEqual(t, got, want)
@@ -454,6 +481,10 @@ func TestEncodeClientMetadata(t *testing.T) {
 
 		// Calculate what the env.name costs.
 		ndst := bsoncore.AppendStringElement(nil, "name", envNameAWSLambda)
+		idx, ndst := bsoncore.AppendDocumentElementStart(ndst, "container")
+		ndst = bsoncore.AppendStringElement(ndst, "orchestrator", "kubernetes")
+		ndst, err = bsoncore.AppendDocumentEnd(ndst, idx)
+		require.NoError(t, err)
 
 		// Environment sub name.
 		envSubName := len(edst) - len(ndst)
@@ -466,7 +497,12 @@ func TestEncodeClientMetadata(t *testing.T) {
 			Driver:      &driver{Name: driverName, Version: version.Driver},
 			OS:          &dist{Type: runtime.GOOS},
 			Platform:    runtime.Version(),
-			Env:         &env{Name: envNameAWSLambda},
+			Env: &env{
+				Name: envNameAWSLambda,
+				Container: &container{
+					Orchestrator: "kubernetes",
+				},
+			},
 		})
 
 		assertDocsEqual(t, got, want)
