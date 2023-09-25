@@ -1,3 +1,23 @@
+# Dockerfile for Go Driver local development.
+
+# Build libmongocrypt in a separate build stage.
+FROM ubuntu:20.04 as libmongocrypt
+
+RUN apt-get -qq update && \
+  apt-get -qqy install --no-install-recommends \
+    git \
+    ca-certificates \
+    curl \
+    build-essential \
+    libssl-dev \
+    python
+
+COPY etc/install-libmongocrypt.sh /root/install-libmongocrypt.sh
+RUN cd /root && bash ./install-libmongocrypt.sh
+
+
+# Inherit from the drivers-evergreen-tools image and copy in the files
+# from the libmongocrypt build stage.
 FROM drivers-evergreen-tools
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
@@ -8,19 +28,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   gnupg \
   golang-go \
   pkg-config \
-  libssl-dev \
-  build-essential \
   tzdata \
   make \
  && rm -rf /var/lib/apt/lists/*
 
-RUN export LIBMONGOCRYPT_TAG="1.8.2" && \
-    cd $HOME && \
-    git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG && \
-    PKG_CONFIG_PATH=$HOME/install/libmongocrypt/lib/pkgconfig:$HOME/install/mongo-c-driver/lib/pkgconfig \
-    LD_LIBRARY_PATH=$HOME/install/libmongocrypt/lib \
-    ./libmongocrypt/.evergreen/compile.sh
-
 COPY ./etc/docker_entry.sh /root/docker_entry.sh
+
+COPY --from=libmongocrypt /root/install /root/install
 
 ENTRYPOINT ["/bin/bash", "/root/docker_entry.sh"]
