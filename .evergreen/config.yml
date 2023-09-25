@@ -97,9 +97,13 @@ functions:
           go version
           go env
 
-          # Install libmongocrypt and add to path
+          # Install libmongocrypt.
           bash etc/install-libmongocrypt.sh
-          export PATH="$PATH:$(pwd)/install/libmongocrypt/bin"
+
+          # Add libmongocrypt to path on Windows.
+          if [ "Windows_NT" = "${OS}" ]; then
+            export PATH="$PATH:c:/libmongocrypt/bin"
+          fi
 
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"

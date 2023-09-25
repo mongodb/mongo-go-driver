@@ -7,7 +7,7 @@ LIBMONGOCRYPT_TAG="1.8.2"
 
 # Install libmongocrypt based on OS.
 if [ "Windows_NT" = "${OS:-}" ]; then
-    INSTALL_DIR=$(pwd)/install/libmongocrypt
+    INSTALL_DIR=c:/libmongocrypt/bin
     rm -rf $INSTALL_DIR
     mkdir -p $INSTALL_DIR/include
     mkdir -p $INSTALL_DIR/bin

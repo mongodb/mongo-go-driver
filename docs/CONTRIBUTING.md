@@ -34,7 +34,7 @@ If you are working on a bug or feature listed in Jira, please include the ticket
 The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`). This will run coverage, run go-lint, run go-vet, and build the examples.
 
 You can install `libmongocrypt` locally by running `bash etc/build-libmongocrypt.sh`, which will create an `install` directory
-in the repository top level directory.
+in the repository top level directory.  On Windows you will also need to add `c:/libmongocrypt/` to your `PATH`.
 
 ### Testing Different Topologies
 
