@@ -150,10 +150,14 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeBulkWrite(ctx, op)
 	case "countDocuments":
 		return executeCountDocuments(ctx, op)
-	case "createIndex":
-		return executeCreateIndex(ctx, op)
 	case "createFindCursor":
 		return executeCreateFindCursor(ctx, op)
+	case "createIndex":
+		return executeCreateIndex(ctx, op)
+	case "createSearchIndex":
+		return executeCreateSearchIndex(ctx, op)
+	case "createSearchIndexes":
+		return executeCreateSearchIndexes(ctx, op)
 	case "deleteOne":
 		return executeDeleteOne(ctx, op)
 	case "deleteMany":
@@ -164,6 +168,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeDropIndex(ctx, op)
 	case "dropIndexes":
 		return executeDropIndexes(ctx, op)
+	case "dropSearchIndex":
+		return executeDropSearchIndex(ctx, op)
 	case "estimatedDocumentCount":
 		return executeEstimatedDocumentCount(ctx, op)
 	case "find":
@@ -182,6 +188,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeInsertOne(ctx, op)
 	case "listIndexes":
 		return executeListIndexes(ctx, op)
+	case "listSearchIndexes":
+		return executeListSearchIndexes(ctx, op)
 	case "rename":
 		// "rename" can either target a collection or a GridFS bucket.
 		if _, err := entities(ctx).collection(op.Object); err == nil {
@@ -197,6 +205,8 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		return executeUpdateOne(ctx, op)
 	case "updateMany":
 		return executeUpdateMany(ctx, op)
+	case "updateSearchIndex":
+		return executeUpdateSearchIndex(ctx, op)
 
 	// GridFS operations
 	case "delete":
