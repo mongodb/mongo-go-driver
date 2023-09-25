@@ -32,6 +32,7 @@ var (
 		"server-selection/logging",
 		"server-discovery-and-monitoring/unified",
 		"run-command",
+		"index-management",
 	}
 	failDirectories = []string{
 		"unified-test-format/valid-fail",
