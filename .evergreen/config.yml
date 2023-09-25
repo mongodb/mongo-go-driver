@@ -2835,7 +2835,7 @@ buildvariants:
       - test-aws-lambda-task-group
 
   - matrix_name: "searchindex-test"
-    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel80-large-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
     display_name: "Search Index ${version} ${os-faas-80}"
     tasks:
       - test-search-index-task-group
