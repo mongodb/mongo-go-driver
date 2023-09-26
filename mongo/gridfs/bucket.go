@@ -73,7 +73,27 @@ func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, err
 		rp:        db.ReadPreference(),
 	}
 
-	bo := options.MergeBucketOptions(opts...)
+	bo := options.GridFSBucket()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Name != nil {
+			bo.Name = opt.Name
+		}
+		if opt.ChunkSizeBytes != nil {
+			bo.ChunkSizeBytes = opt.ChunkSizeBytes
+		}
+		if opt.WriteConcern != nil {
+			bo.WriteConcern = opt.WriteConcern
+		}
+		if opt.ReadConcern != nil {
+			bo.ReadConcern = opt.ReadConcern
+		}
+		if opt.ReadPreference != nil {
+			bo.ReadPreference = opt.ReadPreference
+		}
+	}
 	if bo.Name != nil {
 		b.name = *bo.Name
 	}
@@ -210,7 +230,17 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.Name
 	var numSkip int32 = -1
 	var sortOrder int32 = 1
 
-	nameOpts := options.MergeNameOptions(opts...)
+	nameOpts := options.GridFSName()
+	nameOpts.Revision = &options.DefaultRevision
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Revision != nil {
+			nameOpts.Revision = opt.Revision
+		}
+	}
 	if nameOpts.Revision != nil {
 		numSkip = *nameOpts.Revision
 	}
@@ -302,7 +332,33 @@ func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*
 // Use the context parameter to time-out or cancel the find operation. The deadline set by SetReadDeadline
 // is ignored.
 func (b *Bucket) FindContext(ctx context.Context, filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
-	gfsOpts := options.MergeGridFSFindOptions(opts...)
+	gfsOpts := options.GridFSFind()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.AllowDiskUse != nil {
+			gfsOpts.AllowDiskUse = opt.AllowDiskUse
+		}
+		if opt.BatchSize != nil {
+			gfsOpts.BatchSize = opt.BatchSize
+		}
+		if opt.Limit != nil {
+			gfsOpts.Limit = opt.Limit
+		}
+		if opt.MaxTime != nil {
+			gfsOpts.MaxTime = opt.MaxTime
+		}
+		if opt.NoCursorTimeout != nil {
+			gfsOpts.NoCursorTimeout = opt.NoCursorTimeout
+		}
+		if opt.Skip != nil {
+			gfsOpts.Skip = opt.Skip
+		}
+		if opt.Sort != nil {
+			gfsOpts.Sort = opt.Sort
+		}
+	}
 	find := options.Find()
 	if gfsOpts.AllowDiskUse != nil {
 		find.SetAllowDiskUse(*gfsOpts.AllowDiskUse)
@@ -642,7 +698,21 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 
-	uo := options.MergeUploadOptions(opts...)
+	uo := options.GridFSUpload()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ChunkSizeBytes != nil {
+			uo.ChunkSizeBytes = opt.ChunkSizeBytes
+		}
+		if opt.Metadata != nil {
+			uo.Metadata = opt.Metadata
+		}
+		if opt.Registry != nil {
+			uo.Registry = opt.Registry
+		}
+	}
 	if uo.ChunkSizeBytes != nil {
 		upload.chunkSize = *uo.ChunkSizeBytes
 	}
