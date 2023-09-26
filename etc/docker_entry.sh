@@ -5,7 +5,7 @@
 set -eux
 
 # Start the server.
-bash $DRIVERS_TOOLS/.evergreen/run-orchestration.sh
+bash /root/base-entrypoint.sh
 
 # Prep files.
 cd /src
