@@ -1233,8 +1233,6 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetMin(val.Document())
 		case "noCursorTimeout":
 			opts.SetNoCursorTimeout(val.Boolean())
-		case "oplogReplay":
-			opts.SetOplogReplay(val.Boolean())
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "returnKey":
@@ -1243,8 +1241,6 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetShowRecordID(val.Boolean())
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
-		case "snapshot":
-			opts.SetSnapshot(val.Boolean())
 		case "sort":
 			opts.SetSort(val.Document())
 		default:

@@ -219,12 +219,6 @@ type ClientOptions struct {
 	uri string
 	cs  *connstring.ConnString
 
-	// AuthenticateToAnything skips server type checks when deciding if authentication is possible.
-	//
-	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
-	// release.
-	AuthenticateToAnything *bool
-
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
 	// encryption.
 	//
@@ -983,9 +977,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Auth != nil {
 			c.Auth = opt.Auth
-		}
-		if opt.AuthenticateToAnything != nil {
-			c.AuthenticateToAnything = opt.AuthenticateToAnything
 		}
 		if opt.Compressors != nil {
 			c.Compressors = opt.Compressors

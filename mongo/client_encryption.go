@@ -211,7 +211,31 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
 func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts.ExplicitEncryptionOptions {
-	eo := options.MergeEncryptOptions(opts...)
+	eo := options.Encrypt()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.KeyID != nil {
+			eo.KeyID = opt.KeyID
+		}
+		if opt.KeyAltName != nil {
+			eo.KeyAltName = opt.KeyAltName
+		}
+		if opt.Algorithm != "" {
+			eo.Algorithm = opt.Algorithm
+		}
+		if opt.QueryType != "" {
+			eo.QueryType = opt.QueryType
+		}
+		if opt.ContentionFactor != nil {
+			eo.ContentionFactor = opt.ContentionFactor
+		}
+		if opt.RangeOptions != nil {
+			eo.RangeOptions = opt.RangeOptions
+		}
+	}
 	transformed := mcopts.ExplicitEncryption()
 	if eo.KeyID != nil {
 		transformed.SetKeyID(*eo.KeyID)
