@@ -6,6 +6,7 @@ set -eux
 
 # Start the server.
 bash /root/base-entrypoint.sh
+source $DRIVERS_TOOLS/.evergreen/mo-expansion.sh
 
 # Prep files.
 cd /src
