@@ -20,10 +20,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 )
 
 func TestHandshakeProse(t *testing.T) {
 	mt := mtest.New(t)
+
+	if len(mongocrypt.Version()) == 0 {
+		t.Skip("Not built with cse flag")
+	}
 
 	opts := mtest.NewOptions().
 		CreateCollection(false).
