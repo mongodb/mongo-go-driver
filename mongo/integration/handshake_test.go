@@ -20,14 +20,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 )
 
 func TestHandshakeProse(t *testing.T) {
 	mt := mtest.New(t)
 
-	if len(mongocrypt.Version()) == 0 {
-		t.Skip("Not built with cse flag")
+	if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+		t.Skip("These tests gives different results when run in Docker due to extra environment data.")
 	}
 
 	opts := mtest.NewOptions().
