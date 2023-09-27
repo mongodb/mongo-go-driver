@@ -92,7 +92,7 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 				t.Fatalf("unrecognized type for w client option: %v", opt.Type)
 			}
 		case "readConcernLevel":
-			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(opt.StringValue())))
+			clientOpts.SetReadConcern(&readconcern.ReadConcern{Level: opt.StringValue()})
 		case "readPreference":
 			clientOpts.SetReadPreference(readPrefFromString(opt.StringValue()))
 		case "heartbeatFrequencyMS":
@@ -388,7 +388,7 @@ func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionO
 
 // create a read concern from a map
 func createReadConcern(opt bson.RawValue) *readconcern.ReadConcern {
-	return readconcern.New(readconcern.Level(opt.Document().Lookup("level").StringValue()))
+	return &readconcern.ReadConcern{Level: opt.Document().Lookup("level").StringValue()}
 }
 
 // create a read concern from a map

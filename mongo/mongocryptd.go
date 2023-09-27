@@ -26,7 +26,7 @@ const (
 )
 
 var defaultTimeoutArgs = []string{"--idleShutdownTimeoutSecs=60"}
-var databaseOpts = options.Database().SetReadConcern(readconcern.New()).SetReadPreference(readpref.Primary())
+var databaseOpts = options.Database().SetReadConcern(&readconcern.ReadConcern{}).SetReadPreference(readpref.Primary())
 
 type mongocryptdClient struct {
 	bypassSpawn bool

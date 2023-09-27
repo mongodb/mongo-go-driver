@@ -214,7 +214,7 @@ func TestOperation(t *testing.T) {
 			want bsoncore.Document
 		}{
 			{"nil", nil, nil},
-			{"empty", readconcern.New(), nil},
+			{"empty", &readconcern.ReadConcern{}, nil},
 			{"non-empty", readconcern.Majority(), majorityRc},
 		}
 

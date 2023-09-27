@@ -156,7 +156,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		client.serverMonitor = clientOpt.ServerMonitor
 	}
 	// ReadConcern
-	client.readConcern = readconcern.New()
+	client.readConcern = &readconcern.ReadConcern{}
 	if clientOpt.ReadConcern != nil {
 		client.readConcern = clientOpt.ReadConcern
 	}

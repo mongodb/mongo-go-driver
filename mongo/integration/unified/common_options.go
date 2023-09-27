@@ -24,7 +24,7 @@ type readConcern struct {
 }
 
 func (rc *readConcern) toReadConcernOption() *readconcern.ReadConcern {
-	return readconcern.New(readconcern.Level(rc.Level))
+	return &readconcern.ReadConcern{Level: rc.Level}
 }
 
 type writeConcern struct {

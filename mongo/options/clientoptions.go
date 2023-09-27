@@ -408,7 +408,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.ReadConcernLevel != "" {
-		c.ReadConcern = readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+		c.ReadConcern = &readconcern.ReadConcern{Level: cs.ReadConcernLevel}
 	}
 
 	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {

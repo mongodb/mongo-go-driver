@@ -629,7 +629,33 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		ctx = context.Background()
 	}
 
-	uo := options.MergeUpdateOptions(opts...)
+	uo := options.Update()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ArrayFilters != nil {
+			uo.ArrayFilters = opt.ArrayFilters
+		}
+		if opt.BypassDocumentValidation != nil {
+			uo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Collation != nil {
+			uo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			uo.Comment = opt.Comment
+		}
+		if opt.Hint != nil {
+			uo.Hint = opt.Hint
+		}
+		if opt.Upsert != nil {
+			uo.Upsert = opt.Upsert
+		}
+		if opt.Let != nil {
+			uo.Let = opt.Let
+		}
+	}
 
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
 	// command

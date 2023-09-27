@@ -104,8 +104,8 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 
 	if test.ReadConcern != nil {
 		expected := readConcernFromRaw(t, test.ReadConcern)
-		assert.Equal(t, expected.GetLevel(), cs.ReadConcernLevel,
-			"expected level %v, got %v", expected.GetLevel(), cs.ReadConcernLevel)
+		assert.Equal(t, expected.Level, cs.ReadConcernLevel,
+			"expected level %v, got %v", expected.Level, cs.ReadConcernLevel)
 	}
 	if test.WriteConcern != nil {
 		expectedWc := writeConcernFromRaw(t, test.WriteConcern)
@@ -200,7 +200,7 @@ func runDocumentTest(t *testing.T, test documentTest) {
 func readConcernFromRaw(t *testing.T, rc bson.Raw) *readconcern.ReadConcern {
 	t.Helper()
 
-	var opts []readconcern.Option
+	concern := &readconcern.ReadConcern{}
 	elems, _ := rc.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -208,12 +208,12 @@ func readConcernFromRaw(t *testing.T, rc bson.Raw) *readconcern.ReadConcern {
 
 		switch key {
 		case "level":
-			opts = append(opts, readconcern.Level(val.StringValue()))
+			concern.Level = val.StringValue()
 		default:
 			t.Fatalf("unrecognized read concern field %v", key)
 		}
 	}
-	return readconcern.New(opts...)
+	return concern
 }
 
 type writeConcern struct {

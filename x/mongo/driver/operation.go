@@ -1427,7 +1427,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 
 	// start transaction must append afterclustertime IF causally consistent and operation time exists
 	if rc == nil && client != nil && client.TransactionStarting() && client.Consistent && client.OperationTime != nil {
-		rc = readconcern.New()
+		rc = &readconcern.ReadConcern{}
 	}
 
 	if client != nil && client.Snapshot {
