@@ -688,6 +688,17 @@ functions:
       params:
         file: lb-expansion.yml
 
+  run-search-index-tests:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          TEST_INDEX_URI="${TEST_INDEX_URI}" \
+          make evg-test-search-index
+
   stop-load-balancer:
     - command: shell.exec
       params:
@@ -2259,6 +2270,14 @@ tasks:
             ${PREPARE_SHELL}
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
+  - name: "test-search-index"
+    commands:
+      - func: "bootstrap-mongo-orchestration"
+        vars:
+          VERSION: "latest"
+          TOPOLOGY: "replica_set"
+      - func: "run-search-index-tests"
+
 axes:
   - id: version
     display_name: MongoDB Version
@@ -2314,7 +2333,7 @@ axes:
           VENV_BIN_DIR: "Scripts"
       - id: "rhel87-64-go-1-20"
         display_name: "RHEL 8.7"
-        run_on: rhel8.7-large 
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2618,8 +2637,47 @@ task_groups:
     tasks:
       - test-aws-lambda-deployed
 
+  - name: test-search-index-task-group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            MONGODB_VERSION: "7.0"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          script: |-
+            echo "TEST_INDEX_URI: ${MONGODB_URI}" > atlas-expansion.yml
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - test-search-index
+
 buildvariants:
   - name: static-analysis
+    tags: ["pullrequest"]
     display_name: "Static Analysis"
     run_on:
       - rhel8.7-large
@@ -2638,6 +2696,7 @@ buildvariants:
       - name: ".performance"
 
   - name: build-check
+    tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
       - rhel8.7-large
@@ -2645,39 +2704,44 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
-  
+
   - name: atlas-test
+    tags: ["pullrequest"]
     display_name: "Atlas test"
     run_on:
-      - rhel8.7-large 
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "atlas-test"
 
   - name: atlas-data-lake-test
+    tags: ["pullrequest"]
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel8.7-large 
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "test-atlas-data-lake"
 
   - matrix_name: "tests-36-with-zlib-support"
-    matrix_spec: { version: ["3.6"], os-ssl-32: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-32}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-40-with-zlib-support"
-    matrix_spec: { version: ["4.0"], os-ssl-40: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2718,13 +2782,15 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "race-test"
+    tags: ["pullrequest"]
     matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
@@ -2736,12 +2802,14 @@ buildvariants:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
+    tags: ["pullrequest"]
     matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
+    tags: ["pullrequest"]
     matrix_spec: { os-serverless: "*" }
     display_name: "Serverless ${os-serverless}"
     tasks:
@@ -2765,6 +2833,12 @@ buildvariants:
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
+
+  - matrix_name: "searchindex-test"
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
+    display_name: "Search Index ${version} ${os-faas-80}"
+    tasks:
+      - test-search-index-task-group
 
   - name: testgcpkms-variant
     display_name: "GCP KMS"
