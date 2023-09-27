@@ -59,7 +59,7 @@ func TestSCRAM(t *testing.T) {
 
 	// Verify that test (root) user is authenticated.  If this fails, the
 	// rest of the test can't succeed.
-	wc := writeconcern.New(writeconcern.WMajority())
+	wc := writeconcern.Majority()
 	collOne := integtest.ColName(t)
 	dropCollection(t, integtest.DBName(t), collOne)
 	insertDocs(t, integtest.DBName(t),

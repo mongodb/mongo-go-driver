@@ -30,7 +30,7 @@ import (
 
 var (
 	// MajorityWc is the majority write concern.
-	MajorityWc = writeconcern.New(writeconcern.WMajority())
+	MajorityWc = writeconcern.Majority()
 	// PrimaryRp is the primary read preference.
 	PrimaryRp = readpref.Primary()
 	// SecondaryRp is the secondary read preference.
@@ -526,7 +526,10 @@ func (t *T) ClearCollections() {
 				// could prevent it from being dropped for sharded clusters. We can resolve this by
 				// re-instantiating the collection with a majority write concern before dropping.
 				collname := coll.created.Name()
-				wcm := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+				wcm := &writeconcern.WriteConcern{
+					W:        "majority",
+					WTimeout: 1 * time.Second,
+				}
 				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
 				_ = wccoll.Drop(context.Background())
 

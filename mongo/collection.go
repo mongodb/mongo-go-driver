@@ -236,7 +236,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -323,7 +323,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -504,7 +504,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -689,7 +689,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -986,7 +986,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		wc = nil
 		rc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		closeImplicitSession(sess)
 		sess = nil
 	}
@@ -1699,7 +1699,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -2229,7 +2229,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 

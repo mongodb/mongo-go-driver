@@ -58,7 +58,7 @@ var testContext struct {
 }
 
 func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
-	wcMajority := writeconcern.New(writeconcern.WMajority())
+	wcMajority := writeconcern.Majority()
 	// set ServerAPIOptions to latest version if required
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))

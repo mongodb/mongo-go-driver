@@ -263,7 +263,7 @@ func TestIndexView(t *testing.T) {
 			}
 		})
 		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+			SetWriteConcern(&writeconcern.WriteConcern{W: 0})
 		unackMtOpts := mtest.NewOptions().
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")
@@ -344,7 +344,7 @@ func TestIndexView(t *testing.T) {
 				Name: indexNames[1],
 			})
 		})
-		wc := writeconcern.New(writeconcern.W(1))
+		wc := &writeconcern.WriteConcern{W: 1}
 		wcMtOpts := mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc))
 		mt.RunOpts("uses writeconcern", wcMtOpts, func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()

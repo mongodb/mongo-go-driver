@@ -107,7 +107,7 @@ func TestSessions(t *testing.T) {
 		})
 	})
 
-	unackWcOpts := options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+	unackWcOpts := options.Collection().SetWriteConcern(&writeconcern.WriteConcern{W: 0})
 	mt.RunOpts("unacknowledged write", mtest.NewOptions().CollectionOptions(unackWcOpts), func(mt *mtest.T) {
 		// unacknowledged write during a session should result in an error
 		sess, err := mt.Client.StartSession()

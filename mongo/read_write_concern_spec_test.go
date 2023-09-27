@@ -110,7 +110,7 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 	if test.WriteConcern != nil {
 		expectedWc := writeConcernFromRaw(t, test.WriteConcern)
 		if expectedWc.wSet {
-			expected := expectedWc.GetW()
+			expected := expectedWc.W
 			if _, ok := expected.(int); ok {
 				assert.True(t, cs.WNumberSet, "expected WNumberSet, got false")
 				assert.Equal(t, expected, cs.WNumber, "expected w value %v, got %v", expected, cs.WNumber)
@@ -121,12 +121,12 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 		}
 		if expectedWc.timeoutSet {
 			assert.True(t, cs.WTimeoutSet, "expected WTimeoutSet, got false")
-			assert.Equal(t, expectedWc.GetWTimeout(), cs.WTimeout,
-				"expected timeout value %v, got %v", expectedWc.GetWTimeout(), cs.WTimeout)
+			assert.Equal(t, expectedWc.WTimeout, cs.WTimeout,
+				"expected timeout value %v, got %v", expectedWc.WTimeout, cs.WTimeout)
 		}
 		if expectedWc.jSet {
 			assert.True(t, cs.JSet, "expected JSet, got false")
-			assert.Equal(t, expectedWc.GetJ(), cs.J, "expected j value %v, got %v", expectedWc.GetJ(), cs.J)
+			assert.Equal(t, *expectedWc.Journal, cs.J, "expected j value %v, got %v", *expectedWc.Journal, cs.J)
 		}
 	}
 }
@@ -225,7 +225,7 @@ type writeConcern struct {
 
 func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
 	var wc writeConcern
-	var opts []writeconcern.Option
+	wc.WriteConcern = &writeconcern.WriteConcern{}
 
 	elems, _ := wcRaw.Elements()
 	for _, elem := range elems {
@@ -238,26 +238,24 @@ func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
 			switch val.Type {
 			case bsontype.Int32:
 				w := int(val.Int32())
-				opts = append(opts, writeconcern.W(w))
+				wc.WriteConcern.W = w
 			case bsontype.String:
-				opts = append(opts, writeconcern.WTagSet(val.StringValue()))
+				wc.WriteConcern.W = val.StringValue()
 			default:
 				t.Fatalf("unexpected type for w: %v", val.Type)
 			}
 		case "wtimeoutMS":
 			wc.timeoutSet = true
 			timeout := time.Duration(val.Int32()) * time.Millisecond
-			opts = append(opts, writeconcern.WTimeout(timeout))
+			wc.WriteConcern.WTimeout = timeout
 		case "journal":
 			wc.jSet = true
 			j := val.Boolean()
-			opts = append(opts, writeconcern.J(j))
+			wc.WriteConcern.Journal = &j
 		default:
 			t.Fatalf("unrecognized write concern field: %v", key)
 		}
 	}
-
-	wc.WriteConcern = writeconcern.New(opts...)
 	return wc
 }
 

@@ -460,7 +460,7 @@ func (op Operation) Validate() error {
 	if op.Database == "" {
 		return errDatabaseNameEmpty
 	}
-	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
+	if op.Client != nil && !op.WriteConcern.Acknowledged() {
 		return errors.New("session provided for an unacknowledged write")
 	}
 	return nil
@@ -1022,7 +1022,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		}
 		if retryWritesSupported(desc) &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
-			writeconcern.AckWrite(op.WriteConcern) {
+			op.WriteConcern.Acknowledged() {
 			return true
 		}
 	case Read:
@@ -1265,7 +1265,7 @@ func (op Operation) createMsgWireMessage(
 	var wmindex int32
 	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
 	// aren't batching or we are encoding the last batch.
-	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
+	if op.WriteConcern != nil && !op.WriteConcern.Acknowledged() && (op.Batches == nil || len(op.Batches.Documents) == 0) {
 		flags = wiremessage.MoreToCome
 	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can

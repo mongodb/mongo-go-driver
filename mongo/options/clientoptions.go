@@ -505,23 +505,21 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
-		opts := make([]writeconcern.Option, 0, 1)
+		c.WriteConcern = &writeconcern.WriteConcern{}
 
 		if len(cs.WString) > 0 {
-			opts = append(opts, writeconcern.WTagSet(cs.WString))
+			c.WriteConcern.W = cs.WString
 		} else if cs.WNumberSet {
-			opts = append(opts, writeconcern.W(cs.WNumber))
+			c.WriteConcern.W = cs.WNumber
 		}
 
 		if cs.JSet {
-			opts = append(opts, writeconcern.J(cs.J))
+			c.WriteConcern.Journal = &cs.J
 		}
 
 		if cs.WTimeoutSet {
-			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+			c.WriteConcern.WTimeout = cs.WTimeout
 		}
-
-		c.WriteConcern = writeconcern.New(opts...)
 	}
 
 	if cs.ZlibLevelSet {

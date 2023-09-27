@@ -148,8 +148,8 @@ func TestOperation(t *testing.T) {
 		err = sessInProgressTransaction.ApplyCommand(description.Server{})
 		noerr(t, err)
 
-		wcAck := writeconcern.New(writeconcern.WMajority())
-		wcUnack := writeconcern.New(writeconcern.W(0))
+		wcAck := writeconcern.Majority()
+		wcUnack := &writeconcern.WriteConcern{W: 0}
 
 		descRetryable := description.Server{
 			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
@@ -230,7 +230,7 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.New(writeconcern.WMajority())}.addWriteConcern(nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)

@@ -430,7 +430,7 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentMct = c.transactionMaxCommitTime
 	}
 
-	if !writeconcern.AckWrite(c.CurrentWc) {
+	if !c.CurrentWc.Acknowledged() {
 		_ = c.clearTransactionOpts()
 		return ErrUnackWCUnsupported
 	}
@@ -465,12 +465,13 @@ func (c *Client) CommitTransaction() error {
 // w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
 // retryable error or after a successful commit transaction operation.
 func (c *Client) UpdateCommitTransactionWriteConcern() {
-	wc := c.CurrentWc
-	timeout := 10 * time.Second
-	if wc != nil && wc.GetWTimeout() != 0 {
-		timeout = wc.GetWTimeout()
+	if c.CurrentWc == nil {
+		c.CurrentWc = &writeconcern.WriteConcern{}
 	}
-	c.CurrentWc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(timeout))
+	c.CurrentWc.W = "majority"
+	if c.CurrentWc.WTimeout == 0 {
+		c.CurrentWc.WTimeout = 10 * time.Second
+	}
 }
 
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns

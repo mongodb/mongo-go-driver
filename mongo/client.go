@@ -41,7 +41,7 @@ const (
 var (
 	// keyVaultCollOpts specifies options used to communicate with the key vault collection
 	keyVaultCollOpts = options.Collection().SetReadConcern(readconcern.Majority()).
-				SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+				SetWriteConcern(writeconcern.Majority())
 
 	endSessionsBatchSize = 10000
 )

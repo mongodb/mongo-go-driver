@@ -35,7 +35,10 @@ var (
 	// impossibleWc is a write concern that can't be satisfied and is used to test write concern errors
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
-	impossibleWc = writeconcern.New(writeconcern.W(30), writeconcern.WTimeout(time.Second))
+	impossibleWc = &writeconcern.WriteConcern{
+		W:        30,
+		WTimeout: time.Second,
+	}
 )
 
 func TestCollection(t *testing.T) {
@@ -1682,7 +1685,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
 		})
 		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+			SetWriteConcern(&writeconcern.WriteConcern{W: 0})
 		unackMtOpts := mtest.NewOptions().
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")

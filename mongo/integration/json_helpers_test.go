@@ -82,12 +82,12 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 			switch opt.Type {
 			case bson.TypeInt32:
 				w := int(opt.Int32())
-				clientOpts.SetWriteConcern(writeconcern.New(writeconcern.W(w)))
+				clientOpts.SetWriteConcern(&writeconcern.WriteConcern{W: w})
 			case bson.TypeDouble:
 				w := int(opt.Double())
-				clientOpts.SetWriteConcern(writeconcern.New(writeconcern.W(w)))
+				clientOpts.SetWriteConcern(&writeconcern.WriteConcern{W: w})
 			case bson.TypeString:
-				clientOpts.SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
+				clientOpts.SetWriteConcern(writeconcern.Majority())
 			default:
 				t.Fatalf("unrecognized type for w client option: %v", opt.Type)
 			}
@@ -398,7 +398,7 @@ func createWriteConcern(t testing.TB, opt bson.RawValue) *writeconcern.WriteConc
 		return nil
 	}
 
-	var opts []writeconcern.Option
+	wc := &writeconcern.WriteConcern{}
 	elems, _ := wcDoc.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -407,19 +407,20 @@ func createWriteConcern(t testing.TB, opt bson.RawValue) *writeconcern.WriteConc
 		switch key {
 		case "wtimeout":
 			wtimeout := convertValueToMilliseconds(t, val)
-			opts = append(opts, writeconcern.WTimeout(wtimeout))
+			wc.WTimeout = wtimeout
 		case "j":
-			opts = append(opts, writeconcern.J(val.Boolean()))
+			j := val.Boolean()
+			wc.Journal = &j
 		case "w":
 			switch val.Type {
 			case bson.TypeString:
 				if val.StringValue() != "majority" {
 					break
 				}
-				opts = append(opts, writeconcern.WMajority())
+				wc.W = "majority"
 			case bson.TypeInt32:
 				w := int(val.Int32())
-				opts = append(opts, writeconcern.W(w))
+				wc.W = w
 			default:
 				t.Fatalf("unrecognized type for w: %v", val.Type)
 			}
@@ -427,7 +428,7 @@ func createWriteConcern(t testing.TB, opt bson.RawValue) *writeconcern.WriteConc
 			t.Fatalf("unrecognized write concern option: %v", key)
 		}
 	}
-	return writeconcern.New(opts...)
+	return wc
 }
 
 // create a read preference from a string.

@@ -1763,7 +1763,7 @@ func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
 	return client.UseSession(ctx, func(sctx mongo.SessionContext) error {
 		err := sctx.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
-			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+			SetWriteConcern(writeconcern.Majority()),
 		)
 		if err != nil {
 			return err
@@ -1921,7 +1921,7 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 
 		err := sctx.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
-			SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+			SetWriteConcern(writeconcern.Majority()),
 		)
 		if err != nil {
 			return err
@@ -1971,7 +1971,10 @@ func WithTransactionExample(ctx context.Context) error {
 	defer func() { _ = client.Disconnect(ctx) }()
 
 	// Prereq: Create collections.
-	wcMajority := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+	wcMajority := &writeconcern.WriteConcern{
+		W:        "majority",
+		WTimeout: 1 * time.Second,
+	}
 	wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 	fooColl := client.Database("mydb1").Collection("foo", wcMajorityCollectionOpts)
 	barColl := client.Database("mydb1").Collection("bar", wcMajorityCollectionOpts)
@@ -2552,7 +2555,11 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	// Use a causally-consistent session to run some operations
 	opts := options.Session().SetDefaultReadConcern(readconcern.Majority()).SetDefaultWriteConcern(
-		writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1000)))
+		&writeconcern.WriteConcern{
+			W:        "majority",
+			WTimeout: 1000,
+		},
+	)
 	session1, err := client.StartSession(opts)
 	if err != nil {
 		return err
@@ -2585,8 +2592,12 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
 	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).SetDefaultReadConcern(
-		readconcern.Majority()).SetDefaultWriteConcern(writeconcern.New(writeconcern.WMajority(),
-		writeconcern.WTimeout(1000)))
+		readconcern.Majority()).SetDefaultWriteConcern(
+		&writeconcern.WriteConcern{
+			W:        "majority",
+			WTimeout: 1000,
+		},
+	)
 	session2, err := client.StartSession(opts)
 	if err != nil {
 		return err

@@ -289,7 +289,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("write concern", func(t *testing.T) {
-		wc := writeconcern.New(writeconcern.WMajority())
+		wc := writeconcern.Majority()
 		client := setupClient(options.Client().SetWriteConcern(wc))
 		assert.Equal(t, wc, client.writeConcern, "mismatch; expected write concern %v, got %v", wc, client.writeConcern)
 	})
@@ -354,7 +354,7 @@ func TestClient(t *testing.T) {
 					},
 				}
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
-					SetWriteConcern(writeconcern.New(writeconcern.WMajority())).SetMonitor(cmdMonitor)
+					SetWriteConcern(writeconcern.Majority()).SetMonitor(cmdMonitor)
 				integtest.AddTestServerAPIVersion(clientOpts)
 				client, err := Connect(bgCtx, clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
