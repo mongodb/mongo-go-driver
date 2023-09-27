@@ -144,11 +144,9 @@ func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bo
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (wce WriteCommandError) HasErrorLabel(label string) bool {
-	if wce.Labels != nil {
-		for _, l := range wce.Labels {
-			if l == label {
-				return true
-			}
+	for _, l := range wce.Labels {
+		if l == label {
+			return true
 		}
 	}
 	return false
@@ -282,11 +280,9 @@ func (e Error) Unwrap() error {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (e Error) HasErrorLabel(label string) bool {
-	if e.Labels != nil {
-		for _, l := range e.Labels {
-			if l == label {
-				return true
-			}
+	for _, l := range e.Labels {
+		if l == label {
+			return true
 		}
 	}
 	return false

@@ -87,7 +87,7 @@ func main() {
 	if err != nil {
 		panic(fmt.Sprintf("Connect error: %v", err))
 	}
-	defer keyVaultClient.Disconnect(context.Background())
+	defer func() { _ = keyVaultClient.Disconnect(context.Background()) }()
 
 	kmsProvidersMap := map[string]map[string]interface{}{
 		provider: {},

@@ -13,9 +13,8 @@ The MongoDB supported driver for Go.
 -------------------------
 ## Requirements
 
-- Go 1.13 or higher. We aim to support the latest versions of Go.
-  - `go mod tidy` will error when importing the Go Driver using Go versions older than 1.15 due to dependencies that import [io/fs](https://pkg.go.dev/io/fs). See golang/go issue [#44557](https://github.com/golang/go/issues/44557) for more information.
-  - Go 1.20 or higher is required to run the driver test suite.
+- Go 1.18 or higher. We aim to support the latest versions of Go.
+- Go 1.20 or higher is required to run the driver test suite.
 - MongoDB 3.6 and higher.
 
 -------------------------
