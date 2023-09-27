@@ -384,7 +384,33 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		return nil, ErrClientDisconnected
 	}
 
-	sopts := options.MergeSessionOptions(opts...)
+	sopts := options.Session()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.CausalConsistency != nil {
+			sopts.CausalConsistency = opt.CausalConsistency
+		}
+		if opt.DefaultReadConcern != nil {
+			sopts.DefaultReadConcern = opt.DefaultReadConcern
+		}
+		if opt.DefaultReadPreference != nil {
+			sopts.DefaultReadPreference = opt.DefaultReadPreference
+		}
+		if opt.DefaultWriteConcern != nil {
+			sopts.DefaultWriteConcern = opt.DefaultWriteConcern
+		}
+		if opt.DefaultMaxCommitTime != nil {
+			sopts.DefaultMaxCommitTime = opt.DefaultMaxCommitTime
+		}
+		if opt.Snapshot != nil {
+			sopts.Snapshot = opt.Snapshot
+		}
+	}
+	if sopts.CausalConsistency == nil && (sopts.Snapshot == nil || !*sopts.Snapshot) {
+		sopts.CausalConsistency = &options.DefaultCausalConsistency
+	}
 	coreOpts := &session.ClientOptions{
 		DefaultReadConcern:    c.readConcern,
 		DefaultReadPreference: c.readPreference,

@@ -169,7 +169,15 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		return nil, sess, err
 	}
 
-	ro := options.MergeRunCmdOptions(append(defaultRunCmdOpts, opts...)...)
+	ro := options.RunCmd()
+	for _, opt := range append(defaultRunCmdOpts, opts...) {
+		if opt == nil {
+			continue
+		}
+		if opt.ReadPreference != nil {
+			ro.ReadPreference = opt.ReadPreference
+		}
+	}
 	if sess != nil && sess.TransactionRunning() && ro.ReadPreference != nil && ro.ReadPreference.Mode() != readpref.PrimaryMode {
 		return nil, sess, errors.New("read preference in a transaction must be primary")
 	}

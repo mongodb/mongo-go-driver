@@ -432,7 +432,18 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)
 	}
 
-	rmdko := options.MergeRewrapManyDataKeyOptions(opts...)
+	rmdko := options.RewrapManyDataKey()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if provider := opt.Provider; provider != nil {
+			rmdko.Provider = provider
+		}
+		if masterKey := opt.MasterKey; masterKey != nil {
+			rmdko.MasterKey = masterKey
+		}
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
