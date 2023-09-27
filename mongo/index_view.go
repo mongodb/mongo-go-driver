@@ -97,7 +97,18 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(iv.coll.bsonOpts, iv.coll.registry)
 
-	lio := options.MergeListIndexesOptions(opts...)
+	lio := options.ListIndexes()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.BatchSize != nil {
+			lio.BatchSize = opt.BatchSize
+		}
+		if opt.MaxTime != nil {
+			lio.MaxTime = opt.MaxTime
+		}
+	}
 	if lio.BatchSize != nil {
 		op = op.BatchSize(*lio.BatchSize)
 		cursorOpts.BatchSize = *lio.BatchSize
@@ -249,7 +260,18 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	option := options.MergeCreateIndexesOptions(opts...)
+	option := options.CreateIndexes()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.MaxTime != nil {
+			option.MaxTime = opt.MaxTime
+		}
+		if opt.CommitQuorum != nil {
+			option.CommitQuorum = opt.CommitQuorum
+		}
+	}
 
 	op := operation.NewCreateIndexes(indexes).
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
@@ -276,9 +298,6 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Document, error) {
 	optsDoc := bsoncore.Document{}
-	if opts.Background != nil {
-		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "background", *opts.Background)
-	}
 	if opts.ExpireAfterSeconds != nil {
 		optsDoc = bsoncore.AppendInt32Element(optsDoc, "expireAfterSeconds", *opts.ExpireAfterSeconds)
 	}
@@ -386,7 +405,15 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	dio := options.MergeDropIndexesOptions(opts...)
+	dio := options.DropIndexes()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.MaxTime != nil {
+			dio.MaxTime = opt.MaxTime
+		}
+	}
 	op := operation.NewDropIndexes(name).
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).

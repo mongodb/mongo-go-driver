@@ -244,8 +244,6 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "2dsphereIndexVersion":
 			indexOpts.SetSphereVersion(val.Int32())
-		case "background":
-			indexOpts.SetBackground(val.Boolean())
 		case "bits":
 			indexOpts.SetBits(val.Int32())
 		case "bucketSize":

@@ -690,7 +690,18 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	})
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
-	ldo := options.MergeListDatabasesOptions(opts...)
+	ldo := options.ListDatabases()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.NameOnly != nil {
+			ldo.NameOnly = opt.NameOnly
+		}
+		if opt.AuthorizedDatabases != nil {
+			ldo.AuthorizedDatabases = opt.AuthorizedDatabases
+		}
+	}
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).

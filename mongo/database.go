@@ -411,7 +411,21 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	})
 	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
 
-	lco := options.MergeListCollectionsOptions(opts...)
+	lco := options.ListCollections()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.NameOnly != nil {
+			lco.NameOnly = opt.NameOnly
+		}
+		if opt.BatchSize != nil {
+			lco.BatchSize = opt.BatchSize
+		}
+		if opt.AuthorizedCollections != nil {
+			lco.AuthorizedCollections = opt.AuthorizedCollections
+		}
+	}
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).

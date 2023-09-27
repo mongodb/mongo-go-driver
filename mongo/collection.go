@@ -335,7 +335,21 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
-	imo := options.MergeInsertManyOptions(opts...)
+	imo := options.InsertMany()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.BypassDocumentValidation != nil {
+			imo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Comment != nil {
+			imo.Comment = opt.Comment
+		}
+		if opt.Ordered != nil {
+			imo.Ordered = opt.Ordered
+		}
+	}
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
@@ -388,7 +402,18 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
-	ioOpts := options.MergeInsertOneOptions(opts...)
+	ioOpts := options.InsertOne()
+	for _, ioo := range opts {
+		if ioo == nil {
+			continue
+		}
+		if ioo.BypassDocumentValidation != nil {
+			ioOpts.BypassDocumentValidation = ioo.BypassDocumentValidation
+		}
+		if ioo.Comment != nil {
+			ioOpts.Comment = ioo.Comment
+		}
+	}
 	imOpts := options.InsertMany()
 
 	if ioOpts.BypassDocumentValidation != nil && *ioOpts.BypassDocumentValidation {

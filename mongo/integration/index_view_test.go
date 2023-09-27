@@ -112,7 +112,6 @@ func TestIndexView(t *testing.T) {
 		})
 		mt.Run("all options", func(mt *mtest.T) {
 			opts := options.Index().
-				SetBackground(false).
 				SetExpireAfterSeconds(10).
 				SetName("a").
 				SetSparse(false).
