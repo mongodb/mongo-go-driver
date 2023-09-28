@@ -339,14 +339,6 @@ func TestClient(t *testing.T) {
 			assert.Nil(mt, err, "Disconnect error: %v", err)
 		})
 	})
-	mt.RunOpts("watch", noClientOpts, func(mt *mtest.T) {
-		mt.Run("disconnected", func(mt *mtest.T) {
-			c, err := mongo.NewClient(options.Client().ApplyURI(mtest.ClusterURI()))
-			assert.Nil(mt, err, "NewClient error: %v", err)
-			_, err = c.Watch(context.Background(), mongo.Pipeline{})
-			assert.Equal(mt, mongo.ErrClientDisconnected, err, "expected error %v, got %v", mongo.ErrClientDisconnected, err)
-		})
-	})
 	mt.RunOpts("end sessions", mtest.NewOptions().MinServerVersion("3.6"), func(mt *mtest.T) {
 		_, err := mt.Client.ListDatabases(context.Background(), bson.D{})
 		assert.Nil(mt, err, "ListDatabases error: %v", err)

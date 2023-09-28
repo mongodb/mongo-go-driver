@@ -35,7 +35,7 @@ func setupClient(opts ...*options.ClientOptions) *Client {
 		integtest.AddTestServerAPIVersion(clientOpts)
 		opts = append(opts, clientOpts)
 	}
-	client, _ := NewClient(opts...)
+	client, _ := newClient(opts...)
 	return client
 }
 
@@ -183,7 +183,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := NewClient(tc.opts)
+				_, err := newClient(tc.opts)
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
 		}
@@ -227,7 +227,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := NewClient(tc.opts)
+				_, err := newClient(tc.opts)
 				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
 		}
@@ -249,7 +249,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				client, err := NewClient(tc.opts)
+				client, err := newClient(tc.opts)
 				if tc.expectErr {
 					assert.NotNil(t, err, "expected error, got nil")
 					return
@@ -277,7 +277,7 @@ func TestClient(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				client, err := NewClient(tc.opts)
+				client, err := newClient(tc.opts)
 				if tc.expectErr {
 					assert.NotNil(t, err, "expected error, got nil")
 					return
@@ -412,7 +412,7 @@ func TestClient(t *testing.T) {
 
 		t.Run("success with all options", func(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
-			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			client, err := newClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
 			convertedAPIOptions := topology.ConvertToDriverAPIOptions(serverAPIOptions)
 			assert.Equal(t, convertedAPIOptions, client.serverAPI,
@@ -420,14 +420,14 @@ func TestClient(t *testing.T) {
 		})
 		t.Run("failure with unsupported version", func(t *testing.T) {
 			serverAPIOptions := options.ServerAPI("badVersion")
-			_, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			_, err := newClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.NotNil(t, err, "expected error from NewClient, got nil")
 			errmsg := `api version "badVersion" not supported; this driver version only supports API version "1"`
 			assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
 		})
 		t.Run("cannot modify options after client creation", func(t *testing.T) {
 			serverAPIOptions := getServerAPIOptions()
-			client, err := NewClient(options.Client().SetServerAPIOptions(serverAPIOptions))
+			client, err := newClient(options.Client().SetServerAPIOptions(serverAPIOptions))
 			assert.Nil(t, err, "unexpected error from NewClient: %v", err)
 
 			expectedServerAPIOptions := getServerAPIOptions()
@@ -476,7 +476,7 @@ func TestClient(t *testing.T) {
 					extraOptions["__cryptSharedLibDisabledForTestOnly"] = true
 				}
 
-				_, err := NewClient(options.Client().
+				_, err := newClient(options.Client().
 					SetAutoEncryptionOptions(options.AutoEncryption().
 						SetKmsProviders(map[string]map[string]interface{}{
 							"local": {"key": make([]byte, 96)},
