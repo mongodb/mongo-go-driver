@@ -465,13 +465,17 @@ func (c *Client) CommitTransaction() error {
 // w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
 // retryable error or after a successful commit transaction operation.
 func (c *Client) UpdateCommitTransactionWriteConcern() {
-	if c.CurrentWc == nil {
-		c.CurrentWc = &writeconcern.WriteConcern{}
+	wc := &writeconcern.WriteConcern{}
+	timeout := 10 * time.Second
+	if c.CurrentWc != nil {
+		*wc = *c.CurrentWc
+		if c.CurrentWc.WTimeout != 0 {
+			timeout = c.CurrentWc.WTimeout
+		}
 	}
-	c.CurrentWc.W = "majority"
-	if c.CurrentWc.WTimeout == 0 {
-		c.CurrentWc.WTimeout = 10 * time.Second
-	}
+	wc.W = "majority"
+	wc.WTimeout = timeout
+	c.CurrentWc = wc
 }
 
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
