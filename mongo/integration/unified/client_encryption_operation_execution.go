@@ -83,9 +83,9 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 		}
 	}
 
-	res, err := cee.AddKeyAltName(ctx, id, keyAltName).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
-	// associated documents, DecodeBytes will return ErrNoDocuments.
+	res, err := cee.AddKeyAltName(ctx, id, keyAltName).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
+	// associated documents, Raw will return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
@@ -199,9 +199,9 @@ func executeGetKeyByAltName(ctx context.Context, operation *operation) (*operati
 		}
 	}
 
-	res, err := cee.GetKeyByAltName(ctx, keyAltName).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
-	// associated documents, DecodeBytes will return ErrNoDocuments.
+	res, err := cee.GetKeyByAltName(ctx, keyAltName).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
+	// associated documents, Raw will return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
@@ -235,9 +235,9 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 		}
 	}
 
-	res, err := cee.GetKey(ctx, id).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
-	// associated documents, DecodeBytes will return ErrNoDocuments.
+	res, err := cee.GetKey(ctx, id).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
+	// associated documents, Raw will return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}
@@ -291,9 +291,9 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 		}
 	}
 
-	res, err := cee.RemoveKeyAltName(ctx, id, keyAltName).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor returned in a find operation has no
-	// associated documents, DecodeBytes will return ErrNoDocuments.
+	res, err := cee.RemoveKeyAltName(ctx, id, keyAltName).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
+	// associated documents, Raw will return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
 	}

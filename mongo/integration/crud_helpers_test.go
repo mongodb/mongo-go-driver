@@ -1646,7 +1646,7 @@ func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedR
 	}
 
 	expected := expectedResult.(bson.Raw)
-	actual, _ := actualResult.DecodeBytes()
+	actual, _ := actualResult.Raw()
 	if err := compareDocs(mt, expected, actual); err != nil {
 		mt.Fatalf("SingleResult document mismatch: %s", err)
 	}
