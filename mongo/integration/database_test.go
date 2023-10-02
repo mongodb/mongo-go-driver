@@ -41,7 +41,7 @@ func TestDatabase(t *testing.T) {
 
 	mt.RunOpts("run command", noClientOpts, func(mt *mtest.T) {
 		mt.Run("decode raw", func(mt *mtest.T) {
-			res, err := mt.DB.RunCommand(context.Background(), bson.D{{handshake.LegacyHello, 1}}).DecodeBytes()
+			res, err := mt.DB.RunCommand(context.Background(), bson.D{{handshake.LegacyHello, 1}}).Raw()
 			assert.Nil(mt, err, "RunCommand error: %v", err)
 
 			ok, err := res.LookupErr("ok")
@@ -105,7 +105,7 @@ func TestDatabase(t *testing.T) {
 				{"insert", "test"},
 				{"documents", bson.A{bson.D{{"a", 1}}}},
 			}
-			res, gotErr := mt.DB.RunCommand(context.Background(), cmd).DecodeBytes()
+			res, gotErr := mt.DB.RunCommand(context.Background(), cmd).Raw()
 
 			n, ok := res.Lookup("n").Int32OK()
 			assert.True(mt, ok, "expected n in response")

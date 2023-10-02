@@ -1108,7 +1108,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}).DecodeBytes()
+			res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}).Raw()
 			assert.Nil(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
@@ -1150,7 +1150,7 @@ func TestCollection(t *testing.T) {
 				SetShowRecordID(false).
 				SetSkip(0).
 				SetSort(bson.D{{"x", int32(1)}})
-			res, err := mt.Coll.FindOne(context.Background(), bson.D{}, opts).DecodeBytes()
+			res, err := mt.Coll.FindOne(context.Background(), bson.D{}, opts).Raw()
 			assert.Nil(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
@@ -1210,7 +1210,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1231,7 +1231,7 @@ func TestCollection(t *testing.T) {
 	mt.RunOpts("find one and delete", noClientOpts, func(mt *mtest.T) {
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).DecodeBytes()
+			res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).Raw()
 			assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
 
 			elem, err := res.LookupErr("x")
@@ -1270,7 +1270,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1302,7 +1302,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 3}}
 			replacement := bson.D{{"y", 3}}
 
-			res, err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).DecodeBytes()
+			res, err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).Raw()
 			assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
 			elem, err := res.LookupErr("x")
 			assert.Nil(mt, err, "x not found in result %v", res)
@@ -1346,7 +1346,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOneAndReplace(context.Background(), bson.D{{"x", 1}}, bson.D{{"y", 3}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOneAndReplace(context.Background(), bson.D{{"x", 1}}, bson.D{{"y", 3}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1380,7 +1380,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 3}}
 			update := bson.D{{"$set", bson.D{{"x", 6}}}}
 
-			res, err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).DecodeBytes()
+			res, err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).Raw()
 			assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
 			elem, err := res.LookupErr("x")
 			assert.Nil(mt, err, "x not found in result %v", res)
@@ -1428,7 +1428,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOneAndUpdate(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", 6}}}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOneAndUpdate(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", 6}}}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
