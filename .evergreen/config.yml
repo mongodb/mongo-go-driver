@@ -2562,6 +2562,7 @@ task_groups:
       - testgcpkms-task
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
+    teardown_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
       - func: fetch-source
@@ -2576,7 +2577,8 @@ task_groups:
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
             # Get azurekms credentials from the vault.
-            . ./etc/get_aws_secrets.sh drivers/azurekms
+            bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh drivers/azurekms
+            source ./secrets-export.sh
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
