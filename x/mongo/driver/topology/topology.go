@@ -542,7 +542,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 					return nil, err
 				}
-				defer t.Unsubscribe(sub)
+				defer func() { _ = t.Unsubscribe(sub) }()
 			}
 
 			suitable, selectErr = t.selectServerFromSubscription(ctx, sub.Updates, selectionState)

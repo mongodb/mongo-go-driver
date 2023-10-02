@@ -13,9 +13,8 @@ The MongoDB supported driver for Go.
 -------------------------
 ## Requirements
 
-- Go 1.13 or higher. We aim to support the latest versions of Go.
-  - `go mod tidy` will error when importing the Go Driver using Go versions older than 1.15 due to dependencies that import [io/fs](https://pkg.go.dev/io/fs). See golang/go issue [#44557](https://github.com/golang/go/issues/44557) for more information.
-  - Go 1.20 or higher is required to run the driver test suite.
+- Go 1.18 or higher. We aim to support the latest versions of Go.
+- Go 1.20 or higher is required to run the driver test suite.
 - MongoDB 3.6 and higher.
 
 -------------------------
@@ -147,6 +146,34 @@ if err == mongo.ErrNoDocuments {
 ```
 
 Additional examples and documentation can be found under the examples directory and [on the MongoDB Documentation website](https://www.mongodb.com/docs/drivers/go/current/).
+
+### Network Compression
+
+Network compression will reduce bandwidth requirements between MongoDB and the application. 
+
+The Go Driver supports the following compression algorithms:
+
+1. [Snappy](https://google.github.io/snappy/) (`snappy`): available in MongoDB 3.4 and later.
+2. [Zlib](https://zlib.net/) (`zlib`): available in MongoDB 3.6 and later.
+3. [Zstandard](https://github.com/facebook/zstd/) (`zstd`): available in MongoDB 4.2 and later.
+
+#### Specify Compression Algorithms
+
+Compression can be enabled using the `compressors` parameter on the connection string or by using [`ClientOptions.SetCompressors`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetCompressors):
+
+```
+opts := options.Client().ApplyURI("mongodb://localhost:27017/?compressors=snappy,zlib,zstd")
+client, _ := mongo.Connect(context.TODO(), opts)
+```
+
+```
+opts := options.Client().SetCompressors([]string{"snappy", "zlib", "zstd"})
+client, _ := mongo.Connect(context.TODO(), opts)
+```
+
+If compressors are set, the Go Driver negotiates with the server to select the first common compressor. For server configuration and defaults, refer to [`networkMessageCompressors`](https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--networkMessageCompressors).
+
+Messages compress when both parties enable network compression; otherwise, messages remain uncompressed
 
 -------------------------
 ## Feedback

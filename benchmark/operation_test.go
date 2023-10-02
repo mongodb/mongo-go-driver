@@ -36,7 +36,7 @@ func BenchmarkClientWrite(b *testing.B) {
 			if err != nil {
 				b.Fatalf("error creating client: %v", err)
 			}
-			defer client.Disconnect(context.Background())
+			defer func() { _ = client.Disconnect(context.Background()) }()
 			coll := client.Database("test").Collection("test")
 			_, err = coll.DeleteMany(context.Background(), bson.D{})
 			if err != nil {
@@ -75,7 +75,7 @@ func BenchmarkClientBulkWrite(b *testing.B) {
 			if err != nil {
 				b.Fatalf("error creating client: %v", err)
 			}
-			defer client.Disconnect(context.Background())
+			defer func() { _ = client.Disconnect(context.Background()) }()
 			coll := client.Database("test").Collection("test")
 			_, err = coll.DeleteMany(context.Background(), bson.D{})
 			if err != nil {
@@ -119,7 +119,7 @@ func BenchmarkClientRead(b *testing.B) {
 			if err != nil {
 				b.Fatalf("error creating client: %v", err)
 			}
-			defer client.Disconnect(context.Background())
+			defer func() { _ = client.Disconnect(context.Background()) }()
 			coll := client.Database("test").Collection("test")
 			_, err = coll.DeleteMany(context.Background(), bson.D{})
 			if err != nil {
