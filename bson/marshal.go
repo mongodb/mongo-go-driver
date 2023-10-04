@@ -200,10 +200,7 @@ func MarshalAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val interf
 	if err != nil {
 		return nil, err
 	}
-	err = enc.SetContext(ec)
-	if err != nil {
-		return nil, err
-	}
+	enc.ec = ec
 
 	err = enc.Encode(val)
 	if err != nil {
@@ -274,9 +271,7 @@ func MarshalValueAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val i
 	if err := enc.Reset(vwFlusher); err != nil {
 		return 0, nil, err
 	}
-	if err := enc.SetContext(ec); err != nil {
-		return 0, nil, err
-	}
+	enc.ec = ec
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -417,10 +412,7 @@ func MarshalExtJSONAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val
 	if err != nil {
 		return nil, err
 	}
-	err = enc.SetContext(ec)
-	if err != nil {
-		return nil, err
-	}
+	enc.ec = ec
 
 	err = enc.Encode(val)
 	if err != nil {

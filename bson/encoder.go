@@ -53,24 +53,6 @@ func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
 	}, nil
 }
 
-// NewEncoderWithContext returns a new encoder that uses EncodeContext ec to write to vw.
-//
-// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
-// behavior instead.
-func NewEncoderWithContext(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter) (*Encoder, error) {
-	if ec.Registry == nil {
-		ec = bsoncodec.EncodeContext{Registry: DefaultRegistry}
-	}
-	if vw == nil {
-		return nil, errors.New("cannot create a new Encoder with a nil ValueWriter")
-	}
-
-	return &Encoder{
-		ec: ec,
-		vw: vw,
-	}, nil
-}
-
 // Encode writes the BSON encoding of val to the stream.
 //
 // See [Marshal] for details about BSON marshaling behavior.
@@ -131,15 +113,6 @@ func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
 func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
 	// TODO:(GODRIVER-2719): Remove error return value.
 	e.ec.Registry = r
-	return nil
-}
-
-// SetContext replaces the current EncodeContext of the encoder with ec.
-//
-// Deprecated: Use the Encoder configuration methods set the desired marshal behavior instead.
-func (e *Encoder) SetContext(ec bsoncodec.EncodeContext) error {
-	// TODO:(GODRIVER-2719): Remove error return value.
-	e.ec = ec
 	return nil
 }
 
