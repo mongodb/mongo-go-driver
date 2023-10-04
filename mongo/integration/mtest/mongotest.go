@@ -278,11 +278,9 @@ func (t *T) ClearMockResponses() {
 	t.mockDeployment.clearResponses()
 }
 
-// GetStartedEvent returns the most recent CommandStartedEvent, or nil if one is not present.
+// GetStartedEvent returns the least recent CommandStartedEvent, or nil if one is not present.
 // This can only be called once per event.
 func (t *T) GetStartedEvent() *event.CommandStartedEvent {
-	// TODO(GODRIVER-2075): GetStartedEvent documents that it returns the most recent event, but actually returns the first
-	// TODO event. Update either the documentation or implementation.
 	if len(t.started) == 0 {
 		return nil
 	}
@@ -291,11 +289,9 @@ func (t *T) GetStartedEvent() *event.CommandStartedEvent {
 	return e
 }
 
-// GetSucceededEvent returns the most recent CommandSucceededEvent, or nil if one is not present.
+// GetSucceededEvent returns the least recent CommandSucceededEvent, or nil if one is not present.
 // This can only be called once per event.
 func (t *T) GetSucceededEvent() *event.CommandSucceededEvent {
-	// TODO(GODRIVER-2075): GetSucceededEvent documents that it returns the most recent event, but actually returns the
-	// TODO first event. Update either the documentation or implementation.
 	if len(t.succeeded) == 0 {
 		return nil
 	}
@@ -304,11 +300,9 @@ func (t *T) GetSucceededEvent() *event.CommandSucceededEvent {
 	return e
 }
 
-// GetFailedEvent returns the most recent CommandFailedEvent, or nil if one is not present.
+// GetFailedEvent returns the least recent CommandFailedEvent, or nil if one is not present.
 // This can only be called once per event.
 func (t *T) GetFailedEvent() *event.CommandFailedEvent {
-	// TODO(GODRIVER-2075): GetFailedEvent documents that it returns the most recent event, but actually  returns the first
-	// TODO event. Update either the documentation or implementation.
 	if len(t.failed) == 0 {
 		return nil
 	}

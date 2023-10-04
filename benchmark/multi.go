@@ -21,7 +21,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 	if err != nil {
 		return err
 	}
-	defer db.Client().Disconnect(ctx)
+	defer func() { _ = db.Client().Disconnect(ctx) }()
 
 	db = db.Client().Database("perftest")
 	if err = db.Drop(ctx); err != nil {
@@ -87,7 +87,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 	if err != nil {
 		return err
 	}
-	defer db.Client().Disconnect(ctx)
+	defer func() { _ = db.Client().Disconnect(ctx) }()
 
 	db = db.Client().Database("perftest")
 	if err = db.Drop(ctx); err != nil {

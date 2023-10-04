@@ -1092,7 +1092,7 @@ func ExampleCollection_Find_primitiveRegex() {
 		panic(err)
 	}
 
-	defer client.Disconnect(ctx)
+	defer func() { _ = client.Disconnect(ctx) }()
 
 	type Pet struct {
 		Type string `bson:"type"`
@@ -1133,7 +1133,7 @@ func ExampleCollection_Find_regex() {
 		panic(err)
 	}
 
-	defer client.Disconnect(ctx)
+	defer func() { _ = client.Disconnect(ctx) }()
 
 	type Pet struct {
 		Type string `bson:"type"`
