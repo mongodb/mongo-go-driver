@@ -245,7 +245,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 		return errNoMoreChunks
 	}
 
-	chunkIndex, err := ds.cursor.Current.LookupErr("n")
+	chunkIndex, err := ds.cursor.Current.Document().LookupErr("n")
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	}
 
 	ds.expectedChunk++
-	data, err := ds.cursor.Current.LookupErr("data")
+	data, err := ds.cursor.Current.Document().LookupErr("data")
 	if err != nil {
 		return err
 	}

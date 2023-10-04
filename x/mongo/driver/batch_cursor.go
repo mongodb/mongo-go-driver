@@ -45,7 +45,7 @@ type BatchCursor struct {
 	connection           PinnedConnection
 	batchSize            int32
 	maxTimeMS            int64
-	currentBatch         *bsoncore.DocumentSequence
+	currentBatch         *bsoncore.Iterator
 	firstBatch           bool
 	cmdMonitor           *event.CommandMonitor
 	postBatchResumeToken bsoncore.Document
@@ -64,7 +64,7 @@ type CursorResponse struct {
 	ErrorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
 	Connection           PinnedConnection
 	Desc                 description.Server
-	FirstBatch           *bsoncore.DocumentSequence
+	FirstBatch           *bsoncore.Iterator
 	Database             string
 	Collection           string
 	ID                   int64
@@ -102,7 +102,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("firstBatch should be an array but is a BSON %s", elem.Value().Type)
 			}
-			curresp.FirstBatch = &bsoncore.DocumentSequence{Style: bsoncore.ArrayStyle, Data: arr}
+			curresp.FirstBatch = &bsoncore.Iterator{Data: arr}
 		case "ns":
 			ns, ok := elem.Value().StringValueOK()
 			if !ok {
@@ -163,8 +163,13 @@ type CursorOptions struct {
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
-func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *session.ClusterClock, opts CursorOptions) (*BatchCursor, error) {
-	ds := cr.FirstBatch
+func NewBatchCursor(
+	cr CursorResponse,
+	clientSession *session.Client,
+	clock *session.ClusterClock,
+	opts CursorOptions,
+) (*BatchCursor, error) {
+	firstBatch := cr.FirstBatch
 	bc := &BatchCursor{
 		clientSession:        clientSession,
 		clock:                clock,
@@ -186,46 +191,26 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		encoderFn:            opts.MarshalValueEncoderFn,
 	}
 
-	if ds != nil {
-		bc.numReturned = int32(ds.DocumentCount())
-	}
-	if cr.Desc.WireVersion == nil {
-		bc.limit = opts.Limit
-
-		// Take as many documents from the batch as needed.
-		if bc.limit != 0 && bc.limit < bc.numReturned {
-			for i := int32(0); i < bc.limit; i++ {
-				_, err := ds.Next()
-				if err != nil {
-					return nil, err
-				}
-			}
-			ds.Data = ds.Data[:ds.Pos]
-			ds.ResetIterator()
-		}
+	if firstBatch != nil {
+		bc.numReturned = int32(firstBatch.Count())
 	}
 
-	bc.currentBatch = ds
+	bc.currentBatch = firstBatch
 	return bc, nil
 }
 
 // NewEmptyBatchCursor returns a batch cursor that is empty.
 func NewEmptyBatchCursor() *BatchCursor {
-	return &BatchCursor{currentBatch: new(bsoncore.DocumentSequence)}
+	return &BatchCursor{currentBatch: new(bsoncore.Iterator)}
 }
 
-// NewBatchCursorFromDocuments returns a batch cursor with current batch set to a sequence-style
+// NewBatchCursorFromArray returns a batch cursor with current batch set to a sequence-style
 // DocumentSequence containing the provided documents.
-func NewBatchCursorFromDocuments(documents []byte) *BatchCursor {
+func NewBatchCursorFromArray(array []byte) *BatchCursor {
 	return &BatchCursor{
-		currentBatch: &bsoncore.DocumentSequence{
-			Data:  documents,
-			Style: bsoncore.SequenceStyle,
-		},
-		// BatchCursors created with this function have no associated ID nor server, so no getMore
-		// calls will be made.
-		id:     0,
-		server: nil,
+		currentBatch: &bsoncore.Iterator{Data: array},
+		id:           0,
+		server:       nil,
 	}
 }
 
@@ -260,7 +245,7 @@ func (bc *BatchCursor) Next(ctx context.Context) bool {
 
 // Batch will return a DocumentSequence for the current batch of documents. The returned
 // DocumentSequence is only valid until the next call to Next or Close.
-func (bc *BatchCursor) Batch() *bsoncore.DocumentSequence { return bc.currentBatch }
+func (bc *BatchCursor) Batch() *bsoncore.Iterator { return bc.currentBatch }
 
 // Err returns the latest error encountered.
 func (bc *BatchCursor) Err() error { return bc.err }
@@ -274,8 +259,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 	err := bc.KillCursor(ctx)
 	bc.id = 0
 	bc.currentBatch.Data = nil
-	bc.currentBatch.Style = 0
-	bc.currentBatch.ResetIterator()
+	bc.currentBatch.Reset()
 
 	connErr := bc.unpinConnection()
 	if err == nil {
@@ -405,10 +389,9 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			if !ok {
 				return fmt.Errorf("cursor.nextBatch should be an array but is a BSON %s", response.Lookup("cursor", "nextBatch").Type)
 			}
-			bc.currentBatch.Style = bsoncore.ArrayStyle
 			bc.currentBatch.Data = batch
-			bc.currentBatch.ResetIterator()
-			bc.numReturned += int32(bc.currentBatch.DocumentCount()) // Required for legacy operations which don't support limit.
+			bc.currentBatch.Reset()
+			bc.numReturned += int32(bc.currentBatch.Count()) // Required for legacy operations which don't support limit.
 
 			pbrt, err := response.LookupErr("cursor", "postBatchResumeToken")
 			if err != nil {

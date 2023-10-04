@@ -437,7 +437,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
-	if _, err := cursor.Current.LookupErr("chunkSize"); err != nil {
+	if _, err := cursor.Current.Document().LookupErr("chunkSize"); err != nil {
 		return nil, ErrMissingChunkSize
 	}
 
@@ -563,7 +563,7 @@ func createNumericalIndexIfNotExists(ctx context.Context, iv mongo.IndexView, mo
 	modelKeysDoc := bsoncore.Document(modelKeysBytes)
 
 	for c.Next(ctx) {
-		keyElem, err := c.Current.LookupErr("key")
+		keyElem, err := c.Current.Document().LookupErr("key")
 		if err != nil {
 			return err
 		}

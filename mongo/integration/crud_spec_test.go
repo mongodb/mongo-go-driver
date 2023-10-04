@@ -163,14 +163,14 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 		assert.Nil(mt, err, "CountDocuments error: %v", err)
 		verifyCountResult(mt, res, outcome.Result)
 	case "distinct":
-		res, err := executeDistinct(mt, nil, operation.Arguments)
+		cur, err := executeDistinct(mt, nil, operation.Arguments)
 		if outcome.Error {
 			assert.NotNil(mt, err, "expected Distinct error, got nil")
 			verifyCrudError(mt, outcome, err)
 			break
 		}
 		assert.Nil(mt, err, "Distinct error: %v", err)
-		verifyDistinctResult(mt, res, outcome.Result)
+		verifyCursorResult(mt, cur, outcome.Result)
 	case "find":
 		cursor, err := executeFind(mt, nil, operation.Arguments)
 		if outcome.Error {

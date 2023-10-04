@@ -40,30 +40,9 @@ type Distinct struct {
 	readPreference *readpref.ReadPref
 	selector       description.ServerSelector
 	retry          *driver.RetryMode
-	result         DistinctResult
+	result         bsoncore.Array
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
-}
-
-// DistinctResult represents a distinct result returned by the server.
-type DistinctResult struct {
-	// The distinct values for the field.
-	Values bsoncore.Value
-}
-
-func buildDistinctResult(response bsoncore.Document) (DistinctResult, error) {
-	elements, err := response.Elements()
-	if err != nil {
-		return DistinctResult{}, err
-	}
-	dr := DistinctResult{}
-	for _, element := range elements {
-		switch element.Key() {
-		case "values":
-			dr.Values = element.Value()
-		}
-	}
-	return dr, nil
 }
 
 // NewDistinct constructs and returns a new Distinct.
@@ -75,12 +54,28 @@ func NewDistinct(key string, query bsoncore.Document) *Distinct {
 }
 
 // Result returns the result of executing this operation.
-func (d *Distinct) Result() DistinctResult { return d.result }
+func (d *Distinct) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
+	opts.ServerAPI = d.serverAPI
+
+	return driver.NewBatchCursorFromArray(d.result), nil
+}
 
 func (d *Distinct) processResponse(info driver.ResponseInfo) error {
-	var err error
-	d.result, err = buildDistinctResult(info.ServerResponse)
-	return err
+	response := info.ServerResponse
+
+	values, err := response.LookupErr("values")
+	if err != nil {
+		return err
+	}
+
+	var ok bool
+
+	d.result, ok = values.ArrayOK()
+	if !ok {
+		return errors.New("could not parse distinct values")
+	}
+
+	return nil
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
@@ -113,6 +108,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 
 func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "distinct", d.collection)
+
 	if d.collation != nil {
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
@@ -128,6 +124,7 @@ func (d *Distinct) command(dst []byte, desc description.SelectedServer) ([]byte,
 	if d.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", d.query)
 	}
+
 	return dst, nil
 }
 

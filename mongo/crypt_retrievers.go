@@ -29,8 +29,8 @@ func (kr *keyRetriever) cryptKeys(ctx context.Context, filter bsoncore.Document)
 
 	var results []bsoncore.Document
 	for cursor.Next(ctx) {
-		cur := make([]byte, len(cursor.Current))
-		copy(cur, cursor.Current)
+		cur := make([]byte, len(cursor.Current.Value))
+		copy(cur, cursor.Current.Value)
 		results = append(results, cur)
 	}
 	if err = cursor.Err(); err != nil {
@@ -59,7 +59,7 @@ func (cir *collInfoRetriever) cryptCollInfo(ctx context.Context, db string, filt
 		return nil, cursor.Err()
 	}
 
-	res := make([]byte, len(cursor.Current))
-	copy(res, cursor.Current)
+	res := make([]byte, len(cursor.Current.Value))
+	copy(res, cursor.Current.Value)
 	return res, nil
 }

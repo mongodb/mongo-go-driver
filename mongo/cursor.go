@@ -29,10 +29,12 @@ import (
 type Cursor struct {
 	// Current contains the BSON bytes of the current change document. This property is only valid until the next call
 	// to Next or TryNext. If continued access is required, a copy must be made.
-	Current bson.Raw
+	//Current bson.Raw
+	Current bson.RawValue
 
-	bc            batchCursor
-	batch         *bsoncore.DocumentSequence
+	bc batchCursor
+	//batch         *bsoncore.DocumentSequence
+	batch         *bsoncore.Iterator
 	batchLength   int
 	bsonOpts      *options.BSONOptions
 	registry      *bsoncodec.Registry
@@ -73,7 +75,7 @@ func newCursorWithSession(
 
 	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result. The actual batch
 	// will be pulled up by the first Next/TryNext call.
-	c.batchLength = c.bc.Batch().DocumentCount()
+	c.batchLength = c.bc.Batch().Count()
 	return c, nil
 }
 
@@ -108,7 +110,7 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	}
 
 	c := &Cursor{
-		bc:       driver.NewBatchCursorFromDocuments(docsBytes),
+		bc:       driver.NewBatchCursorFromArray(docsBytes),
 		registry: registry,
 		err:      err,
 	}
@@ -116,7 +118,19 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	// Initialize batch and batchLength here. The underlying batch cursor will be preloaded with the
 	// provided contents, and thus already has a batch before calls to Next/TryNext.
 	c.batch = c.bc.Batch()
-	c.batchLength = c.bc.Batch().DocumentCount()
+	c.batchLength = c.bc.Batch().Count()
+	return c, nil
+}
+
+func newCursorFromArray(bc *driver.BatchCursor) (*Cursor, error) {
+	c := &Cursor{
+		bc: bc,
+	}
+
+	// Initialize batch and batchLength here. The underlying batch cursor will be preloaded with the
+	// provided contents, and thus already has a batch before calls to Next/TryNext.
+	c.batch = c.bc.Batch()
+	c.batchLength = c.bc.Batch().Count()
 	return c, nil
 }
 
@@ -159,12 +173,16 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	doc, err := c.batch.Next()
+	val, err := c.batch.Next()
 	switch err {
 	case nil:
 		// Consume the next document in the current batch.
 		c.batchLength--
-		c.Current = bson.Raw(doc)
+		//c.Current = bson.RawValue(*doc)
+		c.Current = bson.RawValue{
+			Type:  val.Type,
+			Value: val.Data,
+		}
 		return true
 	case io.EOF: // Need to do a getMore
 	default:
@@ -202,12 +220,16 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 
 		// Use the new batch to update the batch and batchLength fields. Consume the first document in the batch.
 		c.batch = c.bc.Batch()
-		c.batchLength = c.batch.DocumentCount()
-		doc, err = c.batch.Next()
+		c.batchLength = c.batch.Count()
+		val, err = c.batch.Next()
 		switch err {
 		case nil:
 			c.batchLength--
-			c.Current = bson.Raw(doc)
+			//c.Current = bson.Raw(doc)
+			c.Current = bson.RawValue{
+				Type:  val.Type,
+				Value: val.Data,
+			}
 			return true
 		case io.EOF: // Empty batch so we continue
 		default:
@@ -267,12 +289,16 @@ func getDecoder(
 // Decode will unmarshal the current document into val and return any errors from the unmarshalling process without any
 // modification. If val is nil or is a typed nil, an error will be returned.
 func (c *Cursor) Decode(val interface{}) error {
-	dec, err := getDecoder(c.Current, c.bsonOpts, c.registry)
-	if err != nil {
-		return fmt.Errorf("error configuring BSON decoder: %w", err)
+	if c.Current.Type == bson.TypeEmbeddedDocument {
+		dec, err := getDecoder(c.Current.Value, c.bsonOpts, c.registry)
+		if err != nil {
+			return fmt.Errorf("error configuring BSON decoder: %w", err)
+		}
+
+		return dec.Decode(val)
 	}
 
-	return dec.Decode(val)
+	return c.Current.Unmarshal(val)
 }
 
 // Err returns the last error seen by the Cursor, or nil if no error has occurred.
@@ -314,7 +340,14 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	// completes even if the context passed to All has errored.
 	defer c.Close(context.Background())
 
-	batch := c.batch // exhaust the current batch before iterating the batch cursor
+	var batch *bsoncore.Iterator
+
+	if c.batch == nil {
+		batch = c.bc.Batch()
+	} else {
+		batch = c.batch
+	}
+
 	for {
 		sliceVal, index, err = c.addFromBatch(sliceVal, elementType, batch, index)
 		if err != nil {
@@ -342,17 +375,25 @@ func (c *Cursor) RemainingBatchLength() int {
 	return c.batchLength
 }
 
-// addFromBatch adds all documents from batch to sliceVal starting at the given index. It returns the new slice value,
-// the next empty index in the slice, and an error if one occurs.
-func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, batch *bsoncore.DocumentSequence,
-	index int) (reflect.Value, int, error) {
+// addFromBatch adds all documents from batch to sliceVal starting at the given
+// index. It returns the new slice value, the next empty index in the slice, and
+// an error if one occurs.
+func (c *Cursor) addFromBatch(
+	sliceVal reflect.Value,
+	elemType reflect.Type,
+	batch *bsoncore.Iterator,
+	index int,
+) (reflect.Value, int, error) {
+	if batch == nil {
+		return sliceVal, index, nil
+	}
 
-	docs, err := batch.Documents()
+	vals, err := batch.Data.Values()
 	if err != nil {
 		return sliceVal, index, err
 	}
 
-	for _, doc := range docs {
+	for _, val := range vals {
 		if sliceVal.Len() == index {
 			// slice is full
 			newElem := reflect.New(elemType)
@@ -361,13 +402,25 @@ func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, bat
 		}
 
 		currElem := sliceVal.Index(index).Addr().Interface()
-		dec, err := getDecoder(doc, c.bsonOpts, c.registry)
-		if err != nil {
-			return sliceVal, index, fmt.Errorf("error configuring BSON decoder: %w", err)
-		}
-		err = dec.Decode(currElem)
-		if err != nil {
-			return sliceVal, index, err
+
+		if val.Type == bson.TypeEmbeddedDocument {
+			dec, err := getDecoder(val.Data, c.bsonOpts, c.registry)
+			if err != nil {
+				return sliceVal, index, fmt.Errorf("error configuring BSON decoder: %w", err)
+			}
+			err = dec.Decode(currElem)
+			if err != nil {
+				return sliceVal, index, err
+			}
+		} else {
+			rawValue := bson.RawValue{
+				Type:  val.Type,
+				Value: val.Data,
+			}
+
+			if err := rawValue.Unmarshal(currElem); err != nil {
+				return sliceVal, index, err
+			}
 		}
 
 		index++

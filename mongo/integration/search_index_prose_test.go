@@ -61,8 +61,8 @@ func TestSearchIndexProse(t *testing.T) {
 			if !cursor.Next(ctx) {
 				break
 			}
-			if cursor.Current.Lookup("queryable").Boolean() {
-				doc = cursor.Current
+			if cursor.Current.Document().Lookup("queryable").Boolean() {
+				doc = cursor.Current.Document()
 			} else {
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
@@ -110,8 +110,8 @@ func TestSearchIndexProse(t *testing.T) {
 				if !cursor.Next(ctx) {
 					return nil
 				}
-				if cursor.Current.Lookup("queryable").Boolean() {
-					return cursor.Current
+				if cursor.Current.Document().Lookup("queryable").Boolean() {
+					return cursor.Current.Document()
 				}
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
@@ -162,8 +162,8 @@ func TestSearchIndexProse(t *testing.T) {
 			if !cursor.Next(ctx) {
 				break
 			}
-			if cursor.Current.Lookup("queryable").Boolean() {
-				doc = cursor.Current
+			if cursor.Current.Document().Lookup("queryable").Boolean() {
+				doc = cursor.Current.Document()
 			} else {
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
@@ -212,8 +212,8 @@ func TestSearchIndexProse(t *testing.T) {
 				if !cursor.Next(ctx) {
 					return nil
 				}
-				if cursor.Current.Lookup("queryable").Boolean() {
-					return cursor.Current
+				if cursor.Current.Document().Lookup("queryable").Boolean() {
+					return cursor.Current.Document()
 				}
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)

@@ -323,13 +323,20 @@ func ExampleCollection_Distinct() {
 	// run on the server.
 	filter := bson.D{{"age", bson.D{{"$gt", 25}}}}
 	opts := options.Distinct().SetMaxTime(2 * time.Second)
-	values, err := coll.Distinct(context.TODO(), "name", filter, opts)
+	cur, err := coll.Distinct(context.TODO(), "name", filter, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, value := range values {
-		fmt.Println(value)
+	// Get a list of all returned documents and print them out.
+	// See the mongo.Cursor documentation for more examples of using cursors.
+	var results []bson.M
+	if err = cur.All(context.TODO(), &results); err != nil {
+		log.Fatal(err)
+	}
+
+	for _, result := range results {
+		fmt.Println(result)
 	}
 }
 

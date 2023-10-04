@@ -1103,7 +1103,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1137,7 +1137,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.False(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1170,7 +1170,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1204,7 +1204,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1241,7 +1241,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1280,7 +1280,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1333,7 +1333,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			require.True(t, containsKey(doc, "_id"))
 			require.True(t, containsKey(doc, "item"))
@@ -1508,7 +1508,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			uom, err := doc.LookupErr("size", "uom")
 			require.NoError(t, err)
@@ -1562,7 +1562,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			doc := cursor.Current
+			doc := cursor.Current.Document()
 
 			uom, err := doc.LookupErr("size", "uom")
 			require.NoError(t, err)
@@ -1616,11 +1616,11 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 		require.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			require.True(t, containsKey(cursor.Current, "_id"))
-			require.True(t, containsKey(cursor.Current, "item"))
-			require.True(t, containsKey(cursor.Current, "instock"))
+			require.True(t, containsKey(cursor.Current.Document(), "_id"))
+			require.True(t, containsKey(cursor.Current.Document(), "item"))
+			require.True(t, containsKey(cursor.Current.Document(), "instock"))
 
-			instock, err := cursor.Current.LookupErr("instock")
+			instock, err := cursor.Current.Document().LookupErr("instock")
 			require.NoError(t, err)
 			vals, err := instock.Array().Values()
 			require.NoError(t, err)
@@ -2998,7 +2998,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 			return fmt.Errorf("expected aggregate to return a document, but got none")
 		}
 
-		resp := cursor.Current.Lookup(adoptableCatsOutput)
+		resp := cursor.Current.Document().Lookup(adoptableCatsOutput)
 		adoptableCatsCount, ok := resp.Int32OK()
 		if !ok {
 			return fmt.Errorf("failed to find int32 field %q in document %v", adoptableCatsOutput, cursor.Current)
@@ -3018,7 +3018,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 			return fmt.Errorf("expected aggregate to return a document, but got none")
 		}
 
-		resp = cursor.Current.Lookup(adoptableDogsOutput)
+		resp = cursor.Current.Document().Lookup(adoptableDogsOutput)
 		adoptableDogsCount, ok := resp.Int32OK()
 		if !ok {
 			return fmt.Errorf("failed to find int32 field %q in document %v", adoptableDogsOutput, cursor.Current)
@@ -3076,7 +3076,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 			return fmt.Errorf("expected aggregate to return a document, but got none")
 		}
 
-		resp := cursor.Current.Lookup(totalDailySalesOutput)
+		resp := cursor.Current.Document().Lookup(totalDailySalesOutput)
 
 		var ok bool
 		totalDailySales, ok = resp.Int32OK()

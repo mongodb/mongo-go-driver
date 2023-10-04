@@ -463,7 +463,7 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 
 	names := make([]string, 0)
 	for res.Next(ctx) {
-		elem, err := res.Current.LookupErr("name")
+		elem, err := res.Current.Document().LookupErr("name")
 		if err != nil {
 			return nil, err
 		}

@@ -556,8 +556,8 @@ func findIndex(ctx context.Context, mt *mtest.T, coll *mongo.Collection, unique 
 
 	foundIndex := false
 	for cur.Next(ctx) {
-		if _, err := cur.Current.LookupErr(keys...); err == nil {
-			if uVal, err := cur.Current.LookupErr("unique"); (unique && err == nil && uVal.Boolean() == true) ||
+		if _, err := cur.Current.Document().LookupErr(keys...); err == nil {
+			if uVal, err := cur.Current.Document().LookupErr("unique"); (unique && err == nil && uVal.Boolean() == true) ||
 				(!unique && (err != nil || uVal.Boolean() == false)) {
 
 				foundIndex = true

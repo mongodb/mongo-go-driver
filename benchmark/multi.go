@@ -58,7 +58,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 		if err != nil {
 			return err
 		}
-		if len(cursor.Current) == 0 {
+		if len(cursor.Current.Value) == 0 {
 			return errors.New("error retrieving document")
 		}
 

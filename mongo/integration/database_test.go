@@ -305,7 +305,7 @@ func TestDatabase(t *testing.T) {
 				Options:  bson.Raw(optionsDoc),
 			}
 			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.6") >= 0 {
-				uuidSubtype, uuidData := cursor.Current.Lookup("info", "uuid").Binary()
+				uuidSubtype, uuidData := cursor.Current.Document().Lookup("info", "uuid").Binary()
 				expectedSpec.UUID = &primitive.Binary{Subtype: uuidSubtype, Data: uuidData}
 			}
 			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.4") >= 0 {
@@ -599,7 +599,7 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false")
 
 	var actualOpts bson.M
-	err = bson.UnmarshalWithRegistry(interfaceAsMapRegistry, cursor.Current.Lookup("options").Document(), &actualOpts)
+	err = bson.UnmarshalWithRegistry(interfaceAsMapRegistry, cursor.Current.Document().Lookup("options").Document(), &actualOpts)
 	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)
 
 	return actualOpts
@@ -609,7 +609,7 @@ func verifyListCollections(cursor *mongo.Cursor, cappedOnly bool) error {
 	var cappedFound, uncappedFound bool
 
 	for cursor.Next(context.Background()) {
-		nameElem, err := cursor.Current.LookupErr("name")
+		nameElem, err := cursor.Current.Document().LookupErr("name")
 		if err != nil {
 			return fmt.Errorf("name element not found in document %v", cursor.Current)
 		}

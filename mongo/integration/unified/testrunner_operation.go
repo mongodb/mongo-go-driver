@@ -442,7 +442,7 @@ func verifyIndexExists(ctx context.Context, dbName, collName, indexName string, 
 
 	var exists bool
 	for cursor.Next(ctx) {
-		if lookupString(cursor.Current, "name") == indexName {
+		if lookupString(cursor.Current.Document(), "name") == indexName {
 			exists = true
 			break
 		}

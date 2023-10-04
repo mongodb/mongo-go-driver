@@ -520,7 +520,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 }
 
 // DeleteMany executes a delete command to delete documents from the collection.
-//
+// UpdateByID
 // The filter parameter must be a document containing query operators and can be used to select the documents to
 // be deleted. It cannot be nil. An empty document (e.g. bson.D{}) should be used to delete all documents in the
 // collection. If the filter does not match any documents, the operation will succeed and a DeleteResult with a
@@ -1098,9 +1098,12 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 // The opts parameter can be used to specify options for the operation (see the options.DistinctOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/distinct/.
-func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
-	opts ...*options.DistinctOptions) ([]interface{}, error) {
-
+func (coll *Collection) Distinct(
+	ctx context.Context,
+	fieldName string,
+	filter interface{},
+	opts ...*options.DistinctOptions,
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1137,6 +1140,10 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).MaxTime(option.MaxTime)
 
+	cursorOpts := coll.client.createBaseCursorOptions()
+
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
+
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
 	}
@@ -1146,6 +1153,10 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 			return nil, err
 		}
 		op.Comment(comment)
+		cursorOpts.Comment = comment
+	}
+	if option.MaxTime != nil {
+		cursorOpts.MaxTimeMS = int64(*option.MaxTime / time.Millisecond)
 	}
 	retry := driver.RetryNone
 	if coll.client.retryReads {
@@ -1158,27 +1169,12 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		return nil, replaceErrors(err)
 	}
 
-	arr, ok := op.Result().Values.ArrayOK()
-	if !ok {
-		return nil, fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
-	}
-
-	values, err := arr.Values()
+	bc, err := op.Result(cursorOpts)
 	if err != nil {
-		return nil, err
+		return nil, replaceErrors(err)
 	}
 
-	retArray := make([]interface{}, len(values))
-
-	for i, val := range values {
-		raw := bson.RawValue{Type: val.Type, Value: val.Data}
-		err = raw.Unmarshal(&retArray[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return retArray, replaceErrors(err)
+	return newCursorFromArray(bc)
 }
 
 // Find executes a find command and returns a Cursor over the matching documents in the collection.

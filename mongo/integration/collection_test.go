@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -746,10 +747,10 @@ func TestCollection(t *testing.T) {
 
 			for i := 2; i < 5; i++ {
 				assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false (i=%v)", i)
-				elems, _ := cursor.Current.Elements()
+				elems, _ := cursor.Current.Document().Elements()
 				assert.Equal(mt, 1, len(elems), "expected doc with 1 element, got %v", cursor.Current)
 
-				num, err := cursor.Current.LookupErr("x")
+				num, err := cursor.Current.Document().LookupErr("x")
 				assert.Nil(mt, err, "x not found in document %v", cursor.Current)
 				assert.Equal(mt, bson.TypeInt32, num.Type, "expected 'x' type %v, got %v", bson.TypeInt32, num.Type)
 				assert.Equal(mt, int32(i), num.Int32(), "expected x value %v, got %v", i, num.Int32())
@@ -885,10 +886,35 @@ func TestCollection(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				initCollection(mt, mt.Coll)
-				res, err := mt.Coll.Distinct(context.Background(), "x", tc.filter, tc.opts)
-				assert.Nil(mt, err, "Distinct error: %v", err)
-				assert.Equal(mt, tc.expected, res, "expected result %v, got %v", tc.expected, res)
+				mt.Run("decode with Cursor All", func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					cur, err := mt.Coll.Distinct(context.Background(), "x", tc.filter, tc.opts)
+					require.NoError(mt, err, "failed to execute distinct operation")
+
+					got := []interface{}{}
+					err = cur.All(context.Background(), &got)
+					require.NoError(mt, err, "failed to decode distinct data")
+
+					assert.Equal(mt, tc.expected, got, "expected result %v, got %v", tc.expected, got)
+				})
+
+				mt.Run("decode with Cursor Decode", func(mt *mtest.T) {
+					initCollection(mt, mt.Coll)
+					cur, err := mt.Coll.Distinct(context.Background(), "x", tc.filter, tc.opts)
+					require.NoError(mt, err, "failed to execute distinct operation")
+
+					got := []interface{}{}
+					for cur.Next(context.Background()) {
+						var elem interface{}
+
+						err := cur.Decode(&elem)
+						require.NoError(mt, err)
+
+						got = append(got, elem)
+					}
+
+					assert.Equal(mt, tc.expected, got, "expected result %v, got %v", tc.expected, got)
+				})
 			})
 		}
 	})
@@ -900,7 +926,7 @@ func TestCollection(t *testing.T) {
 
 			results := make([]int, 0, 5)
 			for cursor.Next(context.Background()) {
-				x, err := cursor.Current.LookupErr("x")
+				x, err := cursor.Current.Document().LookupErr("x")
 				assert.Nil(mt, err, "x not found in document %v", cursor.Current)
 				assert.Equal(mt, bson.TypeInt32, x.Type, "expected x type %v, got %v", bson.TypeInt32, x.Type)
 				results = append(results, int(x.Int32()))
@@ -1895,10 +1921,10 @@ func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts *options.Aggre
 
 	for i := 2; i < 5; i++ {
 		assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false")
-		elems, _ := cursor.Current.Elements()
+		elems, _ := cursor.Current.Document().Elements()
 		assert.Equal(mt, 1, len(elems), "expected doc with 1 element, got %v", cursor.Current)
 
-		num, err := cursor.Current.LookupErr("x")
+		num, err := cursor.Current.Document().LookupErr("x")
 		assert.Nil(mt, err, "x not found in document %v", cursor.Current)
 		assert.Equal(mt, bson.TypeInt32, num.Type, "expected 'x' type %v, got %v", bson.TypeInt32, num.Type)
 		assert.Equal(mt, int32(i), num.Int32(), "expected x value %v, got %v", i, num.Int32())

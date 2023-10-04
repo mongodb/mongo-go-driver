@@ -576,7 +576,7 @@ func indexExists(dbName, collName, indexName string) (bool, error) {
 	defer cursor.Close(context.Background())
 
 	for cursor.Next(context.Background()) {
-		if cursor.Current.Lookup("name").StringValue() == indexName {
+		if cursor.Current.Document().Lookup("name").StringValue() == indexName {
 			return true, nil
 		}
 	}
@@ -651,9 +651,9 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess mongo.Session) 
 		}
 		return err
 	case "distinct":
-		res, err := executeDistinct(mt, sess, op.Arguments)
+		cur, err := executeDistinct(mt, sess, op.Arguments)
 		if op.opError == nil && err == nil {
-			verifyDistinctResult(mt, res, op.Result)
+			verifyCursorResult(mt, cur, op.Result)
 		}
 		return err
 	case "insertOne":

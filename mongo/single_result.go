@@ -114,7 +114,7 @@ func (sr *SingleResult) setRdrContents() error {
 
 			return ErrNoDocuments
 		}
-		sr.rdr = sr.cur.Current
+		sr.rdr = sr.cur.Current.Document()
 		return nil
 	}
 
