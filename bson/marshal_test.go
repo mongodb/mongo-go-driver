@@ -109,24 +109,6 @@ func TestMarshalWithContext(t *testing.T) {
 	}
 }
 
-func TestMarshalAppend(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			if tc.reg != nil {
-				t.Skip() // test requires custom registry
-			}
-			dst := make([]byte, 0, 1024)
-			got, err := MarshalAppend(dst, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
-
 func TestMarshalExtJSONAppendWithContext(t *testing.T) {
 	t.Run("MarshalExtJSONAppendWithContext", func(t *testing.T) {
 		dst := make([]byte, 0, 1024)

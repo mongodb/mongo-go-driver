@@ -22,10 +22,7 @@ func ExampleEncoder() {
 	if err != nil {
 		panic(err)
 	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -66,10 +63,7 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 	if err != nil {
 		panic(err)
 	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	encoder := bson.NewEncoder(vw)
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
 	// using fmt.Sprintf instead of the default string conversion logic.
@@ -97,10 +91,7 @@ func ExampleEncoder_UseJSONStructTags() {
 	if err != nil {
 		panic(err)
 	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `json:"name"`
@@ -136,10 +127,7 @@ func ExampleEncoder_multipleBSONDocuments() {
 	if err != nil {
 		panic(err)
 	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
 		X int
@@ -186,10 +174,7 @@ func ExampleEncoder_extendedJSON() {
 	if err != nil {
 		panic(err)
 	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -221,10 +206,7 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	if err != nil {
 		panic(err)
 	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
 		X int

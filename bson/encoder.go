@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"errors"
 	"reflect"
 	"sync"
 
@@ -41,16 +40,11 @@ type Encoder struct {
 }
 
 // NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
-func NewEncoder(vw bsonrw.ValueWriter) (*Encoder, error) {
-	// TODO:(GODRIVER-2719): Remove error return value.
-	if vw == nil {
-		return nil, errors.New("cannot create a new Encoder with a nil ValueWriter")
-	}
-
+func NewEncoder(vw bsonrw.ValueWriter) *Encoder {
 	return &Encoder{
 		ec: bsoncodec.EncodeContext{Registry: DefaultRegistry},
 		vw: vw,
-	}, nil
+	}
 }
 
 // Encode writes the BSON encoding of val to the stream.
@@ -103,17 +97,13 @@ func (e *Encoder) Encode(val interface{}) error {
 
 // Reset will reset the state of the Encoder, using the same *EncodeContext used in
 // the original construction but using vw.
-func (e *Encoder) Reset(vw bsonrw.ValueWriter) error {
-	// TODO:(GODRIVER-2719): Remove error return value.
+func (e *Encoder) Reset(vw bsonrw.ValueWriter) {
 	e.vw = vw
-	return nil
 }
 
 // SetRegistry replaces the current registry of the Encoder with r.
-func (e *Encoder) SetRegistry(r *bsoncodec.Registry) error {
-	// TODO:(GODRIVER-2719): Remove error return value.
+func (e *Encoder) SetRegistry(r *bsoncodec.Registry) {
 	e.ec.Registry = r
-	return nil
 }
 
 // ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in

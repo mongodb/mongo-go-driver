@@ -468,8 +468,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				b := make(bsonrw.SliceWriter, 0, 512)
 				vw, err := bsonrw.NewBSONValueWriter(&b)
 				noerr(t, err)
-				enc, err := NewEncoder(vw)
-				noerr(t, err)
+				enc := NewEncoder(vw)
 				err = enc.Encode(tc.value)
 				if err != tc.err {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)

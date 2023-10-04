@@ -91,10 +91,7 @@ func getEncoder(
 	reg *bsoncodec.Registry,
 ) (*bson.Encoder, error) {
 	vw := bvwPool.Get(w)
-	enc, err := bson.NewEncoder(vw)
-	if err != nil {
-		return nil, err
-	}
+	enc := bson.NewEncoder(vw)
 
 	if opts != nil {
 		if opts.ErrorOnInlineDuplicates {
@@ -124,10 +121,7 @@ func getEncoder(
 	}
 
 	if reg != nil {
-		// TODO:(GODRIVER-2719): Remove error handling.
-		if err := enc.SetRegistry(reg); err != nil {
-			return nil, err
-		}
+		enc.SetRegistry(reg)
 	}
 
 	return enc, nil
