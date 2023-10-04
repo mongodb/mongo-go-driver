@@ -760,27 +760,30 @@ func (s *Server) check() (description.Server, error) {
 	var duration time.Duration
 
 	start := time.Now()
+
+	// Create a new connection if this is the first check, the connection was closed after an error during the previous
+	// check, or the previous check was cancelled.
 	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
-		// Create a new connection if this is the first check, the connection was closed after an error during the previous
-		// check, or the previous check was cancelled.
+		connID := "0"
 		if s.conn != nil {
-			s.publishServerHeartbeatStartedEvent(s.conn.ID(), false)
+			connID = s.conn.ID()
 		}
+		s.publishServerHeartbeatStartedEvent(connID, false)
 		// Create a new connection and add it's handshake RTT as a sample.
 		err = s.setupHeartbeatConnection()
 		duration = time.Since(start)
+		connID = "0"
+		if s.conn != nil {
+			connID = s.conn.ID()
+		}
 		if err == nil {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			if s.conn != nil {
-				s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, s.conn.desc, false)
-			}
+			s.publishServerHeartbeatSucceededEvent(connID, duration, s.conn.desc, false)
 		} else {
 			err = unwrapConnectionError(err)
-			if s.conn != nil {
-				s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, false)
-			}
+			s.publishServerHeartbeatFailedEvent(connID, duration, err, false)
 		}
 	} else {
 		// An existing connection is being used. Use the server description properties to execute the right heartbeat.

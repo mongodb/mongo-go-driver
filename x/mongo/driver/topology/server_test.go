@@ -177,7 +177,12 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 				}),
 				WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 					return &event.ServerMonitor{
-						ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+						ServerHeartbeatSucceeded: func(e *event.ServerHeartbeatSucceededEvent) {
+							if !errors.dequeue() {
+								wg.Done()
+							}
+						},
+						ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
 							if !errors.dequeue() {
 								wg.Done()
 							}
