@@ -7,10 +7,12 @@
 package benchmark
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 func BSONFlatStructDecoding(_ context.Context, tm TimerManager, iters int) error {
@@ -70,15 +72,20 @@ func BSONFlatStructTagsEncoding(_ context.Context, tm TimerManager, iters int) e
 		return err
 	}
 
-	var buf []byte
+	buf := new(bytes.Buffer)
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
-		buf, err = bson.MarshalAppend(buf[:0], doc)
+		buf.Reset()
+		vw, err := bsonrw.NewBSONValueWriter(buf)
 		if err != nil {
 			return err
 		}
-		if len(buf) == 0 {
+		err = bson.NewEncoder(vw).Encode(doc)
+		if err != nil {
+			return err
+		}
+		if buf.Len() == 0 {
 			return errors.New("encoding failed")
 		}
 	}

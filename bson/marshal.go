@@ -49,29 +49,19 @@ type ValueMarshaler interface {
 // marshal val into a []byte. Marshal will inspect struct tags and alter the
 // marshaling process accordingly.
 func Marshal(val interface{}) ([]byte, error) {
-	return MarshalWithRegistry(DefaultRegistry, val)
-}
+	buf := new(bytes.Buffer)
+	vw, err := bsonrw.NewBSONValueWriter(buf)
+	if err != nil {
+		return nil, err
+	}
+	enc := NewEncoder(vw)
+	enc.SetRegistry(DefaultRegistry)
+	err = enc.Encode(val)
+	if err != nil {
+		return nil, err
+	}
 
-// MarshalAppend will encode val as a BSON document and append the bytes to dst. If dst is not large enough to hold the
-// bytes, it will be grown. If val is not a type that can be transformed into a document, MarshalValueAppend should be
-// used instead.
-//
-// Deprecated: Use [NewEncoder] and pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewBSONValueWriter]:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-// See [Encoder] for more examples.
-func MarshalAppend(dst []byte, val interface{}) ([]byte, error) {
-	return MarshalAppendWithRegistry(DefaultRegistry, dst, val)
+	return buf.Bytes(), nil
 }
 
 // MarshalWithRegistry returns the BSON encoding of val as a BSON document. If val is not a type that can be transformed

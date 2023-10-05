@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -652,12 +653,19 @@ func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, er
 	if uo.Metadata != nil {
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
 		// TODO gridfs package is merged into the mongo package.
-		raw, err := bson.MarshalWithRegistry(uo.Registry, uo.Metadata)
+		buf := new(bytes.Buffer)
+		vw, err := bsonrw.NewBSONValueWriter(buf)
+		if err != nil {
+			return nil, err
+		}
+		enc := bson.NewEncoder(vw)
+		enc.SetRegistry(uo.Registry)
+		err = enc.Encode(uo.Metadata)
 		if err != nil {
 			return nil, err
 		}
 		var doc bson.D
-		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, raw, &doc)
+		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, buf.Bytes(), &doc)
 		if unMarErr != nil {
 			return nil, unMarErr
 		}

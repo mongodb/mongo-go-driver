@@ -69,6 +69,7 @@ func TestMarshalAppendWithContext(t *testing.T) {
 }
 
 func TestMarshalWithRegistry(t *testing.T) {
+	buf := new(bytes.Buffer)
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var reg *bsoncodec.Registry
@@ -77,10 +78,15 @@ func TestMarshalWithRegistry(t *testing.T) {
 			} else {
 				reg = DefaultRegistry
 			}
-			got, err := MarshalWithRegistry(reg, tc.val)
+			buf.Reset()
+			vw, err := bsonrw.NewBSONValueWriter(buf)
+			noerr(t, err)
+			enc := NewEncoder(vw)
+			enc.SetRegistry(reg)
+			err = enc.Encode(tc.val)
 			noerr(t, err)
 
-			if !bytes.Equal(got, tc.want) {
+			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
 				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
 				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
 			}
@@ -229,8 +235,14 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		))
 		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
 
-		second, err := MarshalWithRegistry(customReg, original)
-		assert.Nil(t, err, "Marshal error: %v", err)
+		buf := new(bytes.Buffer)
+		vw, err := bsonrw.NewBSONValueWriter(buf)
+		assert.Nil(t, err)
+		enc := NewEncoder(vw)
+		enc.SetRegistry(customReg)
+		err = enc.Encode(original)
+		assert.Nil(t, err, "Encode error: %v", err)
+		second := buf.Bytes()
 		expectedSecond := Raw(bsoncore.BuildDocumentFromElements(
 			nil,
 			bsoncore.AppendInt32Element(nil, "x", -1),

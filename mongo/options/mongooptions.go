@@ -7,12 +7,14 @@
 package options
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -133,12 +135,20 @@ func (af *ArrayFilters) ToArray() ([]bson.Raw, error) {
 		registry = bson.DefaultRegistry
 	}
 	filters := make([]bson.Raw, 0, len(af.Filters))
+	buf := new(bytes.Buffer)
 	for _, f := range af.Filters {
-		filter, err := bson.MarshalWithRegistry(registry, f)
+		buf.Reset()
+		vw, err := bsonrw.NewBSONValueWriter(buf)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, filter)
+		enc := bson.NewEncoder(vw)
+		enc.SetRegistry(registry)
+		err = enc.Encode(f)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, buf.Bytes())
 	}
 	return filters, nil
 }
@@ -154,13 +164,21 @@ func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
 	}
 
 	idx, arr := bsoncore.AppendArrayStart(nil)
+	buf := new(bytes.Buffer)
 	for i, f := range af.Filters {
-		filter, err := bson.MarshalWithRegistry(registry, f)
+		buf.Reset()
+		vw, err := bsonrw.NewBSONValueWriter(buf)
+		if err != nil {
+			return nil, err
+		}
+		enc := bson.NewEncoder(vw)
+		enc.SetRegistry(registry)
+		err = enc.Encode(f)
 		if err != nil {
 			return nil, err
 		}
 
-		arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(i), filter)
+		arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(i), buf.Bytes())
 	}
 	arr, _ = bsoncore.AppendArrayEnd(arr, idx)
 	return arr, nil
