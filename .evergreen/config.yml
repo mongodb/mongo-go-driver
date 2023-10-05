@@ -2195,8 +2195,7 @@ tasks:
           echo "Copying files ... begin"
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
           tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
           AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
           echo "Copying files ... end"
@@ -2211,10 +2210,11 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          # Get azurekms credentials from the vault.
+          . ./etc/get_aws_secrets.sh drivers/azurekms
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
           AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
@@ -2556,6 +2556,7 @@ task_groups:
       - testgcpkms-task
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
+    teardown_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
       - func: fetch-source
@@ -2568,17 +2569,10 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
-            export AZUREKMS_CLIENTID=${AZUREKMS_CLIENTID}
-            export AZUREKMS_TENANTID=${AZUREKMS_TENANTID}
-            export AZUREKMS_SECRET=${AZUREKMS_SECRET}
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            echo '${testazurekms_publickey}' > /tmp/testazurekms.pubkey
-            export AZUREKMS_PUBLICKEYPATH=/tmp/testazurekms.pubkey
-            echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-            sudo chmod 600 /tmp/testazurekms.prikey
-            export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
-            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
+            # Get azurekms credentials from the vault.
+            bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh drivers/azurekms
+            source ./secrets-export.sh
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
@@ -2593,6 +2587,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
+            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
     tasks:
