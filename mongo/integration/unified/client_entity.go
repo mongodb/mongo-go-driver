@@ -66,6 +66,7 @@ type clientEntity struct {
 
 	eventsCountLock                         sync.RWMutex
 	serverDescriptionChangedEventsCountLock sync.RWMutex
+	eventProcessMu                          sync.RWMutex
 
 	entityMap *EntityMap
 
@@ -474,6 +475,9 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 }
 
 func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDescriptionChangedEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
 	if !c.getRecordEvents() {
 		return
 	}
@@ -490,6 +494,9 @@ func (c *clientEntity) processServerDescriptionChangedEvent(evt *event.ServerDes
 }
 
 func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartbeatFailedEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
 	if !c.getRecordEvents() {
 		return
 	}
@@ -502,6 +509,9 @@ func (c *clientEntity) processServerHeartbeatFailedEvent(evt *event.ServerHeartb
 }
 
 func (c *clientEntity) processServerHeartbeatStartedEvent(evt *event.ServerHeartbeatStartedEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
 	if !c.getRecordEvents() {
 		return
 	}
@@ -514,6 +524,9 @@ func (c *clientEntity) processServerHeartbeatStartedEvent(evt *event.ServerHeart
 }
 
 func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHeartbeatSucceededEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
 	if !c.getRecordEvents() {
 		return
 	}
@@ -526,6 +539,9 @@ func (c *clientEntity) processServerHeartbeatSucceededEvent(evt *event.ServerHea
 }
 
 func (c *clientEntity) processTopologyDescriptionChangedEvent(evt *event.TopologyDescriptionChangedEvent) {
+	c.eventProcessMu.Lock()
+	defer c.eventProcessMu.Unlock()
+
 	if !c.getRecordEvents() {
 		return
 	}

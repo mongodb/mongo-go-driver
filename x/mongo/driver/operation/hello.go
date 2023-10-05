@@ -153,12 +153,23 @@ const (
 	envNameVercel    = "vercel"
 )
 
+const dockerEnvPath = "/.dockerenv"
+const envVarK8s = "KUBERNETES_SERVICE_HOST"
+
+const (
+	// Runtime names
+	runtimeNameDocker = "docker"
+
+	// Orchestrator names
+	orchestratorNameK8s = "kubernetes"
+)
+
 // getFaasEnvName parses the FaaS environment variable name and returns the
 // corresponding name used by the client. If none of the variables or variables
-// for multiple names are populated the client.env value MUST be entirely
-// omitted. When variables for multiple "client.env.name" values are present,
-// "vercel" takes precedence over "aws.lambda"; any other combination MUST cause
-// "client.env" to be entirely omitted.
+// for multiple names are populated the FaaS values MUST be entirely omitted.
+// When variables for multiple "client.env.name" values are present, "vercel"
+// takes precedence over "aws.lambda"; any other combination MUST cause FaaS
+// values to be entirely omitted.
 func getFaasEnvName() string {
 	envVars := []string{
 		envVarAWSExecutionEnv,
@@ -218,6 +229,31 @@ func getFaasEnvName() string {
 	return ""
 }
 
+type containerInfo struct {
+	runtime      string
+	orchestrator string
+}
+
+// getContainerEnvInfo returns runtime and orchestrator of a container.
+// If no fields is populated, the client.env.container value MUST be entirely
+// omitted.
+func getContainerEnvInfo() *containerInfo {
+	var runtime, orchestrator string
+	if _, err := os.Stat(dockerEnvPath); !os.IsNotExist(err) {
+		runtime = runtimeNameDocker
+	}
+	if v := os.Getenv(envVarK8s); v != "" {
+		orchestrator = orchestratorNameK8s
+	}
+	if runtime != "" || orchestrator != "" {
+		return &containerInfo{
+			runtime:      runtime,
+			orchestrator: orchestrator,
+		}
+	}
+	return nil
+}
+
 // appendClientAppName appends the application metadata to the dst. It is the
 // responsibility of the caller to check that this appending does not cause dst
 // to exceed any size limitations.
@@ -256,14 +292,20 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 	}
 
 	name := getFaasEnvName()
-	if name == "" {
+	container := getContainerEnvInfo()
+	// Omit the entire 'env' if both name and container are empty because other
+	// fields depend on either of them.
+	if name == "" && container == nil {
 		return dst, nil
 	}
 
 	var idx int32
 
 	idx, dst = bsoncore.AppendDocumentElementStart(dst, "env")
-	dst = bsoncore.AppendStringElement(dst, "name", name)
+
+	if name != "" {
+		dst = bsoncore.AppendStringElement(dst, "name", name)
+	}
 
 	addMem := func(envVar string) []byte {
 		mem := os.Getenv(envVar)
@@ -306,6 +348,7 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 	}
 
 	if !omitNonName {
+		// No other FaaS fields will be populated if the name is empty.
 		switch name {
 		case envNameAWSLambda:
 			dst = addMem(envVarAWSLambdaFunctionMemorySize)
@@ -316,6 +359,22 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 			dst = addTimeout(envVarFunctionTimeoutSec)
 		case envNameVercel:
 			dst = addRegion(envVarVercelRegion)
+		}
+	}
+
+	if container != nil {
+		var idxCntnr int32
+		idxCntnr, dst = bsoncore.AppendDocumentElementStart(dst, "container")
+		if container.runtime != "" {
+			dst = bsoncore.AppendStringElement(dst, "runtime", container.runtime)
+		}
+		if container.orchestrator != "" {
+			dst = bsoncore.AppendStringElement(dst, "orchestrator", container.orchestrator)
+		}
+		var err error
+		dst, err = bsoncore.AppendDocumentEnd(dst, idxCntnr)
+		if err != nil {
+			return dst, err
 		}
 	}
 
@@ -358,21 +417,25 @@ func appendClientPlatform(dst []byte) []byte {
 //			name: "<string>"
 //		},
 //		driver: {
-//		      	name: "<string>",
-//		        version: "<string>"
+//			name: "<string>",
+//			version: "<string>"
 //		},
 //		platform: "<string>",
 //		os: {
-//		        type: "<string>",
-//		        name: "<string>",
-//		        architecture: "<string>",
-//		        version: "<string>"
+//			type: "<string>",
+//			name: "<string>",
+//			architecture: "<string>",
+//			version: "<string>"
 //		},
 //		env: {
-//		        name: "<string>",
-//		        timeout_sec: 42,
-//		        memory_mb: 1024,
-//		        region: "<string>",
+//			name: "<string>",
+//			timeout_sec: 42,
+//			memory_mb: 1024,
+//			region: "<string>",
+//			container: {
+//				runtime: "<string>",
+//				orchestrator: "<string>"
+//			}
 //		}
 //	}
 func encodeClientMetadata(appname string, maxLen int) ([]byte, error) {
@@ -537,8 +600,16 @@ func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnecti
 	return h.createOperation().ExecuteExhaust(ctx, conn)
 }
 
+// isLegacyHandshake returns True if server API version is not requested and
+// loadBalanced is False. If this is the case, then the drivers MUST use legacy
+// hello for the first message of the initial handshake with the OP_QUERY
+// protocol
+func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, deployment driver.Deployment) bool {
+	return srvAPI == nil && deployment.Kind() != description.LoadBalanced
+}
+
 func (h *Hello) createOperation() driver.Operation {
-	return driver.Operation{
+	op := driver.Operation{
 		Clock:      h.clock,
 		CommandFn:  h.command,
 		Database:   "admin",
@@ -549,23 +620,36 @@ func (h *Hello) createOperation() driver.Operation {
 		},
 		ServerAPI: h.serverAPI,
 	}
+
+	if isLegacyHandshake(h.serverAPI, h.d) {
+		op.Legacy = driver.LegacyHandshake
+	}
+
+	return op
 }
 
 // GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
 // information about the server. This function implements the driver.Handshaker interface.
 func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-	err := driver.Operation{
+	deployment := driver.SingleConnectionDeployment{C: c}
+
+	op := driver.Operation{
 		Clock:      h.clock,
 		CommandFn:  h.handshakeCommand,
-		Deployment: driver.SingleConnectionDeployment{C: c},
+		Deployment: deployment,
 		Database:   "admin",
 		ProcessResponseFn: func(info driver.ResponseInfo) error {
 			h.res = info.ServerResponse
 			return nil
 		},
 		ServerAPI: h.serverAPI,
-	}.Execute(ctx)
-	if err != nil {
+	}
+
+	if isLegacyHandshake(h.serverAPI, deployment) {
+		op.Legacy = driver.LegacyHandshake
+	}
+
+	if err := op.Execute(ctx); err != nil {
 		return driver.HandshakeInformation{}, err
 	}
 
@@ -578,6 +662,9 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	if serverConnectionID, ok := h.res.Lookup("connectionId").AsInt64OK(); ok {
 		info.ServerConnectionID = &serverConnectionID
 	}
+
+	var err error
+
 	// Cast to bson.Raw to lookup saslSupportedMechs to avoid converting from bsoncore.Value to bson.RawValue for the
 	// StringSliceFromRawValue call.
 	if saslSupportedMechs, lookupErr := bson.Raw(h.res).LookupErr("saslSupportedMechs"); lookupErr == nil {

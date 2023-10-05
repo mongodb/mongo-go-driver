@@ -31,9 +31,11 @@ import (
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 type channelNetConnDialer struct{}
@@ -175,7 +177,12 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 				}),
 				WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 					return &event.ServerMonitor{
-						ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+						ServerHeartbeatSucceeded: func(e *event.ServerHeartbeatSucceededEvent) {
+							if !errors.dequeue() {
+								wg.Done()
+							}
+						},
+						ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
 							if !errors.dequeue() {
 								wg.Done()
 							}
@@ -1207,12 +1214,41 @@ func TestServer_ProcessError(t *testing.T) {
 func includesClientMetadata(t *testing.T, wm []byte) bool {
 	t.Helper()
 
-	doc, err := drivertest.GetCommandFromMsgWireMessage(wm)
-	assert.NoError(t, err)
+	var ok bool
+	_, _, _, _, wm, ok = wiremessage.ReadHeader(wm)
+	if !ok {
+		t.Fatal("could not read header")
+	}
+	_, wm, ok = wiremessage.ReadQueryFlags(wm)
+	if !ok {
+		t.Fatal("could not read flags")
+	}
+	_, wm, ok = wiremessage.ReadQueryFullCollectionName(wm)
+	if !ok {
+		t.Fatal("could not read fullCollectionName")
+	}
+	_, wm, ok = wiremessage.ReadQueryNumberToSkip(wm)
+	if !ok {
+		t.Fatal("could not read numberToSkip")
+	}
+	_, wm, ok = wiremessage.ReadQueryNumberToReturn(wm)
+	if !ok {
+		t.Fatal("could not read numberToReturn")
+	}
+	var query bsoncore.Document
+	query, wm, ok = wiremessage.ReadQueryQuery(wm)
+	if !ok {
+		t.Fatal("could not read query")
+	}
 
-	_, err = doc.LookupErr("client")
+	if _, err := query.LookupErr("client"); err == nil {
+		return true
+	}
+	if _, err := query.LookupErr("$query", "client"); err == nil {
+		return true
+	}
 
-	return err == nil
+	return false
 }
 
 // processErrorTestConn is a driver.Connection implementation used by tests

@@ -141,8 +141,8 @@ functions:
              export UPLOAD_BUCKET="$UPLOAD_BUCKET"
              export PROJECT="$PROJECT"
              export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
-             export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
-             export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+             export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+             export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
              export PATH="$PATH"
           EOT
           # See what we variables we've set.
@@ -245,6 +245,7 @@ functions:
       params:
         shell: "bash"
         script: |
+          set -x
           ${PREPARE_SHELL}
 
           MONGODB_VERSION=${VERSION} \
@@ -437,37 +438,18 @@ functions:
           make -s evg-test-enterprise-auth
 
   run-atlas-test:
+    - command: ec2.assume_role
+      params:
+        role_arn: "${aws_test_secrets_role}"
     - command: shell.exec
       type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export ATLAS_FREE="${atlas_free_tier_uri}"
-          export ATLAS_REPLSET="${atlas_replica_set_uri}"
-          export ATLAS_SHARD="${atlas_sharded_uri}"
-          export ATLAS_TLS11="${atlas_tls_v11_uri}"
-          export ATLAS_TLS12="${atlas_tls_v12_uri}"
-          export ATLAS_FREE_SRV="${atlas_free_tier_uri_srv}"
-          export ATLAS_REPLSET_SRV="${atlas_replica_set_uri_srv}"
-          export ATLAS_SHARD_SRV="${atlas_sharded_uri_srv}"
-          export ATLAS_TLS11_SRV="${atlas_tls_v11_uri_srv}"
-          export ATLAS_TLS12_SRV="${atlas_tls_v12_uri_srv}"
-          export ATLAS_SERVERLESS="${atlas_serverless_uri}"
-          export ATLAS_SERVERLESS_SRV="${atlas_serverless_uri_srv}"
-          make -s evg-test-atlas
+          ${PREPARE_SHELL}
+          bash etc/run-atlas-test.sh
 
   run-ocsp-test:
     - command: shell.exec
@@ -705,6 +687,17 @@ functions:
     - command: expansions.update
       params:
         file: lb-expansion.yml
+
+  run-search-index-tests:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          TEST_INDEX_URI="${TEST_INDEX_URI}" \
+          make evg-test-search-index
 
   stop-load-balancer:
     - command: shell.exec
@@ -2101,7 +2094,7 @@ tasks:
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
           export GCPKMS_ZONE=${GCPKMS_ZONE}
           export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
-          tar czf testgcpkms.tgz ./testkms ./install/libmongocrypt/lib/libmongocrypt.*
+          tar czf testgcpkms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
           GCPKMS_SRC=testgcpkms.tgz GCPKMS_DST=$GCPKMS_INSTANCENAME: $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/copy-file.sh
           echo "Copying files ... end"
 
@@ -2120,7 +2113,7 @@ tasks:
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
           export GCPKMS_ZONE=${GCPKMS_ZONE}
           export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
-          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
+          GCPKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='gcp' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/run-command.sh
 
   - name: "testgcpkms-fail-task"
     # testgcpkms-fail-task runs in a non-GCE environment.
@@ -2138,7 +2131,7 @@ tasks:
             PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
               make build-kms-test
             echo "Building build-kms-test ... end"
-            LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+            LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
             MONGODB_URI='mongodb://localhost:27017/' \
             EXPECT_ERROR='unable to retrieve GCP credentials' \
             PROVIDER='gcp' \
@@ -2162,7 +2155,7 @@ tasks:
           export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
           export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
 
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='${atlas_free_tier_uri}' \
           PROVIDER='aws' \
             ./testkms
@@ -2184,9 +2177,9 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='${atlas_free_tier_uri}' \
-          EXPECT_ERROR='unable to retrieve aws credentials' \
+          EXPECT_ERROR='status=400' \
           PROVIDER='aws' \
             ./testkms
 
@@ -2208,9 +2201,8 @@ tasks:
           echo "Copying files ... begin"
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
-          tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib/libmongocrypt.*
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
+          tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
           AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
           echo "Copying files ... end"
           echo "Untarring file ... begin"
@@ -2224,11 +2216,12 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          # Get azurekms credentials from the vault.
+          . ./etc/get_aws_secrets.sh drivers/azurekms
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
-          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
+          AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
     # testazurekms-fail-task runs without environment variables.
@@ -2247,10 +2240,10 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib \
+          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           MONGODB_URI='mongodb://localhost:27017' \
           EXPECT_ERROR='unable to retrieve azure credentials' \
-          PROVIDER='azure' \
+          PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' \
             ./testkms
 
   - name: "test-fuzz"
@@ -2276,6 +2269,14 @@ tasks:
           script: |
             ${PREPARE_SHELL}
             ./.evergreen/run-deployed-lambda-aws-tests.sh
+
+  - name: "test-search-index"
+    commands:
+      - func: "bootstrap-mongo-orchestration"
+        vars:
+          VERSION: "latest"
+          TOPOLOGY: "replica_set"
+      - func: "run-search-index-tests"
 
 axes:
   - id: version
@@ -2330,9 +2331,9 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1604-64-go-1-20"
-        display_name: "Ubuntu 16.04"
-        run_on: ubuntu1604-build
+      - id: "rhel87-64-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2354,9 +2355,9 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           VENV_BIN_DIR: "Scripts"
-      - id: "ubuntu1804-64-go-1-20"
-        display_name: "Ubuntu 18.04"
-        run_on: ubuntu1804-build
+      - id: "rhel87-64-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2366,13 +2367,12 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
-  # OCSP linux tasks need to run against this OS since stapling is disabled on Ubuntu 18.04 (SERVER-51364)
-  - id: ocsp-rhel-70
+  - id: ocsp-rhel-87
     display_name: OS
     values:
-      - id: "rhel70-go-1-20"
-        display_name: "RHEL 7.0"
-        run_on: rhel70-build
+      - id: "rhel87-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2387,6 +2387,8 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
+      # TODO(BUILD-17329): Update this to Ubuntu 22 after we add a new ECS task
+      # definition.
       - id: "ubuntu1804-64-go-1-20"
         display_name: "Ubuntu 18.04"
         run_on: ubuntu1804-test
@@ -2405,18 +2407,18 @@ axes:
   - id: os-faas-80
     display_name: OS
     values:
-      - id: "rhel80-large-go-1-20"
-        display_name: "RHEL 8.0"
-        run_on: rhel80-large
+      - id: "rhel87-large-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
   - id: os-serverless
     display_name: OS
     values:
-      - id: "ubuntu2204-go-1-20"
-        display_name: "Ubuntu 22.04"
-        run_on: ubuntu2204-small
+      - id: "rhel87-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-small
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2560,6 +2562,7 @@ task_groups:
       - testgcpkms-task
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
+    teardown_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
       - func: fetch-source
@@ -2572,17 +2575,10 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
-            export AZUREKMS_CLIENTID=${AZUREKMS_CLIENTID}
-            export AZUREKMS_TENANTID=${AZUREKMS_TENANTID}
-            export AZUREKMS_SECRET=${AZUREKMS_SECRET}
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            echo '${testazurekms_publickey}' > /tmp/testazurekms.pubkey
-            export AZUREKMS_PUBLICKEYPATH=/tmp/testazurekms.pubkey
-            echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-            sudo chmod 600 /tmp/testazurekms.prikey
-            export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
-            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
+            # Get azurekms credentials from the vault.
+            bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh drivers/azurekms
+            source ./secrets-export.sh
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
@@ -2597,6 +2593,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
+            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
     tasks:
@@ -2635,11 +2632,50 @@ task_groups:
     tasks:
       - test-aws-lambda-deployed
 
+  - name: test-search-index-task-group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          env:
+            MONGODB_VERSION: "7.0"
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+      - command: shell.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          shell: bash
+          script: |-
+            echo "TEST_INDEX_URI: ${MONGODB_URI}" > atlas-expansion.yml
+      - command: expansions.update
+        params:
+          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
+    teardown_group:
+      - command: subprocess.exec
+        params:
+          working_dir: src/go.mongodb.org/mongo-driver
+          binary: bash
+          add_expansions_to_env: true
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - test-search-index
+
 buildvariants:
   - name: static-analysis
+    tags: ["pullrequest"]
     display_name: "Static Analysis"
     run_on:
-      - ubuntu1804-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2648,53 +2684,59 @@ buildvariants:
   - name: perf
     display_name: "Performance"
     run_on:
-      - ubuntu1804-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".performance"
 
   - name: build-check
+    tags: ["pullrequest"]
     display_name: "Compile Only Checks"
     run_on:
-      - ubuntu1804-test
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
 
   - name: atlas-test
+    tags: ["pullrequest"]
     display_name: "Atlas test"
     run_on:
-      - ubuntu1804-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "atlas-test"
 
   - name: atlas-data-lake-test
+    tags: ["pullrequest"]
     display_name: "Atlas Data Lake Test"
     run_on:
-      - ubuntu1804-build
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "test-atlas-data-lake"
 
   - matrix_name: "tests-36-with-zlib-support"
-    matrix_spec: { version: ["3.6"], os-ssl-32: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-32}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-40-with-zlib-support"
-    matrix_spec: { version: ["4.0"], os-ssl-40: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2712,8 +2754,8 @@ buildvariants:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], ocsp-rhel-70: ["rhel70-go-1-20"] }
-    display_name: "OCSP ${version} ${ocsp-rhel-70}"
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], ocsp-rhel-87: ["rhel87-go-1-20"] }
+    display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
@@ -2735,59 +2777,68 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "race-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
 
   - matrix_name: "versioned-api-test"
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: "*" }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
-    # The LB software is only available on Ubuntu 18.04, so we don't test on all OSes.
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
+    tags: ["pullrequest"]
     matrix_spec: { os-serverless: "*" }
     display_name: "Serverless ${os-serverless}"
     tasks:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
 
   - matrix_name: "fuzz-test"
-    matrix_spec: { version: ["5.0"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }
+    matrix_spec: { version: ["5.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Fuzz ${version} ${os-ssl-40}"
     tasks:
       - name: "test-fuzz"
         batchtime: 1440 # Run at most once per 24 hours.
 
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["latest"], os-faas-80: ["rhel80-large-go-1-20"] }
+    matrix_spec: { version: ["latest"], os-faas-80: ["rhel87-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
 
+  - matrix_name: "searchindex-test"
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
+    display_name: "Search Index ${version} ${os-faas-80}"
+    tasks:
+      - test-search-index-task-group
+
   - name: testgcpkms-variant
     display_name: "GCP KMS"
     run_on:
-      - debian11-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2798,7 +2849,7 @@ buildvariants:
   - name: testawskms-variant
     display_name: "AWS KMS"
     run_on:
-      - debian11-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2808,7 +2859,7 @@ buildvariants:
   - name: testazurekms-variant
     display_name: "AZURE KMS"
     run_on:
-      - debian11-small
+      - rhel8.7-small
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:

@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -100,6 +101,97 @@ func TestRetryableReadsProse(t *testing.T) {
 			assert.NotNil(mt, cmdEvt, "expected a find event, got nil")
 			assert.Equal(mt, cmdEvt.CommandName, "find",
 				"expected a find event, got a(n) %v event", cmdEvt.CommandName)
+		}
+	})
+
+	mtOpts = mtest.NewOptions().Topologies(mtest.Sharded).MinServerVersion("4.2")
+	mt.RunOpts("retrying in sharded cluster", mtOpts, func(mt *mtest.T) {
+		tests := []struct {
+			name string
+
+			// Note that setting this value greater than 2 will result in false
+			// negatives. The current specification does not account for CSOT, which
+			// might allow for an "inifinite" number of retries over a period of time.
+			// Because of this, we only track the "previous server".
+			hostCount            int
+			failpointErrorCode   int32
+			expectedFailCount    int
+			expectedSuccessCount int
+		}{
+			{
+				name:                 "retry on different mongos",
+				hostCount:            2,
+				failpointErrorCode:   6, // HostUnreachable
+				expectedFailCount:    2,
+				expectedSuccessCount: 0,
+			},
+			{
+				name:                 "retry on same mongos",
+				hostCount:            1,
+				failpointErrorCode:   6, // HostUnreachable
+				expectedFailCount:    1,
+				expectedSuccessCount: 1,
+			},
+		}
+
+		for _, tc := range tests {
+			mt.Run(tc.name, func(mt *mtest.T) {
+				hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+				require.GreaterOrEqualf(mt, len(hosts), tc.hostCount,
+					"test cluster must have at least %v mongos hosts", tc.hostCount)
+
+				// Configure the failpoint options for each mongos.
+				failPoint := mtest.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode: mtest.FailPointMode{
+						Times: 1,
+					},
+					Data: mtest.FailPointData{
+						FailCommands:    []string{"find"},
+						ErrorCode:       tc.failpointErrorCode,
+						CloseConnection: false,
+					},
+				}
+
+				// In order to ensure that each mongos in the hostCount-many mongos
+				// hosts are tried at least once (i.e. failures are deprioritized), we
+				// set a failpoint on all mongos hosts. The idea is that if we get
+				// hostCount-many failures, then by the pigeonhole principal all mongos
+				// hosts must have been tried.
+				for i := 0; i < tc.hostCount; i++ {
+					mt.ResetClient(options.Client().SetHosts([]string{hosts[i]}))
+					mt.SetFailPoint(failPoint)
+
+					// The automatic failpoint clearing may not clear failpoints set on
+					// specific hosts, so manually clear the failpoint we set on the
+					// specific mongos when the test is done.
+					defer mt.ResetClient(options.Client().SetHosts([]string{hosts[i]}))
+					defer mt.ClearFailPoints()
+				}
+
+				failCount := 0
+				successCount := 0
+
+				commandMonitor := &event.CommandMonitor{
+					Failed: func(context.Context, *event.CommandFailedEvent) {
+						failCount++
+					},
+					Succeeded: func(context.Context, *event.CommandSucceededEvent) {
+						successCount++
+					},
+				}
+
+				// Reset the client with exactly hostCount-many mongos hosts.
+				mt.ResetClient(options.Client().
+					SetHosts(hosts[:tc.hostCount]).
+					SetRetryReads(true).
+					SetMonitor(commandMonitor))
+
+				mt.Coll.FindOne(context.Background(), bson.D{})
+
+				assert.Equal(mt, tc.expectedFailCount, failCount)
+				assert.Equal(mt, tc.expectedSuccessCount, successCount)
+			})
 		}
 	})
 }

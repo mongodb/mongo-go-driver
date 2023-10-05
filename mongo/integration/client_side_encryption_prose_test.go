@@ -19,7 +19,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -54,6 +53,16 @@ const (
 	cryptMaxBatchSizeBytes        = 2097152             // max bytes in write batch when auto encryption is enabled
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
+
+func containsSubstring(possibleSubstrings []string, str string) bool {
+	for _, possibleSubstring := range possibleSubstrings {
+		if strings.Contains(str, possibleSubstring) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func TestClientSideEncryptionProse(t *testing.T) {
 	t.Parallel()
@@ -115,7 +124,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		// document from the collection.
 		coll := cse.kvClient.Database(kvDatabase).Collection(dkCollection)
 
-		keydoc, err := coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
+		keydoc, err := coll.FindOne(context.Background(), bson.D{}).Raw()
 		assert.Nil(mt, err, "error in decoding bytes: %v", err)
 
 		// Remove the key document from the collection.
@@ -290,7 +299,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
 				// find the inserted document. the value should be decrypted automatically
-				resBytes, err := cpt.cseColl.FindOne(context.Background(), bson.D{{"_id", tc.provider}}).DecodeBytes()
+				resBytes, err := cpt.cseColl.FindOne(context.Background(), bson.D{{"_id", tc.provider}}).Raw()
 				assert.Nil(mt, err, "Find error: %v", err)
 				foundVal := resBytes.Lookup("value").StringValue()
 				assert.Equal(mt, valueToEncrypt, foundVal, "expected value %v, got %v", valueToEncrypt, foundVal)
@@ -378,9 +387,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 	mt.Run("4. bson size limits", func(mt *mtest.T) {
-		// TODO(GODRIVER-2872): Fix and unskip this test case.
-		mt.Skip("Test fails frequently, skipping. See GODRIVER-2872")
-
 		kmsProviders := map[string]map[string]interface{}{
 			"local": {
 				"key": localMasterKey,
@@ -691,13 +697,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				assert.Nil(mt, err, "InsertOne error for corpus document: %v", err)
 
 				// find document using client with encryption and assert it matches original
-				decryptedDoc, err := cpt.cseColl.FindOne(context.Background(), bson.D{}).DecodeBytes()
+				decryptedDoc, err := cpt.cseColl.FindOne(context.Background(), bson.D{}).Raw()
 				assert.Nil(mt, err, "Find error with encrypted client: %v", err)
 				assert.Equal(mt, corpus, decryptedDoc, "expected document %v, got %v", corpus, decryptedDoc)
 
 				// find document using a client without encryption enabled and assert fields remain encrypted
 				corpusEncrypted := readJSONFile(mt, "corpus-encrypted.json")
-				foundDoc, err := cpt.coll.FindOne(context.Background(), bson.D{}).DecodeBytes()
+				foundDoc, err := cpt.coll.FindOne(context.Background(), bson.D{}).Raw()
 				assert.Nil(mt, err, "Find error with unencrypted client: %v", err)
 
 				encryptedElems, _ := corpusEncrypted.Elements()
@@ -868,26 +874,119 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"endpoint": "doesnotexist.local:5698",
 		}
 
+		const (
+			errConnectionRefused           = "connection refused"
+			errInvalidKMSResponse          = "Invalid KMS response"
+			errMongocryptError             = "mongocrypt error"
+			errNoSuchHost                  = "no such host"
+			errServerMisbehaving           = "server misbehaving"
+			errWindowsTLSConnectionRefused = "No connection could be made because the target machine actively refused it"
+		)
+
 		testCases := []struct {
 			name                                  string
 			provider                              string
 			masterKey                             interface{}
-			errorSubstring                        string
+			errorSubstring                        []string
 			testInvalidClientEncryption           bool
-			invalidClientEncryptionErrorSubstring string
+			invalidClientEncryptionErrorSubstring []string
 		}{
-			{"Case 1: aws success without endpoint", "aws", awsSuccessWithoutEndpoint, "", false, ""},
-			{"Case 2: aws success with endpoint", "aws", awsSuccessWithEndpoint, "", false, ""},
-			{"Case 3: aws success with https endpoint", "aws", awsSuccessWithHTTPSEndpoint, "", false, ""},
-			{"Case 4: aws failure with connection error", "aws", awsFailureConnectionError, "connection refused", false, ""},
-			{"Case 5: aws failure with wrong endpoint", "aws", awsFailureInvalidEndpoint, "mongocrypt error", false, ""},
-			{"Case 6: aws failure with parse error", "aws", awsFailureParseError, "no such host", false, ""},
-			{"Case 7: azure success", "azure", azure, "", true, "no such host"},
-			{"Case 8: gcp success", "gcp", gcpSuccess, "", true, "no such host"},
-			{"Case 9: gcp failure", "gcp", gcpFailure, "Invalid KMS response", false, ""},
-			{"Case 10: kmip success without endpoint", "kmip", kmipSuccessWithoutEndpoint, "", true, "no such host"},
-			{"Case 11: kmip success with endpoint", "kmip", kmipSuccessWithEndpoint, "", false, ""},
-			{"Case 12: kmip failure with invalid endpoint", "kmip", kmipFailureInvalidEndpoint, "no such host", false, ""},
+			{
+				name:                                  "Case 1: aws success without endpoint",
+				provider:                              "aws",
+				masterKey:                             awsSuccessWithoutEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 2: aws success with endpoint",
+				provider:                              "aws",
+				masterKey:                             awsSuccessWithEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 3: aws success with https endpoint",
+				provider:                              "aws",
+				masterKey:                             awsSuccessWithHTTPSEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 4: aws failure with connection error",
+				provider:                              "aws",
+				masterKey:                             awsFailureConnectionError,
+				errorSubstring:                        []string{errConnectionRefused, errWindowsTLSConnectionRefused},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 5: aws failure with wrong endpoint",
+				provider:                              "aws",
+				masterKey:                             awsFailureInvalidEndpoint,
+				errorSubstring:                        []string{errMongocryptError},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 6: aws failure with parse error",
+				provider:                              "aws",
+				masterKey:                             awsFailureParseError,
+				errorSubstring:                        []string{errNoSuchHost, errServerMisbehaving},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 7: azure success",
+				provider:                              "azure",
+				masterKey:                             azure,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           true,
+				invalidClientEncryptionErrorSubstring: []string{errNoSuchHost, errServerMisbehaving},
+			},
+			{
+				name:                                  "Case 8: gcp success",
+				provider:                              "gcp",
+				masterKey:                             gcpSuccess,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           true,
+				invalidClientEncryptionErrorSubstring: []string{errNoSuchHost, errServerMisbehaving},
+			},
+			{
+				name:                                  "Case 9: gcp failure",
+				provider:                              "gcp",
+				masterKey:                             gcpFailure,
+				errorSubstring:                        []string{errInvalidKMSResponse},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 10: kmip success without endpoint",
+				provider:                              "kmip",
+				masterKey:                             kmipSuccessWithoutEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           true,
+				invalidClientEncryptionErrorSubstring: []string{errNoSuchHost, errServerMisbehaving},
+			},
+			{
+				name:                                  "Case 11: kmip success with endpoint",
+				provider:                              "kmip",
+				masterKey:                             kmipSuccessWithEndpoint,
+				errorSubstring:                        []string{},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
+			{
+				name:                                  "Case 12: kmip failure with invalid endpoint",
+				provider:                              "kmip",
+				masterKey:                             kmipFailureInvalidEndpoint,
+				errorSubstring:                        []string{errNoSuchHost, errServerMisbehaving},
+				testInvalidClientEncryption:           false,
+				invalidClientEncryptionErrorSubstring: []string{},
+			},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -899,16 +998,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 				dkOpts := options.DataKey().SetMasterKey(tc.masterKey)
 				createdKey, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.provider, dkOpts)
-				if tc.errorSubstring != "" {
+				if len(tc.errorSubstring) > 0 {
 					assert.NotNil(mt, err, "expected error, got nil")
-					errSubstr := tc.errorSubstring
-					if runtime.GOOS == "windows" && errSubstr == "connection refused" {
-						// tls.Dial returns an error that does not contain the substring "connection refused"
-						// on Windows machines
-						errSubstr = "No connection could be made because the target machine actively refused it"
-					}
-					assert.True(mt, strings.Contains(err.Error(), errSubstr),
-						"expected error '%s' to contain '%s'", err.Error(), errSubstr)
+
+					assert.True(t, containsSubstring(tc.errorSubstring, err.Error()),
+						"expected tc.errorSubstring=%v to contain %v, but it didn't", tc.errorSubstring, err.Error())
+
 					return
 				}
 				assert.Nil(mt, err, "CreateDataKey error: %v", err)
@@ -935,8 +1030,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				invalidKeyOpts := options.DataKey().SetMasterKey(tc.masterKey)
 				_, err = invalidClientEncryption.CreateDataKey(context.Background(), tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
-				assert.True(mt, strings.Contains(err.Error(), tc.invalidClientEncryptionErrorSubstring),
-					"expected error %v to contain substring '%v'", err, tc.invalidClientEncryptionErrorSubstring)
+
+				assert.True(t, containsSubstring(tc.invalidClientEncryptionErrorSubstring, err.Error()),
+					"expected tc.invalidClientEncryptionErrorSubstring=%v to contain %v, but it didn't",
+					tc.invalidClientEncryptionErrorSubstring, err.Error())
 			})
 		}
 	})
@@ -1279,7 +1376,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				}
 				assert.Nil(mt, err, "InsertOne error: %v", err)
 
-				raw, err := coll.FindOne(context.Background(), bson.M{"_id": 0}).DecodeBytes()
+				raw, err := coll.FindOne(context.Background(), bson.M{"_id": 0}).Raw()
 				assert.Nil(mt, err, "FindOne error: %v", err)
 
 				expected := bsoncore.NewDocumentBuilder().
@@ -1630,8 +1727,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// Find.
 			res := coll.FindOne(context.Background(), bson.D{{"encryptedIndexed", findPayload}})
 			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
-			got, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			got, err := res.Raw()
+			assert.Nil(mt, err, "error in Raw: %v", err)
 			gotValue, err := got.LookupErr("encryptedIndexed")
 			assert.Nil(mt, err, "error in LookupErr: %v", err)
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
@@ -1711,8 +1808,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			// Find.
 			res := coll.FindOne(context.Background(), bson.D{{"_id", 1}})
 			assert.Nil(mt, res.Err(), "Error in FindOne: %v", res.Err())
-			got, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			got, err := res.Raw()
+			assert.Nil(mt, err, "error in Raw: %v", err)
 			gotValue, err := got.LookupErr("encryptedUnindexed")
 			assert.Nil(mt, err, "error in LookupErr: %v", err)
 			assert.Equal(mt, gotValue.StringValue(), valueToEncrypt, "expected %q, got %q", valueToEncrypt, gotValue.StringValue())
@@ -1802,7 +1899,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
 			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
-			resbytes, err := res.DecodeBytes()
+			resbytes, err := res.Raw()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
 			idsubtype, iddata := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: resbytes}.
@@ -1810,7 +1907,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", idsubtype, iddata).Build()
 
 			ctx := context.Background()
-			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).DecodeBytes()
+			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).Raw()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
 			updated := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: updatedData}

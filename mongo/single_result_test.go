@@ -21,7 +21,7 @@ import (
 func TestSingleResult(t *testing.T) {
 	t.Run("Decode", func(t *testing.T) {
 		t.Run("decode twice", func(t *testing.T) {
-			// Test that Decode and DecodeBytes can be called more than once
+			// Test that Decode and Raw can be called more than once
 			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
@@ -32,16 +32,16 @@ func TestSingleResult(t *testing.T) {
 			err = sr.Decode(&secondDecode)
 			assert.Nil(t, err, "Decode error: %v", err)
 
-			decodeBytes, err := sr.DecodeBytes()
-			assert.Nil(t, err, "DecodeBytes error: %v", err)
+			rawBytes, err := sr.Raw()
+			assert.Nil(t, err, "Raw error: %v", err)
 
 			assert.Equal(t, firstDecode, secondDecode, "expected contents %v, got %v", firstDecode, secondDecode)
-			assert.Equal(t, firstDecode, decodeBytes, "expected contents %v, got %v", firstDecode, decodeBytes)
+			assert.Equal(t, firstDecode, rawBytes, "expected contents %v, got %v", firstDecode, rawBytes)
 		})
 		t.Run("decode with error", func(t *testing.T) {
 			r := []byte("foo")
-			sr := &SingleResult{rdr: r, err: errors.New("DecodeBytes error")}
-			res, err := sr.DecodeBytes()
+			sr := &SingleResult{rdr: r, err: errors.New("Raw error")}
+			res, err := sr.Raw()
 			resBytes := []byte(res)
 			assert.Equal(t, r, resBytes, "expected contents %v, got %v", r, resBytes)
 			assert.Equal(t, sr.err, err, "expected error %v, got %v", sr.err, err)
@@ -88,16 +88,16 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 		// Assert that first, decoded document is as expected.
 		findOneResultBytes, err := bson.Marshal(findOneResult)
 		assert.Nil(t, err, "Marshal error: %v", err)
-		expectedDecoded := bson.Raw(findOneResultBytes)
-		decoded, err := res.DecodeBytes()
-		assert.Nil(t, err, "DecodeBytes error: %v", err)
-		assert.Equal(t, expectedDecoded, decoded,
-			"expected decoded SingleResult to be %v, got %v", expectedDecoded, decoded)
+		expectedRawBytes := bson.Raw(findOneResultBytes)
+		rawBytes, err := res.Raw()
+		assert.Nil(t, err, "Raw error: %v", err)
+		assert.Equal(t, expectedRawBytes, rawBytes,
+			"expected decoded SingleResult to be %v, got %v", expectedRawBytes, rawBytes)
 
 		// Assert that RDR contents are set correctly after Decode.
 		assert.NotNil(t, res.rdr, "expected non-nil rdr contents")
-		assert.Equal(t, expectedDecoded, res.rdr,
-			"expected RDR contents to be %v, got %v", expectedDecoded, res.rdr)
+		assert.Equal(t, expectedRawBytes, res.rdr,
+			"expected RDR contents to be %v, got %v", expectedRawBytes, res.rdr)
 
 		// Assert that a call to cur.Next will return false, as there was only one document in
 		// the slice passed to NewSingleResultFromDocument.
@@ -117,9 +117,9 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
 		res := NewSingleResultFromDocument(bson.D{}, mockErr, nil)
 
-		// Assert that decoding returns the mocked error.
-		_, err := res.DecodeBytes()
-		assert.NotNil(t, err, "expected DecodeBytes error, got nil")
+		// Assert that the raw bytes returns the mocked error.
+		_, err := res.Raw()
+		assert.NotNil(t, err, "expected Raw error, got nil")
 		assert.Equal(t, mockErr, err, "expected error %v, got %v", mockErr, err)
 
 		// Check for error on SingleResult.

@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"sync"
 
 	"go.mongodb.org/mongo-driver/internal/logger"
 )
@@ -22,9 +23,19 @@ type orderedLogMessage struct {
 // Logger is the Sink used to captured log messages for logger verification in
 // the unified spec tests.
 type Logger struct {
-	lastOrder      int
+	// bufSize is the number of logs expected to be sent to the logger for a
+	// unified spec test.
+	bufSize int
+
+	// lastOrder increments each time the "Info" method is called, and is used to
+	// determine when to close the logQueue.
+	lastOrder int
+
+	// orderMu guards the order value, which increments each time the "Info"
+	// method is called. This is necessary since "Info" could be called from
+	// multiple go routines, e.g. SDAM logs.
+	orderMu        sync.RWMutex
 	logQueue       chan orderedLogMessage
-	bufSize        int
 	ignoreMessages []*logMessage
 }
 
@@ -54,6 +65,9 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		return
 	}
 
+	log.orderMu.Lock()
+	defer log.orderMu.Unlock()
+
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
 	level = level + logger.DiffToInfo
@@ -68,6 +82,8 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 			return
 		}
 	}
+
+	defer func() { log.lastOrder++ }()
 
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.

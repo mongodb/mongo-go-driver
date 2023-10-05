@@ -1,4 +1,3 @@
-ATLAS_URIS = "$(ATLAS_FREE)" "$(ATLAS_REPLSET)" "$(ATLAS_SHARD)" "$(ATLAS_TLS11)" "$(ATLAS_TLS12)" "$(ATLAS_FREE_SRV)" "$(ATLAS_REPLSET_SRV)" "$(ATLAS_SHARD_SRV)" "$(ATLAS_TLS11_SRV)" "$(ATLAS_TLS12_SRV)" "$(ATLAS_SERVERLESS)" "$(ATLAS_SERVERLESS_SRV)"
 TEST_TIMEOUT = 1800
 
 ### Utility targets. ###
@@ -128,10 +127,6 @@ build-aws-ecs-test:
 evg-test:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s -p 1 ./... >> test.suite
 
-.PHONY: evg-test-atlas
-evg-test-atlas:
-	go run ./cmd/testatlas/main.go $(ATLAS_URIS)
-
 .PHONY: evg-test-atlas-data-lake
 evg-test-atlas-data-lake:
 	ATLAS_DATA_LAKE_INTEGRATION_TEST=true go test -v ./mongo/integration -run TestUnifiedSpecs/atlas-data-lake-testing >> spec_test.suite
@@ -163,6 +158,10 @@ evg-test-load-balancers:
 	go test $(BUILD_TAGS) ./mongo/integration -run TestInitialDNSSeedlistDiscoverySpec/load_balanced -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestLoadBalancerSupport -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration/unified -run TestUnifiedSpec -v -timeout $(TEST_TIMEOUT)s >> test.suite
+
+.PHONY: evg-test-search-index
+evg-test-search-index:
+	go test ./mongo/integration -run TestSearchIndexProse -v -timeout $(TEST_TIMEOUT)s >> test.suite
 
 .PHONY: evg-test-ocsp
 evg-test-ocsp:

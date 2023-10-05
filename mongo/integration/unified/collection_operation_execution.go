@@ -304,6 +304,95 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
 }
 
+func executeCreateSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var model mongo.SearchIndexModel
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "model":
+			var m struct {
+				Definition interface{}
+				Name       *string
+			}
+			err = bson.Unmarshal(val.Document(), &m)
+			if err != nil {
+				return nil, err
+			}
+			model.Definition = m.Definition
+			model.Options = options.SearchIndexes()
+			model.Options.Name = m.Name
+		default:
+			return nil, fmt.Errorf("unrecognized createSearchIndex option %q", key)
+		}
+	}
+
+	name, err := coll.SearchIndexes().CreateOne(ctx, model)
+	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
+}
+
+func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var models []mongo.SearchIndexModel
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "models":
+			vals, err := val.Array().Values()
+			if err != nil {
+				return nil, err
+			}
+			for _, val := range vals {
+				var m struct {
+					Definition interface{}
+					Name       *string
+				}
+				err = bson.Unmarshal(val.Value, &m)
+				if err != nil {
+					return nil, err
+				}
+				model := mongo.SearchIndexModel{
+					Definition: m.Definition,
+					Options:    options.SearchIndexes(),
+				}
+				model.Options.Name = m.Name
+				models = append(models, model)
+			}
+		default:
+			return nil, fmt.Errorf("unrecognized createSearchIndexes option %q", key)
+		}
+	}
+
+	names, err := coll.SearchIndexes().CreateMany(ctx, models)
+	builder := bsoncore.NewArrayBuilder()
+	for _, name := range names {
+		builder.AppendString(name)
+	}
+	return newValueResult(bsontype.Array, builder.Build(), err), nil
+}
+
 func executeDeleteOne(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
@@ -522,6 +611,34 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 	return newDocumentResult(res, err), nil
 }
 
+func executeDropSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var name string
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			name = val.StringValue()
+		default:
+			return nil, fmt.Errorf("unrecognized dropSearchIndex option %q", key)
+		}
+	}
+
+	err = coll.SearchIndexes().DropOne(ctx, name)
+	return newValueResult(bsontype.Null, nil, err), nil
+}
+
 func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
@@ -635,9 +752,9 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOne(ctx, filter, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -696,9 +813,9 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndDelete(ctx, filter, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -776,9 +893,9 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		return nil, newMissingArgumentError("replacement")
 	}
 
-	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -863,9 +980,9 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("update")
 	}
 
-	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -1009,6 +1126,44 @@ func executeListIndexes(ctx context.Context, operation *operation) (*operationRe
 	return newCursorResult(docs), nil
 }
 
+func executeListSearchIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	searchIdxOpts := options.SearchIndexes()
+	var opts []*options.ListSearchIndexesOptions
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			searchIdxOpts.SetName(val.StringValue())
+		case "aggregationOptions":
+			var opt options.AggregateOptions
+			err = bson.Unmarshal(val.Document(), &opt)
+			if err != nil {
+				return nil, err
+			}
+			opts = append(opts, &options.ListSearchIndexesOptions{
+				AggregateOpts: &opt,
+			})
+		default:
+			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
+		}
+	}
+
+	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, opts...)
+	return newValueResult(bsontype.Null, nil, err), nil
+}
+
 func executeRenameCollection(ctx context.Context, operation *operation) (*operationResult, error) {
 	coll, err := entities(ctx).collection(operation.Object)
 	if err != nil {
@@ -1047,7 +1202,7 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 	}
 	// rename can only be run on the 'admin' database.
 	admin := coll.Database().Client().Database("admin")
-	res, err := admin.RunCommand(context.Background(), renameCmd).DecodeBytes()
+	res, err := admin.RunCommand(context.Background(), renameCmd).Raw()
 	return newDocumentResult(res, err), nil
 }
 
@@ -1143,6 +1298,40 @@ func executeUpdateMany(ctx context.Context, operation *operation) (*operationRes
 		return nil, buildErr
 	}
 	return newDocumentResult(raw, err), nil
+}
+
+func executeUpdateSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
+	coll, err := entities(ctx).collection(operation.Object)
+	if err != nil {
+		return nil, err
+	}
+
+	var name string
+	var definition interface{}
+
+	elems, err := operation.Arguments.Elements()
+	if err != nil {
+		return nil, err
+	}
+	for _, elem := range elems {
+		key := elem.Key()
+		val := elem.Value()
+
+		switch key {
+		case "name":
+			name = val.StringValue()
+		case "definition":
+			err = bson.Unmarshal(val.Value, &definition)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unrecognized updateSearchIndex option %q", key)
+		}
+	}
+
+	err = coll.SearchIndexes().UpdateOne(ctx, name, definition)
+	return newValueResult(bsontype.Null, nil, err), nil
 }
 
 func buildUpdateResultDocument(res *mongo.UpdateResult) (bsoncore.Document, error) {
