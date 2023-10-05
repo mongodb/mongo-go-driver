@@ -93,8 +93,8 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	}
 
 	// Convert documents slice to a sequence-style byte array.
-	var values []bsoncore.Value
-	for _, doc := range documents {
+	values := make([]bsoncore.Value, len(documents))
+	for i, doc := range documents {
 		switch t := doc.(type) {
 		case nil:
 			return nil, ErrNilDocument
@@ -108,12 +108,10 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 			return nil, err
 		}
 
-		value := bsoncore.Value{
+		values[i] = bsoncore.Value{
 			Type: bson.TypeEmbeddedDocument,
 			Data: bytes,
 		}
-
-		values = append(values, value)
 	}
 
 	c := &Cursor{
@@ -388,7 +386,7 @@ func (c *Cursor) addFromBatch(
 		return sliceVal, index, nil
 	}
 
-	vals, err := batch.Data.Values()
+	vals, err := batch.List.Values()
 	if err != nil {
 		return sliceVal, index, err
 	}

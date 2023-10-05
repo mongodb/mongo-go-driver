@@ -93,12 +93,12 @@ func TestIterator_Count(t *testing.T) {
 		t.Run(tcase.name, func(t *testing.T) {
 			t.Parallel()
 
-			var array Array = nil
+			var array Array
 			if tcase.values != nil {
 				array = BuildArray(nil, tcase.values...)
 			}
 
-			got := (&Iterator{Data: array}).Count()
+			got := (&Iterator{List: array}).Count()
 			assert.Equal(t, tcase.want, got)
 		})
 	}
@@ -165,12 +165,12 @@ func TestIterator_Next(t *testing.T) {
 		t.Run(tcase.name, func(t *testing.T) {
 			t.Parallel()
 
-			var array Array = nil
+			var array Array
 			if tcase.values != nil {
 				array = BuildArray(nil, tcase.values...)
 			}
 
-			iter := &Iterator{Data: array}
+			iter := &Iterator{List: array}
 
 			for _, want := range tcase.values {
 				got, err := iter.Next()

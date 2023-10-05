@@ -102,7 +102,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 			if !ok {
 				return CursorResponse{}, fmt.Errorf("firstBatch should be an array but is a BSON %s", elem.Value().Type)
 			}
-			curresp.FirstBatch = &bsoncore.Iterator{Data: arr}
+			curresp.FirstBatch = &bsoncore.Iterator{List: arr}
 		case "ns":
 			ns, ok := elem.Value().StringValueOK()
 			if !ok {
@@ -204,11 +204,11 @@ func NewEmptyBatchCursor() *BatchCursor {
 	return &BatchCursor{currentBatch: new(bsoncore.Iterator)}
 }
 
-// NewBatchCursorFromArray returns a batch cursor with current batch set to a sequence-style
-// DocumentSequence containing the provided documents.
+// NewBatchCursorFromList returns a batch cursor with current batch set to an
+// itertor that can traverse the BSON data contained within the array.
 func NewBatchCursorFromList(array []byte) *BatchCursor {
 	return &BatchCursor{
-		currentBatch: &bsoncore.Iterator{Data: array},
+		currentBatch: &bsoncore.Iterator{List: array},
 		id:           0,
 		server:       nil,
 	}
@@ -258,7 +258,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 
 	err := bc.KillCursor(ctx)
 	bc.id = 0
-	bc.currentBatch.Data = nil
+	bc.currentBatch.List = nil
 	bc.currentBatch.Reset()
 
 	connErr := bc.unpinConnection()
@@ -288,7 +288,7 @@ func (bc *BatchCursor) Server() Server {
 }
 
 func (bc *BatchCursor) clearBatch() {
-	bc.currentBatch.Data = bc.currentBatch.Data[:0]
+	bc.currentBatch.List = bc.currentBatch.List[:0]
 }
 
 // KillCursor kills cursor on server without closing batch cursor
@@ -389,7 +389,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			if !ok {
 				return fmt.Errorf("cursor.nextBatch should be an array but is a BSON %s", response.Lookup("cursor", "nextBatch").Type)
 			}
-			bc.currentBatch.Data = batch
+			bc.currentBatch.List = batch
 			bc.currentBatch.Reset()
 			bc.numReturned += int32(bc.currentBatch.Count()) // Required for legacy operations which don't support limit.
 

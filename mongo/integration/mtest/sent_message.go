@@ -93,7 +93,7 @@ func parseOpQuery(wm []byte) (*SentMessage, error) {
 		switch elem.Key() {
 		case "documents", "updates", "deletes":
 			iter = &bsoncore.Iterator{
-				Data: elem.Value().Array(),
+				List: elem.Value().Array(),
 			}
 		}
 		if iter != nil {
@@ -169,7 +169,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 		}
 
 		iter = &bsoncore.Iterator{
-			Data: data,
+			List: data,
 		}
 	}
 

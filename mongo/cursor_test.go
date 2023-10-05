@@ -52,7 +52,7 @@ func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 		arr := bsoncore.BuildArray(nil, values...)
 
 		batches = append(batches, &bsoncore.Iterator{
-			Data: arr,
+			List: arr,
 		})
 	}
 
