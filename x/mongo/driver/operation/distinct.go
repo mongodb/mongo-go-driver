@@ -57,7 +57,7 @@ func NewDistinct(key string, query bsoncore.Document) *Distinct {
 func (d *Distinct) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 	opts.ServerAPI = d.serverAPI
 
-	return driver.NewBatchCursorFromArray(d.result), nil
+	return driver.NewBatchCursorFromList(d.result), nil
 }
 
 func (d *Distinct) processResponse(info driver.ResponseInfo) error {

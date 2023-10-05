@@ -20,7 +20,7 @@ type operationResult struct {
 	Result bson.RawValue
 
 	// CursorResult holds the documents retrieved by iterating a Cursor.
-	CursorResult []bson.Raw
+	CursorResult []bson.RawValue
 
 	// Err holds the error returned by an operation. This is mutually exclusive with CursorResult but not with Result
 	// because some operations (e.g. bulkWrite) can return both a result and an error.
@@ -48,13 +48,32 @@ func newValueResult(valueType bsontype.Type, data []byte, err error) *operationR
 	}
 }
 
-// newCursorResult creates an operationResult that contains documents retrieved by fully iterating a cursor.
-func newCursorResult(arr []bson.Raw) *operationResult {
+func newCursorResultFromRawValue(arr []bson.RawValue) *operationResult {
 	// If the operation returned no documents, the array might be nil. It isn't possible to distinguish between this
 	// case and the case where there is no cursor result, so we overwrite the result with an non-nil empty slice.
 	result := arr
 	if result == nil {
-		result = make([]bson.Raw, 0)
+		result = make([]bson.RawValue, 0)
+	}
+
+	return &operationResult{
+		CursorResult: result,
+	}
+}
+
+// newCursorResult creates an operationResult that contains documents retrieved by fully iterating a cursor.
+func newCursorResult(arr []bson.Raw) *operationResult {
+
+	// If the operation returned no documents, the array might be nil. It isn't possible to distinguish between this
+	// case and the case where there is no cursor result, so we overwrite the result with an non-nil empty slice.
+	result := make([]bson.RawValue, 0)
+	for _, raw := range arr {
+		value := bson.RawValue{
+			Type:  bson.TypeEmbeddedDocument,
+			Value: raw,
+		}
+
+		result = append(result, value)
 	}
 
 	return &operationResult{

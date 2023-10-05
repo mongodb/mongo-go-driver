@@ -93,7 +93,7 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	}
 
 	// Convert documents slice to a sequence-style byte array.
-	var docsBytes []byte
+	var values []bsoncore.Value
 	for _, doc := range documents {
 		switch t := doc.(type) {
 		case nil:
@@ -102,15 +102,22 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 			// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
 			doc = bson.Raw(t)
 		}
-		var marshalErr error
-		docsBytes, marshalErr = bson.MarshalAppendWithRegistry(registry, docsBytes, doc)
-		if marshalErr != nil {
-			return nil, marshalErr
+
+		bytes, err := bson.MarshalWithRegistry(registry, doc)
+		if err != nil {
+			return nil, err
 		}
+
+		value := bsoncore.Value{
+			Type: bson.TypeEmbeddedDocument,
+			Data: bytes,
+		}
+
+		values = append(values, value)
 	}
 
 	c := &Cursor{
-		bc:       driver.NewBatchCursorFromArray(docsBytes),
+		bc:       driver.NewBatchCursorFromList(bsoncore.BuildArray(nil, values...)),
 		registry: registry,
 		err:      err,
 	}
@@ -340,14 +347,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	// completes even if the context passed to All has errored.
 	defer c.Close(context.Background())
 
-	var batch *bsoncore.Iterator
-
-	if c.batch == nil {
-		batch = c.bc.Batch()
-	} else {
-		batch = c.batch
-	}
-
+	batch := c.batch
 	for {
 		sliceVal, index, err = c.addFromBatch(sliceVal, elementType, batch, index)
 		if err != nil {

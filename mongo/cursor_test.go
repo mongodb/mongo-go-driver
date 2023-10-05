@@ -231,12 +231,12 @@ func TestNewCursorFromDocuments(t *testing.T) {
 		var i int
 		for cur.Next(context.Background()) {
 			docBytes, err := bson.Marshal(findResult[i])
-			assert.Nil(t, err, "Marshal error: %v", err)
+			require.NoError(t, err, "Marshal error: %v", err)
 			expectedDecoded := bson.Raw(docBytes)
 
 			var decoded bson.Raw
 			err = cur.Decode(&decoded)
-			assert.Nil(t, err, "Decode error: %v", err)
+			require.NoError(t, err, "Decode error: %v", err)
 			assert.Equal(t, expectedDecoded, decoded,
 				"expected decoded document %v of Cursor to be %v, got %v",
 				i, expectedDecoded, decoded)

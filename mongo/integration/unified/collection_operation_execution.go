@@ -99,6 +99,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 	if err := cursor.All(ctx, &docs); err != nil {
 		return newErrorResult(err), nil
 	}
+
 	return newCursorResult(docs), nil
 }
 
@@ -545,15 +546,17 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.Distinct(ctx, fieldName, filter, opts)
+	cursor, err := coll.Distinct(ctx, fieldName, filter, opts)
 	if err != nil {
 		return newErrorResult(err), nil
 	}
-	_, rawRes, err := bson.MarshalValue(res)
-	if err != nil {
-		return nil, fmt.Errorf("error converting Distinct result to raw BSON: %v", err)
+
+	var docs []bson.RawValue
+	if err := cursor.All(ctx, &docs); err != nil {
+		return newErrorResult(err), nil
 	}
-	return newValueResult(bsontype.Array, rawRes, nil), nil
+
+	return newCursorResultFromRawValue(docs), nil
 }
 
 func executeDropIndex(ctx context.Context, operation *operation) (*operationResult, error) {

@@ -272,7 +272,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				cursor, err := cpt.keyVaultColl.Find(context.Background(), bson.D{{"_id", dataKeyID}})
 				assert.Nil(mt, err, "key vault Find error: %v", err)
 				assert.True(mt, cursor.Next(context.Background()), "no keys found in key vault")
-				provider := cursor.Current.Lookup("masterKey", "provider").StringValue()
+				provider := cursor.Current.Document().Lookup("masterKey", "provider").StringValue()
 				assert.Equal(mt, tc.provider, provider, "expected provider %v, got %v", tc.provider, provider)
 				assert.False(mt, cursor.Next(context.Background()), "unexpected document in key vault: %v", cursor.Current)
 
@@ -2660,7 +2660,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				checkCursorResults := func(cursor *mongo.Cursor, field string, values ...bson.RawValue) {
 					for i, v := range values {
 						assert.True(mt, cursor.Next(context.Background()), "expected Next true, got false. Expected document %v with value: %v", i, v)
-						got, err := cursor.Current.LookupErr(test.field)
+						got, err := cursor.Current.Document().LookupErr(test.field)
 						assert.Nil(mt, err, "%v not found in document %v: %v", test.field, i, cursor.Current)
 						assert.Equal(mt, v, got, "expected %v, got %v in document %v", v, got, i)
 					}

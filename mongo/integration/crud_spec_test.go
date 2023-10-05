@@ -170,7 +170,7 @@ func runCrudOperation(mt *mtest.T, testDescription string, operation crudOperati
 			break
 		}
 		assert.Nil(mt, err, "Distinct error: %v", err)
-		verifyCursorResult(mt, cur, outcome.Result)
+		verifyCursorResultRawValue(mt, cur, outcome.Result)
 	case "find":
 		cursor, err := executeFind(mt, nil, operation.Arguments)
 		if outcome.Error {

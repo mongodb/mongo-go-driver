@@ -206,7 +206,7 @@ func NewEmptyBatchCursor() *BatchCursor {
 
 // NewBatchCursorFromArray returns a batch cursor with current batch set to a sequence-style
 // DocumentSequence containing the provided documents.
-func NewBatchCursorFromArray(array []byte) *BatchCursor {
+func NewBatchCursorFromList(array []byte) *BatchCursor {
 	return &BatchCursor{
 		currentBatch: &bsoncore.Iterator{Data: array},
 		id:           0,

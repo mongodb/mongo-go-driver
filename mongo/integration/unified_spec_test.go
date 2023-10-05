@@ -653,7 +653,7 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess mongo.Session) 
 	case "distinct":
 		cur, err := executeDistinct(mt, sess, op.Arguments)
 		if op.opError == nil && err == nil {
-			verifyCursorResult(mt, cur, op.Result)
+			verifyCursorResultRawValue(mt, cur, op.Result)
 		}
 		return err
 	case "insertOne":

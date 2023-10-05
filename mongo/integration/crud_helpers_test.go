@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
@@ -1612,6 +1613,35 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 		len(actual))
 	for i, expected := range resultsArray {
 		err := compareDocs(mt, expected.(bson.Raw), actual[i])
+		assert.Nil(mt, err, "cursor document mismatch at index %d: %v", i, err)
+	}
+}
+
+func verifyCursorResultRawValue(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
+	mt.Helper()
+
+	// The Atlas Data Lake tests expect a getMore to be sent even though the operation does not have a Result field.
+	// To account for this, we fetch all documents via cursor.All and then compare them to the result if it's non-nil.
+	assert.NotNil(mt, cur, "expected cursor to not be nil")
+	var actual []bson.RawValue
+	err := cur.All(context.Background(), &actual)
+	assert.Nil(mt, err, "All error: %v", err)
+
+	if result == nil {
+		return
+	}
+
+	resultsArray := result.(bson.A)
+	assert.Equal(mt, len(resultsArray), len(actual), "expected %d documents from cursor, got %d", len(resultsArray),
+		len(actual))
+	for i, want := range resultsArray {
+
+		wantType, wantBytes, err := bson.MarshalValueAppend(nil, want)
+		require.NoError(mt, err)
+
+		assert.Equal(mt, wantType, actual[i].Type)
+		assert.Equal(mt, wantBytes, actual[i].Value)
+
 		assert.Nil(mt, err, "cursor document mismatch at index %d: %v", i, err)
 	}
 }

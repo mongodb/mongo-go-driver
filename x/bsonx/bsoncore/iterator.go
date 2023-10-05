@@ -8,7 +8,6 @@ package bsoncore
 
 import (
 	"errors"
-	"fmt"
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -51,7 +50,7 @@ func (iter *Iterator) Count() int {
 }
 
 func (iter *Iterator) Empty() bool {
-	return len(iter.Data) == 0
+	return len(iter.Data) <= 5
 }
 
 func (iter *Iterator) Reset() {
@@ -84,8 +83,6 @@ func (iter *Iterator) Next() (*Value, error) {
 	if iter == nil || iter.pos >= len(iter.Data) {
 		return nil, io.EOF
 	}
-
-	fmt.Println("iter.Next")
 
 	if iter.pos < 4 {
 		if len(iter.Data) < 4 {
