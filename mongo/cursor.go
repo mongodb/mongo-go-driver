@@ -32,8 +32,7 @@ type Cursor struct {
 	//Current bson.Raw
 	Current bson.RawValue
 
-	bc batchCursor
-	//batch         *bsoncore.DocumentSequence
+	bc            batchCursor
 	batch         *bsoncore.Iterator
 	batchLength   int
 	bsonOpts      *options.BSONOptions
@@ -345,7 +344,7 @@ func (c *Cursor) All(ctx context.Context, results interface{}) error {
 	// completes even if the context passed to All has errored.
 	defer c.Close(context.Background())
 
-	batch := c.batch
+	batch := c.batch // exhaust the current batch before iterating the batch cursor
 	for {
 		sliceVal, index, err = c.addFromBatch(sliceVal, elementType, batch, index)
 		if err != nil {

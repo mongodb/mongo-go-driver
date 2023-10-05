@@ -520,7 +520,7 @@ func (coll *Collection) DeleteOne(ctx context.Context, filter interface{},
 }
 
 // DeleteMany executes a delete command to delete documents from the collection.
-// UpdateByID
+//
 // The filter parameter must be a document containing query operators and can be used to select the documents to
 // be deleted. It cannot be nil. An empty document (e.g. bson.D{}) should be used to delete all documents in the
 // collection. If the filter does not match any documents, the operation will succeed and a DeleteResult with a
