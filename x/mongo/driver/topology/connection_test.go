@@ -283,7 +283,7 @@ func TestConnection(t *testing.T) {
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
 
 						isTimeout := func(err error) bool {
-							if err == context.DeadlineExceeded {
+							if errors.Is(err, context.DeadlineExceeded) {
 								return true
 							}
 							if ne, ok := err.(net.Error); ok {
