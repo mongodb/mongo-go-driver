@@ -618,7 +618,7 @@ func TestIndexView(t *testing.T) {
 		})
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(names), "expected 2 index names, got %v", len(names))
-		_, err = iv.DropAll(context.Background())
+		err = iv.DropAll(context.Background())
 		assert.Nil(mt, err, "DropAll error: %v", err)
 
 		cursor, err := iv.List(context.Background())
