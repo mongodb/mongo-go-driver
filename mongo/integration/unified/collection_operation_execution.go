@@ -752,9 +752,9 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOne(ctx, filter, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -813,9 +813,9 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndDelete(ctx, filter, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -893,9 +893,9 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		return nil, newMissingArgumentError("replacement")
 	}
 
-	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -980,9 +980,9 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("update")
 	}
 
-	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -1202,7 +1202,7 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 	}
 	// rename can only be run on the 'admin' database.
 	admin := coll.Database().Client().Database("admin")
-	res, err := admin.RunCommand(context.Background(), renameCmd).DecodeBytes()
+	res, err := admin.RunCommand(context.Background(), renameCmd).Raw()
 	return newDocumentResult(res, err), nil
 }
 
