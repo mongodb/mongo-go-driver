@@ -1197,7 +1197,7 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
-  - func: start-cse-servers
+ # - func: start-cse-servers
 
 post:
   - command: gotest.parse_files

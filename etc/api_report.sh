@@ -15,6 +15,6 @@ sha=$(git merge-base $branch HEAD)
 
 gorelease -base=$sha > api-report.txt || true
 
-go run ./cmd/parse-api-report/main.go
+go run ./cmd/parse-api-report/main.go || (cat api-report.txt && exit 1)
 
 rm api-report.txt
