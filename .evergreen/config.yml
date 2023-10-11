@@ -117,7 +117,7 @@ functions:
           else
             # Install libmongocrypt on posix.
             bash etc/install-libmongocrypt.sh
-          if
+          fi
 
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
