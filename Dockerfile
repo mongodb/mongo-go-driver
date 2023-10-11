@@ -25,7 +25,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   add-apt-repository ppa:longsleep/golang-backports && \
   apt-get -qq update && \
   apt-get -qqy install --no-install-recommends \
-  gnupg \
   golang-go \
   pkg-config \
   tzdata \
