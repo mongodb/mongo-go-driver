@@ -83,8 +83,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		}
 	}
 
-	defer func() { log.lastOrder++ }()
-
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{

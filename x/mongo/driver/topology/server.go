@@ -1028,7 +1028,19 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
-		descRaw, _ := bson.Marshal(desc)
+		descRaw, _ := bson.Marshal(struct {
+			description.Server `bson:",inline"`
+			Ok                 int32
+		}{
+			Server: desc,
+			Ok: func() int32 {
+				if desc.LastError != nil {
+					return 0
+				}
+
+				return 1
+			}(),
+		})
 
 		logServerMessage(s, logger.TopologyServerHeartbeatSucceeded,
 			logger.KeyAwaited, await,
