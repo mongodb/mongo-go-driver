@@ -1490,11 +1490,11 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 	// If the operation is defined for an explicit session but the server
 	// does not support sessions, then throw an error.
-	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutesPtr == nil {
+	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutes == nil {
 		return nil, fmt.Errorf("current topology does not support sessions")
 	}
 
-	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutesPtr == nil {
+	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == nil {
 		return dst, nil
 	}
 	if err := client.UpdateUseTime(); err != nil {
@@ -2045,5 +2045,5 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
-	return s.SessionTimeoutMinutesPtr != nil && s.Kind != description.Standalone
+	return s.SessionTimeoutMinutes != nil && s.Kind != description.Standalone
 }

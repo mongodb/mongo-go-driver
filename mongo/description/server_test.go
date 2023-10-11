@@ -51,7 +51,7 @@ func TestServer(t *testing.T) {
 			{
 				"sessionTimeoutMinutes",
 				Server{
-					SessionTimeoutMinutesPtr: int64ToPtr(1),
+					SessionTimeoutMinutes: int64ToPtr(1),
 				},
 				false,
 			},

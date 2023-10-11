@@ -152,19 +152,19 @@ func TestOperation(t *testing.T) {
 		wcUnack := &writeconcern.WriteConcern{W: 0}
 
 		descRetryable := description.Server{
-			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
-			SessionTimeoutMinutesPtr: int64ToPtr(1),
+			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes: int64ToPtr(1),
 		}
 
 		descNotRetryableWireVersion := description.Server{
-			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
-			SessionTimeoutMinutesPtr: int64ToPtr(1),
+			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes: int64ToPtr(1),
 		}
 
 		descNotRetryableStandalone := description.Server{
-			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
-			SessionTimeoutMinutesPtr: int64ToPtr(1),
-			Kind:                     description.Standalone,
+			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes: int64ToPtr(1),
+			Kind:                  description.Standalone,
 		}
 
 		testCases := []struct {
