@@ -41,6 +41,11 @@ func TestMergeChangeStreamOptions(t *testing.T) {
 		want        *options.ChangeStreamOptions
 	}{
 		{
+			description: "nil",
+			input:       nil,
+			want:        &options.ChangeStreamOptions{},
+		},
+		{
 			description: "empty",
 			input:       []*options.ChangeStreamOptions{},
 			want:        &options.ChangeStreamOptions{},
