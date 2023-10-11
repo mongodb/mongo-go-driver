@@ -526,10 +526,8 @@ func (t *T) ClearCollections() {
 				// could prevent it from being dropped for sharded clusters. We can resolve this by
 				// re-instantiating the collection with a majority write concern before dropping.
 				collname := coll.created.Name()
-				wcm := &writeconcern.WriteConcern{
-					W:        "majority",
-					WTimeout: 1 * time.Second,
-				}
+				wcm := writeconcern.Majority()
+				wcm.WTimeout = 1 * time.Second
 				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
 				_ = wccoll.Drop(context.Background())
 

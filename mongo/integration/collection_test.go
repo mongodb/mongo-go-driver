@@ -1685,7 +1685,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
 		})
 		unackClientOpts := options.Client().
-			SetWriteConcern(&writeconcern.WriteConcern{W: 0})
+			SetWriteConcern(writeconcern.Unacknowledged())
 		unackMtOpts := mtest.NewOptions().
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")

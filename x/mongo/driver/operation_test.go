@@ -149,7 +149,7 @@ func TestOperation(t *testing.T) {
 		noerr(t, err)
 
 		wcAck := writeconcern.Majority()
-		wcUnack := &writeconcern.WriteConcern{W: 0}
+		wcUnack := writeconcern.Unacknowledged()
 
 		descRetryable := description.Server{
 			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
