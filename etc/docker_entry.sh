@@ -12,6 +12,7 @@ source $DRIVERS_TOOLS/.evergreen/mo-expansion.sh
 cd /src
 rm -f test.suite
 cp -r $HOME/install ./install
+export PATH=$MONGODB_BINARIES/
 
 # Run the test.
 bash ./.evergreen/run-tests.sh
