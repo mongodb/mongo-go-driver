@@ -55,6 +55,9 @@ func newLogger(olm *observeLogMessages, bufSize int, ignoreMessages []*logMessag
 // Info implements the logger.Sink interface's "Info" method for printing log
 // messages.
 func (log *Logger) Info(level int, msg string, args ...interface{}) {
+	log.orderMu.Lock()
+	defer log.orderMu.Unlock()
+
 	if log.logQueue == nil {
 		return
 	}
@@ -64,9 +67,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	if log.lastOrder > log.bufSize {
 		return
 	}
-
-	log.orderMu.Lock()
-	defer log.orderMu.Unlock()
 
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
@@ -83,6 +83,8 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		}
 	}
 
+	defer func() { log.lastOrder++ }()
+
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
@@ -93,8 +95,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	if log.lastOrder == log.bufSize {
 		close(log.logQueue)
 	}
-
-	log.lastOrder++
 }
 
 // Error implements the logger.Sink interface's "Error" method for printing log
