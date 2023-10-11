@@ -281,9 +281,11 @@ func (e CommandError) HasErrorCode(code int) bool {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (e CommandError) HasErrorLabel(label string) bool {
-	for _, l := range e.Labels {
-		if l == label {
-			return true
+	if e.Labels != nil {
+		for _, l := range e.Labels {
+			if l == label {
+				return true
+			}
 		}
 	}
 	return false
@@ -453,9 +455,11 @@ func (mwe WriteException) HasErrorCode(code int) bool {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (mwe WriteException) HasErrorLabel(label string) bool {
-	for _, l := range mwe.Labels {
-		if l == label {
-			return true
+	if mwe.Labels != nil {
+		for _, l := range mwe.Labels {
+			if l == label {
+				return true
+			}
 		}
 	}
 	return false
@@ -565,9 +569,11 @@ func (bwe BulkWriteException) HasErrorCode(code int) bool {
 
 // HasErrorLabel returns true if the error contains the specified label.
 func (bwe BulkWriteException) HasErrorLabel(label string) bool {
-	for _, l := range bwe.Labels {
-		if l == label {
-			return true
+	if bwe.Labels != nil {
+		for _, l := range bwe.Labels {
+			if l == label {
+				return true
+			}
 		}
 	}
 	return false

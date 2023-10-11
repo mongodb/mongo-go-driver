@@ -49,8 +49,8 @@ do
     esac
 done
 
-# Find all .go files and try to write a license notice.
-GO_FILES=$(find . -type f -name "*.go" -print)
+# Find all .go files not in the vendor directory and try to write a license notice.
+GO_FILES=$(find . -path ./vendor -prune -o -type f -name "*.go" -print)
 
 for file in $GO_FILES
 do

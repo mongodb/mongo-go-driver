@@ -34,7 +34,7 @@ func TestOCSP(t *testing.T) {
 		clientOpts := createOCSPClientOptions(cs.Original)
 		client, err := Connect(bgCtx, clientOpts)
 		assert.Nil(t, err, "Connect error: %v", err)
-		defer func() { _ = client.Disconnect(bgCtx) }()
+		defer client.Disconnect(bgCtx)
 
 		err = client.Ping(bgCtx, readpref.Primary())
 		if shouldSucceed {
@@ -49,7 +49,7 @@ func TestOCSP(t *testing.T) {
 		clientOpts := createInsecureOCSPClientOptions(cs.Original)
 		client, err := Connect(bgCtx, clientOpts)
 		assert.Nil(t, err, "Connect error: %v", err)
-		defer func() { _ = client.Disconnect(bgCtx) }()
+		defer client.Disconnect(bgCtx)
 
 		err = client.Ping(bgCtx, readpref.Primary())
 		assert.Nil(t, err, "Ping error: %v", err)

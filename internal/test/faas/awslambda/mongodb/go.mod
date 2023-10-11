@@ -6,7 +6,6 @@ replace go.mongodb.org/mongo-driver => ../../../../../
 
 require (
 	github.com/aws/aws-lambda-go v1.41.0
-
 	// Note that the Go driver version is replaced with the local Go driver code
 	// by the replace directive above.
 	go.mongodb.org/mongo-driver v1.11.7
