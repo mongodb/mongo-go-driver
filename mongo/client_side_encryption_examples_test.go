@@ -60,7 +60,7 @@ func Example_clientSideEncryption() {
 	if err != nil {
 		log.Fatalf("InsertOne error: %v", err)
 	}
-	res, err := collection.FindOne(context.TODO(), bson.D{}).DecodeBytes()
+	res, err := collection.FindOne(context.TODO(), bson.D{}).Raw()
 	if err != nil {
 		log.Fatalf("FindOne error: %v", err)
 	}

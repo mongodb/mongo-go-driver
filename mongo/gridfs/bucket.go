@@ -593,7 +593,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 
 	docRes := cloned.FindOne(ctx, bson.D{}, options.FindOne().SetProjection(bson.D{{"_id", 1}}))
 
-	_, err = docRes.DecodeBytes()
+	_, err = docRes.Raw()
 	if err != mongo.ErrNoDocuments {
 		// nil, or error that occurred during the FindOne operation
 		return err

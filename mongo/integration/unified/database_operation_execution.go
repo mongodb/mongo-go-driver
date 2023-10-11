@@ -269,7 +269,7 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 		return nil, newMissingArgumentError("command")
 	}
 
-	res, err := db.RunCommand(ctx, command, opts).DecodeBytes()
+	res, err := db.RunCommand(ctx, command, opts).Raw()
 	return newDocumentResult(res, err), nil
 }
 

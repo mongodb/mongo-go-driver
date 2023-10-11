@@ -8,5 +8,5 @@ if [ -z "$DRIVERS_TOOLS" ]; then
     exit 1
 fi
 
-bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh $@
+bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh "$@"
 . ./secrets-export.sh

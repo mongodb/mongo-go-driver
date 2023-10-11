@@ -613,7 +613,7 @@ func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
 		bson.D{{"serverStatus", 1}},
-	).DecodeBytes()
+	).Raw()
 	if err != nil {
 		return "", err
 	}
