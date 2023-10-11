@@ -770,7 +770,7 @@ functions:
         silent: true
         script: |
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python3 -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            alias urlencode='python3 -c "import sys, urllib.parse as ulp; sys.stdout.write(ulp.quote_plus(sys.argv[1]))"'
             USER=$(urlencode ${iam_auth_ecs_account})
             PASS=$(urlencode ${iam_auth_ecs_secret_access_key})
             MONGODB_URI="mongodb://$USER:$PASS@localhost"
