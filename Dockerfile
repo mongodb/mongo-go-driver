@@ -22,8 +22,8 @@ FROM drivers-evergreen-tools
 
 RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
-  deb https://ppa.launchpadcontent.net/longsleep/golang-backports/ubuntu jammy main && \
-  deb-src https://ppa.launchpadcontent.net/longsleep/golang-backports/ubuntu jammy main  && \
+  echo "deb https://ppa.launchpadcontent.net/longsleep/golang-backports/ubuntu jammy main" >> /etc/apt/sources.list && \
+  echo "deb-src https://ppa.launchpadcontent.net/longsleep/golang-backports/ubuntu jammy main" > /etc/apt/sources.list  && \
   apt-get -qq update && \
   apt-get -qqy install --no-install-recommends \
   golang-go \
