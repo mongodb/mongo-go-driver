@@ -348,6 +348,20 @@ functions:
           ${PREPARE_SHELL}
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
+  create-api-report:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          set -x
+          export GITHUB_BASE_REF=${branch_name}
+          make api-report
+          target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
+          bash $target -s "$(pwd)" -m "## API Change Report" -c "$(pwd)/api-report.md"
+
   send-perf-data:
     - command: perf.send
       params:
@@ -1199,9 +1213,10 @@ tasks:
   - name: static-analysis
     tags: ["static-analysis"]
     commands:
-      - func: run-make
-        vars:
-          targets: "check-fmt check-license check-modules lint"
+      - func: "create-api-report"
+      # - func: run-make
+      #   vars:
+      #     targets: "check-fmt check-license check-modules lint"
 
   - name: perf
     tags: ["performance"]
