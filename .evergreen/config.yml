@@ -733,7 +733,7 @@ functions:
               "iam_auth_ecs_secret_access_key" : "${iam_auth_ecs_secret_access_key}",
               "iam_auth_ecs_account_arn": "arn:aws:iam::557821124784:user/authtest_fargate_user",
               "iam_auth_ecs_cluster": "${iam_auth_ecs_cluster}",
-              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition}",
+              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition_ubuntu2004}",
               "iam_auth_ecs_subnet_a": "${iam_auth_ecs_subnet_a}",
               "iam_auth_ecs_subnet_b": "${iam_auth_ecs_subnet_b}",
               "iam_auth_ecs_security_group": "${iam_auth_ecs_security_group}",
@@ -2389,9 +2389,9 @@ axes:
           SKIP_ECS_AUTH_TEST: true
       # TODO(BUILD-17329): Update this to Ubuntu 22 after we add a new ECS task
       # definition.
-      - id: "ubuntu1804-64-go-1-20"
-        display_name: "Ubuntu 18.04"
-        run_on: ubuntu1804-test
+      - id: "ubuntu2004-64-go-1-20"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-test
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
