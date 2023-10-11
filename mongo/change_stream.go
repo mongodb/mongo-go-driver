@@ -102,7 +102,7 @@ type changeStreamConfig struct {
 }
 
 // mergeChangeStreamOptions combines the given ChangeStreamOptions instances into a single ChangeStreamOptions in a
-// last-one-wins fashion.
+// last-property-wins fashion.
 func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.ChangeStreamOptions {
 	csOpts := options.ChangeStream()
 	for _, cso := range opts {

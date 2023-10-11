@@ -953,7 +953,7 @@ func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
 	return c
 }
 
-// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
+// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last property wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
 //

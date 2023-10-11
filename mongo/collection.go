@@ -69,7 +69,7 @@ func closeImplicitSession(sess *session.Client) {
 }
 
 // mergeCollectionOptions combines the given CollectionOptions instances into a single *CollectionOptions in a
-// last-one-wins fashion.
+// last-property-wins fashion.
 func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.CollectionOptions {
 	c := options.Collection()
 
@@ -909,7 +909,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	return aggregate(a)
 }
 
-// mergeAggregateOptions combines the given AggregateOptions instances into a single AggregateOptions in a last-one-wins
+// mergeAggregateOptions combines the given AggregateOptions instances into a single AggregateOptions in a last-property-wins
 // fashion.
 func mergeAggregateOptions(opts ...*options.AggregateOptions) *options.AggregateOptions {
 	aggOpts := options.Aggregate()
@@ -1384,7 +1384,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	return retArray, replaceErrors(err)
 }
 
-// mergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-one-wins fashion.
+// mergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-property-wins fashion.
 func mergeFindOptions(opts ...*options.FindOptions) *options.FindOptions {
 	fo := options.Find()
 	for _, opt := range opts {
@@ -1735,7 +1735,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 }
 
 // mergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
-// FindOneAndDeleteOptions in a last-one-wins fashion.
+// FindOneAndDeleteOptions in a last-property-wins fashion.
 func mergeFindOneAndDeleteOptions(opts ...*options.FindOneAndDeleteOptions) *options.FindOneAndDeleteOptions {
 	fo := options.FindOneAndDelete()
 	for _, opt := range opts {
@@ -1838,7 +1838,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 }
 
 // mergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
-// FindOneAndReplaceOptions in a last-one-wins fashion.
+// FindOneAndReplaceOptions in a last-property-wins fashion.
 func mergeFindOneAndReplaceOptions(opts ...*options.FindOneAndReplaceOptions) *options.FindOneAndReplaceOptions {
 	fo := options.FindOneAndReplace()
 	for _, opt := range opts {
@@ -1970,7 +1970,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 }
 
 // mergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
-// FindOneAndUpdateOptions in a last-one-wins fashion.
+// FindOneAndUpdateOptions in a last-property-wins fashion.
 func mergeFindOneAndUpdateOptions(opts ...*options.FindOneAndUpdateOptions) *options.FindOneAndUpdateOptions {
 	fo := options.FindOneAndUpdate()
 	for _, opt := range opts {

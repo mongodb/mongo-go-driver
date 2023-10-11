@@ -563,7 +563,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 }
 
 // mergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
-// CreateCollectionOptions in a last-one-wins fashion.
+// CreateCollectionOptions in a last-property-wins fashion.
 func mergeCreateCollectionOptions(opts ...*options.CreateCollectionOptions) *options.CreateCollectionOptions {
 	cc := options.CreateCollection()
 
@@ -875,7 +875,7 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 }
 
 // mergeCreateViewOptions combines the given CreateViewOptions instances into a single CreateViewOptions in a
-// last-one-wins fashion.
+// last-property-wins fashion.
 func mergeCreateViewOptions(opts ...*options.CreateViewOptions) *options.CreateViewOptions {
 	cv := options.CreateView()
 
