@@ -176,22 +176,22 @@ functions:
           # initialize submodules
           git submodule init
           git submodule update
-    - command: shell.exec
-      params:
-        shell: "bash"
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
-          . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
+    # - command: shell.exec
+    #   params:
+    #     shell: "bash"
+    #     working_dir: src/go.mongodb.org/mongo-driver
+    #     script: |
+    #       . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
+    #       . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON3_BINARY="$(find_python3)"
-          venvcreate "$PYTHON3_BINARY" venv
+    #       export PYTHON3_BINARY="$(find_python3)"
+    #       venvcreate "$PYTHON3_BINARY" venv
 
-          echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
-    # Load the expansion file to make an evergreen variable with the current unique version
-    - command: expansions.update
-      params:
-        file: src/go.mongodb.org/mongo-driver/expansion.yml
+    #       echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
+    # # Load the expansion file to make an evergreen variable with the current unique version
+    # - command: expansions.update
+    #   params:
+    #     file: src/go.mongodb.org/mongo-driver/expansion.yml
 
   upload-mo-artifacts:
     - command: shell.exec
