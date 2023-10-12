@@ -359,8 +359,7 @@ functions:
           ${PREPARE_SHELL}
           set -x
           export GITHUB_BASE_REF=${branch_name}
-          export GITHUB_BASE_SHA=757e2a7896f9090276cfc358ce7ce3463f0f4fd0
-          echo "REVISION: ${revision}"
+          export GITHUB_BASE_SHA=${revision}
           git checkout -b test-api-report
           git add .
           git commit -m "local changes"
