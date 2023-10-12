@@ -13,6 +13,9 @@ perf
 *.test
 .DS_Store
 main.so
+.cache
+install
+libmongocrypt
 
 # AWS SAM-generated files
 internal/test/faas/awslambda/.aws-sam
