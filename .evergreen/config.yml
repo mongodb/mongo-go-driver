@@ -359,6 +359,7 @@ functions:
           set -x
           export GITHUB_BASE_REF=${branch_name}
           export GITHUB_BASE_SHA=${github_commit}
+          git checkout -b test-api-report
           make api-report
           target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
           bash $target -s "$(pwd)" -m "## API Change Report" -c "$(pwd)/api-report.md"

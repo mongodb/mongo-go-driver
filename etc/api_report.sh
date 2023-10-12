@@ -10,7 +10,7 @@ if [ -z $cmd ]; then
 fi
 
 branch=${GITHUB_BASE_REF:-master}
-if [ -z "${GITHUB_BASE_SHA:-}"]; then
+if [ -z "${GITHUB_BASE_SHA:-}" ]; then
     git fetch origin $branch:$branch
     sha=$(git merge-base $branch HEAD)
 else
