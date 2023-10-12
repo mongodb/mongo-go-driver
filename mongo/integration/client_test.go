@@ -515,7 +515,7 @@ func TestClient(t *testing.T) {
 		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
 	})
 
-	rtt90Opts := mtest.NewOptions().MinServerVersion("4.4")
+	rtt90Opts := mtest.NewOptions()
 	mt.RunOpts("minimum RTT is monitored", rtt90Opts, func(mt *mtest.T) {
 		mt.Parallel()
 

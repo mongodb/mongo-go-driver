@@ -851,6 +851,12 @@ func (s *Server) check() (description.Server, error) {
 		streamable := isStreamingEnabled(s) && isStreamable(s)
 
 		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
+
+		// We need to record an RTT sample in the polling case so that if the server
+		// is < 4.4, or if polling is specified by the user, then the
+		// RTT-short-circuit feature of CSOT is not disabled.
+		var addPollingRTTSample bool
+
 		switch {
 		case s.conn.getCurrentlyStreaming():
 			// The connection is already in a streaming state, so we stream the next response.
@@ -880,8 +886,14 @@ func (s *Server) check() (description.Server, error) {
 
 			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
 			err = baseOperation.Execute(s.heartbeatCtx)
+
+			addPollingRTTSample = true
 		}
+
 		duration = time.Since(start)
+		if addPollingRTTSample {
+			s.rttMonitor.addSample(duration)
+		}
 
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)
