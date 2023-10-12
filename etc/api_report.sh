@@ -17,6 +17,7 @@ else
     sha="$GITHUB_BASE_SHA"
 fi
 
+git status
 gorelease -base=$sha > api-report.txt || true
 
 go run ./cmd/parse-api-report/main.go || (cat api-report.txt && exit 1)
