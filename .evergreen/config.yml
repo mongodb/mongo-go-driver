@@ -358,7 +358,7 @@ functions:
           ${PREPARE_SHELL}
           export BASE_SHA=${revision}
           export HEAD_SHA=${github_commit}
-          bash etc/api-report.sh
+          bash etc/api_report.sh
 
   send-perf-data:
     - command: perf.send
