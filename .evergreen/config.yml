@@ -54,7 +54,7 @@ functions:
           export GOCACHE="$(pwd)/.cache"
 
           # Set other relevant variables for Evergreen processes.
-          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+          export DRIVERS_TOOLS="$(pwd)/../../drivers-tools"
           export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
