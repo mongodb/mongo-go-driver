@@ -363,6 +363,7 @@ functions:
           git add .
           git commit -m "local changes"
           make api-report
+          git checkout ${github_commit}
           target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
           bash $target -s "$(pwd)" -m "## API Change Report" -c "$(pwd)/api-report.md"
 
