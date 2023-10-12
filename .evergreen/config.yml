@@ -354,6 +354,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
           set -x
