@@ -20,6 +20,8 @@ fi
 git status
 gorelease -base=$sha > api-report.txt || true
 
-go run ./cmd/parse-api-report/main.go || (cat api-report.txt && exit 1)
+cat api-report.txt
+
+go run ./cmd/parse-api-report/main.go
 
 rm api-report.txt
