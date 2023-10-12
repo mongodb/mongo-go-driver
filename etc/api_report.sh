@@ -11,7 +11,11 @@ fi
 
 branch=${GITHUB_BASE_REF:-master}
 git fetch origin $branch:$branch
-sha=$(git merge-base $branch HEAD)
+if [ -z "${GITHUB_BASE_SHA:-}"]; then
+    sha=$(git merge-base $branch HEAD)
+else
+    sha="$GITHUB_BASE_SHA"
+fi
 
 gorelease -base=$sha > api-report.txt || true
 
