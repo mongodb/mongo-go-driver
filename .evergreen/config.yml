@@ -354,19 +354,11 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
-          set -x
-          export GITHUB_BASE_REF=${branch_name}
-          export GITHUB_BASE_SHA=${revision}
-          git checkout -b test-api-report
-          git add .
-          git commit -m "local changes"
-          make api-report
-          git checkout ${github_commit}
-          target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
-          bash $target -s "$(pwd)" -m "## API Change Report" -c "$(pwd)/api-report.md"
+          export BASE_SHA=${revision}
+          export HEAD_SHA=${github_commit}
+          bash etc/api-report.sh
 
   send-perf-data:
     - command: perf.send
