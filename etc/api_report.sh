@@ -28,4 +28,4 @@ rm api-report.txt
 
 # Make the PR comment.
 target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
-bash $target -s "$(pwd)" -m "## API Change Report" -c "$(pwd)/api-report.md" -h $HEAD_SHA
+bash $target -s "$(pwd)" -m "## API Change Report" -c "$(pwd)/api-report.md" -h $HEAD_SHA -o "mongodb" -n "mongo-go-driver"
