@@ -25,7 +25,7 @@ func TestCompression(t *testing.T) {
 		t.Skip("Skipping because no compressor specified")
 	}
 
-	wc := writeconcern.New(writeconcern.WMajority())
+	wc := writeconcern.Majority()
 	collOne := integtest.ColName(t)
 
 	dropCollection(t, integtest.DBName(t), collOne)

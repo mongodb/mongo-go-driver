@@ -60,30 +60,3 @@ func (do *DeleteOptions) SetLet(let interface{}) *DeleteOptions {
 	do.Let = let
 	return do
 }
-
-// MergeDeleteOptions combines the given DeleteOptions instances into a single DeleteOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeDeleteOptions(opts ...*DeleteOptions) *DeleteOptions {
-	dOpts := Delete()
-	for _, do := range opts {
-		if do == nil {
-			continue
-		}
-		if do.Collation != nil {
-			dOpts.Collation = do.Collation
-		}
-		if do.Comment != nil {
-			dOpts.Comment = do.Comment
-		}
-		if do.Hint != nil {
-			dOpts.Hint = do.Hint
-		}
-		if do.Let != nil {
-			dOpts.Let = do.Let
-		}
-	}
-
-	return dOpts
-}

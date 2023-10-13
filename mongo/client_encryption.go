@@ -38,7 +38,25 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	ce := &ClientEncryption{
 		keyVaultClient: keyVaultClient,
 	}
-	ceo := options.MergeClientEncryptionOptions(opts...)
+	ceo := options.ClientEncryption()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.KeyVaultNamespace != "" {
+			ceo.KeyVaultNamespace = opt.KeyVaultNamespace
+		}
+		if opt.KmsProviders != nil {
+			ceo.KmsProviders = opt.KmsProviders
+		}
+		if opt.TLSConfig != nil {
+			ceo.TLSConfig = opt.TLSConfig
+		}
+		if opt.HTTPClient != nil {
+			ceo.HTTPClient = opt.HTTPClient
+		}
+	}
 
 	// create keyVaultColl
 	db, coll := splitNamespace(ceo.KeyVaultNamespace)
@@ -144,7 +162,22 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
 
 	// translate opts to mcopts.DataKeyOptions
-	dko := options.MergeDataKeyOptions(opts...)
+	dko := options.DataKey()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.MasterKey != nil {
+			dko.MasterKey = opt.MasterKey
+		}
+		if opt.KeyAltNames != nil {
+			dko.KeyAltNames = opt.KeyAltNames
+		}
+		if opt.KeyMaterial != nil {
+			dko.KeyMaterial = opt.KeyMaterial
+		}
+	}
 	co := mcopts.DataKey().SetKeyAltNames(dko.KeyAltNames)
 	if dko.MasterKey != nil {
 		keyDoc, err := marshal(
@@ -178,7 +211,31 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
 func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts.ExplicitEncryptionOptions {
-	eo := options.MergeEncryptOptions(opts...)
+	eo := options.Encrypt()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		if opt.KeyID != nil {
+			eo.KeyID = opt.KeyID
+		}
+		if opt.KeyAltName != nil {
+			eo.KeyAltName = opt.KeyAltName
+		}
+		if opt.Algorithm != "" {
+			eo.Algorithm = opt.Algorithm
+		}
+		if opt.QueryType != "" {
+			eo.QueryType = opt.QueryType
+		}
+		if opt.ContentionFactor != nil {
+			eo.ContentionFactor = opt.ContentionFactor
+		}
+		if opt.RangeOptions != nil {
+			eo.RangeOptions = opt.RangeOptions
+		}
+	}
 	transformed := mcopts.ExplicitEncryption()
 	if eo.KeyID != nil {
 		transformed.SetKeyID(*eo.KeyID)
@@ -375,7 +432,18 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)
 	}
 
-	rmdko := options.MergeRewrapManyDataKeyOptions(opts...)
+	rmdko := options.RewrapManyDataKey()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if provider := opt.Provider; provider != nil {
+			rmdko.Provider = provider
+		}
+		if masterKey := opt.MasterKey; masterKey != nil {
+			rmdko.MasterKey = masterKey
+		}
+	}
 	if ctx == nil {
 		ctx = context.Background()
 	}

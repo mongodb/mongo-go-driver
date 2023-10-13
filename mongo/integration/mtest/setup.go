@@ -58,7 +58,7 @@ var testContext struct {
 }
 
 func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
-	wcMajority := writeconcern.New(writeconcern.WMajority())
+	wcMajority := writeconcern.Majority()
 	// set ServerAPIOptions to latest version if required
 	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
@@ -71,7 +71,15 @@ func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
 // Setup initializes the current testing context.
 // This function must only be called one time and must be called before any tests run.
 func Setup(setupOpts ...*SetupOptions) error {
-	opts := MergeSetupOptions(setupOpts...)
+	opts := NewSetupOptions()
+	for _, opt := range setupOpts {
+		if opt == nil {
+			continue
+		}
+		if opt.URI != nil {
+			opts.URI = opt.URI
+		}
+	}
 
 	var uri string
 	var err error

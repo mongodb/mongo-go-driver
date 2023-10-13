@@ -26,31 +26,13 @@ type ReadConcern struct {
 	Level string
 }
 
-// Option is an option to provide when creating a ReadConcern.
-//
-// Deprecated: Use the ReadConcern literal declaration instead. For example:
-//
-//	&readconcern.ReadConcern{Level: "local"}
-type Option func(concern *ReadConcern)
-
-// Level creates an option that sets the level of a ReadConcern.
-//
-// Deprecated: Use the ReadConcern literal declaration instead. For example:
-//
-//	&readconcern.ReadConcern{Level: "local"}
-func Level(level string) Option {
-	return func(concern *ReadConcern) {
-		concern.Level = level
-	}
-}
-
 // Local returns a ReadConcern that requests data from the instance with no guarantee that the data
 // has been written to a majority of the replica set members (i.e. may be rolled back).
 //
 // For more information about read concern "local", see
 // https://www.mongodb.com/docs/manual/reference/read-concern-local/
 func Local() *ReadConcern {
-	return New(Level("local"))
+	return &ReadConcern{Level: "local"}
 }
 
 // Majority returns a ReadConcern that requests data that has been acknowledged by a majority of the
@@ -59,7 +41,7 @@ func Local() *ReadConcern {
 // For more information about read concern "majority", see
 // https://www.mongodb.com/docs/manual/reference/read-concern-majority/
 func Majority() *ReadConcern {
-	return New(Level("majority"))
+	return &ReadConcern{Level: "majority"}
 }
 
 // Linearizable returns a ReadConcern that requests data that reflects all successful
@@ -68,7 +50,7 @@ func Majority() *ReadConcern {
 // For more information about read concern "linearizable", see
 // https://www.mongodb.com/docs/manual/reference/read-concern-linearizable/
 func Linearizable() *ReadConcern {
-	return New(Level("linearizable"))
+	return &ReadConcern{Level: "linearizable"}
 }
 
 // Available returns a ReadConcern that requests data from an instance with no guarantee that the
@@ -77,7 +59,7 @@ func Linearizable() *ReadConcern {
 // For more information about read concern "available", see
 // https://www.mongodb.com/docs/manual/reference/read-concern-available/
 func Available() *ReadConcern {
-	return New(Level("available"))
+	return &ReadConcern{Level: "available"}
 }
 
 // Snapshot returns a ReadConcern that requests majority-committed data as it appears across shards
@@ -86,22 +68,7 @@ func Available() *ReadConcern {
 // For more information about read concern "snapshot", see
 // https://www.mongodb.com/docs/manual/reference/read-concern-snapshot/
 func Snapshot() *ReadConcern {
-	return New(Level("snapshot"))
-}
-
-// New constructs a new read concern from the given string.
-//
-// Deprecated: Use the ReadConcern literal declaration instead. For example:
-//
-//	&readconcern.ReadConcern{Level: "local"}
-func New(options ...Option) *ReadConcern {
-	concern := &ReadConcern{}
-
-	for _, option := range options {
-		option(concern)
-	}
-
-	return concern
+	return &ReadConcern{Level: "snapshot"}
 }
 
 // MarshalBSONValue implements the bson.ValueMarshaler interface.
@@ -119,11 +86,4 @@ func (rc *ReadConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	}
 
 	return bsontype.EmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
-}
-
-// GetLevel returns the read concern level.
-//
-// Deprecated: Use the ReadConcern.Level field instead.
-func (rc *ReadConcern) GetLevel() string {
-	return rc.Level
 }

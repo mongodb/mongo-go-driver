@@ -65,7 +65,7 @@ func (p *Pool) updateTimeout() {
 	case newDesc := <-p.descChan:
 		p.latestTopology = topologyDescription{
 			kind:           newDesc.Kind,
-			timeoutMinutes: newDesc.SessionTimeoutMinutesPtr,
+			timeoutMinutes: newDesc.SessionTimeoutMinutes,
 		}
 	default:
 		// no new description waiting

@@ -14,13 +14,11 @@ import (
 
 // Topology contains information about a MongoDB cluster.
 type Topology struct {
-	Servers []Server
-	SetName string
-	Kind    TopologyKind
-	// Deprecated: Use SessionTimeoutMinutesPtr instead.
-	SessionTimeoutMinutes    uint32
-	SessionTimeoutMinutesPtr *int64
-	CompatibilityErr         error
+	Servers               []Server
+	SetName               string
+	Kind                  TopologyKind
+	SessionTimeoutMinutes *int64
+	CompatibilityErr      error
 }
 
 // String implements the Stringer interface.

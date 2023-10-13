@@ -120,31 +120,3 @@ func BuildTLSConfig(tlsOpts map[string]interface{}) (*tls.Config, error) {
 
 	return cfg, nil
 }
-
-// MergeClientEncryptionOptions combines the argued ClientEncryptionOptions in a last-one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeClientEncryptionOptions(opts ...*ClientEncryptionOptions) *ClientEncryptionOptions {
-	ceo := ClientEncryption()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.KeyVaultNamespace != "" {
-			ceo.KeyVaultNamespace = opt.KeyVaultNamespace
-		}
-		if opt.KmsProviders != nil {
-			ceo.KmsProviders = opt.KmsProviders
-		}
-		if opt.TLSConfig != nil {
-			ceo.TLSConfig = opt.TLSConfig
-		}
-		if opt.HTTPClient != nil {
-			ceo.HTTPClient = opt.HTTPClient
-		}
-	}
-
-	return ceo
-}
