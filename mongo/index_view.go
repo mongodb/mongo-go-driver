@@ -425,16 +425,18 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 	return iv.drop(ctx, name, opts...)
 }
 
-// DropAll executes a dropIndexes operation to drop all indexes on the collection. If the operation succeeds, this
-// returns a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the
-// number of indexes that existed prior to the drop.
+// DropAll executes a dropIndexes operation to drop all indexes on the
+// collection.
 //
-// The opts parameter can be used to specify options for this operation (see the options.DropIndexesOptions
-// documentation).
+// The opts parameter can be used to specify options for this operation (see the
+// options.DropIndexesOptions documentation).
 //
-// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
-func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
-	return iv.drop(ctx, "*", opts...)
+// For more information about the command, see
+// https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
+func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) error {
+	_, err := iv.drop(ctx, "*", opts...)
+
+	return err
 }
 
 func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel) (string, error) {

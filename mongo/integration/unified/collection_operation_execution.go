@@ -607,8 +607,8 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 		}
 	}
 
-	res, err := coll.Indexes().DropAll(ctx, dropIndexOpts)
-	return newDocumentResult(res, err), nil
+	err = coll.Indexes().DropAll(ctx, dropIndexOpts)
+	return newDocumentResult(nil, err), nil
 }
 
 func executeDropSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
