@@ -24,7 +24,7 @@ gorelease -base=$BASE_SHA > api-report.txt || true
 cat api-report.txt
 go run ./cmd/parse-api-report/main.go
 rm api-report.txt
-cat "test!" >> api-report.md
+echo "test!" >> api-report.md
 
 # Make the PR comment.
 target=$DRIVERS_TOOLS/.evergreen/github_app/create_or_modify_comment.sh
