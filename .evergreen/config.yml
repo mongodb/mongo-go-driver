@@ -1212,9 +1212,9 @@ tasks:
     tags: ["static-analysis"]
     commands:
       - func: "create-api-report"
-      # - func: run-make
-      #   vars:
-      #     targets: "check-fmt check-license check-modules lint"
+      - func: run-make
+        vars:
+          targets: "check-fmt check-license check-modules lint"
 
   - name: perf
     tags: ["performance"]
