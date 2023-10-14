@@ -1784,7 +1784,6 @@ tasks:
           AUTH: "auth"
           ORCHESTRATION_FILE: "auth-aws.json"
           TOPOLOGY: "server"
-      - func: add-aws-auth-variables-to-file
       - func: run-aws-auth-test-with-regular-aws-credentials
       - func: run-aws-auth-test-with-assume-role-credentials
       - func: run-aws-auth-test-with-aws-credentials-as-environment-variables
