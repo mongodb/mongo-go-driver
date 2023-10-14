@@ -808,6 +808,21 @@ functions:
           export PROJECT_DIRECTORY="$ECS_SRC_DIR"
           $AUTH_AWS_DIR/aws_setup.sh ecs
 
+  run-aws-auth-get-secrets:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+    - command: shell.exec
+      type: test
+      params:
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+        shell: "bash"
+        working_dir: "src"
+        script: |
+          ${PREPARE_SHELL}
+          cd $DRIVERS_TOOLS/.evergreen/aws_auth
+          ./setup_secrets.sh drivers/aws_auth
+
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: shell.exec
       type: test
@@ -1784,6 +1799,7 @@ tasks:
           AUTH: "auth"
           ORCHESTRATION_FILE: "auth-aws.json"
           TOPOLOGY: "server"
+      - func: run-aws-auth-get-secrets
       - func: run-aws-auth-test-with-regular-aws-credentials
       - func: run-aws-auth-test-with-assume-role-credentials
       - func: run-aws-auth-test-with-aws-credentials-as-environment-variables
