@@ -16,6 +16,7 @@ main.so
 .cache
 install
 libmongocrypt
+venv
 
 # AWS SAM-generated files
 internal/test/faas/awslambda/.aws-sam
