@@ -97,30 +97,30 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.8.0-alpha1"
-          # Install libmongocrypt based on OS.
-          if [ "Windows_NT" = "$OS" ]; then
-             mkdir -p c:/libmongocrypt/include
-             mkdir -p c:/libmongocrypt/bin
-             echo "fetching build for Windows ... begin"
-             mkdir libmongocrypt-all
-             cd libmongocrypt-all
-             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
-             tar -xf libmongocrypt-all.tar.gz
-             cd ..
-             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
-             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
-             export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-             rm -rf libmongocrypt-all
-             echo "fetching build for Windows ... end"
-          else
-            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
-            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
-                cat output.txt 1>&2
-                exit 1
-            fi
-          fi
+          # LIBMONGOCRYPT_TAG="1.8.0-alpha1"
+          # # Install libmongocrypt based on OS.
+          # if [ "Windows_NT" = "$OS" ]; then
+          #    mkdir -p c:/libmongocrypt/include
+          #    mkdir -p c:/libmongocrypt/bin
+          #    echo "fetching build for Windows ... begin"
+          #    mkdir libmongocrypt-all
+          #    cd libmongocrypt-all
+          #    # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
+          #    curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
+          #    tar -xf libmongocrypt-all.tar.gz
+          #    cd ..
+          #    cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
+          #    cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
+          #    export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+          #    rm -rf libmongocrypt-all
+          #    echo "fetching build for Windows ... end"
+          # else
+          #   git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
+          #   if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
+          #       cat output.txt 1>&2
+          #       exit 1
+          #   fi
+          # fi
 
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
@@ -1004,7 +1004,7 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
-  - func: start-cse-servers
+  #- func: start-cse-servers
 
 post:
   - command: gotest.parse_files
