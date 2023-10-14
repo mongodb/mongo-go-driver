@@ -820,7 +820,7 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          cd $DRIVERS_TOOLS/.evergreen/aws_auth
+          cd $DRIVERS_TOOLS/.evergreen/auth_aws
           ./setup_secrets.sh drivers/aws_auth
 
   run-aws-auth-test-with-aws-web-identity-credentials:
