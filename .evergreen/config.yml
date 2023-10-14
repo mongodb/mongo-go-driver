@@ -131,6 +131,7 @@ functions:
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           PREPARE_SHELL: |
              set -o errexit
+             export SKIP_LEGACY_SHELL=1  # TODO: remove before merge
              export GOROOT="$GOROOT"
              export GOPATH="$GOPATH"
              export GOCACHE="$GOCACHE"
@@ -803,14 +804,9 @@ functions:
           cp ${PROJECT_DIRECTORY}/main $ECS_SRC_DIR
           cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
           tar -czf $ECS_SRC_DIR/src.tgz -C $PROJECT_DIRECTORY .
-          cd $AUTH_AWS_DIR
-          . ./activate-authawsvenv.sh
-          cat <<EOF > setup.js
-            const mongo_binaries = "$MONGODB_BINARIES";
-            const project_dir = "$ECS_SRC_DIR";
-          EOF
-          cat setup.js
-          mongo --nodb setup.js aws_e2e_ecs.js
+
+          export PROJECT_DIRECTORY="$ECS_SRC_DIR"
+          $AUTH_AWS_DIR/aws_setup.sh ecs
 
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: shell.exec
@@ -824,26 +820,7 @@ functions:
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
-          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate_venv.sh
-          mongo aws_e2e_web_identity.js
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        silent: true
-        script: |
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            export AWS_ROLE_ARN="${iam_auth_assume_web_role_name}"
-            export AWS_WEB_IDENTITY_TOKEN_FILE="${iam_web_identity_token_file}"
-            export MONGODB_URI="mongodb://localhost"
-          EOF
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
     - command: shell.exec
       type: test
       params:
@@ -855,37 +832,8 @@ functions:
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        silent: true
-        script: |
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            export AWS_ROLE_ARN="${iam_auth_assume_web_role_name}"
-            export AWS_WEB_IDENTITY_TOKEN_FILE="${iam_web_identity_token_file}"
-            export AWS_ROLE_SESSION_NAME="test"
-            export MONGODB_URI="mongodb://localhost"
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          export AWS_ROLE_SESSION_NAME="test"
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
 
   start-kms-mock-server:
     - command: shell.exec
