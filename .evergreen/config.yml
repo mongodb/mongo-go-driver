@@ -97,29 +97,10 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.8.0-alpha1"
-          # Install libmongocrypt based on OS.
+          # Install libmongocrypt.
+          bash etc/install-libmongocrypt.sh
           if [ "Windows_NT" = "$OS" ]; then
-             mkdir -p c:/libmongocrypt/include
-             mkdir -p c:/libmongocrypt/bin
-             echo "fetching build for Windows ... begin"
-             mkdir libmongocrypt-all
-             cd libmongocrypt-all
-             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
-             tar -xf libmongocrypt-all.tar.gz
-             cd ..
-             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
-             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
-             export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-             rm -rf libmongocrypt-all
-             echo "fetching build for Windows ... end"
-          else
-            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
-            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
-                cat output.txt 1>&2
-                exit 1
-            fi
+            export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           fi
 
           cat <<EOT > expansion.yml
@@ -611,6 +592,17 @@ functions:
           TOPOLOGY="server" \
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
           make evg-test-atlas-data-lake
+
+  run-docker-test:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          bash etc/run_docker.sh
+          TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
 
   run-valid-ocsp-server:
     - command: shell.exec
@@ -1674,6 +1666,10 @@ tasks:
       - func: bootstrap-mongohoused
       - func: run-atlas-data-lake-test
 
+  - name: test-docker-runner
+    commands:
+      - func: run-docker-test
+
   - name: test-load-balancer-noauth-nossl
     tags: ["load-balancer"]
     commands:
@@ -2713,6 +2709,15 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "test-atlas-data-lake"
+
+  - name: docker-runner-test
+    display_name: "Docker Runner Test"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: "test-docker-runner"
 
   - matrix_name: "tests-36-with-zlib-support"
     tags: ["pullrequest"]

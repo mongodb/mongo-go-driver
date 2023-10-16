@@ -25,6 +25,10 @@ import (
 func TestHandshakeProse(t *testing.T) {
 	mt := mtest.New(t)
 
+	if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+		t.Skip("These tests gives different results when run in Docker due to extra environment data.")
+	}
+
 	opts := mtest.NewOptions().
 		CreateCollection(false).
 		ClientType(mtest.Proxy)
