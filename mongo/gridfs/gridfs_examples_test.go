@@ -28,7 +28,7 @@ func ExampleBucket_OpenUploadStream() {
 	// collection document.
 	uploadOpts := options.GridFSUpload().
 		SetMetadata(bson.D{{"metadata tag", "tag"}})
-	uploadStream, err := bucket.OpenUploadStream("filename", uploadOpts)
+	uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename", uploadOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -38,12 +38,12 @@ func ExampleBucket_OpenUploadStream() {
 		}
 	}()
 
-	// Use SetWriteDeadline to force a timeout if the upload does not succeed in
+	// Use WithContext to force a timeout if the upload does not succeed in
 	// 2 seconds.
-	err = uploadStream.SetWriteDeadline(time.Now().Add(2 * time.Second))
-	if err != nil {
-		log.Fatal(err)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	uploadStream.WithContext(ctx)
 
 	if _, err = uploadStream.Write(fileContent); err != nil {
 		log.Fatal(err)
@@ -59,6 +59,7 @@ func ExampleBucket_UploadFromStream() {
 	uploadOpts := options.GridFSUpload().
 		SetMetadata(bson.D{{"metadata tag", "tag"}})
 	fileID, err := bucket.UploadFromStream(
+		context.Background(),
 		"filename",
 		bytes.NewBuffer(fileContent),
 		uploadOpts)
@@ -73,7 +74,7 @@ func ExampleBucket_OpenDownloadStream() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	downloadStream, err := bucket.OpenDownloadStream(fileID)
+	downloadStream, err := bucket.OpenDownloadStream(context.Background(), fileID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,12 +84,12 @@ func ExampleBucket_OpenDownloadStream() {
 		}
 	}()
 
-	// Use SetReadDeadline to force a timeout if the download does not succeed
-	// in 2 seconds.
-	err = downloadStream.SetReadDeadline(time.Now().Add(2 * time.Second))
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Use WithContext to force a timeout if the download does not succeed in
+	// 2 seconds.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	downloadStream.WithContext(ctx)
 
 	fileBuffer := bytes.NewBuffer(nil)
 	if _, err := io.Copy(fileBuffer, downloadStream); err != nil {
@@ -101,7 +102,7 @@ func ExampleBucket_DownloadToStream() {
 	var fileID primitive.ObjectID
 
 	fileBuffer := bytes.NewBuffer(nil)
-	if _, err := bucket.DownloadToStream(fileID, fileBuffer); err != nil {
+	if _, err := bucket.DownloadToStream(context.Background(), fileID, fileBuffer); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -110,7 +111,7 @@ func ExampleBucket_Delete() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	if err := bucket.Delete(fileID); err != nil {
+	if err := bucket.Delete(context.Background(), fileID); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -122,7 +123,7 @@ func ExampleBucket_Find() {
 	filter := bson.D{
 		{"length", bson.D{{"$gt", 1000}}},
 	}
-	cursor, err := bucket.Find(filter)
+	cursor, err := bucket.Find(context.Background(), filter)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -150,7 +151,7 @@ func ExampleBucket_Rename() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	if err := bucket.Rename(fileID, "new file name"); err != nil {
+	if err := bucket.Rename(context.Background(), fileID, "new file name"); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -158,7 +159,7 @@ func ExampleBucket_Rename() {
 func ExampleBucket_Drop() {
 	var bucket *gridfs.Bucket
 
-	if err := bucket.Drop(); err != nil {
+	if err := bucket.Drop(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 }

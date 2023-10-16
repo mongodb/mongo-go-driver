@@ -76,7 +76,7 @@ func TestGridFS(x *testing.T) {
 				bucket, err := gridfs.NewBucket(mt.DB, options.GridFSBucket().SetChunkSizeBytes(chunkSize))
 				assert.Nil(mt, err, "NewBucket error: %v", err)
 
-				ustream, err := bucket.OpenUploadStream("foo")
+				ustream, err := bucket.OpenUploadStream(context.Background(), "foo")
 				assert.Nil(mt, err, "OpenUploadStream error: %v", err)
 
 				id := ustream.FileID
@@ -85,7 +85,7 @@ func TestGridFS(x *testing.T) {
 				err = ustream.Close()
 				assert.Nil(mt, err, "Close error: %v", err)
 
-				dstream, err := bucket.OpenDownloadStream(id)
+				dstream, err := bucket.OpenDownloadStream(context.Background(), id)
 				assert.Nil(mt, err, "OpenDownloadStream error")
 				dst := make([]byte, tc.read)
 				_, err = dstream.Read(dst)
@@ -110,17 +110,19 @@ func TestGridFS(x *testing.T) {
 		// Unit tests showing that UploadFromStream creates indexes on the chunks and files collections.
 		bucket, err := gridfs.NewBucket(mt.DB)
 		assert.Nil(mt, err, "NewBucket error: %v", err)
-		err = bucket.SetWriteDeadline(time.Now().Add(5 * time.Second))
-		assert.Nil(mt, err, "SetWriteDeadline error: %v", err)
 
 		byteData := []byte("Hello, world!")
 		r := bytes.NewReader(byteData)
 
-		_, err = bucket.UploadFromStream("filename", r)
+		uploadCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		mt.Cleanup(cancel)
+
+		_, err = bucket.UploadFromStream(uploadCtx, "filename", r)
 		assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
 		findCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		mt.Cleanup(cancel)
+
 		findIndex(findCtx, mt, mt.DB.Collection("fs.files"), false, "key", "filename")
 		findIndex(findCtx, mt, mt.DB.Collection("fs.chunks"), true, "key", "files_id")
 	})
@@ -188,10 +190,10 @@ func TestGridFS(x *testing.T) {
 					bucket, err := gridfs.NewBucket(mt.DB)
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() {
-						_ = bucket.Drop()
+						_ = bucket.Drop(context.Background())
 					}()
 
-					_, err = bucket.OpenUploadStream("filename")
+					_, err = bucket.OpenUploadStream(context.Background(), "filename")
 					assert.Nil(mt, err, "OpenUploadStream error: %v", err)
 
 					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
@@ -235,10 +237,10 @@ func TestGridFS(x *testing.T) {
 					bucket, err := gridfs.NewBucket(mt.DB)
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() {
-						_ = bucket.Drop()
+						_ = bucket.Drop(context.Background())
 					}()
 
-					_, err = bucket.UploadFromStream("filename", bytes.NewBuffer(fileContent))
+					_, err = bucket.UploadFromStream(context.Background(), "filename", bytes.NewBuffer(fileContent))
 					assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
 					mt.FilterStartedEvents(func(evt *event.CommandStartedEvent) bool {
@@ -282,15 +284,15 @@ func TestGridFS(x *testing.T) {
 					// Create a new GridFS bucket.
 					bucket, err := gridfs.NewBucket(mt.DB)
 					assert.Nil(mt, err, "NewBucket error: %v", err)
-					defer func() { _ = bucket.Drop() }()
+					defer func() { _ = bucket.Drop(context.Background()) }()
 
 					// Upload the file and store the uploaded file ID.
 					uploadedFileID := tc.fileID
 					dataReader := bytes.NewReader(fileData)
 					if uploadedFileID == nil {
-						uploadedFileID, err = bucket.UploadFromStream(fileName, dataReader, uploadOpts)
+						uploadedFileID, err = bucket.UploadFromStream(context.Background(), fileName, dataReader, uploadOpts)
 					} else {
-						err = bucket.UploadFromStreamWithID(tc.fileID, fileName, dataReader, uploadOpts)
+						err = bucket.UploadFromStreamWithID(context.Background(), tc.fileID, fileName, dataReader, uploadOpts)
 					}
 					assert.Nil(mt, err, "error uploading file: %v", err)
 
@@ -312,13 +314,13 @@ func TestGridFS(x *testing.T) {
 					// For both methods that create a DownloadStream, open a stream and compare the file given by the
 					// stream to the expected File object.
 					mt.RunOpts("OpenDownloadStream", noClientOpts, func(mt *mtest.T) {
-						downloadStream, err := bucket.OpenDownloadStream(uploadedFileID)
+						downloadStream, err := bucket.OpenDownloadStream(context.Background(), uploadedFileID)
 						assert.Nil(mt, err, "OpenDownloadStream error: %v", err)
 						actualFile := downloadStream.GetFile()
 						assert.Equal(mt, expectedFile, actualFile, "expected file %v, got %v", expectedFile, actualFile)
 					})
 					mt.RunOpts("OpenDownloadStreamByName", noClientOpts, func(mt *mtest.T) {
-						downloadStream, err := bucket.OpenDownloadStreamByName(fileName)
+						downloadStream, err := bucket.OpenDownloadStreamByName(context.Background(), fileName)
 						assert.Nil(mt, err, "OpenDownloadStream error: %v", err)
 						actualFile := downloadStream.GetFile()
 						assert.Equal(mt, expectedFile, actualFile, "expected file %v, got %v", expectedFile, actualFile)
@@ -332,17 +334,17 @@ func TestGridFS(x *testing.T) {
 
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
-			defer func() { _ = bucket.Drop() }()
+			defer func() { _ = bucket.Drop(context.Background()) }()
 
 			fileData := []byte("hello world")
 			uploadOpts := options.GridFSUpload().SetChunkSizeBytes(4)
-			fileID, err := bucket.UploadFromStream("file", bytes.NewReader(fileData), uploadOpts)
+			fileID, err := bucket.UploadFromStream(context.Background(), "file", bytes.NewReader(fileData), uploadOpts)
 			assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
 			// If the bucket's chunk size was used, this would error because the actual chunk size is 4 and the bucket
 			// chunk size is 255 KB.
 			var downloadBuffer bytes.Buffer
-			_, err = bucket.DownloadToStream(fileID, &downloadBuffer)
+			_, err = bucket.DownloadToStream(context.Background(), fileID, &downloadBuffer)
 			assert.Nil(mt, err, "DownloadToStream error: %v", err)
 
 			downloadedBytes := downloadBuffer.Bytes()
@@ -363,9 +365,9 @@ func TestGridFS(x *testing.T) {
 
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
-			defer func() { _ = bucket.Drop() }()
+			defer func() { _ = bucket.Drop(context.Background()) }()
 
-			_, err = bucket.OpenDownloadStream(oid)
+			_, err = bucket.OpenDownloadStream(context.Background(), oid)
 			assert.Equal(mt, gridfs.ErrMissingChunkSize, err, "expected error %v, got %v", gridfs.ErrMissingChunkSize, err)
 		})
 		mt.Run("cursor error during read after downloading", func(mt *mtest.T) {
@@ -378,17 +380,19 @@ func TestGridFS(x *testing.T) {
 
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
-			defer func() { _ = bucket.Drop() }()
+			defer func() { _ = bucket.Drop(context.Background()) }()
 
 			dataReader := bytes.NewReader(fileData)
-			_, err = bucket.UploadFromStream(fileName, dataReader)
+			_, err = bucket.UploadFromStream(context.Background(), fileName, dataReader)
 			assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
-			ds, err := bucket.OpenDownloadStreamByName(fileName)
+			ds, err := bucket.OpenDownloadStreamByName(context.Background(), fileName)
 			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
 
-			err = ds.SetReadDeadline(time.Now().Add(-1 * time.Second))
-			assert.Nil(mt, err, "SetReadDeadline error: %v", err)
+			ctx, cancel := context.WithTimeout(context.Background(), -1*time.Second)
+			mt.Cleanup(cancel)
+
+			ds.WithContext(ctx)
 
 			p := make([]byte, len(fileData))
 			_, err = ds.Read(p)
@@ -405,17 +409,19 @@ func TestGridFS(x *testing.T) {
 
 			bucket, err := gridfs.NewBucket(mt.DB)
 			assert.Nil(mt, err, "NewBucket error: %v", err)
-			defer func() { _ = bucket.Drop() }()
+			defer func() { _ = bucket.Drop(context.Background()) }()
 
 			dataReader := bytes.NewReader(fileData)
-			_, err = bucket.UploadFromStream(fileName, dataReader)
+			_, err = bucket.UploadFromStream(context.Background(), fileName, dataReader)
 			assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
-			ds, err := bucket.OpenDownloadStreamByName(fileName)
+			ds, err := bucket.OpenDownloadStreamByName(context.Background(), fileName)
 			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
 
-			err = ds.SetReadDeadline(time.Now().Add(-1 * time.Second))
-			assert.Nil(mt, err, "SetReadDeadline error: %v", err)
+			ctx, cancel := context.WithTimeout(context.Background(), -1*time.Second)
+			mt.Cleanup(cancel)
+
+			ds.WithContext(ctx)
 
 			_, err = ds.Skip(int64(len(fileData)))
 			assert.NotNil(mt, err, "expected error from Skip, got nil")
@@ -444,9 +450,9 @@ func TestGridFS(x *testing.T) {
 				}
 				bucket, err := gridfs.NewBucket(mt.DB, bucketOpts)
 				assert.Nil(mt, err, "NewBucket error: %v", err)
-				defer func() { _ = bucket.Drop() }()
+				defer func() { _ = bucket.Drop(context.Background()) }()
 
-				_, err = bucket.UploadFromStream("accessors-test-file", bytes.NewReader(fileData))
+				_, err = bucket.UploadFromStream(context.Background(), "accessors-test-file", bytes.NewReader(fileData))
 				assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
 				bucketName := tc.bucketName
@@ -497,9 +503,6 @@ func TestGridFS(x *testing.T) {
 					timeout = 20 * time.Second // race detector causes 2-20x slowdown
 				}
 
-				err = bucket.SetWriteDeadline(time.Now().Add(timeout))
-				assert.Nil(mt, err, "SetWriteDeadline error: %v", err)
-
 				// Test that Upload works when the buffer to write is longer than the upload stream's internal buffer.
 				// This requires multiple calls to uploadChunks.
 				size := test.fileSize
@@ -508,7 +511,10 @@ func TestGridFS(x *testing.T) {
 					p[i] = byte(rand.Intn(100))
 				}
 
-				_, err = bucket.UploadFromStream("filename", bytes.NewReader(p))
+				ctx, cancel := context.WithTimeout(context.Background(), timeout)
+				mt.Cleanup(cancel)
+
+				_, err = bucket.UploadFromStream(ctx, "filename", bytes.NewReader(p))
 				assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
 				var w *bytes.Buffer
@@ -518,7 +524,7 @@ func TestGridFS(x *testing.T) {
 					w = bytes.NewBuffer(make([]byte, 0, test.bufSize))
 				}
 
-				_, err = bucket.DownloadToStreamByName("filename", w)
+				_, err = bucket.DownloadToStreamByName(ctx, "filename", w)
 				assert.Nil(mt, err, "DownloadToStreamByName error: %v", err)
 				assert.Equal(mt, p, w.Bytes(), "downloaded file did not match p")
 			})
@@ -530,7 +536,7 @@ func TestGridFS(x *testing.T) {
 		bucket, err := gridfs.NewBucket(mt.DB)
 		assert.Nil(mt, err, "NewBucket error: %v", err)
 		// Find the file back.
-		cursor, err := bucket.Find(bson.D{{"foo", "bar"}})
+		cursor, err := bucket.Find(context.Background(), bson.D{{"foo", "bar"}})
 		defer func() {
 			_ = cursor.Close(context.Background())
 		}()
