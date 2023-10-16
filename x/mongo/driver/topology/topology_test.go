@@ -421,10 +421,9 @@ func TestSessionTimeout(t *testing.T) {
 		topo.servers["foo"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
-				Addr:                     address.Address("foo").Canonicalize(),
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("foo").Canonicalize(),
+				Kind:                  description.RSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
 
@@ -432,16 +431,15 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc := description.Server{
-			Addr:                     "foo",
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesPtr: int64ToPtr(30),
+			Addr:                  "foo",
+			Kind:                  description.RSPrimary,
+			SessionTimeoutMinutes: int64ToPtr(30),
 		}
 		topo.apply(ctx, desc)
 
 		currDesc := topo.desc.Load().(description.Topology)
 		want := int64(30)
-		require.Equal(t, &want, currDesc.SessionTimeoutMinutesPtr,
+		require.Equal(t, &want, currDesc.SessionTimeoutMinutes,
 			"session timeout minutes mismatch")
 	})
 	t.Run("MultipleUpdates", func(t *testing.T) {
@@ -452,16 +450,14 @@ func TestSessionTimeout(t *testing.T) {
 		topo.servers["bar"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
-				Addr:                     address.Address("foo").Canonicalize(),
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("foo").Canonicalize(),
+				Kind:                  description.RSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 			{
-				Addr:                     address.Address("bar").Canonicalize(),
-				Kind:                     description.RSSecondary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("bar").Canonicalize(),
+				Kind:                  description.RSSecondary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
 
@@ -469,26 +465,24 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc1 := description.Server{
-			Addr:                     "foo",
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesPtr: int64ToPtr(30),
-			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                  "foo",
+			Kind:                  description.RSPrimary,
+			SessionTimeoutMinutes: int64ToPtr(30),
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should update because new timeout is lower
 		desc2 := description.Server{
-			Addr:                     "bar",
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: int64ToPtr(20),
-			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                  "bar",
+			Kind:                  description.RSPrimary,
+			SessionTimeoutMinutes: int64ToPtr(20),
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
 
 		currDesc := topo.Description()
 		want := int64(20)
-		require.Equal(t, &want, currDesc.SessionTimeoutMinutesPtr,
+		require.Equal(t, &want, currDesc.SessionTimeoutMinutes,
 			"session timeout minutes mismatch")
 	})
 	t.Run("NoUpdate", func(t *testing.T) {
@@ -498,16 +492,14 @@ func TestSessionTimeout(t *testing.T) {
 		topo.servers["bar"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
-				Addr:                     address.Address("foo").Canonicalize(),
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("foo").Canonicalize(),
+				Kind:                  description.RSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 			{
-				Addr:                     address.Address("bar").Canonicalize(),
-				Kind:                     description.RSSecondary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("bar").Canonicalize(),
+				Kind:                  description.RSSecondary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
 
@@ -515,26 +507,24 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc1 := description.Server{
-			Addr:                     "foo",
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: int64ToPtr(20),
-			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                  "foo",
+			Kind:                  description.RSPrimary,
+			SessionTimeoutMinutes: int64ToPtr(20),
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because new timeout is higher
 		desc2 := description.Server{
-			Addr:                     "bar",
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesPtr: int64ToPtr(30),
-			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                  "bar",
+			Kind:                  description.RSPrimary,
+			SessionTimeoutMinutes: int64ToPtr(30),
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
 
 		currDesc := topo.desc.Load().(description.Topology)
 		want := int64(20)
-		require.Equal(t, &want, currDesc.SessionTimeoutMinutesPtr,
+		require.Equal(t, &want, currDesc.SessionTimeoutMinutes,
 			"session timeout minutes mismatch")
 	})
 	t.Run("TimeoutDataBearing", func(t *testing.T) {
@@ -544,16 +534,14 @@ func TestSessionTimeout(t *testing.T) {
 		topo.servers["bar"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
-				Addr:                     address.Address("foo").Canonicalize(),
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("foo").Canonicalize(),
+				Kind:                  description.RSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 			{
-				Addr:                     address.Address("bar").Canonicalize(),
-				Kind:                     description.RSSecondary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("bar").Canonicalize(),
+				Kind:                  description.RSSecondary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
 
@@ -561,26 +549,24 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc1 := description.Server{
-			Addr:                     "foo",
-			Kind:                     description.RSPrimary,
-			SessionTimeoutMinutes:    20,
-			SessionTimeoutMinutesPtr: int64ToPtr(20),
-			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                  "foo",
+			Kind:                  description.RSPrimary,
+			SessionTimeoutMinutes: int64ToPtr(20),
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because not a data bearing server
 		desc2 := description.Server{
-			Addr:                     "bar",
-			Kind:                     description.Unknown,
-			SessionTimeoutMinutes:    10,
-			SessionTimeoutMinutesPtr: int64ToPtr(10),
-			Members:                  []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
+			Addr:                  "bar",
+			Kind:                  description.Unknown,
+			SessionTimeoutMinutes: int64ToPtr(10),
+			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		topo.apply(ctx, desc1)
 		topo.apply(ctx, desc2)
 
 		currDesc := topo.desc.Load().(description.Topology)
 		want := int64(20)
-		assert.Equal(t, &want, currDesc.SessionTimeoutMinutesPtr,
+		assert.Equal(t, &want, currDesc.SessionTimeoutMinutes,
 			"session timeout minutes mismatch")
 	})
 	t.Run("MixedSessionSupport", func(t *testing.T) {
@@ -592,10 +578,9 @@ func TestSessionTimeout(t *testing.T) {
 		topo.servers["three"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
-				Addr:                     address.Address("one").Canonicalize(),
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    20,
-				SessionTimeoutMinutesPtr: int64ToPtr(20),
+				Addr:                  address.Address("one").Canonicalize(),
+				Kind:                  description.RSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(20),
 			},
 			{
 				// does not support sessions
@@ -603,10 +588,9 @@ func TestSessionTimeout(t *testing.T) {
 				Kind: description.RSSecondary,
 			},
 			{
-				Addr:                     address.Address("three").Canonicalize(),
-				Kind:                     description.RSPrimary,
-				SessionTimeoutMinutes:    60,
-				SessionTimeoutMinutesPtr: int64ToPtr(60),
+				Addr:                  address.Address("three").Canonicalize(),
+				Kind:                  description.RSPrimary,
+				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
 
@@ -614,17 +598,16 @@ func TestSessionTimeout(t *testing.T) {
 		defer cancel()
 
 		desc := description.Server{
-			Addr:                     address.Address("three"),
-			Kind:                     description.RSSecondary,
-			SessionTimeoutMinutes:    30,
-			SessionTimeoutMinutesPtr: int64ToPtr(30),
+			Addr:                  address.Address("three"),
+			Kind:                  description.RSSecondary,
+			SessionTimeoutMinutes: int64ToPtr(30),
 		}
 
 		topo.apply(ctx, desc)
 
 		currDesc := topo.desc.Load().(description.Topology)
-		require.Nil(t, currDesc.SessionTimeoutMinutesPtr,
-			"session timeout minutes mismatch. got: %d. expected: nil", currDesc.SessionTimeoutMinutes)
+		require.Nil(t, currDesc.SessionTimeoutMinutes,
+			"session timeout minutes mismatch. expected: nil")
 	})
 }
 

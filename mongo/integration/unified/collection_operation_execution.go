@@ -244,8 +244,6 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "2dsphereIndexVersion":
 			indexOpts.SetSphereVersion(val.Int32())
-		case "background":
-			indexOpts.SetBackground(val.Boolean())
 		case "bits":
 			indexOpts.SetBits(val.Int32())
 		case "bucketSize":
@@ -607,8 +605,8 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 		}
 	}
 
-	res, err := coll.Indexes().DropAll(ctx, dropIndexOpts)
-	return newDocumentResult(res, err), nil
+	err = coll.Indexes().DropAll(ctx, dropIndexOpts)
+	return newDocumentResult(nil, err), nil
 }
 
 func executeDropSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -1422,8 +1420,6 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetMin(val.Document())
 		case "noCursorTimeout":
 			opts.SetNoCursorTimeout(val.Boolean())
-		case "oplogReplay":
-			opts.SetOplogReplay(val.Boolean())
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "returnKey":
@@ -1432,8 +1428,6 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetShowRecordID(val.Boolean())
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
-		case "snapshot":
-			opts.SetSnapshot(val.Boolean())
 		case "sort":
 			opts.SetSort(val.Document())
 		default:

@@ -30,7 +30,7 @@ import (
 
 var (
 	// MajorityWc is the majority write concern.
-	MajorityWc = writeconcern.New(writeconcern.WMajority())
+	MajorityWc = writeconcern.Majority()
 	// PrimaryRp is the primary read preference.
 	PrimaryRp = readpref.Primary()
 	// SecondaryRp is the secondary read preference.
@@ -520,7 +520,8 @@ func (t *T) ClearCollections() {
 				// could prevent it from being dropped for sharded clusters. We can resolve this by
 				// re-instantiating the collection with a majority write concern before dropping.
 				collname := coll.created.Name()
-				wcm := writeconcern.New(writeconcern.WMajority(), writeconcern.WTimeout(1*time.Second))
+				wcm := writeconcern.Majority()
+				wcm.WTimeout = 1 * time.Second
 				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
 				_ = wccoll.Drop(context.Background())
 
@@ -683,13 +684,13 @@ func (t *T) createTestClient() {
 		// pin to first mongos
 		pinnedHostList := []string{testContext.connString.Hosts[0]}
 		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
-		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
+		t.Client, err = mongo.Connect(context.Background(), uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
-		t.Client, err = mongo.NewClient(clientOpts)
+		t.Client, err = mongo.Connect(context.Background(), clientOpts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()
 		clientOpts.SetDialer(t.proxyDialer)
@@ -707,13 +708,10 @@ func (t *T) createTestClient() {
 		}
 
 		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
-		t.Client, err = mongo.NewClient(uriOpts, clientOpts)
+		t.Client, err = mongo.Connect(context.Background(), uriOpts, clientOpts)
 	}
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)
-	}
-	if err := t.Client.Connect(context.Background()); err != nil {
-		t.Fatalf("error connecting client: %v", err)
 	}
 }
 

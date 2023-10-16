@@ -581,7 +581,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "maxconnecting":
 			clientOpts.SetMaxConnecting(uint64(value.(int32)))
 		case "readconcernlevel":
-			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
+			clientOpts.SetReadConcern(&readconcern.ReadConcern{Level: value.(string)})
 		case "retryreads":
 			clientOpts.SetRetryReads(value.(bool))
 		case "retrywrites":

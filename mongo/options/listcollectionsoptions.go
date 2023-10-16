@@ -42,28 +42,3 @@ func (lc *ListCollectionsOptions) SetAuthorizedCollections(b bool) *ListCollecti
 	lc.AuthorizedCollections = &b
 	return lc
 }
-
-// MergeListCollectionsOptions combines the given ListCollectionsOptions instances into a single *ListCollectionsOptions
-// in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeListCollectionsOptions(opts ...*ListCollectionsOptions) *ListCollectionsOptions {
-	lc := ListCollections()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.NameOnly != nil {
-			lc.NameOnly = opt.NameOnly
-		}
-		if opt.BatchSize != nil {
-			lc.BatchSize = opt.BatchSize
-		}
-		if opt.AuthorizedCollections != nil {
-			lc.AuthorizedCollections = opt.AuthorizedCollections
-		}
-	}
-
-	return lc
-}

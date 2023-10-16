@@ -54,8 +54,8 @@ func newFSM() *fsm {
 // still do not have a timeout. This function chooses the lowest of the existing
 // timeouts.
 func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
-	oldMinutes := f.SessionTimeoutMinutesPtr
-	comp := ptrutil.CompareInt64(oldMinutes, s.SessionTimeoutMinutesPtr)
+	oldMinutes := f.SessionTimeoutMinutes
+	comp := ptrutil.CompareInt64(oldMinutes, s.SessionTimeoutMinutes)
 
 	// If the server is data-bearing and the current timeout exists and is
 	// either:
@@ -65,7 +65,7 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
 	//
 	// then return the server timeout.
 	if s.DataBearing() && (comp == 1 || comp == 2) {
-		return s.SessionTimeoutMinutesPtr
+		return s.SessionTimeoutMinutes
 	}
 
 	// If the current timeout exists and the server is not data-bearing OR
@@ -75,7 +75,7 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
 		return oldMinutes
 	}
 
-	timeout := s.SessionTimeoutMinutesPtr
+	timeout := s.SessionTimeoutMinutes
 	for _, server := range f.Servers {
 		// If the server is not data-bearing, then we do not consider
 		// it's timeout whether set or not.
@@ -83,14 +83,14 @@ func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
 			continue
 		}
 
-		srvTimeout := server.SessionTimeoutMinutesPtr
+		srvTimeout := server.SessionTimeoutMinutes
 		comp := ptrutil.CompareInt64(timeout, srvTimeout)
 
 		if comp <= 0 { // timeout <= srvTimout
 			continue
 		}
 
-		timeout = server.SessionTimeoutMinutesPtr
+		timeout = server.SessionTimeoutMinutes
 	}
 
 	return timeout
@@ -116,11 +116,7 @@ func (f *fsm) apply(s description.Server) (description.Topology, description.Ser
 		SetName: f.SetName,
 	}
 
-	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
-
-	if serverTimeoutMinutes != nil {
-		f.SessionTimeoutMinutes = uint32(*serverTimeoutMinutes)
-	}
+	f.Topology.SessionTimeoutMinutes = serverTimeoutMinutes
 
 	if _, ok := f.findServer(s.Addr); !ok {
 		return f.Topology, s

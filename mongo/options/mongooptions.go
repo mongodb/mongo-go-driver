@@ -7,8 +7,6 @@
 package options
 
 import (
-	"fmt"
-	"reflect"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -164,20 +162,4 @@ func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
 	}
 	arr, _ = bsoncore.AppendArrayEnd(arr, idx)
 	return arr, nil
-}
-
-// MarshalError is returned when attempting to transform a value into a document
-// results in an error.
-//
-// Deprecated: MarshalError is unused and will be removed in Go Driver 2.0.
-type MarshalError struct {
-	Value interface{}
-	Err   error
-}
-
-// Error implements the error interface.
-//
-// Deprecated: MarshalError is unused and will be removed in Go Driver 2.0.
-func (me MarshalError) Error() string {
-	return fmt.Sprintf("cannot transform type %s to a bson.Raw", reflect.TypeOf(me.Value))
 }

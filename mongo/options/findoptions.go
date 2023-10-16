@@ -73,12 +73,6 @@ type FindOptions struct {
 	// The default value is false.
 	NoCursorTimeout *bool
 
-	// OplogReplay is for internal replication use only and should not be set.
-	//
-	// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
-	// set.
-	OplogReplay *bool
-
 	// Project is a document describing which fields will be included in the documents returned by the Find operation. The
 	// default value is nil, which means all fields will be included.
 	Projection interface{}
@@ -93,12 +87,6 @@ type FindOptions struct {
 
 	// Skip is the number of documents to skip before adding documents to the result. The default value is 0.
 	Skip *int64
-
-	// Snapshot specifies whether the cursor will not return a document more than once because of an intervening write operation.
-	// The default value is false.
-	//
-	// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
-	Snapshot *bool
 
 	// Sort is a document specifying the order in which documents should be returned.  The driver will return an error if the
 	// sort parameter is a multi-key map.
@@ -204,14 +192,6 @@ func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
 	return f
 }
 
-// SetOplogReplay sets the value for the OplogReplay field.
-//
-// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is set.
-func (f *FindOptions) SetOplogReplay(b bool) *FindOptions {
-	f.OplogReplay = &b
-	return f
-}
-
 // SetProjection sets the value for the Projection field.
 func (f *FindOptions) SetProjection(projection interface{}) *FindOptions {
 	f.Projection = projection
@@ -236,96 +216,10 @@ func (f *FindOptions) SetSkip(i int64) *FindOptions {
 	return f
 }
 
-// SetSnapshot sets the value for the Snapshot field.
-//
-// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
-func (f *FindOptions) SetSnapshot(b bool) *FindOptions {
-	f.Snapshot = &b
-	return f
-}
-
 // SetSort sets the value for the Sort field.
 func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
 	f.Sort = sort
 	return f
-}
-
-// MergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeFindOptions(opts ...*FindOptions) *FindOptions {
-	fo := Find()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.AllowDiskUse != nil {
-			fo.AllowDiskUse = opt.AllowDiskUse
-		}
-		if opt.AllowPartialResults != nil {
-			fo.AllowPartialResults = opt.AllowPartialResults
-		}
-		if opt.BatchSize != nil {
-			fo.BatchSize = opt.BatchSize
-		}
-		if opt.Collation != nil {
-			fo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			fo.Comment = opt.Comment
-		}
-		if opt.CursorType != nil {
-			fo.CursorType = opt.CursorType
-		}
-		if opt.Hint != nil {
-			fo.Hint = opt.Hint
-		}
-		if opt.Let != nil {
-			fo.Let = opt.Let
-		}
-		if opt.Limit != nil {
-			fo.Limit = opt.Limit
-		}
-		if opt.Max != nil {
-			fo.Max = opt.Max
-		}
-		if opt.MaxAwaitTime != nil {
-			fo.MaxAwaitTime = opt.MaxAwaitTime
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.Min != nil {
-			fo.Min = opt.Min
-		}
-		if opt.NoCursorTimeout != nil {
-			fo.NoCursorTimeout = opt.NoCursorTimeout
-		}
-		if opt.OplogReplay != nil {
-			fo.OplogReplay = opt.OplogReplay
-		}
-		if opt.Projection != nil {
-			fo.Projection = opt.Projection
-		}
-		if opt.ReturnKey != nil {
-			fo.ReturnKey = opt.ReturnKey
-		}
-		if opt.ShowRecordID != nil {
-			fo.ShowRecordID = opt.ShowRecordID
-		}
-		if opt.Skip != nil {
-			fo.Skip = opt.Skip
-		}
-		if opt.Snapshot != nil {
-			fo.Snapshot = opt.Snapshot
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-	}
-
-	return fo
 }
 
 // FindOneOptions represents options that can be used to configure a FindOne operation.
@@ -333,11 +227,6 @@ type FindOneOptions struct {
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
 	// returning an error. The default value is false.
 	AllowPartialResults *bool
-
-	// The maximum number of documents to be included in each batch returned by the server.
-	//
-	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-	BatchSize *int32
 
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
@@ -348,12 +237,6 @@ type FindOneOptions struct {
 	// The default is nil, which means that no comment will be included in the logs.
 	Comment *string
 
-	// Specifies the type of cursor that should be created for the operation. The default is NonTailable, which means
-	// that the cursor will be closed by the server when the last batch of documents is retrieved.
-	//
-	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-	CursorType *CursorType
-
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
 	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
 	// which means that no hint will be sent.
@@ -362,13 +245,6 @@ type FindOneOptions struct {
 	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
 	// there is no maximum value.
 	Max interface{}
-
-	// The maximum amount of time that the server should wait for new documents to satisfy a tailable cursor query.
-	// This option is only valid for tailable await cursors (see the CursorType option for more information) and
-	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
-	//
-	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-	MaxAwaitTime *time.Duration
 
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
@@ -381,18 +257,6 @@ type FindOneOptions struct {
 	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
 	// there is no minimum value.
 	Min interface{}
-
-	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
-	// is false.
-	//
-	// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-	NoCursorTimeout *bool
-
-	// This option is for internal replication use only and should not be set.
-	//
-	// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
-	// set.
-	OplogReplay *bool
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
@@ -408,12 +272,6 @@ type FindOneOptions struct {
 
 	// The number of documents to skip before selecting the document to be returned. The default value is 0.
 	Skip *int64
-
-	// If true, the cursor will not return a document more than once because of an intervening write operation. The
-	// default value is false.
-	//
-	// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
-	Snapshot *bool
 
 	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
 	// returned. The driver will return an error if the sort parameter is a multi-key map.
@@ -431,14 +289,6 @@ func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
 	return f
 }
 
-// SetBatchSize sets the value for the BatchSize field.
-//
-// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-func (f *FindOneOptions) SetBatchSize(i int32) *FindOneOptions {
-	f.BatchSize = &i
-	return f
-}
-
 // SetCollation sets the value for the Collation field.
 func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
 	f.Collation = collation
@@ -451,14 +301,6 @@ func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
 	return f
 }
 
-// SetCursorType sets the value for the CursorType field.
-//
-// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-func (f *FindOneOptions) SetCursorType(ct CursorType) *FindOneOptions {
-	f.CursorType = &ct
-	return f
-}
-
 // SetHint sets the value for the Hint field.
 func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
 	f.Hint = hint
@@ -468,14 +310,6 @@ func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
 // SetMax sets the value for the Max field.
 func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 	f.Max = max
-	return f
-}
-
-// SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-//
-// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-func (f *FindOneOptions) SetMaxAwaitTime(d time.Duration) *FindOneOptions {
-	f.MaxAwaitTime = &d
 	return f
 }
 
@@ -492,23 +326,6 @@ func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
 // SetMin sets the value for the Min field.
 func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
 	f.Min = min
-	return f
-}
-
-// SetNoCursorTimeout sets the value for the NoCursorTimeout field.
-//
-// Deprecated: This option is not valid for a findOne operation, as no cursor is actually created.
-func (f *FindOneOptions) SetNoCursorTimeout(b bool) *FindOneOptions {
-	f.NoCursorTimeout = &b
-	return f
-}
-
-// SetOplogReplay sets the value for the OplogReplay field.
-//
-// Deprecated: This option has been deprecated in MongoDB version 4.4 and will be ignored by the server if it is
-// set.
-func (f *FindOneOptions) SetOplogReplay(b bool) *FindOneOptions {
-	f.OplogReplay = &b
 	return f
 }
 
@@ -536,88 +353,10 @@ func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
 	return f
 }
 
-// SetSnapshot sets the value for the Snapshot field.
-//
-// Deprecated: This option has been deprecated in MongoDB version 3.6 and removed in MongoDB version 4.0.
-func (f *FindOneOptions) SetSnapshot(b bool) *FindOneOptions {
-	f.Snapshot = &b
-	return f
-}
-
 // SetSort sets the value for the Sort field.
 func (f *FindOneOptions) SetSort(sort interface{}) *FindOneOptions {
 	f.Sort = sort
 	return f
-}
-
-// MergeFindOneOptions combines the given FindOneOptions instances into a single FindOneOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeFindOneOptions(opts ...*FindOneOptions) *FindOneOptions {
-	fo := FindOne()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.AllowPartialResults != nil {
-			fo.AllowPartialResults = opt.AllowPartialResults
-		}
-		if opt.BatchSize != nil {
-			fo.BatchSize = opt.BatchSize
-		}
-		if opt.Collation != nil {
-			fo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			fo.Comment = opt.Comment
-		}
-		if opt.CursorType != nil {
-			fo.CursorType = opt.CursorType
-		}
-		if opt.Hint != nil {
-			fo.Hint = opt.Hint
-		}
-		if opt.Max != nil {
-			fo.Max = opt.Max
-		}
-		if opt.MaxAwaitTime != nil {
-			fo.MaxAwaitTime = opt.MaxAwaitTime
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.Min != nil {
-			fo.Min = opt.Min
-		}
-		if opt.NoCursorTimeout != nil {
-			fo.NoCursorTimeout = opt.NoCursorTimeout
-		}
-		if opt.OplogReplay != nil {
-			fo.OplogReplay = opt.OplogReplay
-		}
-		if opt.Projection != nil {
-			fo.Projection = opt.Projection
-		}
-		if opt.ReturnKey != nil {
-			fo.ReturnKey = opt.ReturnKey
-		}
-		if opt.ShowRecordID != nil {
-			fo.ShowRecordID = opt.ShowRecordID
-		}
-		if opt.Skip != nil {
-			fo.Skip = opt.Skip
-		}
-		if opt.Snapshot != nil {
-			fo.Snapshot = opt.Snapshot
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-	}
-
-	return fo
 }
 
 // FindOneAndReplaceOptions represents options that can be used to configure a FindOneAndReplace instance.
@@ -744,52 +483,6 @@ func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceO
 func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOptions {
 	f.Let = let
 	return f
-}
-
-// MergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
-// FindOneAndReplaceOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeFindOneAndReplaceOptions(opts ...*FindOneAndReplaceOptions) *FindOneAndReplaceOptions {
-	fo := FindOneAndReplace()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.BypassDocumentValidation != nil {
-			fo.BypassDocumentValidation = opt.BypassDocumentValidation
-		}
-		if opt.Collation != nil {
-			fo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			fo.Comment = opt.Comment
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.Projection != nil {
-			fo.Projection = opt.Projection
-		}
-		if opt.ReturnDocument != nil {
-			fo.ReturnDocument = opt.ReturnDocument
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-		if opt.Upsert != nil {
-			fo.Upsert = opt.Upsert
-		}
-		if opt.Hint != nil {
-			fo.Hint = opt.Hint
-		}
-		if opt.Let != nil {
-			fo.Let = opt.Let
-		}
-	}
-
-	return fo
 }
 
 // FindOneAndUpdateOptions represents options that can be used to configure a FindOneAndUpdate options.
@@ -929,55 +622,6 @@ func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptio
 	return f
 }
 
-// MergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
-// FindOneAndUpdateOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeFindOneAndUpdateOptions(opts ...*FindOneAndUpdateOptions) *FindOneAndUpdateOptions {
-	fo := FindOneAndUpdate()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ArrayFilters != nil {
-			fo.ArrayFilters = opt.ArrayFilters
-		}
-		if opt.BypassDocumentValidation != nil {
-			fo.BypassDocumentValidation = opt.BypassDocumentValidation
-		}
-		if opt.Collation != nil {
-			fo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			fo.Comment = opt.Comment
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.Projection != nil {
-			fo.Projection = opt.Projection
-		}
-		if opt.ReturnDocument != nil {
-			fo.ReturnDocument = opt.ReturnDocument
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-		if opt.Upsert != nil {
-			fo.Upsert = opt.Upsert
-		}
-		if opt.Hint != nil {
-			fo.Hint = opt.Hint
-		}
-		if opt.Let != nil {
-			fo.Let = opt.Let
-		}
-	}
-
-	return fo
-}
-
 // FindOneAndDeleteOptions represents options that can be used to configure a FindOneAndDelete operation.
 type FindOneAndDeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -1070,41 +714,4 @@ func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOpt
 func (f *FindOneAndDeleteOptions) SetLet(let interface{}) *FindOneAndDeleteOptions {
 	f.Let = let
 	return f
-}
-
-// MergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
-// FindOneAndDeleteOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeFindOneAndDeleteOptions(opts ...*FindOneAndDeleteOptions) *FindOneAndDeleteOptions {
-	fo := FindOneAndDelete()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Collation != nil {
-			fo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			fo.Comment = opt.Comment
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.Projection != nil {
-			fo.Projection = opt.Projection
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-		if opt.Hint != nil {
-			fo.Hint = opt.Hint
-		}
-		if opt.Let != nil {
-			fo.Let = opt.Let
-		}
-	}
-
-	return fo
 }

@@ -50,8 +50,8 @@ func TestDatabase(t *testing.T) {
 		t.Run("custom", func(t *testing.T) {
 			rpPrimary := readpref.Primary()
 			rpSecondary := readpref.Secondary()
-			wc1 := writeconcern.New(writeconcern.W(5))
-			wc2 := writeconcern.New(writeconcern.W(10))
+			wc1 := &writeconcern.WriteConcern{W: 5}
+			wc2 := &writeconcern.WriteConcern{W: 10}
 			rcLocal := readconcern.Local()
 			rcMajority := readconcern.Majority()
 			reg := bsoncodec.NewRegistryBuilder().Build()
@@ -70,7 +70,7 @@ func TestDatabase(t *testing.T) {
 		t.Run("inherit", func(t *testing.T) {
 			rpPrimary := readpref.Primary()
 			rcLocal := readconcern.Local()
-			wc1 := writeconcern.New(writeconcern.W(10))
+			wc1 := &writeconcern.WriteConcern{W: 10}
 			reg := bsoncodec.NewRegistryBuilder().Build()
 
 			client := setupClient(options.Client().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetRegistry(reg))
@@ -97,7 +97,7 @@ func TestDatabase(t *testing.T) {
 	})
 	t.Run("TransientTransactionError label", func(t *testing.T) {
 		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
-		err := client.Connect(bgCtx)
+		err := client.connect(bgCtx)
 		defer func() { _ = client.Disconnect(bgCtx) }()
 		assert.Nil(t, err, "expected nil, got %v", err)
 

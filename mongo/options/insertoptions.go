@@ -36,28 +36,6 @@ func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
 	return ioo
 }
 
-// MergeInsertOneOptions combines the given InsertOneOptions instances into a single InsertOneOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeInsertOneOptions(opts ...*InsertOneOptions) *InsertOneOptions {
-	ioOpts := InsertOne()
-	for _, ioo := range opts {
-		if ioo == nil {
-			continue
-		}
-		if ioo.BypassDocumentValidation != nil {
-			ioOpts.BypassDocumentValidation = ioo.BypassDocumentValidation
-		}
-		if ioo.Comment != nil {
-			ioOpts.Comment = ioo.Comment
-		}
-	}
-
-	return ioOpts
-}
-
 // InsertManyOptions represents options that can be used to configure an InsertMany operation.
 type InsertManyOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
@@ -97,29 +75,4 @@ func (imo *InsertManyOptions) SetComment(comment interface{}) *InsertManyOptions
 func (imo *InsertManyOptions) SetOrdered(b bool) *InsertManyOptions {
 	imo.Ordered = &b
 	return imo
-}
-
-// MergeInsertManyOptions combines the given InsertManyOptions instances into a single InsertManyOptions in a last one
-// wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeInsertManyOptions(opts ...*InsertManyOptions) *InsertManyOptions {
-	imOpts := InsertMany()
-	for _, imo := range opts {
-		if imo == nil {
-			continue
-		}
-		if imo.BypassDocumentValidation != nil {
-			imOpts.BypassDocumentValidation = imo.BypassDocumentValidation
-		}
-		if imo.Comment != nil {
-			imOpts.Comment = imo.Comment
-		}
-		if imo.Ordered != nil {
-			imOpts.Ordered = imo.Ordered
-		}
-	}
-
-	return imOpts
 }

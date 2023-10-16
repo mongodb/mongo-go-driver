@@ -504,7 +504,7 @@ func runTest(t *testing.T, directory string, filename string) {
 
 			assert.Equal(t,
 				phase.Outcome.LogicalSessionTimeoutMinutes,
-				desc.SessionTimeoutMinutesPtr,
+				desc.SessionTimeoutMinutes,
 				"expected and actual logical session timeout minutes are different")
 
 			assert.Equal(t, phase.Outcome.MaxSetVersion, topo.fsm.maxSetVersion,

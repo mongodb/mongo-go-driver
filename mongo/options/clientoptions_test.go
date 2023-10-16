@@ -88,7 +88,7 @@ func TestClientOptions(t *testing.T) {
 			{"Direct", (*ClientOptions).SetDirect, true, "Direct", true},
 			{"SocketTimeout", (*ClientOptions).SetSocketTimeout, 5 * time.Second, "SocketTimeout", true},
 			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
-			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.New(writeconcern.WMajority()), "WriteConcern", false},
+			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
 			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
 			{"LoadBalanced", (*ClientOptions).SetLoadBalanced, true, "LoadBalanced", true},
@@ -439,22 +439,22 @@ func TestClientOptions(t *testing.T) {
 			{
 				"WriteConcern J",
 				"mongodb://localhost/?journal=true",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.J(true))),
+				baseClient().SetWriteConcern(writeconcern.Journaled()),
 			},
 			{
 				"WriteConcern WString",
 				"mongodb://localhost/?w=majority",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+				baseClient().SetWriteConcern(writeconcern.Majority()),
 			},
 			{
 				"WriteConcern W",
 				"mongodb://localhost/?w=3",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.W(3))),
+				baseClient().SetWriteConcern(&writeconcern.WriteConcern{W: 3}),
 			},
 			{
 				"WriteConcern WTimeout",
 				"mongodb://localhost/?wTimeoutMS=45000",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.WTimeout(45 * time.Second))),
+				baseClient().SetWriteConcern(&writeconcern.WriteConcern{WTimeout: 45 * time.Second}),
 			},
 			{
 				"ZLibLevel",

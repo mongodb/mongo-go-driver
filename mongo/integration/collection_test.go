@@ -35,7 +35,10 @@ var (
 	// impossibleWc is a write concern that can't be satisfied and is used to test write concern errors
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
-	impossibleWc = writeconcern.New(writeconcern.W(30), writeconcern.WTimeout(time.Second))
+	impossibleWc = &writeconcern.WriteConcern{
+		W:        30,
+		WTimeout: time.Second,
+	}
 )
 
 func TestCollection(t *testing.T) {
@@ -1136,15 +1139,12 @@ func TestCollection(t *testing.T) {
 			// SetCursorTime and setMaxAwaitTime will be deprecated in GODRIVER-1775
 			opts := options.FindOne().
 				SetAllowPartialResults(true).
-				SetBatchSize(2).
 				SetCollation(&options.Collation{Locale: "en_US"}).
 				SetComment(expectedComment).
 				SetHint(indexName).
 				SetMax(bson.D{{"x", int32(5)}}).
 				SetMaxTime(1 * time.Second).
 				SetMin(bson.D{{"x", int32(0)}}).
-				SetNoCursorTimeout(false).
-				SetOplogReplay(false).
 				SetProjection(bson.D{{"x", int32(1)}}).
 				SetReturnKey(false).
 				SetShowRecordID(false).
@@ -1161,15 +1161,12 @@ func TestCollection(t *testing.T) {
 
 			optionsDoc := bsoncore.NewDocumentBuilder().
 				AppendBoolean("allowPartialResults", true).
-				AppendInt32("batchSize", 2).
 				StartDocument("collation").AppendString("locale", "en_US").FinishDocument().
 				AppendString("comment", expectedComment).
 				AppendString("hint", indexName).
 				StartDocument("max").AppendInt32("x", 5).FinishDocument().
 				AppendInt32("maxTimeMS", 1000).
 				StartDocument("min").AppendInt32("x", 0).FinishDocument().
-				AppendBoolean("noCursorTimeout", false).
-				AppendBoolean("oplogReplay", false).
 				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
 				AppendBoolean("returnKey", false).
 				AppendBoolean("showRecordId", false).
@@ -1688,7 +1685,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
 		})
 		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+			SetWriteConcern(writeconcern.Unacknowledged())
 		unackMtOpts := mtest.NewOptions().
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")

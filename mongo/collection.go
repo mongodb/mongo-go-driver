@@ -68,8 +68,34 @@ func closeImplicitSession(sess *session.Client) {
 	}
 }
 
+// mergeCollectionOptions combines the given CollectionOptions instances into a single *CollectionOptions in a
+// last-property-wins fashion.
+func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.CollectionOptions {
+	c := options.Collection()
+
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ReadConcern != nil {
+			c.ReadConcern = opt.ReadConcern
+		}
+		if opt.WriteConcern != nil {
+			c.WriteConcern = opt.WriteConcern
+		}
+		if opt.ReadPreference != nil {
+			c.ReadPreference = opt.ReadPreference
+		}
+		if opt.Registry != nil {
+			c.Registry = opt.Registry
+		}
+	}
+
+	return c
+}
+
 func newCollection(db *Database, name string, opts ...*options.CollectionOptions) *Collection {
-	collOpt := options.MergeCollectionOptions(opts...)
+	collOpt := mergeCollectionOptions(opts...)
 
 	rc := db.readConcern
 	if collOpt.ReadConcern != nil {
@@ -141,7 +167,7 @@ func (coll *Collection) copy() *Collection {
 // precedence.
 func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, error) {
 	copyColl := coll.copy()
-	optsColl := options.MergeCollectionOptions(opts...)
+	optsColl := mergeCollectionOptions(opts...)
 
 	if optsColl.ReadConcern != nil {
 		copyColl.readConcern = optsColl.ReadConcern
@@ -210,7 +236,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -222,7 +248,24 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		}
 	}
 
-	bwo := options.MergeBulkWriteOptions(opts...)
+	bwo := options.BulkWrite()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Comment != nil {
+			bwo.Comment = opt.Comment
+		}
+		if opt.Ordered != nil {
+			bwo.Ordered = opt.Ordered
+		}
+		if opt.BypassDocumentValidation != nil {
+			bwo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Let != nil {
+			bwo.Let = opt.Let
+		}
+	}
 
 	op := bulkWrite{
 		comment:                  bwo.Comment,
@@ -280,7 +323,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -292,7 +335,21 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
-	imo := options.MergeInsertManyOptions(opts...)
+	imo := options.InsertMany()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.BypassDocumentValidation != nil {
+			imo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Comment != nil {
+			imo.Comment = opt.Comment
+		}
+		if opt.Ordered != nil {
+			imo.Ordered = opt.Ordered
+		}
+	}
 	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
 	}
@@ -345,7 +402,18 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
-	ioOpts := options.MergeInsertOneOptions(opts...)
+	ioOpts := options.InsertOne()
+	for _, ioo := range opts {
+		if ioo == nil {
+			continue
+		}
+		if ioo.BypassDocumentValidation != nil {
+			ioOpts.BypassDocumentValidation = ioo.BypassDocumentValidation
+		}
+		if ioo.Comment != nil {
+			ioOpts.Comment = ioo.Comment
+		}
+	}
 	imOpts := options.InsertMany()
 
 	if ioOpts.BypassDocumentValidation != nil && *ioOpts.BypassDocumentValidation {
@@ -436,7 +504,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -446,7 +514,26 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if deleteOne {
 		limit = 1
 	}
-	do := options.MergeDeleteOptions(opts...)
+
+	do := options.Delete()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Collation != nil {
+			do.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			do.Comment = opt.Comment
+		}
+		if opt.Hint != nil {
+			do.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			do.Let = opt.Let
+		}
+	}
+
 	didx, doc := bsoncore.AppendDocumentStart(nil)
 	doc = bsoncore.AppendDocumentElement(doc, "q", f)
 	doc = bsoncore.AppendInt32Element(doc, "limit", limit)
@@ -542,7 +629,33 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		ctx = context.Background()
 	}
 
-	uo := options.MergeUpdateOptions(opts...)
+	uo := options.Update()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ArrayFilters != nil {
+			uo.ArrayFilters = opt.ArrayFilters
+		}
+		if opt.BypassDocumentValidation != nil {
+			uo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Collation != nil {
+			uo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			uo.Comment = opt.Comment
+		}
+		if opt.Hint != nil {
+			uo.Hint = opt.Hint
+		}
+		if opt.Upsert != nil {
+			uo.Upsert = opt.Upsert
+		}
+		if opt.Let != nil {
+			uo.Let = opt.Let
+		}
+	}
 
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
 	// command
@@ -576,7 +689,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -796,6 +909,49 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 	return aggregate(a)
 }
 
+// mergeAggregateOptions combines the given AggregateOptions instances into a single AggregateOptions in a last-property-wins
+// fashion.
+func mergeAggregateOptions(opts ...*options.AggregateOptions) *options.AggregateOptions {
+	aggOpts := options.Aggregate()
+	for _, ao := range opts {
+		if ao == nil {
+			continue
+		}
+		if ao.AllowDiskUse != nil {
+			aggOpts.AllowDiskUse = ao.AllowDiskUse
+		}
+		if ao.BatchSize != nil {
+			aggOpts.BatchSize = ao.BatchSize
+		}
+		if ao.BypassDocumentValidation != nil {
+			aggOpts.BypassDocumentValidation = ao.BypassDocumentValidation
+		}
+		if ao.Collation != nil {
+			aggOpts.Collation = ao.Collation
+		}
+		if ao.MaxTime != nil {
+			aggOpts.MaxTime = ao.MaxTime
+		}
+		if ao.MaxAwaitTime != nil {
+			aggOpts.MaxAwaitTime = ao.MaxAwaitTime
+		}
+		if ao.Comment != nil {
+			aggOpts.Comment = ao.Comment
+		}
+		if ao.Hint != nil {
+			aggOpts.Hint = ao.Hint
+		}
+		if ao.Let != nil {
+			aggOpts.Let = ao.Let
+		}
+		if ao.Custom != nil {
+			aggOpts.Custom = ao.Custom
+		}
+	}
+
+	return aggOpts
+}
+
 // aggregate is the helper method for Aggregate
 func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if a.ctx == nil {
@@ -830,7 +986,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		wc = nil
 		rc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		closeImplicitSession(sess)
 		sess = nil
 	}
@@ -840,7 +996,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
-	ao := options.MergeAggregateOptions(a.opts...)
+	ao := mergeAggregateOptions(a.opts...)
 
 	cursorOpts := a.client.createBaseCursorOptions()
 
@@ -958,7 +1114,30 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	countOpts := options.MergeCountOptions(opts...)
+	countOpts := options.Count()
+	for _, co := range opts {
+		if co == nil {
+			continue
+		}
+		if co.Collation != nil {
+			countOpts.Collation = co.Collation
+		}
+		if co.Comment != nil {
+			countOpts.Comment = co.Comment
+		}
+		if co.Hint != nil {
+			countOpts.Hint = co.Hint
+		}
+		if co.Limit != nil {
+			countOpts.Limit = co.Limit
+		}
+		if co.MaxTime != nil {
+			countOpts.MaxTime = co.MaxTime
+		}
+		if co.Skip != nil {
+			countOpts.Skip = co.Skip
+		}
+	}
 
 	pipelineArr, err := countDocumentsAggregatePipeline(filter, coll.bsonOpts, coll.registry, countOpts)
 	if err != nil {
@@ -1061,8 +1240,18 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		rc = nil
 	}
 
-	co := options.MergeEstimatedDocumentCountOptions(opts...)
-
+	co := options.EstimatedDocumentCount()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Comment != nil {
+			co.Comment = opt.Comment
+		}
+		if opt.MaxTime != nil {
+			co.MaxTime = opt.MaxTime
+		}
+	}
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
@@ -1128,7 +1317,21 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	}
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
-	option := options.MergeDistinctOptions(opts...)
+	option := options.Distinct()
+	for _, do := range opts {
+		if do == nil {
+			continue
+		}
+		if do.Collation != nil {
+			option.Collation = do.Collation
+		}
+		if do.Comment != nil {
+			option.Comment = do.Comment
+		}
+		if do.MaxTime != nil {
+			option.MaxTime = do.MaxTime
+		}
+	}
 
 	op := operation.NewDistinct(fieldName, f).
 		Session(sess).ClusterClock(coll.client.clock).
@@ -1181,6 +1384,75 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	return retArray, replaceErrors(err)
 }
 
+// mergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-property-wins fashion.
+func mergeFindOptions(opts ...*options.FindOptions) *options.FindOptions {
+	fo := options.Find()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.AllowDiskUse != nil {
+			fo.AllowDiskUse = opt.AllowDiskUse
+		}
+		if opt.AllowPartialResults != nil {
+			fo.AllowPartialResults = opt.AllowPartialResults
+		}
+		if opt.BatchSize != nil {
+			fo.BatchSize = opt.BatchSize
+		}
+		if opt.Collation != nil {
+			fo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
+		}
+		if opt.CursorType != nil {
+			fo.CursorType = opt.CursorType
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
+		}
+		if opt.Limit != nil {
+			fo.Limit = opt.Limit
+		}
+		if opt.Max != nil {
+			fo.Max = opt.Max
+		}
+		if opt.MaxAwaitTime != nil {
+			fo.MaxAwaitTime = opt.MaxAwaitTime
+		}
+		if opt.MaxTime != nil {
+			fo.MaxTime = opt.MaxTime
+		}
+		if opt.Min != nil {
+			fo.Min = opt.Min
+		}
+		if opt.NoCursorTimeout != nil {
+			fo.NoCursorTimeout = opt.NoCursorTimeout
+		}
+		if opt.Projection != nil {
+			fo.Projection = opt.Projection
+		}
+		if opt.ReturnKey != nil {
+			fo.ReturnKey = opt.ReturnKey
+		}
+		if opt.ShowRecordID != nil {
+			fo.ShowRecordID = opt.ShowRecordID
+		}
+		if opt.Skip != nil {
+			fo.Skip = opt.Skip
+		}
+		if opt.Sort != nil {
+			fo.Sort = opt.Sort
+		}
+	}
+
+	return fo
+}
+
 // Find executes a find command and returns a Cursor over the matching documents in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select which documents are
@@ -1222,7 +1494,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	fo := options.MergeFindOptions(opts...)
+	fo := mergeFindOptions(opts...)
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
@@ -1313,9 +1585,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	if fo.NoCursorTimeout != nil {
 		op.NoCursorTimeout(*fo.NoCursorTimeout)
 	}
-	if fo.OplogReplay != nil {
-		op.OplogReplay(*fo.OplogReplay)
-	}
 	if fo.Projection != nil {
 		proj, err := marshal(fo.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -1331,9 +1600,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	}
 	if fo.Skip != nil {
 		op.Skip(*fo.Skip)
-	}
-	if fo.Snapshot != nil {
-		op.Snapshot(*fo.Snapshot)
 	}
 	if fo.Sort != nil {
 		if isUnorderedMap(fo.Sort) {
@@ -1385,22 +1651,16 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		}
 		findOpts = append(findOpts, &options.FindOptions{
 			AllowPartialResults: opt.AllowPartialResults,
-			BatchSize:           opt.BatchSize,
 			Collation:           opt.Collation,
 			Comment:             opt.Comment,
-			CursorType:          opt.CursorType,
 			Hint:                opt.Hint,
 			Max:                 opt.Max,
-			MaxAwaitTime:        opt.MaxAwaitTime,
 			MaxTime:             opt.MaxTime,
 			Min:                 opt.Min,
-			NoCursorTimeout:     opt.NoCursorTimeout,
-			OplogReplay:         opt.OplogReplay,
 			Projection:          opt.Projection,
 			ReturnKey:           opt.ReturnKey,
 			ShowRecordID:        opt.ShowRecordID,
 			Skip:                opt.Skip,
-			Snapshot:            opt.Snapshot,
 			Sort:                opt.Sort,
 		})
 	}
@@ -1439,7 +1699,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -1474,6 +1734,40 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 	}
 }
 
+// mergeFindOneAndDeleteOptions combines the given FindOneAndDeleteOptions instances into a single
+// FindOneAndDeleteOptions in a last-property-wins fashion.
+func mergeFindOneAndDeleteOptions(opts ...*options.FindOneAndDeleteOptions) *options.FindOneAndDeleteOptions {
+	fo := options.FindOneAndDelete()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Collation != nil {
+			fo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
+		}
+		if opt.MaxTime != nil {
+			fo.MaxTime = opt.MaxTime
+		}
+		if opt.Projection != nil {
+			fo.Projection = opt.Projection
+		}
+		if opt.Sort != nil {
+			fo.Sort = opt.Sort
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
+		}
+	}
+
+	return fo
+}
+
 // FindOneAndDelete executes a findAndModify command to delete at most one document in the collection. and returns the
 // document as it appeared before deletion.
 //
@@ -1492,7 +1786,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	fod := options.MergeFindOneAndDeleteOptions(opts...)
+	fod := mergeFindOneAndDeleteOptions(opts...)
 	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
 		MaxTime(fod.MaxTime)
 	if fod.Collation != nil {
@@ -1543,6 +1837,49 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	return coll.findAndModify(ctx, op)
 }
 
+// mergeFindOneAndReplaceOptions combines the given FindOneAndReplaceOptions instances into a single
+// FindOneAndReplaceOptions in a last-property-wins fashion.
+func mergeFindOneAndReplaceOptions(opts ...*options.FindOneAndReplaceOptions) *options.FindOneAndReplaceOptions {
+	fo := options.FindOneAndReplace()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.BypassDocumentValidation != nil {
+			fo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Collation != nil {
+			fo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
+		}
+		if opt.MaxTime != nil {
+			fo.MaxTime = opt.MaxTime
+		}
+		if opt.Projection != nil {
+			fo.Projection = opt.Projection
+		}
+		if opt.ReturnDocument != nil {
+			fo.ReturnDocument = opt.ReturnDocument
+		}
+		if opt.Sort != nil {
+			fo.Sort = opt.Sort
+		}
+		if opt.Upsert != nil {
+			fo.Upsert = opt.Upsert
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
+		}
+	}
+
+	return fo
+}
+
 // FindOneAndReplace executes a findAndModify command to replace at most one document in the collection
 // and returns the document as it appeared before replacement.
 //
@@ -1572,7 +1909,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 		return &SingleResult{err: errors.New("replacement document cannot contain keys beginning with '$'")}
 	}
 
-	fo := options.MergeFindOneAndReplaceOptions(opts...)
+	fo := mergeFindOneAndReplaceOptions(opts...)
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r}).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).MaxTime(fo.MaxTime)
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
@@ -1632,6 +1969,52 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	return coll.findAndModify(ctx, op)
 }
 
+// mergeFindOneAndUpdateOptions combines the given FindOneAndUpdateOptions instances into a single
+// FindOneAndUpdateOptions in a last-property-wins fashion.
+func mergeFindOneAndUpdateOptions(opts ...*options.FindOneAndUpdateOptions) *options.FindOneAndUpdateOptions {
+	fo := options.FindOneAndUpdate()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ArrayFilters != nil {
+			fo.ArrayFilters = opt.ArrayFilters
+		}
+		if opt.BypassDocumentValidation != nil {
+			fo.BypassDocumentValidation = opt.BypassDocumentValidation
+		}
+		if opt.Collation != nil {
+			fo.Collation = opt.Collation
+		}
+		if opt.Comment != nil {
+			fo.Comment = opt.Comment
+		}
+		if opt.MaxTime != nil {
+			fo.MaxTime = opt.MaxTime
+		}
+		if opt.Projection != nil {
+			fo.Projection = opt.Projection
+		}
+		if opt.ReturnDocument != nil {
+			fo.ReturnDocument = opt.ReturnDocument
+		}
+		if opt.Sort != nil {
+			fo.Sort = opt.Sort
+		}
+		if opt.Upsert != nil {
+			fo.Upsert = opt.Upsert
+		}
+		if opt.Hint != nil {
+			fo.Hint = opt.Hint
+		}
+		if opt.Let != nil {
+			fo.Let = opt.Let
+		}
+	}
+
+	return fo
+}
+
 // FindOneAndUpdate executes a findAndModify command to update at most one document in the collection and returns the
 // document as it appeared before updating.
 //
@@ -1659,7 +2042,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		return &SingleResult{err: err}
 	}
 
-	fo := options.MergeFindOneAndUpdateOptions(opts...)
+	fo := mergeFindOneAndUpdateOptions(opts...)
 	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
 		MaxTime(fo.MaxTime)
 
@@ -1853,7 +2236,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 

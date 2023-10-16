@@ -219,12 +219,6 @@ type ClientOptions struct {
 	uri string
 	cs  *connstring.ConnString
 
-	// AuthenticateToAnything skips server type checks when deciding if authentication is possible.
-	//
-	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
-	// release.
-	AuthenticateToAnything *bool
-
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
 	// encryption.
 	//
@@ -414,7 +408,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.ReadConcernLevel != "" {
-		c.ReadConcern = readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+		c.ReadConcern = &readconcern.ReadConcern{Level: cs.ReadConcernLevel}
 	}
 
 	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
@@ -511,23 +505,21 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
-		opts := make([]writeconcern.Option, 0, 1)
+		c.WriteConcern = &writeconcern.WriteConcern{}
 
 		if len(cs.WString) > 0 {
-			opts = append(opts, writeconcern.WTagSet(cs.WString))
+			c.WriteConcern.W = cs.WString
 		} else if cs.WNumberSet {
-			opts = append(opts, writeconcern.W(cs.WNumber))
+			c.WriteConcern.W = cs.WNumber
 		}
 
 		if cs.JSet {
-			opts = append(opts, writeconcern.J(cs.J))
+			c.WriteConcern.Journal = &cs.J
 		}
 
 		if cs.WTimeoutSet {
-			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+			c.WriteConcern.WTimeout = cs.WTimeout
 		}
-
-		c.WriteConcern = writeconcern.New(opts...)
 	}
 
 	if cs.ZlibLevelSet {
@@ -961,7 +953,7 @@ func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
 	return c
 }
 
-// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
+// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last property wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
 //
@@ -983,9 +975,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Auth != nil {
 			c.Auth = opt.Auth
-		}
-		if opt.AuthenticateToAnything != nil {
-			c.AuthenticateToAnything = opt.AuthenticateToAnything
 		}
 		if opt.Compressors != nil {
 			c.Compressors = opt.Compressors

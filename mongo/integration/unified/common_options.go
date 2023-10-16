@@ -24,7 +24,7 @@ type readConcern struct {
 }
 
 func (rc *readConcern) toReadConcernOption() *readconcern.ReadConcern {
-	return readconcern.New(readconcern.Level(rc.Level))
+	return &readconcern.ReadConcern{Level: rc.Level}
 }
 
 type writeConcern struct {
@@ -34,9 +34,9 @@ type writeConcern struct {
 }
 
 func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, error) {
-	var wcOptions []writeconcern.Option
+	c := &writeconcern.WriteConcern{}
 	if wc.Journal != nil {
-		wcOptions = append(wcOptions, writeconcern.J(*wc.Journal))
+		c.Journal = wc.Journal
 	}
 	if wc.W != nil {
 		switch converted := wc.W.(type) {
@@ -44,19 +44,19 @@ func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, erro
 			if converted != "majority" {
 				return nil, fmt.Errorf("invalid write concern 'w' string value %q", converted)
 			}
-			wcOptions = append(wcOptions, writeconcern.WMajority())
+			c.W = "majority"
 		case int32:
-			wcOptions = append(wcOptions, writeconcern.W(int(converted)))
+			c.W = int(converted)
 		default:
 			return nil, fmt.Errorf("invalid type for write concern 'w' field %T", wc.W)
 		}
 	}
 	if wc.WTimeoutMS != nil {
 		wTimeout := time.Duration(*wc.WTimeoutMS) * time.Millisecond
-		wcOptions = append(wcOptions, writeconcern.WTimeout(wTimeout))
+		c.WTimeout = wTimeout
 	}
 
-	return writeconcern.New(wcOptions...), nil
+	return c, nil
 }
 
 // ReadPreference is a representation of BSON readPreference objects in tests.

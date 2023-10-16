@@ -27,21 +27,3 @@ func (rc *RunCmdOptions) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptions
 	rc.ReadPreference = rp
 	return rc
 }
-
-// MergeRunCmdOptions combines the given RunCmdOptions instances into one *RunCmdOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeRunCmdOptions(opts ...*RunCmdOptions) *RunCmdOptions {
-	rc := RunCmd()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadPreference != nil {
-			rc.ReadPreference = opt.ReadPreference
-		}
-	}
-
-	return rc
-}
