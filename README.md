@@ -162,12 +162,12 @@ The Go Driver supports the following compression algorithms:
 
 Compression can be enabled using the `compressors` parameter on the connection string or by using [`ClientOptions.SetCompressors`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetCompressors):
 
-```
+```go
 opts := options.Client().ApplyURI("mongodb://localhost:27017/?compressors=snappy,zlib,zstd")
 client, _ := mongo.Connect(context.TODO(), opts)
 ```
 
-```
+```go
 opts := options.Client().SetCompressors([]string{"snappy", "zlib", "zstd"})
 client, _ := mongo.Connect(context.TODO(), opts)
 ```

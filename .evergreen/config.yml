@@ -745,7 +745,7 @@ functions:
               "iam_auth_ecs_secret_access_key" : "${iam_auth_ecs_secret_access_key}",
               "iam_auth_ecs_account_arn": "arn:aws:iam::557821124784:user/authtest_fargate_user",
               "iam_auth_ecs_cluster": "${iam_auth_ecs_cluster}",
-              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition}",
+              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition_ubuntu2004}",
               "iam_auth_ecs_subnet_a": "${iam_auth_ecs_subnet_a}",
               "iam_auth_ecs_subnet_b": "${iam_auth_ecs_subnet_b}",
               "iam_auth_ecs_security_group": "${iam_auth_ecs_security_group}",
@@ -782,7 +782,7 @@ functions:
         silent: true
         script: |
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            alias urlencode='python3 -c "import sys, urllib.parse as ulp; sys.stdout.write(ulp.quote_plus(sys.argv[1]))"'
             USER=$(urlencode ${iam_auth_ecs_account})
             PASS=$(urlencode ${iam_auth_ecs_secret_access_key})
             MONGODB_URI="mongodb://$USER:$PASS@localhost"
@@ -816,8 +816,8 @@ functions:
         script: |
           # DO NOT ECHO WITH XTRACE
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
-            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+            alias urlencode='python3 -c "import sys, urllib.parse as ulp; sys.stdout.write(ulp.quote_plus(sys.argv[1]))"'
+            alias jsonkey='python3 -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
             USER=$(jsonkey AccessKeyId)
             USER=$(urlencode $USER)
             PASS=$(jsonkey SecretAccessKey)
@@ -2400,11 +2400,9 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
-      # TODO(BUILD-17329): Update this to Ubuntu 22 after we add a new ECS task
-      # definition.
-      - id: "ubuntu1804-64-go-1-20"
-        display_name: "Ubuntu 18.04"
-        run_on: ubuntu1804-test
+      - id: "ubuntu2004-64-go-1-20"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-test
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
