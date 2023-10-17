@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -52,6 +53,9 @@ func TestSDAMProse(t *testing.T) {
 		// sent messages. The sleep duration will be at least the specified duration but
 		// possibly longer, which could lead to extra heartbeat messages, so account for that in
 		// the assertions.
+		if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+			mt.Skip("skipping test in docker environment")
+		}
 		start := time.Now()
 		time.Sleep(2 * time.Second)
 		messages := mt.GetProxiedMessages()
