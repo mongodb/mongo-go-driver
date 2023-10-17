@@ -1684,6 +1684,7 @@ tasks:
       - func: run-atlas-data-lake-test
 
   - name: test-docker-runner
+    tags: ["pullrequest"]
     commands:
       - func: run-docker-test
 
