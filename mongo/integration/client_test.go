@@ -187,7 +187,7 @@ func TestClient(t *testing.T) {
 
 				rdr, err := authClient.Database("test").RunCommand(context.Background(), bson.D{
 					{"connectionStatus", 1},
-				}).DecodeBytes()
+				}).Raw()
 				assert.Nil(mt, err, "connectionStatus error: %v", err)
 				users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
 				assert.Nil(mt, err, "authenticatedUsers not found in response")
@@ -879,8 +879,8 @@ func TestClient_BSONOptions(t *testing.T) {
 			}
 
 			if tc.wantRaw != nil {
-				got, err := sr.DecodeBytes()
-				require.NoError(mt, err, "DecodeBytes error")
+				got, err := sr.Raw()
+				require.NoError(mt, err, "Raw error")
 
 				assert.EqualBSON(mt, tc.wantRaw, got)
 			}

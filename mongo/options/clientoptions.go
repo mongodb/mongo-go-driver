@@ -599,7 +599,7 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 // 3. "zstd" - requires server version >= 4.2, and driver version >= 1.2.0 with cgo support enabled or driver
 // version >= 1.3.0 without cgo.
 //
-// If this option is specified, the driver will perform a negotiation with the server to determine a common list of of
+// If this option is specified, the driver will perform a negotiation with the server to determine a common list of
 // compressors and will use the first one in that list when performing operations. See
 // https://www.mongodb.com/docs/manual/reference/program/mongod/#cmdoption-mongod-networkmessagecompressors for more
 // information about configuring compression on the server and the server-side defaults.

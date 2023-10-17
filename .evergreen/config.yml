@@ -54,7 +54,7 @@ functions:
           export GOCACHE="$(pwd)/.cache"
 
           # Set other relevant variables for Evergreen processes.
-          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+          export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
           export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
@@ -97,29 +97,10 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.8.0-alpha1"
-          # Install libmongocrypt based on OS.
+          # Install libmongocrypt.
+          bash etc/install-libmongocrypt.sh
           if [ "Windows_NT" = "$OS" ]; then
-             mkdir -p c:/libmongocrypt/include
-             mkdir -p c:/libmongocrypt/bin
-             echo "fetching build for Windows ... begin"
-             mkdir libmongocrypt-all
-             cd libmongocrypt-all
-             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
-             tar -xf libmongocrypt-all.tar.gz
-             cd ..
-             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
-             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
-             export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-             rm -rf libmongocrypt-all
-             echo "fetching build for Windows ... end"
-          else
-            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
-            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
-                cat output.txt 1>&2
-                exit 1
-            fi
+            export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           fi
 
           cat <<EOT > expansion.yml
@@ -347,6 +328,18 @@ functions:
         script: |
           ${PREPARE_SHELL}
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+
+  create-api-report:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export BASE_SHA=${revision}
+          export HEAD_SHA=${github_commit}
+          bash etc/api_report.sh
 
   send-perf-data:
     - command: perf.send
@@ -614,6 +607,17 @@ functions:
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
           make evg-test-atlas-data-lake
 
+  run-docker-test:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          bash etc/run_docker.sh
+          TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
+
   run-valid-ocsp-server:
     - command: shell.exec
       params:
@@ -733,7 +737,7 @@ functions:
               "iam_auth_ecs_secret_access_key" : "${iam_auth_ecs_secret_access_key}",
               "iam_auth_ecs_account_arn": "arn:aws:iam::557821124784:user/authtest_fargate_user",
               "iam_auth_ecs_cluster": "${iam_auth_ecs_cluster}",
-              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition}",
+              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition_ubuntu2004}",
               "iam_auth_ecs_subnet_a": "${iam_auth_ecs_subnet_a}",
               "iam_auth_ecs_subnet_b": "${iam_auth_ecs_subnet_b}",
               "iam_auth_ecs_security_group": "${iam_auth_ecs_security_group}",
@@ -770,7 +774,7 @@ functions:
         silent: true
         script: |
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
+            alias urlencode='python3 -c "import sys, urllib.parse as ulp; sys.stdout.write(ulp.quote_plus(sys.argv[1]))"'
             USER=$(urlencode ${iam_auth_ecs_account})
             PASS=$(urlencode ${iam_auth_ecs_secret_access_key})
             MONGODB_URI="mongodb://$USER:$PASS@localhost"
@@ -804,8 +808,8 @@ functions:
         script: |
           # DO NOT ECHO WITH XTRACE
           cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
-            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
+            alias urlencode='python3 -c "import sys, urllib.parse as ulp; sys.stdout.write(ulp.quote_plus(sys.argv[1]))"'
+            alias jsonkey='python3 -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
             USER=$(jsonkey AccessKeyId)
             USER=$(urlencode $USER)
             PASS=$(jsonkey SecretAccessKey)
@@ -1202,6 +1206,7 @@ tasks:
       - func: run-make
         vars:
           targets: "check-fmt check-license check-modules lint"
+      - func: "create-api-report"
 
   - name: perf
     tags: ["performance"]
@@ -1677,6 +1682,10 @@ tasks:
     commands:
       - func: bootstrap-mongohoused
       - func: run-atlas-data-lake-test
+
+  - name: test-docker-runner
+    commands:
+      - func: run-docker-test
 
   - name: test-load-balancer-noauth-nossl
     tags: ["load-balancer"]
@@ -2201,8 +2210,7 @@ tasks:
           echo "Copying files ... begin"
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
           tar czf testazurekms.tgz ./testkms ./install/libmongocrypt/lib64/libmongocrypt.*
           AZUREKMS_SRC=testazurekms.tgz AZUREKMS_DST=/tmp $DRIVERS_TOOLS/.evergreen/csfle/azurekms/copy-file.sh
           echo "Copying files ... end"
@@ -2217,10 +2225,11 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          # Get azurekms credentials from the vault.
+          . ./etc/get_aws_secrets.sh drivers/azurekms
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
-          echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
+          export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
           AZUREKMS_CMD="LD_LIBRARY_PATH=./install/libmongocrypt/lib64 MONGODB_URI='mongodb://localhost:27017' PROVIDER='azure' AZUREKMS_KEY_NAME='${AZUREKMS_KEY_NAME}' AZUREKMS_KEY_VAULT_ENDPOINT='${AZUREKMS_KEY_VAULT_ENDPOINT}' ./testkms" $DRIVERS_TOOLS/.evergreen/csfle/azurekms/run-command.sh
 
   - name: "testazurekms-fail-task"
@@ -2333,7 +2342,7 @@ axes:
           VENV_BIN_DIR: "Scripts"
       - id: "rhel87-64-go-1-20"
         display_name: "RHEL 8.7"
-        run_on: rhel8.7-large 
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2387,11 +2396,9 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
-      # TODO(BUILD-17329): Update this to Ubuntu 22 after we add a new ECS task
-      # definition.
-      - id: "ubuntu1804-64-go-1-20"
-        display_name: "Ubuntu 18.04"
-        run_on: ubuntu1804-test
+      - id: "ubuntu2004-64-go-1-20"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-test
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2562,6 +2569,7 @@ task_groups:
       - testgcpkms-task
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
+    teardown_group_can_fail_task: true
     setup_group_timeout_secs: 1800 # 30 minutes
     setup_group:
       - func: fetch-source
@@ -2574,17 +2582,10 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
-            export AZUREKMS_CLIENTID=${AZUREKMS_CLIENTID}
-            export AZUREKMS_TENANTID=${AZUREKMS_TENANTID}
-            export AZUREKMS_SECRET=${AZUREKMS_SECRET}
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
-            echo '${testazurekms_publickey}' > /tmp/testazurekms.pubkey
-            export AZUREKMS_PUBLICKEYPATH=/tmp/testazurekms.pubkey
-            echo '${testazurekms_privatekey}' > /tmp/testazurekms.prikey
-            sudo chmod 600 /tmp/testazurekms.prikey
-            export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms.prikey
-            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
+            # Get azurekms credentials from the vault.
+            bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh drivers/azurekms
+            source ./secrets-export.sh
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
@@ -2599,6 +2600,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
+            export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
     tasks:
@@ -2704,12 +2706,12 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".compile-check"
-  
+
   - name: atlas-test
     tags: ["pullrequest"]
     display_name: "Atlas test"
     run_on:
-      - rhel8.7-large 
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
@@ -2719,11 +2721,20 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel8.7-large 
+      - rhel8.7-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "test-atlas-data-lake"
+
+  - name: docker-runner-test
+    display_name: "Docker Runner Test"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: "test-docker-runner"
 
   - matrix_name: "tests-36-with-zlib-support"
     tags: ["pullrequest"]

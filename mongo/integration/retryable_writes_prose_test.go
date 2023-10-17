@@ -86,7 +86,7 @@ func TestRetryableWritesProse(t *testing.T) {
 	})
 	errorOpts := mtest.NewOptions().Topologies(mtest.ReplicaSet, mtest.Sharded)
 	mt.RunOpts("wrap mmapv1 error", errorOpts, func(mt *mtest.T) {
-		res, err := mt.DB.RunCommand(context.Background(), bson.D{{"serverStatus", 1}}).DecodeBytes()
+		res, err := mt.DB.RunCommand(context.Background(), bson.D{{"serverStatus", 1}}).Raw()
 		assert.Nil(mt, err, "serverStatus error: %v", err)
 		storageEngine, ok := res.Lookup("storageEngine", "name").StringValueOK()
 		if !ok || storageEngine != "mmapv1" {
