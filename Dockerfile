@@ -37,6 +37,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
 # Install golang from the golang-backports ppa.
 RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
+  export LC_ALL=C.UTF-8 && \
   apt-add-repository "ppa:longsleep/golang-backports" && \
   apt-get -qq update && \
   apt-get -qqy install --no-install-recommends golang-go && \
