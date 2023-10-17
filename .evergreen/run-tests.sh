@@ -4,7 +4,11 @@ set -o errexit
 
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
-export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
+export DRIVERS_TOOLS=${DRIVERS_TOOLS:-""}
+
+if [ -z $DRIVERS_TOOLS ]; then
+  export DRIVERS_TOOLS=="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
+fi
 
 if [ "Windows_NT" = "$OS" ]; then
     export GOPATH=$(cygpath -m $GOPATH)
@@ -14,6 +18,7 @@ fi
 
 export GOROOT="${GOROOT}"
 export PATH="${GOROOT}/bin:${GCC_PATH}:$GOPATH/bin:$PATH"
+export PATH="${MONGODB_BINARIES:-$DRIVERS_TOOLS/mongodb/bin}:$PATH"
 export PROJECT="${project}"
 export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
 export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64

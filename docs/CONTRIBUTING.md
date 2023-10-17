@@ -51,6 +51,9 @@ prompt before creating a PR to the target branch.
 
 The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`). This will run coverage, run go-lint, run go-vet, and build the examples.
 
+You can install `libmongocrypt` locally by running `bash etc/build-libmongocrypt.sh`, which will create an `install` directory
+in the repository top level directory.  On Windows you will also need to add `c:/libmongocrypt/` to your `PATH`.
+
 ### Testing Different Topologies
 
 To test a **replica set** or **sharded cluster**, set `MONGODB_URI="<connection-string>"` for the `make` command.
@@ -128,6 +131,24 @@ MONGODB_URI="mongodb://host.docker.internal:27017" make build-faas-awslambda
 The usage of host.docker.internal comes from the [Docker networking documentation](https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host).
 
 There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
+
+### Testing in Docker
+
+We support local testing in Docker. Ensure ``docker`` is installed and running, and then run:
+
+```bash
+bash etc/run_docker.sh
+```
+
+The script takes an optional argument for the ``MAKEFILE_TARGET`` and allows for some environment variable overrides.
+The docker container has the required binaries, including libmongocrypt.
+The entry script starts a MongoDB topology, and then executes the desired ``MAKEFILE_TARGET``.
+
+For example, to test against a sharded cluster, using enterprise auth, run:
+
+```bash
+TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
+```
 
 ## Talk To Us
 
