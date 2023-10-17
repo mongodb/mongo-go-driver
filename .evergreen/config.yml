@@ -54,7 +54,7 @@ functions:
           export GOCACHE="$(pwd)/.cache"
 
           # Set other relevant variables for Evergreen processes.
-          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+          export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
           export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
@@ -328,6 +328,18 @@ functions:
         script: |
           ${PREPARE_SHELL}
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+
+  create-api-report:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export BASE_SHA=${revision}
+          export HEAD_SHA=${github_commit}
+          bash etc/api_report.sh
 
   send-perf-data:
     - command: perf.send
@@ -1190,6 +1202,7 @@ tasks:
       - func: run-make
         vars:
           targets: "check-fmt check-license check-modules lint"
+      - func: "create-api-report"
 
   - name: perf
     tags: ["performance"]
