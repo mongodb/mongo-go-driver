@@ -581,7 +581,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	baseClientOpts := options.Client().
 		ApplyURI(cs.Original).
 		SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).
+		SetWriteConcern(writeconcern.Majority()).
 		SetPoolMonitor(poolMonitor)
 	integtest.AddTestServerAPIVersion(baseClientOpts)
 	fullClientOpts := []*options.ClientOptions{baseClientOpts}
@@ -613,7 +613,7 @@ func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
 		bson.D{{"serverStatus", 1}},
-	).DecodeBytes()
+	).Raw()
 	if err != nil {
 		return "", err
 	}

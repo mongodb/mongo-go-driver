@@ -70,32 +70,3 @@ func (c *CollectionOptions) SetRegistry(r *bsoncodec.Registry) *CollectionOption
 	c.Registry = r
 	return c
 }
-
-// MergeCollectionOptions combines the given CollectionOptions instances into a single *CollectionOptions in a
-// last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeCollectionOptions(opts ...*CollectionOptions) *CollectionOptions {
-	c := Collection()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			c.ReadConcern = opt.ReadConcern
-		}
-		if opt.WriteConcern != nil {
-			c.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadPreference != nil {
-			c.ReadPreference = opt.ReadPreference
-		}
-		if opt.Registry != nil {
-			c.Registry = opt.Registry
-		}
-	}
-
-	return c
-}

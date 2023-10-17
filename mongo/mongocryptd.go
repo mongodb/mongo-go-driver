@@ -26,7 +26,7 @@ const (
 )
 
 var defaultTimeoutArgs = []string{"--idleShutdownTimeoutSecs=60"}
-var databaseOpts = options.Database().SetReadConcern(readconcern.New()).SetReadPreference(readpref.Primary())
+var databaseOpts = options.Database().SetReadConcern(&readconcern.ReadConcern{}).SetReadPreference(readpref.Primary())
 
 type mongocryptdClient struct {
 	bypassSpawn bool
@@ -74,7 +74,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClie
 	}
 
 	// create client
-	client, err := NewClient(options.Client().ApplyURI(uri).SetServerSelectionTimeout(defaultServerSelectionTimeout))
+	client, err := newClient(options.Client().ApplyURI(uri).SetServerSelectionTimeout(defaultServerSelectionTimeout))
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd
 	ctx = NewSessionContext(ctx, nil)
 	db := mc.client.Database(dbName, databaseOpts)
 
-	res, err := db.RunCommand(ctx, cmd).DecodeBytes()
+	res, err := db.RunCommand(ctx, cmd).Raw()
 	// propagate original result
 	if err == nil {
 		return bsoncore.Document(res), nil
@@ -105,7 +105,7 @@ func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd
 	if err = mc.spawnProcess(); err != nil {
 		return nil, err
 	}
-	res, err = db.RunCommand(ctx, cmd).DecodeBytes()
+	res, err = db.RunCommand(ctx, cmd).Raw()
 	if err != nil {
 		return nil, MongocryptdError{Wrapped: err}
 	}
@@ -114,7 +114,7 @@ func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd
 
 // connect connects the underlying Client instance. This must be called before performing any mark operations.
 func (mc *mongocryptdClient) connect(ctx context.Context) error {
-	return mc.client.Connect(ctx)
+	return mc.client.connect(ctx)
 }
 
 // disconnect disconnects the underlying Client instance. This should be called after all operations have completed.

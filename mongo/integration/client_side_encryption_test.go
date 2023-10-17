@@ -375,8 +375,8 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		res := coll.FindOne(context.Background(), bson.D{{"foo", "bar"}})
 		assert.Nil(mt, res.Err(), "FindOne error: %v", err)
 
-		rawRes, err := res.DecodeBytes()
-		assert.Nil(mt, err, "DecodeBytes error: %v", err)
+		rawRes, err := res.Raw()
+		assert.Nil(mt, err, "Raw error: %v", err)
 		ssn, ok := rawRes.Lookup("ssn").StringValueOK()
 		assert.True(mt, ok, "expected 'ssn' value to be type string, got %T", ssn)
 		assert.Equal(mt, ssn, mySSN, "expected 'ssn' value %q, got %q", mySSN, ssn)
@@ -587,8 +587,8 @@ func TestFLE2DocsExample(t *testing.T) {
 			unencryptedColl := mt.Client.Database("docsExamples").Collection("encrypted")
 			res := unencryptedColl.FindOne(context.Background(), bson.M{"_id": 1})
 			assert.Nil(mt, res.Err(), "error in FindOne: %v", res.Err())
-			resBSON, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			resBSON, err := res.Raw()
+			assert.Nil(mt, err, "error in Raw: %v", err)
 
 			val := resBSON.Lookup("encryptedIndexed")
 			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedIndexed to be Binary, got %v", val.Type)

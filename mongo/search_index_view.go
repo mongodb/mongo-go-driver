@@ -13,7 +13,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -138,7 +137,7 @@ func (siv SearchIndexView) CreateMany(
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -200,7 +199,7 @@ func (siv SearchIndexView) DropOne(
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 
@@ -262,7 +261,7 @@ func (siv SearchIndexView) UpdateOne(
 	if sess.TransactionRunning() {
 		wc = nil
 	}
-	if !writeconcern.AckWrite(wc) {
+	if !wc.Acknowledged() {
 		sess = nil
 	}
 

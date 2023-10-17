@@ -82,37 +82,3 @@ func (ro *ReplaceOptions) SetLet(l interface{}) *ReplaceOptions {
 	ro.Let = l
 	return ro
 }
-
-// MergeReplaceOptions combines the given ReplaceOptions instances into a single ReplaceOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeReplaceOptions(opts ...*ReplaceOptions) *ReplaceOptions {
-	rOpts := Replace()
-	for _, ro := range opts {
-		if ro == nil {
-			continue
-		}
-		if ro.BypassDocumentValidation != nil {
-			rOpts.BypassDocumentValidation = ro.BypassDocumentValidation
-		}
-		if ro.Collation != nil {
-			rOpts.Collation = ro.Collation
-		}
-		if ro.Comment != nil {
-			rOpts.Comment = ro.Comment
-		}
-		if ro.Hint != nil {
-			rOpts.Hint = ro.Hint
-		}
-		if ro.Upsert != nil {
-			rOpts.Upsert = ro.Upsert
-		}
-		if ro.Let != nil {
-			rOpts.Let = ro.Let
-		}
-	}
-
-	return rOpts
-}

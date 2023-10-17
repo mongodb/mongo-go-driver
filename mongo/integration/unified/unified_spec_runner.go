@@ -144,7 +144,16 @@ func parseTestFile(testJSON []byte, opts ...*Options) ([]mtest.RunOnBlock, []*Te
 		return nil, nil, err
 	}
 
-	op := MergeOptions(opts...)
+	op := NewOptions()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.RunKillAllSessions != nil {
+			op.RunKillAllSessions = opt.RunKillAllSessions
+		}
+	}
+
 	for _, testCase := range testFile.TestCases {
 		testCase.initialData = testFile.InitialData
 		testCase.createEntities = testFile.CreateEntities

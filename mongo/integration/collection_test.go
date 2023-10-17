@@ -35,7 +35,10 @@ var (
 	// impossibleWc is a write concern that can't be satisfied and is used to test write concern errors
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
-	impossibleWc = writeconcern.New(writeconcern.W(30), writeconcern.WTimeout(time.Second))
+	impossibleWc = &writeconcern.WriteConcern{
+		W:        30,
+		WTimeout: time.Second,
+	}
 )
 
 func TestCollection(t *testing.T) {
@@ -1108,7 +1111,7 @@ func TestCollection(t *testing.T) {
 		})
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}).DecodeBytes()
+			res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}).Raw()
 			assert.Nil(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
@@ -1136,21 +1139,18 @@ func TestCollection(t *testing.T) {
 			// SetCursorTime and setMaxAwaitTime will be deprecated in GODRIVER-1775
 			opts := options.FindOne().
 				SetAllowPartialResults(true).
-				SetBatchSize(2).
 				SetCollation(&options.Collation{Locale: "en_US"}).
 				SetComment(expectedComment).
 				SetHint(indexName).
 				SetMax(bson.D{{"x", int32(5)}}).
 				SetMaxTime(1 * time.Second).
 				SetMin(bson.D{{"x", int32(0)}}).
-				SetNoCursorTimeout(false).
-				SetOplogReplay(false).
 				SetProjection(bson.D{{"x", int32(1)}}).
 				SetReturnKey(false).
 				SetShowRecordID(false).
 				SetSkip(0).
 				SetSort(bson.D{{"x", int32(1)}})
-			res, err := mt.Coll.FindOne(context.Background(), bson.D{}, opts).DecodeBytes()
+			res, err := mt.Coll.FindOne(context.Background(), bson.D{}, opts).Raw()
 			assert.Nil(mt, err, "FindOne error: %v", err)
 
 			x, err := res.LookupErr("x")
@@ -1161,15 +1161,12 @@ func TestCollection(t *testing.T) {
 
 			optionsDoc := bsoncore.NewDocumentBuilder().
 				AppendBoolean("allowPartialResults", true).
-				AppendInt32("batchSize", 2).
 				StartDocument("collation").AppendString("locale", "en_US").FinishDocument().
 				AppendString("comment", expectedComment).
 				AppendString("hint", indexName).
 				StartDocument("max").AppendInt32("x", 5).FinishDocument().
 				AppendInt32("maxTimeMS", 1000).
 				StartDocument("min").AppendInt32("x", 0).FinishDocument().
-				AppendBoolean("noCursorTimeout", false).
-				AppendBoolean("oplogReplay", false).
 				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
 				AppendBoolean("returnKey", false).
 				AppendBoolean("showRecordId", false).
@@ -1210,7 +1207,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOne(context.Background(), bson.D{{"x", 1}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1231,7 +1228,7 @@ func TestCollection(t *testing.T) {
 	mt.RunOpts("find one and delete", noClientOpts, func(mt *mtest.T) {
 		mt.Run("found", func(mt *mtest.T) {
 			initCollection(mt, mt.Coll)
-			res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).DecodeBytes()
+			res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 3}}).Raw()
 			assert.Nil(mt, err, "FindOneAndDelete error: %v", err)
 
 			elem, err := res.LookupErr("x")
@@ -1270,7 +1267,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1302,7 +1299,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 3}}
 			replacement := bson.D{{"y", 3}}
 
-			res, err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).DecodeBytes()
+			res, err := mt.Coll.FindOneAndReplace(context.Background(), filter, replacement).Raw()
 			assert.Nil(mt, err, "FindOneAndReplace error: %v", err)
 			elem, err := res.LookupErr("x")
 			assert.Nil(mt, err, "x not found in result %v", res)
@@ -1346,7 +1343,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOneAndReplace(context.Background(), bson.D{{"x", 1}}, bson.D{{"y", 3}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOneAndReplace(context.Background(), bson.D{{"x", 1}}, bson.D{{"y", 3}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1380,7 +1377,7 @@ func TestCollection(t *testing.T) {
 			filter := bson.D{{"x", 3}}
 			update := bson.D{{"$set", bson.D{{"x", 6}}}}
 
-			res, err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).DecodeBytes()
+			res, err := mt.Coll.FindOneAndUpdate(context.Background(), filter, update).Raw()
 			assert.Nil(mt, err, "FindOneAndUpdate error: %v", err)
 			elem, err := res.LookupErr("x")
 			assert.Nil(mt, err, "x not found in result %v", res)
@@ -1428,7 +1425,7 @@ func TestCollection(t *testing.T) {
 					})
 					assert.Nil(mt, err, "CreateOne error: %v", err)
 
-					res, err := mt.Coll.FindOneAndUpdate(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", 6}}}}, tc.opts).DecodeBytes()
+					res, err := mt.Coll.FindOneAndUpdate(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", 6}}}}, tc.opts).Raw()
 
 					if tc.errParam != "" {
 						expErr := mongo.ErrMapForOrderedArgument{tc.errParam}
@@ -1688,7 +1685,7 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
 		})
 		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+			SetWriteConcern(writeconcern.Unacknowledged())
 		unackMtOpts := mtest.NewOptions().
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")

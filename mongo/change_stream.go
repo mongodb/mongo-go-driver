@@ -101,6 +101,55 @@ type changeStreamConfig struct {
 	crypt          driver.Crypt
 }
 
+// mergeChangeStreamOptions combines the given ChangeStreamOptions instances into a single ChangeStreamOptions in a
+// last-property-wins fashion.
+func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.ChangeStreamOptions {
+	csOpts := options.ChangeStream()
+	for _, cso := range opts {
+		if cso == nil {
+			continue
+		}
+		if cso.BatchSize != nil {
+			csOpts.BatchSize = cso.BatchSize
+		}
+		if cso.Collation != nil {
+			csOpts.Collation = cso.Collation
+		}
+		if cso.Comment != nil {
+			csOpts.Comment = cso.Comment
+		}
+		if cso.FullDocument != nil {
+			csOpts.FullDocument = cso.FullDocument
+		}
+		if cso.FullDocumentBeforeChange != nil {
+			csOpts.FullDocumentBeforeChange = cso.FullDocumentBeforeChange
+		}
+		if cso.MaxAwaitTime != nil {
+			csOpts.MaxAwaitTime = cso.MaxAwaitTime
+		}
+		if cso.ResumeAfter != nil {
+			csOpts.ResumeAfter = cso.ResumeAfter
+		}
+		if cso.ShowExpandedEvents != nil {
+			csOpts.ShowExpandedEvents = cso.ShowExpandedEvents
+		}
+		if cso.StartAtOperationTime != nil {
+			csOpts.StartAtOperationTime = cso.StartAtOperationTime
+		}
+		if cso.StartAfter != nil {
+			csOpts.StartAfter = cso.StartAfter
+		}
+		if cso.Custom != nil {
+			csOpts.Custom = cso.Custom
+		}
+		if cso.CustomPipeline != nil {
+			csOpts.CustomPipeline = cso.CustomPipeline
+		}
+	}
+
+	return csOpts
+}
+
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 	if ctx == nil {
@@ -116,7 +165,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
-		options:    options.MergeChangeStreamOptions(opts...),
+		options:    mergeChangeStreamOptions(opts...),
 		selector: description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(config.readPreference),
 			description.LatencySelector(config.client.localThreshold),

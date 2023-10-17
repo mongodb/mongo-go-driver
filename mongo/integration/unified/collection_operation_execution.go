@@ -244,8 +244,6 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		switch key {
 		case "2dsphereIndexVersion":
 			indexOpts.SetSphereVersion(val.Int32())
-		case "background":
-			indexOpts.SetBackground(val.Boolean())
 		case "bits":
 			indexOpts.SetBits(val.Int32())
 		case "bucketSize":
@@ -607,8 +605,8 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 		}
 	}
 
-	res, err := coll.Indexes().DropAll(ctx, dropIndexOpts)
-	return newDocumentResult(res, err), nil
+	err = coll.Indexes().DropAll(ctx, dropIndexOpts)
+	return newDocumentResult(nil, err), nil
 }
 
 func executeDropSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -752,9 +750,9 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.FindOne(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOne(ctx, filter, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -813,9 +811,9 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.FindOneAndDelete(ctx, filter, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndDelete(ctx, filter, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -893,9 +891,9 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		return nil, newMissingArgumentError("replacement")
 	}
 
-	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndReplace(ctx, filter, replacement, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -980,9 +978,9 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		return nil, newMissingArgumentError("update")
 	}
 
-	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).DecodeBytes()
-	// Ignore ErrNoDocuments errors from DecodeBytes. In the event that the cursor
-	// returned in a find operation has no associated documents, DecodeBytes will
+	res, err := coll.FindOneAndUpdate(ctx, filter, update, opts).Raw()
+	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor
+	// returned in a find operation has no associated documents, Raw will
 	// return ErrNoDocuments.
 	if err == mongo.ErrNoDocuments {
 		err = nil
@@ -1202,7 +1200,7 @@ func executeRenameCollection(ctx context.Context, operation *operation) (*operat
 	}
 	// rename can only be run on the 'admin' database.
 	admin := coll.Database().Client().Database("admin")
-	res, err := admin.RunCommand(context.Background(), renameCmd).DecodeBytes()
+	res, err := admin.RunCommand(context.Background(), renameCmd).Raw()
 	return newDocumentResult(res, err), nil
 }
 
@@ -1422,8 +1420,6 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetMin(val.Document())
 		case "noCursorTimeout":
 			opts.SetNoCursorTimeout(val.Boolean())
-		case "oplogReplay":
-			opts.SetOplogReplay(val.Boolean())
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "returnKey":
@@ -1432,8 +1428,6 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			opts.SetShowRecordID(val.Boolean())
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
-		case "snapshot":
-			opts.SetSnapshot(val.Boolean())
 		case "sort":
 			opts.SetSort(val.Document())
 		default:

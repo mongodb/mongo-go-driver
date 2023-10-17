@@ -149,7 +149,7 @@ func New(cfg *Config) (*Topology, error) {
 	}
 	t.desc.Store(description.Topology{})
 	t.updateCallback = func(desc description.Server) description.Server {
-		return t.apply(context.TODO(), desc)
+		return t.apply(context.Background(), desc)
 	}
 
 	if t.cfg.URI != "" {
@@ -330,12 +330,8 @@ func (t *Topology) Connect() error {
 		// server monitoring goroutines.
 
 		newDesc := description.Topology{
-			Kind:                     t.fsm.Kind,
-			Servers:                  t.fsm.Servers,
-			SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
-
-			// TODO(GODRIVER-2885): This field can be removed once
-			// legacy SessionTimeoutMinutes is removed.
+			Kind:                  t.fsm.Kind,
+			Servers:               t.fsm.Servers,
 			SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 		}
 		t.desc.Store(newDesc)
@@ -862,12 +858,8 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 
 	// store new description
 	newDesc := description.Topology{
-		Kind:                     t.fsm.Kind,
-		Servers:                  t.fsm.Servers,
-		SessionTimeoutMinutesPtr: t.fsm.SessionTimeoutMinutesPtr,
-
-		// TODO(GODRIVER-2885): This field can be removed once legacy
-		// SessionTimeoutMinutes is removed.
+		Kind:                  t.fsm.Kind,
+		Servers:               t.fsm.Servers,
 		SessionTimeoutMinutes: t.fsm.SessionTimeoutMinutes,
 	}
 	t.desc.Store(newDesc)

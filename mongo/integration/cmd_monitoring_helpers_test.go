@@ -41,6 +41,8 @@ func numberFromValue(mt *mtest.T, val bson.RawValue) int64 {
 }
 
 func compareNumberValues(mt *mtest.T, key string, expected, actual bson.RawValue) error {
+	mt.Helper()
+
 	eInt := numberFromValue(mt, expected)
 	if eInt == 42 {
 		if actual.Type == bson.TypeNull {

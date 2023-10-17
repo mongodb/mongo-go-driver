@@ -15,7 +15,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -198,12 +197,6 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		if mechanism == "" {
 			// Required for SASL mechanism negotiation during handshake
 			handshakeOpts.DBUser = cred.Source + "." + cred.Username
-		}
-		if co.AuthenticateToAnything != nil && *co.AuthenticateToAnything {
-			// Authenticate arbiters
-			handshakeOpts.PerformAuthentication = func(serv description.Server) bool {
-				return true
-			}
 		}
 
 		handshaker = func(driver.Handshaker) driver.Handshaker {

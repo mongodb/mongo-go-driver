@@ -77,28 +77,3 @@ func (dk *DataKeyOptions) SetKeyMaterial(keyMaterial []byte) *DataKeyOptions {
 	dk.KeyMaterial = keyMaterial
 	return dk
 }
-
-// MergeDataKeyOptions combines the argued DataKeyOptions in a last-one wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeDataKeyOptions(opts ...*DataKeyOptions) *DataKeyOptions {
-	dko := DataKey()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.MasterKey != nil {
-			dko.MasterKey = opt.MasterKey
-		}
-		if opt.KeyAltNames != nil {
-			dko.KeyAltNames = opt.KeyAltNames
-		}
-		if opt.KeyMaterial != nil {
-			dko.KeyMaterial = opt.KeyMaterial
-		}
-	}
-
-	return dko
-}

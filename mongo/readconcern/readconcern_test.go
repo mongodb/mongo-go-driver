@@ -31,7 +31,7 @@ func TestReadConcern_MarshalBSONValue(t *testing.T) {
 		},
 		{
 			name:         "empty",
-			rc:           readconcern.New(),
+			rc:           &readconcern.ReadConcern{},
 			bytes:        bsoncore.BuildDocument(nil, nil),
 			wantErrorMsg: nil,
 		},

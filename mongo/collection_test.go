@@ -46,8 +46,8 @@ func TestCollection(t *testing.T) {
 	t.Run("specified options", func(t *testing.T) {
 		rpPrimary := readpref.Primary()
 		rpSecondary := readpref.Secondary()
-		wc1 := writeconcern.New(writeconcern.W(5))
-		wc2 := writeconcern.New(writeconcern.W(10))
+		wc1 := &writeconcern.WriteConcern{W: 5}
+		wc2 := &writeconcern.WriteConcern{W: 10}
 		rcLocal := readconcern.Local()
 		rcMajority := readconcern.Majority()
 
@@ -64,7 +64,7 @@ func TestCollection(t *testing.T) {
 	t.Run("inherit options", func(t *testing.T) {
 		rpPrimary := readpref.Primary()
 		rcLocal := readconcern.Local()
-		wc1 := writeconcern.New(writeconcern.W(10))
+		wc1 := &writeconcern.WriteConcern{W: 10}
 
 		db := setupDb("foo", options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal))
 		coll := db.Collection("bar", options.Collection().SetWriteConcern(wc1))

@@ -121,7 +121,7 @@ func TestAggregate(t *testing.T) {
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 4)),
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 5)),
 		}
-		wc := writeconcern.New(writeconcern.WMajority())
+		wc := writeconcern.Majority()
 		autoInsertDocs(t, wc, ds...)
 
 		op := operation.NewAggregate(bsoncore.BuildArray(nil,
@@ -169,7 +169,7 @@ func TestAggregate(t *testing.T) {
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 1)),
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 2)),
 		}
-		wc := writeconcern.New(writeconcern.WMajority())
+		wc := writeconcern.Majority()
 		autoInsertDocs(t, wc, ds...)
 
 		op := operation.NewAggregate(bsoncore.BuildArray(nil)).Collection(integtest.ColName(t)).Database(dbName).
