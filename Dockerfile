@@ -20,16 +20,24 @@ RUN cd /root && bash ./install-libmongocrypt.sh
 # from the libmongocrypt build stage.
 FROM drivers-evergreen-tools
 
+# Install common deps.
 RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
   apt-get -qq update && \
-  apt-get -qqy install --no-install-recommends \
-    pkg-config \
+  apt-get -qqy install --reinstall --no-install-recommends \
     tzdata \
+    ca-certificates \
+    pkg-config \
+    software-properties-common \
     gpg \
     apt-utils \
     make && \
-  apt-add-repository ppa:longsleep/golang-backports && \
+  rm -rf /var/lib/apt/lists/*
+  
+# Install golang from the golang-backports ppa.
+RUN export DEBIAN_FRONTEND=noninteractive && \
+  export TZ=Etc/UTC && \
+  apt-add-repository "ppa:longsleep/golang-backports" && \
   apt-get -qq update && \
   apt-get -qqy install --no-install-recommends golang-go && \
   rm -rf /var/lib/apt/lists/*
