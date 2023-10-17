@@ -32,6 +32,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     gpg \
     apt-utils \
     make && \
+  sudo update-ca-certificates && \
   rm -rf /var/lib/apt/lists/*
   
 # Install golang from the golang-backports ppa.
