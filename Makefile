@@ -24,10 +24,6 @@ build: cross-compile build-tests build-compile-check
 build-tests:
 	go test -short $(BUILD_TAGS) -run ^$$ ./...
 
-.PHONY: api-report
-api-report:
-	etc/api_report.sh
-
 .PHONY: build-compile-check
 build-compile-check:
 	etc/compile_check.sh

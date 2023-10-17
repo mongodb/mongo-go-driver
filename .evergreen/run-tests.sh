@@ -7,7 +7,7 @@ export GOCACHE="$(pwd)/.cache"
 export DRIVERS_TOOLS=${DRIVERS_TOOLS:-""}
 
 if [ -z $DRIVERS_TOOLS ]; then
-  export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+  export DRIVERS_TOOLS=="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
 fi
 
 if [ "Windows_NT" = "$OS" ]; then
