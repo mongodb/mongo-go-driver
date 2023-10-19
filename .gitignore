@@ -12,7 +12,9 @@ perf
 **mongocryptd.pid
 *.test
 .DS_Store
+install
 main.so
+test.suite
 
 # AWS SAM-generated files
 internal/test/faas/awslambda/.aws-sam

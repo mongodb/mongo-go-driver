@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
@@ -442,6 +443,9 @@ func TestClient(t *testing.T) {
 		cryptSharedLibPath := os.Getenv("CRYPT_SHARED_LIB_PATH")
 		if cryptSharedLibPath == "" {
 			t.Skip("CRYPT_SHARED_LIB_PATH not set, skipping")
+		}
+		if len(mongocrypt.Version()) == 0 {
+			t.Skip("Not built with cse flag")
 		}
 
 		testCases := []struct {
