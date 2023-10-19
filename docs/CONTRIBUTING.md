@@ -134,7 +134,7 @@ There is currently no arm64 support for the go1.x runtime, see [here](https://do
 
 ### Testing in Docker
 
-We support local testing in Docker. Ensure ``docker`` is installed and running, and then run:
+We support local testing in Docker.  To test using docker, you will need to set the `DRIVERS_TOOLs` environment variable to point to a local clone of the drivers-evergreen-tools repository. This is essential for running the testing matrix in a container. You can set the `DRIVERS_TOOLS` variable in your shell profile or in your project-specific environment.
 
 ```bash
 bash etc/run_docker.sh
