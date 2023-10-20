@@ -199,9 +199,7 @@ func (b *Bucket) UploadFromStreamWithID(
 
 // OpenDownloadStream creates a stream from which the contents of the file can be read.
 func (b *Bucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*DownloadStream, error) {
-	return b.openDownloadStream(ctx, bson.D{
-		{"_id", fileID},
-	})
+	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
 
 // DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
@@ -247,7 +245,7 @@ func (b *Bucket) OpenDownloadStreamByName(
 		numSkip = (-1 * numSkip) - 1
 	}
 
-	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.D{{"uploadDate", sortOrder}})
+	findOpts := options.FindOne().SetSkip(int64(numSkip)).SetSort(bson.D{{"uploadDate", sortOrder}})
 
 	return b.openDownloadStream(ctx, bson.D{{"filename", filename}}, findOpts)
 }
@@ -421,10 +419,10 @@ func (b *Bucket) GetChunksCollection() *mongo.Collection {
 func (b *Bucket) openDownloadStream(
 	ctx context.Context,
 	filter interface{},
-	opts ...*options.FindOptions,
+	opts ...*options.FindOneOptions,
 ) (*DownloadStream, error) {
-	cursor, err := b.findFile(ctx, filter, opts...)
-	if err != nil {
+	result := b.filesColl.FindOne(ctx, filter, opts...)
+	if err := result.Err(); err != nil {
 		return nil, err
 	}
 
@@ -432,7 +430,7 @@ func (b *Bucket) openDownloadStream(
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
 	var foundFile File
-	if err = cursor.Decode(&foundFile); err != nil {
+	if err := result.Decode(&foundFile); err != nil {
 		return nil, fmt.Errorf("error decoding files collection document: %v", err)
 	}
 
@@ -441,7 +439,7 @@ func (b *Bucket) openDownloadStream(
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
-	if _, err := cursor.Current.LookupErr("chunkSize"); err != nil {
+	if foundFile.ChunkSize == 0 {
 		return nil, ErrMissingChunkSize
 	}
 
@@ -467,20 +465,6 @@ func (b *Bucket) downloadToStream(ctx context.Context, ds *DownloadStream, strea
 func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
 	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
 	return err
-}
-
-func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
-	cursor, err := b.filesColl.Find(ctx, filter, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if !cursor.Next(ctx) {
-		_ = cursor.Close(ctx)
-		return nil, ErrFileNotFound
-	}
-
-	return cursor, nil
 }
 
 func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cursor, error) {
