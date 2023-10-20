@@ -213,7 +213,7 @@ func (b *Bucket) DownloadToStream(ctx context.Context, fileID interface{}, strea
 		return 0, err
 	}
 
-	return b.downloadToStream(ctx, ds, stream)
+	return b.downloadToStream(ds, stream)
 }
 
 // OpenDownloadStreamByName opens a download stream for the file with the given filename.
@@ -265,7 +265,7 @@ func (b *Bucket) DownloadToStreamByName(
 		return 0, err
 	}
 
-	return b.downloadToStream(ctx, ds, stream)
+	return b.downloadToStream(ds, stream)
 }
 
 // Delete deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
@@ -382,7 +382,7 @@ func (b *Bucket) Rename(ctx context.Context, fileID interface{}, newFilename str
 	return nil
 }
 
-// DropContext drops the files and chunks collections associated with this bucket and runs the drop operations with
+// Drop drops the files and chunks collections associated with this bucket and runs the drop operations with
 // the provided context.
 //
 // Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
@@ -452,7 +452,7 @@ func (b *Bucket) openDownloadStream(
 	return newDownloadStream(chunksCursor, foundFile.ChunkSize, &foundFile), nil
 }
 
-func (b *Bucket) downloadToStream(ctx context.Context, ds *DownloadStream, stream io.Writer) (int64, error) {
+func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, error) {
 	copied, err := io.Copy(stream, ds)
 	if err != nil {
 		_ = ds.Close()
