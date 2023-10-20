@@ -515,8 +515,7 @@ func TestClient(t *testing.T) {
 		assert.Nil(t, err, "unexpected error calling Ping: %v", err)
 	})
 
-	rtt90Opts := mtest.NewOptions()
-	mt.RunOpts("minimum RTT is monitored", rtt90Opts, func(mt *mtest.T) {
+	mt.Run("minimum RTT is monitored", func(mt *mtest.T) {
 		mt.Parallel()
 
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
@@ -556,7 +555,7 @@ func TestClient(t *testing.T) {
 
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server and no connections are closed.
-	mt.RunOpts("minimum RTT used to prevent sending requests", rtt90Opts, func(mt *mtest.T) {
+	mt.Run("minimum RTT used to prevent sending requests", func(mt *mtest.T) {
 		mt.Parallel()
 
 		// Assert that we can call Ping with a 250ms timeout.
@@ -615,7 +614,7 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, 0, closed, "expected no connections to be closed")
 	})
 
-	mt.RunOpts("RTT90 is monitored", rtt90Opts, func(mt *mtest.T) {
+	mt.Run("RTT90 is monitored", func(mt *mtest.T) {
 		mt.Parallel()
 
 		// Reset the client with a dialer that delays all network round trips by 300ms and set the
@@ -655,7 +654,7 @@ func TestClient(t *testing.T) {
 
 	// Test that if Timeout is set and the RTT90 is greater than the remaining timeout for an operation, the
 	// operation is not sent to the server, fails with a timeout error, and no connections are closed.
-	mt.RunOpts("RTT90 used to prevent sending requests", rtt90Opts, func(mt *mtest.T) {
+	mt.Run("RTT90 used to prevent sending requests", func(mt *mtest.T) {
 		mt.Parallel()
 
 		// Assert that we can call Ping with a 250ms timeout.
