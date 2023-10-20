@@ -52,6 +52,9 @@ func newLogger(olm *observeLogMessages, bufSize int) *Logger {
 // Info implements the logger.Sink interface's "Info" method for printing log
 // messages.
 func (log *Logger) Info(level int, msg string, args ...interface{}) {
+	log.orderMu.Lock()
+	defer log.orderMu.Unlock()
+
 	if log.logQueue == nil {
 		return
 	}
@@ -61,9 +64,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 	if log.lastOrder > log.bufSize {
 		return
 	}
-
-	log.orderMu.Lock()
-	defer log.orderMu.Unlock()
 
 	defer func() { log.lastOrder++ }()
 

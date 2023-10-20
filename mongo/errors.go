@@ -102,7 +102,8 @@ func replaceErrors(err error) error {
 	return err
 }
 
-// IsDuplicateKeyError returns true if err is a duplicate key error.
+// IsDuplicateKeyError returns true if err is a duplicate key error. For BulkWriteExceptions,
+// IsDuplicateKeyError returns true if at least one of the errors is a duplicate key error.
 func IsDuplicateKeyError(err error) bool {
 	if se := ServerError(nil); errors.As(err, &se) {
 		return se.HasErrorCode(11000) || // Duplicate key error.
