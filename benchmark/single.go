@@ -29,7 +29,7 @@ func getClientDB(ctx context.Context) (*mongo.Database, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cs.String()))
+	client, err := mongo.Connect(options.Client().ApplyURI(cs.String()))
 	if err != nil {
 		return nil, err
 	}

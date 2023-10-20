@@ -468,7 +468,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		targetHost := clientSession.PinnedServer.Addr.String()
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
 		integtest.AddTestServerAPIVersion(opts)
-		client, err := mongo.Connect(context.Background(), opts)
+		client, err := mongo.Connect(opts)
 		if err != nil {
 			return fmt.Errorf("Connect error for targeted client: %v", err)
 		}

@@ -314,20 +314,20 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 			if tcase.setup != nil {
 				clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 
-				// Create a context with a deadline so that the
-				// test setup doesn't hang forever.
-				ctx, cancel := context.WithTimeout(ctx, deadline)
-				defer cancel()
-
 				integtest.AddTestServerAPIVersion(clientOpts)
 
-				client, err := mongo.Connect(ctx, clientOpts)
+				client, err := mongo.Connect(clientOpts)
 				assert.Nil(mt, err, "Connect error in setup: %v", err)
 
 				coll := mt.CreateCollection(mtest.Collection{
 					Name:   tcase.collectionName,
 					Client: client,
 				}, false)
+
+				// Create a context with a deadline so that the
+				// test setup doesn't hang forever.
+				ctx, cancel := context.WithTimeout(ctx, deadline)
+				defer cancel()
 
 				tcase.setup(ctx, mt, coll)
 			}
@@ -379,7 +379,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 			integtest.AddTestServerAPIVersion(clientOpts)
 
-			client, err := mongo.Connect(context.Background(), clientOpts)
+			client, err := mongo.Connect(clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 
 			coll := mt.CreateCollection(mtest.Collection{

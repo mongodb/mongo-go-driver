@@ -44,7 +44,7 @@ func TestDocumentationExamples(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
+	client, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
 	require.NoError(t, err)
 	defer client.Disconnect(ctx)
 

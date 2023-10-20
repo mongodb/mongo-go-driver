@@ -113,8 +113,8 @@ func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd
 }
 
 // connect connects the underlying Client instance. This must be called before performing any mark operations.
-func (mc *mongocryptdClient) connect(ctx context.Context) error {
-	return mc.client.connect(ctx)
+func (mc *mongocryptdClient) connect() error {
+	return mc.client.connect()
 }
 
 // disconnect disconnects the underlying Client instance. This should be called after all operations have completed.

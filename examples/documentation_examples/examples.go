@@ -1964,7 +1964,7 @@ func WithTransactionExample(ctx context.Context) error {
 	uri := mtest.ClusterURI()
 
 	clientOpts := options.Client().ApplyURI(uri)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return err
 	}
@@ -2770,7 +2770,6 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 // StableAPIExample is an example of creating a client with stable API.
 func StableAPIExample() {
-	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2779,11 +2778,11 @@ func StableAPIExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = client.Disconnect(ctx) }()
+	defer func() { _ = client.Disconnect(context.TODO()) }()
 }
 
 // End Versioned API Example 1
@@ -2792,7 +2791,6 @@ func StableAPIExample() {
 
 // StableAPIStrictExample is an example of creating a client with strict stable API.
 func StableAPIStrictExample() {
-	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2801,11 +2799,11 @@ func StableAPIStrictExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = client.Disconnect(ctx) }()
+	defer func() { _ = client.Disconnect(context.TODO()) }()
 }
 
 // End Versioned API Example 2
@@ -2814,7 +2812,6 @@ func StableAPIStrictExample() {
 
 // StableAPINonStrictExample is an example of creating a client with non-strict stable API.
 func StableAPINonStrictExample() {
-	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2823,11 +2820,11 @@ func StableAPINonStrictExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = client.Disconnect(ctx) }()
+	defer func() { _ = client.Disconnect(context.TODO()) }()
 }
 
 // End Versioned API Example 3
@@ -2837,7 +2834,6 @@ func StableAPINonStrictExample() {
 // StableAPIDeprecationErrorsExample is an example of creating a client with stable API
 // with deprecation errors.
 func StableAPIDeprecationErrorsExample() {
-	ctx := context.TODO()
 	// For a replica set, include the replica set name and a seedlist of the members in the URI string; e.g.
 	// uri := "mongodb://mongodb0.example.com:27017,mongodb1.example.com:27017/?replicaSet=myRepl"
 	// For a sharded cluster, connect to the mongos instances; e.g.
@@ -2846,11 +2842,11 @@ func StableAPIDeprecationErrorsExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = client.Disconnect(ctx) }()
+	defer func() { _ = client.Disconnect(context.TODO()) }()
 }
 
 // End Versioned API Example 4
@@ -2867,7 +2863,7 @@ func StableAPIStrictCountExample(t *testing.T) {
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
 
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	require.Nil(t, err, "Connect error: %v", err)
 	defer func() { _ = client.Disconnect(context.TODO()) }()
 

@@ -20,9 +20,7 @@ import (
 func ExampleClient() {
 	// Create a Client and execute a ListDatabases operation.
 
-	client, err := mongo.Connect(
-		context.TODO(),
-		options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +43,7 @@ func ExampleConnect_ping() {
 	// server is running.
 
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,7 +72,7 @@ func ExampleConnect_replicaSet() {
 
 	clientOpts := options.Client().ApplyURI(
 		"mongodb://localhost:27017,localhost:27018/?replicaSet=replset")
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,7 +86,7 @@ func ExampleConnect_sharded() {
 
 	clientOpts := options.Client().ApplyURI(
 		"mongodb://localhost:27017,localhost:27018")
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -106,7 +104,7 @@ func ExampleConnect_sRV() {
 	// requires driver version 1.1.0 or higher.
 
 	clientOpts := options.Client().ApplyURI("mongodb+srv://mongodb.example.com")
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,7 +118,7 @@ func ExampleConnect_direct() {
 
 	clientOpts := options.Client().ApplyURI(
 		"mongodb://localhost:27017/?connect=direct")
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -143,7 +141,7 @@ func ExampleConnect_sCRAM() {
 	}
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").
 		SetAuth(credential)
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -179,7 +177,7 @@ func ExampleConnect_x509() {
 	}
 	clientOpts := options.Client().ApplyURI(uri).SetAuth(credential)
 
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -204,7 +202,7 @@ func ExampleConnect_pLAIN() {
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").
 		SetAuth(credential)
 
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -239,7 +237,7 @@ func ExampleConnect_kerberos() {
 	uri := "mongo-server.example.com:27017"
 	clientOpts := options.Client().ApplyURI(uri).SetAuth(credential)
 
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -288,9 +286,7 @@ func ExampleConnect_aWS() {
 		Username:      accessKeyID,
 		Password:      secretAccessKey,
 	}
-	awsIAMClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetAuth(awsCredential))
+	awsIAMClient, err := mongo.Connect(options.Client().SetAuth(awsCredential))
 	if err != nil {
 		panic(err)
 	}
@@ -310,9 +306,7 @@ func ExampleConnect_aWS() {
 			"AWS_SESSION_TOKEN": sessionToken,
 		},
 	}
-	assumeRoleClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetAuth(assumeRoleCredential))
+	assumeRoleClient, err := mongo.Connect(options.Client().SetAuth(assumeRoleCredential))
 	if err != nil {
 		panic(err)
 	}
@@ -332,9 +326,7 @@ func ExampleConnect_aWS() {
 	envVariablesCredential := options.Credential{
 		AuthMechanism: "MONGODB-AWS",
 	}
-	envVariablesClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetAuth(envVariablesCredential))
+	envVariablesClient, err := mongo.Connect(options.Client().SetAuth(envVariablesCredential))
 	if err != nil {
 		panic(err)
 	}
@@ -350,9 +342,7 @@ func ExampleConnect_aWS() {
 	ecCredential := options.Credential{
 		AuthMechanism: "MONGODB-AWS",
 	}
-	ecClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetAuth(ecCredential))
+	ecClient, err := mongo.Connect(options.Client().SetAuth(ecCredential))
 	if err != nil {
 		panic(err)
 	}
@@ -381,9 +371,7 @@ func ExampleConnect_stableAPI() {
 	// ServerAPIOptions must be declared with an API version. ServerAPIVersion1
 	// is a constant equal to "1".
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	serverAPIClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetServerAPIOptions(serverAPI))
+	serverAPIClient, err := mongo.Connect(options.Client().SetServerAPIOptions(serverAPI))
 	if err != nil {
 		panic(err)
 	}
@@ -396,9 +384,7 @@ func ExampleConnect_stableAPI() {
 	// would fail because the distinct command is not part of API version 1:
 	serverAPIStrict := options.ServerAPI(options.ServerAPIVersion1).
 		SetStrict(true)
-	serverAPIStrictClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetServerAPIOptions(serverAPIStrict))
+	serverAPIStrictClient, err := mongo.Connect(options.Client().SetServerAPIOptions(serverAPIStrict))
 	if err != nil {
 		panic(err)
 	}
@@ -415,9 +401,7 @@ func ExampleConnect_stableAPI() {
 	// at the time of this writing, no deprecations in API version 1 exist.
 	serverAPIDeprecation := options.ServerAPI(options.ServerAPIVersion1).
 		SetDeprecationErrors(true)
-	serverAPIDeprecationClient, err := mongo.Connect(
-		context.TODO(),
-		options.Client().SetServerAPIOptions(serverAPIDeprecation))
+	serverAPIDeprecationClient, err := mongo.Connect(options.Client().SetServerAPIOptions(serverAPIDeprecation))
 	if err != nil {
 		panic(err)
 	}
@@ -442,7 +426,7 @@ func ExampleConnect_bSONOptions() {
 		ApplyURI("mongodb://localhost:27017").
 		SetBSONOptions(bsonOpts)
 
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}

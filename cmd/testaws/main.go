@@ -20,7 +20,7 @@ func main() {
 	uri := os.Getenv("MONGODB_URI")
 	ctx := context.Background()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {
 		panic(fmt.Sprintf("Connect error: %v", err))
 	}
