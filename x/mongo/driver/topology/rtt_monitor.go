@@ -57,7 +57,6 @@ type rttMonitor struct {
 	ctx      context.Context
 	cancelFn context.CancelFunc
 	started  bool
-	done     chan struct{}
 }
 
 var _ driver.RTTMonitor = &rttMonitor{}
