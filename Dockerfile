@@ -28,6 +28,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     tzdata \
     gpg \
     apt-utils \
+    libc6-dev \
+    gcc \
     make && \
   apt-add-repository ppa:longsleep/golang-backports && \
   apt-get -qq update && \
