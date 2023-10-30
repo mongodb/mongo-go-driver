@@ -18,7 +18,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -33,8 +33,8 @@ func requireCursorLength(t *testing.T, cursor *mongo.Cursor, length int) {
 		i++
 	}
 
-	require.NoError(t, cursor.Err())
-	require.Equal(t, i, length)
+	assert.NoError(t, cursor.Err())
+	assert.Equal(t, i, length)
 }
 
 func containsKey(doc bson.Raw, key ...string) bool {
@@ -46,7 +46,7 @@ func parseDate(t *testing.T, dateString string) time.Time {
 	rfc3339MilliLayout := "2006-01-02T15:04:05.999Z07:00" // layout defined with Go reference time
 	parsedDate, err := time.Parse(rfc3339MilliLayout, dateString)
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	return parsedDate
 }
 
@@ -56,7 +56,7 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_insert")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 1
@@ -76,8 +76,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 1
 
-		require.NoError(t, err)
-		require.NotNil(t, result.InsertedID)
+		assert.NoError(t, err)
+		assert.NotNil(t, result.InsertedID)
 	}
 
 	{
@@ -90,9 +90,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 2
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
-
 	}
 
 	{
@@ -135,8 +134,8 @@ func InsertExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 3
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 3)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 3)
 	}
 }
 
@@ -146,7 +145,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_top")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 6
@@ -208,8 +207,8 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 6
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 5)
 	}
 
 	{
@@ -222,7 +221,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 7
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 5)
 	}
 
@@ -236,7 +235,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 9
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 2)
 	}
 
@@ -249,7 +248,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 10
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 5)
 	}
 
@@ -265,7 +264,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 11
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -284,7 +283,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 12
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 3)
 	}
 
@@ -303,7 +302,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 13
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 2)
 	}
 
@@ -315,7 +314,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_embedded")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 14
@@ -377,8 +376,8 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 14
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 5)
 	}
 
 	{
@@ -396,7 +395,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 15
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -415,7 +414,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 16
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 0)
 	}
 
@@ -429,7 +428,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 17
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 2)
 	}
 
@@ -446,7 +445,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 18
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 4)
 	}
 
@@ -465,7 +464,7 @@ func QueryEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 19
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -477,7 +476,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_array")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 20
@@ -519,8 +518,8 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 20
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 5)
 	}
 
 	{
@@ -533,7 +532,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 21
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -548,7 +547,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 22
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 4)
 	}
 
@@ -563,7 +562,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 23
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 4)
 	}
 
@@ -580,7 +579,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 24
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -598,7 +597,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 25
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 4)
 	}
 
@@ -618,7 +617,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 26
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -635,7 +634,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 27
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -652,7 +651,7 @@ func QueryArraysExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 28
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -664,7 +663,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_array_embedded")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 29
@@ -737,8 +736,8 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 29
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 5)
 	}
 
 	{
@@ -755,7 +754,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 30
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -773,7 +772,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 31
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 0)
 	}
 
@@ -790,7 +789,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 32
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 3)
 	}
 
@@ -807,7 +806,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 33
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 5)
 	}
 
@@ -827,7 +826,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 34
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -849,7 +848,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 35
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 3)
 	}
 
@@ -867,7 +866,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 36
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 4)
 	}
 
@@ -883,7 +882,7 @@ func QueryArrayEmbeddedDocumentsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 37
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 2)
 	}
 }
@@ -894,7 +893,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_query_null_missing")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 38
@@ -913,8 +912,8 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 38
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 2)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 2)
 	}
 
 	{
@@ -928,7 +927,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 39
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 2)
 	}
 
@@ -945,7 +944,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 40
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 
@@ -962,7 +961,7 @@ func QueryNullMissingFieldsExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 41
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 1)
 	}
 }
@@ -973,7 +972,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_project")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 42
@@ -1064,8 +1063,8 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 42
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 5)
 	}
 
 	{
@@ -1078,7 +1077,7 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 43
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		requireCursorLength(t, cursor, 3)
 	}
 
@@ -1100,19 +1099,19 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 44
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "status"))
-			require.False(t, containsKey(doc, "size"))
-			require.False(t, containsKey(doc, "instock"))
+			assert.True(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.True(t, containsKey(doc, "status"))
+			assert.False(t, containsKey(doc, "size"))
+			assert.False(t, containsKey(doc, "instock"))
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1134,19 +1133,19 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 45
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.False(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "status"))
-			require.False(t, containsKey(doc, "size"))
-			require.False(t, containsKey(doc, "instock"))
+			assert.False(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.True(t, containsKey(doc, "status"))
+			assert.False(t, containsKey(doc, "size"))
+			assert.False(t, containsKey(doc, "instock"))
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1167,19 +1166,19 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 46
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.False(t, containsKey(doc, "status"))
-			require.True(t, containsKey(doc, "size"))
-			require.False(t, containsKey(doc, "instock"))
+			assert.True(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.False(t, containsKey(doc, "status"))
+			assert.True(t, containsKey(doc, "size"))
+			assert.False(t, containsKey(doc, "instock"))
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1201,24 +1200,24 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 47
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "status"))
-			require.True(t, containsKey(doc, "size"))
-			require.False(t, containsKey(doc, "instock"))
+			assert.True(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.True(t, containsKey(doc, "status"))
+			assert.True(t, containsKey(doc, "size"))
+			assert.False(t, containsKey(doc, "instock"))
 
-			require.True(t, containsKey(doc, "size", "uom"))
-			require.False(t, containsKey(doc, "size", "h"))
-			require.False(t, containsKey(doc, "size", "w"))
+			assert.True(t, containsKey(doc, "size", "uom"))
+			assert.False(t, containsKey(doc, "size", "h"))
+			assert.False(t, containsKey(doc, "size", "w"))
 
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1238,24 +1237,24 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 48
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "status"))
-			require.True(t, containsKey(doc, "size"))
-			require.True(t, containsKey(doc, "instock"))
+			assert.True(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.True(t, containsKey(doc, "status"))
+			assert.True(t, containsKey(doc, "size"))
+			assert.True(t, containsKey(doc, "instock"))
 
-			require.False(t, containsKey(doc, "size", "uom"))
-			require.True(t, containsKey(doc, "size", "h"))
-			require.True(t, containsKey(doc, "size", "w"))
+			assert.False(t, containsKey(doc, "size", "uom"))
+			assert.True(t, containsKey(doc, "size", "h"))
+			assert.True(t, containsKey(doc, "size", "w"))
 
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1277,36 +1276,36 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 49
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "status"))
-			require.False(t, containsKey(doc, "size"))
-			require.True(t, containsKey(doc, "instock"))
+			assert.True(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.True(t, containsKey(doc, "status"))
+			assert.False(t, containsKey(doc, "size"))
+			assert.True(t, containsKey(doc, "instock"))
 
 			instock, err := doc.LookupErr("instock")
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			vals, err := instock.Array().Values()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			for _, val := range vals {
-				require.Equal(t, bson.TypeEmbeddedDocument, val.Type)
+				assert.Equal(t, bson.TypeEmbeddedDocument, val.Type)
 				subdoc := val.Document()
 				elems, err := subdoc.Elements()
-				require.NoError(t, err)
+				assert.NoError(t, err)
 
-				require.Equal(t, 1, len(elems))
+				assert.Equal(t, 1, len(elems))
 				_, err = subdoc.LookupErr("qty")
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1330,25 +1329,25 @@ func ProjectionExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 50
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
-			require.True(t, containsKey(doc, "_id"))
-			require.True(t, containsKey(doc, "item"))
-			require.True(t, containsKey(doc, "status"))
-			require.False(t, containsKey(doc, "size"))
-			require.True(t, containsKey(doc, "instock"))
+			assert.True(t, containsKey(doc, "_id"))
+			assert.True(t, containsKey(doc, "item"))
+			assert.True(t, containsKey(doc, "status"))
+			assert.False(t, containsKey(doc, "size"))
+			assert.True(t, containsKey(doc, "instock"))
 
 			instock, err := doc.LookupErr("instock")
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			vals, err := instock.Array().Values()
-			require.NoError(t, err)
-			require.Equal(t, len(vals), 1)
+			assert.NoError(t, err)
+			assert.Equal(t, len(vals), 1)
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 }
 
@@ -1358,7 +1357,7 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_update")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 51
@@ -1470,8 +1469,8 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 51
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 10)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 10)
 	}
 
 	{
@@ -1495,9 +1494,9 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 52
 
-		require.NoError(t, err)
-		require.Equal(t, int64(1), result.MatchedCount)
-		require.Equal(t, int64(1), result.ModifiedCount)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), result.MatchedCount)
+		assert.Equal(t, int64(1), result.ModifiedCount)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1505,23 +1504,23 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 				{"item", "paper"},
 			})
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
 			uom, err := doc.LookupErr("size", "uom")
-			require.NoError(t, err)
-			require.Equal(t, uom.StringValue(), "cm")
+			assert.NoError(t, err)
+			assert.Equal(t, uom.StringValue(), "cm")
 
 			status, err := doc.LookupErr("status")
-			require.NoError(t, err)
-			require.Equal(t, status.StringValue(), "P")
+			assert.NoError(t, err)
+			assert.Equal(t, status.StringValue(), "P")
 
-			require.True(t, containsKey(doc, "lastModified"))
+			assert.True(t, containsKey(doc, "lastModified"))
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1547,9 +1546,9 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 53
 
-		require.NoError(t, err)
-		require.Equal(t, int64(3), result.MatchedCount)
-		require.Equal(t, int64(3), result.ModifiedCount)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(3), result.MatchedCount)
+		assert.Equal(t, int64(3), result.ModifiedCount)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1559,23 +1558,23 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 				}},
 			})
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
 			doc := cursor.Current
 
 			uom, err := doc.LookupErr("size", "uom")
-			require.NoError(t, err)
-			require.Equal(t, uom.StringValue(), "cm")
+			assert.NoError(t, err)
+			assert.Equal(t, uom.StringValue(), "cm")
 
 			status, err := doc.LookupErr("status")
-			require.NoError(t, err)
-			require.Equal(t, status.StringValue(), "P")
+			assert.NoError(t, err)
+			assert.Equal(t, status.StringValue(), "P")
 
-			require.True(t, containsKey(doc, "lastModified"))
+			assert.True(t, containsKey(doc, "lastModified"))
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 	{
@@ -1603,9 +1602,9 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 54
 
-		require.NoError(t, err)
-		require.Equal(t, int64(1), result.MatchedCount)
-		require.Equal(t, int64(1), result.ModifiedCount)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), result.MatchedCount)
+		assert.Equal(t, int64(1), result.ModifiedCount)
 
 		cursor, err := coll.Find(
 			context.Background(),
@@ -1613,22 +1612,22 @@ func UpdateExamples(t *testing.T, db *mongo.Database) {
 				{"item", "paper"},
 			})
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		for cursor.Next(context.Background()) {
-			require.True(t, containsKey(cursor.Current, "_id"))
-			require.True(t, containsKey(cursor.Current, "item"))
-			require.True(t, containsKey(cursor.Current, "instock"))
+			assert.True(t, containsKey(cursor.Current, "_id"))
+			assert.True(t, containsKey(cursor.Current, "item"))
+			assert.True(t, containsKey(cursor.Current, "instock"))
 
 			instock, err := cursor.Current.LookupErr("instock")
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			vals, err := instock.Array().Values()
-			require.NoError(t, err)
-			require.Equal(t, len(vals), 2)
+			assert.NoError(t, err)
+			assert.Equal(t, len(vals), 2)
 
 		}
 
-		require.NoError(t, cursor.Err())
+		assert.NoError(t, cursor.Err())
 	}
 
 }
@@ -1639,7 +1638,7 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_delete")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start Example 55
@@ -1700,8 +1699,8 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 55
 
-		require.NoError(t, err)
-		require.Len(t, result.InsertedIDs, 5)
+		assert.NoError(t, err)
+		assert.Len(t, result.InsertedIDs, 5)
 	}
 
 	{
@@ -1716,8 +1715,8 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 57
 
-		require.NoError(t, err)
-		require.Equal(t, int64(2), result.DeletedCount)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), result.DeletedCount)
 	}
 
 	{
@@ -1732,8 +1731,8 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 58
 
-		require.NoError(t, err)
-		require.Equal(t, int64(1), result.DeletedCount)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), result.DeletedCount)
 
 	}
 
@@ -1744,8 +1743,8 @@ func DeleteExamples(t *testing.T, db *mongo.Database) {
 
 		// End Example 56
 
-		require.NoError(t, err)
-		require.Equal(t, int64(2), result.DeletedCount)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(2), result.DeletedCount)
 	}
 }
 
@@ -2015,10 +2014,10 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("inventory_changestream")
 
 	err := coll.Drop(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	_, err = coll.InsertOne(ctx, bson.D{{"x", int32(1)}})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	var stop int32
 
@@ -2036,7 +2035,7 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 		// Start Changestream Example 1
 
 		cs, err := coll.Watch(ctx, mongo.Pipeline{})
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cs.Close(ctx)
 
 		ok := cs.Next(ctx)
@@ -2044,15 +2043,15 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 
 		// End Changestream Example 1
 
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
+		assert.True(t, ok)
+		assert.NoError(t, err)
+		assert.NotEqual(t, len(next), 0)
 	}
 	{
 		// Start Changestream Example 2
 
 		cs, err := coll.Watch(ctx, mongo.Pipeline{}, options.ChangeStream().SetFullDocument(options.UpdateLookup))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cs.Close(ctx)
 
 		ok := cs.Next(ctx)
@@ -2060,24 +2059,24 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 
 		// End Changestream Example 2
 
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
+		assert.True(t, ok)
+		assert.NoError(t, err)
+		assert.NotEqual(t, len(next), 0)
 	}
 
 	{
 		original, err := coll.Watch(ctx, mongo.Pipeline{})
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer original.Close(ctx)
 
 		ok := original.Next(ctx)
-		require.True(t, ok)
+		assert.True(t, ok)
 
 		// Start Changestream Example 3
 		resumeToken := original.ResumeToken()
 
 		cs, err := coll.Watch(ctx, mongo.Pipeline{}, options.ChangeStream().SetResumeAfter(resumeToken))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cs.Close(ctx)
 
 		ok = cs.Next(ctx)
@@ -2085,9 +2084,9 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 
 		// End Changestream Example 3
 
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotEqual(t, len(result), 0)
+		assert.True(t, ok)
+		assert.NoError(t, err)
+		assert.NotEqual(t, len(result), 0)
 	}
 
 	{
@@ -2098,7 +2097,7 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 				bson.D{{"operationType", "delete"}}}}},
 		}}}
 		cs, err := coll.Watch(ctx, pipeline)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cs.Close(ctx)
 
 		ok := cs.Next(ctx)
@@ -2106,9 +2105,9 @@ func ChangeStreamExamples(t *testing.T, db *mongo.Database) {
 
 		// End Changestream Example 4
 
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotEqual(t, len(next), 0)
+		assert.True(t, ok)
+		assert.NoError(t, err)
+		assert.NotEqual(t, len(next), 0)
 	}
 
 	atomic.StoreInt32(&stop, 1)
@@ -2124,11 +2123,11 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	airAlliancesColl := db.Collection("air_alliances")
 
 	err := salesColl.Drop(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = airlinesColl.Drop(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = airAlliancesColl.Drop(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	date20180208 := parseDate(t, "2018-02-08T09:00:00.000Z")
 	date20180109 := parseDate(t, "2018-01-09T07:12:00.000Z")
@@ -2365,12 +2364,12 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 	airlinesResult, airlinesErr := airlinesColl.InsertMany(ctx, airlines)
 	airAlliancesResult, airAlliancesErr := airAlliancesColl.InsertMany(ctx, airAlliances)
 
-	require.NoError(t, salesErr)
-	require.Len(t, salesResult.InsertedIDs, 6)
-	require.NoError(t, airlinesErr)
-	require.Len(t, airlinesResult.InsertedIDs, 7)
-	require.NoError(t, airAlliancesErr)
-	require.Len(t, airAlliancesResult.InsertedIDs, 3)
+	assert.NoError(t, salesErr)
+	assert.Len(t, salesResult.InsertedIDs, 6)
+	assert.NoError(t, airlinesErr)
+	assert.Len(t, airlinesResult.InsertedIDs, 7)
+	assert.NoError(t, airAlliancesErr)
+	assert.Len(t, airAlliancesResult.InsertedIDs, 3)
 
 	{
 		// Start Aggregation Example 1
@@ -2391,7 +2390,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		// End Aggregation Example 1
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 5)
 	}
@@ -2436,7 +2435,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		// End Aggregation Example 2
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 4)
 	}
@@ -2485,7 +2484,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		// End Aggregation Example 3
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 4)
 	}
@@ -2529,7 +2528,7 @@ func AggregationExamples(t *testing.T, db *mongo.Database) {
 
 		// End Aggregation Example 4
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		defer cursor.Close(ctx)
 		requireCursorLength(t, cursor, 3)
 	}
@@ -2632,7 +2631,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 	coll := db.Collection("restaurants")
 
 	err := coll.Drop(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	{
 		// Start RunCommand Example 1
@@ -2641,7 +2640,7 @@ func RunCommandExamples(t *testing.T, db *mongo.Database) {
 		// End RunCommand Example 1
 
 		err := res.Err()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}
 }
 
@@ -2654,9 +2653,9 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 	restaurantsColl := db.Collection("restaurants")
 
 	err := recordsColl.Drop(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = restaurantsColl.Drop(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	records := []interface{}{
 		bson.D{
@@ -2723,10 +2722,10 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 	recordsResult, recordsErr := recordsColl.InsertMany(ctx, records)
 	restaurantsResult, restaurantsErr := restaurantsColl.InsertMany(ctx, restaurants)
 
-	require.NoError(t, recordsErr)
-	require.Len(t, recordsResult.InsertedIDs, 3)
-	require.NoError(t, restaurantsErr)
-	require.Len(t, restaurantsResult.InsertedIDs, 5)
+	assert.NoError(t, recordsErr)
+	assert.Len(t, recordsResult.InsertedIDs, 3)
+	assert.NoError(t, restaurantsErr)
+	assert.Len(t, restaurantsResult.InsertedIDs, 5)
 
 	{
 		// Start Index Example 1
@@ -2739,7 +2738,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 		// End Index Example 1
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}
 	{
 		// Start Index Example 2
@@ -2760,7 +2759,7 @@ func IndexExamples(t *testing.T, db *mongo.Database) {
 
 		// End Index Example 2
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}
 }
 
@@ -2866,7 +2865,7 @@ func StableAPIStrictCountExample(t *testing.T) {
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
 
 	client, err := mongo.Connect(context.TODO(), clientOpts)
-	require.Nil(t, err, "Connect error: %v", err)
+	assert.Nil(t, err, "Connect error: %v", err)
 	defer func() { _ = client.Disconnect(context.TODO()) }()
 
 	// Start Versioned API Example 5
@@ -2886,12 +2885,12 @@ func StableAPIStrictCountExample(t *testing.T) {
 
 	// End Versioned API Example 5
 	defer func() { _ = coll.Drop(context.TODO()) }()
-	require.Nil(t, err, "InsertMany error: %v", err)
+	assert.Nil(t, err, "InsertMany error: %v", err)
 
 	res := client.Database("db").RunCommand(context.TODO(), bson.D{{"count", "sales"}})
-	require.NotNil(t, res.Err(), "expected RunCommand error, got nil")
+	assert.NotNil(t, res.Err(), "expected RunCommand error, got nil")
 	expectedErr := "Provided apiStrict:true, but the command count is not in API Version 1"
-	require.True(t, strings.Contains(res.Err().Error(), expectedErr),
+	assert.True(t, strings.Contains(res.Err().Error(), expectedErr),
 		"expected RunCommand error to contain %q, got %q", expectedErr, res.Err().Error())
 
 	// Start Versioned API Example 6
@@ -2905,8 +2904,8 @@ func StableAPIStrictCountExample(t *testing.T) {
 	count, err := coll.CountDocuments(context.TODO(), bson.D{})
 
 	// End Versioned API Example 7
-	require.Nil(t, err, "CountDocuments error: %v", err)
-	require.Equal(t, count, int64(8), "expected count to be 8, got %v", count)
+	assert.Nil(t, err, "CountDocuments error: %v", err)
+	assert.Equal(t, count, int64(8), "expected count to be 8, got %v", count)
 
 	// Start Versioned API Example 8
 
@@ -2940,7 +2939,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 			{"age", 10},
 		},
 	})
-	require.NoError(mt, err)
+	assert.NoError(mt, err)
 
 	dogColl := mt.CreateCollection(mtest.Collection{Name: "dogs"}, true)
 	_, err = dogColl.InsertMany(context.Background(), []interface{}{
@@ -2957,7 +2956,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 			{"age", 2},
 		},
 	})
-	require.NoError(mt, err)
+	assert.NoError(mt, err)
 
 	salesColl := mt.CreateCollection(mtest.Collection{Name: "sales"}, true)
 	_, err = salesColl.InsertMany(context.Background(), []interface{}{
@@ -2967,7 +2966,7 @@ func insertSnapshotQueryTestData(mt *mtest.T) {
 			{"saleDate", time.Now()},
 		},
 	})
-	require.NoError(mt, err)
+	assert.NoError(mt, err)
 }
 
 func snapshotQueryPetExample(mt *mtest.T) error {
@@ -3030,7 +3029,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 		return err
 	}
 	// End Snapshot Query Example 1
-	require.Equal(mt, int32(3), adoptablePetsCount, "expected 3 total adoptable pets")
+	assert.Equal(mt, int32(3), adoptablePetsCount, "expected 3 total adoptable pets")
 	return nil
 }
 
@@ -3089,7 +3088,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 		return err
 	}
 	// End Snapshot Query Example 2
-	require.Equal(mt, int32(1), totalDailySales, "expected 1 total daily sale")
+	assert.Equal(mt, int32(1), totalDailySales, "expected 1 total daily sale")
 	return nil
 }
 
@@ -3097,6 +3096,6 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 // These appear at https://www.mongodb.com/docs/manual/tutorial/long-running-queries/.
 func SnapshotQueryExamples(mt *mtest.T) {
 	insertSnapshotQueryTestData(mt)
-	require.NoError(mt, snapshotQueryPetExample(mt))
-	require.NoError(mt, snapshotQueryRetailExample(mt))
+	assert.NoError(mt, snapshotQueryPetExample(mt))
+	assert.NoError(mt, snapshotQueryRetailExample(mt))
 }
