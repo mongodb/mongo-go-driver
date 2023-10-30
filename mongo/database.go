@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -352,9 +353,6 @@ func (db *Database) Drop(ctx context.Context) error {
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
-//
-// BUG(benjirewis): ListCollectionSpecifications prevents listing more than 100 collections per database when running
-// against MongoDB version 2.6.
 func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
 	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
 
@@ -363,19 +361,43 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 		return nil, err
 	}
 
-	var specs []*CollectionSpecification
-	err = cursor.All(ctx, &specs)
+	var temp []struct {
+		Name string `bson:"name"`
+		Type string `bson:"type"`
+		Info *struct {
+			ReadOnly bool              `bson:"readOnly"`
+			UUID     *primitive.Binary `bson:"uuid"`
+		} `bson:"info"`
+		Options bson.Raw                       `bson:"options"`
+		IDIndex indexSpecificationServerOutput `bson:"idIndex"`
+	}
+
+	err = cursor.All(ctx, &temp)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, spec := range specs {
+	specs := make([]*CollectionSpecification, len(temp))
+	for idx, t := range temp {
+		specs[idx] = &CollectionSpecification{
+			Name:    t.Name,
+			Type:    t.Type,
+			Options: t.Options,
+			IDIndex: newIndexSpecificationFromServerOutput(t.IDIndex),
+		}
+
+		if t.Info != nil {
+			specs[idx].ReadOnly = t.Info.ReadOnly
+			specs[idx].UUID = t.Info.UUID
+		}
+
 		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
 		// the response.
-		if spec.IDIndex != nil && spec.IDIndex.Namespace == "" {
-			spec.IDIndex.Namespace = db.name + "." + spec.Name
+		if specs[idx].IDIndex != nil && specs[idx].IDIndex.Namespace == "" {
+			specs[idx].IDIndex.Namespace = db.name + "." + specs[idx].Name
 		}
 	}
+
 	return specs, nil
 }
 

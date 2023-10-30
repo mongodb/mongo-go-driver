@@ -7,8 +7,6 @@
 package mongo
 
 import (
-	"fmt"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -51,7 +49,7 @@ type InsertManyResult struct {
 
 // DeleteResult is the result type returned by DeleteOne and DeleteMany operations.
 type DeleteResult struct {
-	DeletedCount int64 `bson:"n"` // The number of documents deleted.
+	DeletedCount int64 // The number of documents deleted.
 }
 
 // RewrapManyDataKeyResult is the result of the bulk write operation used to update the key vault collection with
@@ -98,64 +96,6 @@ type UpdateResult struct {
 	UpsertedID    interface{} // The _id field of the upserted document, or nil if no upsert was done.
 }
 
-// UnmarshalBSON implements the bson.Unmarshaler interface.
-//
-// Deprecated: Unmarshalling an UpdateResult directly from BSON is not supported and may produce
-// different results compared to running Update* operations directly.
-func (result *UpdateResult) UnmarshalBSON(b []byte) error {
-	// TODO(GODRIVER-2367): Remove the ability to unmarshal BSON directly to an UpdateResult.
-	elems, err := bson.Raw(b).Elements()
-	if err != nil {
-		return err
-	}
-
-	for _, elem := range elems {
-		switch elem.Key() {
-		case "n":
-			switch elem.Value().Type {
-			case bson.TypeInt32:
-				result.MatchedCount = int64(elem.Value().Int32())
-			case bson.TypeInt64:
-				result.MatchedCount = elem.Value().Int64()
-			default:
-				return fmt.Errorf("Received invalid type for n, should be Int32 or Int64, received %s", elem.Value().Type)
-			}
-		case "nModified":
-			switch elem.Value().Type {
-			case bson.TypeInt32:
-				result.ModifiedCount = int64(elem.Value().Int32())
-			case bson.TypeInt64:
-				result.ModifiedCount = elem.Value().Int64()
-			default:
-				return fmt.Errorf("Received invalid type for nModified, should be Int32 or Int64, received %s", elem.Value().Type)
-			}
-		case "upserted":
-			switch elem.Value().Type {
-			case bson.TypeArray:
-				e, err := elem.Value().Array().IndexErr(0)
-				if err != nil {
-					break
-				}
-				if e.Value().Type != bson.TypeEmbeddedDocument {
-					break
-				}
-				var d struct {
-					ID interface{} `bson:"_id"`
-				}
-				err = bson.Unmarshal(e.Value().Document(), &d)
-				if err != nil {
-					return err
-				}
-				result.UpsertedID = d.ID
-			default:
-				return fmt.Errorf("Received invalid type for upserted, should be Array, received %s", elem.Value().Type)
-			}
-		}
-	}
-
-	return nil
-}
-
 // IndexSpecification represents an index in a database. This type is returned by the IndexView.ListSpecifications
 // function and is also used in the CollectionSpecification type.
 type IndexSpecification struct {
@@ -187,9 +127,7 @@ type IndexSpecification struct {
 	Clustered *bool
 }
 
-var _ bson.Unmarshaler = (*IndexSpecification)(nil)
-
-type unmarshalIndexSpecification struct {
+type indexSpecificationServerOutput struct {
 	Name               string   `bson:"name"`
 	Namespace          string   `bson:"ns"`
 	KeysDocument       bson.Raw `bson:"key"`
@@ -200,24 +138,17 @@ type unmarshalIndexSpecification struct {
 	Clustered          *bool    `bson:"clustered"`
 }
 
-// UnmarshalBSON implements the bson.Unmarshaler interface.
-//
-// Deprecated: Unmarshaling an IndexSpecification from BSON will not be supported in Go Driver 2.0.
-func (i *IndexSpecification) UnmarshalBSON(data []byte) error {
-	var temp unmarshalIndexSpecification
-	if err := bson.Unmarshal(data, &temp); err != nil {
-		return err
+func newIndexSpecificationFromServerOutput(uis indexSpecificationServerOutput) *IndexSpecification {
+	return &IndexSpecification{
+		Name:               uis.Name,
+		Namespace:          uis.Namespace,
+		KeysDocument:       uis.KeysDocument,
+		Version:            uis.Version,
+		ExpireAfterSeconds: uis.ExpireAfterSeconds,
+		Sparse:             uis.Sparse,
+		Unique:             uis.Unique,
+		Clustered:          uis.Clustered,
 	}
-
-	i.Name = temp.Name
-	i.Namespace = temp.Namespace
-	i.KeysDocument = temp.KeysDocument
-	i.Version = temp.Version
-	i.ExpireAfterSeconds = temp.ExpireAfterSeconds
-	i.Sparse = temp.Sparse
-	i.Unique = temp.Unique
-	i.Clustered = temp.Clustered
-	return nil
 }
 
 // CollectionSpecification represents a collection in a database. This type is returned by the
@@ -242,45 +173,4 @@ type CollectionSpecification struct {
 	// An IndexSpecification instance with details about the collection's _id index. This will be nil if the NameOnly
 	// option is used and for MongoDB versions < 3.4.
 	IDIndex *IndexSpecification
-}
-
-var _ bson.Unmarshaler = (*CollectionSpecification)(nil)
-
-// unmarshalCollectionSpecification is used to unmarshal BSON bytes from a listCollections command into a
-// CollectionSpecification.
-type unmarshalCollectionSpecification struct {
-	Name string `bson:"name"`
-	Type string `bson:"type"`
-	Info *struct {
-		ReadOnly bool              `bson:"readOnly"`
-		UUID     *primitive.Binary `bson:"uuid"`
-	} `bson:"info"`
-	Options bson.Raw            `bson:"options"`
-	IDIndex *IndexSpecification `bson:"idIndex"`
-}
-
-// UnmarshalBSON implements the bson.Unmarshaler interface.
-//
-// Deprecated: Unmarshaling a CollectionSpecification from BSON will not be supported in Go Driver
-// 2.0.
-func (cs *CollectionSpecification) UnmarshalBSON(data []byte) error {
-	var temp unmarshalCollectionSpecification
-	if err := bson.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	cs.Name = temp.Name
-	cs.Type = temp.Type
-	if cs.Type == "" {
-		// The "type" field is only present on 3.4+ because views were introduced in 3.4, so we implicitly set the
-		// value to "collection" if it's empty.
-		cs.Type = "collection"
-	}
-	if temp.Info != nil {
-		cs.ReadOnly = temp.Info.ReadOnly
-		cs.UUID = temp.Info.UUID
-	}
-	cs.Options = temp.Options
-	cs.IDIndex = temp.IDIndex
-	return nil
 }

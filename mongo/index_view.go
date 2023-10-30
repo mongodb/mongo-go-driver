@@ -146,17 +146,18 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 		return nil, err
 	}
 
-	var results []*IndexSpecification
-	err = cursor.All(ctx, &results)
-	if err != nil {
+	var temp []indexSpecificationServerOutput
+
+	if err := cursor.All(ctx, &temp); err != nil {
 		return nil, err
 	}
 
-	ns := iv.coll.db.Name() + "." + iv.coll.Name()
-	for _, res := range results {
-		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
-		// the response.
-		res.Namespace = ns
+	namespace := iv.coll.db.Name() + "." + iv.coll.Name()
+
+	results := make([]*IndexSpecification, len(temp))
+	for idx, t := range temp {
+		results[idx] = newIndexSpecificationFromServerOutput(t)
+		results[idx].Namespace = namespace
 	}
 
 	return results, nil
