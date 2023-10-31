@@ -311,7 +311,7 @@ func (c *ClientOptions) GetURI() string {
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
 // an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
-// implictly enabled. Specify the "tls=false" URI option to override this.
+// implicitly enabled. Specify the "tls=false" URI option to override this.
 //
 // If the connection string contains any options that have previously been set, it will overwrite them. Options that
 // correspond to multiple URI parameters, such as WriteConcern, will be completely overwritten if any of the query

@@ -429,7 +429,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	}
 
 	// Ignore errors from stale connections because the error came from a previous generation of the
-	// connection pool. The root cause of the error has aleady been handled, which is what caused
+	// connection pool. The root cause of the error has already been handled, which is what caused
 	// the pool generation to increment. Processing errors for stale connections could result in
 	// handling the same error root cause multiple times (e.g. a temporary network interrupt causing
 	// all connections to the same server to return errors).

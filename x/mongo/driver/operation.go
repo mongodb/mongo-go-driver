@@ -829,7 +829,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -926,7 +926,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -1856,7 +1856,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, fmt.Errorf("malformed wire message: uknown section type %v", stype)
+				return nil, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 

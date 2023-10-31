@@ -19,7 +19,7 @@ import (
 // logged for a stringified BSON document.
 const DefaultMaxDocumentLength = 1000
 
-// TruncationSuffix are trailling ellipsis "..." appended to a message to
+// TruncationSuffix are trailing ellipsis "..." appended to a message to
 // indicate to the user that truncation occurred. This constant does not count
 // toward the max document length.
 const TruncationSuffix = "..."

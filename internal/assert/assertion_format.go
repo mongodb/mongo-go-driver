@@ -61,7 +61,7 @@ func EqualErrorf(t TestingT, theError error, errString string, msg string, args 
 	return EqualError(t, theError, errString, append([]interface{}{msg}, args...)...)
 }
 
-// EqualValuesf asserts that two objects are equal or convertable to the same types
+// EqualValuesf asserts that two objects are equal or convertible to the same types
 // and equal.
 //
 //	assert.EqualValuesf(t, uint32(123), int32(123), "error message %s", "formatted")
