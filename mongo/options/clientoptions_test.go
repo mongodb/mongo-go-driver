@@ -623,7 +623,7 @@ func TestClientOptions(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					err := tc.opts.SetDirect(true).Validate()
-					assert.NotNil(t, err, "expected errror, got nil")
+					assert.NotNil(t, err, "expected error, got nil")
 					assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 				})
 			}
@@ -635,7 +635,7 @@ func TestClientOptions(t *testing.T) {
 			opts.cs.Scheme = connstring.SchemeMongoDBSRV
 
 			err := opts.SetDirect(true).Validate()
-			assert.NotNil(t, err, "expected errror, got nil")
+			assert.NotNil(t, err, "expected error, got nil")
 			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 		})
 	})

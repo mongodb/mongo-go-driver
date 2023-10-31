@@ -484,7 +484,7 @@ retry:
 	}
 
 	if len(dst) > maxLen {
-		// Implementors SHOULD cumulatively update fields in the
+		// Implementers SHOULD cumulatively update fields in the
 		// following order until the document is under the size limit
 		//
 		//    1. Omit fields from ``env`` except ``env.name``
