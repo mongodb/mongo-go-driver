@@ -18,6 +18,7 @@ The Go Driver team uses GitHub to manage and review all code changes. Patches sh
 applicable.
 
 Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.20 for development. Please run the following Make targets to validate your changes:
+
 - `make fmt`
 - `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
 - `make test`
@@ -29,7 +30,8 @@ If any tests do not pass, or relevant tests are not included, the patch will not
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
 
-=======
+\=======
+
 ### Linting on commit
 
 The Go team uses [pre-commit](https://pre-commit.com/#installation) to lint both source and text files.
