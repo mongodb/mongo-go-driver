@@ -72,7 +72,7 @@ type File struct {
 
 // unmarshalFile is a temporary type used to unmarshal documents from the files collection and can be transformed into
 // a File instance. This type exists to avoid adding BSON struct tags to the exported File type.
-type fileServerOutput struct {
+type findFileResponse struct {
 	ID         interface{} `bson:"_id"`
 	Length     int64       `bson:"length"`
 	ChunkSize  int32       `bson:"chunkSize"`
@@ -81,14 +81,14 @@ type fileServerOutput struct {
 	Metadata   bson.Raw    `bson:"metadata"`
 }
 
-func newFileFromServerOutput(out fileServerOutput) *File {
+func newFileFromResponse(resp findFileResponse) *File {
 	return &File{
-		ID:         out.ID,
-		Length:     out.Length,
-		ChunkSize:  out.ChunkSize,
-		UploadDate: out.UploadDate,
-		Name:       out.Name,
-		Metadata:   out.Metadata,
+		ID:         resp.ID,
+		Length:     resp.Length,
+		ChunkSize:  resp.ChunkSize,
+		UploadDate: resp.UploadDate,
+		Name:       resp.Name,
+		Metadata:   resp.Metadata,
 	}
 }
 

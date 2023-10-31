@@ -146,21 +146,21 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 		return nil, err
 	}
 
-	var temp []indexSpecificationServerOutput
+	var resp []indexListSpecificationResponse
 
-	if err := cursor.All(ctx, &temp); err != nil {
+	if err := cursor.All(ctx, &resp); err != nil {
 		return nil, err
 	}
 
 	namespace := iv.coll.db.Name() + "." + iv.coll.Name()
 
-	results := make([]*IndexSpecification, len(temp))
-	for idx, t := range temp {
-		results[idx] = newIndexSpecificationFromServerOutput(t)
-		results[idx].Namespace = namespace
+	specs := make([]*IndexSpecification, len(resp))
+	for idx, spec := range resp {
+		specs[idx] = newIndexSpecificationFromResponse(spec)
+		specs[idx].Namespace = namespace
 	}
 
-	return results, nil
+	return specs, nil
 }
 
 // CreateOne executes a createIndexes command to create an index on the collection and returns the name of the new

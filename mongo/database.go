@@ -361,7 +361,7 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 		return nil, err
 	}
 
-	var temp []struct {
+	var resp []struct {
 		Name string `bson:"name"`
 		Type string `bson:"type"`
 		Info *struct {
@@ -369,26 +369,26 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 			UUID     *primitive.Binary `bson:"uuid"`
 		} `bson:"info"`
 		Options bson.Raw                       `bson:"options"`
-		IDIndex indexSpecificationServerOutput `bson:"idIndex"`
+		IDIndex indexListSpecificationResponse `bson:"idIndex"`
 	}
 
-	err = cursor.All(ctx, &temp)
+	err = cursor.All(ctx, &resp)
 	if err != nil {
 		return nil, err
 	}
 
-	specs := make([]*CollectionSpecification, len(temp))
-	for idx, t := range temp {
+	specs := make([]*CollectionSpecification, len(resp))
+	for idx, spec := range resp {
 		specs[idx] = &CollectionSpecification{
-			Name:    t.Name,
-			Type:    t.Type,
-			Options: t.Options,
-			IDIndex: newIndexSpecificationFromServerOutput(t.IDIndex),
+			Name:    spec.Name,
+			Type:    spec.Type,
+			Options: spec.Options,
+			IDIndex: newIndexSpecificationFromResponse(spec.IDIndex),
 		}
 
-		if t.Info != nil {
-			specs[idx].ReadOnly = t.Info.ReadOnly
-			specs[idx].UUID = t.Info.UUID
+		if spec.Info != nil {
+			specs[idx].ReadOnly = spec.Info.ReadOnly
+			specs[idx].UUID = spec.Info.UUID
 		}
 
 		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in

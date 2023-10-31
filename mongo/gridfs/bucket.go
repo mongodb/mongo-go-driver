@@ -483,12 +483,12 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
-	var serverOutput fileServerOutput
-	if err = cursor.Decode(&serverOutput); err != nil {
+	var resp findFileResponse
+	if err = cursor.Decode(&resp); err != nil {
 		return nil, fmt.Errorf("error decoding files collection document: %v", err)
 	}
 
-	foundFile := newFileFromServerOutput(serverOutput)
+	foundFile := newFileFromResponse(resp)
 
 	if foundFile.Length == 0 {
 		return newDownloadStream(nil, foundFile.ChunkSize, foundFile), nil

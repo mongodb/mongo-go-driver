@@ -127,7 +127,7 @@ type IndexSpecification struct {
 	Clustered *bool
 }
 
-type indexSpecificationServerOutput struct {
+type indexListSpecificationResponse struct {
 	Name               string   `bson:"name"`
 	Namespace          string   `bson:"ns"`
 	KeysDocument       bson.Raw `bson:"key"`
@@ -138,16 +138,16 @@ type indexSpecificationServerOutput struct {
 	Clustered          *bool    `bson:"clustered"`
 }
 
-func newIndexSpecificationFromServerOutput(uis indexSpecificationServerOutput) *IndexSpecification {
+func newIndexSpecificationFromResponse(resp indexListSpecificationResponse) *IndexSpecification {
 	return &IndexSpecification{
-		Name:               uis.Name,
-		Namespace:          uis.Namespace,
-		KeysDocument:       uis.KeysDocument,
-		Version:            uis.Version,
-		ExpireAfterSeconds: uis.ExpireAfterSeconds,
-		Sparse:             uis.Sparse,
-		Unique:             uis.Unique,
-		Clustered:          uis.Clustered,
+		Name:               resp.Name,
+		Namespace:          resp.Namespace,
+		KeysDocument:       resp.KeysDocument,
+		Version:            resp.Version,
+		ExpireAfterSeconds: resp.ExpireAfterSeconds,
+		Sparse:             resp.Sparse,
+		Unique:             resp.Unique,
+		Clustered:          resp.Clustered,
 	}
 }
 
