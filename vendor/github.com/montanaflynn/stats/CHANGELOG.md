@@ -54,11 +54,11 @@ Several functions were renamed in this release. They will still function but may
 - Add Nearest Rank method of calculating percentiles
 - Add errors for all functions
 - Add sample
-- Add Linear, Exponential and Logarithmic Regression
-- Add sample and population variance and deviation
-- Add Percentile and Float64ToInt
-- Add Round
-- Add Standard deviation
-- Add Sum
-- Add Min and Ma- x
-- Add Mean, Median and Mode
+- Add Linear, Exponential and Logarithmic Regression 
+- Add sample and population variance and deviation 
+- Add Percentile and Float64ToInt 
+- Add Round 
+- Add Standard deviation 
+- Add Sum 
+- Add Min and Ma- x 
+- Add Mean, Median and Mode 

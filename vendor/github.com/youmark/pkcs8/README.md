@@ -18,3 +18,4 @@ This package depends on golang.org/x/crypto/pbkdf2 package. Use the following co
 ```text
 go get golang.org/x/crypto/pbkdf2
 ```
+

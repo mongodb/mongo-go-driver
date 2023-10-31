@@ -10,8 +10,10 @@ repos:
     - id: check-merge-conflict
     - id: check-json
     - id: end-of-file-fixer
+      exclude: ^vendor/
       exclude_types: [json,yaml]
     - id: trailing-whitespace
+      exclude: ^vendor/
       exclude_types: [json,yaml]
 
 - repo: https://github.com/executablebooks/mdformat
