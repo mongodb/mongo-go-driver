@@ -1,4 +1,4 @@
-name: Python Tests
+name: GoDriver Tests
 
 on:
   push:
@@ -14,10 +14,8 @@ defaults:
 
 jobs:
   pre_commit:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install pre-commit
-        run: brew install pre-commit
-      - name: Run pre-commit
-        run: pre-commit run --all-files
+      - uses: actions/setup-python@v4
+      - uses: pre-commit/action@v3.0.0
