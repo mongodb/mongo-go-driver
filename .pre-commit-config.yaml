@@ -18,6 +18,7 @@ repos:
   rev: 0.7.17
   hooks:
     - id: mdformat
+      exclude: ^vendor/
 
 - repo: https://github.com/python-jsonschema/check-jsonschema
   rev: 0.27.0

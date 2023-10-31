@@ -10,11 +10,11 @@ This can be used for compressing input with a lot of similar input values to the
 This does not perform any multi-byte [dictionary coding](https://en.wikipedia.org/wiki/Dictionary_coder) as LZ coders,
 but it can be used as a secondary step to compressors (like Snappy) that does not do entropy encoding.
 
-- [Godoc documentation](https://godoc.org/github.com/klauspost/compress/fse)
+* [Godoc documentation](https://godoc.org/github.com/klauspost/compress/fse)
 
 ## News
 
-- Feb 2018: First implementation released. Consider this beta software for now.
+ * Feb 2018: First implementation released. Consider this beta software for now.
 
 # Usage
 

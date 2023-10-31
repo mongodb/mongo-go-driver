@@ -10,7 +10,7 @@ This can be used for compressing input with a lot of similar input values to the
 This does not perform any multi-byte [dictionary coding](https://en.wikipedia.org/wiki/Dictionary_coder) as LZ coders,
 but it can be used as a secondary step to compressors (like Snappy) that does not do entropy encoding.
 
-- [Godoc documentation](https://godoc.org/github.com/klauspost/compress/huff0)
+* [Godoc documentation](https://godoc.org/github.com/klauspost/compress/huff0)
 
 ## News
 
@@ -38,6 +38,7 @@ These error values can be returned:
 | `ErrUseRLE`         | Returned from the compressor when the input is a single byte value repeated |
 | `ErrTooBig`         | Returned if the input block exceeds the maximum allowed size (128 Kib)      |
 | `(error)`           | An internal error occurred.                                                 |
+
 
 As can be seen above some of there are errors that will be returned even under normal operation so it is important to handle these.
 

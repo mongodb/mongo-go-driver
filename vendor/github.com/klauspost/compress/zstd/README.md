@@ -30,13 +30,14 @@ so as always, testing is recommended.
 
 For now, a high speed (fastest) and medium-fast (default) compressor has been implemented.
 
-- The "Fastest" compression ratio is roughly equivalent to zstd level 1.
-- The "Default" compression ratio is roughly equivalent to zstd level 3 (default).
-- The "Better" compression ratio is roughly equivalent to zstd level 7.
-- The "Best" compression ratio is roughly equivalent to zstd level 11.
+* The "Fastest" compression ratio is roughly equivalent to zstd level 1.
+* The "Default" compression ratio is roughly equivalent to zstd level 3 (default).
+* The "Better" compression ratio is roughly equivalent to zstd level 7.
+* The "Best" compression ratio is roughly equivalent to zstd level 11.
 
 In terms of speed, it is typically 2x as fast as the stdlib deflate/gzip in its fastest mode.
 The compression ratio compared to stdlib is around level 3, but usually 3x as fast.
+
 
 ### Usage
 
@@ -135,12 +136,12 @@ Using the Encoder for both a stream and individual blocks concurrently is safe.
 
 I have collected some speed examples to compare speed and compression against other compressors.
 
-- `file` is the input file.
-- `out` is the compressor used. `zskp` is this package. `zstd` is the Datadog cgo library. `gzstd/gzkp` is gzip standard and this library.
-- `level` is the compression level used. For `zskp` level 1 is "fastest", level 2 is "default"; 3 is "better", 4 is "best".
-- `insize`/`outsize` is the input/output size.
-- `millis` is the number of milliseconds used for compression.
-- `mb/s` is megabytes (2^20 bytes) per second.
+* `file` is the input file.
+* `out` is the compressor used. `zskp` is this package. `zstd` is the Datadog cgo library. `gzstd/gzkp` is gzip standard and this library.
+* `level` is the compression level used. For `zskp` level 1 is "fastest", level 2 is "default"; 3 is "better", 4 is "best".
+* `insize`/`outsize` is the input/output size.
+* `millis` is the number of milliseconds used for compression.
+* `mb/s` is megabytes (2^20 bytes) per second.
 
 ```
 Silesia Corpus:
@@ -358,15 +359,16 @@ It can however decode several buffers concurrently. Use `WithDecoderConcurrency(
 
 The stream decoder operates on
 
-- One goroutine reads input and splits the input to several block decoders.
-- A number of decoders will decode blocks.
-- A goroutine coordinates these blocks and sends history from one to the next.
+* One goroutine reads input and splits the input to several block decoders.
+* A number of decoders will decode blocks.
+* A goroutine coordinates these blocks and sends history from one to the next.
 
 So effectively this also means the decoder will "read ahead" and prepare data to always be available for output.
 
 Since "blocks" are quite dependent on the output of the previous block stream decoding will only have limited concurrency.
 
 In practice this means that concurrency is often limited to utilizing about 2 cores effectively.
+
 
 ### Benchmarks
 

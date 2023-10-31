@@ -2,6 +2,7 @@
 
 VENDORED: Go to [github.com/cespare/xxhash](https://github.com/cespare/xxhash) for original package.
 
+
 [![GoDoc](https://godoc.org/github.com/cespare/xxhash?status.svg)](https://godoc.org/github.com/cespare/xxhash)
 [![Build Status](https://travis-ci.org/cespare/xxhash.svg?branch=master)](https://travis-ci.org/cespare/xxhash)
 
