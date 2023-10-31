@@ -59,12 +59,12 @@ If you have any suggestions, criticism or bug reports please [create an issue](h
 Pull request are always welcome no matter how big or small. Here's an easy way to do it:
 
 1. Fork it and clone your fork
-2. Create new branch (`git checkout -b some-thing`)
-3. Make the desired changes
-4. Ensure tests pass (`go test -cover` or `make test`)
-5. Commit changes (`git commit -am 'Did something'`)
-6. Push branch (`git push origin some-thing`)
-7. Submit pull request
+1. Create new branch (`git checkout -b some-thing`)
+1. Make the desired changes
+1. Ensure tests pass (`go test -cover` or `make test`)
+1. Commit changes (`git commit -am 'Did something'`)
+1. Push branch (`git push origin some-thing`)
+1. Submit pull request
 
 To make things as seamless as possible please also consider the following steps:
 
@@ -90,14 +90,11 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORpublicS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-[travis-url]: https://travis-ci.org/montanaflynn/stats
-[travis-svg]: https://img.shields.io/travis/montanaflynn/stats.svg
-
-[coveralls-url]: https://coveralls.io/r/montanaflynn/stats?branch=master
 [coveralls-svg]: https://img.shields.io/coveralls/montanaflynn/stats.svg
-
-[godoc-url]: https://godoc.org/github.com/montanaflynn/stats
+[coveralls-url]: https://coveralls.io/r/montanaflynn/stats?branch=master
 [godoc-svg]: https://godoc.org/github.com/montanaflynn/stats?status.svg
-
-[license-url]: https://github.com/montanaflynn/stats/blob/master/LICENSE
+[godoc-url]: https://godoc.org/github.com/montanaflynn/stats
 [license-svg]: https://img.shields.io/badge/license-MIT-blue.svg
+[license-url]: https://github.com/montanaflynn/stats/blob/master/LICENSE
+[travis-svg]: https://img.shields.io/travis/montanaflynn/stats.svg
+[travis-url]: https://travis-ci.org/montanaflynn/stats

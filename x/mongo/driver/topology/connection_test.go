@@ -146,7 +146,7 @@ func TestConnection(t *testing.T) {
 						_ = conn.connect(context.Background())
 					}()
 
-					// Simulate cancelling connection establishment and assert that this cleares the CancelFunc.
+					// Simulate cancelling connection establishment and assert that this clears the CancelFunc.
 					conn.closeConnectContext()
 					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
 					close(doneChan)

@@ -241,7 +241,7 @@ func TestCMAPProse(t *testing.T) {
 				conns = conns[2:]
 				assertConnectionCounts(t, pool, numConns, 0)
 
-				// Close and assert that events are published for all conections.
+				// Close and assert that events are published for all connections.
 				pool.close(context.Background())
 				assertConnectionCounts(t, pool, numConns, numConns)
 

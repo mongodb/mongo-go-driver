@@ -6,12 +6,12 @@ doc:
 webdoc:
 	godoc -http=:44444
 
-format: 
+format:
 	go fmt
 
 test:
-	go test -race 
-	
+	go test -race
+
 check: format test
 
 benchmark:
@@ -24,6 +24,6 @@ coverage:
 lint: format
 	go get github.com/alecthomas/gometalinter
 	gometalinter --install
-	gometalinter 
+	gometalinter
 
 default: lint test

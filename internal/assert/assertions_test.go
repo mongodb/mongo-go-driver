@@ -691,7 +691,7 @@ func TestError(t *testing.T) {
 	True(t, Error(mockT, err), "Error with error should return True")
 
 	// go vet check
-	True(t, Errorf(mockT, err, "example with %s", "formatted message"), "Errorf with error should rturn True")
+	True(t, Errorf(mockT, err, "example with %s", "formatted message"), "Errorf with error should return True")
 
 	// returning an empty error interface
 	err = func() error {
@@ -1064,7 +1064,7 @@ Diff:
 @@ -1,2 +1,2 @@
 -(time.Time) 2020-09-24 00:00:00 +0000 UTC
 +(time.Time) 2020-09-25 00:00:00 +0000 UTC
- 
+
 `
 
 	actual = diff(

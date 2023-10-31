@@ -4,7 +4,7 @@
 
 ### Merged pull requests:
 
-- Fixed typographical error, changed accomdate to accommodate in README. [\#5](https://github.com/montanaflynn/stats/pull/5) ([saromanov](https://github.com/orthographic-pedant))
+- Fixed typographical error, changed accomdate to accommodate in README. [#5](https://github.com/montanaflynn/stats/pull/5) ([saromanov](https://github.com/orthographic-pedant))
 
 ### Package changes:
 
@@ -34,12 +34,12 @@ Several functions were renamed in this release. They will still function but may
 
 ### Closed issues:
 
-- Functions have unexpected side effects [\#3](https://github.com/montanaflynn/stats/issues/3)
-- Percentile is not calculated correctly [\#2](https://github.com/montanaflynn/stats/issues/2)
+- Functions have unexpected side effects [#3](https://github.com/montanaflynn/stats/issues/3)
+- Percentile is not calculated correctly [#2](https://github.com/montanaflynn/stats/issues/2)
 
 ### Merged pull requests:
 
-- Sample [\#4](https://github.com/montanaflynn/stats/pull/4) ([saromanov](https://github.com/saromanov))
+- Sample [#4](https://github.com/montanaflynn/stats/pull/4) ([saromanov](https://github.com/saromanov))
 
 ### Package changes:
 
@@ -54,11 +54,11 @@ Several functions were renamed in this release. They will still function but may
 - Add Nearest Rank method of calculating percentiles
 - Add errors for all functions
 - Add sample
-- Add Linear, Exponential and Logarithmic Regression 
-- Add sample and population variance and deviation 
-- Add Percentile and Float64ToInt 
-- Add Round 
-- Add Standard deviation 
-- Add Sum 
-- Add Min and Ma- x 
-- Add Mean, Median and Mode 
+- Add Linear, Exponential and Logarithmic Regression
+- Add sample and population variance and deviation
+- Add Percentile and Float64ToInt
+- Add Round
+- Add Standard deviation
+- Add Sum
+- Add Min and Ma- x
+- Add Mean, Median and Mode
