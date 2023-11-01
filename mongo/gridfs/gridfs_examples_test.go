@@ -28,7 +28,9 @@ func ExampleBucket_OpenUploadStream() {
 	// collection document.
 	uploadOpts := options.GridFSUpload().
 		SetMetadata(bson.D{{"metadata tag", "tag"}})
-	uploadStream, err := bucket.OpenUploadStream(context.Background(), "filename", uploadOpts)
+
+	ctx := context.Background()
+	uploadStream, err := bucket.OpenUploadStream(ctx, "filename", uploadOpts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +42,7 @@ func ExampleBucket_OpenUploadStream() {
 
 	// Use WithContext to force a timeout if the upload does not succeed in
 	// 2 seconds.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	uploadStream.WithContext(ctx)
@@ -74,7 +76,9 @@ func ExampleBucket_OpenDownloadStream() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	downloadStream, err := bucket.OpenDownloadStream(context.Background(), fileID)
+	ctx := context.Background()
+
+	downloadStream, err := bucket.OpenDownloadStream(ctx, fileID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -86,7 +90,7 @@ func ExampleBucket_OpenDownloadStream() {
 
 	// Use WithContext to force a timeout if the download does not succeed in
 	// 2 seconds.
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	downloadStream.WithContext(ctx)
@@ -101,8 +105,10 @@ func ExampleBucket_DownloadToStream() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
+	ctx := context.Background()
+
 	fileBuffer := bytes.NewBuffer(nil)
-	if _, err := bucket.DownloadToStream(context.Background(), fileID, fileBuffer); err != nil {
+	if _, err := bucket.DownloadToStream(ctx, fileID, fileBuffer); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -151,7 +157,9 @@ func ExampleBucket_Rename() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	if err := bucket.Rename(context.Background(), fileID, "new file name"); err != nil {
+	ctx := context.Background()
+
+	if err := bucket.Rename(ctx, fileID, "new file name"); err != nil {
 		log.Fatal(err)
 	}
 }
