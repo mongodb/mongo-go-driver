@@ -362,6 +362,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	serverOpts = append(
 		serverOpts,
 		withLogger(func() *logger.Logger { return lgr }),
+		withServerMonitoringMode(co.ServerMonitoringMode),
 	)
 
 	cfgp.logger = lgr
