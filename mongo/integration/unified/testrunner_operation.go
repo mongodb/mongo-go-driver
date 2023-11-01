@@ -19,7 +19,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-var waitForEventTimeout = 10 * time.Second
+// waitForEventTimeout is the amount of time to wait for an event to occur. The
+// maximum amount of time expected for this value is currently 10 seconds, which
+// is the amoutn of time that the driver will attempt to wait between streamable
+// heartbeats. Increase this value if a new maximum time is expected in another
+// operation.
+var waitForEventTimeout = 11 * time.Second
 
 type loopArgs struct {
 	Operations         []*operation `bson:"operations"`

@@ -55,31 +55,18 @@ func TestHandshakeProse(t *testing.T) {
 		return elems
 	}
 
-	const (
-		envVarAWSExecutionEnv             = "AWS_EXECUTION_ENV"
-		envVarAWSRegion                   = "AWS_REGION"
-		envVarAWSLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
-		envVarFunctionsWorkerRuntime      = "FUNCTIONS_WORKER_RUNTIME"
-		envVarKService                    = "K_SERVICE"
-		envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
-		envVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
-		envVarFunctionRegion              = "FUNCTION_REGION"
-		envVarVercel                      = "VERCEL"
-		envVarVercelRegion                = "VERCEL_REGION"
-	)
-
 	// Reset the environment variables to avoid environment namespace
 	// collision.
-	t.Setenv(envVarAWSExecutionEnv, "")
-	t.Setenv(envVarFunctionsWorkerRuntime, "")
-	t.Setenv(envVarKService, "")
-	t.Setenv(envVarVercel, "")
-	t.Setenv(envVarAWSRegion, "")
-	t.Setenv(envVarAWSLambdaFunctionMemorySize, "")
-	t.Setenv(envVarFunctionMemoryMB, "")
-	t.Setenv(envVarFunctionTimeoutSec, "")
-	t.Setenv(envVarFunctionRegion, "")
-	t.Setenv(envVarVercelRegion, "")
+	t.Setenv("AWS_EXECUTION_ENV", "")
+	t.Setenv("FUNCTIONS_WORKER_RUNTIME", "")
+	t.Setenv("K_SERVICE", "")
+	t.Setenv("VERCEL", "")
+	t.Setenv("AWS_REGION", "")
+	t.Setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "")
+	t.Setenv("FUNCTION_MEMORY_MB", "")
+	t.Setenv("FUNCTION_TIMEOUT_SEC", "")
+	t.Setenv("FUNCTION_REGION", "")
+	t.Setenv("VERCEL_REGION", "")
 
 	for _, test := range []struct {
 		name string
@@ -89,9 +76,9 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "1. valid AWS",
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
-				envVarAWSRegion:                   "us-east-2",
-				envVarAWSLambdaFunctionMemorySize: "1024",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
+				"AWS_REGION":                      "us-east-2",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
@@ -102,7 +89,7 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "2. valid Azure",
 			env: map[string]string{
-				envVarFunctionsWorkerRuntime: "node",
+				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "azure.func"},
@@ -111,10 +98,10 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "3. valid GCP",
 			env: map[string]string{
-				envVarKService:           "servicename",
-				envVarFunctionMemoryMB:   "1024",
-				envVarFunctionTimeoutSec: "60",
-				envVarFunctionRegion:     "us-central1",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_MEMORY_MB":   "1024",
+				"FUNCTION_TIMEOUT_SEC": "60",
+				"FUNCTION_REGION":      "us-central1",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "gcp.func"},
@@ -126,8 +113,8 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "4. valid Vercel",
 			env: map[string]string{
-				envVarVercel:       "1",
-				envVarVercelRegion: "cdg1",
+				"VERCEL":        "1",
+				"VERCEL_REGION": "cdg1",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "vercel"},
@@ -137,16 +124,16 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "5. invalid multiple providers",
 			env: map[string]string{
-				envVarAWSExecutionEnv:        "AWS_Lambda_java8",
-				envVarFunctionsWorkerRuntime: "node",
+				"AWS_EXECUTION_ENV":        "AWS_Lambda_java8",
+				"FUNCTIONS_WORKER_RUNTIME": "node",
 			},
 			want: clientMetadata(nil),
 		},
 		{
 			name: "6. invalid long string",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_java8",
-				envVarAWSRegion: func() string {
+				"AWS_EXECUTION_ENV": "AWS_Lambda_java8",
+				"AWS_REGION": func() string {
 					var s string
 					for i := 0; i < 512; i++ {
 						s += "a"
@@ -161,8 +148,8 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "7. invalid wrong types",
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_java8",
-				envVarAWSLambdaFunctionMemorySize: "big",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_java8",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "big",
 			},
 			want: clientMetadata(bson.D{
 				{Key: "name", Value: "aws.lambda"},
@@ -171,7 +158,7 @@ func TestHandshakeProse(t *testing.T) {
 		{
 			name: "8. Invalid - AWS_EXECUTION_ENV does not start with \"AWS_Lambda_\"",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "EC2",
+				"AWS_EXECUTION_ENV": "EC2",
 			},
 			want: clientMetadata(nil),
 		},
@@ -188,32 +175,27 @@ func TestHandshakeProse(t *testing.T) {
 			require.NoError(mt, err, "Ping error: %v", err)
 
 			messages := mt.GetProxiedMessages()
+			handshakeMessage := messages[:1][0]
 
-			// First two messages are handshake messages
-			for idx, pair := range messages[:2] {
-				hello := handshake.LegacyHello
-				//  Expect "hello" command name with API version.
-				if os.Getenv("REQUIRE_API_VERSION") == "true" {
-					hello = "hello"
-				}
-
-				assert.Equal(mt, pair.CommandName, hello, "expected and actual command name at index %d are different", idx)
-
-				sent := pair.Sent
-
-				// Lookup the "client" field in the command document.
-				clientVal, err := sent.Command.LookupErr("client")
-				require.NoError(mt, err, "expected command %s at index %d to contain client field", sent.Command, idx)
-
-				got, ok := clientVal.DocumentOK()
-				require.True(mt, ok, "expected client field to be a document, got %s", clientVal.Type)
-
-				wantBytes, err := bson.Marshal(test.want)
-				require.NoError(mt, err, "error marshaling want document: %v", err)
-
-				want := bsoncore.Document(wantBytes)
-				assert.Equal(mt, want, got, "want: %v, got: %v", want, got)
+			hello := handshake.LegacyHello
+			if os.Getenv("REQUIRE_API_VERSION") == "true" {
+				hello = "hello"
 			}
+
+			assert.Equal(mt, hello, handshakeMessage.CommandName)
+
+			// Lookup the "client" field in the command document.
+			clientVal, err := handshakeMessage.Sent.Command.LookupErr("client")
+			require.NoError(mt, err, "expected command %s to contain client field", handshakeMessage.Sent.Command)
+
+			got, ok := clientVal.DocumentOK()
+			require.True(mt, ok, "expected client field to be a document, got %s", clientVal.Type)
+
+			wantBytes, err := bson.Marshal(test.want)
+			require.NoError(mt, err, "error marshaling want document: %v", err)
+
+			want := bsoncore.Document(wantBytes)
+			assert.Equal(mt, want, got, "want: %v, got: %v", want, got)
 		})
 	}
 }
