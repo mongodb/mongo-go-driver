@@ -2167,25 +2167,21 @@ func (coll *Collection) SearchIndexes() SearchIndexView {
 // a collection that does not exist on the server.
 func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectionOptions) error {
 	dco := options.MergeDropCollectionOptions(opts...)
-	efc := dco.EncryptedFields
+	ef := dco.EncryptedFields
 
-	if efc == nil {
-		// Follow Client-Side Encryption specification to check for encryptedFields.
-		// Drop does not have an encryptedFields option. See: GODRIVER-2413.
-		// Check for encryptedFields from the client EncryptedFieldsMap.
-		// Check for encryptedFields from the server if EncryptedFieldsMap is set.
-		efc = coll.db.getEncryptedFieldsFromMap(coll.name)
+	if ef == nil {
+		ef = coll.db.getEncryptedFieldsFromMap(coll.name)
 	}
 
-	if efc == nil && coll.db.client.encryptedFieldsMap != nil {
+	if ef == nil && coll.db.client.encryptedFieldsMap != nil {
 		var err error
-		if efc, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name); err != nil {
+		if ef, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name); err != nil {
 			return err
 		}
 	}
 
-	if efc != nil {
-		return coll.dropEncryptedCollection(ctx, efc)
+	if ef != nil {
+		return coll.dropEncryptedCollection(ctx, ef)
 	}
 
 	return coll.drop(ctx)
