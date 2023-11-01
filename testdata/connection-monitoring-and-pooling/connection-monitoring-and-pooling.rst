@@ -19,7 +19,7 @@ Abstract
 
 Drivers currently support a variety of options that allow users to configure connection pooling behavior. Users are confused by drivers supporting different subsets of these options. Additionally, drivers implement their connection pools differently, making it difficult to design cross-driver pool functionality. By unifying and codifying pooling options and behavior across all drivers, we will increase user comprehension and code base maintainability.
 
-META 
+META
 ====
 
 The keywords “MUST”, “MUST NOT”, “REQUIRED”, “SHALL”, “SHALL NOT”, “SHOULD”, “SHOULD NOT”, “RECOMMENDED”, “MAY”, and “OPTIONAL” in this document are to be interpreted as described in `RFC 2119 <https://www.ietf.org/rfc/rfc2119.txt>`_.
@@ -234,18 +234,18 @@ A driver-defined entity that encapsulates all non-monitoring connections associa
        *  The Queue of threads waiting for a connection to be available
        */
       waitQueue: WaitQueue;
-    
+
       /**
        *  A generation number representing the SDAM generation of the pool
        */
       generation: number;
-    
+
       /**
        *  An integer expressing how many total connections
        *  (active + in use) the pool currently has
        */
       totalConnectionCount: number;
-    
+
       /**
        *  An integer expressing how many connections are currently
        *  available in the pool.
@@ -525,12 +525,12 @@ Events
      *  Emitted when a Connection Pool creates a Connection object.
      *  NOTE: This does not mean that the connection is ready for use.
      */
-    interface ConnectionCreatedEvent { 
+    interface ConnectionCreatedEvent {
       /**
        *  The ServerAddress of the Endpoint the pool is attempting to connect to.
        */
       address: string;
-    
+
       /**
        *  The ID of the Connection
        */
@@ -545,7 +545,7 @@ Events
        *  The ServerAddress of the Endpoint the pool is attempting to connect to.
        */
       address: string;
-    
+
       /**
        *  The ID of the Connection
        */
@@ -560,12 +560,12 @@ Events
        *  The ServerAddress of the Endpoint the pool is attempting to connect to.
        */
       address: string;
-    
+
       /**
        *  The ID of the Connection
        */
       connectionId: number;
-    
+
       /**
        * A reason explaining why this connection was closed.
        * Can be implemented as a string or enum.
@@ -597,7 +597,7 @@ Events
        *  The ServerAddress of the Endpoint the pool is attempting to connect to.
        */
       address: string;
-    
+
       /**
        *  A reason explaining why connection check out failed.
        *  Can be implemented as a string or enum.
@@ -632,7 +632,7 @@ Events
        * The ServerAddress of the Endpoint the pool is attempting to connect to.
        */
       address: string;
-    
+
       /**
        *  The ID of the Connection
        */

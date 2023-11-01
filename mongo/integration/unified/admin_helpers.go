@@ -25,7 +25,7 @@ var (
 	}
 )
 
-// terminateOpenSessions executes a killAllSessions command to ensure that sesssions left open on the server by a test
+// terminateOpenSessions executes a killAllSessions command to ensure that sessions left open on the server by a test
 // do not cause future tests to hang.
 func terminateOpenSessions(ctx context.Context) error {
 	if mtest.CompareServerVersions(mtest.ServerVersion(), "3.6") < 0 {

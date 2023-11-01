@@ -111,7 +111,7 @@ func TestRetryableReadsProse(t *testing.T) {
 
 			// Note that setting this value greater than 2 will result in false
 			// negatives. The current specification does not account for CSOT, which
-			// might allow for an "inifinite" number of retries over a period of time.
+			// might allow for an "infinite" number of retries over a period of time.
 			// Because of this, we only track the "previous server".
 			hostCount            int
 			failpointErrorCode   int32

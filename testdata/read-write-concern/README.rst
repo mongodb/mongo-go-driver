@@ -3,7 +3,7 @@ Connection String Tests
 =======================
 
 The YAML and JSON files in this directory tree are platform-independent tests
-that drivers can use to prove their conformance to the Read and Write Concern 
+that drivers can use to prove their conformance to the Read and Write Concern
 specification.
 
 Version
@@ -37,7 +37,7 @@ for drivers that might substitute default values *during* parsing.
 Document
 ~~~~~~~~
 
-These tests are designed to ensure compliance with the spec in relation to what should be 
+These tests are designed to ensure compliance with the spec in relation to what should be
 sent to the server.
 
 Each YAML file contains an object with a single ``tests`` key. This key is an

@@ -44,7 +44,7 @@ do
 			for CORPUS_FILE in $PARENTDIR/testdata/fuzz/$FUNC/*
 			do
 				# Check to see if the value for CORPUS_FILE is in cset.
-				if [[ ! " ${cset[@]} " =~ " ${CORPUS_FILE} " ]]; then
+				if [[ ! " ${cset[*]} " =~ " ${CORPUS_FILE} " ]]; then
 					# Create the directory if it doesn't exist.
 					if [ ! -d $PROJECT_DIRECTORY/fuzz/$FUNC ]; then
 						mkdir -p $PROJECT_DIRECTORY/fuzz/$FUNC
@@ -69,4 +69,3 @@ if [ -d $PROJECT_DIRECTORY/fuzz ]; then
 	# This will trigger a notification to be sent to the Go Driver team.
 	exit 1
 fi
-

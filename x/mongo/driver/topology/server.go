@@ -17,10 +17,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -131,7 +133,12 @@ type updateTopologyCallback func(description.Server) description.Server
 
 // ConnectServer creates a new Server and then initializes it using the
 // Connect method.
-func ConnectServer(addr address.Address, updateCallback updateTopologyCallback, topologyID primitive.ObjectID, opts ...ServerOption) (*Server, error) {
+func ConnectServer(
+	addr address.Address,
+	updateCallback updateTopologyCallback,
+	topologyID primitive.ObjectID,
+	opts ...ServerOption,
+) (*Server, error) {
 	srvr := NewServer(addr, topologyID, opts...)
 	err := srvr.Connect(updateCallback)
 	if err != nil {
@@ -239,7 +246,6 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 	s.updateTopologyCallback.Store(updateCallback)
 
 	if !s.cfg.monitoringDisabled && !s.cfg.loadBalanced {
-		s.rttMonitor.connect()
 		s.closewg.Add(1)
 		go s.update()
 	}
@@ -429,7 +435,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	}
 
 	// Ignore errors from stale connections because the error came from a previous generation of the
-	// connection pool. The root cause of the error has aleady been handled, which is what caused
+	// connection pool. The root cause of the error has already been handled, which is what caused
 	// the pool generation to increment. Processing errors for stale connections could result in
 	// handling the same error root cause multiple times (e.g. a temporary network interrupt causing
 	// all connections to the same server to return errors).
@@ -648,12 +654,15 @@ func (s *Server) update() {
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
 		// without waiting. If the server has transitioned to Unknown from a network error, we want to do another
 		// check without waiting in case it was a transient error and the server isn't actually down.
-		serverSupportsStreaming := desc.Kind != description.Unknown && desc.TopologyVersion != nil
 		connectionIsStreaming := s.conn != nil && s.conn.getCurrentlyStreaming()
 		transitionedFromNetworkError := desc.LastError != nil && unwrapConnectionError(desc.LastError) != nil &&
 			previousDescription.Kind != description.Unknown
 
-		if serverSupportsStreaming || connectionIsStreaming || transitionedFromNetworkError {
+		if isStreamingEnabled(s) && isStreamable(s) && !s.rttMonitor.started {
+			s.rttMonitor.connect()
+		}
+
+		if isStreamable(s) || connectionIsStreaming || transitionedFromNetworkError {
 			continue
 		}
 
@@ -785,8 +794,23 @@ func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
 	return operation.
 		NewHello().
 		ClusterClock(s.cfg.clock).
-		Deployment(driver.SingleConnectionDeployment{conn}).
+		Deployment(driver.SingleConnectionDeployment{C: conn}).
 		ServerAPI(s.cfg.serverAPI)
+}
+
+func isStreamingEnabled(srv *Server) bool {
+	switch srv.cfg.serverMonitoringMode {
+	case connstring.ServerMonitoringModeStream:
+		return true
+	case connstring.ServerMonitoringModePoll:
+		return false
+	default:
+		return driverutil.GetFaasEnvName() == ""
+	}
+}
+
+func isStreamable(srv *Server) bool {
+	return srv.Description().Kind != description.Unknown && srv.Description().TopologyVersion != nil
 }
 
 func (s *Server) check() (description.Server, error) {
@@ -827,9 +851,10 @@ func (s *Server) check() (description.Server, error) {
 		heartbeatConn := initConnection{s.conn}
 		baseOperation := s.createBaseOperation(heartbeatConn)
 		previousDescription := s.Description()
-		streamable := previousDescription.TopologyVersion != nil
+		streamable := isStreamingEnabled(s) && isStreamable(s)
 
 		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
+
 		switch {
 		case s.conn.getCurrentlyStreaming():
 			// The connection is already in a streaming state, so we stream the next response.
@@ -860,7 +885,15 @@ func (s *Server) check() (description.Server, error) {
 			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
 			err = baseOperation.Execute(s.heartbeatCtx)
 		}
+
 		duration = time.Since(start)
+
+		// We need to record an RTT sample in the polling case so that if the server
+		// is < 4.4, or if polling is specified by the user, then the
+		// RTT-short-circuit feature of CSOT is not disabled.
+		if !streamable {
+			s.rttMonitor.addSample(duration)
+		}
 
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)

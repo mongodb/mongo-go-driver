@@ -58,6 +58,7 @@ When connecting to a MongoDB deployment with password authentication enabled, if
 > connection() error occurred during connection handshake: auth error: sasl conversation error: unable to authenticate using mechanism "SCRAM-SHA-256": (AuthenticationFailed) Authentication failed.
 
 That error can be caused by a number of issues. The error message intentionally omits the exact authentication failure reason (see the [OWASP Authentication and Error Messages guidelines](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#authentication-and-error-messages) for an explanation). Possible causes of the error include:
+
 - Incorrect password.
 - Incorrect username.
 - Incorrect authentication database (i.e. [authSource](https://www.mongodb.com/docs/manual/reference/connection-string/#mongodb-urioption-urioption.authSource)).

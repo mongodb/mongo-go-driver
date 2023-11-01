@@ -1867,7 +1867,7 @@ func (coll *Collection) drop(ctx context.Context) error {
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 	err = op.Execute(ctx)
 
-	// ignore namespace not found erorrs
+	// ignore namespace not found errors
 	driverErr, ok := err.(driver.Error)
 	if !ok || (ok && !driverErr.NamespaceNotFound()) {
 		return replaceErrors(err)

@@ -72,7 +72,7 @@ func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 }
 
 // NewConfig will translate data from client options into a topology config for building non-default deployments.
-// Server and topoplogy options are not honored if a custom deployment is used.
+// Server and topology options are not honored if a custom deployment is used.
 func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
 	var serverAPI *driver.ServerAPIOptions
 
@@ -362,6 +362,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	serverOpts = append(
 		serverOpts,
 		withLogger(func() *logger.Logger { return lgr }),
+		withServerMonitoringMode(co.ServerMonitoringMode),
 	)
 
 	cfgp.logger = lgr
