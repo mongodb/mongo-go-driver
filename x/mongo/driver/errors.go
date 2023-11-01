@@ -40,7 +40,7 @@ var (
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.
 	NetworkError = "NetworkError"
-	// RetryableWriteError is an error lable for retryable write errors.
+	// RetryableWriteError is an error label for retryable write errors.
 	RetryableWriteError = "RetryableWriteError"
 	// NoWritesPerformed is an error label indicated that no writes were performed for an operation.
 	NoWritesPerformed = "NoWritesPerformed"

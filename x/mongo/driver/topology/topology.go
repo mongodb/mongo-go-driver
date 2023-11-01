@@ -98,7 +98,7 @@ type Topology struct {
 	subscriptionsClosed bool
 	subLock             sync.Mutex
 
-	// We should redesign how we Connect and handle individal servers. This is
+	// We should redesign how we Connect and handle individual servers. This is
 	// too difficult to maintain and it's rather easy to accidentally access
 	// the servers without acquiring the lock or checking if the servers are
 	// closed. This lock should also be an RWMutex.
