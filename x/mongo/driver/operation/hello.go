@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -31,7 +32,6 @@ import (
 // sharded clusters is 512.
 const maxClientMetadataSize = 512
 
-const awsLambdaPrefix = "AWS_Lambda_"
 const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
@@ -125,36 +125,7 @@ func (h *Hello) Result(addr address.Address) description.Server {
 	return description.NewServer(addr, bson.Raw(h.res))
 }
 
-const (
-	// FaaS environment variable names
-	envVarAWSExecutionEnv        = "AWS_EXECUTION_ENV"
-	envVarAWSLambdaRuntimeAPI    = "AWS_LAMBDA_RUNTIME_API"
-	envVarFunctionsWorkerRuntime = "FUNCTIONS_WORKER_RUNTIME"
-	envVarKService               = "K_SERVICE"
-	envVarFunctionName           = "FUNCTION_NAME"
-	envVarVercel                 = "VERCEL"
-)
-
-const (
-	// FaaS environment variable names
-	envVarAWSRegion                   = "AWS_REGION"
-	envVarAWSLambdaFunctionMemorySize = "AWS_LAMBDA_FUNCTION_MEMORY_SIZE"
-	envVarFunctionMemoryMB            = "FUNCTION_MEMORY_MB"
-	envVarFunctionTimeoutSec          = "FUNCTION_TIMEOUT_SEC"
-	envVarFunctionRegion              = "FUNCTION_REGION"
-	envVarVercelRegion                = "VERCEL_REGION"
-)
-
-const (
-	// FaaS environment names used by the client
-	envNameAWSLambda = "aws.lambda"
-	envNameAzureFunc = "azure.func"
-	envNameGCPFunc   = "gcp.func"
-	envNameVercel    = "vercel"
-)
-
 const dockerEnvPath = "/.dockerenv"
-const envVarK8s = "KUBERNETES_SERVICE_HOST"
 
 const (
 	// Runtime names
@@ -172,12 +143,12 @@ const (
 // values to be entirely omitted.
 func getFaasEnvName() string {
 	envVars := []string{
-		envVarAWSExecutionEnv,
-		envVarAWSLambdaRuntimeAPI,
-		envVarFunctionsWorkerRuntime,
-		envVarKService,
-		envVarFunctionName,
-		envVarVercel,
+		driverutil.EnvVarAWSExecutionEnv,
+		driverutil.EnvVarAWSLambdaRuntimeAPI,
+		driverutil.EnvVarFunctionsWorkerRuntime,
+		driverutil.EnvVarKService,
+		driverutil.EnvVarFunctionName,
+		driverutil.EnvVarVercel,
 	}
 
 	// If none of the variables are populated the client.env value MUST be
@@ -193,23 +164,23 @@ func getFaasEnvName() string {
 		var name string
 
 		switch envVar {
-		case envVarAWSExecutionEnv:
-			if !strings.HasPrefix(val, awsLambdaPrefix) {
+		case driverutil.EnvVarAWSExecutionEnv:
+			if !strings.HasPrefix(val, driverutil.AwsLambdaPrefix) {
 				continue
 			}
 
-			name = envNameAWSLambda
-		case envVarAWSLambdaRuntimeAPI:
-			name = envNameAWSLambda
-		case envVarFunctionsWorkerRuntime:
-			name = envNameAzureFunc
-		case envVarKService, envVarFunctionName:
-			name = envNameGCPFunc
-		case envVarVercel:
+			name = driverutil.EnvNameAWSLambda
+		case driverutil.EnvVarAWSLambdaRuntimeAPI:
+			name = driverutil.EnvNameAWSLambda
+		case driverutil.EnvVarFunctionsWorkerRuntime:
+			name = driverutil.EnvNameAzureFunc
+		case driverutil.EnvVarKService, driverutil.EnvVarFunctionName:
+			name = driverutil.EnvNameGCPFunc
+		case driverutil.EnvVarVercel:
 			// "vercel" takes precedence over "aws.lambda".
-			delete(names, envNameAWSLambda)
+			delete(names, driverutil.EnvNameAWSLambda)
 
-			name = envNameVercel
+			name = driverutil.EnvNameVercel
 		}
 
 		names[name] = struct{}{}
@@ -242,7 +213,7 @@ func getContainerEnvInfo() *containerInfo {
 	if _, err := os.Stat(dockerEnvPath); !os.IsNotExist(err) {
 		runtime = runtimeNameDocker
 	}
-	if v := os.Getenv(envVarK8s); v != "" {
+	if v := os.Getenv(driverutil.EnvVarK8s); v != "" {
 		orchestrator = orchestratorNameK8s
 	}
 	if runtime != "" || orchestrator != "" {
@@ -350,15 +321,15 @@ func appendClientEnv(dst []byte, omitNonName, omitDoc bool) ([]byte, error) {
 	if !omitNonName {
 		// No other FaaS fields will be populated if the name is empty.
 		switch name {
-		case envNameAWSLambda:
-			dst = addMem(envVarAWSLambdaFunctionMemorySize)
-			dst = addRegion(envVarAWSRegion)
-		case envNameGCPFunc:
-			dst = addMem(envVarFunctionMemoryMB)
-			dst = addRegion(envVarFunctionRegion)
-			dst = addTimeout(envVarFunctionTimeoutSec)
-		case envNameVercel:
-			dst = addRegion(envVarVercelRegion)
+		case driverutil.EnvNameAWSLambda:
+			dst = addMem(driverutil.EnvVarAWSLambdaFunctionMemorySize)
+			dst = addRegion(driverutil.EnvVarAWSRegion)
+		case driverutil.EnvNameGCPFunc:
+			dst = addMem(driverutil.EnvVarFunctionMemoryMB)
+			dst = addRegion(driverutil.EnvVarFunctionRegion)
+			dst = addTimeout(driverutil.EnvVarFunctionTimeoutSec)
+		case driverutil.EnvNameVercel:
+			dst = addRegion(driverutil.EnvVarVercelRegion)
 		}
 	}
 

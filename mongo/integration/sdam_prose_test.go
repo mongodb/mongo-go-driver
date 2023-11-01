@@ -32,7 +32,8 @@ func TestSDAMProse(t *testing.T) {
 	heartbeatIntervalMtOpts := mtest.NewOptions().
 		ClientOptions(heartbeatIntervalClientOpts).
 		CreateCollection(false).
-		ClientType(mtest.Proxy)
+		ClientType(mtest.Proxy).
+		MinServerVersion("4.4") // RTT Monitor / Streaming protocol is not supported for versions < 4.4.
 	mt.RunOpts("heartbeats processed more frequently", heartbeatIntervalMtOpts, func(mt *mtest.T) {
 		// Test that setting heartbeat interval to 500ms causes the client to process heartbeats
 		// approximately every 500ms instead of the default 10s. Note that a Client doesn't

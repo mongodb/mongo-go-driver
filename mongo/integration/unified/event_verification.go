@@ -9,6 +9,7 @@ package unified
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,10 +65,37 @@ type cmapEvent struct {
 	} `bson:"poolClearedEvent"`
 }
 
+type sdamEvent struct {
+	ServerDescriptionChangedEvent *struct {
+		NewDescription *struct {
+			Type *string `bson:"type"`
+		} `bson:"newDescription"`
+
+		PreviousDescription *struct {
+			Type *string `bson:"type"`
+		} `bson:"previousDescription"`
+	} `bson:"serverDescriptionChangedEvent"`
+
+	ServerHeartbeatStartedEvent *struct {
+		Awaited *bool `bson:"awaited"`
+	} `bson:"serverHeartbeatStartedEvent"`
+
+	ServerHeartbeatSucceededEvent *struct {
+		Awaited *bool `bson:"awaited"`
+	} `bson:"serverHeartbeatSucceededEvent"`
+
+	ServerHeartbeatFailedEvent *struct {
+		Awaited *bool `bson:"awaited"`
+	} `bson:"serverHeartbeatFailedEvent"`
+
+	TopologyDescriptionChangedEvent *struct{} `bson:"topologyDescriptionChangedEvent"`
+}
+
 type expectedEvents struct {
 	ClientID          string `bson:"client"`
 	CommandEvents     []commandMonitoringEvent
 	CMAPEvents        []cmapEvent
+	SDAMEvents        []sdamEvent
 	IgnoreExtraEvents *bool
 }
 
@@ -102,6 +130,8 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 		target = &e.CommandEvents
 	case "cmap":
 		target = &e.CMAPEvents
+	case "sdam":
+		target = &e.SDAMEvents
 	default:
 		return fmt.Errorf("unrecognized 'eventType' value for expectedEvents: %q", temp.EventType)
 	}
@@ -127,6 +157,8 @@ func verifyEvents(ctx context.Context, expectedEvents *expectedEvents) error {
 		return verifyCommandEvents(ctx, client, expectedEvents)
 	case expectedEvents.CMAPEvents != nil:
 		return verifyCMAPEvents(client, expectedEvents)
+	case expectedEvents.SDAMEvents != nil:
+		return verifySDAMEvents(client, expectedEvents)
 	}
 	return nil
 }
@@ -404,4 +436,146 @@ func stringifyEventsForClient(client *clientEntity) string {
 	}
 
 	return str.String()
+}
+
+func getNextServerDescriptionChangedEvent(
+	events []*event.ServerDescriptionChangedEvent,
+) (*event.ServerDescriptionChangedEvent, []*event.ServerDescriptionChangedEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no server changed event published")
+	}
+
+	return events[0], events[1:], nil
+}
+
+func getNextServerHeartbeatStartedEvent(
+	events []*event.ServerHeartbeatStartedEvent,
+) (*event.ServerHeartbeatStartedEvent, []*event.ServerHeartbeatStartedEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no heartbeat started event published")
+	}
+
+	return events[0], events[1:], nil
+}
+
+func getNextServerHeartbeatSucceededEvent(
+	events []*event.ServerHeartbeatSucceededEvent,
+) (*event.ServerHeartbeatSucceededEvent, []*event.ServerHeartbeatSucceededEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no heartbeat succeeded event published")
+	}
+
+	return events[0], events[:1], nil
+}
+
+func getNextServerHeartbeatFailedEvent(
+	events []*event.ServerHeartbeatFailedEvent,
+) (*event.ServerHeartbeatFailedEvent, []*event.ServerHeartbeatFailedEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no heartbeat failed event published")
+	}
+
+	return events[0], events[:1], nil
+}
+
+func getNextTopologyDescriptionChangedEvent(
+	events []*event.TopologyDescriptionChangedEvent,
+) (*event.TopologyDescriptionChangedEvent, []*event.TopologyDescriptionChangedEvent, error) {
+	if len(events) == 0 {
+		return nil, nil, errors.New("no topology description changed event published")
+	}
+
+	return events[0], events[:1], nil
+}
+
+func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) error {
+	var (
+		changed   = client.serverDescriptionChanged
+		started   = client.serverHeartbeatStartedEvent
+		succeeded = client.serverHeartbeatSucceeded
+		failed    = client.serverHeartbeatFailedEvent
+		tchanged  = client.topologyDescriptionChanged
+	)
+
+	vol := func() int { return len(changed) + len(started) + len(succeeded) + len(failed) + len(tchanged) }
+
+	if len(expectedEvents.SDAMEvents) == 0 && vol() != 0 {
+		return fmt.Errorf("expected no sdam events to be sent but got %s", stringifyEventsForClient(client))
+	}
+
+	for idx, evt := range expectedEvents.SDAMEvents {
+		var err error
+
+		switch {
+		case evt.ServerDescriptionChangedEvent != nil:
+			var got *event.ServerDescriptionChangedEvent
+			if got, changed, err = getNextServerDescriptionChangedEvent(changed); err != nil {
+				return newEventVerificationError(idx, client, err.Error())
+			}
+
+			prevDesc := evt.ServerDescriptionChangedEvent.NewDescription
+
+			var wantPrevDesc string
+			if prevDesc != nil && prevDesc.Type != nil {
+				wantPrevDesc = *prevDesc.Type
+			}
+
+			gotPrevDesc := got.PreviousDescription.Kind.String()
+			if gotPrevDesc != wantPrevDesc {
+				return newEventVerificationError(idx, client,
+					"expected previous server description %q, got %q", wantPrevDesc, gotPrevDesc)
+			}
+
+			newDesc := evt.ServerDescriptionChangedEvent.PreviousDescription
+
+			var wantNewDesc string
+			if newDesc != nil && newDesc.Type != nil {
+				wantNewDesc = *newDesc.Type
+			}
+
+			gotNewDesc := got.NewDescription.Kind.String()
+			if gotNewDesc != wantNewDesc {
+				return newEventVerificationError(idx, client,
+					"expected new server description %q, got %q", wantNewDesc, gotNewDesc)
+			}
+		case evt.ServerHeartbeatStartedEvent != nil:
+			var got *event.ServerHeartbeatStartedEvent
+			if got, started, err = getNextServerHeartbeatStartedEvent(started); err != nil {
+				return newEventVerificationError(idx, client, err.Error())
+			}
+
+			if want := evt.ServerHeartbeatStartedEvent.Awaited; want != nil && *want != got.Awaited {
+				return newEventVerificationError(idx, client, "want awaited %v, got %v", *want, got.Awaited)
+			}
+		case evt.ServerHeartbeatSucceededEvent != nil:
+			var got *event.ServerHeartbeatSucceededEvent
+			if got, succeeded, err = getNextServerHeartbeatSucceededEvent(succeeded); err != nil {
+				return newEventVerificationError(idx, client, err.Error())
+			}
+
+			if want := evt.ServerHeartbeatSucceededEvent.Awaited; want != nil && *want != got.Awaited {
+				return newEventVerificationError(idx, client, "want awaited %v, got %v", *want, got.Awaited)
+			}
+		case evt.ServerHeartbeatFailedEvent != nil:
+			var got *event.ServerHeartbeatFailedEvent
+			if got, failed, err = getNextServerHeartbeatFailedEvent(failed); err != nil {
+				return newEventVerificationError(idx, client, err.Error())
+			}
+
+			if want := evt.ServerHeartbeatFailedEvent.Awaited; want != nil && *want != got.Awaited {
+				return newEventVerificationError(idx, client, "want awaited %v, got %v", *want, got.Awaited)
+			}
+		case evt.TopologyDescriptionChangedEvent != nil:
+			if _, tchanged, err = getNextTopologyDescriptionChangedEvent(tchanged); err != nil {
+				return newEventVerificationError(idx, client, err.Error())
+			}
+		}
+	}
+
+	// Verify that there are no remaining events if ignoreExtraEvents is unset or false.
+	ignoreExtraEvents := expectedEvents.IgnoreExtraEvents != nil && *expectedEvents.IgnoreExtraEvents
+	if !ignoreExtraEvents && vol() > 0 {
+		return fmt.Errorf("extra sdam events published; all events for client: %s", stringifyEventsForClient(client))
+	}
+	return nil
 }

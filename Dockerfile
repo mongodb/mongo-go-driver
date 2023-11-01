@@ -31,6 +31,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     software-properties-common \
     gpg \
     apt-utils \
+    libc6-dev \
+    gcc \
     make && \
   sudo update-ca-certificates && \
   rm -rf /var/lib/apt/lists/*
