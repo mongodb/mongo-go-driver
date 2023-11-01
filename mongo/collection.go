@@ -442,14 +442,23 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
-func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
+func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
 
-	if len(documents) == 0 {
+	dv := reflect.ValueOf(documents)
+	if dv.Kind() != reflect.Slice {
+		return nil, ErrNotSlice
+	}
+	if dv.Len() == 0 {
 		return nil, ErrEmptySlice
 	}
 
-	result, err := coll.insert(ctx, documents, opts...)
+	docSlice := make([]interface{}, 0, dv.Len())
+	for i := 0; i < dv.Len(); i++ {
+		docSlice = append(docSlice, dv.Index(i).Interface())
+	}
+
+	result, err := coll.insert(ctx, docSlice, opts...)
 	rr, err := processWriteError(err)
 	if rr&rrMany == 0 {
 		return nil, err
