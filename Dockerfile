@@ -34,7 +34,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
     make && \
   sudo update-ca-certificates && \
   rm -rf /var/lib/apt/lists/*
-  
+
 # Install golang from the golang-backports ppa.
 RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
