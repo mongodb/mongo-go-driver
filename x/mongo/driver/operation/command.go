@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -24,7 +23,6 @@ import (
 // Command is used to run a generic operation.
 type Command struct {
 	command        bsoncore.Document
-	readConcern    *readconcern.ReadConcern
 	database       string
 	deployment     driver.Deployment
 	selector       description.ServerSelector
@@ -159,16 +157,6 @@ func (c *Command) Deployment(deployment driver.Deployment) *Command {
 	}
 
 	c.deployment = deployment
-	return c
-}
-
-// ReadConcern specifies the read concern for this operation.
-func (c *Command) ReadConcern(readConcern *readconcern.ReadConcern) *Command {
-	if c == nil {
-		c = new(Command)
-	}
-
-	c.readConcern = readConcern
 	return c
 }
 
