@@ -173,37 +173,6 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 	return nil
 }
 
-// compareDocumentToString will compare an expected document to an actual string by converting the document into a
-// string.
-func compareDocumentToString(expected, actual bson.RawValue) error {
-	expectedDocument, ok := expected.DocumentOK()
-	if !ok {
-		return fmt.Errorf("expected value to be a document but got a %s", expected.Type)
-	}
-
-	actualString, ok := actual.StringValueOK()
-	if !ok {
-		return fmt.Errorf("expected value to be a string but got a %s", actual.Type)
-	}
-
-	if actualString != expectedDocument.String() {
-		return fmt.Errorf("expected value %s, got %s", expectedDocument.String(), actualString)
-	}
-	return nil
-}
-
-// evaluateMixedTypeComparison compares an expected document with an actual string.  If this comparison occurs, then
-// the function will return `true` along with any resulting error.
-func evaluateMixedTypeComparison(expectedKey string, expected, actual bson.RawValue) (bool, error) {
-	switch expectedKey {
-	case "comment":
-		if expected.Type == bsontype.EmbeddedDocument && actual.Type == bsontype.String {
-			return true, compareDocumentToString(expected, actual)
-		}
-	}
-	return false, nil
-}
-
 func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actual bson.RawValue) error {
 	assertionElem := assertionDoc.Index(0)
 	assertion := assertionElem.Key()
