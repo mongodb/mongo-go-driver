@@ -21,7 +21,7 @@ import (
 
 // waitForEventTimeout is the amount of time to wait for an event to occur. The
 // maximum amount of time expected for this value is currently 10 seconds, which
-// is the amoutn of time that the driver will attempt to wait between streamable
+// is the amount of time that the driver will attempt to wait between streamable
 // heartbeats. Increase this value if a new maximum time is expected in another
 // operation.
 var waitForEventTimeout = 11 * time.Second
