@@ -42,7 +42,7 @@ type rttMonitor struct {
 	mu sync.RWMutex // mu guards samples, offset, minRTT, averageRTT, and averageRTTSet
 
 	// connMu guards connecting and disconnecting. This is necessary since
-	// disconnecting will await the cancelation of a started connection. The
+	// disconnecting will await the cancellation of a started connection. The
 	// use case for rttMonitor.connect needs to be goroutine safe.
 	connMu        sync.Mutex
 	samples       []time.Duration

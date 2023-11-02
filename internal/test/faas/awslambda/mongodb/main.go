@@ -162,7 +162,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Driver must switch to polling monitoring when running within a FaaS
 	// environment.
 	if listener.heartbeatAwaitedCount > 0 {
-		return gateway500(), fmt.Errorf("FaaS environment fialed to switch to polling")
+		return gateway500(), fmt.Errorf("FaaS environment failed to switch to polling")
 	}
 
 	var avgCmdDur float64
