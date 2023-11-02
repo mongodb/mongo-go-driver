@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/examples/documentation_examples"
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -45,7 +45,7 @@ func TestDocumentationExamples(t *testing.T) {
 	defer cancel()
 
 	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer client.Disconnect(ctx)
 
 	db := client.Database("documentation_examples")
