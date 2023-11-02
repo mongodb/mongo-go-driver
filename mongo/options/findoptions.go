@@ -235,7 +235,7 @@ type FindOneOptions struct {
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
 	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	Comment interface{}
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
 	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
@@ -296,7 +296,7 @@ func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
+func (f *FindOneOptions) SetComment(comment interface{}) *FindOneOptions {
 	f.Comment = &comment
 	return f
 }

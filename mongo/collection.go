@@ -1658,12 +1658,13 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	findOpts := make([]*options.FindOptions, 0, len(opts))
-	for _, opt := range opts {
+	findOpts := make([]*options.FindOptions, len(opts)+1)
+	for idx, opt := range opts {
 		if opt == nil {
 			continue
 		}
-		findOpts = append(findOpts, &options.FindOptions{
+
+		findOpts[idx] = &options.FindOptions{
 			AllowPartialResults: opt.AllowPartialResults,
 			Collation:           opt.Collation,
 			Comment:             opt.Comment,
@@ -1676,11 +1677,12 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 			ShowRecordID:        opt.ShowRecordID,
 			Skip:                opt.Skip,
 			Sort:                opt.Sort,
-		})
+		}
 	}
+
 	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
 	// by the server.
-	findOpts = append(findOpts, options.Find().SetLimit(-1))
+	findOpts[len(opts)] = options.Find().SetLimit(-1)
 
 	cursor, err := coll.Find(ctx, filter, findOpts...)
 	return &SingleResult{
