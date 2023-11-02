@@ -60,13 +60,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
-			// TODO with `opts.SetComment(val)`
-			commentString, err := createCommentString(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating comment: %v", err)
-			}
-			opts.SetComment(commentString)
+			opts.SetComment(val)
 		case "hint":
 			hint, err := createHint(val)
 			if err != nil {
@@ -188,13 +182,7 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
-			// TODO with `opts.SetComment(val)`
-			commentString, err := createCommentString(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating comment: %v", err)
-			}
-			opts.SetComment(commentString)
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":
@@ -1393,13 +1381,7 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 			}
 			opts.SetCollation(collation)
 		case "comment":
-			// TODO(GODRIVER-2386): when document support for comments is added, we can replace this switch condition
-			// TODO with `opts.SetComment(val)`
-			commentString, err := createCommentString(val)
-			if err != nil {
-				return nil, fmt.Errorf("error creating comment: %v", err)
-			}
-			opts.SetComment(commentString)
+			opts.SetComment(val)
 		case "filter":
 			filter = val.Document()
 		case "hint":

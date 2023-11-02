@@ -97,18 +97,6 @@ func verifyValuesMatchInner(ctx context.Context, expected, actual bson.RawValue)
 				return newMatchingError(fullKeyPath, "key not found in actual document")
 			}
 
-			// Check to see if the keypath requires us to convert actual/expected to make a true comparison.  If the
-			// comparison is not supported for the keypath, continue with the recursive strategy.
-			//
-			// TODO(GODRIVER-2386): this branch of logic will be removed once we add document support for comments
-			mixedTypeEvaluated, err := evaluateMixedTypeComparison(expectedKey, expectedValue, actualValue)
-			if err != nil {
-				return newMatchingError(fullKeyPath, "error doing mixed-type matching assertion: %v", err)
-			}
-			if mixedTypeEvaluated {
-				continue
-			}
-
 			// Nested documents cannot have extra keys, so we unconditionally pass false for extraKeysAllowed.
 			comparisonCtx := makeMatchContext(ctx, fullKeyPath, false)
 			if err := verifyValuesMatchInner(comparisonCtx, expectedValue, actualValue); err != nil {
