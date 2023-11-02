@@ -254,7 +254,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 
 	option := options.MergeCreateIndexesOptions(opts...)
 
-	// TODO(GODRIVER-3038): This operation should pass CSE to the ListIndexes
+	// TODO(GODRIVER-3038): This operation should pass CSE to the CreateIndexes
 	// Crypt setter to be applied to the operation.
 	//
 	// This was added in GODRIVER-2413 for the 2.0 major release.
@@ -395,7 +395,7 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 
 	dio := options.MergeDropIndexesOptions(opts...)
 
-	// TODO(GODRIVER-3038): This operation should pass CSE to the ListIndexes
+	// TODO(GODRIVER-3038): This operation should pass CSE to the DropIndexes
 	// Crypt setter to be applied to the operation.
 	op := operation.NewDropIndexes(name).
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
