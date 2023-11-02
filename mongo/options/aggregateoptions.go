@@ -46,7 +46,7 @@ type AggregateOptions struct {
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
 	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	Comment interface{}
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
 	// as a document. The hint does not apply to $lookup and $graphLookup aggregation stages. The driver will return an
@@ -111,8 +111,8 @@ func (ao *AggregateOptions) SetMaxAwaitTime(d time.Duration) *AggregateOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (ao *AggregateOptions) SetComment(s string) *AggregateOptions {
-	ao.Comment = &s
+func (ao *AggregateOptions) SetComment(comment interface{}) *AggregateOptions {
+	ao.Comment = comment
 	return ao
 }
 

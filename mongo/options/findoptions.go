@@ -32,7 +32,7 @@ type FindOptions struct {
 
 	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
 	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	Comment interface{}
 
 	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
 	// means that the cursor will be closed by the server when the last batch of documents is retrieved.
@@ -129,8 +129,8 @@ func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOptions) SetComment(comment string) *FindOptions {
-	f.Comment = &comment
+func (f *FindOptions) SetComment(comment interface{}) *FindOptions {
+	f.Comment = comment
 	return f
 }
 

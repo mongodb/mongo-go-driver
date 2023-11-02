@@ -1046,13 +1046,13 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
 	}
 	if ao.Comment != nil {
-		op.Comment(*ao.Comment)
-
-		commentVal, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
+		comment, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
-		cursorOpts.Comment = commentVal
+
+		op.Comment(comment)
+		cursorOpts.Comment = comment
 	}
 	if ao.Hint != nil {
 		if isUnorderedMap(ao.Hint) {
@@ -1176,7 +1176,12 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
 	if countOpts.Comment != nil {
-		op.Comment(*countOpts.Comment)
+		comment, err := marshalValue(countOpts.Comment, coll.bsonOpts, coll.registry)
+		if err != nil {
+			return 0, err
+		}
+
+		op.Comment(comment)
 	}
 	if countOpts.Hint != nil {
 		if isUnorderedMap(countOpts.Hint) {
@@ -1531,13 +1536,13 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
 	if fo.Comment != nil {
-		op.Comment(*fo.Comment)
-
-		commentVal, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
+		comment, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		cursorOpts.Comment = commentVal
+
+		op.Comment(comment)
+		cursorOpts.Comment = comment
 	}
 	if fo.CursorType != nil {
 		switch *fo.CursorType {
