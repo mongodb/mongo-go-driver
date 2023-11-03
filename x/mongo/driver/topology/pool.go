@@ -455,7 +455,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// TODO checkout.
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:    event.GetStarted,
+			Type:    event.ConnectionCheckOutStarted,
 			Address: p.address.String(),
 		})
 	}
@@ -480,7 +480,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
+				Type:    event.ConnectionCheckOutFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonPoolClosed,
 			})
@@ -500,7 +500,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
+				Type:    event.ConnectionCheckOutFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonConnectionErrored,
 				Error:   err,
@@ -543,7 +543,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
+					Type:    event.ConnectionCheckOutFailed,
 					Address: p.address.String(),
 					Reason:  event.ReasonConnectionErrored,
 					Error:   w.err,
@@ -562,7 +562,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:         event.GetSucceeded,
+				Type:         event.ConnectionCheckedOut,
 				Address:      p.address.String(),
 				ConnectionID: w.conn.driverConnectionID,
 			})
@@ -592,7 +592,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
+					Type:    event.ConnectionCheckOutFailed,
 					Address: p.address.String(),
 					Reason:  event.ReasonConnectionErrored,
 					Error:   w.err,
@@ -612,7 +612,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:         event.GetSucceeded,
+				Type:         event.ConnectionCheckedOut,
 				Address:      p.address.String(),
 				ConnectionID: w.conn.driverConnectionID,
 			})
@@ -631,7 +631,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
+				Type:    event.ConnectionCheckOutFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonTimedOut,
 				Error:   ctx.Err(),
@@ -755,7 +755,7 @@ func (p *pool) checkIn(conn *connection) error {
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionReturned,
+			Type:         event.ConnectionCheckedIn,
 			ConnectionID: conn.driverConnectionID,
 			Address:      conn.addr.String(),
 		})

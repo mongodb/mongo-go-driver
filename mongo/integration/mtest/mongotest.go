@@ -669,9 +669,9 @@ func (t *T) createTestClient() {
 				}
 
 				switch evt.Type {
-				case event.GetSucceeded:
+				case event.ConnectionCheckedOut:
 					atomic.AddInt64(&t.connsCheckedOut, 1)
-				case event.ConnectionReturned:
+				case event.ConnectionCheckedIn:
 					atomic.AddInt64(&t.connsCheckedOut, -1)
 				}
 			},

@@ -30,9 +30,9 @@
 //	poolMonitor := &event.PoolMonitor{
 //	  Event: func(evt *event.PoolEvent) {
 //	    switch evt.Type {
-//	    case event.GetSucceeded:
+//	    case event.ConnectionCheckedOut:
 //	      connsCheckedOut++
-//	    case event.ConnectionReturned:
+//	    case event.ConnectionCheckedIn:
 //	      connsCheckedOut--
 //	    }
 //	  },

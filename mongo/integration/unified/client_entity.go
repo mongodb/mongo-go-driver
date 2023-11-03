@@ -450,9 +450,9 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 
 	// Update the connection counter. This happens even if we're not storing any events.
 	switch evt.Type {
-	case event.GetSucceeded:
+	case event.ConnectionCheckedOut:
 		c.numConnsCheckedOut++
-	case event.ConnectionReturned:
+	case event.ConnectionCheckedIn:
 		c.numConnsCheckedOut--
 	}
 
