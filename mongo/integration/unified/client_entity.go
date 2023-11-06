@@ -599,6 +599,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		case "serverselectiontimeoutms":
 			clientOpts.SetServerSelectionTimeout(time.Duration(value.(int32)) * time.Millisecond)
+		case "servermonitoringmode":
+			clientOpts.SetServerMonitoringMode(value.(string))
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}
