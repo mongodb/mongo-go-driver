@@ -209,7 +209,7 @@ func logServerMessage(srv *Server, msg string, keysAndValues ...interface{}) {
 		serverPort = ""
 	}
 
-	var driverConnectionID uint64
+	var driverConnectionID int64
 	var serverConnectionID *int64
 
 	if srv.conn != nil {

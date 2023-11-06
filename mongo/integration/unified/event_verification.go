@@ -215,7 +215,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				}
 			}
 			if expected.HasServerConnectionID != nil {
-				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID64); err != nil {
+				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID); err != nil {
 					return newEventVerificationError(idx, client, "error verifying serverConnectionID: %v", err)
 				}
 			}
@@ -259,7 +259,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				}
 			}
 			if expected.HasServerConnectionID != nil {
-				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID64); err != nil {
+				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID); err != nil {
 					return newEventVerificationError(idx, client, "error verifying serverConnectionID: %v", err)
 				}
 			}
@@ -286,7 +286,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				}
 			}
 			if expected.HasServerConnectionID != nil {
-				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID64); err != nil {
+				if err := verifyServerConnectionID(*expected.HasServerConnectionID, actual.ServerConnectionID); err != nil {
 					return newEventVerificationError(idx, client, "error verifying serverConnectionID: %v", err)
 				}
 			}
