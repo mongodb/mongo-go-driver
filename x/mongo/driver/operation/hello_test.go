@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -54,18 +55,18 @@ func encodeWithCallback(t *testing.T, cb func(int, []byte) ([]byte, error)) bson
 // ensure that the local environment does not effect the outcome of a unit
 // test.
 func clearTestEnv(t *testing.T) {
-	t.Setenv(envVarAWSExecutionEnv, "")
-	t.Setenv(envVarAWSLambdaRuntimeAPI, "")
-	t.Setenv(envVarFunctionsWorkerRuntime, "")
-	t.Setenv(envVarKService, "")
-	t.Setenv(envVarFunctionName, "")
-	t.Setenv(envVarVercel, "")
-	t.Setenv(envVarAWSRegion, "")
-	t.Setenv(envVarAWSLambdaFunctionMemorySize, "")
-	t.Setenv(envVarFunctionMemoryMB, "")
-	t.Setenv(envVarFunctionTimeoutSec, "")
-	t.Setenv(envVarFunctionRegion, "")
-	t.Setenv(envVarVercelRegion, "")
+	t.Setenv("AWS_EXECUTION_ENV", "")
+	t.Setenv("AWS_LAMBDA_RUNTIME_API", "")
+	t.Setenv("FUNCTIONS_WORKER_RUNTIME", "")
+	t.Setenv("K_SERVICE", "")
+	t.Setenv("FUNCTION_NAME", "")
+	t.Setenv("VERCEL", "")
+	t.Setenv("AWS_REGION", "")
+	t.Setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "")
+	t.Setenv("FUNCTION_MEMORY_MB", "")
+	t.Setenv("FUNCTION_TIMEOUT_SEC", "")
+	t.Setenv("FUNCTION_REGION", "")
+	t.Setenv("VERCEL_REGION", "")
 }
 
 func TestAppendClientName(t *testing.T) {
@@ -159,32 +160,32 @@ func TestAppendClientEnv(t *testing.T) {
 		{
 			name: "aws only",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_foo",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda"}}`),
 		},
 		{
 			name: "aws mem only",
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_foo",
-				envVarAWSLambdaFunctionMemorySize: "1024",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_foo",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","memory_mb":1024}}`),
 		},
 		{
 			name: "aws region only",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_foo",
-				envVarAWSRegion:       "us-east-2",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
+				"AWS_REGION":        "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","region":"us-east-2"}}`),
 		},
 		{
 			name: "aws mem and region",
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_foo",
-				envVarAWSLambdaFunctionMemorySize: "1024",
-				envVarAWSRegion:                   "us-east-2",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_foo",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				"AWS_REGION":                      "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda","memory_mb":1024,"region":"us-east-2"}}`),
 		},
@@ -192,50 +193,50 @@ func TestAppendClientEnv(t *testing.T) {
 			name:          "aws mem and region with omit fields",
 			omitEnvFields: true,
 			env: map[string]string{
-				envVarAWSExecutionEnv:             "AWS_Lambda_foo",
-				envVarAWSLambdaFunctionMemorySize: "1024",
-				envVarAWSRegion:                   "us-east-2",
+				"AWS_EXECUTION_ENV":               "AWS_Lambda_foo",
+				"AWS_LAMBDA_FUNCTION_MEMORY_SIZE": "1024",
+				"AWS_REGION":                      "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"aws.lambda"}}`),
 		},
 		{
 			name: "gcp only",
 			env: map[string]string{
-				envVarKService: "servicename",
+				"K_SERVICE": "servicename",
 			},
 			want: []byte(`{"env":{"name":"gcp.func"}}`),
 		},
 		{
 			name: "gcp mem",
 			env: map[string]string{
-				envVarKService:         "servicename",
-				envVarFunctionMemoryMB: "1024",
+				"K_SERVICE":          "servicename",
+				"FUNCTION_MEMORY_MB": "1024",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","memory_mb":1024}}`),
 		},
 		{
 			name: "gcp region",
 			env: map[string]string{
-				envVarKService:       "servicename",
-				envVarFunctionRegion: "us-east-2",
+				"K_SERVICE":       "servicename",
+				"FUNCTION_REGION": "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","region":"us-east-2"}}`),
 		},
 		{
 			name: "gcp timeout",
 			env: map[string]string{
-				envVarKService:           "servicename",
-				envVarFunctionTimeoutSec: "1",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_TIMEOUT_SEC": "1",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","timeout_sec":1}}`),
 		},
 		{
 			name: "gcp mem, region, and timeout",
 			env: map[string]string{
-				envVarKService:           "servicename",
-				envVarFunctionTimeoutSec: "1",
-				envVarFunctionRegion:     "us-east-2",
-				envVarFunctionMemoryMB:   "1024",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_TIMEOUT_SEC": "1",
+				"FUNCTION_REGION":      "us-east-2",
+				"FUNCTION_MEMORY_MB":   "1024",
 			},
 			want: []byte(`{"env":{"name":"gcp.func","memory_mb":1024,"region":"us-east-2","timeout_sec":1}}`),
 		},
@@ -243,39 +244,39 @@ func TestAppendClientEnv(t *testing.T) {
 			name:          "gcp mem, region, and timeout with omit fields",
 			omitEnvFields: true,
 			env: map[string]string{
-				envVarKService:           "servicename",
-				envVarFunctionTimeoutSec: "1",
-				envVarFunctionRegion:     "us-east-2",
-				envVarFunctionMemoryMB:   "1024",
+				"K_SERVICE":            "servicename",
+				"FUNCTION_TIMEOUT_SEC": "1",
+				"FUNCTION_REGION":      "us-east-2",
+				"FUNCTION_MEMORY_MB":   "1024",
 			},
 			want: []byte(`{"env":{"name":"gcp.func"}}`),
 		},
 		{
 			name: "vercel only",
 			env: map[string]string{
-				envVarVercel: "1",
+				"VERCEL": "1",
 			},
 			want: []byte(`{"env":{"name":"vercel"}}`),
 		},
 		{
 			name: "vercel region",
 			env: map[string]string{
-				envVarVercel:       "1",
-				envVarVercelRegion: "us-east-2",
+				"VERCEL":        "1",
+				"VERCEL_REGION": "us-east-2",
 			},
 			want: []byte(`{"env":{"name":"vercel","region":"us-east-2"}}`),
 		},
 		{
 			name: "azure only",
 			env: map[string]string{
-				envVarFunctionsWorkerRuntime: "go1.x",
+				"FUNCTIONS_WORKER_RUNTIME": "go1.x",
 			},
 			want: []byte(`{"env":{"name":"azure.func"}}`),
 		},
 		{
 			name: "k8s",
 			env: map[string]string{
-				envVarK8s: "0.0.0.0",
+				"KUBERNETES_SERVICE_HOST": "0.0.0.0",
 			},
 			want: []byte(`{"env":{"container":{"orchestrator":"kubernetes"}}}`),
 		},
@@ -419,10 +420,10 @@ func TestEncodeClientMetadata(t *testing.T) {
 	}
 
 	// Set environment variables to add `env` field to handshake.
-	t.Setenv(envVarAWSLambdaRuntimeAPI, "lambda")
-	t.Setenv(envVarAWSLambdaFunctionMemorySize, "123")
-	t.Setenv(envVarAWSRegion, "us-east-2")
-	t.Setenv(envVarK8s, "0.0.0.0")
+	t.Setenv("AWS_LAMBDA_RUNTIME_API", "lambda")
+	t.Setenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "123")
+	t.Setenv("AWS_REGION", "us-east-2")
+	t.Setenv("KUBERNETES_SERVICE_HOST", "0.0.0.0")
 
 	t.Run("nothing is omitted", func(t *testing.T) {
 		got, err := encodeClientMetadata("foo", maxClientMetadataSize)
@@ -434,7 +435,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 			OS:          &dist{Type: runtime.GOOS, Architecture: runtime.GOARCH},
 			Platform:    runtime.Version(),
 			Env: &env{
-				Name:     envNameAWSLambda,
+				Name:     "aws.lambda",
 				MemoryMB: 123,
 				Region:   "us-east-2",
 				Container: &container{
@@ -460,7 +461,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 			OS:          &dist{Type: runtime.GOOS, Architecture: runtime.GOARCH},
 			Platform:    runtime.Version(),
 			Env: &env{
-				Name: envNameAWSLambda,
+				Name: "aws.lambda",
 				Container: &container{
 					Orchestrator: "kubernetes",
 				},
@@ -480,7 +481,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 		require.NoError(t, err, "error constructing env template: %v", err)
 
 		// Calculate what the env.name costs.
-		ndst := bsoncore.AppendStringElement(nil, "name", envNameAWSLambda)
+		ndst := bsoncore.AppendStringElement(nil, "name", "aws.lambda")
 		idx, ndst := bsoncore.AppendDocumentElementStart(ndst, "container")
 		ndst = bsoncore.AppendStringElement(ndst, "orchestrator", "kubernetes")
 		ndst, err = bsoncore.AppendDocumentEnd(ndst, idx)
@@ -498,7 +499,7 @@ func TestEncodeClientMetadata(t *testing.T) {
 			OS:          &dist{Type: runtime.GOOS},
 			Platform:    runtime.Version(),
 			Env: &env{
-				Name: envNameAWSLambda,
+				Name: "aws.lambda",
 				Container: &container{
 					Orchestrator: "kubernetes",
 				},
@@ -588,38 +589,38 @@ func TestParseFaasEnvName(t *testing.T) {
 		{
 			name: "one aws",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_foo",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
 			},
-			want: envNameAWSLambda,
+			want: "aws.lambda",
 		},
 		{
 			name: "both aws options",
 			env: map[string]string{
-				envVarAWSExecutionEnv:     "AWS_Lambda_foo",
-				envVarAWSLambdaRuntimeAPI: "hello",
+				"AWS_EXECUTION_ENV":      "AWS_Lambda_foo",
+				"AWS_LAMBDA_RUNTIME_API": "hello",
 			},
-			want: envNameAWSLambda,
+			want: "aws.lambda",
 		},
 		{
 			name: "multiple variables",
 			env: map[string]string{
-				envVarAWSExecutionEnv:        "AWS_Lambda_foo",
-				envVarFunctionsWorkerRuntime: "hello",
+				"AWS_EXECUTION_ENV":        "AWS_Lambda_foo",
+				"FUNCTIONS_WORKER_RUNTIME": "hello",
 			},
 			want: "",
 		},
 		{
 			name: "vercel and aws lambda",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "AWS_Lambda_foo",
-				envVarVercel:          "hello",
+				"AWS_EXECUTION_ENV": "AWS_Lambda_foo",
+				"VERCEL":            "hello",
 			},
-			want: envNameVercel,
+			want: "vercel",
 		},
 		{
 			name: "invalid aws prefix",
 			env: map[string]string{
-				envVarAWSExecutionEnv: "foo",
+				"AWS_EXECUTION_ENV": "foo",
 			},
 			want: "",
 		},
@@ -633,7 +634,7 @@ func TestParseFaasEnvName(t *testing.T) {
 				t.Setenv(key, value)
 			}
 
-			got := getFaasEnvName()
+			got := driverutil.GetFaasEnvName()
 			if got != test.want {
 				t.Errorf("parseFaasEnvName(%s) = %s, want %s", test.name, got, test.want)
 			}
@@ -659,14 +660,14 @@ func BenchmarkClientMetadtaLargeEnv(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	b.Setenv(envNameAWSLambda, "foo")
+	b.Setenv("aws.lambda", "foo")
 
 	str := ""
 	for i := 0; i < 512; i++ {
 		str += "a"
 	}
 
-	b.Setenv(envVarAWSLambdaRuntimeAPI, str)
+	b.Setenv("AWS_LAMBDA_RUNTIME_API", str)
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

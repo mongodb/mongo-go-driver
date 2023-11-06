@@ -286,6 +286,8 @@ func verifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map
 			require.Equal(t, value, float64(cs.ZstdLevel))
 		case "tlsdisableocspendpointcheck":
 			require.Equal(t, value, cs.SSLDisableOCSPEndpointCheck)
+		case "servermonitoringmode":
+			require.Equal(t, value, cs.ServerMonitoringMode)
 		default:
 			opt, ok := cs.UnknownOptions[key]
 			require.True(t, ok)
