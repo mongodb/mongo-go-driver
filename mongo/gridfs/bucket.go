@@ -423,6 +423,10 @@ func (b *Bucket) openDownloadStream(
 ) (*DownloadStream, error) {
 	result := b.filesColl.FindOne(ctx, filter, opts...)
 	if err := result.Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrFileNotFound
+		}
+
 		return nil, err
 	}
 
