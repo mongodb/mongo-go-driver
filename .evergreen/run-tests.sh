@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -o errexit
+set +x
 
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
