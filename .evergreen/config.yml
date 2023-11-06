@@ -611,6 +611,7 @@ functions:
           TOPOLOGY="server" \
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
           make evg-test-atlas-data-lake
+          cat test.suite
 
   run-docker-test:
     - command: shell.exec
