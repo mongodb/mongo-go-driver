@@ -604,6 +604,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          set -x
           go mod download
           AUTH="auth" \
           SSL="nossl" \
