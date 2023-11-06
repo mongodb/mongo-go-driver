@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set -o errexit
-set -x
 
 export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
 export GOCACHE="$(pwd)/.cache"
@@ -101,8 +100,6 @@ if [ -z ${MAKEFILE_TARGET+x} ]; then
     MAKEFILE_TARGET="evg-test"
   fi
 fi
-
-go mod download
 
 AUTH=${AUTH} \
 SSL=${SSL} \
