@@ -422,20 +422,17 @@ func (b *Bucket) openDownloadStream(
 	opts ...*options.FindOneOptions,
 ) (*DownloadStream, error) {
 	result := b.filesColl.FindOne(ctx, filter, opts...)
-	if err := result.Err(); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrFileNotFound
-		}
-
-		return nil, err
-	}
 
 	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
 	var foundFile File
 	if err := result.Decode(&foundFile); err != nil {
-		return nil, fmt.Errorf("error decoding files collection document: %v", err)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrFileNotFound
+		}
+
+		return nil, fmt.Errorf("error decoding files collection document: %w", err)
 	}
 
 	if foundFile.Length == 0 {
