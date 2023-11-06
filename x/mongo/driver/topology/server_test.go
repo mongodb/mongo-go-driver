@@ -440,7 +440,7 @@ func TestServer(t *testing.T) {
 				require.NotNil(t, s.Description().LastError)
 			}
 
-			generation := s.pool.generation.getGeneration(nil)
+			generation, _ := s.pool.generation.getGeneration(nil)
 			if (tt.connectionError || tt.networkError) && generation != 1 {
 				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", generation, 1)
 			}
@@ -454,9 +454,9 @@ func TestServer(t *testing.T) {
 			// On connection failure, the connection is removed and closed after delivering the
 			// error to Connection(), so it may still count toward the generation connection count
 			// briefly. Wait up to 100ms for the generation connection count to reach the target.
+			generation, _ := server.pool.generation.getGeneration(&serviceID)
 			assert.Eventuallyf(t,
 				func() bool {
-					generation := server.pool.generation.getGeneration(&serviceID)
 					numConns := server.pool.generation.getNumConns(&serviceID)
 					return generation == wantGeneration && numConns == wantNumConns
 				},
@@ -464,7 +464,7 @@ func TestServer(t *testing.T) {
 				1*time.Millisecond,
 				"expected generation number %v, got %v; expected connection count %v, got %v",
 				wantGeneration,
-				server.pool.generation.getGeneration(&serviceID),
+				generation,
 				wantNumConns,
 				server.pool.generation.getNumConns(&serviceID))
 		}
@@ -1201,9 +1201,10 @@ func TestServer_ProcessError(t *testing.T) {
 				desc,
 				"expected and actual server descriptions are different")
 
+			generation, _ := server.pool.generation.getGeneration(nil)
 			assert.Equal(t,
 				tc.wantGeneration,
-				server.pool.generation.getGeneration(nil),
+				generation,
 				"expected and actual pool generation are different")
 		})
 	}

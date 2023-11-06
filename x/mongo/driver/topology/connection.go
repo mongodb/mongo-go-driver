@@ -48,6 +48,8 @@ type connection struct {
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	state int64
+	inUse bool
+	err   error
 
 	id                   string
 	nc                   net.Conn // When nil, the connection is closed.
@@ -85,6 +87,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 	id := fmt.Sprintf("%s[-%d]", addr, nextConnectionID())
 
 	c := &connection{
+		inUse:                cfg.inUse,
 		id:                   id,
 		addr:                 addr,
 		idleTimeout:          cfg.idleTimeout,
@@ -335,7 +338,11 @@ func (c *connection) cancellationListenerCallback() {
 func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	var err error
 	if atomic.LoadInt64(&c.state) != connConnected {
-		return ConnectionError{ConnectionID: c.id, message: "connection is closed"}
+		return ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      c.err,
+			message:      "connection is closed",
+		}
 	}
 
 	var deadline time.Time
@@ -386,7 +393,11 @@ func (c *connection) write(ctx context.Context, wm []byte) (err error) {
 // readWireMessage reads a wiremessage from the connection. The dst parameter will be overwritten.
 func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 	if atomic.LoadInt64(&c.state) != connConnected {
-		return nil, ConnectionError{ConnectionID: c.id, message: "connection is closed"}
+		return nil, ConnectionError{
+			ConnectionID: c.id,
+			Wrapped:      c.err,
+			message:      "connection is closed",
+		}
 	}
 
 	var deadline time.Time
@@ -483,6 +494,11 @@ func (c *connection) close() error {
 	}
 
 	return err
+}
+
+func (c *connection) closeWithErr(err error) error {
+	c.err = err
+	return c.close()
 }
 
 func (c *connection) closed() bool {
