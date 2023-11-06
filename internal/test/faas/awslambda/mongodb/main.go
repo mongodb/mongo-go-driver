@@ -25,7 +25,7 @@ const timeout = 60 * time.Second
 
 // eventListener supports command, heartbeat, and pool event handlers to record
 // event durations, as well as the number of heartbeats, commands, and open
-// conections.
+// connections.
 type eventListener struct {
 	commandCount          int
 	commandDuration       int64
@@ -84,7 +84,7 @@ func (listener *eventListener) serverMonitor() *event.ServerMonitor {
 }
 
 // poolMonitor initialize an event.PoolMonitor that will increment each time a
-// new conneciton is created and decrement each time a connection is closed.
+// new connection is created and decrement each time a connection is closed.
 func (listener *eventListener) poolMonitor() *event.PoolMonitor {
 	poolEvent := func(e *event.PoolEvent) {
 		switch e.Type {

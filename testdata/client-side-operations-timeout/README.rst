@@ -371,7 +371,7 @@ This test only applies to drivers that provide an API to abort a GridFS upload s
 
 #. Create a new MongoClient (referred to as ``client``) with ``timeoutMS=10``.
 #. Using ``client``, create a GridFS bucket (referred to as ``bucket``) that wraps the ``db`` database with ``chunkSizeBytes=2``.
-#. Call ``bucket.open_upload_stream()`` with the filename ``filename`` to create an upload stream (referred to as ``uploadStream``).    
+#. Call ``bucket.open_upload_stream()`` with the filename ``filename`` to create an upload stream (referred to as ``uploadStream``).
 
    - Expect this to succeed and return a non-null stream.
 

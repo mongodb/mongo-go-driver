@@ -255,7 +255,7 @@ Then for each element in ``tests``:
 
    - When testing against a sharded cluster and ``useMultipleMongoses`` is
      ``true`` the client MUST be created with multiple (valid) mongos seed
-     addreses.
+     addresses.
 
 #. Call ``client.startSession`` twice to create ClientSession objects
    ``session0`` and ``session1``, using the test's "sessionOptions" if they

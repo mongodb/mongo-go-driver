@@ -1,7 +1,8 @@
+#!/usr/bin/env bash
 # This script is used to generate Elliptic Curve (EC) certificates.
 # The EC certificates are used for testing the Go driver with PyKMIP.
 # PyKMIP does not support Go's default TLS cipher suites with RSA.
-# See: GODRIVER-2239. 
+# See: GODRIVER-2239.
 set -euo pipefail
 CA_SERIAL=$RANDOM
 SERVER_SERIAL=$RANDOM

@@ -18,7 +18,7 @@ if [ "Windows_NT" = "${OS:-}" ]; then
     cd ..
     cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
     cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
-    
+
     rm -rf libmongocrypt-all
     echo "fetching build for Windows ... end"
 else
