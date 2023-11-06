@@ -333,12 +333,12 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				}
 			}
 		case evt.ConnectionCheckedOutEvent != nil:
-			if _, pooled, err = getNextPoolEvent(pooled, event.GetSucceeded); err != nil {
+			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionCheckedOut); err != nil {
 				return newEventVerificationError(idx, client, err.Error())
 			}
 		case evt.ConnectionCheckOutFailedEvent != nil:
 			var actual *event.PoolEvent
-			if actual, pooled, err = getNextPoolEvent(pooled, event.GetFailed); err != nil {
+			if actual, pooled, err = getNextPoolEvent(pooled, event.ConnectionCheckOutFailed); err != nil {
 				return newEventVerificationError(idx, client, err.Error())
 			}
 
@@ -348,7 +348,7 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				}
 			}
 		case evt.ConnectionCheckedInEvent != nil:
-			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionReturned); err != nil {
+			if _, pooled, err = getNextPoolEvent(pooled, event.ConnectionCheckedIn); err != nil {
 				return newEventVerificationError(idx, client, err.Error())
 			}
 		case evt.PoolClearedEvent != nil:

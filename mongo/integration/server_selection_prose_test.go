@@ -90,7 +90,7 @@ func runsServerSelection(mt *mtest.T, monitor *eventtest.TestPoolMonitor,
 	// Get all checkOut events and calculate the number of times each server was selected. The prose test spec says to
 	// use command monitoring events, but those don't include the server address, so use checkOut events instead.
 	checkOutEvents := monitor.Events(func(evt *event.PoolEvent) bool {
-		return evt.Type == event.GetStarted
+		return evt.Type == event.ConnectionCheckOutStarted
 	})
 	counts := make(map[string]int)
 	for _, evt := range checkOutEvents {

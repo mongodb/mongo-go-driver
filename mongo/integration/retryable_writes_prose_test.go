@@ -188,22 +188,22 @@ func TestRetryableWritesProse(t *testing.T) {
 		}
 		wg.Wait()
 
-		// Gather GetSucceeded, GetFailed and PoolCleared pool events.
+		// Gather ConnectionCheckedOut, ConnectionCheckOutFailed and PoolCleared pool events.
 		events := tpm.Events(func(e *event.PoolEvent) bool {
-			getSucceeded := e.Type == event.GetSucceeded
-			getFailed := e.Type == event.GetFailed
+			connectionCheckedOut := e.Type == event.ConnectionCheckedOut
+			connectionCheckOutFailed := e.Type == event.ConnectionCheckOutFailed
 			poolCleared := e.Type == event.PoolCleared
-			return getSucceeded || getFailed || poolCleared
+			return connectionCheckedOut || connectionCheckOutFailed || poolCleared
 		})
 
 		// Assert that first check out succeeds, pool is cleared, and second check
 		// out fails due to connection error.
 		assert.True(mt, len(events) >= 3, "expected at least 3 events, got %v", len(events))
-		assert.Equal(mt, event.GetSucceeded, events[0].Type,
+		assert.Equal(mt, event.ConnectionCheckedOut, events[0].Type,
 			"expected ConnectionCheckedOut event, got %v", events[0].Type)
 		assert.Equal(mt, event.PoolCleared, events[1].Type,
 			"expected ConnectionPoolCleared event, got %v", events[1].Type)
-		assert.Equal(mt, event.GetFailed, events[2].Type,
+		assert.Equal(mt, event.ConnectionCheckOutFailed, events[2].Type,
 			"expected ConnectionCheckedOutFailed event, got %v", events[2].Type)
 		assert.Equal(mt, event.ReasonConnectionErrored, events[2].Reason,
 			"expected check out failure due to connection error, failed due to %q", events[2].Reason)
