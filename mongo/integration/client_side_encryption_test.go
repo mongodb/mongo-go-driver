@@ -598,6 +598,8 @@ func TestFLE2DocsExample(t *testing.T) {
 	})
 }
 
+// `TestFLE2CreateCollectionWithAutoEncryption` is a regression test for a bug fixed in GODRIVER-2413.
+// Prior to GODRIVER-2413, the `IndexView.CreateMany` operation was not processed for automatic encryption. This resulted in no "listCollections" command sent.
 func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
 	mtOpts := mtest.NewOptions().
 		MinServerVersion("7.0").
