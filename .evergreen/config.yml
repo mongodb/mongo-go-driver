@@ -220,8 +220,6 @@ functions:
 
           cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
           DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash run-mongohouse-image.sh
-          sleep 1
-          docker ps
 
   bootstrap-mongo-orchestration:
     - command: shell.exec
@@ -603,13 +601,11 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          set -x
-          go mod download
           AUTH="auth" \
           SSL="nossl" \
           TOPOLOGY="server" \
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
-          make evg-test-atlas-data-lake || cat spec_test.suite
+          make evg-test-atlas-data-lake
 
   run-docker-test:
     - command: shell.exec
