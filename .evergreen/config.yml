@@ -221,6 +221,8 @@ functions:
 
           cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
           DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash run-mongohouse-image.sh
+          sleep 1
+          docker ps
 
   bootstrap-mongo-orchestration:
     - command: shell.exec
