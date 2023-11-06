@@ -610,8 +610,7 @@ functions:
           SSL="nossl" \
           TOPOLOGY="server" \
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
-          make evg-test-atlas-data-lake
-          cat test.suite
+          make evg-test-atlas-data-lake || cat spec_test.suite
 
   run-docker-test:
     - command: shell.exec
