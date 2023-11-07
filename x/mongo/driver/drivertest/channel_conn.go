@@ -68,8 +68,7 @@ func (c *ChannelConn) ID() string {
 }
 
 // DriverConnectionID implements the driver.Connection interface.
-// TODO(GODRIVER-2824): replace return type with int64.
-func (c *ChannelConn) DriverConnectionID() uint64 {
+func (c *ChannelConn) DriverConnectionID() int64 {
 	return 0
 }
 
