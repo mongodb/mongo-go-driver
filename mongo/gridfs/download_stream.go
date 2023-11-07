@@ -70,8 +70,9 @@ type File struct {
 	Metadata bson.Raw
 }
 
-// unmarshalFile is a temporary type used to unmarshal documents from the files collection and can be transformed into
-// a File instance. This type exists to avoid adding BSON struct tags to the exported File type.
+// findFileResponse is a temporary type used to unmarshal documents from the
+// files collection and can be transformed into a File instance. This type
+// exists to avoid adding BSON struct tags to the exported File type.
 type findFileResponse struct {
 	ID         interface{} `bson:"_id"`
 	Length     int64       `bson:"length"`
