@@ -74,8 +74,7 @@ type connection struct {
 	// pool related fields
 	pool *pool
 
-	// TODO(GODRIVER-2824): change driverConnectionID type to int64.
-	driverConnectionID uint64
+	driverConnectionID int64
 	generation         uint64
 }
 
@@ -107,8 +106,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 }
 
 // DriverConnectionID returns the driver connection ID.
-// TODO(GODRIVER-2824): change return type to int64.
-func (c *connection) DriverConnectionID() uint64 {
+func (c *connection) DriverConnectionID() int64 {
 	return c.driverConnectionID
 }
 
@@ -802,8 +800,7 @@ func (c *Connection) unpin(reason string) error {
 }
 
 // DriverConnectionID returns the driver connection ID.
-// TODO(GODRIVER-2824): change return type to int64.
-func (c *Connection) DriverConnectionID() uint64 {
+func (c *Connection) DriverConnectionID() int64 {
 	return c.connection.DriverConnectionID()
 }
 

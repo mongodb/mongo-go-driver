@@ -276,7 +276,7 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(option.MaxTime)
+		Timeout(iv.coll.client.timeout).MaxTime(option.MaxTime).Crypt(iv.coll.client.cryptFLE)
 	if option.CommitQuorum != nil {
 		commitQuorum, err := marshalValue(option.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
