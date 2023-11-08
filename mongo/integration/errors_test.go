@@ -86,7 +86,7 @@ func TestErrors(t *testing.T) {
 
 			clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 			integtest.AddTestServerAPIVersion(clientOpts)
-			client, err := mongo.Connect(context.Background(), clientOpts)
+			client, err := mongo.Connect(clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer func() { _ = client.Disconnect(context.Background()) }()
 

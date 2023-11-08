@@ -189,7 +189,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		entity.ignoredCommands[cmd] = struct{}{}
 	}
 
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return nil, fmt.Errorf("error creating mongo.Client: %w", err)
 	}

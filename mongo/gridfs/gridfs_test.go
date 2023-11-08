@@ -49,7 +49,7 @@ func TestGridFS(t *testing.T) {
 		// will discover the other hosts during SDAM checks.
 		SetHosts(cs.Hosts[:1])
 
-	client, err := mongo.Connect(context.Background(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
 	defer func() {

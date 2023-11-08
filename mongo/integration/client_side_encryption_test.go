@@ -43,7 +43,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 		"local": {"key": localMasterKey},
 	}
 
-	kvClient, err := mongo.Connect(context.Background(), kvClientOpts)
+	kvClient, err := mongo.Connect(kvClientOpts)
 	defer kvClient.Disconnect(context.Background())
 	assert.Nil(mt, err, "Connect error: %v", err)
 
@@ -135,7 +135,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		integtest.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(context.Background(), clientOpts)
+		client, err := mongo.Connect(clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
 		defer client.Disconnect(context.Background())
 
@@ -197,7 +197,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		integtest.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(context.Background(), clientOpts)
+		client, err := mongo.Connect(clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
 		defer client.Disconnect(context.Background())
 
@@ -361,7 +361,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		clientOpts.Crypt = cc
 		integtest.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(context.Background(), clientOpts)
+		client, err := mongo.Connect(clientOpts)
 		defer client.Disconnect(context.Background())
 		assert.Nil(mt, err, "Connect error: %v", err)
 
@@ -506,7 +506,7 @@ func TestFLE2DocsExample(t *testing.T) {
 		{
 			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
 			integtest.AddTestServerAPIVersion(cOpts)
-			keyVaultClient, err := mongo.Connect(context.Background(), cOpts)
+			keyVaultClient, err := mongo.Connect(cOpts)
 			assert.Nil(mt, err, "error in Connect: %v", err)
 			defer keyVaultClient.Disconnect(context.Background())
 			ceOpts := options.ClientEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys")
@@ -549,7 +549,7 @@ func TestFLE2DocsExample(t *testing.T) {
 			integtest.AddTestServerAPIVersion(cOpts)
 			aeOpts := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys").SetEncryptedFieldsMap(encryptedFieldsMap).SetExtraOptions(getCryptSharedLibExtraOptions())
 			cOpts.SetAutoEncryptionOptions(aeOpts)
-			encryptedClient, err := mongo.Connect(context.Background(), cOpts)
+			encryptedClient, err := mongo.Connect(cOpts)
 			defer encryptedClient.Disconnect(context.Background())
 			assert.Nil(mt, err, "error in Connect: %v", err)
 			// Create the FLE 2 collection docsExample.encrypted.
@@ -653,7 +653,7 @@ func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
 			integtest.AddTestServerAPIVersion(cOpts)
 
 			var err error
-			encryptedClient, err = mongo.Connect(context.Background(), cOpts)
+			encryptedClient, err = mongo.Connect(cOpts)
 			defer encryptedClient.Disconnect(context.Background())
 			assert.Nil(mt, err, "error in Connect: %v", err)
 		}

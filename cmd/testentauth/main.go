@@ -22,7 +22,6 @@ func main() {
 	compressor := os.Getenv("MONGO_GO_DRIVER_COMPRESSOR")
 
 	client, err := mongo.Connect(
-		context.Background(),
 		options.Client().ApplyURI(uri).SetCompressors([]string{compressor}))
 	if err != nil {
 		log.Fatalf("Error connecting client: %v", err)

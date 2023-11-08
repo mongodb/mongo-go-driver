@@ -50,7 +50,7 @@ func main() {
 }
 
 func runTest(ctx context.Context, clientOpts *options.ClientOptions) error {
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return fmt.Errorf("Connect error: %v", err)
 	}

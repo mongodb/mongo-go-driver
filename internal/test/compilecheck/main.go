@@ -7,7 +7,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,6 +15,6 @@ import (
 )
 
 func main() {
-	_, _ = mongo.Connect(context.Background(), options.Client())
+	_, _ = mongo.Connect(options.Client())
 	fmt.Println(bson.D{{Key: "key", Value: "value"}})
 }

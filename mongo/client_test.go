@@ -357,7 +357,7 @@ func TestClient(t *testing.T) {
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.Majority()).SetMonitor(cmdMonitor)
 				integtest.AddTestServerAPIVersion(clientOpts)
-				client, err := Connect(bgCtx, clientOpts)
+				client, err := Connect(clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
 					_ = client.Disconnect(bgCtx)

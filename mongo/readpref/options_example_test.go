@@ -7,8 +7,6 @@
 package readpref_test
 
 import (
-	"context"
-
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -27,7 +25,7 @@ func ExampleWithTags() {
 		ApplyURI("mongodb://localhost:27017").
 		SetReadPreference(rp)
 
-	_, err := mongo.Connect(context.Background(), opts)
+	_, err := mongo.Connect(opts)
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +53,7 @@ func ExampleWithTagSets() {
 		ApplyURI("mongodb://localhost").
 		SetReadPreference(rp)
 
-	_, err := mongo.Connect(context.Background(), opts)
+	_, err := mongo.Connect(opts)
 	if err != nil {
 		panic(err)
 	}
