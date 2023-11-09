@@ -70,11 +70,10 @@ type File struct {
 	Metadata bson.Raw
 }
 
-var _ bson.Unmarshaler = (*File)(nil)
-
-// unmarshalFile is a temporary type used to unmarshal documents from the files collection and can be transformed into
-// a File instance. This type exists to avoid adding BSON struct tags to the exported File type.
-type unmarshalFile struct {
+// findFileResponse is a temporary type used to unmarshal documents from the
+// files collection and can be transformed into a File instance. This type
+// exists to avoid adding BSON struct tags to the exported File type.
+type findFileResponse struct {
 	ID         interface{} `bson:"_id"`
 	Length     int64       `bson:"length"`
 	ChunkSize  int32       `bson:"chunkSize"`
@@ -83,22 +82,15 @@ type unmarshalFile struct {
 	Metadata   bson.Raw    `bson:"metadata"`
 }
 
-// UnmarshalBSON implements the bson.Unmarshaler interface.
-//
-// Deprecated: Unmarshaling a File from BSON will not be supported in Go Driver 2.0.
-func (f *File) UnmarshalBSON(data []byte) error {
-	var temp unmarshalFile
-	if err := bson.Unmarshal(data, &temp); err != nil {
-		return err
+func newFileFromResponse(resp findFileResponse) *File {
+	return &File{
+		ID:         resp.ID,
+		Length:     resp.Length,
+		ChunkSize:  resp.ChunkSize,
+		UploadDate: resp.UploadDate,
+		Name:       resp.Name,
+		Metadata:   resp.Metadata,
 	}
-
-	f.ID = temp.ID
-	f.Length = temp.Length
-	f.ChunkSize = temp.ChunkSize
-	f.UploadDate = temp.UploadDate
-	f.Name = temp.Name
-	f.Metadata = temp.Metadata
-	return nil
 }
 
 func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {

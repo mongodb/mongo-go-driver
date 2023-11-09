@@ -483,13 +483,15 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
-	var foundFile File
-	if err = cursor.Decode(&foundFile); err != nil {
+	var resp findFileResponse
+	if err = cursor.Decode(&resp); err != nil {
 		return nil, fmt.Errorf("error decoding files collection document: %v", err)
 	}
 
+	foundFile := newFileFromResponse(resp)
+
 	if foundFile.Length == 0 {
-		return newDownloadStream(nil, foundFile.ChunkSize, &foundFile), nil
+		return newDownloadStream(nil, foundFile.ChunkSize, foundFile), nil
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
@@ -503,7 +505,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	}
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
-	return newDownloadStream(chunksCursor, foundFile.ChunkSize, &foundFile), nil
+	return newDownloadStream(chunksCursor, foundFile.ChunkSize, foundFile), nil
 }
 
 func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {

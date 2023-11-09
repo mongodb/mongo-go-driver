@@ -146,20 +146,21 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 		return nil, err
 	}
 
-	var results []*IndexSpecification
-	err = cursor.All(ctx, &results)
-	if err != nil {
+	var resp []indexListSpecificationResponse
+
+	if err := cursor.All(ctx, &resp); err != nil {
 		return nil, err
 	}
 
-	ns := iv.coll.db.Name() + "." + iv.coll.Name()
-	for _, res := range results {
-		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
-		// the response.
-		res.Namespace = ns
+	namespace := iv.coll.db.Name() + "." + iv.coll.Name()
+
+	specs := make([]*IndexSpecification, len(resp))
+	for idx, spec := range resp {
+		specs[idx] = newIndexSpecificationFromResponse(spec)
+		specs[idx].Namespace = namespace
 	}
 
-	return results, nil
+	return specs, nil
 }
 
 // CreateOne executes a createIndexes command to create an index on the collection and returns the name of the new
