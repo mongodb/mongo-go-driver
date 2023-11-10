@@ -624,7 +624,7 @@ func (s *Server) update() {
 			s.updateDescription(desc)
 			// Retry after the first timeout before clearing the pool in case of a FAAS pause as
 			// described in GODRIVER-2577.
-			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 1 {
+			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 0 {
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.
@@ -640,6 +640,11 @@ func (s *Server) update() {
 				// Clear the pool once the description has been updated to Unknown. Pass in a nil service ID to clear
 				// because the monitoring routine only runs for non-load balanced deployments in which servers don't return
 				// IDs.
+				g, _ := s.pool.generation.getGeneration(s.conn.desc.ServiceID)
+				s.conn.pool.createConnectionsCond.L.Lock()
+				_, ok := s.conn.pool.conns[s.conn.driverConnectionID]
+				s.conn.pool.createConnectionsCond.L.Unlock()
+				fmt.Println("clear", err, s.conn.closed(), ok, s.conn.generation, g)
 				s.pool.clear(err, nil, s.pool.interruptInUseConnections)
 			}
 			// We're either not handling a timeout error, or we just handled the 2nd consecutive

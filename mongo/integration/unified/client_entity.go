@@ -568,6 +568,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		switch strings.ToLower(key) {
 		case "appname":
 			clientOpts.SetAppName(value.(string))
+		case "connecttimeoutms":
+			clientOpts.SetConnectTimeout(time.Duration(value.(int32)) * time.Microsecond)
 		case "heartbeatfrequencyms":
 			clientOpts.SetHeartbeatInterval(time.Duration(value.(int32)) * time.Millisecond)
 		case "loadbalanced":
