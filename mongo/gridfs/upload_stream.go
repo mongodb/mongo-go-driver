@@ -45,7 +45,13 @@ type UploadStream struct {
 }
 
 // NewUploadStream creates a new upload stream.
-func newUploadStream(upload *Upload, fileID interface{}, filename string, chunks, files *mongo.Collection) *UploadStream {
+func newUploadStream(
+	ctx context.Context,
+	upload *Upload,
+	fileID interface{},
+	filename string,
+	chunks, files *mongo.Collection,
+) *UploadStream {
 	return &UploadStream{
 		Upload: upload,
 		FileID: fileID,
@@ -54,6 +60,7 @@ func newUploadStream(upload *Upload, fileID interface{}, filename string, chunks
 		filename:   filename,
 		filesColl:  files,
 		buffer:     make([]byte, UploadBufferSize),
+		ctx:        ctx,
 	}
 }
 
@@ -75,12 +82,6 @@ func (us *UploadStream) Close() error {
 
 	us.closed = true
 	return nil
-}
-
-// WithContext sets the context for the UploadStream, allowing control
-// over the execution and behavior of operations associated with the stream.
-func (us *UploadStream) WithContext(ctx context.Context) {
-	us.ctx = ctx
 }
 
 // Write transfers the contents of a byte slice into this upload stream. If the stream's underlying buffer fills up,

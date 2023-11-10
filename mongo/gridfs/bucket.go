@@ -116,7 +116,11 @@ func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, err
 	return b, nil
 }
 
-// OpenUploadStream creates a file ID new upload stream for a file given the filename.
+// OpenUploadStream creates a file ID new upload stream for a file given the
+// filename.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
 func (b *Bucket) OpenUploadStream(
 	ctx context.Context,
 	filename string,
@@ -125,7 +129,11 @@ func (b *Bucket) OpenUploadStream(
 	return b.OpenUploadStreamWithID(ctx, primitive.NewObjectID(), filename, opts...)
 }
 
-// OpenUploadStreamWithID creates a new upload stream for a file given the file ID and filename.
+// OpenUploadStreamWithID creates a new upload stream for a file given the file
+// ID and filename.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
 func (b *Bucket) OpenUploadStreamWithID(
 	ctx context.Context,
 	fileID interface{},
@@ -141,13 +149,17 @@ func (b *Bucket) OpenUploadStreamWithID(
 		return nil, err
 	}
 
-	return newUploadStream(upload, fileID, filename, b.chunksColl, b.filesColl), nil
+	return newUploadStream(ctx, upload, fileID, filename, b.chunksColl, b.filesColl), nil
 }
 
 // UploadFromStream creates a fileID and uploads a file given a source stream.
 //
-// If this upload requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
+// If this upload requires a custom write deadline to be set on the bucket, it
+// cannot be done concurrently with other write operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
 func (b *Bucket) UploadFromStream(
 	ctx context.Context,
 	filename string,
@@ -161,8 +173,12 @@ func (b *Bucket) UploadFromStream(
 
 // UploadFromStreamWithID uploads a file given a source stream.
 //
-// If this upload requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
+// If this upload requires a custom write deadline to be set on the bucket, it
+// cannot be done concurrently with other write operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
 func (b *Bucket) UploadFromStreamWithID(
 	ctx context.Context,
 	fileID interface{},
@@ -197,16 +213,25 @@ func (b *Bucket) UploadFromStreamWithID(
 	return us.Close()
 }
 
-// OpenDownloadStream creates a stream from which the contents of the file can be read.
+// OpenDownloadStream creates a stream from which the contents of the file can
+// be read.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
 func (b *Bucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*DownloadStream, error) {
 	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
 
-// DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
-// Returns the number of bytes written to the stream and an error, or nil if there was no error.
+// DownloadToStream downloads the file with the specified fileID and writes it
+// to the provided io.Writer. Returns the number of bytes written to the stream
+// and an error, or nil if there was no error.
 //
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
+// If this download requires a custom read deadline to be set on the bucket, it
+// cannot be done concurrently with other read operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
 func (b *Bucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(ctx, fileID)
 	if err != nil {
@@ -216,7 +241,11 @@ func (b *Bucket) DownloadToStream(ctx context.Context, fileID interface{}, strea
 	return b.downloadToStream(ds, stream)
 }
 
-// OpenDownloadStreamByName opens a download stream for the file with the given filename.
+// OpenDownloadStreamByName opens a download stream for the file with the given
+// filename.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
 func (b *Bucket) OpenDownloadStreamByName(
 	ctx context.Context,
 	filename string,
@@ -250,10 +279,15 @@ func (b *Bucket) OpenDownloadStreamByName(
 	return b.openDownloadStream(ctx, bson.D{{"filename", filename}}, findOpts)
 }
 
-// DownloadToStreamByName downloads the file with the given name to the given io.Writer.
+// DownloadToStreamByName downloads the file with the given name to the given
+// io.Writer.
 //
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
+// If this download requires a custom read deadline to be set on the bucket, it
+// cannot be done concurrently with other read operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
 func (b *Bucket) DownloadToStreamByName(
 	ctx context.Context,
 	filename string,
@@ -434,7 +468,7 @@ func (b *Bucket) openDownloadStream(
 	foundFile := newFileFromResponse(resp)
 
 	if foundFile.Length == 0 {
-		return newDownloadStream(nil, foundFile.ChunkSize, foundFile), nil
+		return newDownloadStream(ctx, nil, foundFile.ChunkSize, foundFile), nil
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
@@ -448,7 +482,7 @@ func (b *Bucket) openDownloadStream(
 	}
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
-	return newDownloadStream(chunksCursor, foundFile.ChunkSize, foundFile), nil
+	return newDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
 }
 
 func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, error) {

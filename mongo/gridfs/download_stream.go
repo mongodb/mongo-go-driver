@@ -94,7 +94,7 @@ func newFileFromResponse(resp findFileResponse) *File {
 	}
 }
 
-func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
+func newDownloadStream(ctx context.Context, cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
 	return &DownloadStream{
@@ -105,6 +105,7 @@ func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *Downl
 		done:      cursor == nil,
 		fileLen:   file.Length,
 		file:      file,
+		ctx:       ctx,
 	}
 }
 
@@ -119,12 +120,6 @@ func (ds *DownloadStream) Close() error {
 		return ds.cursor.Close(context.Background())
 	}
 	return nil
-}
-
-// WithContext sets the context for the DownloadStream, allowing control over
-// the execution and behavior of operations associated with the stream.
-func (ds *DownloadStream) WithContext(ctx context.Context) {
-	ds.ctx = ctx
 }
 
 // Read reads the file from the server and writes it to a destination byte slice.

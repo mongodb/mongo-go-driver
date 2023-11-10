@@ -45,8 +45,6 @@ func ExampleBucket_OpenUploadStream() {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	uploadStream.WithContext(ctx)
-
 	if _, err = uploadStream.Write(fileContent); err != nil {
 		log.Fatal(err)
 	}
@@ -92,8 +90,6 @@ func ExampleBucket_OpenDownloadStream() {
 	// 2 seconds.
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-
-	downloadStream.WithContext(ctx)
 
 	fileBuffer := bytes.NewBuffer(nil)
 	if _, err := io.Copy(fileBuffer, downloadStream); err != nil {

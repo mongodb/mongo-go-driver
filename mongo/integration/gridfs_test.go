@@ -386,18 +386,17 @@ func TestGridFS(x *testing.T) {
 			_, err = bucket.UploadFromStream(context.Background(), fileName, dataReader)
 			assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
-			ds, err := bucket.OpenDownloadStreamByName(context.Background(), fileName)
-			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
+			ctx, cancel := context.WithCancel(context.Background())
 
-			ctx, cancel := context.WithTimeout(context.Background(), -1*time.Second)
-			mt.Cleanup(cancel)
+			ds, err := bucket.OpenDownloadStreamByName(ctx, fileName)
+			assert.NoError(mt, err, "OpenDownloadStreamByName error: %v", err)
 
-			ds.WithContext(ctx)
+			cancel()
 
 			p := make([]byte, len(fileData))
 			_, err = ds.Read(p)
 			assert.NotNil(mt, err, "expected error from Read, got nil")
-			assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err.Error())
+			assert.ErrorIs(mt, context.Canceled, err)
 		})
 		mt.Run("cursor error during skip after downloading", func(mt *mtest.T) {
 			// To simulate a cursor error we upload a file larger than the 16MB default batch size,
@@ -415,17 +414,16 @@ func TestGridFS(x *testing.T) {
 			_, err = bucket.UploadFromStream(context.Background(), fileName, dataReader)
 			assert.Nil(mt, err, "UploadFromStream error: %v", err)
 
-			ds, err := bucket.OpenDownloadStreamByName(context.Background(), fileName)
+			ctx, cancel := context.WithCancel(context.Background())
+
+			ds, err := bucket.OpenDownloadStreamByName(ctx, fileName)
 			assert.Nil(mt, err, "OpenDownloadStreamByName error: %v", err)
 
-			ctx, cancel := context.WithTimeout(context.Background(), -1*time.Second)
-			mt.Cleanup(cancel)
-
-			ds.WithContext(ctx)
+			cancel()
 
 			_, err = ds.Skip(int64(len(fileData)))
 			assert.NotNil(mt, err, "expected error from Skip, got nil")
-			assert.True(mt, mongo.IsTimeout(err), "expected error to be a timeout, got %v", err.Error())
+			assert.ErrorIs(mt, context.Canceled, err)
 		})
 	})
 
