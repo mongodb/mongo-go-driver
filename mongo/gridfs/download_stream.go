@@ -17,8 +17,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// ErrWrongIndex is used when the chunk retrieved from the server does not have the expected index.
-var ErrWrongIndex = errors.New("chunk index does not match expected index")
+// ErrMissingChunk indicates that the number of chunks read from the server is
+// less than expected.
+var ErrMissingChunk = errors.New("EOF missing one or more chunks")
 
 // ErrWrongSize is used when the chunk retrieved from the server does not have the expected size.
 var ErrWrongSize = errors.New("chunk size does not match expected size")
@@ -230,9 +231,9 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 			return ds.cursor.Err()
 		}
 		// If there are no more chunks, but we didn't read the expected number of chunks, return an
-		// ErrWrongIndex error to indicate that we're missing chunks at the end of the file.
+		// ErrMissingChunk error to indicate that we're missing chunks at the end of the file.
 		if ds.expectedChunk != ds.numChunks {
-			return ErrWrongIndex
+			return ErrMissingChunk
 		}
 		return errNoMoreChunks
 	}
@@ -250,7 +251,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	}
 
 	if chunkIndexInt32 != ds.expectedChunk {
-		return ErrWrongIndex
+		return ErrMissingChunk
 	}
 
 	ds.expectedChunk++
