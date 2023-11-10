@@ -357,7 +357,7 @@ func (s *LockedSource) Seed(seed uint64) {
 	s.lk.Unlock()
 }
 
-// seedPos implements Seed for a LockedSource without a race condiiton.
+// seedPos implements Seed for a LockedSource without a race condition.
 func (s *LockedSource) seedPos(seed uint64, readPos *int8) {
 	s.lk.Lock()
 	s.src.Seed(seed)

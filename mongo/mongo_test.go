@@ -113,7 +113,7 @@ func TestEnsureID(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc // Capture range varible.
+		tc := tc // Capture range variable.
 
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()

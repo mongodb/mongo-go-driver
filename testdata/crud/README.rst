@@ -89,7 +89,7 @@ For each test file:
 - Using ``globalMongoClient``, check that the current server version satisfies
   one of the configurations provided in the top-level ``runOn`` field in the test
   file (if applicable). If the
-  requirements are not satisifed, the test file should be skipped.
+  requirements are not satisfied, the test file should be skipped.
 
 - Determine the collection and database under test, utilizing the top-level
   ``collection_name`` and/or ``database_name`` fields if present.

@@ -48,7 +48,7 @@ func newFSM() *fsm {
 // where a "nil" value is considered less than 0.
 //
 // Otherwise, if the FSM's logicalSessionTimeoutMinutes exist, then this
-// function returns the FSM timout.
+// function returns the FSM timeout.
 //
 // In the case where the FSM timeout DNE, we check all servers to see if any
 // still do not have a timeout. This function chooses the lowest of the existing
@@ -279,7 +279,7 @@ func hasStalePrimary(fsm fsm, srv description.Server) bool {
 	compRes := bytes.Compare(srv.ElectionID[:], fsm.maxElectionID[:])
 
 	if wireVersion := srv.WireVersion; wireVersion != nil && wireVersion.Max >= 17 {
-		// In the Post-6.0 case, a primary is considered "stale" if the server's election ID is greather than the
+		// In the Post-6.0 case, a primary is considered "stale" if the server's election ID is greater than the
 		// topology's max election ID. In these versions, the primary is also considered "stale" if the server's
 		// election ID is LTE to the topologies election ID and the server's "setVersion" is less than the topology's
 		// max "setVersion".

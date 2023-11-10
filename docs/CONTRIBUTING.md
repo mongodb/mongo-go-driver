@@ -18,6 +18,7 @@ The Go Driver team uses GitHub to manage and review all code changes. Patches sh
 applicable.
 
 Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.20 for development. Please run the following Make targets to validate your changes:
+
 - `make fmt`
 - `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
 - `make test`
@@ -28,6 +29,43 @@ Code should compile and tests should pass under all Go versions which the driver
 If any tests do not pass, or relevant tests are not included, the patch will not be considered.
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
+
+\=======
+
+### Linting on commit
+
+The Go team uses [pre-commit](https://pre-commit.com/#installation) to lint both source and text files.
+
+To install locally, run:
+
+```bash
+brew install pre-commit
+pre-commit install
+```
+
+After that, the checks will run on any changed files when committing.  To manually run the checks on all files, run:
+
+```bash
+pre-commit run --all-files
+```
+
+### Cherry-picking between branches
+
+You must first install the `gh` cli (`brew install gh`), then set your GitHub username:
+
+```bash
+git config --global github.user <github_handle>
+```
+
+If a Pull Request needs to be cherry-picked to a new branch, get the sha of the commit in the base branch, and then run
+
+```bash
+bash etc/cherry-picker.sh <sha>
+```
+
+The cherry-picker script is configured to use `v1` as the base branch and `master` as the target branch.
+It will create a new checkout in a temp dir, create a new branch, perform the cherry-pick, and then
+prompt before creating a PR to the target branch.
 
 ## Testing / Development
 
@@ -59,6 +97,7 @@ mongod \
 ```
 
 To run the tests with `make`, set:
+
 - `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database
 - `MONGO_GO_DRIVER_KEY_FILE` to the location of the client key file
 - `MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE` to the location of the pkcs8 client key file encrypted with the password string: `password`
@@ -80,6 +119,7 @@ make
 ```
 
 Notes:
+
 - The `--tlsAllowInvalidCertificates` flag is required on the server for the test suite to work correctly.
 - The test suite requires the auth database to be set with `?authSource=admin`, not `/admin`.
 
@@ -102,7 +142,7 @@ The requirements for testing FaaS implementations in the Go Driver vary dependin
 The following are the requirements for running the AWS Lambda tests locally:
 
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
-2. [Docker](https://www.docker.com/products/docker-desktop/)
+1. [Docker](https://www.docker.com/products/docker-desktop/)
 
 Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-faas-awslambda` make target:
 
@@ -122,9 +162,9 @@ We support local testing in Docker.  To test using docker, you will need to set 
 bash etc/run_docker.sh
 ```
 
-The script takes an optional argument for the ``MAKEFILE_TARGET`` and allows for some environment variable overrides.
+The script takes an optional argument for the `MAKEFILE_TARGET` and allows for some environment variable overrides.
 The docker container has the required binaries, including libmongocrypt.
-The entry script starts a MongoDB topology, and then executes the desired ``MAKEFILE_TARGET``.
+The entry script starts a MongoDB topology, and then executes the desired `MAKEFILE_TARGET`.
 
 For example, to test against a sharded cluster, using enterprise auth, run:
 

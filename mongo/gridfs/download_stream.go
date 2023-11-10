@@ -17,8 +17,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// ErrWrongIndex is used when the chunk retrieved from the server does not have the expected index.
-var ErrWrongIndex = errors.New("chunk index does not match expected index")
+// ErrMissingChunk indicates that the number of chunks read from the server is
+// less than expected.
+var ErrMissingChunk = errors.New("EOF missing one or more chunks")
 
 // ErrWrongSize is used when the chunk retrieved from the server does not have the expected size.
 var ErrWrongSize = errors.New("chunk size does not match expected size")
@@ -70,11 +71,10 @@ type File struct {
 	Metadata bson.Raw
 }
 
-var _ bson.Unmarshaler = (*File)(nil)
-
-// unmarshalFile is a temporary type used to unmarshal documents from the files collection and can be transformed into
-// a File instance. This type exists to avoid adding BSON struct tags to the exported File type.
-type unmarshalFile struct {
+// findFileResponse is a temporary type used to unmarshal documents from the
+// files collection and can be transformed into a File instance. This type
+// exists to avoid adding BSON struct tags to the exported File type.
+type findFileResponse struct {
 	ID         interface{} `bson:"_id"`
 	Length     int64       `bson:"length"`
 	ChunkSize  int32       `bson:"chunkSize"`
@@ -83,22 +83,15 @@ type unmarshalFile struct {
 	Metadata   bson.Raw    `bson:"metadata"`
 }
 
-// UnmarshalBSON implements the bson.Unmarshaler interface.
-//
-// Deprecated: Unmarshaling a File from BSON will not be supported in Go Driver 2.0.
-func (f *File) UnmarshalBSON(data []byte) error {
-	var temp unmarshalFile
-	if err := bson.Unmarshal(data, &temp); err != nil {
-		return err
+func newFileFromResponse(resp findFileResponse) *File {
+	return &File{
+		ID:         resp.ID,
+		Length:     resp.Length,
+		ChunkSize:  resp.ChunkSize,
+		UploadDate: resp.UploadDate,
+		Name:       resp.Name,
+		Metadata:   resp.Metadata,
 	}
-
-	f.ID = temp.ID
-	f.Length = temp.Length
-	f.ChunkSize = temp.ChunkSize
-	f.UploadDate = temp.UploadDate
-	f.Name = temp.Name
-	f.Metadata = temp.Metadata
-	return nil
 }
 
 func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
@@ -224,9 +217,9 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 			return ds.cursor.Err()
 		}
 		// If there are no more chunks, but we didn't read the expected number of chunks, return an
-		// ErrWrongIndex error to indicate that we're missing chunks at the end of the file.
+		// ErrMissingChunk error to indicate that we're missing chunks at the end of the file.
 		if ds.expectedChunk != ds.numChunks {
-			return ErrWrongIndex
+			return ErrMissingChunk
 		}
 		return errNoMoreChunks
 	}
@@ -244,7 +237,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	}
 
 	if chunkIndexInt32 != ds.expectedChunk {
-		return ErrWrongIndex
+		return ErrMissingChunk
 	}
 
 	ds.expectedChunk++

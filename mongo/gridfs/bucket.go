@@ -426,17 +426,15 @@ func (b *Bucket) openDownloadStream(
 	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
-	var foundFile File
-	if err := result.Decode(&foundFile); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrFileNotFound
-		}
-
-		return nil, fmt.Errorf("error decoding files collection document: %w", err)
+	var resp findFileResponse
+	if err := result.Decode(&resp); err != nil {
+		return nil, fmt.Errorf("error decoding files collection document: %v", err)
 	}
 
+	foundFile := newFileFromResponse(resp)
+
 	if foundFile.Length == 0 {
-		return newDownloadStream(nil, foundFile.ChunkSize, &foundFile), nil
+		return newDownloadStream(nil, foundFile.ChunkSize, foundFile), nil
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
@@ -450,7 +448,7 @@ func (b *Bucket) openDownloadStream(
 	}
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
-	return newDownloadStream(chunksCursor, foundFile.ChunkSize, &foundFile), nil
+	return newDownloadStream(chunksCursor, foundFile.ChunkSize, foundFile), nil
 }
 
 func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, error) {

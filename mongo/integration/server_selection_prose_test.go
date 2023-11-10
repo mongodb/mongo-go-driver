@@ -22,12 +22,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type saturatedConnections map[uint64]bool
+type saturatedConnections map[int64]bool
 
 // saturatedHosts is used to maintain information about events with specific host+pool combinations.
 type saturatedHosts map[string]saturatedConnections
 
-func (set saturatedHosts) add(host string, connectionID uint64) {
+func (set saturatedHosts) add(host string, connectionID int64) {
 	if set[host] == nil {
 		set[host] = make(saturatedConnections)
 	}
@@ -90,7 +90,7 @@ func runsServerSelection(mt *mtest.T, monitor *eventtest.TestPoolMonitor,
 	// Get all checkOut events and calculate the number of times each server was selected. The prose test spec says to
 	// use command monitoring events, but those don't include the server address, so use checkOut events instead.
 	checkOutEvents := monitor.Events(func(evt *event.PoolEvent) bool {
-		return evt.Type == event.GetStarted
+		return evt.Type == event.ConnectionCheckOutStarted
 	})
 	counts := make(map[string]int)
 	for _, evt := range checkOutEvents {

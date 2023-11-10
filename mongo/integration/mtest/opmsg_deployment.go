@@ -92,8 +92,7 @@ func (*connection) ID() string {
 }
 
 // DriverConnectionID returns a fixed identifier for the driver pool connection.
-// TODO(GODRIVER-2824): replace return type with int64.
-func (*connection) DriverConnectionID() uint64 {
+func (*connection) DriverConnectionID() int64 {
 	return 0
 }
 

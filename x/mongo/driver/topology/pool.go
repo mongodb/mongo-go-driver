@@ -86,7 +86,7 @@ type pool struct {
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 
-	nextID                       uint64 // nextID is the next pool ID for a new connection.
+	nextID                       int64 // nextID is the next pool ID for a new connection.
 	pinnedCursorConnections      uint64
 	pinnedTransactionConnections uint64
 
@@ -118,9 +118,9 @@ type pool struct {
 	// to the state of the guarded values must be made while holding the lock to prevent undefined
 	// behavior in the createConnections() waiting logic.
 	createConnectionsCond *sync.Cond
-	cancelBackgroundCtx   context.CancelFunc     // cancelBackgroundCtx is called to signal background goroutines to stop.
-	conns                 map[uint64]*connection // conns holds all currently open connections.
-	newConnWait           wantConnQueue          // newConnWait holds all wantConn requests for new connections.
+	cancelBackgroundCtx   context.CancelFunc    // cancelBackgroundCtx is called to signal background goroutines to stop.
+	conns                 map[int64]*connection // conns holds all currently open connections.
+	newConnWait           wantConnQueue         // newConnWait holds all wantConn requests for new connections.
 
 	idleMu       sync.Mutex    // idleMu guards idleConns, idleConnWait
 	idleConns    []*connection // idleConns holds all idle connections.
@@ -219,7 +219,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		maintainReady:         make(chan struct{}, 1),
 		backgroundDone:        &sync.WaitGroup{},
 		createConnectionsCond: sync.NewCond(&sync.Mutex{}),
-		conns:                 make(map[uint64]*connection, config.MaxPoolSize),
+		conns:                 make(map[int64]*connection, config.MaxPoolSize),
 		idleConns:             make([]*connection, 0, config.MaxPoolSize),
 	}
 	// minSize must not exceed maxSize if maxSize is not 0
@@ -455,7 +455,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// TODO checkout.
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:    event.GetStarted,
+			Type:    event.ConnectionCheckOutStarted,
 			Address: p.address.String(),
 		})
 	}
@@ -480,7 +480,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
+				Type:    event.ConnectionCheckOutFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonPoolClosed,
 			})
@@ -500,7 +500,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
+				Type:    event.ConnectionCheckOutFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonConnectionErrored,
 				Error:   err,
@@ -543,7 +543,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
+					Type:    event.ConnectionCheckOutFailed,
 					Address: p.address.String(),
 					Reason:  event.ReasonConnectionErrored,
 					Error:   w.err,
@@ -562,7 +562,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:         event.GetSucceeded,
+				Type:         event.ConnectionCheckedOut,
 				Address:      p.address.String(),
 				ConnectionID: w.conn.driverConnectionID,
 			})
@@ -592,7 +592,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
-					Type:    event.GetFailed,
+					Type:    event.ConnectionCheckOutFailed,
 					Address: p.address.String(),
 					Reason:  event.ReasonConnectionErrored,
 					Error:   w.err,
@@ -612,7 +612,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:         event.GetSucceeded,
+				Type:         event.ConnectionCheckedOut,
 				Address:      p.address.String(),
 				ConnectionID: w.conn.driverConnectionID,
 			})
@@ -631,7 +631,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.GetFailed,
+				Type:    event.ConnectionCheckOutFailed,
 				Address: p.address.String(),
 				Reason:  event.ReasonTimedOut,
 				Error:   ctx.Err(),
@@ -755,7 +755,7 @@ func (p *pool) checkIn(conn *connection) error {
 
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionReturned,
+			Type:         event.ConnectionCheckedIn,
 			ConnectionID: conn.driverConnectionID,
 			Address:      conn.addr.String(),
 		})
@@ -1002,7 +1002,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 		conn := newConnection(p.address, p.connOpts...)
 		conn.pool = p
-		conn.driverConnectionID = atomic.AddUint64(&p.nextID, 1)
+		conn.driverConnectionID = atomic.AddInt64(&p.nextID, 1)
 		p.conns[conn.driverConnectionID] = conn
 
 		return w, conn, true

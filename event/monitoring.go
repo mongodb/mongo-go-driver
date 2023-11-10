@@ -25,7 +25,7 @@ type CommandStartedEvent struct {
 	ConnectionID string
 	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
 	// return this value (e.g. on MDB < 4.2), it is unset.
-	ServerConnectionID64 *int64
+	ServerConnectionID *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -40,7 +40,7 @@ type CommandFinishedEvent struct {
 	ConnectionID string
 	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
 	// return this value (e.g. on MDB < 4.2), it is unset.
-	ServerConnectionID64 *int64
+	ServerConnectionID *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -77,17 +77,17 @@ const (
 
 // strings for pool command monitoring types
 const (
-	PoolCreated        = "ConnectionPoolCreated"
-	PoolReady          = "ConnectionPoolReady"
-	PoolCleared        = "ConnectionPoolCleared"
-	PoolClosedEvent    = "ConnectionPoolClosed"
-	ConnectionCreated  = "ConnectionCreated"
-	ConnectionReady    = "ConnectionReady"
-	ConnectionClosed   = "ConnectionClosed"
-	GetStarted         = "ConnectionCheckOutStarted"
-	GetFailed          = "ConnectionCheckOutFailed"
-	GetSucceeded       = "ConnectionCheckedOut"
-	ConnectionReturned = "ConnectionCheckedIn"
+	PoolCreated               = "ConnectionPoolCreated"
+	PoolReady                 = "ConnectionPoolReady"
+	PoolCleared               = "ConnectionPoolCleared"
+	PoolClosedEvent           = "ConnectionPoolClosed"
+	ConnectionCreated         = "ConnectionCreated"
+	ConnectionReady           = "ConnectionReady"
+	ConnectionClosed          = "ConnectionClosed"
+	ConnectionCheckOutStarted = "ConnectionCheckOutStarted"
+	ConnectionCheckOutFailed  = "ConnectionCheckOutFailed"
+	ConnectionCheckedOut      = "ConnectionCheckedOut"
+	ConnectionCheckedIn       = "ConnectionCheckedIn"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events
@@ -101,7 +101,7 @@ type MonitorPoolOptions struct {
 type PoolEvent struct {
 	Type         string              `json:"type"`
 	Address      string              `json:"address"`
-	ConnectionID uint64              `json:"connectionId"`
+	ConnectionID int64               `json:"connectionId"`
 	PoolOptions  *MonitorPoolOptions `json:"options"`
 	Reason       string              `json:"reason"`
 	// ServiceID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field

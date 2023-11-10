@@ -20,7 +20,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const majority = "majority"
+// WCMajority can be used to create a WriteConcern with a W value of "majority".
+const WCMajority = "majority"
 
 // ErrInconsistent indicates that an inconsistent write concern was specified.
 //
@@ -131,7 +132,7 @@ func Journaled() *WriteConcern {
 // For more information about write concern "w: majority", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-majority-
 func Majority() *WriteConcern {
-	return &WriteConcern{W: majority}
+	return &WriteConcern{W: WCMajority}
 }
 
 // Custom returns a WriteConcern that requests acknowledgment that write

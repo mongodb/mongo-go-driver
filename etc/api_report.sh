@@ -8,7 +8,7 @@ if [ "$BASE_SHA" == "$HEAD_SHA" ]; then
     echo "Skipping API Report"
     exit 0
 fi
-  
+
 # Ensure a clean checkout.
 git checkout -b test-api-report
 git add .
