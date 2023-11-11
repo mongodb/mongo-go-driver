@@ -384,6 +384,13 @@ func (p *pool) close(ctx context.Context) {
 	// Empty the idle connections stack and try to deliver ErrPoolClosed to any waiting wantConns
 	// from idleConnWait while holding the idleMu lock.
 	p.idleMu.Lock()
+	for _, conn := range p.idleConns {
+		_ = p.removeConnection(conn, reason{
+			loggerConn: logger.ReasonConnClosedPoolClosed,
+			event:      event.ReasonPoolClosed,
+		}, nil)
+		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
+	}
 	p.idleConns = p.idleConns[:0]
 	for {
 		w := p.idleConnWait.popFront()
@@ -411,16 +418,6 @@ func (p *pool) close(ctx context.Context) {
 	}
 	p.createConnectionsCond.L.Unlock()
 
-	// Now that we're not holding any locks, remove all of the connections we collected from the
-	// pool.
-	for _, conn := range conns {
-		_ = p.removeConnection(conn, reason{
-			loggerConn: logger.ReasonConnClosedPoolClosed,
-			event:      event.ReasonPoolClosed,
-		}, nil)
-		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
-	}
-
 	if mustLogPoolMessage(p) {
 		logPoolMessage(p, logger.ConnectionPoolClosed)
 	}
@@ -430,6 +427,16 @@ func (p *pool) close(ctx context.Context) {
 			Type:    event.PoolClosedEvent,
 			Address: p.address.String(),
 		})
+	}
+
+	// Now that we're not holding any locks, remove all of the connections we collected from the
+	// pool.
+	for _, conn := range conns {
+		_ = p.removeConnection(conn, reason{
+			loggerConn: logger.ReasonConnClosedPoolClosed,
+			event:      event.ReasonPoolClosed,
+		}, nil)
+		_ = p.closeConnection(conn) // We don't care about errors while closing the connection.
 	}
 }
 
@@ -907,6 +914,8 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			Error:     err,
 		})
 	}
+
+	p.removePerishedConns()
 }
 
 // getOrQueueForIdleConn attempts to deliver an idle connection to the given wantConn. If there is
