@@ -333,7 +333,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 	// Ignore the error if the connection is stale.
-	if startingGenerationNumber < s.pool.generation.getGeneration(serviceID) {
+	if generation, _ := s.pool.generation.getGeneration(serviceID); startingGenerationNumber < generation {
 		return
 	}
 
@@ -624,7 +624,7 @@ func (s *Server) update() {
 			s.updateDescription(desc)
 			// Retry after the first timeout before clearing the pool in case of a FAAS pause as
 			// described in GODRIVER-2577.
-			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 1 {
+			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 0 {
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.

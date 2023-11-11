@@ -50,10 +50,10 @@ func (lp *loopArgs) iterationsStored() bool {
 	return lp.IterationsEntityID != ""
 }
 
-func executeTestRunnerOperation(ctx context.Context, operation *operation, loopDone <-chan struct{}) error {
-	args := operation.Arguments
+func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-chan struct{}) error {
+	args := op.Arguments
 
-	switch operation.Name {
+	switch op.Name {
 	case "failPoint":
 		clientID := lookupString(args, "client")
 		client, err := entities(ctx).client(clientID)
@@ -187,9 +187,34 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 			}
 		}
 		return nil
+	case "runOnThread":
+		operationRaw, err := args.LookupErr("operation")
+		if err != nil {
+			return fmt.Errorf("'operation' argument not found in runOnThread operation")
+		}
+		threadOp := new(operation)
+		if err := operationRaw.Unmarshal(threadOp); err != nil {
+			return fmt.Errorf("error unmarshalling 'operation' argument: %v", err)
+		}
+		ch := entities(ctx).waitChans[lookupString(args, "thread")]
+		go func(op *operation) {
+			err := op.execute(ctx, loopDone)
+			ch <- err
+		}(threadOp)
+		return nil
+	case "waitForThread":
+		if ch, ok := entities(ctx).waitChans[lookupString(args, "thread")]; ok {
+			select {
+			case <-ch:
+				return nil
+			case <-time.After(10 * time.Second):
+				return fmt.Errorf("timed out after 10 seconds")
+			}
+		}
+		return nil
 	case "waitForEvent":
 		var wfeArgs waitForEventArguments
-		if err := bson.Unmarshal(operation.Arguments, &wfeArgs); err != nil {
+		if err := bson.Unmarshal(op.Arguments, &wfeArgs); err != nil {
 			return fmt.Errorf("error unmarshalling event to waitForEventArguments: %v", err)
 		}
 
@@ -198,7 +223,7 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 
 		return waitForEvent(wfeCtx, wfeArgs)
 	default:
-		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
+		return fmt.Errorf("unrecognized testRunner operation %q", op.Name)
 	}
 }
 

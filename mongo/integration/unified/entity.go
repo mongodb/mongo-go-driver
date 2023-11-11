@@ -136,6 +136,7 @@ type EntityMap struct {
 	successValues            map[string]int32
 	iterationValues          map[string]int32
 	clientEncryptionEntities map[string]*mongo.ClientEncryption
+	waitChans                map[string]chan error
 	evtLock                  sync.Mutex
 	closed                   atomic.Value
 	// keyVaultClientIDs tracks IDs of clients used as a keyVaultClient in ClientEncryption objects.
@@ -167,6 +168,7 @@ func newEntityMap() *EntityMap {
 		successValues:            make(map[string]int32),
 		iterationValues:          make(map[string]int32),
 		clientEncryptionEntities: make(map[string]*mongo.ClientEncryption),
+		waitChans:                make(map[string]chan error),
 		keyVaultClientIDs:        make(map[string]bool),
 	}
 	em.setClosed(false)
@@ -283,6 +285,8 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 		err = em.addCollectionEntity(entityOptions)
 	case "session":
 		err = em.addSessionEntity(entityOptions)
+	case "thread":
+		em.waitChans[entityOptions.ID] = make(chan error)
 	case "bucket":
 		err = em.addGridFSBucketEntity(entityOptions)
 	case "clientEncryption":

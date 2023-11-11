@@ -275,7 +275,16 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 
 // stale checks if a given connection's generation is below the generation of the pool
 func (p *pool) stale(conn *connection) bool {
-	return conn == nil || p.generation.stale(conn.desc.ServiceID, conn.generation)
+	if conn == nil {
+		return true
+	}
+	if atomic.LoadInt64(&p.generation.state) == generationDisconnected {
+		return true
+	}
+	if generation, ok := p.generation.getGeneration(conn.desc.ServiceID); ok {
+		return conn.generation < generation
+	}
+	return false
 }
 
 // ready puts the pool into the "ready" state and starts the background connection creation and

@@ -106,31 +106,15 @@ func (p *poolGenerationMap) clear(serviceIDPtr *primitive.ObjectID) {
 	}
 }
 
-func (p *poolGenerationMap) stale(serviceIDPtr *primitive.ObjectID, knownGeneration uint64) bool {
-	// If the map has been disconnected, all connections should be considered stale to ensure that they're closed.
-	if atomic.LoadInt64(&p.state) == generationDisconnected {
-		return true
-	}
-
+func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) (uint64, bool) {
 	serviceID := getServiceID(serviceIDPtr)
 	p.Lock()
 	defer p.Unlock()
 
 	if stats, ok := p.generationMap[serviceID]; ok {
-		return knownGeneration < stats.generation
+		return stats.generation, true
 	}
-	return false
-}
-
-func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) uint64 {
-	serviceID := getServiceID(serviceIDPtr)
-	p.Lock()
-	defer p.Unlock()
-
-	if stats, ok := p.generationMap[serviceID]; ok {
-		return stats.generation
-	}
-	return 0
+	return 0, false
 }
 
 func (p *poolGenerationMap) getNumConns(serviceIDPtr *primitive.ObjectID) uint64 {
