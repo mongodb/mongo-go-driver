@@ -535,6 +535,9 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// timed out).
 	w := newWantConn()
 	defer func() {
+		if conn != nil {
+			conn.inUse = true
+		}
 		if err != nil {
 			w.cancel(p, err)
 		}
@@ -589,6 +592,11 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 	// If we didn't get an immediately available idle connection, also get in the queue for a new
 	// connection while we're waiting for an idle connection.
+	w.mu.Lock()
+	w.connOpts = append(w.connOpts, func(cfg *connectionConfig) {
+		cfg.inUse = true
+	})
+	w.mu.Unlock()
 	p.queueForNewConn(w)
 	p.stateMu.RUnlock()
 
@@ -790,6 +798,8 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		return ErrWrongPool
 	}
 
+	conn.inUse = false
+
 	// Bump the connection idle deadline here because we're about to make the connection "available".
 	// The idle deadline is used to determine when a connection has reached its max idle time and
 	// should be closed. A connection reaches its max idle time when it has been "available" in the
@@ -841,12 +851,38 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	return nil
 }
 
+func (p *pool) interruptInUseConnections() {
+	for _, conn := range p.conns {
+		if conn.inUse && p.stale(conn) {
+			_ = p.removeConnection(conn, reason{
+				loggerConn: logger.ReasonConnClosedStale,
+				event:      event.ReasonStale,
+			}, nil)
+			go func(conn *connection) {
+				if conn.pool != p {
+					return
+				}
+
+				if atomic.LoadInt64(&conn.state) == connConnected {
+					conn.closeConnectContext()
+					conn.wait() // Make sure that the connection has finished connecting.
+				}
+
+				_ = conn.closeWithErr(poolClearedError{
+					err:     fmt.Errorf("interrupted"),
+					address: p.address,
+				})
+			}(conn)
+		}
+	}
+}
+
 // clear marks all connections as stale by incrementing the generation number, stops all background
 // goroutines, removes all requests from idleConnWait and newConnWait, and sets the pool state to
 // "paused". If serviceID is nil, clear marks all connections as stale. If serviceID is not nil,
 // clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
-func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
+func (p *pool) clear(err error, serviceID *primitive.ObjectID, cleaningupFns ...func()) {
 	if p.getState() == poolClosed {
 		return
 	}
@@ -913,6 +949,12 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
 			ServiceID: serviceID,
 			Error:     err,
 		})
+	}
+
+	for _, fn := range cleaningupFns {
+		if fn != nil {
+			fn()
+		}
 	}
 
 	p.removePerishedConns()
@@ -1018,7 +1060,11 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			return nil, nil, false
 		}
 
-		conn := newConnection(p.address, p.connOpts...)
+		w.mu.Lock()
+		connOpts := w.connOpts
+		w.mu.Unlock()
+		connOpts = append(connOpts, p.connOpts...)
+		conn := newConnection(p.address, connOpts...)
 		conn.pool = p
 		conn.driverConnectionID = atomic.AddInt64(&p.nextID, 1)
 		p.conns[conn.driverConnectionID] = conn
@@ -1232,6 +1278,8 @@ func compact(arr []*connection) []*connection {
 type wantConn struct {
 	ready chan struct{}
 
+	connOpts []ConnectionOption
+
 	mu   sync.Mutex // Guards conn, err
 	conn *connection
 	err  error
@@ -1268,6 +1316,7 @@ func (w *wantConn) tryDeliver(conn *connection, err error) bool {
 		panic("x/mongo/driver/topology: internal error: misuse of tryDeliver")
 	}
 
+	w.connOpts = w.connOpts[:0]
 	close(w.ready)
 
 	return true
@@ -1283,6 +1332,7 @@ func (w *wantConn) cancel(p *pool, err error) {
 
 	w.mu.Lock()
 	if w.conn == nil && w.err == nil {
+		w.connOpts = w.connOpts[:0]
 		close(w.ready) // catch misbehavior in future delivery
 	}
 	conn := w.conn

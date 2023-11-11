@@ -624,7 +624,7 @@ func (s *Server) update() {
 			s.updateDescription(desc)
 			// Retry after the first timeout before clearing the pool in case of a FAAS pause as
 			// described in GODRIVER-2577.
-			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 0 {
+			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 1 {
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.
