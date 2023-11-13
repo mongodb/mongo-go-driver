@@ -462,7 +462,11 @@ func (b *Bucket) openDownloadStream(
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
 	var resp findFileResponse
 	if err := result.Decode(&resp); err != nil {
-		return nil, fmt.Errorf("error decoding files collection document: %v", err)
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrFileNotFound
+		}
+
+		return nil, fmt.Errorf("error decoding files collection document: %w", err)
 	}
 
 	foundFile := newFileFromResponse(resp)
