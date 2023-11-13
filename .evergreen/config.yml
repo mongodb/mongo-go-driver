@@ -166,7 +166,7 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON3_BINARY="$(find_python3)"
+          export PYTHON3_BINARY="$(find_python3 2>/dev/null)"
           venvcreate "$PYTHON3_BINARY" venv
 
           echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
@@ -264,16 +264,7 @@ functions:
         shell: "bash"
         script: |
           ${PREPARE_SHELL}
-          cd "$MONGO_ORCHESTRATION_HOME"
-          # source the mongo-orchestration virtualenv if it exists
-          if [ -f venv/bin/activate ]; then
-            . venv/bin/activate
-          elif [ -f venv/Scripts/activate ]; then
-            . venv/Scripts/activate
-          fi
-          mongo-orchestration stop
-          cd -
-          rm -rf $DRIVERS_TOOLS || true
+          bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
 
   fix-absolute-paths:
     - command: shell.exec
@@ -903,17 +894,11 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py \
+          . ./activate-kmstlsvenv.sh
+          python -u kms_kmip_server.py \
               --port 5698 \
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-          else
-            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py \
-              --port 5698 \
-              --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
-              --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-          fi
 
     - command: shell.exec
       params:
@@ -921,11 +906,8 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe bottle.py fake_azure:imds
-          else
-            ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
-          fi
+          . ./activate-kmstlsvenv.sh
+          python bottle.py fake_azure:imds
 
     - command: shell.exec
       params:
@@ -1022,7 +1004,6 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
-  - func: start-cse-servers
 
 post:
   - command: gotest.parse_files
@@ -1065,6 +1046,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1079,6 +1061,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1094,6 +1077,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1109,6 +1093,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1124,6 +1109,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1138,6 +1124,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1152,6 +1139,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1167,6 +1155,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1182,6 +1171,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1576,6 +1566,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1590,6 +1581,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1604,6 +1596,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1621,6 +1614,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1635,6 +1629,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1649,6 +1644,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1664,6 +1660,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1679,6 +1676,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1694,6 +1692,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1708,6 +1707,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1723,6 +1723,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1738,6 +1739,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1753,6 +1755,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1826,6 +1829,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
+      - func: start-cse-servers
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1842,6 +1846,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           ORCHESTRATION_FILE: "versioned-api-testing.json"
+      - func: start-cse-servers
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
