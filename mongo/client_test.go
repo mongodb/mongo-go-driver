@@ -341,7 +341,7 @@ func TestClient(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Setup a client and skip the test based on server version.
 				var started []*event.CommandStartedEvent
-				var failureReasons []string
+				var failureReasons []error
 				cmdMonitor := &event.CommandMonitor{
 					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 						if evt.CommandName == "endSessions" {
