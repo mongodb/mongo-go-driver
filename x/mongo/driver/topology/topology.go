@@ -288,7 +288,6 @@ func logUnexpectedFailure(log *logger.Logger, msg string, callbacks ...func()) {
 		return
 	}
 
-	//msg := fmt.Sprintf("Encountered unexpected failure updating server: %v", recover())
 	log.Print(logger.LevelInfo, logger.ComponentTopology, fmt.Sprintf("%s: %v", msg, r))
 }
 
