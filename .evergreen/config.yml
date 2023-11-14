@@ -203,6 +203,19 @@ functions:
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
 
+  upload-raw-test-suite:
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: test.suite
+        optional: true
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test.suite.txt
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|text/plain}
+        display_name: "test.suite.txt"
+
   bootstrap-mongohoused:
     - command: shell.exec
       params:
@@ -1011,6 +1024,7 @@ post:
       files:
         - "src/go.mongodb.org/mongo-driver/*.suite"
   - func: upload-mo-artifacts
+  - func: upload-raw-test-suite
   - func: stop-load-balancer
   - func: teardown-aws
   - func: cleanup
@@ -1551,6 +1565,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1920,6 +1935,7 @@ tasks:
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
+      - func: start-cse-servers
       - func: "run-serverless-tests"
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
