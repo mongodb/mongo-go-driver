@@ -791,6 +791,20 @@ func (p *pool) checkIn(conn *connection) error {
 // checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
 // not publish events. It is only intended for use by pool-internal functions.
 func (p *pool) checkInNoEvent(conn *connection) error {
+	return p.checkInWithCallback(conn, func() (reason, bool) {
+		r, ok := connectionPerished(conn)
+		if !ok && conn.pool.getState() == poolClosed {
+			ok = true
+			r = reason{
+				loggerConn: logger.ReasonConnClosedPoolClosed,
+				event:      event.ReasonPoolClosed,
+			}
+		}
+		return r, ok
+	})
+}
+
+func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) error {
 	if conn == nil {
 		return nil
 	}
@@ -809,24 +823,20 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		// connection should never be perished due to max idle time.
 		conn.bumpIdleDeadline()
 
-		r, ok := connectionPerished(conn)
-		if !ok && conn.pool.getState() == poolClosed {
-			ok = true
-			r = reason{
-				loggerConn: logger.ReasonConnClosedPoolClosed,
-				event:      event.ReasonPoolClosed,
-			}
+		var r reason
+		var ok bool
+		if cb != nil {
+			r, ok = cb()
+		}
+		if !ok {
+			return false
 		}
 
-		if ok {
-			_ = p.removeConnection(conn, r, nil)
-			go func() {
-				_ = p.closeConnection(conn)
-			}()
-			return true
-		}
-
-		return false
+		_ = p.removeConnection(conn, r, nil)
+		go func() {
+			_ = p.closeConnection(conn)
+		}()
+		return true
 	}(); removed {
 		return nil
 	}
