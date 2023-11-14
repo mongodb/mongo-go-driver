@@ -208,7 +208,7 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: test.suite
+        local_file: src/go.mongodb.org/mongo-driver/test.suite
         optional: true
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test.suite.txt
         bucket: mciuploads
