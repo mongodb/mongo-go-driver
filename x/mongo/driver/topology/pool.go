@@ -762,30 +762,33 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 // checkIn returns an idle connection to the pool. If the connection is perished or the pool is
 // closed, it is removed from the connection pool and closed.
 func (p *pool) checkIn(conn *connection) error {
-	if conn == nil {
-		return nil
-	}
-	if conn.pool != p {
-		return ErrWrongPool
-	}
+	return p.checkInWithCallback(conn, func() (reason, bool) {
+		if mustLogPoolMessage(p) {
+			keysAndValues := logger.KeyValues{
+				logger.KeyDriverConnectionID, conn.driverConnectionID,
+			}
 
-	if mustLogPoolMessage(p) {
-		keysAndValues := logger.KeyValues{
-			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
 		}
 
-		logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
-	}
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:         event.ConnectionCheckedIn,
+				ConnectionID: conn.driverConnectionID,
+				Address:      conn.addr.String(),
+			})
+		}
 
-	if p.monitor != nil {
-		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionCheckedIn,
-			ConnectionID: conn.driverConnectionID,
-			Address:      conn.addr.String(),
-		})
-	}
-
-	return p.checkInNoEvent(conn)
+		r, ok := connectionPerished(conn)
+		if !ok && conn.pool.getState() == poolClosed {
+			ok = true
+			r = reason{
+				loggerConn: logger.ReasonConnClosedPoolClosed,
+				event:      event.ReasonPoolClosed,
+			}
+		}
+		return r, ok
+	})
 }
 
 // checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
