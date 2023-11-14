@@ -27,7 +27,7 @@ timeout:
         ls -la
 functions:
   fetch-source:
-    # Executes git clone and applies the submitted patch, if any
+    # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
       params:
@@ -145,7 +145,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            git clone --branch DRIVERS-2648 https://github.com/blink1073/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec
@@ -1015,6 +1015,57 @@ functions:
         script: |
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
+
+  serverless-crypt-shared:
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+
+          if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
+            echo "expected SERVERLESS_MONGODB_VERSION to be set"
+            exit 1
+          fi
+
+          # Download the enterprise server download for current platform to $MONGODB_BINARIES.
+          # This is required for tests that need mongocryptd.
+          # $MONGODB_BINARIES is added to the $PATH in fetch-source.
+          ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
+              --component archive \
+              --version ${SERVERLESS_MONGODB_VERSION} \
+              --edition enterprise \
+              --out $MONGODB_BINARIES \
+              --strip-path-components 2
+
+          # Download the crypt_shared dynamic library for the current platform.
+          ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
+            --component crypt_shared \
+            --version ${SERVERLESS_MONGODB_VERSION} \
+            --edition enterprise \
+            --out . \
+            --only "**/mongo_crypt_v1.*" \
+            --strip-path-components 1
+
+          # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+          # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
+          # downloaded files.
+          CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+            -name 'mongo_crypt_v1.so' -o \
+            -name 'mongo_crypt_v1.dll' -o \
+            -name 'mongo_crypt_v1.dylib')"
+
+          # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
+          if [ "Windows_NT" = "$OS" ]; then
+              CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+          fi
+
+          echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
+
+    # Load the expansion file to make an evergreen variable with the current unique version
+    - command: expansions.update
+      params:
+        file: crypt-expansion.yml
 
 pre:
   - func: fetch-source
@@ -2280,64 +2331,12 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-
-            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
-            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
-            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
-            LOADBALANCED=ON \
-              bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
       - command: expansions.update
         params:
           file: serverless-expansion.yml
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-
-            if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
-              echo "expected SERVERLESS_MONGODB_VERSION to be set"
-              exit 1
-            fi
-
-            # Download the enterprise server download for current platform to $MONGODB_BINARIES.
-            # This is required for tests that need mongocryptd.
-            # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-                --component archive \
-                --version ${SERVERLESS_MONGODB_VERSION} \
-                --edition enterprise \
-                --out $MONGODB_BINARIES \
-                --strip-path-components 2
-
-            # Download the crypt_shared dynamic library for the current platform.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-              --component crypt_shared \
-              --version ${SERVERLESS_MONGODB_VERSION} \
-              --edition enterprise \
-              --out . \
-              --only "**/mongo_crypt_v1.*" \
-              --strip-path-components 1
-
-            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-            # downloaded files.
-            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-              -name 'mongo_crypt_v1.so' -o \
-              -name 'mongo_crypt_v1.dll' -o \
-              -name 'mongo_crypt_v1.dylib')"
-
-            # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
-            if [ "Windows_NT" = "$OS" ]; then
-                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-            fi
-
-            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
-
-      # Load the expansion file to make an evergreen variable with the current unique version
-      - command: expansions.update
-        params:
-          file: crypt-expansion.yml
+      - func: serverless-crypt-shared
 
     teardown_group:
       - command: shell.exec
@@ -2345,12 +2344,54 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+      - command: gotest.parse_files
+        params:
+          files:
+            - "src/go.mongodb.org/mongo-driver/*.suite"
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: mongodb-logs.tar.gz
+          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
+          bucket: mciuploads
+          permissions: public-read
+          content_type: ${content_type|application/x-gzip}
+          display_name: "mongodb-logs.tar.gz"
+    tasks:
+      - ".serverless"
 
-            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
-            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
-            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
-            SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
-              bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+  - name: serverless_next_task_group
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800 # 30 minutes
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - func: start-cse-servers
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh serverless_next
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+      - command: expansions.update
+        params:
+          file: serverless-expansion.yml
+      - func: serverless-crypt-shared
+
+    teardown_group:
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh serverless_next
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
       - command: gotest.parse_files
         params:
           files:
@@ -2661,6 +2702,13 @@ buildvariants:
     display_name: "Serverless ${os-serverless}"
     tasks:
       - "serverless_task_group"
+
+  - matrix_name: "serverless-next"
+    tags: ["pullrequest"]
+    matrix_spec: { os-serverless: "*" }
+    display_name: "Serverless Next ${os-serverless}"
+    tasks:
+      - "serverless_next_task_group"
 
   - matrix_name: "kms-kmip-test"
     matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
