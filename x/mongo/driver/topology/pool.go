@@ -800,33 +800,58 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 
 	conn.inUse = false
 
-	// Bump the connection idle deadline here because we're about to make the connection "available".
-	// The idle deadline is used to determine when a connection has reached its max idle time and
-	// should be closed. A connection reaches its max idle time when it has been "available" in the
-	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
-	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
-	// connection should never be perished due to max idle time.
-	conn.bumpIdleDeadline()
+	if removed := func() bool {
+		// Bump the connection idle deadline here because we're about to make the connection "available".
+		// The idle deadline is used to determine when a connection has reached its max idle time and
+		// should be closed. A connection reaches its max idle time when it has been "available" in the
+		// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
+		// we call connectionPerished(), which checks the idle deadline, because a newly "available"
+		// connection should never be perished due to max idle time.
+		conn.bumpIdleDeadline()
 
-	if reason, perished := connectionPerished(conn); perished {
-		_ = p.removeConnection(conn, reason, nil)
-		go func() {
-			_ = p.closeConnection(conn)
-		}()
+		r, ok := connectionPerished(conn)
+		if !ok && conn.pool.getState() == poolClosed {
+			ok = true
+			r = reason{
+				loggerConn: logger.ReasonConnClosedPoolClosed,
+				event:      event.ReasonPoolClosed,
+			}
+		}
+
+		if ok {
+			_ = p.removeConnection(conn, r, nil)
+			go func() {
+				_ = p.closeConnection(conn)
+			}()
+			return true
+		}
+
+		return false
+	}(); removed {
 		return nil
 	}
 
-	if conn.pool.getState() == poolClosed {
-		_ = p.removeConnection(conn, reason{
-			loggerConn: logger.ReasonConnClosedPoolClosed,
-			event:      event.ReasonPoolClosed,
-		}, nil)
+	/*
+		if reason, perished := connectionPerished(conn); perished {
+			_ = p.removeConnection(conn, reason, nil)
+			go func() {
+				_ = p.closeConnection(conn)
+			}()
+			return nil
+		}
 
-		go func() {
-			_ = p.closeConnection(conn)
-		}()
-		return nil
-	}
+		if conn.pool.getState() == poolClosed {
+			_ = p.removeConnection(conn, reason{
+				loggerConn: logger.ReasonConnClosedPoolClosed,
+				event:      event.ReasonPoolClosed,
+			}, nil)
+
+			go func() {
+				_ = p.closeConnection(conn)
+			}()
+			return nil
+		}
+	*/
 
 	p.idleMu.Lock()
 	defer p.idleMu.Unlock()
@@ -906,7 +931,26 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID, cleaningupFns ...
 		}
 		p.lastClearErr = err
 		p.stateMu.Unlock()
+	}
 
+	if mustLogPoolMessage(p) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyServiceID, serviceID,
+		}
+
+		logPoolMessage(p, logger.ConnectionPoolCleared, keysAndValues...)
+	}
+
+	if sendEvent && p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:      event.PoolCleared,
+			Address:   p.address.String(),
+			ServiceID: serviceID,
+			Error:     err,
+		})
+	}
+
+	if serviceID == nil {
 		pcErr := poolClearedError{err: err, address: p.address}
 
 		// Clear the idle connections wait queue.
@@ -932,23 +976,6 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID, cleaningupFns ...
 			w.tryDeliver(nil, pcErr)
 		}
 		p.createConnectionsCond.L.Unlock()
-	}
-
-	if mustLogPoolMessage(p) {
-		keysAndValues := logger.KeyValues{
-			logger.KeyServiceID, serviceID,
-		}
-
-		logPoolMessage(p, logger.ConnectionPoolCleared, keysAndValues...)
-	}
-
-	if sendEvent && p.monitor != nil {
-		p.monitor.Event(&event.PoolEvent{
-			Type:      event.PoolCleared,
-			Address:   p.address.String(),
-			ServiceID: serviceID,
-			Error:     err,
-		})
 	}
 
 	for _, fn := range cleaningupFns {
