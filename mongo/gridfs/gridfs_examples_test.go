@@ -29,7 +29,11 @@ func ExampleBucket_OpenUploadStream() {
 	uploadOpts := options.GridFSUpload().
 		SetMetadata(bson.D{{"metadata tag", "tag"}})
 
-	ctx := context.Background()
+	// Use WithContext to force a timeout if the upload does not succeed in
+	// 2 seconds.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
 	uploadStream, err := bucket.OpenUploadStream(ctx, "filename", uploadOpts)
 	if err != nil {
 		log.Fatal(err)
@@ -39,11 +43,6 @@ func ExampleBucket_OpenUploadStream() {
 			log.Fatal(err)
 		}
 	}()
-
-	// Use WithContext to force a timeout if the upload does not succeed in
-	// 2 seconds.
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
 
 	if _, err = uploadStream.Write(fileContent); err != nil {
 		log.Fatal(err)
@@ -74,7 +73,10 @@ func ExampleBucket_OpenDownloadStream() {
 	var bucket *gridfs.Bucket
 	var fileID primitive.ObjectID
 
-	ctx := context.Background()
+	// Use WithContext to force a timeout if the download does not succeed in
+	// 2 seconds.
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 
 	downloadStream, err := bucket.OpenDownloadStream(ctx, fileID)
 	if err != nil {
@@ -85,11 +87,6 @@ func ExampleBucket_OpenDownloadStream() {
 			log.Fatal(err)
 		}
 	}()
-
-	// Use WithContext to force a timeout if the download does not succeed in
-	// 2 seconds.
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
 
 	fileBuffer := bytes.NewBuffer(nil)
 	if _, err := io.Copy(fileBuffer, downloadStream); err != nil {
