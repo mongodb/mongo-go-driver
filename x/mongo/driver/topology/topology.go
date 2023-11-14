@@ -269,6 +269,29 @@ func logServerSelectionFailed(
 		logger.KeyFailure, err.Error())
 }
 
+// logUnexpectedFailure is a defer-recover function for logging unexpected
+// failures encountered while maintaining a topology.
+//
+// Most topology maintenance actions, such as updating a server, should not take
+// down a client's application. This function provides a best-effort to log
+// unexpected failures. If the logger passed to this function is nil, then the
+// recovery will be silent.
+func logUnexpectedFailure(log *logger.Logger, msg string, callbacks ...func()) {
+	defer func() {
+		for _, clbk := range callbacks {
+			clbk()
+		}
+	}()
+
+	r := recover()
+	if log == nil || r == nil {
+		return
+	}
+
+	//msg := fmt.Sprintf("Encountered unexpected failure updating server: %v", recover())
+	log.Print(logger.LevelInfo, logger.ComponentTopology, fmt.Sprintf("%s: %v", msg, r))
+}
+
 // Connect initializes a Topology and starts the monitoring process. This function
 // must be called to properly monitor the topology.
 func (t *Topology) Connect() error {
@@ -768,12 +791,11 @@ func (t *Topology) pollSRVRecords(hosts string) {
 	defer pollTicker.Stop()
 	t.pollHeartbeatTime.Store(false)
 	var doneOnce bool
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		if r := recover(); r != nil && !doneOnce {
+	defer logUnexpectedFailure(t.cfg.logger, "Encountered unexpected failure polling SRV records", func() {
+		if !doneOnce {
 			<-t.pollingDone
 		}
-	}()
+	})
 
 	for {
 		select {
