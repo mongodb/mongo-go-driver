@@ -277,14 +277,18 @@ func logServerSelectionFailed(
 // unexpected failures. If the logger passed to this function is nil, then the
 // recovery will be silent.
 func logUnexpectedFailure(log *logger.Logger, msg string, callbacks ...func()) {
+	r := recover()
+	if r == nil {
+		return
+	}
+
 	defer func() {
 		for _, clbk := range callbacks {
 			clbk()
 		}
 	}()
 
-	r := recover()
-	if log == nil || r == nil {
+	if log == nil {
 		return
 	}
 
