@@ -37,8 +37,8 @@ type DownloadStream struct {
 	bufferStart   int
 	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
-	readDeadline  time.Time
 	fileLen       int64
+	ctx           context.Context
 
 	// The pointer returned by GetFile. This should not be used in the actual DownloadStream code outside of the
 	// newDownloadStream constructor because the values can be mutated by the user after calling GetFile. Instead,
@@ -94,7 +94,7 @@ func newFileFromResponse(resp findFileResponse) *File {
 	}
 }
 
-func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
+func newDownloadStream(ctx context.Context, cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
 	return &DownloadStream{
@@ -105,6 +105,7 @@ func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *Downl
 		done:      cursor == nil,
 		fileLen:   file.Length,
 		file:      file,
+		ctx:       ctx,
 	}
 }
 
@@ -121,16 +122,6 @@ func (ds *DownloadStream) Close() error {
 	return nil
 }
 
-// SetReadDeadline sets the read deadline for this download stream.
-func (ds *DownloadStream) SetReadDeadline(t time.Time) error {
-	if ds.closed {
-		return ErrStreamClosed
-	}
-
-	ds.readDeadline = t
-	return nil
-}
-
 // Read reads the file from the server and writes it to a destination byte slice.
 func (ds *DownloadStream) Read(p []byte) (int, error) {
 	if ds.closed {
@@ -141,17 +132,12 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		return 0, io.EOF
 	}
 
-	ctx, cancel := deadlineContext(ds.readDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
 	bytesCopied := 0
 	var err error
 	for bytesCopied < len(p) {
 		if ds.bufferStart >= ds.bufferEnd {
 			// Buffer is empty and can load in data from new chunk.
-			err = ds.fillBuffer(ctx)
+			err = ds.fillBuffer(ds.ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					if bytesCopied == 0 {
@@ -183,18 +169,13 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 		return 0, nil
 	}
 
-	ctx, cancel := deadlineContext(ds.readDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
 	var skipped int64
 	var err error
 
 	for skipped < skip {
 		if ds.bufferStart >= ds.bufferEnd {
 			// Buffer is empty and can load in data from new chunk.
-			err = ds.fillBuffer(ctx)
+			err = ds.fillBuffer(ds.ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					return skipped, nil

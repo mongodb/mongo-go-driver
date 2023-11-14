@@ -81,7 +81,7 @@ func TestGridFS(t *testing.T) {
 				bucket, err := NewBucket(db, tt.bucketOpts)
 				assert.Nil(t, err, "NewBucket error: %v", err)
 
-				us, err := bucket.OpenUploadStream("filename", tt.uploadOpts)
+				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
 				expectedBucketChunkSize := DefaultChunkSize
