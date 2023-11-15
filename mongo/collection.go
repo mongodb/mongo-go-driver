@@ -1647,7 +1647,7 @@ func newFindOptionsFromFindOneOptions(opts ...*options.FindOneOptions) []*option
 		return nil
 	}
 
-	findOpts := []*options.FindOptions{}
+	findOpts := make([]*options.FindOptions, 0, len(opts))
 	for _, opt := range opts {
 		if opt == nil {
 			continue
