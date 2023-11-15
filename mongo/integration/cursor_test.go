@@ -130,7 +130,7 @@ func TestCursor(t *testing.T) {
 			evt := mt.GetStartedEvent()
 			assert.Nil(mt, evt, "expected no events, got %v", evt)
 
-			// The batch is exhaused, so the batch length should be 0. Do one Next call, which should do a getMore and
+			// The batch is exhausted, so the batch length should be 0. Do one Next call, which should do a getMore and
 			// fetch batchSize more documents. The batch length after the call should be (batchSize-1) because Next consumes
 			// one document.
 			assertCursorBatchLength(mt, cursor, 0)

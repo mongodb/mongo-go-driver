@@ -7,7 +7,7 @@ export GOCACHE="$(pwd)/.cache"
 export DRIVERS_TOOLS=${DRIVERS_TOOLS:-""}
 
 if [ -z $DRIVERS_TOOLS ]; then
-  export DRIVERS_TOOLS=="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
+  export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
 fi
 
 if [ "Windows_NT" = "$OS" ]; then
@@ -48,7 +48,7 @@ fi
 # Using python3-venv in Ubuntu 14.04 (an OS required for legacy server version
 # tasks) requires the use of apt-get, which we wish to avoid. So, we do not set
 # a python3 binary on Ubuntu 14.04. Setting AWS temp credentials for legacy
-# server version tasks is unneccesary, as temp credentials are only needed on 4.2+.
+# server version tasks is unnecessary, as temp credentials are only needed on 4.2+.
 if [ ! -z ${PYTHON3_BINARY} ]; then
   export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}"
   export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}"

@@ -93,7 +93,7 @@ Each YAML file has the following keys:
 
 - ``database_name`` and ``collection_name``: Optional. The database and
   collection to use for testing.
-  
+
 - ``bucket_name``: Optional. The GridFS bucket name to use for testing.
 
 - ``data``: The data that should exist in the collection(s) under test before
@@ -101,19 +101,19 @@ Each YAML file has the following keys:
   into the collection under test (i.e. ``collection_name``); however, this field
   may also be an object mapping collection names to arrays of documents to be
   inserted into the specified collection.
-    
+
 - ``tests``: An array of tests that are to be run independently of each other.
   Each test will have some or all of the following fields:
 
   - ``description``: The name of the test.
-    
+
   - ``clientOptions``: Optional, parameters to pass to MongoClient().
 
   - ``useMultipleMongoses`` (optional): If ``true``, the MongoClient for this
     test should be initialized with multiple mongos seed addresses. If ``false``
     or omitted, only a single mongos address should be specified. This field has
     no effect for non-sharded topologies.
-    
+
   - ``skipReason``: Optional, string describing why this test should be skipped.
 
   - ``failPoint``: Optional, a server fail point to enable, expressed as the
@@ -132,10 +132,10 @@ Each YAML file has the following keys:
     - ``result``: Optional. The return value from the operation, if any. This
       field may be a scalar (e.g. in the case of a count), a single document, or
       an array of documents in the case of a multi-document read.
-      
+
     - ``error``: Optional. If ``true``, the test should expect an error or
       exception.
-        
+
   - ``expectations``: Optional list of command-started events.
 
 GridFS Tests
@@ -159,7 +159,7 @@ data.
 
 
 .. _GridFSBucket spec: https://github.com/mongodb/specifications/blob/master/source/gridfs/gridfs-spec.rst#configurable-gridfsbucket-class
-    
+
 
 Speeding Up Tests
 -----------------

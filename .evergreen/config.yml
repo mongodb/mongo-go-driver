@@ -211,16 +211,15 @@ functions:
           ${PREPARE_SHELL}
 
           cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh build-mongohouse-local.sh
+          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash pull-mongohouse-image.sh
     - command: shell.exec
       params:
         shell: "bash"
-        background: true
         script: |
           ${PREPARE_SHELL}
 
           cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh run-mongohouse-local.sh
+          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash run-mongohouse-image.sh
 
   bootstrap-mongo-orchestration:
     - command: shell.exec
@@ -2552,7 +2551,7 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel8.7-large
+      - ubuntu2004-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:

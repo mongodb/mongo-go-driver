@@ -96,7 +96,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	driverConnectionID       uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
@@ -110,7 +110,7 @@ type finishedInformation struct {
 	response           bsoncore.Document
 	cmdErr             error
 	connID             string
-	driverConnectionID uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
 	serviceID          *primitive.ObjectID
@@ -829,7 +829,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -926,7 +926,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -1856,7 +1856,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, fmt.Errorf("malformed wire message: uknown section type %v", stype)
+				return nil, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 
@@ -1933,13 +1933,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
-			Command:              redactStartedInformationCmd(op, info),
-			DatabaseName:         op.Database,
-			CommandName:          info.cmdName,
-			RequestID:            int64(info.requestID),
-			ConnectionID:         info.connID,
-			ServerConnectionID64: info.serverConnID,
-			ServiceID:            info.serviceID,
+			Command:            redactStartedInformationCmd(op, info),
+			DatabaseName:       op.Database,
+			CommandName:        info.cmdName,
+			RequestID:          int64(info.requestID),
+			ConnectionID:       info.connID,
+			ServerConnectionID: info.serverConnID,
+			ServiceID:          info.serviceID,
 		}
 		op.CommandMonitor.Started(ctx, started)
 	}
@@ -2012,13 +2012,13 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:          info.cmdName,
-		DatabaseName:         op.Database,
-		RequestID:            int64(info.requestID),
-		ConnectionID:         info.connID,
-		Duration:             info.duration,
-		ServerConnectionID64: info.serverConnID,
-		ServiceID:            info.serviceID,
+		CommandName:        info.cmdName,
+		DatabaseName:       op.Database,
+		RequestID:          int64(info.requestID),
+		ConnectionID:       info.connID,
+		Duration:           info.duration,
+		ServerConnectionID: info.serverConnID,
+		ServiceID:          info.serviceID,
 	}
 
 	if info.success() {
@@ -2032,7 +2032,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	failedEvent := &event.CommandFailedEvent{
-		Failure:              info.cmdErr.Error(),
+		Failure:              info.cmdErr,
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)

@@ -39,7 +39,7 @@ func TestSerializeCommand(t *testing.T) {
 			want: KeyValues{
 				KeyCommandName, "",
 				KeyDatabaseName, "",
-				KeyDriverConnectionID, uint64(0),
+				KeyDriverConnectionID, int64(0),
 				KeyMessage, "",
 				KeyOperationID, int32(0),
 				KeyRequestID, int64(0),
@@ -63,7 +63,7 @@ func TestSerializeCommand(t *testing.T) {
 			want: KeyValues{
 				KeyCommandName, "foo",
 				KeyDatabaseName, "db",
-				KeyDriverConnectionID, uint64(1),
+				KeyDriverConnectionID, int64(1),
 				KeyMessage, "bar",
 				KeyOperationID, int32(2),
 				KeyRequestID, int64(3),
@@ -145,7 +145,7 @@ func TestSerializeServer(t *testing.T) {
 		{
 			name: "empty",
 			want: KeyValues{
-				KeyDriverConnectionID, uint64(0),
+				KeyDriverConnectionID, int64(0),
 				KeyMessage, "",
 				KeyServerHost, "",
 				KeyTopologyID, primitive.ObjectID{}.Hex(),
@@ -162,7 +162,7 @@ func TestSerializeServer(t *testing.T) {
 				ServerPort:         "27017",
 			},
 			want: KeyValues{
-				KeyDriverConnectionID, uint64(1),
+				KeyDriverConnectionID, int64(1),
 				KeyMessage, "foo",
 				KeyServerHost, "localhost",
 				KeyTopologyID, topologyID.Hex(),

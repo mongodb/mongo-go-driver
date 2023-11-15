@@ -73,7 +73,7 @@ func TestEntityMap(t *testing.T) {
 		notFoundErr := newEntityNotFoundError("event list", "bar")
 		assert.Equal(t, err, notFoundErr, "expected error %v, got %v", notFoundErr, err)
 	})
-	t.Run("interations entity", func(t *testing.T) {
+	t.Run("iterations entity", func(t *testing.T) {
 		name := "iters"
 		notFoundName := "bar"
 		notFoundErr := newEntityNotFoundError("iterations", "bar")

@@ -63,7 +63,7 @@ var skippedTestDescriptions = map[string]string{
 type cmapEvent struct {
 	EventType    string      `json:"type"`
 	Address      interface{} `json:"address"`
-	ConnectionID uint64      `json:"connectionId"`
+	ConnectionID int64       `json:"connectionId"`
 	Options      interface{} `json:"options"`
 	Reason       string      `json:"reason"`
 }

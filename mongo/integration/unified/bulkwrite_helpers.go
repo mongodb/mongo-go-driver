@@ -259,7 +259,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 
 		return rom.SetFilter(filter).SetReplacement(replacement), nil
 	default:
-		return nil, fmt.Errorf("unrecongized request type: %v", requestType)
+		return nil, fmt.Errorf("unrecognized request type: %v", requestType)
 	}
 }
 
