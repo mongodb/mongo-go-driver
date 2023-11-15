@@ -1642,6 +1642,40 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
 }
 
+func newFindOptionsFromFindOneOptions(opts ...*options.FindOneOptions) []*options.FindOptions {
+	if opts == nil {
+		return nil
+	}
+
+	findOpts := []*options.FindOptions{}
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		findOpts = append(findOpts, &options.FindOptions{
+			AllowPartialResults: opt.AllowPartialResults,
+			Collation:           opt.Collation,
+			Comment:             opt.Comment,
+			Hint:                opt.Hint,
+			Max:                 opt.Max,
+			MaxTime:             opt.MaxTime,
+			Min:                 opt.Min,
+			Projection:          opt.Projection,
+			ReturnKey:           opt.ReturnKey,
+			ShowRecordID:        opt.ShowRecordID,
+			Skip:                opt.Skip,
+			Sort:                opt.Sort,
+		})
+	}
+
+	// Unconditionally send a limit to make sure only one document is returned and
+	// the cursor is not kept open by the server.
+	findOpts = append(findOpts, options.Find().SetLimit(-1))
+
+	return findOpts
+}
+
 // FindOne executes a find command and returns a SingleResult for one document in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
@@ -1658,33 +1692,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	findOpts := make([]*options.FindOptions, len(opts))
-	for idx, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		findOpts[idx] = &options.FindOptions{
-			AllowPartialResults: opt.AllowPartialResults,
-			Collation:           opt.Collation,
-			Comment:             opt.Comment,
-			Hint:                opt.Hint,
-			Max:                 opt.Max,
-			MaxTime:             opt.MaxTime,
-			Min:                 opt.Min,
-			Projection:          opt.Projection,
-			ReturnKey:           opt.ReturnKey,
-			ShowRecordID:        opt.ShowRecordID,
-			Skip:                opt.Skip,
-			Sort:                opt.Sort,
-		}
-	}
-
-	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
-	// by the server.
-	findOpts[len(opts)] = options.Find().SetLimit(-1)
-
-	cursor, err := coll.Find(ctx, filter, findOpts...)
+	cursor, err := coll.Find(ctx, filter, newFindOptionsFromFindOneOptions(opts...)...)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
