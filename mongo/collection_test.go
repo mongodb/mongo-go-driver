@@ -239,11 +239,59 @@ func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
 			},
 		},
 		{
+			name: "singleton",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "multiplicity",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+				options.FindOne().SetSkip(2),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
 			name: "interior null",
 			opts: []*options.FindOneOptions{
 				options.FindOne().SetSkip(1),
 				nil,
 				options.FindOne().SetSkip(2),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "start null",
+			opts: []*options.FindOneOptions{
+				nil,
+				options.FindOne().SetSkip(1),
+				options.FindOne().SetSkip(2),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "end null",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+				options.FindOne().SetSkip(2),
+				nil,
 			},
 			want: []*options.FindOptions{
 				options.Find().SetSkip(1),
