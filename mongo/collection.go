@@ -1658,7 +1658,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	findOpts := make([]*options.FindOptions, len(opts)+1)
+	findOpts := make([]*options.FindOptions, len(opts))
 	for idx, opt := range opts {
 		if opt == nil {
 			continue
