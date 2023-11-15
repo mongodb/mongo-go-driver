@@ -128,7 +128,6 @@ func (d *timeoutDialer) DialContext(ctx context.Context, network, address string
 
 // TestServerHeartbeatTimeout tests timeout retry for GODRIVER-2577.
 func TestServerHeartbeatTimeout(t *testing.T) {
-	t.Skip("skipping for GODRIVER-2335")
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
@@ -458,6 +457,7 @@ func TestServer(t *testing.T) {
 			generation, _ := server.pool.generation.getGeneration(&serviceID)
 			assert.Eventuallyf(t,
 				func() bool {
+					generation, _ := server.pool.generation.getGeneration(&serviceID)
 					numConns := server.pool.generation.getNumConns(&serviceID)
 					return generation == wantGeneration && numConns == wantNumConns
 				},

@@ -33,9 +33,9 @@ var (
 		// TODO(GODRIVER-2943): Fix and unskip this test case.
 		"Topology lifecycle": "Test times out.  See GODRIVER-2943",
 
-		// "Connection pool clear uses interruptInUseConnections=true after monitor timeout":                      "Godriver clears after multiple timeout",
-		// "Error returned from connection pool clear with interruptInUseConnections=true is retryable":           "Godriver clears after multiple timeout",
-		// "Error returned from connection pool clear with interruptInUseConnections=true is retryable for write": "Godriver clears after multiple timeout",
+		"Connection pool clear uses interruptInUseConnections=true after monitor timeout":                      "Godriver clears after multiple timeout",
+		"Error returned from connection pool clear with interruptInUseConnections=true is retryable":           "Godriver clears after multiple timeout",
+		"Error returned from connection pool clear with interruptInUseConnections=true is retryable for write": "Godriver clears after multiple timeout",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

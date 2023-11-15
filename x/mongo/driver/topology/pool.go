@@ -762,35 +762,52 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 // checkIn returns an idle connection to the pool. If the connection is perished or the pool is
 // closed, it is removed from the connection pool and closed.
 func (p *pool) checkIn(conn *connection) error {
-	if conn == nil {
-		return nil
-	}
-	if conn.pool != p {
-		return ErrWrongPool
-	}
+	return p.checkInWithCallback(conn, func() (reason, bool) {
+		if mustLogPoolMessage(p) {
+			keysAndValues := logger.KeyValues{
+				logger.KeyDriverConnectionID, conn.driverConnectionID,
+			}
 
-	if mustLogPoolMessage(p) {
-		keysAndValues := logger.KeyValues{
-			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
 		}
 
-		logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
-	}
+		if p.monitor != nil {
+			p.monitor.Event(&event.PoolEvent{
+				Type:         event.ConnectionCheckedIn,
+				ConnectionID: conn.driverConnectionID,
+				Address:      conn.addr.String(),
+			})
+		}
 
-	if p.monitor != nil {
-		p.monitor.Event(&event.PoolEvent{
-			Type:         event.ConnectionCheckedIn,
-			ConnectionID: conn.driverConnectionID,
-			Address:      conn.addr.String(),
-		})
-	}
-
-	return p.checkInNoEvent(conn)
+		r, perished := connectionPerished(conn)
+		if !perished && conn.pool.getState() == poolClosed {
+			perished = true
+			r = reason{
+				loggerConn: logger.ReasonConnClosedPoolClosed,
+				event:      event.ReasonPoolClosed,
+			}
+		}
+		return r, perished
+	})
 }
 
 // checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
 // not publish events. It is only intended for use by pool-internal functions.
 func (p *pool) checkInNoEvent(conn *connection) error {
+	return p.checkInWithCallback(conn, func() (reason, bool) {
+		r, perished := connectionPerished(conn)
+		if !perished && conn.pool.getState() == poolClosed {
+			perished = true
+			r = reason{
+				loggerConn: logger.ReasonConnClosedPoolClosed,
+				event:      event.ReasonPoolClosed,
+			}
+		}
+		return r, perished
+	})
+}
+
+func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) error {
 	if conn == nil {
 		return nil
 	}
@@ -808,20 +825,13 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	// connection should never be perished due to max idle time.
 	conn.bumpIdleDeadline()
 
-	if reason, perished := connectionPerished(conn); perished {
-		_ = p.removeConnection(conn, reason, nil)
-		go func() {
-			_ = p.closeConnection(conn)
-		}()
-		return nil
+	var r reason
+	var perished bool
+	if cb != nil {
+		r, perished = cb()
 	}
-
-	if conn.pool.getState() == poolClosed {
-		_ = p.removeConnection(conn, reason{
-			loggerConn: logger.ReasonConnClosedPoolClosed,
-			event:      event.ReasonPoolClosed,
-		}, nil)
-
+	if perished {
+		_ = p.removeConnection(conn, r, nil)
 		go func() {
 			_ = p.closeConnection(conn)
 		}()
@@ -851,28 +861,43 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	return nil
 }
 
-func (p *pool) interruptInUseConnections() {
+// clearAll does same as the "clear" method and interrupts all in-use connections as well.
+func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
+	if done := p.clearImpl(err, serviceID, true); !done {
+		return
+	}
 	for _, conn := range p.conns {
 		if conn.inUse && p.stale(conn) {
-			_ = p.removeConnection(conn, reason{
-				loggerConn: logger.ReasonConnClosedStale,
-				event:      event.ReasonStale,
-			}, nil)
-			go func(conn *connection) {
-				if conn.pool != p {
-					return
+			_ = conn.closeWithErr(poolClearedError{
+				err:     fmt.Errorf("interrupted"),
+				address: p.address,
+			})
+			_ = p.checkInWithCallback(conn, func() (reason, bool) {
+				if mustLogPoolMessage(p) {
+					keysAndValues := logger.KeyValues{
+						logger.KeyDriverConnectionID, conn.driverConnectionID,
+					}
+
+					logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
 				}
 
-				if atomic.LoadInt64(&conn.state) == connConnected {
-					conn.closeConnectContext()
-					conn.wait() // Make sure that the connection has finished connecting.
+				if p.monitor != nil {
+					p.monitor.Event(&event.PoolEvent{
+						Type:         event.ConnectionCheckedIn,
+						ConnectionID: conn.driverConnectionID,
+						Address:      conn.addr.String(),
+					})
 				}
 
-				_ = conn.closeWithErr(poolClearedError{
-					err:     fmt.Errorf("interrupted"),
-					address: p.address,
-				})
-			}(conn)
+				r, ok := connectionPerished(conn)
+				if ok {
+					r = reason{
+						loggerConn: logger.ReasonConnClosedStale,
+						event:      event.ReasonStale,
+					}
+				}
+				return r, ok
+			})
 		}
 	}
 }
@@ -882,9 +907,13 @@ func (p *pool) interruptInUseConnections() {
 // "paused". If serviceID is nil, clear marks all connections as stale. If serviceID is not nil,
 // clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
-func (p *pool) clear(err error, serviceID *primitive.ObjectID, cleaningupFns ...func()) {
+func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
+	p.clearImpl(err, serviceID, false)
+}
+
+func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, isInterruption bool) bool {
 	if p.getState() == poolClosed {
-		return
+		return false
 	}
 
 	p.generation.clear(serviceID)
@@ -906,7 +935,30 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID, cleaningupFns ...
 		}
 		p.lastClearErr = err
 		p.stateMu.Unlock()
+	}
 
+	if mustLogPoolMessage(p) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyServiceID, serviceID,
+		}
+
+		logPoolMessage(p, logger.ConnectionPoolCleared, keysAndValues...)
+	}
+
+	if sendEvent && p.monitor != nil {
+		event := &event.PoolEvent{
+			Type:      event.PoolCleared,
+			Address:   p.address.String(),
+			ServiceID: serviceID,
+			Error:     err,
+		}
+		if isInterruption {
+			event.Interruption = true
+		}
+		p.monitor.Event(event)
+	}
+
+	if serviceID == nil {
 		pcErr := poolClearedError{err: err, address: p.address}
 
 		// Clear the idle connections wait queue.
@@ -934,30 +986,8 @@ func (p *pool) clear(err error, serviceID *primitive.ObjectID, cleaningupFns ...
 		p.createConnectionsCond.L.Unlock()
 	}
 
-	if mustLogPoolMessage(p) {
-		keysAndValues := logger.KeyValues{
-			logger.KeyServiceID, serviceID,
-		}
-
-		logPoolMessage(p, logger.ConnectionPoolCleared, keysAndValues...)
-	}
-
-	if sendEvent && p.monitor != nil {
-		p.monitor.Event(&event.PoolEvent{
-			Type:      event.PoolCleared,
-			Address:   p.address.String(),
-			ServiceID: serviceID,
-			Error:     err,
-		})
-	}
-
-	for _, fn := range cleaningupFns {
-		if fn != nil {
-			fn()
-		}
-	}
-
 	p.removePerishedConns()
+	return true
 }
 
 // getOrQueueForIdleConn attempts to deliver an idle connection to the given wantConn. If there is
