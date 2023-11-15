@@ -779,15 +779,15 @@ func (p *pool) checkIn(conn *connection) error {
 			})
 		}
 
-		r, ok := connectionPerished(conn)
-		if !ok && conn.pool.getState() == poolClosed {
-			ok = true
+		r, perished := connectionPerished(conn)
+		if !perished && conn.pool.getState() == poolClosed {
+			perished = true
 			r = reason{
 				loggerConn: logger.ReasonConnClosedPoolClosed,
 				event:      event.ReasonPoolClosed,
 			}
 		}
-		return r, ok
+		return r, perished
 	})
 }
 
@@ -795,15 +795,15 @@ func (p *pool) checkIn(conn *connection) error {
 // not publish events. It is only intended for use by pool-internal functions.
 func (p *pool) checkInNoEvent(conn *connection) error {
 	return p.checkInWithCallback(conn, func() (reason, bool) {
-		r, ok := connectionPerished(conn)
-		if !ok && conn.pool.getState() == poolClosed {
-			ok = true
+		r, perished := connectionPerished(conn)
+		if !perished && conn.pool.getState() == poolClosed {
+			perished = true
 			r = reason{
 				loggerConn: logger.ReasonConnClosedPoolClosed,
 				event:      event.ReasonPoolClosed,
 			}
 		}
-		return r, ok
+		return r, perished
 	})
 }
 
@@ -817,30 +817,24 @@ func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) e
 
 	conn.inUse = false
 
-	if removed := func() bool {
-		// Bump the connection idle deadline here because we're about to make the connection "available".
-		// The idle deadline is used to determine when a connection has reached its max idle time and
-		// should be closed. A connection reaches its max idle time when it has been "available" in the
-		// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
-		// we call connectionPerished(), which checks the idle deadline, because a newly "available"
-		// connection should never be perished due to max idle time.
-		conn.bumpIdleDeadline()
+	// Bump the connection idle deadline here because we're about to make the connection "available".
+	// The idle deadline is used to determine when a connection has reached its max idle time and
+	// should be closed. A connection reaches its max idle time when it has been "available" in the
+	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
+	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
+	// connection should never be perished due to max idle time.
+	conn.bumpIdleDeadline()
 
-		var r reason
-		var ok bool
-		if cb != nil {
-			r, ok = cb()
-		}
-		if !ok {
-			return false
-		}
-
+	var r reason
+	var perished bool
+	if cb != nil {
+		r, perished = cb()
+	}
+	if perished {
 		_ = p.removeConnection(conn, r, nil)
 		go func() {
 			_ = p.closeConnection(conn)
 		}()
-		return true
-	}(); removed {
 		return nil
 	}
 
@@ -869,9 +863,7 @@ func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) e
 
 // clearAll does same as the "clear" method and interrupts all in-use connections as well.
 func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
-	if done := p.clearWithEvent(err, serviceID, func(e *event.PoolEvent) {
-		e.Interruption = true
-	}); !done {
+	if done := p.clearImpl(err, serviceID, true); !done {
 		return
 	}
 	for _, conn := range p.conns {
@@ -916,10 +908,10 @@ func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
 // clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
 func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
-	p.clearWithEvent(err, serviceID, nil)
+	p.clearImpl(err, serviceID, false)
 }
 
-func (p *pool) clearWithEvent(err error, serviceID *primitive.ObjectID, modifyEvent func(*event.PoolEvent)) bool {
+func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, isInterruption bool) bool {
 	if p.getState() == poolClosed {
 		return false
 	}
@@ -960,8 +952,8 @@ func (p *pool) clearWithEvent(err error, serviceID *primitive.ObjectID, modifyEv
 			ServiceID: serviceID,
 			Error:     err,
 		}
-		if modifyEvent != nil {
-			modifyEvent(event)
+		if isInterruption {
+			event.Interruption = true
 		}
 		p.monitor.Event(event)
 	}
