@@ -239,8 +239,8 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val 
 }
 
 func newDecodeError(key string, original error) error {
-	de, ok := original.(*DecodeError)
-	if !ok {
+	var de *DecodeError
+	if !errors.As(original, &de) {
 		return &DecodeError{
 			keys:    []string{key},
 			wrapped: original,

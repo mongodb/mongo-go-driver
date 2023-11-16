@@ -313,7 +313,7 @@ func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 			if mc.EncodeKeysWithStringer {
 				parsed, err := strconv.ParseFloat(key, 64)
 				if err != nil {
-					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %v", keyType.Kind(), err)
+					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %w", keyType.Kind(), err)
 				}
 				keyVal = reflect.ValueOf(parsed)
 				break

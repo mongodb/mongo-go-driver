@@ -2370,8 +2370,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 						return
 					}
 					if rc.val == cansettest { // We're doing an IsValid and CanSet test
-						wanterr, ok := rc.err.(ValueDecoderError)
-						if !ok {
+						var wanterr ValueDecoderError
+						if !errors.As(rc.err, &wanterr) {
 							t.Fatalf("Error must be a DecodeValueError, but got a %T", rc.err)
 						}
 
@@ -3685,8 +3685,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 			val := reflect.New(reflect.TypeOf(outer{})).Elem()
 			err := defaultTestStructCodec.DecodeValue(dc, vr, val)
 
-			decodeErr, ok := err.(*DecodeError)
-			assert.True(t, ok, "expected DecodeError, got %v of type %T", err, err)
+			var decodeErr *DecodeError
+			assert.True(t, errors.As(err, &decodeErr), "expected DecodeError, got %v of type %T", err, err)
 			expectedKeys := []string{"foo", "bar"}
 			assert.Equal(t, expectedKeys, decodeErr.Keys(), "expected keys slice %v, got %v", expectedKeys,
 				decodeErr.Keys())
