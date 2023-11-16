@@ -624,7 +624,8 @@ func (p *parser) addHost(host string) error {
 	// this is unfortunate that SplitHostPort actually requires
 	// a port to exist.
 	if err != nil {
-		if addrError, ok := err.(*net.AddrError); !ok || addrError.Err != "missing port in address" {
+		var addrError *net.AddrError
+		if !errors.As(err, &addrError) || addrError.Err != "missing port in address" {
 			return err
 		}
 	}
