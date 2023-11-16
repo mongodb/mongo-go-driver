@@ -549,9 +549,7 @@ func (s *Server) update() {
 	checkNow := s.checkNow
 	done := s.done
 
-	defer func() {
-		_ = recover()
-	}()
+	defer logUnexpectedFailure(s.cfg.logger, "Encountered unexpected failure updating server")
 
 	closeServer := func() {
 		s.subLock.Lock()
@@ -683,10 +681,7 @@ func (s *Server) updateDescription(desc description.Server) {
 		return
 	}
 
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		_ = recover()
-	}()
+	defer logUnexpectedFailure(s.cfg.logger, "Encountered unexpected failure updating server description")
 
 	// Anytime we update the server description to something other than "unknown", set the pool to
 	// "ready". Do this before updating the description so that connections can be checked out as
