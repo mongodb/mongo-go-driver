@@ -498,6 +498,8 @@ func (c *connection) close() error {
 
 func (c *connection) closeWithErr(err error) error {
 	c.err = err
+	c.closeConnectContext()
+	c.wait() // Make sure that the connection has finished connecting.
 	return c.close()
 }
 
