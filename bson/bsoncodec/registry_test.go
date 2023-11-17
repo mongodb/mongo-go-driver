@@ -7,6 +7,7 @@
 package bsoncodec
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -351,7 +352,8 @@ func TestRegistryBuilder(t *testing.T) {
 					})
 					t.Run("Decoder", func(t *testing.T) {
 						wanterr := tc.wanterr
-						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
+						var ene ErrNoEncoder
+						if errors.As(tc.wanterr, &ene) {
 							wanterr = ErrNoDecoder(ene)
 						}
 
@@ -775,7 +777,8 @@ func TestRegistry(t *testing.T) {
 						t.Parallel()
 
 						wanterr := tc.wanterr
-						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
+						var ene ErrNoEncoder
+						if errors.As(tc.wanterr, &ene) {
 							wanterr = ErrNoDecoder(ene)
 						}
 

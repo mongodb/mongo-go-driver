@@ -142,7 +142,8 @@ func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
 // write errors are included since the actual command did succeed, only writes
 // failed.
 func (info finishedInformation) success() bool {
-	if _, ok := info.cmdErr.(WriteCommandError); ok {
+	var writeCmdErr WriteCommandError
+	if errors.As(info.cmdErr, &writeCmdErr) {
 		return true
 	}
 
@@ -1492,7 +1493,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	}
 
 	t, data, err := wc.MarshalBSONValue()
-	if err == writeconcern.ErrEmptyWriteConcern {
+	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
 		return dst, nil
 	}
 	if err != nil {
