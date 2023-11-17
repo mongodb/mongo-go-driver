@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -567,7 +568,7 @@ func (h *Hello) Execute(ctx context.Context) error {
 }
 
 // StreamResponse gets the next streaming Hello response from the server.
-func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnection) error {
+func (h *Hello) StreamResponse(ctx context.Context, conn *mnet.Connection) error {
 	return h.createOperation().ExecuteExhaust(ctx, conn)
 }
 
@@ -601,8 +602,8 @@ func (h *Hello) createOperation() driver.Operation {
 
 // GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
 // information about the server. This function implements the driver.Handshaker interface.
-func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, c driver.Connection) (driver.HandshakeInformation, error) {
-	deployment := driver.SingleConnectionDeployment{C: c}
+func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, conn *mnet.Connection) (driver.HandshakeInformation, error) {
+	deployment := driver.SingleConnectionDeployment{C: conn}
 
 	op := driver.Operation{
 		Clock:      h.clock,
@@ -625,7 +626,7 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	}
 
 	info := driver.HandshakeInformation{
-		Description: h.Result(c.Address()),
+		Description: h.Result(conn.Address()),
 	}
 	if speculativeAuthenticate, ok := h.res.Lookup("speculativeAuthenticate").DocumentOK(); ok {
 		info.SpeculativeAuthenticate = speculativeAuthenticate
@@ -646,6 +647,6 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 
 // FinishHandshake implements the Handshaker interface. This is a no-op function because a non-authenticated connection
 // does not do anything besides the initial Hello for a handshake.
-func (h *Hello) FinishHandshake(context.Context, driver.Connection) error {
+func (h *Hello) FinishHandshake(context.Context, *mnet.Connection) error {
 	return nil
 }

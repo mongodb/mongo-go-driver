@@ -7,19 +7,18 @@
 package session // import "go.mongodb.org/mongo-driver/x/mongo/driver/session"
 
 import (
-	"context"
 	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 // ErrSessionEnded is returned when a client session is used after a call to endSession().
@@ -80,16 +79,8 @@ func (s TransactionState) String() string {
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
 // and exists to be able to pin transactions to a connection without causing an import cycle.
 type LoadBalancedTransactionConnection interface {
-	// Functions copied over from driver.Connection.
-	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context) ([]byte, error)
-	Description() description.Server
-	Close() error
-	ID() string
-	ServerConnectionID() *int64
-	DriverConnectionID() int64
-	Address() address.Address
-	Stale() bool
+	mnet.WireMessageReadWriteCloser
+	mnet.Describer
 
 	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
 	PinToCursor() error

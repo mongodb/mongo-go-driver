@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -50,15 +51,16 @@ type connection struct {
 	responses []bson.D // responses to send when ReadWireMessage is called
 }
 
-var _ driver.Connection = &connection{}
+var _ mnet.WireMessageReadWriteCloser = &connection{}
+var _ mnet.Describer = &connection{}
 
 // WriteWireMessage is a no-op.
-func (c *connection) WriteWireMessage(context.Context, []byte) error {
+func (c *connection) Write(context.Context, []byte) error {
 	return nil
 }
 
 // ReadWireMessage returns the next response in the connection's list of responses.
-func (c *connection) ReadWireMessage(_ context.Context) ([]byte, error) {
+func (c *connection) Read(_ context.Context) ([]byte, error) {
 	var dst []byte
 	if len(c.responses) == 0 {
 		return dst, errors.New("no responses remaining")
@@ -137,8 +139,10 @@ func (md *mockDeployment) Kind() description.TopologyKind {
 }
 
 // Connection implements the driver.Server interface.
-func (md *mockDeployment) Connection(context.Context) (driver.Connection, error) {
-	return md.conn, nil
+func (md *mockDeployment) Connection(context.Context) (*mnet.Connection, error) {
+	return &mnet.Connection{
+		WireMessageReadWriteCloser: md.conn,
+		Describer:                  md.conn}, nil
 }
 
 // RTTMonitor implements the driver.Server interface.

@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	. "go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 func TestPlainAuthenticator_Fails(t *testing.T) {
@@ -48,7 +49,12 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
+	mnetconn := &mnet.Connection{
+		WireMessageReadWriteCloser: c,
+		Describer:                  c,
+	}
+
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -91,7 +97,12 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
+	mnetconn := &mnet.Connection{
+		WireMessageReadWriteCloser: c,
+		Describer:                  c,
+	}
+
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -129,7 +140,12 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
+	mnetconn := &mnet.Connection{
+		WireMessageReadWriteCloser: c,
+		Describer:                  c,
+	}
+
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
@@ -174,7 +190,12 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 		Desc:     desc,
 	}
 
-	err := authenticator.Auth(context.Background(), &Config{Description: desc, Connection: c})
+	mnetconn := &mnet.Connection{
+		WireMessageReadWriteCloser: c,
+		Describer:                  c,
+	}
+
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	require.NoError(t, err, "Auth error")
 	require.Len(t, c.Written, 1, "expected 1 messages to be sent")
 

@@ -15,6 +15,7 @@ import (
 
 	"github.com/montanaflynn/stats"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -35,7 +36,7 @@ type rttConfig struct {
 
 	minRTTWindow       time.Duration
 	createConnectionFn func() *connection
-	createOperationFn  func(driver.Connection) *operation.Hello
+	createOperationFn  func(*mnet.Connection) *operation.Hello
 }
 
 type rttMonitor struct {
@@ -179,7 +180,11 @@ func (r *rttMonitor) runHellos(conn *connection) {
 		ctx, cancel := context.WithTimeout(r.ctx, timeout)
 
 		start := time.Now()
-		err := r.cfg.createOperationFn(initConnection{conn}).Execute(ctx)
+		iconn := initConnection{conn}
+		err := r.cfg.createOperationFn(&mnet.Connection{
+			WireMessageReadWriteCloser: iconn,
+			Describer:                  iconn,
+		}).Execute(ctx)
 		cancel()
 		if err != nil {
 			return

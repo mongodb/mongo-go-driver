@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -520,8 +521,8 @@ func (lbcd *loadBalancedCursorDeployment) Kind() description.TopologyKind {
 	return description.LoadBalanced
 }
 
-func (lbcd *loadBalancedCursorDeployment) Connection(_ context.Context) (Connection, error) {
-	return lbcd.conn, nil
+func (lbcd *loadBalancedCursorDeployment) Connection(context.Context) (*mnet.Connection, error) {
+	return &mnet.Connection{WireMessageReadWriteCloser: lbcd.conn, Describer: lbcd.conn}, nil
 }
 
 // RTTMonitor implements the driver.Server interface.
@@ -529,6 +530,6 @@ func (lbcd *loadBalancedCursorDeployment) RTTMonitor() RTTMonitor {
 	return &csot.ZeroRTTMonitor{}
 }
 
-func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
-	return lbcd.errorProcessor.ProcessError(err, conn)
+func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, desc mnet.Describer) ProcessErrorResult {
+	return lbcd.errorProcessor.ProcessError(err, desc)
 }

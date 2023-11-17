@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -50,29 +51,29 @@ type Subscriber interface {
 // Server represents a MongoDB server. Implementations should pool connections and handle the
 // retrieving and returning of connections.
 type Server interface {
-	Connection(context.Context) (Connection, error)
+	Connection(context.Context) (*mnet.Connection, error)
 
 	// RTTMonitor returns the round-trip time monitor associated with this server.
 	RTTMonitor() RTTMonitor
 }
 
 // Connection represents a connection to a MongoDB server.
-type Connection interface {
-	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context) ([]byte, error)
-	Description() description.Server
-
-	// Close closes any underlying connection and returns or frees any resources held by the
-	// connection. Close is idempotent and can be called multiple times, although subsequent calls
-	// to Close may return an error. A connection cannot be used after it is closed.
-	Close() error
-
-	ID() string
-	ServerConnectionID() *int64
-	DriverConnectionID() int64
-	Address() address.Address
-	Stale() bool
-}
+//type Connection interface {
+//	WriteWireMessage(context.Context, []byte) error
+//	ReadWireMessage(ctx context.Context) ([]byte, error)
+//	Description() description.Server
+//
+//	// Close closes any underlying connection and returns or frees any resources held by the
+//	// connection. Close is idempotent and can be called multiple times, although subsequent calls
+//	// to Close may return an error. A connection cannot be used after it is closed.
+//	Close() error
+//
+//	ID() string
+//	ServerConnectionID() *int64
+//	DriverConnectionID() int64
+//	Address() address.Address
+//	Stale() bool
+//}
 
 // RTTMonitor represents a round-trip-time monitor.
 type RTTMonitor interface {
@@ -98,7 +99,9 @@ var _ RTTMonitor = &csot.ZeroRTTMonitor{}
 // 2. Each Unpin* call should decrement the number of references for the connection.
 // 3. Calls to Close() should be ignored until all resources have unpinned the connection.
 type PinnedConnection interface {
-	Connection
+	//Connection
+	mnet.WireMessageReadWriteCloser
+	mnet.Describer
 	PinToCursor() error
 	PinToTransaction() error
 	UnpinFromCursor() error
@@ -130,7 +133,8 @@ type Expirable interface {
 // CanStream corresponds to the exhaustAllowed flag. The operations layer will set exhaustAllowed on outgoing wire
 // messages to inform the server that the driver supports streaming.
 type StreamerConnection interface {
-	Connection
+	mnet.WireMessageReadWriteCloser
+	mnet.Describer
 	SetStreaming(bool)
 	CurrentlyStreaming() bool
 	SupportsStreaming() bool
@@ -162,7 +166,7 @@ const (
 // If this type is implemented by a Server, then Operation.Execute will call it's ProcessError
 // method after it decodes a wire message.
 type ErrorProcessor interface {
-	ProcessError(err error, conn Connection) ProcessErrorResult
+	ProcessError(err error, desc mnet.Describer) ProcessErrorResult
 }
 
 // HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that
@@ -181,8 +185,8 @@ type HandshakeInformation struct {
 // handshake over a provided driver.Connection. This is used during connection
 // initialization. Implementations must be goroutine safe.
 type Handshaker interface {
-	GetHandshakeInformation(context.Context, address.Address, Connection) (HandshakeInformation, error)
-	FinishHandshake(context.Context, Connection) error
+	GetHandshakeInformation(context.Context, address.Address, *mnet.Connection) (HandshakeInformation, error)
+	FinishHandshake(context.Context, *mnet.Connection) error
 }
 
 // SingleServerDeployment is an implementation of Deployment that always returns a single server.
@@ -202,7 +206,7 @@ func (SingleServerDeployment) Kind() description.TopologyKind { return descripti
 // SingleConnectionDeployment is an implementation of Deployment that always returns the same Connection. This
 // implementation should only be used for connection handshakes and server heartbeats as it does not implement
 // ErrorProcessor, which is necessary for application operations.
-type SingleConnectionDeployment struct{ C Connection }
+type SingleConnectionDeployment struct{ C *mnet.Connection }
 
 var _ Deployment = SingleConnectionDeployment{}
 var _ Server = SingleConnectionDeployment{}
@@ -218,7 +222,7 @@ func (scd SingleConnectionDeployment) SelectServer(context.Context, description.
 func (SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
 
 // Connection implements the Server interface. It always returns the embedded connection.
-func (scd SingleConnectionDeployment) Connection(context.Context) (Connection, error) {
+func (scd SingleConnectionDeployment) Connection(context.Context) (*mnet.Connection, error) {
 	return scd.C, nil
 }
 

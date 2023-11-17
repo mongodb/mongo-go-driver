@@ -14,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 const (
@@ -68,18 +69,23 @@ func TestSCRAM(t *testing.T) {
 						Max: 21,
 					},
 				}
-				conn := &drivertest.ChannelConn{
+				chanconn := &drivertest.ChannelConn{
 					Written:  make(chan []byte, len(tc.payloads)),
 					ReadResp: responses,
 					Desc:     desc,
 				}
 
-				err = authenticator.Auth(context.Background(), &Config{Description: desc, Connection: conn})
+				conn := &mnet.Connection{
+					WireMessageReadWriteCloser: chanconn,
+					Describer:                  chanconn,
+				}
+
+				err = authenticator.Auth(context.Background(), &Config{Connection: conn})
 				assert.Nil(t, err, "Auth error: %v\n", err)
 
 				// Verify that the first command sent is saslStart.
-				assert.True(t, len(conn.Written) > 1, "wire messages were written to the connection")
-				startCmd, err := drivertest.GetCommandFromMsgWireMessage(<-conn.Written)
+				assert.True(t, len(chanconn.Written) > 1, "wire messages were written to the connection")
+				startCmd, err := drivertest.GetCommandFromMsgWireMessage(<-chanconn.Written)
 				assert.Nil(t, err, "error parsing wire message: %v", err)
 				cmdName := startCmd.Index(0).Key()
 				assert.Equal(t, cmdName, "saslStart", "cmd name mismatch; expected 'saslStart', got %v", cmdName)
