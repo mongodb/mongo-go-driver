@@ -175,7 +175,11 @@ functions:
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
 
-  upload-mo-artifacts:
+  handle-test-artifacts:
+    - command: gotest.parse_files
+      params:
+        files:
+          - "src/go.mongodb.org/mongo-driver/*.suite"
     - command: shell.exec
       params:
         shell: "bash"
@@ -196,25 +200,30 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
+        optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
-
-  upload-raw-test-suite:
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          tar czf test.suite.tgz test.suite
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/go.mongodb.org/mongo-driver/test.suite
+        local_file: src/go.mongodb.org/mongo-driver/test.suite.tgz
         optional: true
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test.suite.txt
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test.suite.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: ${content_type|text/plain}
-        display_name: "test.suite.txt"
+        display_name: "test.suite.tgz"
 
   bootstrap-mongohoused:
     - command: shell.exec
@@ -276,8 +285,28 @@ functions:
       params:
         shell: "bash"
         script: |
+          # Ensure the instance profile is reassigned for aws tests.
+          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
+          if [ -f "./aws_e2e_setup.json" ]; then
+            . ./activate-authawsvenv.sh
+            python ./lib/aws_assign_instance_profile.py
+          fi
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
+          # balancer is not running.
+          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
           ${PREPARE_SHELL}
+          # Stop orchestration and remove drivers tools.
           bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
+          cd -
+          rm -rf $DRIVERS_TOOLS || true
 
   fix-absolute-paths:
     - command: shell.exec
@@ -707,26 +736,6 @@ functions:
           TEST_INDEX_URI="${TEST_INDEX_URI}" \
           make evg-test-search-index
 
-  stop-load-balancer:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
-          # balancer is not running.
-          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
-
-  teardown-aws:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
-          if [ -f "./aws_e2e_setup.json" ]; then
-            . ./activate-authawsvenv.sh
-            python ./lib/aws_assign_instance_profile.py
-          fi
-
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
       params:
@@ -1019,14 +1028,7 @@ pre:
   - func: make-files-executable
 
 post:
-  - command: gotest.parse_files
-    params:
-      files:
-        - "src/go.mongodb.org/mongo-driver/*.suite"
-  - func: upload-mo-artifacts
-  - func: upload-raw-test-suite
-  - func: stop-load-balancer
-  - func: teardown-aws
+  - func: handle-test-artifacts
   - func: cleanup
 
 tasks:
@@ -2372,21 +2374,8 @@ task_groups:
             SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
             SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
               bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
-      - command: gotest.parse_files
-        params:
-          files:
-            - "src/go.mongodb.org/mongo-driver/*.suite"
-      - func: upload-raw-test-suite
-      - command: s3.put
-        params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: mongodb-logs.tar.gz
-          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
-          bucket: mciuploads
-          permissions: public-read
-          content_type: ${content_type|application/x-gzip}
-          display_name: "mongodb-logs.tar.gz"
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - ".serverless"
 
@@ -2413,7 +2402,6 @@ task_groups:
         params:
           file: testgcpkms-expansions.yml
     teardown_group:
-      - func: upload-raw-test-suite
       - command: shell.exec
         params:
           shell: "bash"
@@ -2424,8 +2412,11 @@ task_groups:
             export GCPKMS_ZONE=${GCPKMS_ZONE}
             export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - testgcpkms-task
+
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
     teardown_group_can_fail_task: true
@@ -2462,6 +2453,8 @@ task_groups:
             export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - testazurekms-task
 
@@ -2493,6 +2486,8 @@ task_groups:
             AWS_REGION: us-east-1
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2524,7 +2519,6 @@ task_groups:
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
     teardown_group:
-      - func: upload-raw-test-suite
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
@@ -2532,6 +2526,8 @@ task_groups:
           add_expansions_to_env: true
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
