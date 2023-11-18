@@ -75,6 +75,8 @@ func (s TransactionState) String() string {
 	}
 }
 
+var _ mnet.Pinned = (LoadBalancedTransactionConnection)(nil)
+
 // LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
 // and exists to be able to pin transactions to a connection without causing an import cycle.

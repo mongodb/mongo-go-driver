@@ -45,9 +45,17 @@ type Compressor interface {
 	CompressWireMessage(src, dst []byte) ([]byte, error)
 }
 
+type Pinned interface {
+	PinToCursor() error
+	PinToTransaction() error
+	UnpinFromCursor() error
+	UnpinFromTransaction() error
+}
+
 type Connection struct {
 	WireMessageReadWriteCloser
 	Describer
 	Streamer
 	Compressor
+	Pinned
 }

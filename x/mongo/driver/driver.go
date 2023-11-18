@@ -15,7 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.
@@ -98,20 +97,20 @@ var _ RTTMonitor = &csot.ZeroRTTMonitor{}
 // 1. Each Pin* call should increment the number of references for the connection.
 // 2. Each Unpin* call should decrement the number of references for the connection.
 // 3. Calls to Close() should be ignored until all resources have unpinned the connection.
-type PinnedConnection interface {
-	//Connection
-	mnet.WireMessageReadWriteCloser
-	mnet.Describer
-	PinToCursor() error
-	PinToTransaction() error
-	UnpinFromCursor() error
-	UnpinFromTransaction() error
-}
+//type PinnedConnection interface {
+//	//Connection
+//	mnet.WireMessageReadWriteCloser
+//	mnet.Describer
+//	PinToCursor() error
+//	PinToTransaction() error
+//	UnpinFromCursor() error
+//	UnpinFromTransaction() error
+//}
 
 // The session.LoadBalancedTransactionConnection type is a copy of PinnedConnection that was introduced to avoid
 // import cycles. This compile-time assertion ensures that these types remain in sync if the PinnedConnection interface
 // is changed in the future.
-var _ PinnedConnection = (session.LoadBalancedTransactionConnection)(nil)
+// var _ PinnedConnection = (session.LoadBalancedTransactionConnection)(nil)
 
 // LocalAddresser is a type that is able to supply its local address
 type LocalAddresser interface {

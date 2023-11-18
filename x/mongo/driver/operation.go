@@ -137,7 +137,7 @@ func (info finishedInformation) success() bool {
 type ResponseInfo struct {
 	ServerResponse        bsoncore.Document
 	Server                Server
-	Connection            mnet.WireMessageReadWriteCloser
+	Connection            *mnet.Connection
 	ConnectionDescription description.Server
 	CurrentIndex          int
 }
@@ -425,6 +425,7 @@ func (op Operation) getServerAndConnection(
 		pinnedConn := &mnet.Connection{
 			WireMessageReadWriteCloser: op.Client.PinnedConnection,
 			Describer:                  op.Client.PinnedConnection,
+			Pinned:                     op.Client.PinnedConnection,
 		}
 
 		return server, pinnedConn, nil
@@ -438,18 +439,17 @@ func (op Operation) getServerAndConnection(
 
 	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
 	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
-		pinnedConn, ok := conn.WireMessageReadWriteCloser.(PinnedConnection)
-		if !ok {
+		if conn.Pinned == nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
 			return nil, nil, fmt.Errorf("expected Connection used to start a transaction to be a PinnedConnection, but got %T", conn)
 		}
-		if err := pinnedConn.PinToTransaction(); err != nil {
+		if err := conn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
 			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
 		}
-		op.Client.PinnedConnection = pinnedConn
+		op.Client.PinnedConnection = conn
 	}
 
 	return server, conn, nil

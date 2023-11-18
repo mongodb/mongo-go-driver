@@ -602,8 +602,8 @@ type Connection struct {
 var _ mnet.WireMessageReadWriteCloser = (*Connection)(nil)
 var _ mnet.Describer = (*Connection)(nil)
 var _ mnet.Compressor = (*Connection)(nil)
+var _ mnet.Pinned = (*Connection)(nil)
 var _ driver.Expirable = (*Connection)(nil)
-var _ driver.PinnedConnection = (*Connection)(nil)
 
 // WriteWireMessage handles writing a wire message to the underlying connection.
 func (c *Connection) Write(ctx context.Context, wm []byte) error {

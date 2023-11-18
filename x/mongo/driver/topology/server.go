@@ -327,6 +327,7 @@ func (s *Server) Connection(ctx context.Context) (*mnet.Connection, error) {
 		WireMessageReadWriteCloser: serverConn,
 		Describer:                  serverConn,
 		Compressor:                 serverConn,
+		Pinned:                     serverConn,
 	}, nil
 }
 
