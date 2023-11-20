@@ -57,7 +57,7 @@ func newConfig(certChain []*x509.Certificate, opts *VerifyOptions) (config, erro
 	var err error
 	cfg.ocspRequestBytes, err = ocsp.CreateRequest(cfg.serverCert, cfg.issuer, nil)
 	if err != nil {
-		return cfg, fmt.Errorf("error creating OCSP request: %v", err)
+		return cfg, fmt.Errorf("error creating OCSP request: %w", err)
 	}
 	cfg.ocspRequest, err = ocsp.ParseRequest(cfg.ocspRequestBytes)
 	if err != nil {
