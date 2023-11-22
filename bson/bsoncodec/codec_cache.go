@@ -41,7 +41,7 @@ func (c *typeEncoderCache) Load(rt reflect.Type) (ValueEncoder, bool) {
 }
 
 func (c *typeEncoderCache) LoadOrStore(rt reflect.Type, enc ValueEncoder) ValueEncoder {
-	if v, loaded := c.cache.LoadOrStore(rt, enc); loaded {
+	if v, loaded := c.cache.LoadOrStore(rt, enc); loaded && v != nil {
 		enc = v.(ValueEncoder)
 	}
 	return enc
@@ -74,7 +74,7 @@ func (c *typeDecoderCache) Load(rt reflect.Type) (ValueDecoder, bool) {
 }
 
 func (c *typeDecoderCache) LoadOrStore(rt reflect.Type, dec ValueDecoder) ValueDecoder {
-	if v, loaded := c.cache.LoadOrStore(rt, dec); loaded {
+	if v, loaded := c.cache.LoadOrStore(rt, dec); loaded && v != nil {
 		dec = v.(ValueDecoder)
 	}
 	return dec
