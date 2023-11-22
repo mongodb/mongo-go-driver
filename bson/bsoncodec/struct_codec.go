@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"golang.org/x/sync/singleflight"
 )
 
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
@@ -65,6 +66,8 @@ type Zeroer interface {
 type StructCodec struct {
 	cache  sync.Map // map[reflect.Type]*structDescription
 	parser StructTagParser
+
+	group *singleflight.Group
 
 	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
 	// destination value passed to Decode before unmarshaling BSON documents into them.
@@ -115,6 +118,7 @@ func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) 
 
 	codec := &StructCodec{
 		parser: p,
+		group:  new(singleflight.Group),
 	}
 
 	if structOpt.DecodeZeroStruct != nil {
@@ -478,12 +482,13 @@ func (sc *StructCodec) describeStruct(
 	if v, ok := sc.cache.Load(t); ok {
 		return v.(*structDescription), nil
 	}
-	// TODO(charlie): Only describe the struct once when called
-	// concurrently with the same type.
-	ds, err := sc.describeStructSlow(r, t, useJSONStructTags, errorOnDuplicates)
+	v, err, _ := sc.group.Do(t.String(), func() (interface{}, error) {
+		return sc.describeStructSlow(r, t, useJSONStructTags, errorOnDuplicates)
+	})
 	if err != nil {
 		return nil, err
 	}
+	ds := v.(*structDescription)
 	if v, loaded := sc.cache.LoadOrStore(t, ds); loaded {
 		ds = v.(*structDescription)
 	}
