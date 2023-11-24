@@ -219,6 +219,9 @@ func ensureID(
 	const extraSpace = 17
 	doc = make(bsoncore.Document, 0, len(olddoc)+extraSpace)
 	_, doc = bsoncore.ReserveLength(doc)
+	if oid.IsZero() {
+		oid = primitive.NewObjectID()
+	}
 	doc = bsoncore.AppendObjectIDElement(doc, "_id", oid)
 
 	// Remove and re-write the BSON document length header.
