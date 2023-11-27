@@ -11,6 +11,7 @@
 package awserr
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -106,7 +107,8 @@ func (b baseError) OrigErr() error {
 	case 1:
 		return b.errs[0]
 	default:
-		if err, ok := b.errs[0].(Error); ok {
+		var err Error
+		if errors.As(b.errs[0], &err) {
 			return NewBatchError(err.Code(), err.Message(), b.errs[1:])
 		}
 		return NewBatchError("BatchedErrors",

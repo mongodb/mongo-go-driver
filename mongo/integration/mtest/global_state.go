@@ -79,7 +79,7 @@ func ServerVersion() string {
 func SetFailPoint(fp FailPoint, client *mongo.Client) error {
 	admin := client.Database("admin")
 	if err := admin.RunCommand(context.Background(), fp).Err(); err != nil {
-		return fmt.Errorf("error creating fail point: %v", err)
+		return fmt.Errorf("error creating fail point: %w", err)
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func SetFailPoint(fp FailPoint, client *mongo.Client) error {
 func SetRawFailPoint(fp bson.Raw, client *mongo.Client) error {
 	admin := client.Database("admin")
 	if err := admin.RunCommand(context.Background(), fp).Err(); err != nil {
-		return fmt.Errorf("error creating fail point: %v", err)
+		return fmt.Errorf("error creating fail point: %w", err)
 	}
 	return nil
 }

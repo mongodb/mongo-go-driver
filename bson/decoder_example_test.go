@@ -8,6 +8,7 @@ package bson_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -200,7 +201,7 @@ func ExampleDecoder_multipleExtendedJSONDocuments() {
 	for {
 		var res Coordinate
 		err = decoder.Decode(&res)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
