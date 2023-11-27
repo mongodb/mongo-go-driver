@@ -75,7 +75,7 @@ func (s TransactionState) String() string {
 	}
 }
 
-var _ mnet.Pinned = (LoadBalancedTransactionConnection)(nil)
+var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
 
 // LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
@@ -83,12 +83,7 @@ var _ mnet.Pinned = (LoadBalancedTransactionConnection)(nil)
 type LoadBalancedTransactionConnection interface {
 	mnet.WireMessageReadWriteCloser
 	mnet.Describer
-
-	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
-	PinToCursor() error
-	PinToTransaction() error
-	UnpinFromCursor() error
-	UnpinFromTransaction() error
+	mnet.Pinner
 }
 
 // Client is a session for clients to run commands.

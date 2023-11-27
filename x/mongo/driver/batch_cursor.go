@@ -138,7 +138,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 		}
 		curresp.ErrorProcessor = ep
 
-		refConn := info.Connection.Pinned
+		refConn := info.Connection.Pinner
 		if refConn == nil {
 			//debug.PrintStack()
 			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
@@ -287,7 +287,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 }
 
 func (bc *BatchCursor) unpinConnection() error {
-	if bc.connection == nil || bc.connection.Pinned == nil {
+	if bc.connection == nil || bc.connection.Pinner == nil {
 		return nil
 	}
 
@@ -527,7 +527,7 @@ func (lbcd *loadBalancedCursorDeployment) Connection(context.Context) (*mnet.Con
 	return &mnet.Connection{
 		WireMessageReadWriteCloser: lbcd.conn,
 		Describer:                  lbcd.conn,
-		Pinned:                     lbcd.conn,
+		Pinner:                     lbcd.conn,
 	}, nil
 }
 

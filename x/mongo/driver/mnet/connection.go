@@ -14,20 +14,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
+// WireMessageReader represents a Connection where server operations can be
+// read from.
 type WireMessageReader interface {
 	Read(ctx context.Context) ([]byte, error)
 }
 
+// WireMessageWriter represents a Connection where server operations can be
+// written to.
 type WireMessageWriter interface {
 	Write(ctx context.Context, wm []byte) error
 }
 
+// WireMessageReadWriteCloser represents a Connection where server operations
+// can read from, written to, and closed.
 type WireMessageReadWriteCloser interface {
 	WireMessageReader
 	WireMessageWriter
 	io.Closer
 }
 
+// Describer represents a Connection that can be described.
 type Describer interface {
 	Description() description.Server
 	ID() string
@@ -37,6 +44,17 @@ type Describer interface {
 	Stale() bool
 }
 
+// Streamer represents a Connection that supports streaming wire protocol
+// messages using the moreToCome and exhaustAllowed flags.
+//
+// The SetStreaming and CurrentlyStreaming functions correspond to the
+// moreToCome flag on server responses. If a response has moreToCome set,
+// SetStreaming(true) will be called and CurrentlyStreaming() should return
+// true.
+//
+// CanStream corresponds to the exhaustAllowed flag. The operations layer will
+// set exhaustAllowed on outgoing wire messages to inform the server that the
+// driver supports streaming.
 type Streamer interface {
 	SetStreaming(bool)
 	CurrentlyStreaming() bool
@@ -51,17 +69,28 @@ type Compressor interface {
 	CompressWireMessage(src, dst []byte) ([]byte, error)
 }
 
-type Pinned interface {
+// Pinner represents a Connection that can be pinned by one or more cursors or
+// transactions. Implementations of this interface should maintain the following
+// invariants:
+//
+//  1. Each Pin* call should increment the number of references for the
+//     connection.
+//  2. Each Unpin* call should decrement the number of references for the
+//     connection.
+//  3. Calls to Close() should be ignored until all resources have unpinned the
+//     connection.
+type Pinner interface {
 	PinToCursor() error
 	PinToTransaction() error
 	UnpinFromCursor() error
 	UnpinFromTransaction() error
 }
 
+// Connection represents a connection to a MongoDB server.
 type Connection struct {
 	WireMessageReadWriteCloser
 	Describer
 	Streamer
 	Compressor
-	Pinned
+	Pinner
 }
