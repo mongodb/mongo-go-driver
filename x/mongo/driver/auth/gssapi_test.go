@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 func TestGSSAPIAuthenticator(t *testing.T) {
@@ -40,7 +41,7 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 		chanconn := &drivertest.ChannelConn{
 			Desc: desc,
 		}
-		err := authenticator.Auth(context.Background(), &Config{Connection: chanconn})
+		err := authenticator.Auth(context.Background(), &Config{Connection: &mnet.Connection{Describer: chanconn}})
 		if err == nil {
 			t.Fatalf("expected err, got nil")
 		}
