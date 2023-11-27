@@ -10,93 +10,47 @@ import (
 	"time"
 )
 
-// FindOptions represents options that can be used to configure a Find operation.
-type FindOptions struct {
+// FindArgs represents arguments that can be used to configure a Find operation.
+type FindArgs struct {
+	FindOneArgs
+
 	// AllowDiskUse specifies whether the server can write temporary data to disk while executing the Find operation.
 	// This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option
 	// is specified. For server versions < 3.2, the driver will return a client-side error if this option is specified.
 	// The default value is false.
 	AllowDiskUse *bool
 
-	// AllowPartial results specifies whether the Find operation on a sharded cluster can return partial results if some
-	// shards are down rather than returning an error. The default value is false.
-	AllowPartialResults *bool
-
 	// BatchSize is the maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
-
-	// Collation specifies a collation to use for string comparisons during the operation. This option is only valid for
-	// MongoDB versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
-	// default value is nil, which means the default collation of the collection will be used.
-	Collation *Collation
-
-	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
 
 	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
 	// means that the cursor will be closed by the server when the last batch of documents is retrieved.
 	CursorType *CursorType
-
-	// Hint is the index to use for the Find operation. This should either be the index name as a string or the index
-	// specification as a document. The driver will return an error if the hint parameter is a multi-key map. The default
-	// value is nil, which means that no hint will be sent.
-	Hint interface{}
-
-	// Limit is the maximum number of documents to return. The default value is 0, which means that all documents matching the
-	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
-	// batch. The default value is 0.
-	Limit *int64
-
-	// Max is a document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
-	// there is no maximum value.
-	Max interface{}
-
-	// MaxAwaitTime is the maximum amount of time that the server should wait for new documents to satisfy a tailable cursor
-	// query. This option is only valid for tailable await cursors (see the CursorType option for more information) and
-	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
-	MaxAwaitTime *time.Duration
-
-	// MaxTime is the maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in its
-	// place to control the amount of time that a single operation can run before returning an error. MaxTime is ignored if
-	// Timeout is set on the client.
-	MaxTime *time.Duration
-
-	// Min is a document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
-	// there is no minimum value.
-	Min interface{}
-
-	// NoCursorTimeout specifies whether the cursor created by the operation will not timeout after a period of inactivity.
-	// The default value is false.
-	NoCursorTimeout *bool
-
-	// Project is a document describing which fields will be included in the documents returned by the Find operation. The
-	// default value is nil, which means all fields will be included.
-	Projection interface{}
-
-	// ReturnKey specifies whether the documents returned by the Find operation will only contain fields corresponding to the
-	// index used. The default value is false.
-	ReturnKey *bool
-
-	// ShowRecordID specifies whether a $recordId field with a record identifier will be included in the documents returned by
-	// the Find operation. The default value is false.
-	ShowRecordID *bool
-
-	// Skip is the number of documents to skip before adding documents to the result. The default value is 0.
-	Skip *int64
-
-	// Sort is a document specifying the order in which documents should be returned.  The driver will return an error if the
-	// sort parameter is a multi-key map.
-	Sort interface{}
 
 	// Let specifies parameters for the find expression. This option is only valid for MongoDB versions >= 5.0. Older
 	// servers will report an error for using this option. This must be a document mapping parameter names to values.
 	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
+
+	// Limit is the maximum number of documents to return. The default value is 0, which means that all documents matching the
+	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
+	// batch. The default value is 0.
+	Limit *int64
+
+	// MaxAwaitTime is the maximum amount of time that the server should wait for new documents to satisfy a tailable cursor
+	// query. This option is only valid for tailable await cursors (see the CursorType option for more information) and
+	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
+	MaxAwaitTime *time.Duration
+
+	// NoCursorTimeout specifies whether the cursor created by the operation will not timeout after a period of inactivity.
+	// The default value is false.
+	NoCursorTimeout *bool
+}
+
+// FindOptions represents functional options that configure an FindArgs.
+type FindOptions struct {
+	Opts []func(*FindArgs) error
 }
 
 // Find creates a new FindOptions instance.
@@ -106,67 +60,100 @@ func Find() *FindOptions {
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
 func (f *FindOptions) SetAllowDiskUse(b bool) *FindOptions {
-	f.AllowDiskUse = &b
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.AllowDiskUse = &b
+		return nil
+	})
 	return f
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
 func (f *FindOptions) SetAllowPartialResults(b bool) *FindOptions {
-	f.AllowPartialResults = &b
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.AllowPartialResults = &b
+		return nil
+	})
 	return f
 }
 
 // SetBatchSize sets the value for the BatchSize field.
 func (f *FindOptions) SetBatchSize(i int32) *FindOptions {
-	f.BatchSize = &i
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.BatchSize = &i
+		return nil
+	})
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
 func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
-	f.Collation = collation
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Collation = collation
+		return nil
+	})
 	return f
 }
 
 // SetComment sets the value for the Comment field.
 func (f *FindOptions) SetComment(comment string) *FindOptions {
-	f.Comment = &comment
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Comment = &comment
+		return nil
+	})
 	return f
 }
 
 // SetCursorType sets the value for the CursorType field.
 func (f *FindOptions) SetCursorType(ct CursorType) *FindOptions {
-	f.CursorType = &ct
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.CursorType = &ct
+		return nil
+	})
 	return f
 }
 
 // SetHint sets the value for the Hint field.
 func (f *FindOptions) SetHint(hint interface{}) *FindOptions {
-	f.Hint = hint
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Hint = hint
+		return nil
+	})
 	return f
 }
 
 // SetLet sets the value for the Let field.
 func (f *FindOptions) SetLet(let interface{}) *FindOptions {
-	f.Let = let
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Let = let
+		return nil
+	})
 	return f
 }
 
 // SetLimit sets the value for the Limit field.
 func (f *FindOptions) SetLimit(i int64) *FindOptions {
-	f.Limit = &i
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Limit = &i
+		return nil
+	})
 	return f
 }
 
 // SetMax sets the value for the Max field.
 func (f *FindOptions) SetMax(max interface{}) *FindOptions {
-	f.Max = max
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Max = max
+		return nil
+	})
 	return f
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
 func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
-	f.MaxAwaitTime = &d
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.MaxAwaitTime = &d
+		return nil
+	})
 	return f
 }
 
@@ -176,54 +163,78 @@ func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 // option may be used used in its place to control the amount of time that a single operation
 // can run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOptions) SetMaxTime(d time.Duration) *FindOptions {
-	f.MaxTime = &d
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.MaxTime = &d
+		return nil
+	})
 	return f
 }
 
 // SetMin sets the value for the Min field.
 func (f *FindOptions) SetMin(min interface{}) *FindOptions {
-	f.Min = min
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Min = min
+		return nil
+	})
 	return f
 }
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
 func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
-	f.NoCursorTimeout = &b
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.NoCursorTimeout = &b
+		return nil
+	})
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
 func (f *FindOptions) SetProjection(projection interface{}) *FindOptions {
-	f.Projection = projection
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Projection = projection
+		return nil
+	})
 	return f
 }
 
 // SetReturnKey sets the value for the ReturnKey field.
 func (f *FindOptions) SetReturnKey(b bool) *FindOptions {
-	f.ReturnKey = &b
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.ReturnKey = &b
+		return nil
+	})
 	return f
 }
 
 // SetShowRecordID sets the value for the ShowRecordID field.
 func (f *FindOptions) SetShowRecordID(b bool) *FindOptions {
-	f.ShowRecordID = &b
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.ShowRecordID = &b
+		return nil
+	})
 	return f
 }
 
 // SetSkip sets the value for the Skip field.
 func (f *FindOptions) SetSkip(i int64) *FindOptions {
-	f.Skip = &i
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Skip = &i
+		return nil
+	})
 	return f
 }
 
 // SetSort sets the value for the Sort field.
 func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
-	f.Sort = sort
+	f.Opts = append(f.Opts, func(args *FindArgs) error {
+		args.Sort = sort
+		return nil
+	})
 	return f
 }
 
-// FindOneOptions represents options that can be used to configure a FindOne operation.
-type FindOneOptions struct {
+// FindOneArgs represents arguments that can be used to configure a FindOne operation.
+type FindOneArgs struct {
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
 	// returning an error. The default value is false.
 	AllowPartialResults *bool
@@ -278,6 +289,11 @@ type FindOneOptions struct {
 	Sort interface{}
 }
 
+// FindOneOptions represents functional options that configure an FindOneArgs.
+type FindOneOptions struct {
+	Opts []func(*FindOneArgs) error
+}
+
 // FindOne creates a new FindOneOptions instance.
 func FindOne() *FindOneOptions {
 	return &FindOneOptions{}
@@ -285,31 +301,46 @@ func FindOne() *FindOneOptions {
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
 func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
-	f.AllowPartialResults = &b
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.AllowPartialResults = &b
+		return nil
+	})
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
 func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
-	f.Collation = collation
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Collation = collation
+		return nil
+	})
 	return f
 }
 
 // SetComment sets the value for the Comment field.
 func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
-	f.Comment = &comment
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Comment = &comment
+		return nil
+	})
 	return f
 }
 
 // SetHint sets the value for the Hint field.
 func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
-	f.Hint = hint
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Hint = hint
+		return nil
+	})
 	return f
 }
 
 // SetMax sets the value for the Max field.
 func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
-	f.Max = max
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Max = max
+		return nil
+	})
 	return f
 }
 
@@ -319,43 +350,64 @@ func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
-	f.MaxTime = &d
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.MaxTime = &d
+		return nil
+	})
 	return f
 }
 
 // SetMin sets the value for the Min field.
 func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
-	f.Min = min
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Min = min
+		return nil
+	})
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
 func (f *FindOneOptions) SetProjection(projection interface{}) *FindOneOptions {
-	f.Projection = projection
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Projection = projection
+		return nil
+	})
 	return f
 }
 
 // SetReturnKey sets the value for the ReturnKey field.
 func (f *FindOneOptions) SetReturnKey(b bool) *FindOneOptions {
-	f.ReturnKey = &b
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.ReturnKey = &b
+		return nil
+	})
 	return f
 }
 
 // SetShowRecordID sets the value for the ShowRecordID field.
 func (f *FindOneOptions) SetShowRecordID(b bool) *FindOneOptions {
-	f.ShowRecordID = &b
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.ShowRecordID = &b
+		return nil
+	})
 	return f
 }
 
 // SetSkip sets the value for the Skip field.
 func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
-	f.Skip = &i
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Skip = &i
+		return nil
+	})
 	return f
 }
 
 // SetSort sets the value for the Sort field.
 func (f *FindOneOptions) SetSort(sort interface{}) *FindOneOptions {
-	f.Sort = sort
+	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+		args.Sort = sort
+		return nil
+	})
 	return f
 }
 

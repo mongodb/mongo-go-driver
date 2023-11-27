@@ -1395,75 +1395,6 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	return retArray, replaceErrors(err)
 }
 
-// mergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-property-wins fashion.
-func mergeFindOptions(opts ...*options.FindOptions) *options.FindOptions {
-	fo := options.Find()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.AllowDiskUse != nil {
-			fo.AllowDiskUse = opt.AllowDiskUse
-		}
-		if opt.AllowPartialResults != nil {
-			fo.AllowPartialResults = opt.AllowPartialResults
-		}
-		if opt.BatchSize != nil {
-			fo.BatchSize = opt.BatchSize
-		}
-		if opt.Collation != nil {
-			fo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			fo.Comment = opt.Comment
-		}
-		if opt.CursorType != nil {
-			fo.CursorType = opt.CursorType
-		}
-		if opt.Hint != nil {
-			fo.Hint = opt.Hint
-		}
-		if opt.Let != nil {
-			fo.Let = opt.Let
-		}
-		if opt.Limit != nil {
-			fo.Limit = opt.Limit
-		}
-		if opt.Max != nil {
-			fo.Max = opt.Max
-		}
-		if opt.MaxAwaitTime != nil {
-			fo.MaxAwaitTime = opt.MaxAwaitTime
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
-		if opt.Min != nil {
-			fo.Min = opt.Min
-		}
-		if opt.NoCursorTimeout != nil {
-			fo.NoCursorTimeout = opt.NoCursorTimeout
-		}
-		if opt.Projection != nil {
-			fo.Projection = opt.Projection
-		}
-		if opt.ReturnKey != nil {
-			fo.ReturnKey = opt.ReturnKey
-		}
-		if opt.ShowRecordID != nil {
-			fo.ShowRecordID = opt.ShowRecordID
-		}
-		if opt.Skip != nil {
-			fo.Skip = opt.Skip
-		}
-		if opt.Sort != nil {
-			fo.Sort = opt.Sort
-		}
-	}
-
-	return fo
-}
-
 // Find executes a find command and returns a Cursor over the matching documents in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select which documents are
@@ -1505,7 +1436,14 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	fo := mergeFindOptions(opts...)
+	fo := &options.FindArgs{}
+	for _, opt := range opts {
+		for _, optFn := range opt.Opts {
+			if err := optFn(fo); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
@@ -1655,31 +1593,31 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	findOpts := make([]*options.FindOptions, 0, len(opts))
-	for _, opt := range opts {
-		if opt == nil {
-			continue
+	opt := func(args *options.FindArgs) error {
+		for _, opt := range opts {
+			if opt == nil {
+				continue
+			}
+			for _, optFn := range opt.Opts {
+				if optFn == nil {
+					continue
+				}
+				if err := optFn(&args.FindOneArgs); err != nil {
+					return err
+				}
+			}
 		}
-		findOpts = append(findOpts, &options.FindOptions{
-			AllowPartialResults: opt.AllowPartialResults,
-			Collation:           opt.Collation,
-			Comment:             opt.Comment,
-			Hint:                opt.Hint,
-			Max:                 opt.Max,
-			MaxTime:             opt.MaxTime,
-			Min:                 opt.Min,
-			Projection:          opt.Projection,
-			ReturnKey:           opt.ReturnKey,
-			ShowRecordID:        opt.ShowRecordID,
-			Skip:                opt.Skip,
-			Sort:                opt.Sort,
-		})
+		return nil
 	}
+	findOpts := &options.FindOptions{
+		Opts: []func(*options.FindArgs) error{opt},
+	}
+
 	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
 	// by the server.
-	findOpts = append(findOpts, options.Find().SetLimit(-1))
+	findOpts.SetLimit(-1)
 
-	cursor, err := coll.Find(ctx, filter, findOpts...)
+	cursor, err := coll.Find(ctx, filter, findOpts)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
