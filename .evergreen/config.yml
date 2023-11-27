@@ -213,12 +213,12 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          find . -name \*.suite | xargs tar czf test_suite.tar.gz
+          find . -name \*.suite | xargs tar czf test_suite.tgz
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: src/go.mongodb.org/mongo-driver/test.suite.tgz
+        local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
         optional: true
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
         bucket: mciuploads
