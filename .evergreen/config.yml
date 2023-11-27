@@ -210,20 +210,21 @@ functions:
     - command: shell.exec
       params:
         shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          tar czf test.suite.tgz test.suite
+          find . -name \*.suite | xargs tar czf test_suite.tar.gz
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: src/go.mongodb.org/mongo-driver/test.suite.tgz
         optional: true
-        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test.suite.tgz
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: ${content_type|text/plain}
-        display_name: "test.suite.tgz"
+        display_name: "test_suite.tgz"
 
   bootstrap-mongohoused:
     - command: shell.exec
