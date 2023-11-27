@@ -6,8 +6,8 @@
 
 package options
 
-// InsertOneOptions represents options that can be used to configure an InsertOne operation.
-type InsertOneOptions struct {
+// InsertOneArgs represents arguments that can be used to configure an InsertOne operation.
+type InsertOneArgs struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -19,6 +19,11 @@ type InsertOneOptions struct {
 	Comment interface{}
 }
 
+// InsertOneOptions represents functional options that configure an InsertOneArgs.
+type InsertOneOptions struct {
+	Opts []func(*InsertOneArgs) error
+}
+
 // InsertOne creates a new InsertOneOptions instance.
 func InsertOne() *InsertOneOptions {
 	return &InsertOneOptions{}
@@ -26,13 +31,19 @@ func InsertOne() *InsertOneOptions {
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (ioo *InsertOneOptions) SetBypassDocumentValidation(b bool) *InsertOneOptions {
-	ioo.BypassDocumentValidation = &b
+	ioo.Opts = append(ioo.Opts, func(args *InsertOneArgs) error {
+		args.BypassDocumentValidation = &b
+		return nil
+	})
 	return ioo
 }
 
 // SetComment sets the value for the Comment field.
 func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
-	ioo.Comment = comment
+	ioo.Opts = append(ioo.Opts, func(args *InsertOneArgs) error {
+		args.Comment = &comment
+		return nil
+	})
 	return ioo
 }
 

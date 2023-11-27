@@ -402,25 +402,27 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
 
-	ioOpts := options.InsertOne()
-	for _, ioo := range opts {
-		if ioo == nil {
+	args := &options.InsertOneArgs{}
+	for _, opt := range opts {
+		if opt == nil {
 			continue
 		}
-		if ioo.BypassDocumentValidation != nil {
-			ioOpts.BypassDocumentValidation = ioo.BypassDocumentValidation
-		}
-		if ioo.Comment != nil {
-			ioOpts.Comment = ioo.Comment
+		for _, optFn := range opt.Opts {
+			if optFn == nil {
+				continue
+			}
+			if err := optFn(args); err != nil {
+				return nil, err
+			}
 		}
 	}
 	imOpts := options.InsertMany()
 
-	if ioOpts.BypassDocumentValidation != nil && *ioOpts.BypassDocumentValidation {
-		imOpts.SetBypassDocumentValidation(*ioOpts.BypassDocumentValidation)
+	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
+		imOpts.SetBypassDocumentValidation(*args.BypassDocumentValidation)
 	}
-	if ioOpts.Comment != nil {
-		imOpts.SetComment(ioOpts.Comment)
+	if args.Comment != nil {
+		imOpts.SetComment(args.Comment)
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
