@@ -48,10 +48,7 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		mnetconn := &mnet.Connection{
-			WireMessageReadWriteCloser: conn,
-			Describer:                  conn,
-		}
+		mnetconn := mnet.NewConnection(conn)
 
 		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
@@ -97,10 +94,7 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		mnetconn := &mnet.Connection{
-			WireMessageReadWriteCloser: conn,
-			Describer:                  conn,
-		}
+		mnetconn := mnet.NewConnection(conn)
 
 		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 		assert.Nil(t, err, "GetDescription error: %v", err)

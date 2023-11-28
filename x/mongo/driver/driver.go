@@ -56,24 +56,6 @@ type Server interface {
 	RTTMonitor() RTTMonitor
 }
 
-// Connection represents a connection to a MongoDB server.
-//type Connection interface {
-//	WriteWireMessage(context.Context, []byte) error
-//	ReadWireMessage(ctx context.Context) ([]byte, error)
-//	Description() description.Server
-//
-//	// Close closes any underlying connection and returns or frees any resources held by the
-//	// connection. Close is idempotent and can be called multiple times, although subsequent calls
-//	// to Close may return an error. A connection cannot be used after it is closed.
-//	Close() error
-//
-//	ID() string
-//	ServerConnectionID() *int64
-//	DriverConnectionID() int64
-//	Address() address.Address
-//	Stale() bool
-//}
-
 // RTTMonitor represents a round-trip-time monitor.
 type RTTMonitor interface {
 	// EWMA returns the exponentially weighted moving average observed round-trip time.
@@ -91,27 +73,6 @@ type RTTMonitor interface {
 
 var _ RTTMonitor = &csot.ZeroRTTMonitor{}
 
-// PinnedConnection represents a Connection that can be pinned by one or more cursors or transactions. Implementations
-// of this interface should maintain the following invariants:
-//
-// 1. Each Pin* call should increment the number of references for the connection.
-// 2. Each Unpin* call should decrement the number of references for the connection.
-// 3. Calls to Close() should be ignored until all resources have unpinned the connection.
-//type PinnedConnection interface {
-//	//Connection
-//	mnet.WireMessageReadWriteCloser
-//	mnet.Describer
-//	PinToCursor() error
-//	PinToTransaction() error
-//	UnpinFromCursor() error
-//	UnpinFromTransaction() error
-//}
-
-// The session.LoadBalancedTransactionConnection type is a copy of PinnedConnection that was introduced to avoid
-// import cycles. This compile-time assertion ensures that these types remain in sync if the PinnedConnection interface
-// is changed in the future.
-// var _ PinnedConnection = (session.LoadBalancedTransactionConnection)(nil)
-
 // LocalAddresser is a type that is able to supply its local address
 type LocalAddresser interface {
 	LocalAddress() address.Address
@@ -121,29 +82,6 @@ type LocalAddresser interface {
 type Expirable interface {
 	Expire() error
 	Alive() bool
-}
-
-// StreamerConnection represents a Connection that supports streaming wire protocol messages using the moreToCome and
-// exhaustAllowed flags.
-//
-// The SetStreaming and CurrentlyStreaming functions correspond to the moreToCome flag on server responses. If a
-// response has moreToCome set, SetStreaming(true) will be called and CurrentlyStreaming() should return true.
-//
-// CanStream corresponds to the exhaustAllowed flag. The operations layer will set exhaustAllowed on outgoing wire
-// messages to inform the server that the driver supports streaming.
-type StreamerConnection interface {
-	mnet.WireMessageReadWriteCloser
-	mnet.Describer
-	SetStreaming(bool)
-	CurrentlyStreaming() bool
-	SupportsStreaming() bool
-}
-
-// Compressor is an interface used to compress wire messages. If a Connection supports compression
-// it should implement this interface as well. The CompressWireMessage method will be called during
-// the execution of an operation if the wire message is allowed to be compressed.
-type Compressor interface {
-	CompressWireMessage(src, dst []byte) ([]byte, error)
 }
 
 // ProcessErrorResult represents the result of a ErrorProcessor.ProcessError() call. Exact values for this type can be

@@ -983,18 +983,16 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   1,
 				},
 			},
-			inputConn: &mnet.Connection{
-				Describer: &processErrorTestConn{
-					description: description.Server{
-						WireVersion: &description.VersionRange{Max: 17},
-						TopologyVersion: &description.TopologyVersion{
-							ProcessID: processID,
-							Counter:   1,
-						},
+			inputConn: mnet.NewConnection(&processErrorTestConn{
+				description: description.Server{
+					WireVersion: &description.VersionRange{Max: 17},
+					TopologyVersion: &description.TopologyVersion{
+						ProcessID: processID,
+						Counter:   1,
 					},
-					stale: false,
 				},
-			},
+				stale: false,
+			}),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
@@ -1274,10 +1272,7 @@ func newProcessErrorTestConn(wireVersion *description.VersionRange, stale bool) 
 		stale: stale,
 	}
 
-	return &mnet.Connection{
-		WireMessageReadWriteCloser: peconn,
-		Describer:                  peconn,
-	}
+	return mnet.NewConnection(peconn)
 }
 
 func (p *processErrorTestConn) Stale() bool {

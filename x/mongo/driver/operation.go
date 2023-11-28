@@ -422,13 +422,7 @@ func (op Operation) getServerAndConnection(
 	// If the provided client session has a pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
 	if op.Client != nil && op.Client.PinnedConnection != nil {
-		pinnedConn := &mnet.Connection{
-			WireMessageReadWriteCloser: op.Client.PinnedConnection,
-			Describer:                  op.Client.PinnedConnection,
-			Pinner:                     op.Client.PinnedConnection,
-		}
-
-		return server, pinnedConn, nil
+		return server, mnet.NewConnection(op.Client.PinnedConnection), nil
 	}
 
 	// Otherwise, default to checking out a connection from the server's pool.

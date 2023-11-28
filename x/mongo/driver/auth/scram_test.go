@@ -75,10 +75,7 @@ func TestSCRAM(t *testing.T) {
 					Desc:     desc,
 				}
 
-				conn := &mnet.Connection{
-					WireMessageReadWriteCloser: chanconn,
-					Describer:                  chanconn,
-				}
+				conn := mnet.NewConnection(chanconn)
 
 				err = authenticator.Auth(context.Background(), &Config{Connection: conn})
 				assert.Nil(t, err, "Auth error: %v\n", err)

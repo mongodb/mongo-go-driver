@@ -225,10 +225,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeStartTime := time.Now()
 
 	iconn := initConnection{c}
-	handshakeConn := &mnet.Connection{
-		WireMessageReadWriteCloser: iconn,
-		Describer:                  iconn,
-	}
+
+	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
 	if err == nil {
@@ -550,7 +548,7 @@ type initConnection struct{ *connection }
 
 var _ mnet.WireMessageReadWriteCloser = initConnection{}
 var _ mnet.Describer = initConnection{}
-var _ driver.StreamerConnection = initConnection{}
+var _ mnet.Streamer = initConnection{}
 
 func (c initConnection) Description() description.Server {
 	if c.connection == nil {

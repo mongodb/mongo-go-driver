@@ -49,10 +49,7 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn := &mnet.Connection{
-		WireMessageReadWriteCloser: c,
-		Describer:                  c,
-	}
+	mnetconn := mnet.NewConnection(c)
 
 	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
@@ -97,10 +94,7 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn := &mnet.Connection{
-		WireMessageReadWriteCloser: c,
-		Describer:                  c,
-	}
+	mnetconn := mnet.NewConnection(c)
 
 	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
@@ -140,10 +134,7 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn := &mnet.Connection{
-		WireMessageReadWriteCloser: c,
-		Describer:                  c,
-	}
+	mnetconn := mnet.NewConnection(c)
 
 	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err != nil {
@@ -190,10 +181,7 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn := &mnet.Connection{
-		WireMessageReadWriteCloser: c,
-		Describer:                  c,
-	}
+	mnetconn := mnet.NewConnection(c)
 
 	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	require.NoError(t, err, "Auth error")

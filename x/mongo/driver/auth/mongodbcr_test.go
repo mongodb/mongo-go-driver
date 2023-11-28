@@ -47,10 +47,7 @@ func TestMongoDBCRAuthenticator_Fails(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn := &mnet.Connection{
-		WireMessageReadWriteCloser: c,
-		Describer:                  c,
-	}
+	mnetconn := mnet.NewConnection(c)
 
 	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
@@ -91,10 +88,7 @@ func TestMongoDBCRAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn := &mnet.Connection{
-		WireMessageReadWriteCloser: c,
-		Describer:                  c,
-	}
+	mnetconn := mnet.NewConnection(c)
 
 	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err != nil {

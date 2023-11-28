@@ -554,11 +554,7 @@ func TestOperation(t *testing.T) {
 			conn := &mockConnection{
 				rStreaming: false,
 			}
-			err := Operation{}.ExecuteExhaust(context.TODO(), &mnet.Connection{
-				WireMessageReadWriteCloser: conn,
-				Describer:                  conn,
-				Streamer:                   conn,
-			})
+			err := Operation{}.ExecuteExhaust(context.TODO(), mnet.NewConnection(conn))
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 	})
@@ -582,11 +578,7 @@ func TestOperation(t *testing.T) {
 			rReadWM:    nonStreamingResponse,
 			rCanStream: false,
 		}
-		mnetconn := &mnet.Connection{
-			WireMessageReadWriteCloser: conn,
-			Describer:                  conn,
-			Streamer:                   conn,
-		}
+		mnetconn := mnet.NewConnection(conn)
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 				return bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1), nil
@@ -611,12 +603,6 @@ func TestOperation(t *testing.T) {
 		assertExhaustAllowedSet(t, conn.pWriteWM, true)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 
-		//mnetstreamer := &mnet.StreamerConnection{
-		//	WireMessageReadWriteCloser: conn,
-		//	Describer:                  conn,
-		//	Streamer:                   conn,
-		//}
-
 		// Reset the server response and go through ExecuteExhaust to mimic streaming the next response. After
 		// execution, the connection should still be in a streaming state.
 		conn.rReadWM = streamingResponse
@@ -631,11 +617,8 @@ func TestOperation(t *testing.T) {
 		defer cancel()
 
 		op := Operation{
-			Database: "foobar",
-			Deployment: SingleConnectionDeployment{C: &mnet.Connection{
-				WireMessageReadWriteCloser: conn,
-				Describer:                  conn,
-			}},
+			Database:   "foobar",
+			Deployment: SingleConnectionDeployment{C: mnet.NewConnection(conn)},
 			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil
@@ -655,11 +638,8 @@ func TestOperation(t *testing.T) {
 		cancel()
 
 		op := Operation{
-			Database: "foobar",
-			Deployment: SingleConnectionDeployment{C: &mnet.Connection{
-				WireMessageReadWriteCloser: conn,
-				Describer:                  conn,
-			}},
+			Database:   "foobar",
+			Deployment: SingleConnectionDeployment{C: mnet.NewConnection(conn)},
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil

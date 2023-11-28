@@ -41,7 +41,7 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 		chanconn := &drivertest.ChannelConn{
 			Desc: desc,
 		}
-		err := authenticator.Auth(context.Background(), &Config{Connection: &mnet.Connection{Describer: chanconn}})
+		err := authenticator.Auth(context.Background(), &Config{Connection: mnet.NewConnection(chanconn)})
 		if err == nil {
 			t.Fatalf("expected err, got nil")
 		}

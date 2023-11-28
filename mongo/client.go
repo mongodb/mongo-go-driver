@@ -217,7 +217,6 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	client.serverAPI = topology.ServerAPIFromServerOptions(cfg.ServerOpts)
 
 	if client.deployment == nil {
-		fmt.Println("Get a new depy")
 		client.deployment, err = topology.New(cfg)
 		if err != nil {
 			return nil, replaceErrors(err)

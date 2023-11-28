@@ -181,10 +181,7 @@ func (r *rttMonitor) runHellos(conn *connection) {
 
 		start := time.Now()
 		iconn := initConnection{conn}
-		err := r.cfg.createOperationFn(&mnet.Connection{
-			WireMessageReadWriteCloser: iconn,
-			Describer:                  iconn,
-		}).Execute(ctx)
+		err := r.cfg.createOperationFn(mnet.NewConnection(iconn)).Execute(ctx)
 		cancel()
 		if err != nil {
 			return

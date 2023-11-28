@@ -323,12 +323,7 @@ func (s *Server) Connection(ctx context.Context) (*mnet.Connection, error) {
 		},
 	}
 
-	return &mnet.Connection{
-		WireMessageReadWriteCloser: serverConn,
-		Describer:                  serverConn,
-		Compressor:                 serverConn,
-		Pinner:                     serverConn,
-	}, nil
+	return mnet.NewConnection(serverConn), nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
@@ -857,10 +852,7 @@ func (s *Server) check() (description.Server, error) {
 
 		// Wrap conn in a type that implements driver.StreamerConnection.
 		iconn := initConnection{s.conn}
-		heartbeatConn := &mnet.Connection{
-			WireMessageReadWriteCloser: iconn,
-			Describer:                  iconn,
-		}
+		heartbeatConn := mnet.NewConnection(iconn)
 
 		baseOperation := s.createBaseOperation(heartbeatConn)
 		previousDescription := s.Description()
@@ -871,11 +863,7 @@ func (s *Server) check() (description.Server, error) {
 		switch {
 		case s.conn.getCurrentlyStreaming():
 			// The connection is already in a streaming state, so we stream the next response.
-			err = baseOperation.StreamResponse(s.heartbeatCtx, &mnet.Connection{
-				WireMessageReadWriteCloser: iconn,
-				Describer:                  iconn,
-				Streamer:                   iconn,
-			})
+			err = baseOperation.StreamResponse(s.heartbeatCtx, mnet.NewConnection(iconn))
 		case streamable:
 			// The server supports the streamable protocol. Set the socket timeout to
 			// connectTimeoutMS+heartbeatFrequencyMS and execute an awaitable hello request. Set conn.canStream so

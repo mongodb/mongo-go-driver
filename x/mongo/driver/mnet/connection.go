@@ -94,3 +94,30 @@ type Connection struct {
 	Compressor
 	Pinner
 }
+
+// NewConnection creates a new Connection with the provided component.
+func NewConnection(component interface{}) *Connection {
+	conn := &Connection{}
+
+	if describer, ok := component.(Describer); ok {
+		conn.Describer = describer
+	}
+
+	if streamer, ok := component.(Streamer); ok {
+		conn.Streamer = streamer
+	}
+
+	if compressor, ok := component.(Compressor); ok {
+		conn.Compressor = compressor
+	}
+
+	if pinner, ok := component.(Pinner); ok {
+		conn.Pinner = pinner
+	}
+
+	if rwc, ok := component.(WireMessageReadWriteCloser); ok {
+		conn.WireMessageReadWriteCloser = rwc
+	}
+
+	return conn
+}
