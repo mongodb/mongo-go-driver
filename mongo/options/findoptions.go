@@ -30,8 +30,9 @@ type FindOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is nil, which means that no comment will be included in the logs.
+	// A string or document that will be included in server logs, profiling logs,
+	// and currentOp queries to help trace the operation. The default is nil,
+	// which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
@@ -233,8 +234,9 @@ type FindOneOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is nil, which means that no comment will be included in the logs.
+	// A string or document that will be included in server logs, profiling logs,
+	// and currentOp queries to help trace the operation. The default is nil,
+	// which means that no comment will be included in the logs.
 	Comment interface{}
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
