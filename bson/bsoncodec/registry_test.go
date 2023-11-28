@@ -750,13 +750,6 @@ func TestRegistry(t *testing.T) {
 					ErrNoEncoder{Type: ft3},
 					false,
 				},
-				{
-					"nil",
-					nil,
-					nil,
-					ErrNilType,
-					false,
-				},
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
@@ -796,6 +789,36 @@ func TestRegistry(t *testing.T) {
 					})
 				})
 			}
+			t.Run("nil type", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("Encoder", func(t *testing.T) {
+					t.Parallel()
+
+					wanterr := ErrNoEncoder{Type: reflect.TypeOf(nil)}
+
+					gotcodec, goterr := reg.LookupEncoder(nil)
+					if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+						t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
+					}
+					if !cmp.Equal(gotcodec, nil, allowunexported, cmp.Comparer(comparepc)) {
+						t.Errorf("codecs did not match: got %#v, want nil", gotcodec)
+					}
+				})
+				t.Run("Decoder", func(t *testing.T) {
+					t.Parallel()
+
+					wanterr := ErrNilType
+
+					gotcodec, goterr := reg.LookupDecoder(nil)
+					if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+						t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
+					}
+					if !cmp.Equal(gotcodec, nil, allowunexported, cmp.Comparer(comparepc)) {
+						t.Errorf("codecs did not match: got %v: want nil", gotcodec)
+					}
+				})
+			})
 			// lookup a type whose pointer implements an interface and expect that the registered hook is
 			// returned
 			t.Run("interface implementation with hook (pointer)", func(t *testing.T) {
