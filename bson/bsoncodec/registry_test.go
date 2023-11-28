@@ -750,6 +750,13 @@ func TestRegistry(t *testing.T) {
 					ErrNoEncoder{Type: ft3},
 					false,
 				},
+				{
+					"nil",
+					nil,
+					nil,
+					ErrNilType,
+					false,
+				},
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
