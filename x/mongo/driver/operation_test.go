@@ -551,10 +551,12 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("ExecuteExhaust", func(t *testing.T) {
 		t.Run("errors if connection is not streaming", func(t *testing.T) {
-			conn := &mockConnection{
+			conn, err := mnet.NewConnection(&mockConnection{
 				rStreaming: false,
-			}
-			err := Operation{}.ExecuteExhaust(context.TODO(), mnet.NewConnection(conn))
+			})
+			require.NoError(t, err)
+
+			err = Operation{}.ExecuteExhaust(context.TODO(), conn)
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 	})
@@ -578,7 +580,10 @@ func TestOperation(t *testing.T) {
 			rReadWM:    nonStreamingResponse,
 			rCanStream: false,
 		}
-		mnetconn := mnet.NewConnection(conn)
+
+		mnetconn, err := mnet.NewConnection(conn)
+		require.NoError(t, err)
+
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 				return bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1), nil
@@ -586,7 +591,7 @@ func TestOperation(t *testing.T) {
 			Database:   "admin",
 			Deployment: SingleConnectionDeployment{C: mnetconn},
 		}
-		err := op.Execute(context.TODO())
+		err = op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
 
 		// The wire message sent to the server should not have exhaustAllowed=true. After execution, the connection
@@ -611,42 +616,46 @@ func TestOperation(t *testing.T) {
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
 	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
-		conn := new(mockConnection)
+		conn, err := mnet.NewConnection(&mockConnection{})
+		require.NoError(t, err)
+
 		// Create a context that's already timed out.
 		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(893934480, 0))
 		defer cancel()
 
 		op := Operation{
 			Database:   "foobar",
-			Deployment: SingleConnectionDeployment{C: mnet.NewConnection(conn)},
+			Deployment: SingleConnectionDeployment{C: conn},
 			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil
 			},
 		}
 
-		err := op.Execute(ctx)
+		err = op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
 		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
-		conn := new(mockConnection)
+		conn, err := mnet.NewConnection(&mockConnection{})
+		require.NoError(t, err)
+
 		// Create a context and cancel it immediately.
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
 		op := Operation{
 			Database:   "foobar",
-			Deployment: SingleConnectionDeployment{C: mnet.NewConnection(conn)},
+			Deployment: SingleConnectionDeployment{C: conn},
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil
 			},
 		}
 
-		err := op.Execute(ctx)
+		err = op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context canceled and is therefore not a driver.Error marked with
 		// the TransientTransactionError label.

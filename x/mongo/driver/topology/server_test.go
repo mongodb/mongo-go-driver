@@ -880,7 +880,7 @@ func TestServer_ProcessError(t *testing.T) {
 				Kind: description.RSPrimary,
 			},
 			inputErr: errors.New("foo"),
-			inputConn: newProcessErrorTestConn(
+			inputConn: newProcessErrorTestConn(t,
 				&description.VersionRange{
 					Max: 17,
 				},
@@ -901,7 +901,7 @@ func TestServer_ProcessError(t *testing.T) {
 			inputErr: driver.Error{
 				Code: 1,
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
@@ -919,7 +919,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   0,
 				},
 			},
-			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:       newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
@@ -936,7 +936,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   1,
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.ServerMarkedUnknown,
 			wantGeneration: 0,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.Error{
@@ -959,7 +959,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   0,
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.ServerMarkedUnknown,
 			wantGeneration: 0,
 			wantDescription: newServerDescription(description.Unknown, newProcessID, 0, driver.Error{
@@ -983,16 +983,20 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   1,
 				},
 			},
-			inputConn: mnet.NewConnection(&processErrorTestConn{
-				description: description.Server{
-					WireVersion: &description.VersionRange{Max: 17},
-					TopologyVersion: &description.TopologyVersion{
-						ProcessID: processID,
-						Counter:   1,
+			inputConn: func() *mnet.Connection {
+				conn, _ := mnet.NewConnection(&processErrorTestConn{
+					description: description.Server{
+						WireVersion: &description.VersionRange{Max: 17},
+						TopologyVersion: &description.TopologyVersion{
+							ProcessID: processID,
+							Counter:   1,
+						},
 					},
-				},
-				stale: false,
-			}),
+					stale: false,
+				})
+
+				return conn
+			}(),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
@@ -1009,7 +1013,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   1,
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.ConnectionPoolCleared,
 			wantGeneration: 1,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.Error{
@@ -1033,7 +1037,7 @@ func TestServer_ProcessError(t *testing.T) {
 					},
 				},
 			},
-			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:       newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
@@ -1052,7 +1056,7 @@ func TestServer_ProcessError(t *testing.T) {
 					},
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.ServerMarkedUnknown,
 			wantGeneration: 0,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.WriteCommandError{
@@ -1079,7 +1083,7 @@ func TestServer_ProcessError(t *testing.T) {
 					},
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.ConnectionPoolCleared,
 			wantGeneration: 1,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.WriteCommandError{
@@ -1107,7 +1111,7 @@ func TestServer_ProcessError(t *testing.T) {
 					},
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 7}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 7}, false),
 			want:           driver.ConnectionPoolCleared,
 			wantGeneration: 1,
 			wantDescription: newServerDescription(description.Unknown, processID, 1, driver.WriteCommandError{
@@ -1133,7 +1137,7 @@ func TestServer_ProcessError(t *testing.T) {
 					},
 				},
 			},
-			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:       newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
@@ -1148,7 +1152,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Wrapped: context.Canceled,
 				},
 			},
-			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:       newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
@@ -1165,7 +1169,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Wrapped: &net.AddrError{},
 				},
 			},
-			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
+			inputConn:      newProcessErrorTestConn(t, &description.VersionRange{Max: 17}, false),
 			want:           driver.ConnectionPoolCleared,
 			wantGeneration: 1,
 			wantDescription: description.Server{
@@ -1264,7 +1268,9 @@ type processErrorTestConn struct {
 	stale       bool
 }
 
-func newProcessErrorTestConn(wireVersion *description.VersionRange, stale bool) *mnet.Connection {
+func newProcessErrorTestConn(t *testing.T, wireVersion *description.VersionRange, stale bool) *mnet.Connection {
+	t.Helper()
+
 	peconn := &processErrorTestConn{
 		description: description.Server{
 			WireVersion: wireVersion,
@@ -1272,7 +1278,10 @@ func newProcessErrorTestConn(wireVersion *description.VersionRange, stale bool) 
 		stale: stale,
 	}
 
-	return mnet.NewConnection(peconn)
+	mnetconn, err := mnet.NewConnection(peconn)
+	require.NoError(t, err)
+
+	return mnetconn
 }
 
 func (p *processErrorTestConn) Stale() bool {

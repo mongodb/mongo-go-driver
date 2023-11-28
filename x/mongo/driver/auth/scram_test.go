@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
@@ -75,7 +76,8 @@ func TestSCRAM(t *testing.T) {
 					Desc:     desc,
 				}
 
-				conn := mnet.NewConnection(chanconn)
+				conn, err := mnet.NewConnection(chanconn)
+				require.NoError(t, err)
 
 				err = authenticator.Auth(context.Background(), &Config{Connection: conn})
 				assert.Nil(t, err, "Auth error: %v\n", err)

@@ -140,7 +140,7 @@ func (md *mockDeployment) Kind() description.TopologyKind {
 
 // Connection implements the driver.Server interface.
 func (md *mockDeployment) Connection(context.Context) (*mnet.Connection, error) {
-	return mnet.NewConnection(md.conn), nil
+	return mnet.NewConnection(md.conn)
 }
 
 // RTTMonitor implements the driver.Server interface.

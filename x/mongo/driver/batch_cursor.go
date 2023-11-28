@@ -524,7 +524,7 @@ func (lbcd *loadBalancedCursorDeployment) Kind() description.TopologyKind {
 }
 
 func (lbcd *loadBalancedCursorDeployment) Connection(context.Context) (*mnet.Connection, error) {
-	return mnet.NewConnection(lbcd), nil
+	return lbcd.conn, nil
 }
 
 // RTTMonitor implements the driver.Server interface.

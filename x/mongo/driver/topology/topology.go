@@ -699,10 +699,8 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println(1)
 			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
 		case <-selectionState.timeoutChan:
-			fmt.Println(2)
 			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: current}
 		case current = <-subscriptionCh:
 		}
@@ -751,7 +749,6 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 
 	suitable, err := selectionState.selector.SelectServer(desc, allowed)
 	if err != nil {
-		fmt.Println(3)
 		return nil, ServerSelectionError{Wrapped: err, Desc: desc}
 	}
 	return suitable, nil

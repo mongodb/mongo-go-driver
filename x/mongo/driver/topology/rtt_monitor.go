@@ -180,8 +180,9 @@ func (r *rttMonitor) runHellos(conn *connection) {
 		ctx, cancel := context.WithTimeout(r.ctx, timeout)
 
 		start := time.Now()
-		iconn := initConnection{conn}
-		err := r.cfg.createOperationFn(mnet.NewConnection(iconn)).Execute(ctx)
+		iconn, _ := mnet.NewConnection(initConnection{conn})
+
+		err := r.cfg.createOperationFn(iconn).Execute(ctx)
 		cancel()
 		if err != nil {
 			return
