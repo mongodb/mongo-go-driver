@@ -227,11 +227,6 @@ func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
 		want []*options.FindOptions
 	}{
 		{
-			name: "nil",
-			opts: nil,
-			want: nil,
-		},
-		{
 			name: "empty",
 			opts: []*options.FindOneOptions{},
 			want: []*options.FindOptions{

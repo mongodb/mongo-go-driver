@@ -1643,10 +1643,6 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 }
 
 func newFindOptionsFromFindOneOptions(opts ...*options.FindOneOptions) []*options.FindOptions {
-	if opts == nil {
-		return nil
-	}
-
 	findOpts := make([]*options.FindOptions, 0, len(opts))
 	for _, opt := range opts {
 		if opt == nil {
