@@ -389,7 +389,7 @@ func (r *Registry) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) {
 // concurrent use by multiple goroutines after all codecs and encoders are registered.
 func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if valueType == nil {
-		return nil, ErrNilType
+		return nil, ErrNoEncoder{Type: valueType}
 	}
 	enc, found := r.lookupTypeEncoder(valueType)
 	if found {
