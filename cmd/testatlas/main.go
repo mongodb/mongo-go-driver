@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -52,7 +53,7 @@ func main() {
 func runTest(ctx context.Context, clientOpts *options.ClientOptions) error {
 	client, err := mongo.Connect(ctx, clientOpts)
 	if err != nil {
-		return fmt.Errorf("Connect error: %v", err)
+		return fmt.Errorf("Connect error: %w", err)
 	}
 
 	defer func() {
@@ -63,12 +64,12 @@ func runTest(ctx context.Context, clientOpts *options.ClientOptions) error {
 	cmd := bson.D{{handshake.LegacyHello, 1}}
 	err = db.RunCommand(ctx, cmd).Err()
 	if err != nil {
-		return fmt.Errorf("legacy hello error: %v", err)
+		return fmt.Errorf("legacy hello error: %w", err)
 	}
 
 	coll := db.Collection("test")
-	if err = coll.FindOne(ctx, bson.D{{"x", 1}}).Err(); err != nil && err != mongo.ErrNoDocuments {
-		return fmt.Errorf("FindOne error: %v", err)
+	if err = coll.FindOne(ctx, bson.D{{"x", 1}}).Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return fmt.Errorf("FindOne error: %w", err)
 	}
 	return nil
 }

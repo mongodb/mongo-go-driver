@@ -8,6 +8,7 @@ package benchmark
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -95,12 +96,12 @@ benchRepeat:
 		res.Duration = c.elapsed
 		c.cumulativeRuntime += res.Duration
 
-		switch res.Error {
-		case context.DeadlineExceeded:
+		switch {
+		case errors.Is(res.Error, context.DeadlineExceeded):
 			break benchRepeat
-		case context.Canceled:
+		case errors.Is(res.Error, context.Canceled):
 			break benchRepeat
-		case nil:
+		case res.Error == nil:
 			out.Trials++
 			c.elapsed = 0
 			out.Raw = append(out.Raw, res)
