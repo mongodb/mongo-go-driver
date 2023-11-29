@@ -588,7 +588,7 @@ func TestMarshalValue(t *testing.T) {
 	}
 }
 
-var _ bsoncodec.ValueMarshaler = bvMarsh{}
+var _ bson.ValueMarshaler = bvMarsh{}
 
 type bvMarsh struct {
 	t    bsontype.Type

@@ -29,14 +29,6 @@ func ReadDocument(r io.Reader) (Raw, error) {
 	return Raw(doc), err
 }
 
-// NewFromIOReader reads a BSON document from the io.Reader and returns it as a bson.Raw. If the
-// reader contains multiple BSON documents, only the first document is read.
-//
-// Deprecated: Use ReadDocument instead.
-func NewFromIOReader(r io.Reader) (Raw, error) {
-	return ReadDocument(r)
-}
-
 // Validate validates the document. This method only validates the first document in
 // the slice, to validate other documents, the slice must be resliced.
 func (r Raw) Validate() (err error) { return bsoncore.Document(r).Validate() }

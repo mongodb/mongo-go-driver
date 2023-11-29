@@ -202,13 +202,15 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 			}
 			desc.CanonicalAddr = address.Address(me).Canonicalize()
 		case "maxWireVersion":
-			versionRange.Max, ok = element.Value().AsInt32OK()
+			verMax, ok := element.Value().AsInt64OK()
+			versionRange.Max = int32(verMax)
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'maxWireVersion' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
 			}
 		case "minWireVersion":
-			versionRange.Min, ok = element.Value().AsInt32OK()
+			verMin, ok := element.Value().AsInt64OK()
+			versionRange.Min = int32(verMin)
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'minWireVersion' to be an integer but it's a BSON %s", element.Value().Type)
 				return desc
@@ -220,7 +222,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 				return desc
 			}
 		case "ok":
-			okay, ok := element.Value().AsInt32OK()
+			okay, ok := element.Value().AsInt64OK()
 			if !ok {
 				desc.LastError = fmt.Errorf("expected 'ok' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc

@@ -148,7 +148,7 @@ func executeBucketDownloadByName(ctx context.Context, operation *operation) (*op
 		case "filename":
 			filename = val.StringValue()
 		case "revision":
-			opts.SetRevision(val.AsInt32())
+			opts.SetRevision(int32(val.AsInt64()))
 		default:
 			return nil, fmt.Errorf("unrecognized bucket download option %q", key)
 		}
