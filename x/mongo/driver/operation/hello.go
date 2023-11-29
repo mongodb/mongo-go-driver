@@ -571,6 +571,14 @@ func (h *Hello) StreamResponse(ctx context.Context, conn driver.StreamerConnecti
 	return h.createOperation().ExecuteExhaust(ctx, conn)
 }
 
+// isLegacyHandshake returns True if server API version is not requested and
+// loadBalanced is False. If this is the case, then the drivers MUST use legacy
+// hello for the first message of the initial handshake with the OP_QUERY
+// protocol
+func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, deployment driver.Deployment) bool {
+	return srvAPI == nil && deployment.Kind() != description.LoadBalanced
+}
+
 func (h *Hello) createOperation() driver.Operation {
 	op := driver.Operation{
 		Clock:      h.clock,
@@ -582,6 +590,10 @@ func (h *Hello) createOperation() driver.Operation {
 			return nil
 		},
 		ServerAPI: h.serverAPI,
+	}
+
+	if isLegacyHandshake(h.serverAPI, h.d) {
+		op.Legacy = driver.LegacyHandshake
 	}
 
 	return op
@@ -602,6 +614,10 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 			return nil
 		},
 		ServerAPI: h.serverAPI,
+	}
+
+	if isLegacyHandshake(h.serverAPI, deployment) {
+		op.Legacy = driver.LegacyHandshake
 	}
 
 	if err := op.Execute(ctx); err != nil {

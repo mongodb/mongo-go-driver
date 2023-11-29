@@ -1357,6 +1357,14 @@ func (op Operation) createMsgWireMessage(
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
 }
 
+// isLegacyHandshake returns True if the operation is the first message of
+// the initial handshake and should use a legacy hello.
+func isLegacyHandshake(op Operation, desc description.SelectedServer) bool {
+	isInitialHandshake := desc.WireVersion == nil || desc.WireVersion.Max == 0
+
+	return op.Legacy == LegacyHandshake && isInitialHandshake
+}
+
 func (op Operation) createWireMessage(
 	ctx context.Context,
 	maxTimeMS uint64,
@@ -1365,10 +1373,7 @@ func (op Operation) createWireMessage(
 	conn Connection,
 	requestID int32,
 ) ([]byte, startedInformation, error) {
-	isInitialHandshake := desc.WireVersion == nil || desc.WireVersion.Max == 0
-
-	// Use the OP_LEGACY on non-load-balanced connection handshakes.
-	if op.ServerAPI == nil && desc.Kind != description.LoadBalanced && isInitialHandshake {
+	if isLegacyHandshake(op, desc) {
 		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
 	}
 
