@@ -1367,7 +1367,7 @@ func (op Operation) createWireMessage(
 ) ([]byte, startedInformation, error) {
 	isInitialHandshake := desc.WireVersion == nil || desc.WireVersion.Max == 0
 
-	// Use OP_QUERY on non-load-balanced connection handshakes.
+	// Use the OP_LEGACY on non-load-balanced connection handshakes.
 	if op.ServerAPI == nil && desc.Kind != description.LoadBalanced && isInitialHandshake {
 		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
 	}
