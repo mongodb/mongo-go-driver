@@ -238,12 +238,18 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 		messages := mt.GetProxiedMessages()
 		handshakeMessage := messages[:1][0]
 
+		want := wiremessage.OpQuery
+
 		hello := handshake.LegacyHello
 		if os.Getenv("REQUIRE_API_VERSION") == "true" {
 			hello = "hello"
+
+			// If the server API version is requested, then we should use OP_MSG
+			// regardless of the topology
+			want = wiremessage.OpMsg
 		}
 
 		assert.Equal(mt, hello, handshakeMessage.CommandName)
-		assert.Equal(mt, wiremessage.OpQuery, handshakeMessage.Sent.OpCode)
+		assert.Equal(mt, want, handshakeMessage.Sent.OpCode)
 	})
 }
