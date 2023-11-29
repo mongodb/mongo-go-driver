@@ -32,9 +32,9 @@ func TestGridFS(t *testing.T) {
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
 			switch evt.Type {
-			case event.GetSucceeded:
+			case event.ConnectionCheckedOut:
 				connsCheckedOut++
-			case event.ConnectionReturned:
+			case event.ConnectionCheckedIn:
 				connsCheckedOut--
 			}
 		},
@@ -42,7 +42,7 @@ func TestGridFS(t *testing.T) {
 	clientOpts := options.Client().
 		ApplyURI(cs.Original).
 		SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).
+		SetWriteConcern(writeconcern.Majority()).
 		SetPoolMonitor(poolMonitor).
 		// Connect to a single host. For sharded clusters, this will pin to a single mongos, which avoids
 		// non-deterministic versioning errors in the server. This has no effect for replica sets because the driver
@@ -81,7 +81,7 @@ func TestGridFS(t *testing.T) {
 				bucket, err := NewBucket(db, tt.bucketOpts)
 				assert.Nil(t, err, "NewBucket error: %v", err)
 
-				us, err := bucket.OpenUploadStream("filename", tt.uploadOpts)
+				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
 				expectedBucketChunkSize := DefaultChunkSize

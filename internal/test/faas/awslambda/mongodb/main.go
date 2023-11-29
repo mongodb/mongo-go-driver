@@ -25,13 +25,14 @@ const timeout = 60 * time.Second
 
 // eventListener supports command, heartbeat, and pool event handlers to record
 // event durations, as well as the number of heartbeats, commands, and open
-// conections.
+// connections.
 type eventListener struct {
-	commandCount      int
-	commandDuration   int64
-	heartbeatCount    int
-	heartbeatDuration int64
-	openConnections   int
+	commandCount          int
+	commandDuration       int64
+	heartbeatAwaitedCount int
+	heartbeatCount        int
+	heartbeatDuration     int64
+	openConnections       int
 }
 
 // commandMonitor initializes an event.CommandMonitor that will count the number
@@ -61,11 +62,19 @@ func (listener *eventListener) serverMonitor() *event.ServerMonitor {
 	succeeded := func(e *event.ServerHeartbeatSucceededEvent) {
 		listener.heartbeatCount++
 		listener.heartbeatDuration += e.DurationNanos
+
+		if e.Awaited {
+			listener.heartbeatAwaitedCount++
+		}
 	}
 
 	failed := func(e *event.ServerHeartbeatFailedEvent) {
 		listener.heartbeatCount++
 		listener.heartbeatDuration += e.DurationNanos
+
+		if e.Awaited {
+			listener.heartbeatAwaitedCount++
+		}
 	}
 
 	return &event.ServerMonitor{
@@ -75,7 +84,7 @@ func (listener *eventListener) serverMonitor() *event.ServerMonitor {
 }
 
 // poolMonitor initialize an event.PoolMonitor that will increment each time a
-// new conneciton is created and decrement each time a connection is closed.
+// new connection is created and decrement each time a connection is closed.
 func (listener *eventListener) poolMonitor() *event.PoolMonitor {
 	poolEvent := func(e *event.PoolEvent) {
 		switch e.Type {
@@ -148,6 +157,12 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	_, err = collection.DeleteOne(ctx, doc)
 	if err != nil {
 		return gateway500(), fmt.Errorf("failed to delete: %w", err)
+	}
+
+	// Driver must switch to polling monitoring when running within a FaaS
+	// environment.
+	if listener.heartbeatAwaitedCount > 0 {
+		return gateway500(), fmt.Errorf("FaaS environment failed to switch to polling")
 	}
 
 	var avgCmdDur float64

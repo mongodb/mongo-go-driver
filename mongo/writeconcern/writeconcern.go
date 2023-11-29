@@ -20,7 +20,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const majority = "majority"
+// WCMajority can be used to create a WriteConcern with a W value of "majority".
+const WCMajority = "majority"
 
 // ErrInconsistent indicates that an inconsistent write concern was specified.
 //
@@ -131,7 +132,7 @@ func Journaled() *WriteConcern {
 // For more information about write concern "w: majority", see
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-majority-
 func Majority() *WriteConcern {
-	return &WriteConcern{W: majority}
+	return &WriteConcern{W: WCMajority}
 }
 
 // Custom returns a WriteConcern that requests acknowledgment that write
@@ -142,138 +143,6 @@ func Majority() *WriteConcern {
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-custom-write-concern-name-
 func Custom(tag string) *WriteConcern {
 	return &WriteConcern{W: tag}
-}
-
-// Option is an option to provide when creating a WriteConcern.
-//
-// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
-// For example:
-//
-//	writeconcern.Majority()
-//
-// or
-//
-//	journal := true
-//	&writeconcern.WriteConcern{
-//		W:       2,
-//		Journal: &journal,
-//	}
-type Option func(concern *WriteConcern)
-
-// New constructs a new WriteConcern.
-//
-// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
-// For example:
-//
-//	writeconcern.Majority()
-//
-// or
-//
-//	journal := true
-//	&writeconcern.WriteConcern{
-//		W:       2,
-//		Journal: &journal,
-//	}
-func New(options ...Option) *WriteConcern {
-	concern := &WriteConcern{}
-
-	for _, option := range options {
-		option(concern)
-	}
-
-	return concern
-}
-
-// W requests acknowledgement that write operations propagate to the specified number of mongod
-// instances.
-//
-// Deprecated: Use the Unacknowledged or W1 functions or define a struct literal instead.
-// For example:
-//
-//	writeconcern.Unacknowledged()
-//
-// or
-//
-//	journal := true
-//	&writeconcern.WriteConcern{
-//		W:       2,
-//		Journal: &journal,
-//	}
-func W(w int) Option {
-	return func(concern *WriteConcern) {
-		concern.W = w
-	}
-}
-
-// WMajority requests acknowledgement that write operations propagate to the majority of mongod
-// instances.
-//
-// Deprecated: Use [Majority] instead.
-func WMajority() Option {
-	return func(concern *WriteConcern) {
-		concern.W = majority
-	}
-}
-
-// WTagSet requests acknowledgement that write operations propagate to the specified mongod
-// instance.
-//
-// Deprecated: Use [Custom] instead.
-func WTagSet(tag string) Option {
-	return func(concern *WriteConcern) {
-		concern.W = tag
-	}
-}
-
-// J requests acknowledgement from MongoDB that write operations are written to
-// the journal.
-//
-// Deprecated: Use the Journaled function or define a struct literal instead.
-// For example:
-//
-//	writeconcern.Journaled()
-//
-// or
-//
-//	journal := true
-//	&writeconcern.WriteConcern{
-//		W:       2,
-//		Journal: &journal,
-//	}
-func J(j bool) Option {
-	return func(concern *WriteConcern) {
-		// To maintain backward compatible behavior (now that the J field is a
-		// bool pointer), only set a value for J if the input is true. If the
-		// input is false, do not set a value, which omits "j" from the
-		// marshaled write concern.
-		if j {
-			concern.Journal = &j
-		}
-	}
-}
-
-// WTimeout specifies a time limit for the write concern.
-//
-// It is only applicable for "w" values greater than 1. Using a WTimeout and setting Timeout on the
-// Client at the same time will result in undefined behavior.
-//
-// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
-// For example:
-//
-//	wc := writeconcern.W1()
-//	wc.WTimeout = 30 * time.Second
-//
-// or
-//
-//	journal := true
-//	&writeconcern.WriteConcern{
-//		W:        "majority",
-//		WTimeout: 30 * time.Second,
-//	}
-func WTimeout(d time.Duration) Option {
-	return func(concern *WriteConcern) {
-		concern.WTimeout = d
-	}
 }
 
 // MarshalBSONValue implements the bson.ValueMarshaler interface.
@@ -329,29 +198,6 @@ func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
 }
 
-// AcknowledgedValue returns true if a BSON RawValue for a write concern represents an acknowledged write concern.
-// The element's value must be a document representing a write concern.
-//
-// Deprecated: AcknowledgedValue will not be supported in Go Driver 2.0.
-func AcknowledgedValue(rawv bson.RawValue) bool {
-	doc, ok := bsoncore.Value{Type: rawv.Type, Data: rawv.Value}.DocumentOK()
-	if !ok {
-		return false
-	}
-
-	val, err := doc.LookupErr("w")
-	if err != nil {
-		// key w not found --> acknowledged
-		return true
-	}
-
-	i32, ok := val.Int32OK()
-	if !ok {
-		return false
-	}
-	return i32 != 0
-}
-
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.
 func (wc *WriteConcern) Acknowledged() bool {
 	// Only {w: 0} or {w: 0, j: false} are an unacknowledged write concerns. All other values are
@@ -377,63 +223,4 @@ func (wc *WriteConcern) IsValid() bool {
 		// A write concern with an unsupported w type is not valid.
 		return false
 	}
-}
-
-// GetW returns the write concern w level.
-//
-// Deprecated: Use the WriteConcern.W field instead.
-func (wc *WriteConcern) GetW() interface{} {
-	return wc.W
-}
-
-// GetJ returns the write concern journaling level.
-//
-// Deprecated: Use the WriteConcern.Journal field instead.
-func (wc *WriteConcern) GetJ() bool {
-	// Treat a nil Journal as false. That maintains backward compatibility with the existing
-	// behavior of GetJ where unset is false. If users want the real value of Journal, they can
-	// access the Journal field.
-	return wc.Journal != nil && *wc.Journal
-}
-
-// GetWTimeout returns the write concern timeout.
-//
-// Deprecated: Use the WriteConcern.WTimeout field instead.
-func (wc *WriteConcern) GetWTimeout() time.Duration {
-	return wc.WTimeout
-}
-
-// WithOptions returns a copy of this WriteConcern with the options set.
-//
-// Deprecated: Use the WriteConcern convenience functions or define a struct literal instead.
-// For example:
-//
-//	writeconcern.Majority()
-//
-// or
-//
-//	journal := true
-//	&writeconcern.WriteConcern{
-//		W:       2,
-//		Journal: &journal,
-//	}
-func (wc *WriteConcern) WithOptions(options ...Option) *WriteConcern {
-	if wc == nil {
-		return New(options...)
-	}
-	newWC := &WriteConcern{}
-	*newWC = *wc
-
-	for _, option := range options {
-		option(newWC)
-	}
-
-	return newWC
-}
-
-// AckWrite returns true if a write concern represents an acknowledged write
-//
-// Deprecated: Use [WriteConcern.Acknowledged] instead.
-func AckWrite(wc *WriteConcern) bool {
-	return wc == nil || wc.Acknowledged()
 }

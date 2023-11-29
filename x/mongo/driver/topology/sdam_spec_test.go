@@ -486,11 +486,11 @@ func runTest(t *testing.T, directory string, filename string) {
 			publishedEvents = nil
 			if phase.Outcome.Compatible == nil || *phase.Outcome.Compatible {
 				assert.True(t, topo.fsm.compatible.Load().(bool), "Expected servers to be compatible")
-				assert.Nil(t, topo.fsm.compatibilityErr, "expected fsm.compatiblity to be nil, got %v",
+				assert.Nil(t, topo.fsm.compatibilityErr, "expected fsm.compatibility to be nil, got %v",
 					topo.fsm.compatibilityErr)
 			} else {
 				assert.False(t, topo.fsm.compatible.Load().(bool), "Expected servers to not be compatible")
-				assert.NotNil(t, topo.fsm.compatibilityErr, "expected fsm.compatiblity error to be non-nil")
+				assert.NotNil(t, topo.fsm.compatibilityErr, "expected fsm.compatibility error to be non-nil")
 				continue
 			}
 			desc := topo.Description()
@@ -504,7 +504,7 @@ func runTest(t *testing.T, directory string, filename string) {
 
 			assert.Equal(t,
 				phase.Outcome.LogicalSessionTimeoutMinutes,
-				desc.SessionTimeoutMinutesPtr,
+				desc.SessionTimeoutMinutes,
 				"expected and actual logical session timeout minutes are different")
 
 			assert.Equal(t, phase.Outcome.MaxSetVersion, topo.fsm.maxSetVersion,

@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -31,7 +32,8 @@ func TestSDAMProse(t *testing.T) {
 	heartbeatIntervalMtOpts := mtest.NewOptions().
 		ClientOptions(heartbeatIntervalClientOpts).
 		CreateCollection(false).
-		ClientType(mtest.Proxy)
+		ClientType(mtest.Proxy).
+		MinServerVersion("4.4") // RTT Monitor / Streaming protocol is not supported for versions < 4.4.
 	mt.RunOpts("heartbeats processed more frequently", heartbeatIntervalMtOpts, func(mt *mtest.T) {
 		// Test that setting heartbeat interval to 500ms causes the client to process heartbeats
 		// approximately every 500ms instead of the default 10s. Note that a Client doesn't
@@ -52,6 +54,9 @@ func TestSDAMProse(t *testing.T) {
 		// sent messages. The sleep duration will be at least the specified duration but
 		// possibly longer, which could lead to extra heartbeat messages, so account for that in
 		// the assertions.
+		if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+			mt.Skip("skipping test in docker environment")
+		}
 		start := time.Now()
 		time.Sleep(2 * time.Second)
 		messages := mt.GetProxiedMessages()

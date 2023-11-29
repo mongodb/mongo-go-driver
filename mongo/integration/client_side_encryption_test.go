@@ -375,8 +375,8 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		res := coll.FindOne(context.Background(), bson.D{{"foo", "bar"}})
 		assert.Nil(mt, res.Err(), "FindOne error: %v", err)
 
-		rawRes, err := res.DecodeBytes()
-		assert.Nil(mt, err, "DecodeBytes error: %v", err)
+		rawRes, err := res.Raw()
+		assert.Nil(mt, err, "Raw error: %v", err)
 		ssn, ok := rawRes.Lookup("ssn").StringValueOK()
 		assert.True(mt, ok, "expected 'ssn' value to be type string, got %T", ssn)
 		assert.Equal(mt, ssn, mySSN, "expected 'ssn' value %q, got %q", mySSN, ssn)
@@ -587,13 +587,87 @@ func TestFLE2DocsExample(t *testing.T) {
 			unencryptedColl := mt.Client.Database("docsExamples").Collection("encrypted")
 			res := unencryptedColl.FindOne(context.Background(), bson.M{"_id": 1})
 			assert.Nil(mt, res.Err(), "error in FindOne: %v", res.Err())
-			resBSON, err := res.DecodeBytes()
-			assert.Nil(mt, err, "error in DecodeBytes: %v", err)
+			resBSON, err := res.Raw()
+			assert.Nil(mt, err, "error in Raw: %v", err)
 
 			val := resBSON.Lookup("encryptedIndexed")
 			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedIndexed to be Binary, got %v", val.Type)
 			val = resBSON.Lookup("encryptedUnindexed")
 			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
 		}
+	})
+}
+
+// `TestFLE2CreateCollectionWithAutoEncryption` is a regression test for a bug fixed in GODRIVER-2413.
+// Prior to GODRIVER-2413, the `IndexView.CreateMany` operation was not processed for automatic encryption. This resulted in no "listCollections" command sent.
+func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("7.0").
+		Enterprise(true).
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet,
+			mtest.Sharded,
+			mtest.LoadBalanced,
+			mtest.ShardedReplicaSet)
+	mt := mtest.New(t, mtOpts)
+
+	mt.Run("TestFLE2CreateCollectionWithAutoEncryption", func(mt *mtest.T) {
+		// Drop data from prior test runs.
+		{
+			err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err = mt.Client.Database("db").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+		}
+
+		kmsProvidersMap := map[string]map[string]interface{}{
+			"local": {"key": localMasterKey},
+		}
+
+		// Use an empty encryptedFields.
+		encryptedFields := bson.M{
+			"fields": []bson.M{},
+		}
+
+		// Store names of started commands.
+		startedCommands := make([]string, 0)
+		cmdMonitor := &event.CommandMonitor{
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+				startedCommands = append(startedCommands, evt.CommandName)
+			},
+		}
+
+		// Create a Client with Auto Encryption enabled.
+		var encryptedClient *mongo.Client
+		{
+			aeOpts := options.AutoEncryption().
+				SetKmsProviders(kmsProvidersMap).
+				SetKeyVaultNamespace("keyvault.datakeys").
+				SetExtraOptions(getCryptSharedLibExtraOptions())
+
+			cOpts := options.Client().
+				ApplyURI(mtest.ClusterURI()).
+				SetMonitor(cmdMonitor).
+				SetAutoEncryptionOptions(aeOpts)
+
+			integtest.AddTestServerAPIVersion(cOpts)
+
+			var err error
+			encryptedClient, err = mongo.Connect(context.Background(), cOpts)
+			defer encryptedClient.Disconnect(context.Background())
+			assert.Nil(mt, err, "error in Connect: %v", err)
+		}
+
+		// Create a collection with the encrypted fields.
+		encryptedClient.Database("db").CreateCollection(context.Background(), "coll", options.CreateCollection().SetEncryptedFields(encryptedFields))
+
+		// Check resulting events sent.
+		assert.Equal(mt, startedCommands, []string{
+			"create",          // Create ESC collection.
+			"create",          // Create ECOC collection.
+			"create",          // Create 'coll' collection.
+			"listCollections", // Run listCollections when processing `createIndexes` command for automatic encryption.
+			"createIndexes",
+		})
 	})
 }

@@ -36,6 +36,9 @@ var ErrNilValue = errors.New("value is nil")
 // ErrEmptySlice is returned when an empty slice is passed to a CRUD method that requires a non-empty slice.
 var ErrEmptySlice = errors.New("must provide at least one element in input slice")
 
+// ErrNotSlice is returned when a type other than slice is passed to InsertMany.
+var ErrNotSlice = errors.New("must provide a non-empty slice")
+
 // ErrMapForOrderedArgument is returned when a map with multiple keys is passed to a CRUD method for an ordered parameter
 type ErrMapForOrderedArgument struct {
 	ParamName string
@@ -102,7 +105,8 @@ func replaceErrors(err error) error {
 	return err
 }
 
-// IsDuplicateKeyError returns true if err is a duplicate key error.
+// IsDuplicateKeyError returns true if err is a duplicate key error. For BulkWriteExceptions,
+// IsDuplicateKeyError returns true if at least one of the errors is a duplicate key error.
 func IsDuplicateKeyError(err error) bool {
 	if se := ServerError(nil); errors.As(err, &se) {
 		return se.HasErrorCode(11000) || // Duplicate key error.

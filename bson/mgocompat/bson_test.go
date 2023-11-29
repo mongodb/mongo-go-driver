@@ -946,13 +946,13 @@ func TestUnmarshalAllItemsWithPtrSetter(t *testing.T) {
 					if i == 0 {
 						assert.Nil(t, field, "expected field to be nil, got: %v", field)
 					} else {
-						assert.Nil(t, field.Received, "expected field.recieved to be nil, got: %v", field.Received)
+						assert.Nil(t, field.Received, "expected field.received to be nil, got: %v", field.Received)
 					}
 				} else {
 					expected := item.obj.(bson.M)["_"]
 					assert.NotNil(t, field, "Pointer not initialized (%#v)", expected)
 
-					assert.True(t, reflect.DeepEqual(expected, field.Received), "expected field.recieved to be: %v, got: %v", expected, field.Received)
+					assert.True(t, reflect.DeepEqual(expected, field.Received), "expected field.received to be: %v, got: %v", expected, field.Received)
 				}
 			}
 		})
@@ -963,7 +963,7 @@ func TestUnmarshalWholeDocumentWithSetter(t *testing.T) {
 	obj := &setterType{}
 	err := bson.UnmarshalWithRegistry(Registry, []byte(sampleItems[0].data), obj)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
-	assert.True(t, reflect.DeepEqual(bson.M{"hello": "world"}, obj.Received), "expected obj.recieved to be: %v, got: %v", bson.M{"hello": "world"}, obj.Received)
+	assert.True(t, reflect.DeepEqual(bson.M{"hello": "world"}, obj.Received), "expected obj.received to be: %v, got: %v", bson.M{"hello": "world"}, obj.Received)
 }
 
 func TestUnmarshalSetterErrors(t *testing.T) {

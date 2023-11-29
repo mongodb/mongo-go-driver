@@ -88,7 +88,7 @@ func TestClientOptions(t *testing.T) {
 			{"Direct", (*ClientOptions).SetDirect, true, "Direct", true},
 			{"SocketTimeout", (*ClientOptions).SetSocketTimeout, 5 * time.Second, "SocketTimeout", true},
 			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
-			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.New(writeconcern.WMajority()), "WriteConcern", false},
+			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
 			{"DisableOCSPEndpointCheck", (*ClientOptions).SetDisableOCSPEndpointCheck, true, "DisableOCSPEndpointCheck", true},
 			{"LoadBalanced", (*ClientOptions).SetLoadBalanced, true, "LoadBalanced", true},
@@ -439,22 +439,22 @@ func TestClientOptions(t *testing.T) {
 			{
 				"WriteConcern J",
 				"mongodb://localhost/?journal=true",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.J(true))),
+				baseClient().SetWriteConcern(writeconcern.Journaled()),
 			},
 			{
 				"WriteConcern WString",
 				"mongodb://localhost/?w=majority",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.WMajority())),
+				baseClient().SetWriteConcern(writeconcern.Majority()),
 			},
 			{
 				"WriteConcern W",
 				"mongodb://localhost/?w=3",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.W(3))),
+				baseClient().SetWriteConcern(&writeconcern.WriteConcern{W: 3}),
 			},
 			{
 				"WriteConcern WTimeout",
 				"mongodb://localhost/?wTimeoutMS=45000",
-				baseClient().SetWriteConcern(writeconcern.New(writeconcern.WTimeout(45 * time.Second))),
+				baseClient().SetWriteConcern(&writeconcern.WriteConcern{WTimeout: 45 * time.Second}),
 			},
 			{
 				"ZLibLevel",
@@ -623,7 +623,7 @@ func TestClientOptions(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					err := tc.opts.SetDirect(true).Validate()
-					assert.NotNil(t, err, "expected errror, got nil")
+					assert.NotNil(t, err, "expected error, got nil")
 					assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 				})
 			}
@@ -635,7 +635,7 @@ func TestClientOptions(t *testing.T) {
 			opts.cs.Scheme = connstring.SchemeMongoDBSRV
 
 			err := opts.SetDirect(true).Validate()
-			assert.NotNil(t, err, "expected errror, got nil")
+			assert.NotNil(t, err, "expected error, got nil")
 			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 		})
 	})
@@ -757,6 +757,52 @@ func TestClientOptions(t *testing.T) {
 
 				err := tc.opts.Validate()
 				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
+			})
+		}
+	})
+	t.Run("server monitoring mode validation", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{
+				name: "undefined",
+				opts: Client(),
+				err:  nil,
+			},
+			{
+				name: "auto",
+				opts: Client().SetServerMonitoringMode(ServerMonitoringModeAuto),
+				err:  nil,
+			},
+			{
+				name: "poll",
+				opts: Client().SetServerMonitoringMode(ServerMonitoringModePoll),
+				err:  nil,
+			},
+			{
+				name: "stream",
+				opts: Client().SetServerMonitoringMode(ServerMonitoringModeStream),
+				err:  nil,
+			},
+			{
+				name: "invalid",
+				opts: Client().SetServerMonitoringMode("invalid"),
+				err:  errors.New("invalid server monitoring mode: \"invalid\""),
+			},
+		}
+
+		for _, tc := range testCases {
+			tc := tc // Capture the range variable
+
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
 		}
 	})

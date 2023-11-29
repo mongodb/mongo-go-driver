@@ -8,6 +8,7 @@ package bson_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -150,7 +151,7 @@ func ExampleEncoder_multipleBSONDocuments() {
 	// Extended JSON by converting them to bson.Raw.
 	for {
 		doc, err := bson.ReadDocument(buf)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return
 		}
 		if err != nil {

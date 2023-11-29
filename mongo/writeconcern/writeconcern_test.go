@@ -18,44 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-func TestWriteConcernWithOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("on nil WriteConcern", func(t *testing.T) {
-		t.Parallel()
-
-		var wc *writeconcern.WriteConcern
-
-		wc = wc.WithOptions(writeconcern.WMajority())
-		assert.Equal(t, "majority", wc.GetW().(string))
-		assert.False(t, wc.GetJ())
-	})
-	t.Run("on existing WriteConcern", func(t *testing.T) {
-		t.Parallel()
-
-		wc := writeconcern.New(writeconcern.W(1), writeconcern.J(true))
-		assert.Equal(t, 1, wc.GetW().(int))
-		assert.True(t, wc.GetJ())
-
-		wc = wc.WithOptions(writeconcern.WMajority())
-		assert.Equal(t, "majority", wc.GetW().(string))
-		assert.True(t, wc.GetJ())
-	})
-	t.Run("with multiple options", func(t *testing.T) {
-		t.Parallel()
-
-		wc := writeconcern.New(writeconcern.W(1), writeconcern.J(true))
-		assert.Equal(t, 1, wc.GetW().(int))
-		assert.True(t, wc.GetJ())
-		assert.Equal(t, time.Duration(0), wc.GetWTimeout())
-
-		wc = wc.WithOptions(writeconcern.WMajority(), writeconcern.WTimeout(time.Second))
-		assert.Equal(t, "majority", wc.GetW().(string))
-		assert.True(t, wc.GetJ())
-		assert.Equal(t, time.Second, wc.GetWTimeout())
-	})
-}
-
 func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 	t.Parallel()
 

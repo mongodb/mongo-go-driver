@@ -10,14 +10,16 @@
 
 The MongoDB supported driver for Go.
 
--------------------------
+______________________________________________________________________
+
 ## Requirements
 
 - Go 1.18 or higher. We aim to support the latest versions of Go.
 - Go 1.20 or higher is required to run the driver test suite.
 - MongoDB 3.6 and higher.
 
--------------------------
+______________________________________________________________________
+
 ## Installation
 
 The recommended way to get started using the MongoDB Go driver is by using Go modules to install the dependency in
@@ -34,7 +36,8 @@ When using a version of Go that does not support modules, the driver can be inst
 dep ensure -add "go.mongodb.org/mongo-driver/mongo"
 ```
 
--------------------------
+______________________________________________________________________
+
 ## Usage
 
 To get started with the driver, import the `mongo` package and create a `mongo.Client` with the `Connect` function:
@@ -149,24 +152,24 @@ Additional examples and documentation can be found under the examples directory 
 
 ### Network Compression
 
-Network compression will reduce bandwidth requirements between MongoDB and the application. 
+Network compression will reduce bandwidth requirements between MongoDB and the application.
 
 The Go Driver supports the following compression algorithms:
 
 1. [Snappy](https://google.github.io/snappy/) (`snappy`): available in MongoDB 3.4 and later.
-2. [Zlib](https://zlib.net/) (`zlib`): available in MongoDB 3.6 and later.
-3. [Zstandard](https://github.com/facebook/zstd/) (`zstd`): available in MongoDB 4.2 and later.
+1. [Zlib](https://zlib.net/) (`zlib`): available in MongoDB 3.6 and later.
+1. [Zstandard](https://github.com/facebook/zstd/) (`zstd`): available in MongoDB 4.2 and later.
 
 #### Specify Compression Algorithms
 
 Compression can be enabled using the `compressors` parameter on the connection string or by using [`ClientOptions.SetCompressors`](https://pkg.go.dev/go.mongodb.org/mongo-driver/mongo/options#ClientOptions.SetCompressors):
 
-```
+```go
 opts := options.Client().ApplyURI("mongodb://localhost:27017/?compressors=snappy,zlib,zstd")
 client, _ := mongo.Connect(context.TODO(), opts)
 ```
 
-```
+```go
 opts := options.Client().SetCompressors([]string{"snappy", "zlib", "zstd"})
 client, _ := mongo.Connect(context.TODO(), opts)
 ```
@@ -175,35 +178,41 @@ If compressors are set, the Go Driver negotiates with the server to select the f
 
 Messages compress when both parties enable network compression; otherwise, messages remain uncompressed
 
--------------------------
+______________________________________________________________________
+
 ## Feedback
 
 For help with the driver, please post in the [MongoDB Community Forums](https://developer.mongodb.com/community/forums/tag/golang/).
 
 New features and bugs can be reported on jira: https://jira.mongodb.org/browse/GODRIVER
 
--------------------------
+______________________________________________________________________
+
 ## Contribution
 
 Check out the [project page](https://jira.mongodb.org/browse/GODRIVER) for tickets that need completing. See our [contribution guidelines](docs/CONTRIBUTING.md) for details.
 
--------------------------
+______________________________________________________________________
+
 ## Continuous Integration
 
 Commits to master are run automatically on [evergreen](https://evergreen.mongodb.com/waterfall/mongo-go-driver).
 
--------------------------
+______________________________________________________________________
+
 ## Frequently Encountered Issues
 
 See our [common issues](docs/common-issues.md) documentation for troubleshooting frequently encountered issues.
 
--------------------------
+______________________________________________________________________
+
 ## Thanks and Acknowledgement
 
 - The Go Gopher artwork by [@ashleymcnamara](https://github.com/ashleymcnamara)
 - The original Go Gopher was designed by [Renee French](http://reneefrench.blogspot.com/)
 
--------------------------
+______________________________________________________________________
+
 ## License
 
 The MongoDB Go Driver is licensed under the [Apache License](LICENSE).

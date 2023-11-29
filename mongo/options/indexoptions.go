@@ -75,28 +75,6 @@ func (c *CreateIndexesOptions) SetCommitQuorumVotingMembers() *CreateIndexesOpti
 	return c
 }
 
-// MergeCreateIndexesOptions combines the given CreateIndexesOptions into a single CreateIndexesOptions in a last one
-// wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeCreateIndexesOptions(opts ...*CreateIndexesOptions) *CreateIndexesOptions {
-	c := CreateIndexes()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.MaxTime != nil {
-			c.MaxTime = opt.MaxTime
-		}
-		if opt.CommitQuorum != nil {
-			c.CommitQuorum = opt.CommitQuorum
-		}
-	}
-
-	return c
-}
-
 // DropIndexesOptions represents options that can be used to configure IndexView.DropOne and IndexView.DropAll
 // operations.
 type DropIndexesOptions struct {
@@ -122,25 +100,6 @@ func DropIndexes() *DropIndexesOptions {
 func (d *DropIndexesOptions) SetMaxTime(duration time.Duration) *DropIndexesOptions {
 	d.MaxTime = &duration
 	return d
-}
-
-// MergeDropIndexesOptions combines the given DropIndexesOptions into a single DropIndexesOptions in a last-one-wins
-// fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeDropIndexesOptions(opts ...*DropIndexesOptions) *DropIndexesOptions {
-	c := DropIndexes()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.MaxTime != nil {
-			c.MaxTime = opt.MaxTime
-		}
-	}
-
-	return c
 }
 
 // ListIndexesOptions represents options that can be used to configure an IndexView.List operation.
@@ -178,37 +137,9 @@ func (l *ListIndexesOptions) SetMaxTime(d time.Duration) *ListIndexesOptions {
 	return l
 }
 
-// MergeListIndexesOptions combines the given ListIndexesOptions instances into a single *ListIndexesOptions in a
-// last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeListIndexesOptions(opts ...*ListIndexesOptions) *ListIndexesOptions {
-	c := ListIndexes()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.BatchSize != nil {
-			c.BatchSize = opt.BatchSize
-		}
-		if opt.MaxTime != nil {
-			c.MaxTime = opt.MaxTime
-		}
-	}
-
-	return c
-}
-
 // IndexOptions represents options that can be used to configure a new index created through the IndexView.CreateOne
 // or IndexView.CreateMany operations.
 type IndexOptions struct {
-	// If true, the index will be built in the background on the server and will not block other tasks. The default
-	// value is false.
-	//
-	// Deprecated: This option has been deprecated in MongoDB version 4.2.
-	Background *bool
-
 	// The length of time, in seconds, for documents to remain in the collection. The default value is 0, which means
 	// that documents will remain in the collection until they're explicitly deleted or the collection is dropped.
 	ExpireAfterSeconds *int32
@@ -293,14 +224,6 @@ type IndexOptions struct {
 // Index creates a new IndexOptions instance.
 func Index() *IndexOptions {
 	return &IndexOptions{}
-}
-
-// SetBackground sets value for the Background field.
-//
-// Deprecated: This option has been deprecated in MongoDB version 4.2.
-func (i *IndexOptions) SetBackground(background bool) *IndexOptions {
-	i.Background = &background
-	return i
 }
 
 // SetExpireAfterSeconds sets value for the ExpireAfterSeconds field.
@@ -414,81 +337,5 @@ func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *In
 // SetHidden sets the value for the Hidden field.
 func (i *IndexOptions) SetHidden(hidden bool) *IndexOptions {
 	i.Hidden = &hidden
-	return i
-}
-
-// MergeIndexOptions combines the given IndexOptions into a single IndexOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeIndexOptions(opts ...*IndexOptions) *IndexOptions {
-	i := Index()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Background != nil {
-			i.Background = opt.Background
-		}
-		if opt.ExpireAfterSeconds != nil {
-			i.ExpireAfterSeconds = opt.ExpireAfterSeconds
-		}
-		if opt.Name != nil {
-			i.Name = opt.Name
-		}
-		if opt.Sparse != nil {
-			i.Sparse = opt.Sparse
-		}
-		if opt.StorageEngine != nil {
-			i.StorageEngine = opt.StorageEngine
-		}
-		if opt.Unique != nil {
-			i.Unique = opt.Unique
-		}
-		if opt.Version != nil {
-			i.Version = opt.Version
-		}
-		if opt.DefaultLanguage != nil {
-			i.DefaultLanguage = opt.DefaultLanguage
-		}
-		if opt.LanguageOverride != nil {
-			i.LanguageOverride = opt.LanguageOverride
-		}
-		if opt.TextVersion != nil {
-			i.TextVersion = opt.TextVersion
-		}
-		if opt.Weights != nil {
-			i.Weights = opt.Weights
-		}
-		if opt.SphereVersion != nil {
-			i.SphereVersion = opt.SphereVersion
-		}
-		if opt.Bits != nil {
-			i.Bits = opt.Bits
-		}
-		if opt.Max != nil {
-			i.Max = opt.Max
-		}
-		if opt.Min != nil {
-			i.Min = opt.Min
-		}
-		if opt.BucketSize != nil {
-			i.BucketSize = opt.BucketSize
-		}
-		if opt.PartialFilterExpression != nil {
-			i.PartialFilterExpression = opt.PartialFilterExpression
-		}
-		if opt.Collation != nil {
-			i.Collation = opt.Collation
-		}
-		if opt.WildcardProjection != nil {
-			i.WildcardProjection = opt.WildcardProjection
-		}
-		if opt.Hidden != nil {
-			i.Hidden = opt.Hidden
-		}
-	}
-
 	return i
 }

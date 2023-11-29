@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -31,18 +32,6 @@ var (
 	connsCheckedOut  int
 	errorInterrupted int32 = 11601
 )
-
-type wrappedError struct {
-	err error
-}
-
-func (we wrappedError) Error() string {
-	return we.err.Error()
-}
-
-func (we wrappedError) Unwrap() error {
-	return we.err
-}
 
 func TestConvenientTransactions(t *testing.T) {
 	if testing.Short() {
@@ -436,12 +425,12 @@ func TestConvenientTransactions(t *testing.T) {
 		res, err := sess.WithTransaction(context.Background(), func(SessionContext) (interface{}, error) {
 			if returnError {
 				returnError = false
-				return nil, wrappedError{
+				return nil, fmt.Errorf("%w",
 					CommandError{
 						Name:   "test Error",
 						Labels: []string{driver.TransientTransactionError},
 					},
-				}
+				)
 			}
 			return false, nil
 		})
@@ -570,9 +559,9 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
 			switch evt.Type {
-			case event.GetSucceeded:
+			case event.ConnectionCheckedOut:
 				connsCheckedOut++
-			case event.ConnectionReturned:
+			case event.ConnectionCheckedIn:
 				connsCheckedOut--
 			}
 		},
@@ -581,7 +570,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	baseClientOpts := options.Client().
 		ApplyURI(cs.Original).
 		SetReadPreference(readpref.Primary()).
-		SetWriteConcern(writeconcern.New(writeconcern.WMajority())).
+		SetWriteConcern(writeconcern.Majority()).
 		SetPoolMonitor(poolMonitor)
 	integtest.AddTestServerAPIVersion(baseClientOpts)
 	fullClientOpts := []*options.ClientOptions{baseClientOpts}
@@ -613,7 +602,7 @@ func getServerVersion(db *Database) (string, error) {
 	serverStatus, err := db.RunCommand(
 		context.Background(),
 		bson.D{{"serverStatus", 1}},
-	).DecodeBytes()
+	).Raw()
 	if err != nil {
 		return "", err
 	}

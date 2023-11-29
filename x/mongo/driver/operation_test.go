@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"math"
 	"testing"
 	"time"
 
@@ -149,26 +148,23 @@ func TestOperation(t *testing.T) {
 		err = sessInProgressTransaction.ApplyCommand(description.Server{})
 		noerr(t, err)
 
-		wcAck := writeconcern.New(writeconcern.WMajority())
-		wcUnack := writeconcern.New(writeconcern.W(0))
+		wcAck := writeconcern.Majority()
+		wcUnack := writeconcern.Unacknowledged()
 
 		descRetryable := description.Server{
-			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
-			SessionTimeoutMinutes:    1,
-			SessionTimeoutMinutesPtr: int64ToPtr(1),
+			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes: int64ToPtr(1),
 		}
 
 		descNotRetryableWireVersion := description.Server{
-			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
-			SessionTimeoutMinutes:    1,
-			SessionTimeoutMinutesPtr: int64ToPtr(1),
+			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes: int64ToPtr(1),
 		}
 
 		descNotRetryableStandalone := description.Server{
-			WireVersion:              &description.VersionRange{Min: 6, Max: 21},
-			SessionTimeoutMinutes:    1,
-			SessionTimeoutMinutesPtr: int64ToPtr(1),
-			Kind:                     description.Standalone,
+			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
+			SessionTimeoutMinutes: int64ToPtr(1),
+			Kind:                  description.Standalone,
 		}
 
 		testCases := []struct {
@@ -218,7 +214,7 @@ func TestOperation(t *testing.T) {
 			want bsoncore.Document
 		}{
 			{"nil", nil, nil},
-			{"empty", readconcern.New(), nil},
+			{"empty", &readconcern.ReadConcern{}, nil},
 			{"non-empty", readconcern.Majority(), majorityRc},
 		}
 
@@ -234,7 +230,7 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.New(writeconcern.WMajority())}.addWriteConcern(nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -740,8 +736,7 @@ func (m *mockConnection) CurrentlyStreaming() bool        { return m.rStreaming 
 func (m *mockConnection) SetStreaming(streaming bool)     { m.rStreaming = streaming }
 func (m *mockConnection) Stale() bool                     { return false }
 
-// TODO:(GODRIVER-2824) replace return type with int64.
-func (m *mockConnection) DriverConnectionID() uint64 { return 0 }
+func (m *mockConnection) DriverConnectionID() int64 { return 0 }
 
 func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
 	m.pWriteWM = wm
@@ -814,58 +809,6 @@ func TestRetry(t *testing.T) {
 			time.Now().After(deadline),
 			"expected operation to complete only after the context deadline is exceeded")
 	})
-}
-
-func TestConvertI64PtrToI32Ptr(t *testing.T) {
-	t.Parallel()
-
-	newI64 := func(i64 int64) *int64 { return &i64 }
-	newI32 := func(i32 int32) *int32 { return &i32 }
-
-	tests := []struct {
-		name string
-		i64  *int64
-		want *int32
-	}{
-		{
-			name: "empty",
-			want: nil,
-		},
-		{
-			name: "in bounds",
-			i64:  newI64(1),
-			want: newI32(1),
-		},
-		{
-			name: "out of bounds negative",
-			i64:  newI64(math.MinInt32 - 1),
-		},
-		{
-			name: "out of bounds positive",
-			i64:  newI64(math.MaxInt32 + 1),
-		},
-		{
-			name: "exact min int32",
-			i64:  newI64(math.MinInt32),
-			want: newI32(math.MinInt32),
-		},
-		{
-			name: "exact max int32",
-			i64:  newI64(math.MaxInt32),
-			want: newI32(math.MaxInt32),
-		},
-	}
-
-	for _, test := range tests {
-		test := test
-
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := convertInt64PtrToInt32Ptr(test.i64)
-			assert.Equal(t, test.want, got)
-		})
-	}
 }
 
 func TestDecodeOpReply(t *testing.T) {

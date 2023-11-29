@@ -124,7 +124,7 @@ func (c Copier) CopyBytesToDocumentWriter(dst DocumentWriter, src []byte) error 
 }
 
 func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
-	// TODO(skriptble): Create errors types here. Anything thats a tag should be a property.
+	// TODO(skriptble): Create errors types here. Anything that is a tag should be a property.
 	length, rem, ok := bsoncore.ReadLength(src)
 	if !ok {
 		return fmt.Errorf("couldn't read length from src, not enough bytes. length=%d", len(src))

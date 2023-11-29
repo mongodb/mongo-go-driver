@@ -233,7 +233,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(ctx SessionCo
 
 	CommitLoop:
 		for {
-			err = s.CommitTransaction(ctx)
+			err = s.CommitTransaction(newBackgroundContext(ctx))
 			// End when error is nil, as transaction has been committed.
 			if err == nil {
 				return res, nil
@@ -267,7 +267,24 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 
 	s.didCommitAfterStart = false
 
-	topts := options.MergeTransactionOptions(opts...)
+	topts := options.Transaction()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.ReadConcern != nil {
+			topts.ReadConcern = opt.ReadConcern
+		}
+		if opt.ReadPreference != nil {
+			topts.ReadPreference = opt.ReadPreference
+		}
+		if opt.WriteConcern != nil {
+			topts.WriteConcern = opt.WriteConcern
+		}
+		if opt.MaxCommitTime != nil {
+			topts.MaxCommitTime = opt.MaxCommitTime
+		}
+	}
 	coreOpts := &session.TransactionOptions{
 		ReadConcern:    topts.ReadConcern,
 		ReadPreference: topts.ReadPreference,

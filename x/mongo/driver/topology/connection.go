@@ -74,8 +74,7 @@ type connection struct {
 	// pool related fields
 	pool *pool
 
-	// TODO(GODRIVER-2824): change driverConnectionID type to int64.
-	driverConnectionID uint64
+	driverConnectionID int64
 	generation         uint64
 }
 
@@ -107,8 +106,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 }
 
 // DriverConnectionID returns the driver connection ID.
-// TODO(GODRIVER-2824): change return type to int64.
-func (c *connection) DriverConnectionID() uint64 {
+func (c *connection) DriverConnectionID() int64 {
 	return c.driverConnectionID
 }
 
@@ -314,7 +312,7 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 	}
 
 	// If there was an error and the context was cancelled, we assume it happened due to the cancellation.
-	if ctx.Err() == context.Canceled {
+	if errors.Is(ctx.Err(), context.Canceled) {
 		return context.Canceled
 	}
 
@@ -802,8 +800,7 @@ func (c *Connection) unpin(reason string) error {
 }
 
 // DriverConnectionID returns the driver connection ID.
-// TODO(GODRIVER-2824): change return type to int64.
-func (c *Connection) DriverConnectionID() uint64 {
+func (c *Connection) DriverConnectionID() int64 {
 	return c.connection.DriverConnectionID()
 }
 
@@ -858,7 +855,7 @@ func newCancellListener() *cancellListener {
 
 // Listen blocks until the provided context is cancelled or listening is aborted
 // via the StopListening function. If this detects that the context has been
-// cancelled (i.e. ctx.Err() == context.Canceled), the provided callback is
+// cancelled (i.e. errors.Is(ctx.Err(), context.Canceled), the provided callback is
 // called to abort in-progress work. Even if the context expires, this function
 // will block until StopListening is called.
 func (c *cancellListener) Listen(ctx context.Context, abortFn func()) {
@@ -866,7 +863,7 @@ func (c *cancellListener) Listen(ctx context.Context, abortFn func()) {
 
 	select {
 	case <-ctx.Done():
-		if ctx.Err() == context.Canceled {
+		if errors.Is(ctx.Err(), context.Canceled) {
 			c.aborted = true
 			abortFn()
 		}

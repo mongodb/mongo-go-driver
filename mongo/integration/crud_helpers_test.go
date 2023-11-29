@@ -1233,7 +1233,7 @@ func executeGridFSDownload(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (i
 		}
 	}
 
-	return bucket.DownloadToStream(fileID, new(bytes.Buffer))
+	return bucket.DownloadToStream(context.Background(), fileID, new(bytes.Buffer))
 }
 
 func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (int64, error) {
@@ -1253,7 +1253,7 @@ func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.R
 		}
 	}
 
-	return bucket.DownloadToStreamByName(file, new(bytes.Buffer))
+	return bucket.DownloadToStreamByName(context.Background(), file, new(bytes.Buffer))
 }
 
 func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
@@ -1324,13 +1324,14 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 
 	var collName string
 	elems, _ := args.Elements()
+	dco := options.DropCollection()
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
 
 		switch key {
 		case "encryptedFields":
-			mt.Fatalf("unsupported field: encryptedFields")
+			dco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		default:
@@ -1341,11 +1342,11 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 	coll := mt.DB.Collection(collName)
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			return coll.Drop(sc)
+			return coll.Drop(sc, dco)
 		})
 		return err
 	}
-	return coll.Drop(context.Background())
+	return coll.Drop(context.Background(), dco)
 }
 
 func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
@@ -1646,7 +1647,7 @@ func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedR
 	}
 
 	expected := expectedResult.(bson.Raw)
-	actual, _ := actualResult.DecodeBytes()
+	actual, _ := actualResult.Raw()
 	if err := compareDocs(mt, expected, actual); err != nil {
 		mt.Fatalf("SingleResult document mismatch: %s", err)
 	}

@@ -33,6 +33,26 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+const (
+	// ServerMonitoringModeAuto indicates that the client will behave like "poll"
+	// mode when running on a FaaS (Function as a Service) platform, or like
+	// "stream" mode otherwise. The client detects its execution environment by
+	// following the rules for generating the "client.env" handshake metadata field
+	// as specified in the MongoDB Handshake specification. This is the default
+	// mode.
+	ServerMonitoringModeAuto = connstring.ServerMonitoringModeAuto
+
+	// ServerMonitoringModePoll indicates that the client will periodically check
+	// the server using a hello or legacy hello command and then sleep for
+	// heartbeatFrequencyMS milliseconds before running another check.
+	ServerMonitoringModePoll = connstring.ServerMonitoringModePoll
+
+	// ServerMonitoringModeStream indicates that the client will use a streaming
+	// protocol when the server supports it. The streaming protocol optimally
+	// reduces the time it takes for a client to discover server state changes.
+	ServerMonitoringModeStream = connstring.ServerMonitoringModeStream
+)
+
 // ContextDialer is an interface that can be implemented by types that can create connections. It should be used to
 // provide a custom dialer when configuring a Client.
 //
@@ -206,6 +226,7 @@ type ClientOptions struct {
 	RetryReads               *bool
 	RetryWrites              *bool
 	ServerAPIOptions         *ServerAPIOptions
+	ServerMonitoringMode     *string
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
 	SRVServiceName           *string
@@ -218,12 +239,6 @@ type ClientOptions struct {
 	err error
 	uri string
 	cs  *connstring.ConnString
-
-	// AuthenticateToAnything skips server type checks when deciding if authentication is possible.
-	//
-	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
-	// release.
-	AuthenticateToAnything *bool
 
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
 	// encryption.
@@ -306,6 +321,11 @@ func (c *ClientOptions) validate() error {
 			return connstring.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
+
+	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
+		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	}
+
 	return nil
 }
 
@@ -317,7 +337,7 @@ func (c *ClientOptions) GetURI() string {
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
 // an SRV record that will be resolved when the Client is created. When using an SRV record, TLS support is
-// implictly enabled. Specify the "tls=false" URI option to override this.
+// implicitly enabled. Specify the "tls=false" URI option to override this.
 //
 // If the connection string contains any options that have previously been set, it will overwrite them. Options that
 // correspond to multiple URI parameters, such as WriteConcern, will be completely overwritten if any of the query
@@ -414,7 +434,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.ReadConcernLevel != "" {
-		c.ReadConcern = readconcern.New(readconcern.Level(cs.ReadConcernLevel))
+		c.ReadConcern = &readconcern.ReadConcern{Level: cs.ReadConcernLevel}
 	}
 
 	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
@@ -511,23 +531,21 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
-		opts := make([]writeconcern.Option, 0, 1)
+		c.WriteConcern = &writeconcern.WriteConcern{}
 
 		if len(cs.WString) > 0 {
-			opts = append(opts, writeconcern.WTagSet(cs.WString))
+			c.WriteConcern.W = cs.WString
 		} else if cs.WNumberSet {
-			opts = append(opts, writeconcern.W(cs.WNumber))
+			c.WriteConcern.W = cs.WNumber
 		}
 
 		if cs.JSet {
-			opts = append(opts, writeconcern.J(cs.J))
+			c.WriteConcern.Journal = &cs.J
 		}
 
 		if cs.WTimeoutSet {
-			opts = append(opts, writeconcern.WTimeout(cs.WTimeout))
+			c.WriteConcern.WTimeout = cs.WTimeout
 		}
-
-		c.WriteConcern = writeconcern.New(opts...)
 	}
 
 	if cs.ZlibLevelSet {
@@ -945,6 +963,16 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 	return c
 }
 
+// SetServerMonitoringMode specifies the server monitoring protocol to use. See
+// the helper constants ServerMonitoringModeAuto, ServerMonitoringModePoll, and
+// ServerMonitoringModeStream for more information about valid server
+// monitoring modes.
+func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
+	c.ServerMonitoringMode = &mode
+
+	return c
+}
+
 // SetSRVMaxHosts specifies the maximum number of SRV results to randomly select during polling. To limit the number
 // of hosts selected in SRV discovery, this function must be called before ApplyURI. This can also be set through
 // the "srvMaxHosts" URI option.
@@ -961,7 +989,7 @@ func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
 	return c
 }
 
-// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
+// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last property wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
 //
@@ -983,9 +1011,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Auth != nil {
 			c.Auth = opt.Auth
-		}
-		if opt.AuthenticateToAnything != nil {
-			c.AuthenticateToAnything = opt.AuthenticateToAnything
 		}
 		if opt.Compressors != nil {
 			c.Compressors = opt.Compressors
@@ -1106,6 +1131,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.LoggerOptions != nil {
 			c.LoggerOptions = opt.LoggerOptions
+		}
+		if opt.ServerMonitoringMode != nil {
+			c.ServerMonitoringMode = opt.ServerMonitoringMode
 		}
 	}
 

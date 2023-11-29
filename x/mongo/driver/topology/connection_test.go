@@ -146,7 +146,7 @@ func TestConnection(t *testing.T) {
 						_ = conn.connect(context.Background())
 					}()
 
-					// Simulate cancelling connection establishment and assert that this cleares the CancelFunc.
+					// Simulate cancelling connection establishment and assert that this clears the CancelFunc.
 					conn.closeConnectContext()
 					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
 					close(doneChan)
@@ -283,7 +283,7 @@ func TestConnection(t *testing.T) {
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
 
 						isTimeout := func(err error) bool {
-							if err == context.DeadlineExceeded {
+							if errors.Is(err, context.DeadlineExceeded) {
 								return true
 							}
 							if ne, ok := err.(net.Error); ok {

@@ -187,7 +187,7 @@ func TestClient(t *testing.T) {
 
 				rdr, err := authClient.Database("test").RunCommand(context.Background(), bson.D{
 					{"connectionStatus", 1},
-				}).DecodeBytes()
+				}).Raw()
 				assert.Nil(mt, err, "connectionStatus error: %v", err)
 				users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
 				assert.Nil(mt, err, "authenticatedUsers not found in response")
@@ -337,14 +337,6 @@ func TestClient(t *testing.T) {
 		mt.Run("nil context", func(mt *mtest.T) {
 			err := mt.Client.Disconnect(nil)
 			assert.Nil(mt, err, "Disconnect error: %v", err)
-		})
-	})
-	mt.RunOpts("watch", noClientOpts, func(mt *mtest.T) {
-		mt.Run("disconnected", func(mt *mtest.T) {
-			c, err := mongo.NewClient(options.Client().ApplyURI(mtest.ClusterURI()))
-			assert.Nil(mt, err, "NewClient error: %v", err)
-			_, err = c.Watch(context.Background(), mongo.Pipeline{})
-			assert.Equal(mt, mongo.ErrClientDisconnected, err, "expected error %v, got %v", mongo.ErrClientDisconnected, err)
 		})
 	})
 	mt.RunOpts("end sessions", mtest.NewOptions().MinServerVersion("3.6"), func(mt *mtest.T) {
@@ -878,8 +870,8 @@ func TestClient_BSONOptions(t *testing.T) {
 			}
 
 			if tc.wantRaw != nil {
-				got, err := sr.DecodeBytes()
-				require.NoError(mt, err, "DecodeBytes error")
+				got, err := sr.Raw()
+				require.NoError(mt, err, "Raw error")
 
 				assert.EqualBSON(mt, tc.wantRaw, got)
 			}

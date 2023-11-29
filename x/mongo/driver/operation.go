@@ -11,7 +11,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -97,7 +96,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	driverConnectionID       uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
@@ -111,28 +110,12 @@ type finishedInformation struct {
 	response           bsoncore.Document
 	cmdErr             error
 	connID             string
-	driverConnectionID uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
 	serviceID          *primitive.ObjectID
 	serverAddress      address.Address
 	duration           time.Duration
-}
-
-// convertInt64PtrToInt32Ptr will convert an int64 pointer reference to an int32 pointer
-// reference. If the int64 value cannot be converted to int32 without causing
-// an overflow, then this function will return nil.
-func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
-	if i64 == nil {
-		return nil
-	}
-
-	if *i64 > math.MaxInt32 || *i64 < math.MinInt32 {
-		return nil
-	}
-
-	i32 := int32(*i64)
-	return &i32
 }
 
 // success returns true if there was no command error or the command error is a
@@ -477,7 +460,7 @@ func (op Operation) Validate() error {
 	if op.Database == "" {
 		return errDatabaseNameEmpty
 	}
-	if op.Client != nil && !writeconcern.AckWrite(op.WriteConcern) {
+	if op.Client != nil && !op.WriteConcern.Acknowledged() {
 		return errors.New("session provided for an unacknowledged write")
 	}
 	return nil
@@ -846,7 +829,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -943,7 +926,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -1039,7 +1022,7 @@ func (op Operation) retryable(desc description.Server) bool {
 		}
 		if retryWritesSupported(desc) &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
-			writeconcern.AckWrite(op.WriteConcern) {
+			op.WriteConcern.Acknowledged() {
 			return true
 		}
 	case Read:
@@ -1282,7 +1265,7 @@ func (op Operation) createMsgWireMessage(
 	var wmindex int32
 	// We set the MoreToCome bit if we have a write concern, it's unacknowledged, and we either
 	// aren't batching or we are encoding the last batch.
-	if op.WriteConcern != nil && !writeconcern.AckWrite(op.WriteConcern) && (op.Batches == nil || len(op.Batches.Documents) == 0) {
+	if op.WriteConcern != nil && !op.WriteConcern.Acknowledged() && (op.Batches == nil || len(op.Batches.Documents) == 0) {
 		flags = wiremessage.MoreToCome
 	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
@@ -1444,7 +1427,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 
 	// start transaction must append afterclustertime IF causally consistent and operation time exists
 	if rc == nil && client != nil && client.TransactionStarting() && client.Consistent && client.OperationTime != nil {
-		rc = readconcern.New()
+		rc = &readconcern.ReadConcern{}
 	}
 
 	if client != nil && client.Snapshot {
@@ -1507,11 +1490,11 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 	// If the operation is defined for an explicit session but the server
 	// does not support sessions, then throw an error.
-	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutesPtr == nil {
+	if client != nil && !client.IsImplicit && desc.SessionTimeoutMinutes == nil {
 		return nil, fmt.Errorf("current topology does not support sessions")
 	}
 
-	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutesPtr == nil {
+	if client == nil || !sessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == nil {
 		return dst, nil
 	}
 	if err := client.UpdateUseTime(); err != nil {
@@ -1873,7 +1856,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, fmt.Errorf("malformed wire message: uknown section type %v", stype)
+				return nil, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 
@@ -1950,14 +1933,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
-			Command:              redactStartedInformationCmd(op, info),
-			DatabaseName:         op.Database,
-			CommandName:          info.cmdName,
-			RequestID:            int64(info.requestID),
-			ConnectionID:         info.connID,
-			ServerConnectionID:   convertInt64PtrToInt32Ptr(info.serverConnID),
-			ServerConnectionID64: info.serverConnID,
-			ServiceID:            info.serviceID,
+			Command:            redactStartedInformationCmd(op, info),
+			DatabaseName:       op.Database,
+			CommandName:        info.cmdName,
+			RequestID:          int64(info.requestID),
+			ConnectionID:       info.connID,
+			ServerConnectionID: info.serverConnID,
+			ServiceID:          info.serviceID,
 		}
 		op.CommandMonitor.Started(ctx, started)
 	}
@@ -2030,15 +2012,13 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:          info.cmdName,
-		DatabaseName:         op.Database,
-		RequestID:            int64(info.requestID),
-		ConnectionID:         info.connID,
-		Duration:             info.duration,
-		DurationNanos:        info.duration.Nanoseconds(),
-		ServerConnectionID:   convertInt64PtrToInt32Ptr(info.serverConnID),
-		ServerConnectionID64: info.serverConnID,
-		ServiceID:            info.serviceID,
+		CommandName:        info.cmdName,
+		DatabaseName:       op.Database,
+		RequestID:          int64(info.requestID),
+		ConnectionID:       info.connID,
+		Duration:           info.duration,
+		ServerConnectionID: info.serverConnID,
+		ServiceID:          info.serviceID,
 	}
 
 	if info.success() {
@@ -2052,7 +2032,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	failedEvent := &event.CommandFailedEvent{
-		Failure:              info.cmdErr.Error(),
+		Failure:              info.cmdErr,
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)
@@ -2065,5 +2045,5 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
-	return s.SessionTimeoutMinutesPtr != nil && s.Kind != description.Standalone
+	return s.SessionTimeoutMinutes != nil && s.Kind != description.Standalone
 }

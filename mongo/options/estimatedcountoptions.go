@@ -43,25 +43,3 @@ func (eco *EstimatedDocumentCountOptions) SetMaxTime(d time.Duration) *Estimated
 	eco.MaxTime = &d
 	return eco
 }
-
-// MergeEstimatedDocumentCountOptions combines the given EstimatedDocumentCountOptions instances into a single
-// EstimatedDocumentCountOptions in a last-one-wins fashion.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeEstimatedDocumentCountOptions(opts ...*EstimatedDocumentCountOptions) *EstimatedDocumentCountOptions {
-	e := EstimatedDocumentCount()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Comment != nil {
-			e.Comment = opt.Comment
-		}
-		if opt.MaxTime != nil {
-			e.MaxTime = opt.MaxTime
-		}
-	}
-
-	return e
-}

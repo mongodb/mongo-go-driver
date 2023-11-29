@@ -408,7 +408,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
-		AppendString("failure", evt.Failure)
+		AppendString("failure", evt.Failure.Error())
 	if evt.ServiceID != nil {
 		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}
@@ -450,9 +450,9 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 
 	// Update the connection counter. This happens even if we're not storing any events.
 	switch evt.Type {
-	case event.GetSucceeded:
+	case event.ConnectionCheckedOut:
 		c.numConnsCheckedOut++
-	case event.ConnectionReturned:
+	case event.ConnectionCheckedIn:
 		c.numConnsCheckedOut--
 	}
 
@@ -581,7 +581,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "maxconnecting":
 			clientOpts.SetMaxConnecting(uint64(value.(int32)))
 		case "readconcernlevel":
-			clientOpts.SetReadConcern(readconcern.New(readconcern.Level(value.(string))))
+			clientOpts.SetReadConcern(&readconcern.ReadConcern{Level: value.(string)})
 		case "retryreads":
 			clientOpts.SetRetryReads(value.(bool))
 		case "retrywrites":
@@ -599,6 +599,8 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		case "serverselectiontimeoutms":
 			clientOpts.SetServerSelectionTimeout(time.Duration(value.(int32)) * time.Millisecond)
+		case "servermonitoringmode":
+			clientOpts.SetServerMonitoringMode(value.(string))
 		default:
 			return fmt.Errorf("unrecognized URI option %s", key)
 		}

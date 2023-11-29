@@ -50,7 +50,7 @@ func createBucketFindCursor(ctx context.Context, operation *operation) (*cursorR
 		return nil, newMissingArgumentError("filter")
 	}
 
-	cursor, err := bucket.FindContext(ctx, filter, opts)
+	cursor, err := bucket.Find(ctx, filter, opts)
 	res := &cursorResult{
 		cursor: cursor,
 		err:    err,
@@ -85,7 +85,7 @@ func executeBucketDelete(ctx context.Context, operation *operation) (*operationR
 		return nil, newMissingArgumentError("id")
 	}
 
-	return newErrorResult(bucket.DeleteContext(ctx, *id)), nil
+	return newErrorResult(bucket.Delete(ctx, *id)), nil
 }
 
 func executeBucketDownload(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -114,7 +114,7 @@ func executeBucketDownload(ctx context.Context, operation *operation) (*operatio
 		return nil, newMissingArgumentError("id")
 	}
 
-	stream, err := bucket.OpenDownloadStream(*id)
+	stream, err := bucket.OpenDownloadStream(ctx, *id)
 	if err != nil {
 		return newErrorResult(err), nil
 	}
@@ -158,7 +158,7 @@ func executeBucketDownloadByName(ctx context.Context, operation *operation) (*op
 	}
 
 	var buf bytes.Buffer
-	_, err = bucket.DownloadToStreamByName(filename, &buf, opts)
+	_, err = bucket.DownloadToStreamByName(ctx, filename, &buf, opts)
 	if err != nil {
 		return newErrorResult(err), nil
 	}
@@ -172,7 +172,7 @@ func executeBucketDrop(ctx context.Context, operation *operation) (*operationRes
 		return nil, err
 	}
 
-	return newErrorResult(bucket.DropContext(ctx)), nil
+	return newErrorResult(bucket.Drop(ctx)), nil
 }
 
 func executeBucketRename(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -204,7 +204,7 @@ func executeBucketRename(ctx context.Context, operation *operation) (*operationR
 		return nil, newMissingArgumentError("id")
 	}
 
-	return newErrorResult(bucket.RenameContext(ctx, id, newFilename)), nil
+	return newErrorResult(bucket.Rename(ctx, id, newFilename)), nil
 }
 
 func executeBucketUpload(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -252,7 +252,7 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 		return nil, newMissingArgumentError("source")
 	}
 
-	fileID, err := bucket.UploadFromStream(filename, bytes.NewReader(fileBytes), opts)
+	fileID, err := bucket.UploadFromStream(ctx, filename, bytes.NewReader(fileBytes), opts)
 	if err != nil {
 		return newErrorResult(err), nil
 	}

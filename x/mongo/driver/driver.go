@@ -69,7 +69,7 @@ type Connection interface {
 
 	ID() string
 	ServerConnectionID() *int64
-	DriverConnectionID() uint64 // TODO(GODRIVER-2824): change type to int64.
+	DriverConnectionID() int64
 	Address() address.Address
 	Stale() bool
 }

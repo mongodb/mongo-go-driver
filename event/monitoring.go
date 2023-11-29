@@ -23,15 +23,9 @@ type CommandStartedEvent struct {
 	CommandName  string
 	RequestID    int64
 	ConnectionID string
-	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset. If the server connection ID would cause an int32 overflow, then
-	// then this field will be nil.
-	//
-	// Deprecated: Use ServerConnectionID64.
-	ServerConnectionID *int32
 	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
 	// return this value (e.g. on MDB < 4.2), it is unset.
-	ServerConnectionID64 *int64
+	ServerConnectionID *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -39,22 +33,14 @@ type CommandStartedEvent struct {
 
 // CommandFinishedEvent represents a generic command finishing.
 type CommandFinishedEvent struct {
-	// Deprecated: Use Duration instead.
-	DurationNanos int64
-	Duration      time.Duration
-	CommandName   string
-	DatabaseName  string
-	RequestID     int64
-	ConnectionID  string
-	// ServerConnectionID contains the connection ID from the server of the operation. If the server does not return
-	// this value (e.g. on MDB < 4.2), it is unset.If the server connection ID would cause an int32 overflow, then
-	// this field will be nil.
-	//
-	// Deprecated: Use ServerConnectionID64.
-	ServerConnectionID *int32
+	Duration     time.Duration
+	CommandName  string
+	DatabaseName string
+	RequestID    int64
+	ConnectionID string
 	// ServerConnectionID64 contains the connection ID from the server of the operation. If the server does not
 	// return this value (e.g. on MDB < 4.2), it is unset.
-	ServerConnectionID64 *int64
+	ServerConnectionID *int64
 	// ServiceID contains the ID of the server to which the command was sent if it is running behind a load balancer.
 	// Otherwise, it is unset.
 	ServiceID *primitive.ObjectID
@@ -69,7 +55,7 @@ type CommandSucceededEvent struct {
 // CommandFailedEvent represents an event generated when a command's execution fails.
 type CommandFailedEvent struct {
 	CommandFinishedEvent
-	Failure string
+	Failure error
 }
 
 // CommandMonitor represents a monitor that is triggered for different events.
@@ -91,17 +77,17 @@ const (
 
 // strings for pool command monitoring types
 const (
-	PoolCreated        = "ConnectionPoolCreated"
-	PoolReady          = "ConnectionPoolReady"
-	PoolCleared        = "ConnectionPoolCleared"
-	PoolClosedEvent    = "ConnectionPoolClosed"
-	ConnectionCreated  = "ConnectionCreated"
-	ConnectionReady    = "ConnectionReady"
-	ConnectionClosed   = "ConnectionClosed"
-	GetStarted         = "ConnectionCheckOutStarted"
-	GetFailed          = "ConnectionCheckOutFailed"
-	GetSucceeded       = "ConnectionCheckedOut"
-	ConnectionReturned = "ConnectionCheckedIn"
+	PoolCreated               = "ConnectionPoolCreated"
+	PoolReady                 = "ConnectionPoolReady"
+	PoolCleared               = "ConnectionPoolCleared"
+	PoolClosedEvent           = "ConnectionPoolClosed"
+	ConnectionCreated         = "ConnectionCreated"
+	ConnectionReady           = "ConnectionReady"
+	ConnectionClosed          = "ConnectionClosed"
+	ConnectionCheckOutStarted = "ConnectionCheckOutStarted"
+	ConnectionCheckOutFailed  = "ConnectionCheckOutFailed"
+	ConnectionCheckedOut      = "ConnectionCheckedOut"
+	ConnectionCheckedIn       = "ConnectionCheckedIn"
 )
 
 // MonitorPoolOptions contains pool options as formatted in pool events
@@ -115,7 +101,7 @@ type MonitorPoolOptions struct {
 type PoolEvent struct {
 	Type         string              `json:"type"`
 	Address      string              `json:"address"`
-	ConnectionID uint64              `json:"connectionId"`
+	ConnectionID int64               `json:"connectionId"`
 	PoolOptions  *MonitorPoolOptions `json:"options"`
 	Reason       string              `json:"reason"`
 	// ServiceID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field
@@ -174,22 +160,18 @@ type ServerHeartbeatStartedEvent struct {
 
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
-	// Deprecated: Use Duration instead.
-	DurationNanos int64
-	Duration      time.Duration
-	Reply         description.Server
-	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool   // If this heartbeat was awaitable
+	Duration     time.Duration
+	Reply        description.Server
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerHeartbeatFailedEvent is an event generated when the heartbeat fails.
 type ServerHeartbeatFailedEvent struct {
-	// Deprecated: Use Duration instead.
-	DurationNanos int64
-	Duration      time.Duration
-	Failure       error
-	ConnectionID  string // The address this heartbeat was sent to with a unique identifier
-	Awaited       bool   // If this heartbeat was awaitable
+	Duration     time.Duration
+	Failure      error
+	ConnectionID string // The address this heartbeat was sent to with a unique identifier
+	Awaited      bool   // If this heartbeat was awaitable
 }
 
 // ServerMonitor represents a monitor that is triggered for different server events. The client

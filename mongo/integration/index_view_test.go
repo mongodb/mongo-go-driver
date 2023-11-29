@@ -112,7 +112,6 @@ func TestIndexView(t *testing.T) {
 		})
 		mt.Run("all options", func(mt *mtest.T) {
 			opts := options.Index().
-				SetBackground(false).
 				SetExpireAfterSeconds(10).
 				SetName("a").
 				SetSparse(false).
@@ -264,7 +263,7 @@ func TestIndexView(t *testing.T) {
 			}
 		})
 		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.New(writeconcern.W(0)))
+			SetWriteConcern(writeconcern.Unacknowledged())
 		unackMtOpts := mtest.NewOptions().
 			ClientOptions(unackClientOpts).
 			MinServerVersion("3.6")
@@ -345,7 +344,7 @@ func TestIndexView(t *testing.T) {
 				Name: indexNames[1],
 			})
 		})
-		wc := writeconcern.New(writeconcern.W(1))
+		wc := writeconcern.W1()
 		wcMtOpts := mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(wc))
 		mt.RunOpts("uses writeconcern", wcMtOpts, func(mt *mtest.T) {
 			iv := mt.Coll.Indexes()
@@ -618,7 +617,7 @@ func TestIndexView(t *testing.T) {
 		})
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(names), "expected 2 index names, got %v", len(names))
-		_, err = iv.DropAll(context.Background())
+		err = iv.DropAll(context.Background())
 		assert.Nil(mt, err, "DropAll error: %v", err)
 
 		cursor, err := iv.List(context.Background())

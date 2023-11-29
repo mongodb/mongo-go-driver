@@ -21,6 +21,26 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
+const (
+	// ServerMonitoringModeAuto indicates that the client will behave like "poll"
+	// mode when running on a FaaS (Function as a Service) platform, or like
+	// "stream" mode otherwise. The client detects its execution environment by
+	// following the rules for generating the "client.env" handshake metadata field
+	// as specified in the MongoDB Handshake specification. This is the default
+	// mode.
+	ServerMonitoringModeAuto = "auto"
+
+	// ServerMonitoringModePoll indicates that the client will periodically check
+	// the server using a hello or legacy hello command and then sleep for
+	// heartbeatFrequencyMS milliseconds before running another check.
+	ServerMonitoringModePoll = "poll"
+
+	// ServerMonitoringModeStream indicates that the client will use a streaming
+	// protocol when the server supports it. The streaming protocol optimally
+	// reduces the time it takes for a client to discover server state changes.
+	ServerMonitoringModeStream = "stream"
+)
+
 var (
 	// ErrLoadBalancedWithMultipleHosts is returned when loadBalanced=true is
 	// specified in a URI with multiple hosts.
@@ -125,6 +145,7 @@ type ConnString struct {
 	MaxStalenessSet                    bool
 	ReplicaSet                         string
 	Scheme                             string
+	ServerMonitoringMode               string
 	ServerSelectionTimeout             time.Duration
 	ServerSelectionTimeoutSet          bool
 	SocketTimeout                      time.Duration
@@ -603,7 +624,8 @@ func (p *parser) addHost(host string) error {
 	// this is unfortunate that SplitHostPort actually requires
 	// a port to exist.
 	if err != nil {
-		if addrError, ok := err.(*net.AddrError); !ok || addrError.Err != "missing port in address" {
+		var addrError *net.AddrError
+		if !errors.As(err, &addrError) || addrError.Err != "missing port in address" {
 			return err
 		}
 	}
@@ -619,6 +641,14 @@ func (p *parser) addHost(host string) error {
 	}
 	p.Hosts = append(p.Hosts, host)
 	return nil
+}
+
+// IsValidServerMonitoringMode will return true if the given string matches a
+// valid server monitoring mode.
+func IsValidServerMonitoringMode(mode string) bool {
+	return mode == ServerMonitoringModeAuto ||
+		mode == ServerMonitoringModeStream ||
+		mode == ServerMonitoringModePoll
 }
 
 func (p *parser) addOption(pair string) error {
@@ -823,6 +853,12 @@ func (p *parser) addOption(pair string) error {
 		}
 
 		p.RetryReadsSet = true
+	case "servermonitoringmode":
+		if !IsValidServerMonitoringMode(value) {
+			return fmt.Errorf("invalid value for %q: %q", key, value)
+		}
+
+		p.ServerMonitoringMode = value
 	case "serverselectiontimeoutms":
 		n, err := strconv.Atoi(value)
 		if err != nil || n < 0 {
