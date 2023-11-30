@@ -215,12 +215,9 @@ func TestLoadBalancedConnectionHandshake(t *testing.T) {
 		messages := mt.GetProxiedMessages()
 		handshakeMessage := messages[:1][0]
 
-		hello := handshake.LegacyHello
-		if os.Getenv("REQUIRE_API_VERSION") == "true" {
-			hello = "hello"
-		}
-
-		assert.Equal(mt, hello, handshakeMessage.CommandName)
+		// Per the specifications, if loadBalanced=true, drivers MUST use the hello
+		// command for the initial handshake and use the OP_MSG protocol.
+		assert.Equal(mt, "hello", handshakeMessage.CommandName)
 		assert.Equal(mt, wiremessage.OpMsg, handshakeMessage.Sent.OpCode)
 	})
 
