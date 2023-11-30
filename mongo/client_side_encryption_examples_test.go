@@ -167,7 +167,8 @@ func Example_explictEncryption() {
 	keyVaultNamespace := keyVaultDBName + "." + keyVaultCollName
 
 	// The Client used to read/write application data.
-	client, err := Connect(options.Client().ApplyURI("mongodb://localhost:27017"))
+	opts := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, err := Connect(opts)
 	if err != nil {
 		panic(err)
 	}
