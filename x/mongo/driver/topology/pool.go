@@ -863,42 +863,44 @@ func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) e
 
 // clearAll does same as the "clear" method and interrupts all in-use connections as well.
 func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
-	p.clearImpl(err, serviceID, func() {
-		for _, conn := range p.conns {
-			if conn.inUse && p.stale(conn) {
-				_ = conn.closeWithErr(poolClearedError{
-					err:     fmt.Errorf("interrupted"),
-					address: p.address,
-				})
-				_ = p.checkInWithCallback(conn, func() (reason, bool) {
-					if mustLogPoolMessage(p) {
-						keysAndValues := logger.KeyValues{
-							logger.KeyDriverConnectionID, conn.driverConnectionID,
-						}
+	p.clearImpl(err, serviceID, true)
+}
 
-						logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
+func (p *pool) interruptInUseConnections() {
+	for _, conn := range p.conns {
+		if conn.inUse && p.stale(conn) {
+			_ = conn.closeWithErr(poolClearedError{
+				err:     fmt.Errorf("interrupted"),
+				address: p.address,
+			})
+			_ = p.checkInWithCallback(conn, func() (reason, bool) {
+				if mustLogPoolMessage(p) {
+					keysAndValues := logger.KeyValues{
+						logger.KeyDriverConnectionID, conn.driverConnectionID,
 					}
 
-					if p.monitor != nil {
-						p.monitor.Event(&event.PoolEvent{
-							Type:         event.ConnectionCheckedIn,
-							ConnectionID: conn.driverConnectionID,
-							Address:      conn.addr.String(),
-						})
-					}
+					logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
+				}
 
-					r, ok := connectionPerished(conn)
-					if ok {
-						r = reason{
-							loggerConn: logger.ReasonConnClosedStale,
-							event:      event.ReasonStale,
-						}
+				if p.monitor != nil {
+					p.monitor.Event(&event.PoolEvent{
+						Type:         event.ConnectionCheckedIn,
+						ConnectionID: conn.driverConnectionID,
+						Address:      conn.addr.String(),
+					})
+				}
+
+				r, ok := connectionPerished(conn)
+				if ok {
+					r = reason{
+						loggerConn: logger.ReasonConnClosedStale,
+						event:      event.ReasonStale,
 					}
-					return r, ok
-				})
-			}
+				}
+				return r, ok
+			})
 		}
-	})
+	}
 }
 
 // clear marks all connections as stale by incrementing the generation number, stops all background
@@ -907,10 +909,10 @@ func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
 // clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
 func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
-	p.clearImpl(err, serviceID, nil)
+	p.clearImpl(err, serviceID, false)
 }
 
-func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptionCallback func()) {
+func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptInUseConnections bool) {
 	if p.getState() == poolClosed {
 		return
 	}
@@ -951,15 +953,15 @@ func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptionC
 			ServiceID: serviceID,
 			Error:     err,
 		}
-		if interruptionCallback != nil {
+		if interruptInUseConnections {
 			event.Interruption = true
 		}
 		p.monitor.Event(event)
 	}
 
 	p.removePerishedConns()
-	if interruptionCallback != nil {
-		interruptionCallback()
+	if interruptInUseConnections {
+		p.interruptInUseConnections()
 	}
 
 	if serviceID == nil {

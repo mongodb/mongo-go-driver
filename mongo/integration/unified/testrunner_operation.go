@@ -194,7 +194,7 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		}
 		threadOp := new(operation)
 		if err := operationRaw.Unmarshal(threadOp); err != nil {
-			return fmt.Errorf("error unmarshalling 'operation' argument: %v", err)
+			return fmt.Errorf("error unmarshaling 'operation' argument: %v", err)
 		}
 		ch := entities(ctx).waitChans[lookupString(args, "thread")]
 		go func(op *operation) {
@@ -205,8 +205,8 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 	case "waitForThread":
 		if ch, ok := entities(ctx).waitChans[lookupString(args, "thread")]; ok {
 			select {
-			case <-ch:
-				return nil
+			case err := <-ch:
+				return err
 			case <-time.After(10 * time.Second):
 				return fmt.Errorf("timed out after 10 seconds")
 			}

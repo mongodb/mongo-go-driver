@@ -32,7 +32,8 @@ var (
 		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",
 		// TODO(GODRIVER-2943): Fix and unskip this test case.
 		"Topology lifecycle": "Test times out.  See GODRIVER-2943",
-
+		// The current logic, which was implemented with GODRIVER-2577, only clears pools and cancels in-progress ops if
+		// the heartbeat fails twice. Therefore, we skip the following spec tests, which requires canceling ops immediately.
 		"Connection pool clear uses interruptInUseConnections=true after monitor timeout":                      "Godriver clears after multiple timeout",
 		"Error returned from connection pool clear with interruptInUseConnections=true is retryable":           "Godriver clears after multiple timeout",
 		"Error returned from connection pool clear with interruptInUseConnections=true is retryable for write": "Godriver clears after multiple timeout",
