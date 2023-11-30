@@ -54,7 +54,7 @@ import (
 
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 defer cancel()
-client, err := mongo.Connect( options.Client().ApplyURI("mongodb://localhost:27017"))
+client, err := mongo.Connect(options.Client().ApplyURI("mongodb://localhost:27017"))
 ```
 
 Make sure to defer a call to `Disconnect` after instantiating your client:
@@ -166,12 +166,12 @@ Compression can be enabled using the `compressors` parameter on the connection s
 
 ```go
 opts := options.Client().ApplyURI("mongodb://localhost:27017/?compressors=snappy,zlib,zstd")
-client, _ := mongo.Connect(context.TODO(), opts)
+client, _ := mongo.Connect(opts)
 ```
 
 ```go
 opts := options.Client().SetCompressors([]string{"snappy", "zlib", "zstd"})
-client, _ := mongo.Connect(context.TODO(), opts)
+client, _ := mongo.Connect(opts)
 ```
 
 If compressors are set, the Go Driver negotiates with the server to select the first common compressor. For server configuration and defaults, refer to [`networkMessageCompressors`](https://www.mongodb.com/docs/manual/reference/program/mongod/#std-option-mongod.--networkMessageCompressors).
