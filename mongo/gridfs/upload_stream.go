@@ -33,19 +33,25 @@ type UploadStream struct {
 	*Upload // chunk size and metadata
 	FileID  interface{}
 
-	chunkIndex    int
-	chunksColl    *mongo.Collection // collection to store file chunks
-	filename      string
-	filesColl     *mongo.Collection // collection to store file metadata
-	closed        bool
-	buffer        []byte
-	bufferIndex   int
-	fileLen       int64
-	writeDeadline time.Time
+	chunkIndex  int
+	chunksColl  *mongo.Collection // collection to store file chunks
+	filename    string
+	filesColl   *mongo.Collection // collection to store file metadata
+	closed      bool
+	buffer      []byte
+	bufferIndex int
+	fileLen     int64
+	ctx         context.Context
 }
 
 // NewUploadStream creates a new upload stream.
-func newUploadStream(upload *Upload, fileID interface{}, filename string, chunks, files *mongo.Collection) *UploadStream {
+func newUploadStream(
+	ctx context.Context,
+	upload *Upload,
+	fileID interface{},
+	filename string,
+	chunks, files *mongo.Collection,
+) *UploadStream {
 	return &UploadStream{
 		Upload: upload,
 		FileID: fileID,
@@ -54,6 +60,7 @@ func newUploadStream(upload *Upload, fileID interface{}, filename string, chunks
 		filename:   filename,
 		filesColl:  files,
 		buffer:     make([]byte, UploadBufferSize),
+		ctx:        ctx,
 	}
 }
 
@@ -63,32 +70,17 @@ func (us *UploadStream) Close() error {
 		return ErrStreamClosed
 	}
 
-	ctx, cancel := deadlineContext(us.writeDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
 	if us.bufferIndex != 0 {
-		if err := us.uploadChunks(ctx, true); err != nil {
+		if err := us.uploadChunks(us.ctx, true); err != nil {
 			return err
 		}
 	}
 
-	if err := us.createFilesCollDoc(ctx); err != nil {
+	if err := us.createFilesCollDoc(us.ctx); err != nil {
 		return err
 	}
 
 	us.closed = true
-	return nil
-}
-
-// SetWriteDeadline sets the write deadline for this stream.
-func (us *UploadStream) SetWriteDeadline(t time.Time) error {
-	if us.closed {
-		return ErrStreamClosed
-	}
-
-	us.writeDeadline = t
 	return nil
 }
 
@@ -97,13 +89,6 @@ func (us *UploadStream) SetWriteDeadline(t time.Time) error {
 func (us *UploadStream) Write(p []byte) (int, error) {
 	if us.closed {
 		return 0, ErrStreamClosed
-	}
-
-	var ctx context.Context
-
-	ctx, cancel := deadlineContext(us.writeDeadline)
-	if cancel != nil {
-		defer cancel()
 	}
 
 	origLen := len(p)
@@ -117,7 +102,7 @@ func (us *UploadStream) Write(p []byte) (int, error) {
 		us.bufferIndex += n
 
 		if us.bufferIndex == UploadBufferSize {
-			err := us.uploadChunks(ctx, false)
+			err := us.uploadChunks(us.ctx, false)
 			if err != nil {
 				return 0, err
 			}
@@ -132,12 +117,7 @@ func (us *UploadStream) Abort() error {
 		return ErrStreamClosed
 	}
 
-	ctx, cancel := deadlineContext(us.writeDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
-	_, err := us.chunksColl.DeleteMany(ctx, bson.D{{"files_id", us.FileID}})
+	_, err := us.chunksColl.DeleteMany(us.ctx, bson.D{{"files_id", us.FileID}})
 	if err != nil {
 		return err
 	}

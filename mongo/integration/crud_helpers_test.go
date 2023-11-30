@@ -1233,7 +1233,7 @@ func executeGridFSDownload(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (i
 		}
 	}
 
-	return bucket.DownloadToStream(fileID, new(bytes.Buffer))
+	return bucket.DownloadToStream(context.Background(), fileID, new(bytes.Buffer))
 }
 
 func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (int64, error) {
@@ -1253,7 +1253,7 @@ func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.R
 		}
 	}
 
-	return bucket.DownloadToStreamByName(file, new(bytes.Buffer))
+	return bucket.DownloadToStreamByName(context.Background(), file, new(bytes.Buffer))
 }
 
 func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {

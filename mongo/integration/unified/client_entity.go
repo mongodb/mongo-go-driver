@@ -408,7 +408,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
-		AppendString("failure", evt.Failure)
+		AppendString("failure", evt.Failure.Error())
 	if evt.ServiceID != nil {
 		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}

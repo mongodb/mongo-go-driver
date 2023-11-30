@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -31,18 +32,6 @@ var (
 	connsCheckedOut  int
 	errorInterrupted int32 = 11601
 )
-
-type wrappedError struct {
-	err error
-}
-
-func (we wrappedError) Error() string {
-	return we.err.Error()
-}
-
-func (we wrappedError) Unwrap() error {
-	return we.err
-}
 
 func TestConvenientTransactions(t *testing.T) {
 	if testing.Short() {
@@ -436,12 +425,12 @@ func TestConvenientTransactions(t *testing.T) {
 		res, err := sess.WithTransaction(context.Background(), func(SessionContext) (interface{}, error) {
 			if returnError {
 				returnError = false
-				return nil, wrappedError{
+				return nil, fmt.Errorf("%w",
 					CommandError{
 						Name:   "test Error",
 						Labels: []string{driver.TransientTransactionError},
 					},
-				}
+				)
 			}
 			return false, nil
 		})
