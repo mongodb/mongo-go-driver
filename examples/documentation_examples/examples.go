@@ -8,6 +8,7 @@ package documentation_examples
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	logger "log"
@@ -1816,7 +1817,8 @@ func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.Session
 		log.Println("Transaction aborted. Caught exception during transaction.")
 
 		// If transient error, retry the whole transaction
-		if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+		var cmdErr mongo.CommandError
+		if errors.As(err, &cmdErr) && cmdErr.HasErrorLabel("TransientTransactionError") {
 			log.Println("TransientTransactionError, retrying transaction...")
 			continue
 		}
@@ -1883,7 +1885,8 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 			log.Println("Transaction aborted. Caught exception during transaction.")
 
 			// If transient error, retry the whole transaction
-			if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+			var cmdErr mongo.CommandError
+			if errors.As(err, &cmdErr) && cmdErr.HasErrorLabel("TransientTransactionError") {
 				log.Println("TransientTransactionError, retrying transaction...")
 				continue
 			}
