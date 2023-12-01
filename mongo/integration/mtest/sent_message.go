@@ -124,7 +124,7 @@ func parseSentMessage(wm []byte) (*SentMessage, error) {
 	}
 	sent, err := parseFn(remaining)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing wiremessage with opcode %s: %v", opcode, err)
+		return nil, fmt.Errorf("error parsing wiremessage with opcode %s: %w", opcode, err)
 	}
 
 	sent.RequestID = requestID
@@ -142,7 +142,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 	}
 
 	if wm, err = assertMsgSectionType(wm, wiremessage.SingleDocument); err != nil {
-		return nil, fmt.Errorf("error verifying section type for command document: %v", err)
+		return nil, fmt.Errorf("error verifying section type for command document: %w", err)
 	}
 
 	var commandDoc bsoncore.Document
@@ -160,7 +160,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 	if len(wm) != 0 {
 		// If there are bytes remaining in the wire message, they must correspond to a DocumentSequence section.
 		if wm, err = assertMsgSectionType(wm, wiremessage.DocumentSequence); err != nil {
-			return nil, fmt.Errorf("error verifying section type for document sequence: %v", err)
+			return nil, fmt.Errorf("error verifying section type for document sequence: %w", err)
 		}
 
 		var data []byte

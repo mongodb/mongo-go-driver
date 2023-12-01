@@ -8,6 +8,7 @@ package bsoncore
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strconv"
 	"testing"
@@ -113,7 +114,7 @@ func TestDocumentSequence(t *testing.T) {
 				if !cmp.Equal(documents, tc.documents) {
 					t.Errorf("Documents do not match. got %v; want %v", documents, tc.documents)
 				}
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 				}
 			})
@@ -224,7 +225,7 @@ func TestDocumentSequence(t *testing.T) {
 				if !bytes.Equal(document, tc.document) {
 					t.Errorf("Documents do not match. got %v; want %v", document, tc.document)
 				}
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Errors do not match. got %v; want %v", err, tc.err)
 				}
 			})
@@ -275,7 +276,7 @@ func TestDocumentSequence(t *testing.T) {
 				var docs []Document
 				for {
 					doc, err := ds.Next()
-					if err == io.EOF {
+					if errors.Is(err, io.EOF) {
 						break
 					}
 					if err != nil {
