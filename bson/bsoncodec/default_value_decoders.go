@@ -1787,7 +1787,7 @@ func (DefaultValueDecoders) decodeElemsFromDocumentReader(dc DecodeContext, dr b
 	elems := make([]reflect.Value, 0)
 	for {
 		key, vr, err := dr.ReadElement()
-		if err == bsonrw.ErrEOD {
+		if errors.Is(err, bsonrw.ErrEOD) {
 			break
 		}
 		if err != nil {

@@ -58,7 +58,7 @@ func (js *jsonScanner) nextToken() (*jsonToken, error) {
 		c, err = js.readNextByte()
 	}
 
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return &jsonToken{t: jttEOF}, nil
 	} else if err != nil {
 		return nil, err
@@ -198,7 +198,7 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 	for {
 		c, err = js.readNextByte()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				return nil, errors.New("end of input in JSON string")
 			}
 			return nil, err
@@ -209,7 +209,7 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 		case '\\':
 			c, err = js.readNextByte()
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return nil, errors.New("end of input in JSON string")
 				}
 				return nil, err
@@ -248,7 +248,7 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 				if utf16.IsSurrogate(rn) {
 					c, err = js.readNextByte()
 					if err != nil {
-						if err == io.EOF {
+						if errors.Is(err, io.EOF) {
 							return nil, errors.New("end of input in JSON string")
 						}
 						return nil, err
@@ -264,7 +264,7 @@ func (js *jsonScanner) scanString() (*jsonToken, error) {
 
 					c, err = js.readNextByte()
 					if err != nil {
-						if err == io.EOF {
+						if errors.Is(err, io.EOF) {
 							return nil, errors.New("end of input in JSON string")
 						}
 						return nil, err
@@ -384,7 +384,7 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 	for {
 		c, err = js.readNextByte()
 
-		if err != nil && err != io.EOF {
+		if err != nil && !errors.Is(err, io.EOF) {
 			return nil, err
 		}
 

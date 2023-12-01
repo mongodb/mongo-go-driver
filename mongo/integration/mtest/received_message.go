@@ -49,7 +49,7 @@ func parseReceivedMessage(wm []byte) (*ReceivedMessage, error) {
 	}
 	received, err := parseFn(remaining)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing wiremessage with opcode %s: %v", opcode, err)
+		return nil, fmt.Errorf("error parsing wiremessage with opcode %s: %w", opcode, err)
 	}
 
 	received.ResponseTo = responseTo
@@ -97,7 +97,7 @@ func parseReceivedOpMsg(wm []byte) (*ReceivedMessage, error) {
 	}
 
 	if wm, err = assertMsgSectionType(wm, wiremessage.SingleDocument); err != nil {
-		return nil, fmt.Errorf("error verifying section type for response document: %v", err)
+		return nil, fmt.Errorf("error verifying section type for response document: %w", err)
 	}
 
 	response, wm, ok := wiremessage.ReadMsgSectionSingleDocument(wm)

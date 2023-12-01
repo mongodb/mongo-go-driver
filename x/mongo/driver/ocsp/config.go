@@ -61,7 +61,7 @@ func newConfig(certChain []*x509.Certificate, opts *VerifyOptions) (config, erro
 	}
 	cfg.ocspRequest, err = ocsp.ParseRequest(cfg.ocspRequestBytes)
 	if err != nil {
-		return cfg, fmt.Errorf("error parsing OCSP request bytes: %v", err)
+		return cfg, fmt.Errorf("error parsing OCSP request bytes: %w", err)
 	}
 
 	return cfg, nil
