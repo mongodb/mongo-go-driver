@@ -112,7 +112,7 @@ build-faas-awslambda:
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
 build-aws-ecs-test:
-	go build $(BUILD_TAGS) ./internal/test/aws/main.go
+	go build $(BUILD_TAGS) ./internal/test/cmd/testaws/main.go
 
 .PHONY: evg-test
 evg-test:
@@ -191,7 +191,7 @@ evg-test-versioned-api:
 
 .PHONY: build-kms-test
 build-kms-test:
-	go build $(BUILD_TAGS) ./internal/test/kms
+	go build $(BUILD_TAGS) ./internal/test/cmd/testkms
 
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
