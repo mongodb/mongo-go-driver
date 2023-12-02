@@ -173,7 +173,7 @@ type operationError struct {
 	ErrorLabelsOmit    []string `bson:"errorLabelsOmit"`
 }
 
-const dataPath string = "../../testdata/"
+const dataPath string = "../../../testdata/"
 
 var directories = []string{
 	"transactions/legacy",

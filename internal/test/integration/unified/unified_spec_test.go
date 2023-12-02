@@ -40,7 +40,7 @@ var (
 )
 
 const (
-	dataDirectory = "../../../testdata"
+	dataDirectory = "../../../../testdata"
 )
 
 func TestUnifiedSpec(t *testing.T) {

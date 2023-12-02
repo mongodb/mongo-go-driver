@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	seedlistDiscoveryTestsBaseDir = "../../testdata/initial-dns-seedlist-discovery"
+	seedlistDiscoveryTestsBaseDir = "../../../testdata/initial-dns-seedlist-discovery"
 )
 
 type seedlistTest struct {
