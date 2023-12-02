@@ -64,28 +64,6 @@ func Marshal(val interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// MarshalWithRegistry returns the BSON encoding of val as a BSON document. If val is not a type that can be transformed
-// into a document, MarshalValueWithRegistry should be used instead.
-//
-// Deprecated: Use [NewEncoder] and specify the Registry by calling [Encoder.SetRegistry] instead:
-//
-//	buf := new(bytes.Buffer)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.SetRegistry(reg)
-//
-// See [Encoder] for more examples.
-func MarshalWithRegistry(r *bsoncodec.Registry, val interface{}) ([]byte, error) {
-	dst := make([]byte, 0)
-	return MarshalAppendWithRegistry(r, dst, val)
-}
-
 // MarshalWithContext returns the BSON encoding of val as a BSON document using EncodeContext ec. If val is not a type
 // that can be transformed into a document, MarshalValueWithContext should be used instead.
 //
