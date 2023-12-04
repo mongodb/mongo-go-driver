@@ -323,7 +323,8 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 	if !contextDeadlineUsed {
 		return originalError
 	}
-	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
+	var netErr net.Error
+	if errors.As(originalError, &netErr) && netErr.Timeout() {
 		return context.DeadlineExceeded
 	}
 
@@ -411,7 +412,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		message := errMsg
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"
 		}
 		return nil, ConnectionError{

@@ -424,7 +424,7 @@ func TestRegistryBuilder(t *testing.T) {
 		want = nil
 		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
 		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
-		if err != wanterr {
+		if !errors.Is(err, wanterr) {
 			t.Errorf("did not get expected error: got %#v, want %#v", err, wanterr)
 		}
 		if got != want {
@@ -884,7 +884,7 @@ func TestRegistry(t *testing.T) {
 		want = nil
 		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
 		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
-		if err != wanterr {
+		if !errors.Is(err, wanterr) {
 			t.Errorf("unexpected error: got %#v, want %#v", err, wanterr)
 		}
 		if got != want {

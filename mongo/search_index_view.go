@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -214,7 +215,8 @@ func (siv SearchIndexView) DropOne(
 		Timeout(siv.coll.client.timeout)
 
 	err = op.Execute(ctx)
-	if de, ok := err.(driver.Error); ok && de.NamespaceNotFound() {
+	var de driver.Error
+	if errors.As(err, &de) && de.NamespaceNotFound() {
 		return nil
 	}
 	return err

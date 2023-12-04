@@ -416,8 +416,8 @@ func (s *Server) RequestImmediateCheck() {
 // (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
 // handling and (nil, false) otherwise.
 func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
-	writeCmdErr, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var writeCmdErr driver.WriteCommandError
+	if !errors.As(err, &writeCmdErr) {
 		return nil, false
 	}
 
@@ -523,7 +523,8 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	}
 
 	// Ignore transient timeout errors.
-	if netErr, ok := wrappedConnErr.(net.Error); ok && netErr.Timeout() {
+	var netErr net.Error
+	if errors.As(wrappedConnErr, &netErr) && netErr.Timeout() {
 		return driver.NoChange
 	}
 	if errors.Is(wrappedConnErr, context.Canceled) || errors.Is(wrappedConnErr, context.DeadlineExceeded) {
@@ -602,7 +603,7 @@ func (s *Server) update() {
 
 		// Perform the next check.
 		desc, err := s.check()
-		if err == errCheckCancelled {
+		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
 			}
@@ -629,7 +630,8 @@ func (s *Server) update() {
 					// We want to immediately retry on timeout error. Continue to next loop.
 					return true
 				}
-				if err, ok := err.(net.Error); ok && err.Timeout() {
+				var netErr net.Error
+				if errors.As(err, &netErr) && netErr.Timeout() {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.
 					return true

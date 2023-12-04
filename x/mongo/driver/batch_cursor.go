@@ -79,7 +79,7 @@ type CursorResponse struct {
 func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 	response := info.ServerResponse
 	cur, err := response.LookupErr("cursor")
-	if err == bsoncore.ErrElementNotFound {
+	if errors.Is(err, bsoncore.ErrElementNotFound) {
 		return CursorResponse{}, ErrNoCursor
 	}
 	if err != nil {

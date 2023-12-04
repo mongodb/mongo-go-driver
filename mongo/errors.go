@@ -52,10 +52,12 @@ func replaceErrors(err error) error {
 		return nil
 	}
 
-	if err == topology.ErrTopologyClosed {
+	if errors.Is(err, topology.ErrTopologyClosed) {
 		return ErrClientDisconnected
 	}
-	if de, ok := err.(driver.Error); ok {
+
+	var de driver.Error
+	if errors.As(err, &de) {
 		return CommandError{
 			Code:    de.Code,
 			Message: de.Message,
@@ -65,7 +67,9 @@ func replaceErrors(err error) error {
 			Raw:     bson.Raw(de.Raw),
 		}
 	}
-	if qe, ok := err.(driver.QueryFailureError); ok {
+
+	var qe driver.QueryFailureError
+	if errors.As(err, &qe) {
 		// qe.Message is "command failure"
 		ce := CommandError{
 			Name:    qe.Message,
@@ -84,7 +88,9 @@ func replaceErrors(err error) error {
 
 		return ce
 	}
-	if me, ok := err.(mongocrypt.Error); ok {
+
+	var me mongocrypt.Error
+	if errors.As(err, &me) {
 		return MongocryptError{Code: me.Code, Message: me.Message}
 	}
 
@@ -92,7 +98,8 @@ func replaceErrors(err error) error {
 		return ErrNilValue
 	}
 
-	if marshalErr, ok := err.(codecutil.MarshalError); ok {
+	var marshalErr codecutil.MarshalError
+	if errors.As(err, &marshalErr) {
 		return MarshalError{
 			Value: marshalErr.Value,
 			Err:   marshalErr.Err,
@@ -171,7 +178,8 @@ func unwrap(err error) error {
 // errorHasLabel returns true if err contains the specified label
 func errorHasLabel(err error, label string) bool {
 	for ; err != nil; err = unwrap(err) {
-		if le, ok := err.(LabeledError); ok && le.HasErrorLabel(label) {
+		var le LabeledError
+		if errors.As(err, &le) && le.HasErrorLabel(label) {
 			return true
 		}
 	}
@@ -630,7 +638,7 @@ const (
 // WriteConcernError will be returned over WriteErrors if both are present.
 func processWriteError(err error) (returnResult, error) {
 	switch {
-	case err == driver.ErrUnacknowledgedWrite:
+	case errors.Is(err, driver.ErrUnacknowledgedWrite):
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
 		switch tt := err.(type) {

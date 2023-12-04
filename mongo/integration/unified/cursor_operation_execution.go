@@ -25,7 +25,7 @@ func executeIterateOnce(ctx context.Context, operation *operation) (*operationRe
 		// as fatal.
 		var res bson.Raw
 		if err := cursor.Decode(&res); err != nil {
-			return nil, fmt.Errorf("error decoding cursor result: %v", err)
+			return nil, fmt.Errorf("error decoding cursor result: %w", err)
 		}
 
 		return newDocumentResult(res, nil), nil
@@ -44,7 +44,7 @@ func executeIterateUntilDocumentOrError(ctx context.Context, operation *operatio
 		// We don't expect the server to return malformed documents, so any errors from Decode are treated as fatal.
 		var res bson.Raw
 		if err := cursor.Decode(&res); err != nil {
-			return nil, fmt.Errorf("error decoding cursor result: %v", err)
+			return nil, fmt.Errorf("error decoding cursor result: %w", err)
 		}
 
 		return newDocumentResult(res, nil), nil

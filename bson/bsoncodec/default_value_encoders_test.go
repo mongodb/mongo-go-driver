@@ -1776,7 +1776,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
 				err = enc.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.value))
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
 				if diff := cmp.Diff([]byte(b), tc.b); diff != "" {
