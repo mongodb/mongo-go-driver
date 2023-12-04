@@ -196,7 +196,7 @@ build-kms-test:
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
 benchmark:perf
-	go test $(BUILD_TAGS) -benchmem -bench=. ./benchmark
+	go test $(BUILD_TAGS) -benchmem -bench=. ./benchmark | test benchmark.suite
 
 .PHONY: driver-benchmark
 driver-benchmark:perf
