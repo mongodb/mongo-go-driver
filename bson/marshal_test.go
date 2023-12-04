@@ -25,49 +25,6 @@ import (
 
 var tInt32 = reflect.TypeOf(int32(0))
 
-func TestMarshalAppendWithRegistry(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			dst := make([]byte, 0, 1024)
-			var reg *bsoncodec.Registry
-			if tc.reg != nil {
-				reg = tc.reg
-			} else {
-				reg = DefaultRegistry
-			}
-			got, err := MarshalAppendWithRegistry(reg, dst, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestMarshalAppendWithContext(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			dst := make([]byte, 0, 1024)
-			var reg *bsoncodec.Registry
-			if tc.reg != nil {
-				reg = tc.reg
-			} else {
-				reg = DefaultRegistry
-			}
-			ec := bsoncodec.EncodeContext{Registry: reg}
-			got, err := MarshalAppendWithContext(ec, dst, tc.val)
-			noerr(t, err)
-
-			if !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
-
 func TestMarshalWithRegistry(t *testing.T) {
 	buf := new(bytes.Buffer)
 	for _, tc := range marshalingTestCases {
@@ -95,6 +52,7 @@ func TestMarshalWithRegistry(t *testing.T) {
 }
 
 func TestMarshalWithContext(t *testing.T) {
+	buf := new(bytes.Buffer)
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var reg *bsoncodec.Registry
@@ -103,11 +61,16 @@ func TestMarshalWithContext(t *testing.T) {
 			} else {
 				reg = DefaultRegistry
 			}
-			ec := bsoncodec.EncodeContext{Registry: reg}
-			got, err := MarshalWithContext(ec, tc.val)
+			buf.Reset()
+			vw, err := bsonrw.NewBSONValueWriter(buf)
+			noerr(t, err)
+			enc := NewEncoder(vw)
+			enc.IntMinSize()
+			enc.SetRegistry(reg)
+			err = enc.Encode(tc.val)
 			noerr(t, err)
 
-			if !bytes.Equal(got, tc.want) {
+			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
 				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
 				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
 			}

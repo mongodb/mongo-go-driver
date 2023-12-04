@@ -9,7 +9,6 @@ package bson
 import (
 	"bytes"
 	"encoding/json"
-	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -62,117 +61,6 @@ func Marshal(val interface{}) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
-}
-
-// MarshalWithContext returns the BSON encoding of val as a BSON document using EncodeContext ec. If val is not a type
-// that can be transformed into a document, MarshalValueWithContext should be used instead.
-//
-// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
-// behavior instead:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.IntMinSize()
-//
-// See [Encoder] for more examples.
-func MarshalWithContext(ec bsoncodec.EncodeContext, val interface{}) ([]byte, error) {
-	dst := make([]byte, 0)
-	return MarshalAppendWithContext(ec, dst, val)
-}
-
-// MarshalAppendWithRegistry will encode val as a BSON document using Registry r and append the bytes to dst. If dst is
-// not large enough to hold the bytes, it will be grown. If val is not a type that can be transformed into a document,
-// MarshalValueAppendWithRegistry should be used instead.
-//
-// Deprecated: Use [NewEncoder], and pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewBSONValueWriter], and specify the Registry by calling [Encoder.SetRegistry] instead:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.SetRegistry(reg)
-//
-// See [Encoder] for more examples.
-func MarshalAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val interface{}) ([]byte, error) {
-	return MarshalAppendWithContext(bsoncodec.EncodeContext{Registry: r}, dst, val)
-}
-
-// Pool of buffers for marshalling BSON.
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
-
-// MarshalAppendWithContext will encode val as a BSON document using Registry r and EncodeContext ec and append the
-// bytes to dst. If dst is not large enough to hold the bytes, it will be grown. If val is not a type that can be
-// transformed into a document, MarshalValueAppendWithContext should be used instead.
-//
-// Deprecated: Use [NewEncoder], pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewBSONValueWriter], and use the Encoder configuration methods to set the desired marshal
-// behavior instead:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.IntMinSize()
-//
-// See [Encoder] for more examples.
-func MarshalAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val interface{}) ([]byte, error) {
-	sw := bufPool.Get().(*bytes.Buffer)
-	defer func() {
-		// Proper usage of a sync.Pool requires each entry to have approximately
-		// the same memory cost. To obtain this property when the stored type
-		// contains a variably-sized buffer, we add a hard limit on the maximum
-		// buffer to place back in the pool. We limit the size to 16MiB because
-		// that's the maximum wire message size supported by any current MongoDB
-		// server.
-		//
-		// Comment based on
-		// https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
-		//
-		// Recycle byte slices that are smaller than 16MiB and at least half
-		// occupied.
-		if sw.Cap() < 16*1024*1024 && sw.Cap()/2 < sw.Len() {
-			bufPool.Put(sw)
-		}
-	}()
-
-	sw.Reset()
-	vw := bvwPool.Get(sw)
-	defer bvwPool.Put(vw)
-
-	enc := encPool.Get().(*Encoder)
-	defer encPool.Put(enc)
-
-	enc.Reset(vw)
-	enc.ec = ec
-
-	err := enc.Encode(val)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(dst, sw.Bytes()...), nil
 }
 
 // MarshalValue returns the BSON encoding of val.
