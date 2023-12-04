@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 func TestHandshakeProse(t *testing.T) {
@@ -198,4 +199,54 @@ func TestHandshakeProse(t *testing.T) {
 			assert.Equal(mt, want, got, "want: %v, got: %v", want, got)
 		})
 	}
+}
+
+func TestLoadBalancedConnectionHandshake(t *testing.T) {
+	mt := mtest.New(t)
+
+	lbopts := mtest.NewOptions().ClientType(mtest.Proxy).Topologies(
+		mtest.LoadBalanced)
+
+	mt.RunOpts("LB connection handshake uses OP_MSG", lbopts, func(mt *mtest.T) {
+		// Ping the server to ensure the handshake has completed.
+		err := mt.Client.Ping(context.Background(), nil)
+		require.NoError(mt, err, "Ping error: %v", err)
+
+		messages := mt.GetProxiedMessages()
+		handshakeMessage := messages[:1][0]
+
+		// Per the specifications, if loadBalanced=true, drivers MUST use the hello
+		// command for the initial handshake and use the OP_MSG protocol.
+		assert.Equal(mt, "hello", handshakeMessage.CommandName)
+		assert.Equal(mt, wiremessage.OpMsg, handshakeMessage.Sent.OpCode)
+	})
+
+	opts := mtest.NewOptions().ClientType(mtest.Proxy).Topologies(
+		mtest.ReplicaSet,
+		mtest.Sharded,
+		mtest.Single,
+		mtest.ShardedReplicaSet)
+
+	mt.RunOpts("non-LB connection handshake uses OP_QUERY", opts, func(mt *mtest.T) {
+		// Ping the server to ensure the handshake has completed.
+		err := mt.Client.Ping(context.Background(), nil)
+		require.NoError(mt, err, "Ping error: %v", err)
+
+		messages := mt.GetProxiedMessages()
+		handshakeMessage := messages[:1][0]
+
+		want := wiremessage.OpQuery
+
+		hello := handshake.LegacyHello
+		if os.Getenv("REQUIRE_API_VERSION") == "true" {
+			hello = "hello"
+
+			// If the server API version is requested, then we should use OP_MSG
+			// regardless of the topology
+			want = wiremessage.OpMsg
+		}
+
+		assert.Equal(mt, hello, handshakeMessage.CommandName)
+		assert.Equal(mt, want, handshakeMessage.Sent.OpCode)
+	})
 }
