@@ -98,7 +98,7 @@ type Topology struct {
 	subscriptionsClosed bool
 	subLock             sync.Mutex
 
-	// We should redesign how we Connect and handle individal servers. This is
+	// We should redesign how we Connect and handle individual servers. This is
 	// too difficult to maintain and it's rather easy to accidentally access
 	// the servers without acquiring the lock or checking if the servers are
 	// closed. This lock should also be an RWMutex.
@@ -267,6 +267,32 @@ func logServerSelectionFailed(
 ) {
 	logServerSelection(ctx, topo, logger.LevelDebug, logger.ServerSelectionFailed, srvSelector,
 		logger.KeyFailure, err.Error())
+}
+
+// logUnexpectedFailure is a defer-recover function for logging unexpected
+// failures encountered while maintaining a topology.
+//
+// Most topology maintenance actions, such as updating a server, should not take
+// down a client's application. This function provides a best-effort to log
+// unexpected failures. If the logger passed to this function is nil, then the
+// recovery will be silent.
+func logUnexpectedFailure(log *logger.Logger, msg string, callbacks ...func()) {
+	r := recover()
+	if r == nil {
+		return
+	}
+
+	defer func() {
+		for _, clbk := range callbacks {
+			clbk()
+		}
+	}()
+
+	if log == nil {
+		return
+	}
+
+	log.Print(logger.LevelInfo, logger.ComponentTopology, fmt.Sprintf("%s: %v", msg, r))
 }
 
 // Connect initializes a Topology and starts the monitoring process. This function
@@ -768,12 +794,11 @@ func (t *Topology) pollSRVRecords(hosts string) {
 	defer pollTicker.Stop()
 	t.pollHeartbeatTime.Store(false)
 	var doneOnce bool
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		if r := recover(); r != nil && !doneOnce {
+	defer logUnexpectedFailure(t.cfg.logger, "Encountered unexpected failure polling SRV records", func() {
+		if !doneOnce {
 			<-t.pollingDone
 		}
-	}()
+	})
 
 	for {
 		select {

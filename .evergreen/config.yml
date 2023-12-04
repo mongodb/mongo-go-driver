@@ -54,7 +54,7 @@ functions:
           export GOCACHE="$(pwd)/.cache"
 
           # Set other relevant variables for Evergreen processes.
-          export DRIVERS_TOOLS="$(pwd)/../drivers-tools"
+          export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
           export PROJECT_DIRECTORY="$(pwd)"
           export MONGO_ORCHESTRATION_HOME="$DRIVERS_TOOLS/.evergreen/orchestration"
           export MONGODB_BINARIES="$DRIVERS_TOOLS/mongodb/bin"
@@ -97,29 +97,10 @@ functions:
           go version
           go env
 
-          LIBMONGOCRYPT_TAG="1.8.0-alpha1"
-          # Install libmongocrypt based on OS.
+          # Install libmongocrypt.
+          bash etc/install-libmongocrypt.sh
           if [ "Windows_NT" = "$OS" ]; then
-             mkdir -p c:/libmongocrypt/include
-             mkdir -p c:/libmongocrypt/bin
-             echo "fetching build for Windows ... begin"
-             mkdir libmongocrypt-all
-             cd libmongocrypt-all
-             # The following URL is published from the upload-all task in the libmongocrypt Evergreen project.
-             curl https://mciuploads.s3.amazonaws.com/libmongocrypt/all/$LIBMONGOCRYPT_TAG/libmongocrypt-all.tar.gz -o libmongocrypt-all.tar.gz
-             tar -xf libmongocrypt-all.tar.gz
-             cd ..
-             cp libmongocrypt-all/windows-test/bin/mongocrypt.dll c:/libmongocrypt/bin
-             cp libmongocrypt-all/windows-test/include/mongocrypt/*.h c:/libmongocrypt/include
-             export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-             rm -rf libmongocrypt-all
-             echo "fetching build for Windows ... end"
-          else
-            git clone https://github.com/mongodb/libmongocrypt --depth=1 --branch $LIBMONGOCRYPT_TAG
-            if ! ( ./libmongocrypt/.evergreen/compile.sh >| output.txt 2>&1 ); then
-                cat output.txt 1>&2
-                exit 1
-            fi
+            export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
           fi
 
           cat <<EOT > expansion.yml
@@ -131,6 +112,7 @@ functions:
           PROJECT_DIRECTORY: "$PROJECT_DIRECTORY"
           PREPARE_SHELL: |
              set -o errexit
+             export SKIP_LEGACY_SHELL=1
              export GOROOT="$GOROOT"
              export GOPATH="$GOPATH"
              export GOCACHE="$GOCACHE"
@@ -184,7 +166,7 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON3_BINARY="$(find_python3)"
+          export PYTHON3_BINARY="$(find_python3 2>/dev/null)"
           venvcreate "$PYTHON3_BINARY" venv
 
           echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
@@ -193,7 +175,11 @@ functions:
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
 
-  upload-mo-artifacts:
+  handle-test-artifacts:
+    - command: gotest.parse_files
+      params:
+        files:
+          - "src/go.mongodb.org/mongo-driver/*.suite"
     - command: shell.exec
       params:
         shell: "bash"
@@ -214,12 +200,31 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
+        optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
+    - command: shell.exec
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          find . -name \*.suite | xargs tar czf test_suite.tgz
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
+        optional: true
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|text/plain}
+        display_name: "test_suite.tgz"
 
   bootstrap-mongohoused:
     - command: shell.exec
@@ -229,16 +234,15 @@ functions:
           ${PREPARE_SHELL}
 
           cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh build-mongohouse-local.sh
+          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash pull-mongohouse-image.sh
     - command: shell.exec
       params:
         shell: "bash"
-        background: true
         script: |
           ${PREPARE_SHELL}
 
           cd $DRIVERS_TOOLS/.evergreen/atlas_data_lake
-          DRIVERS_TOOLS="${DRIVERS_TOOLS}" sh run-mongohouse-local.sh
+          DRIVERS_TOOLS="${DRIVERS_TOOLS}" bash run-mongohouse-image.sh
 
   bootstrap-mongo-orchestration:
     - command: shell.exec
@@ -282,15 +286,26 @@ functions:
       params:
         shell: "bash"
         script: |
-          ${PREPARE_SHELL}
-          cd "$MONGO_ORCHESTRATION_HOME"
-          # source the mongo-orchestration virtualenv if it exists
-          if [ -f venv/bin/activate ]; then
-            . venv/bin/activate
-          elif [ -f venv/Scripts/activate ]; then
-            . venv/Scripts/activate
+          # Ensure the instance profile is reassigned for aws tests.
+          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
+          if [ -f "./aws_e2e_setup.json" ]; then
+            . ./activate-authawsvenv.sh
+            python ./lib/aws_assign_instance_profile.py
           fi
-          mongo-orchestration stop
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
+          # balancer is not running.
+          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          # Stop orchestration and remove drivers tools.
+          bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
           cd -
           rm -rf $DRIVERS_TOOLS || true
 
@@ -347,6 +362,18 @@ functions:
         script: |
           ${PREPARE_SHELL}
           sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+
+  create-api-report:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export BASE_SHA=${revision}
+          export HEAD_SHA=${github_commit}
+          bash etc/api_report.sh
 
   send-perf-data:
     - command: perf.send
@@ -614,6 +641,17 @@ functions:
           MONGODB_URI="mongodb://mhuser:pencil@localhost" \
           make evg-test-atlas-data-lake
 
+  run-docker-test:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          bash etc/run_docker.sh
+          TOPOLOGY=sharded_cluster bash etc/run_docker.sh test-short
+
   run-valid-ocsp-server:
     - command: shell.exec
       params:
@@ -699,57 +737,20 @@ functions:
           TEST_INDEX_URI="${TEST_INDEX_URI}" \
           make evg-test-search-index
 
-  stop-load-balancer:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
-          # balancer is not running.
-          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
-
-  teardown-aws:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
-          if [ -f "./aws_e2e_setup.json" ]; then
-            . ./activate-authawsvenv.sh
-            python ./lib/aws_assign_instance_profile.py
-          fi
-
   add-aws-auth-variables-to-file:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
     - command: shell.exec
       type: test
       params:
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         shell: "bash"
         working_dir: "src"
-        silent: true
         script: |
-          cat <<EOF > ${DRIVERS_TOOLS}/.evergreen/auth_aws/aws_e2e_setup.json
-          {
-              "iam_auth_ecs_account" : "${iam_auth_ecs_account}",
-              "iam_auth_ecs_secret_access_key" : "${iam_auth_ecs_secret_access_key}",
-              "iam_auth_ecs_account_arn": "arn:aws:iam::557821124784:user/authtest_fargate_user",
-              "iam_auth_ecs_cluster": "${iam_auth_ecs_cluster}",
-              "iam_auth_ecs_task_definition": "${iam_auth_ecs_task_definition}",
-              "iam_auth_ecs_subnet_a": "${iam_auth_ecs_subnet_a}",
-              "iam_auth_ecs_subnet_b": "${iam_auth_ecs_subnet_b}",
-              "iam_auth_ecs_security_group": "${iam_auth_ecs_security_group}",
-              "iam_auth_assume_aws_account" : "${iam_auth_assume_aws_account}",
-              "iam_auth_assume_aws_secret_access_key" : "${iam_auth_assume_aws_secret_access_key}",
-              "iam_auth_assume_role_name" : "${iam_auth_assume_role_name}",
-              "iam_auth_ec2_instance_account" : "${iam_auth_ec2_instance_account}",
-              "iam_auth_ec2_instance_secret_access_key" : "${iam_auth_ec2_instance_secret_access_key}",
-              "iam_auth_ec2_instance_profile" : "${iam_auth_ec2_instance_profile}",
-              "iam_auth_assume_web_role_name": "${iam_auth_assume_web_role_name}",
-              "iam_web_identity_issuer": "${iam_web_identity_issuer}",
-              "iam_web_identity_rsa_key": "${iam_web_identity_rsa_key}",
-              "iam_web_identity_jwks_uri": "${iam_web_identity_jwks_uri}",
-              "iam_web_identity_token_file": "${iam_web_identity_token_file}"
-          }
-          EOF
+          ${PREPARE_SHELL}
+          cd $DRIVERS_TOOLS/.evergreen/auth_aws
+          ./setup_secrets.sh drivers/aws_auth
 
   run-aws-auth-test-with-regular-aws-credentials:
     - command: shell.exec
@@ -759,30 +760,7 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate-authawsvenv.sh
-          mongo aws_e2e_regular_aws.js
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        silent: true
-        script: |
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
-            USER=$(urlencode ${iam_auth_ecs_account})
-            PASS=$(urlencode ${iam_auth_ecs_secret_access_key})
-            MONGODB_URI="mongodb://$USER:$PASS@localhost"
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh regular
 
   run-aws-auth-test-with-assume-role-credentials:
     - command: shell.exec
@@ -792,36 +770,7 @@ functions:
         working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate-authawsvenv.sh
-          mongo aws_e2e_assume_role.js
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        silent: true
-        script: |
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias urlencode='python -c "import sys, urllib as ul; sys.stdout.write(ul.quote_plus(sys.argv[1]))"'
-            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
-            USER=$(jsonkey AccessKeyId)
-            USER=$(urlencode $USER)
-            PASS=$(jsonkey SecretAccessKey)
-            PASS=$(urlencode $PASS)
-            SESSION_TOKEN=$(jsonkey SessionToken)
-            SESSION_TOKEN=$(urlencode $SESSION_TOKEN)
-            MONGODB_URI="mongodb://$USER:$PASS@localhost"
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh assume-role
 
   run-aws-auth-test-with-aws-EC2-credentials:
     - command: shell.exec
@@ -835,24 +784,7 @@ functions:
             echo "This platform does not support the EC2 auth test, skipping..."
             exit 0
           fi
-          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate-authawsvenv.sh
-          mongo aws_e2e_ec2.js
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_EC2_AUTH_TEST}" = "true" ]; then
-            exit 0
-          fi
-
-          # Truncate "prepare_mongodb_aws.sh" to zero length. If file not present, creates zero-length file.
-          : > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh ec2
 
   run-aws-auth-test-with-aws-credentials-as-environment-variables:
     - command: shell.exec
@@ -860,21 +792,9 @@ functions:
       params:
         shell: "bash"
         working_dir: "src"
-        silent: true
-        script: |
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            export AWS_ACCESS_KEY_ID=${iam_auth_ecs_account}
-            export AWS_SECRET_ACCESS_KEY=${iam_auth_ecs_secret_access_key}
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          PROJECT_DIRECTORY=${PROJECT_DIRECTORY} ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh env-creds
 
   run-aws-auth-test-with-aws-credentials-and-session-token-as-environment-variables:
     - command: shell.exec
@@ -882,23 +802,9 @@ functions:
       params:
         shell: "bash"
         working_dir: "src"
-        silent: true
-        script: |
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            alias jsonkey='python -c "import json,sys;sys.stdout.write(json.load(sys.stdin)[sys.argv[1]])" < ${DRIVERS_TOOLS}/.evergreen/auth_aws/creds.json'
-            export AWS_ACCESS_KEY_ID=$(jsonkey AccessKeyId)
-            export AWS_SECRET_ACCESS_KEY=$(jsonkey SecretAccessKey)
-            export AWS_SESSION_TOKEN=$(jsonkey SessionToken)
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
         script: |
           ${PREPARE_SHELL}
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh session-creds
 
   run-aws-ECS-auth-test:
     - command: shell.exec
@@ -930,14 +836,9 @@ functions:
           cp ${PROJECT_DIRECTORY}/main $ECS_SRC_DIR
           cp ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-ecs-test.sh $ECS_SRC_DIR/.evergreen
           tar -czf $ECS_SRC_DIR/src.tgz -C $PROJECT_DIRECTORY .
-          cd $AUTH_AWS_DIR
-          . ./activate-authawsvenv.sh
-          cat <<EOF > setup.js
-            const mongo_binaries = "$MONGODB_BINARIES";
-            const project_dir = "$ECS_SRC_DIR";
-          EOF
-          cat setup.js
-          mongo --nodb setup.js aws_e2e_ecs.js
+
+          export PROJECT_DIRECTORY="$ECS_SRC_DIR"
+          $AUTH_AWS_DIR/aws_setup.sh ecs
 
   run-aws-auth-test-with-aws-web-identity-credentials:
     - command: shell.exec
@@ -951,26 +852,7 @@ functions:
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
-          cd ${DRIVERS_TOOLS}/.evergreen/auth_aws
-          . ./activate_venv.sh
-          mongo aws_e2e_web_identity.js
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        silent: true
-        script: |
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            export AWS_ROLE_ARN="${iam_auth_assume_web_role_name}"
-            export AWS_WEB_IDENTITY_TOKEN_FILE="${iam_web_identity_token_file}"
-            export MONGODB_URI="mongodb://localhost"
-          EOF
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
     - command: shell.exec
       type: test
       params:
@@ -982,37 +864,8 @@ functions:
              echo "This platform does not support the web identity auth test, skipping..."
              exit 0
           fi
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        silent: true
-        script: |
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          # DO NOT ECHO WITH XTRACE
-          cat <<'EOF' > "${PROJECT_DIRECTORY}/prepare_mongodb_aws.sh"
-            export AWS_ROLE_ARN="${iam_auth_assume_web_role_name}"
-            export AWS_WEB_IDENTITY_TOKEN_FILE="${iam_web_identity_token_file}"
-            export AWS_ROLE_SESSION_NAME="test"
-            export MONGODB_URI="mongodb://localhost"
-          EOF
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          if [ "${SKIP_WEB_IDENTITY_AUTH_TEST}" = "true" ]; then
-             echo "This platform does not support the web identity auth test, skipping..."
-             exit 0
-          fi
-          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh
+          export AWS_ROLE_SESSION_NAME="test"
+          ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
 
   start-kms-mock-server:
     - command: shell.exec
@@ -1064,17 +917,11 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py \
+          . ./activate-kmstlsvenv.sh
+          python -u kms_kmip_server.py \
               --port 5698 \
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-          else
-            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py \
-              --port 5698 \
-              --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
-              --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-          fi
 
     - command: shell.exec
       params:
@@ -1082,11 +929,8 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe bottle.py fake_azure:imds
-          else
-            ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
-          fi
+          . ./activate-kmstlsvenv.sh
+          python bottle.py fake_azure:imds
 
     - command: shell.exec
       params:
@@ -1183,16 +1027,9 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
-  - func: start-cse-servers
 
 post:
-  - command: gotest.parse_files
-    params:
-      files:
-        - "src/go.mongodb.org/mongo-driver/*.suite"
-  - func: upload-mo-artifacts
-  - func: stop-load-balancer
-  - func: teardown-aws
+  - func: handle-test-artifacts
   - func: cleanup
 
 tasks:
@@ -1202,6 +1039,7 @@ tasks:
       - func: run-make
         vars:
           targets: "check-fmt check-license check-modules lint"
+      - func: "create-api-report"
 
   - name: perf
     tags: ["performance"]
@@ -1225,6 +1063,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1239,6 +1078,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1254,6 +1094,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1269,6 +1110,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1284,6 +1126,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1298,6 +1141,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1312,6 +1156,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1327,6 +1172,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1342,6 +1188,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1678,6 +1525,11 @@ tasks:
       - func: bootstrap-mongohoused
       - func: run-atlas-data-lake-test
 
+  - name: test-docker-runner
+    tags: ["pullrequest"]
+    commands:
+      - func: run-docker-test
+
   - name: test-load-balancer-noauth-nossl
     tags: ["load-balancer"]
     commands:
@@ -1716,6 +1568,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1731,6 +1584,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1745,6 +1599,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1759,6 +1614,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1776,6 +1632,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1790,6 +1647,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1804,6 +1662,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1819,6 +1678,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1834,6 +1694,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1849,6 +1710,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1863,6 +1725,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1878,6 +1741,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1893,6 +1757,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1908,6 +1773,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1981,6 +1847,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
+      - func: start-cse-servers
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1997,6 +1864,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           ORCHESTRATION_FILE: "versioned-api-testing.json"
+      - func: start-cse-servers
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -2070,6 +1938,7 @@ tasks:
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
+      - func: start-cse-servers
       - func: "run-serverless-tests"
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -2387,11 +2256,9 @@ axes:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
           SKIP_ECS_AUTH_TEST: true
-      # TODO(BUILD-17329): Update this to Ubuntu 22 after we add a new ECS task
-      # definition.
-      - id: "ubuntu1804-64-go-1-20"
-        display_name: "Ubuntu 18.04"
-        run_on: ubuntu1804-test
+      - id: "ubuntu2004-64-go-1-20"
+        display_name: "Ubuntu 20.04"
+        run_on: ubuntu2004-test
         variables:
           GO_DIST: "/opt/golang/go1.20"
       - id: "macos11-go-1-20"
@@ -2508,20 +2375,8 @@ task_groups:
             SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
             SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
               bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
-      - command: gotest.parse_files
-        params:
-          files:
-            - "src/go.mongodb.org/mongo-driver/*.suite"
-      - command: s3.put
-        params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: mongodb-logs.tar.gz
-          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
-          bucket: mciuploads
-          permissions: public-read
-          content_type: ${content_type|application/x-gzip}
-          display_name: "mongodb-logs.tar.gz"
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - ".serverless"
 
@@ -2558,8 +2413,11 @@ task_groups:
             export GCPKMS_ZONE=${GCPKMS_ZONE}
             export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - testgcpkms-task
+
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
     teardown_group_can_fail_task: true
@@ -2596,6 +2454,8 @@ task_groups:
             export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - testazurekms-task
 
@@ -2627,6 +2487,8 @@ task_groups:
             AWS_REGION: us-east-1
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2665,6 +2527,8 @@ task_groups:
           add_expansions_to_env: true
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2714,11 +2578,20 @@ buildvariants:
     tags: ["pullrequest"]
     display_name: "Atlas Data Lake Test"
     run_on:
-      - rhel8.7-large
+      - ubuntu2004-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: "test-atlas-data-lake"
+
+  - name: docker-runner-test
+    display_name: "Docker Runner Test"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: "test-docker-runner"
 
   - matrix_name: "tests-36-with-zlib-support"
     tags: ["pullrequest"]

@@ -142,7 +142,8 @@ func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
 // write errors are included since the actual command did succeed, only writes
 // failed.
 func (info finishedInformation) success() bool {
-	if _, ok := info.cmdErr.(WriteCommandError); ok {
+	var writeCmdErr WriteCommandError
+	if errors.As(info.cmdErr, &writeCmdErr) {
 		return true
 	}
 
@@ -846,7 +847,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -943,7 +944,7 @@ func (op Operation) Execute(ctx context.Context) error {
 
 			// If the error is no longer retryable and has the NoWritesPerformed label, then we should
 			// set the error to the "previous indefinite error" unless the current error is already the
-			// "previous indefinite error". After reseting, repeat the error check.
+			// "previous indefinite error". After resetting, repeat the error check.
 			if tt.HasErrorLabel(NoWritesPerformed) && !prevIndefiniteErrIsSet {
 				err = prevIndefiniteErr
 				prevIndefiniteErrIsSet = true
@@ -1492,7 +1493,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	}
 
 	t, data, err := wc.MarshalBSONValue()
-	if err == writeconcern.ErrEmptyWriteConcern {
+	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
 		return dst, nil
 	}
 	if err != nil {
@@ -1873,7 +1874,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
 				}
 			default:
-				return nil, fmt.Errorf("malformed wire message: uknown section type %v", stype)
+				return nil, fmt.Errorf("malformed wire message: unknown section type %v", stype)
 			}
 		}
 

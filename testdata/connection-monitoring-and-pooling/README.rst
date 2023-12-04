@@ -67,7 +67,7 @@ All Unit Tests have some of the following fields:
   - ``address``: The address of the pool emitting the event
   - ``connectionId``: The id of a connection associated with the event
   - ``options``: Options used to create the pool
-  - ``reason``: A reason giving mroe information on why the event was emitted
+  - ``reason``: A reason giving more information on why the event was emitted
 
 - ``ignore``: An array of event names to ignore
 
@@ -143,7 +143,7 @@ The definition of MATCH or MATCHES in the Spec Test Runner is as follows:
 Pseudocode implementation of ``actual`` MATCHES ``expected``:
 
 ::
-  
+
   If expected is "42" or 42:
     Assert that actual exists (is not null or undefined)
   Else:
@@ -178,7 +178,7 @@ For each YAML file with ``style: unit``:
   - Assert that an actual error ``actualError`` was thrown by the main thread
   - Assert that ``actualError`` MATCHES ``error``
 
-- Else: 
+- Else:
 
   - Assert that no errors were thrown by the main thread
 

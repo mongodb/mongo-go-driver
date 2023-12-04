@@ -8,6 +8,7 @@ package bsoncodec
 
 import (
 	"encoding"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -137,7 +138,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw bsonrw.DocumentWriter, v
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
@@ -200,7 +201,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 
 	for {
 		key, vr, err := dr.ReadElement()
-		if err == bsonrw.ErrEOD {
+		if errors.Is(err, bsonrw.ErrEOD) {
 			break
 		}
 		if err != nil {
@@ -313,7 +314,7 @@ func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 			if mc.EncodeKeysWithStringer {
 				parsed, err := strconv.ParseFloat(key, 64)
 				if err != nil {
-					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %v", keyType.Kind(), err)
+					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %w", keyType.Kind(), err)
 				}
 				keyVal = reflect.ValueOf(parsed)
 				break

@@ -751,7 +751,7 @@ func TestPool(t *testing.T) {
 				err.(WaitQueueTimeoutError).Wrapped,
 				"expected wrapped error to be a context.DeadlineExceeded")
 
-			// Start a goroutine that closes one of the checked-out conections and checks it in.
+			// Start a goroutine that closes one of the checked-out connections and checks it in.
 			// Expect that the checked-in connection is closed and allows blocked checkOut() to
 			// complete. Assert that the time between checking in the closed connection and when the
 			// checkOut() completes is within 100ms.

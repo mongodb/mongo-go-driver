@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -26,7 +27,7 @@ type bulkWriteBatch struct {
 	indexes  []int
 }
 
-// bulkWrite perfoms a bulkwrite operation
+// bulkWrite performs a bulkwrite operation
 type bulkWrite struct {
 	comment                  interface{}
 	ordered                  *bool
@@ -108,8 +109,8 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	case *InsertOneModel:
 		res, err := bw.runInsert(ctx, batch)
 		if err != nil {
-			writeErr, ok := err.(driver.WriteCommandError)
-			if !ok {
+			var writeErr driver.WriteCommandError
+			if !errors.As(err, &writeErr) {
 				return BulkWriteResult{}, batchErr, err
 			}
 			writeErrors = writeErr.WriteErrors
@@ -120,8 +121,8 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	case *DeleteOneModel, *DeleteManyModel:
 		res, err := bw.runDelete(ctx, batch)
 		if err != nil {
-			writeErr, ok := err.(driver.WriteCommandError)
-			if !ok {
+			var writeErr driver.WriteCommandError
+			if !errors.As(err, &writeErr) {
 				return BulkWriteResult{}, batchErr, err
 			}
 			writeErrors = writeErr.WriteErrors
@@ -132,8 +133,8 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 	case *ReplaceOneModel, *UpdateOneModel, *UpdateManyModel:
 		res, err := bw.runUpdate(ctx, batch)
 		if err != nil {
-			writeErr, ok := err.(driver.WriteCommandError)
-			if !ok {
+			var writeErr driver.WriteCommandError
+			if !errors.As(err, &writeErr) {
 				return BulkWriteResult{}, batchErr, err
 			}
 			writeErrors = writeErr.WriteErrors

@@ -7,6 +7,8 @@
 package topology
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -19,6 +21,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -1192,6 +1195,84 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 					_, _ = c.selectServerFromDescription(desc, newServerSelectionState(selectNone, timeout))
 				}
 			})
+		})
+	}
+}
+
+func TestLogUnexpectedFailure(t *testing.T) {
+	t.Parallel()
+
+	// newIOLogger will log data using an io sink.
+	newIOLogger := func() (*logger.Logger, *bytes.Buffer, *bufio.Writer) {
+		buf := bytes.NewBuffer(nil)
+		w := bufio.NewWriter(buf)
+
+		ioSink := logger.NewIOSink(w)
+
+		ioLogger, err := logger.New(ioSink, logger.DefaultMaxDocumentLength, map[logger.Component]logger.Level{
+			logger.ComponentTopology: logger.LevelDebug,
+		})
+
+		assert.NoError(t, err)
+
+		return ioLogger, buf, w
+	}
+
+	// newNilLogger will return a nil logger with empty buffer and writer.
+	newNilLogger := func() (*logger.Logger, *bytes.Buffer, *bufio.Writer) {
+		return nil, &bytes.Buffer{}, &bufio.Writer{}
+	}
+
+	tests := []struct {
+		name       string
+		msg        string
+		newLogger  func() (*logger.Logger, *bytes.Buffer, *bufio.Writer)
+		panicValue interface{}
+		want       interface{} // Either a string or nil
+	}{
+		{
+			name:       "nil logger",
+			msg:        "",
+			newLogger:  newNilLogger,
+			panicValue: 1,
+			want:       nil,
+		},
+		{
+			name:       "valid logger",
+			msg:        "test",
+			newLogger:  newIOLogger,
+			panicValue: 1,
+			want:       "test: 1",
+		},
+		{
+			name:       "valid logger with error panic",
+			msg:        "test",
+			newLogger:  newIOLogger,
+			panicValue: errors.New("err"),
+			want:       "test: err",
+		},
+	}
+
+	for _, test := range tests {
+		test := test
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			log, buf, w := test.newLogger()
+
+			func() {
+				defer logUnexpectedFailure(log, test.msg)
+
+				panic(test.panicValue)
+			}()
+
+			assert.NoError(t, w.Flush())
+
+			got := map[string]interface{}{}
+			_ = json.Unmarshal(buf.Bytes(), &got)
+
+			assert.Equal(t, test.want, got[logger.KeyMessage])
 		})
 	}
 }

@@ -1,0 +1,50 @@
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+    - id: check-case-conflict
+    - id: check-executables-have-shebangs
+    - id: check-added-large-files
+    - id: check-case-conflict
+    - id: check-merge-conflict
+    - id: check-json
+    - id: end-of-file-fixer
+      exclude: ^vendor/
+      exclude_types: [json,yaml]
+    - id: trailing-whitespace
+      exclude: ^(vendor/|internal/assert/assertions_test.go)
+      exclude_types: [json,yaml]
+
+- repo: https://github.com/executablebooks/mdformat
+  rev: 0.7.17
+  hooks:
+    - id: mdformat
+      exclude: ^vendor/
+
+- repo: https://github.com/python-jsonschema/check-jsonschema
+  rev: 0.27.0
+  hooks:
+    - id: check-github-workflows
+
+# We use the Python version instead of the original version which seems to require Docker
+# https://github.com/koalaman/shellcheck-precommit
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.9.0.6
+  hooks:
+    - id: shellcheck
+      name: shellcheck
+      args: ["--severity=error"]
+
+- repo: https://github.com/codespell-project/codespell
+  rev: "v2.2.6"
+  hooks:
+  - id: codespell
+    args: ["-L", "te,fo,fle,alo,nin,compres,wil,collone,asess,sav,ot,wll,dne,nulll,hellow"]
+    exclude: ^(vendor/|benchmark/operation_test.go)
+    exclude_types: [json,yaml,pem]
+
+- repo: https://github.com/golangci/golangci-lint
+  rev: v1.55.1
+  hooks:
+  - id: golangci-lint

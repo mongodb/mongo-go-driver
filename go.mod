@@ -3,6 +3,11 @@ module go.mongodb.org/mongo-driver
 go 1.13
 
 retract (
+	// GODRIVER-3059: The v1.13.0 Git tag changed, causing security errors when
+	// users downloaded the Go driver module. Also, the BSON performance
+	// improvements introduced a panic when marshaling/unmarshaling Go errors.
+	v1.13.0
+
 	v1.11.8 // Contains minor changes meant for v1.12.1.
 	v1.11.5 // Contains import failure.
 

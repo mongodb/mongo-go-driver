@@ -19,7 +19,7 @@ import (
 // logged for a stringified BSON document.
 const DefaultMaxDocumentLength = 1000
 
-// TruncationSuffix are trailling ellipsis "..." appended to a message to
+// TruncationSuffix are trailing ellipsis "..." appended to a message to
 // indicate to the user that truncation occurred. This constant does not count
 // toward the max document length.
 const TruncationSuffix = "..."
@@ -183,7 +183,7 @@ func selectLogSink(sink LogSink) (LogSink, *os.File, error) {
 	if path != "" {
 		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
-			return nil, nil, fmt.Errorf("unable to open log file: %v", err)
+			return nil, nil, fmt.Errorf("unable to open log file: %w", err)
 		}
 
 		return NewIOSink(logFile), logFile, nil

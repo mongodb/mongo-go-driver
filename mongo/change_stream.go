@@ -689,8 +689,8 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 }
 
 func (cs *ChangeStream) isResumableError() bool {
-	commandErr, ok := cs.err.(CommandError)
-	if !ok || commandErr.HasErrorLabel(networkErrorLabel) {
+	var commandErr CommandError
+	if !errors.As(cs.err, &commandErr) || commandErr.HasErrorLabel(networkErrorLabel) {
 		// All non-server errors or network errors are resumable.
 		return true
 	}

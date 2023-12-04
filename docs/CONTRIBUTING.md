@@ -18,6 +18,7 @@ The Go Driver team uses GitHub to manage and review all code changes. Patches sh
 applicable.
 
 Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.13 and requires Go 1.20 for development. Please run the following Make targets to validate your changes:
+
 - `make fmt`
 - `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
 - `make test`
@@ -28,6 +29,23 @@ Code should compile and tests should pass under all Go versions which the driver
 If any tests do not pass, or relevant tests are not included, the patch will not be considered.
 
 If you are working on a bug or feature listed in Jira, please include the ticket number prefixed with GODRIVER in the commit message and GitHub pull request title, (e.g. GODRIVER-123). For the patch commit message itself, please follow the [How to Write a Git Commit Message](https://chris.beams.io/posts/git-commit/) guide.
+
+### Linting on commit
+
+The Go team uses [pre-commit](https://pre-commit.com/#installation) to lint both source and text files.
+
+To install locally, run:
+
+```bash
+brew install pre-commit
+pre-commit install
+```
+
+After that, the checks will run on any changed files when committing.  To manually run the checks on all files, run:
+
+```bash
+pre-commit run --all-files
+```
 
 ### Cherry-picking between branches
 
@@ -50,6 +68,9 @@ prompt before creating a PR to the target branch.
 ## Testing / Development
 
 The driver tests can be run against several database configurations. The most simple configuration is a standalone mongod with no auth, no ssl, and no compression. To run these basic driver tests, make sure a standalone MongoDB server instance is running at localhost:27017. To run the tests, you can run `make` (on Windows, run `nmake`). This will run coverage, run go-lint, run go-vet, and build the examples.
+
+You can install `libmongocrypt` locally by running `bash etc/build-libmongocrypt.sh`, which will create an `install` directory
+in the repository top level directory.  On Windows you will also need to add `c:/libmongocrypt/` to your `PATH`.
 
 ### Testing Different Topologies
 
@@ -74,6 +95,7 @@ mongod \
 ```
 
 To run the tests with `make`, set:
+
 - `MONGO_GO_DRIVER_CA_FILE` to the location of the CA file used by the database
 - `MONGO_GO_DRIVER_KEY_FILE` to the location of the client key file
 - `MONGO_GO_DRIVER_PKCS8_ENCRYPTED_KEY_FILE` to the location of the pkcs8 client key file encrypted with the password string: `password`
@@ -95,6 +117,7 @@ make
 ```
 
 Notes:
+
 - The `--tlsAllowInvalidCertificates` flag is required on the server for the test suite to work correctly.
 - The test suite requires the auth database to be set with `?authSource=admin`, not `/admin`.
 
@@ -117,7 +140,7 @@ The requirements for testing FaaS implementations in the Go Driver vary dependin
 The following are the requirements for running the AWS Lambda tests locally:
 
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
-2. [Docker](https://www.docker.com/products/docker-desktop/)
+1. [Docker](https://www.docker.com/products/docker-desktop/)
 
 Local testing requires exporting the `MONGODB_URI` environment variables. To build the AWS Lambda image and invoke the `MongoDBFunction` lambda function use the `build-faas-awslambda` make target:
 
@@ -128,6 +151,24 @@ MONGODB_URI="mongodb://host.docker.internal:27017" make build-faas-awslambda
 The usage of host.docker.internal comes from the [Docker networking documentation](https://docs.docker.com/desktop/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host).
 
 There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
+
+### Testing in Docker
+
+We support local testing in Docker.  To test using docker, you will need to set the `DRIVERS_TOOLs` environment variable to point to a local clone of the drivers-evergreen-tools repository. This is essential for running the testing matrix in a container. You can set the `DRIVERS_TOOLS` variable in your shell profile or in your project-specific environment.
+
+```bash
+bash etc/run_docker.sh
+```
+
+The script takes an optional argument for the `MAKEFILE_TARGET` and allows for some environment variable overrides.
+The docker container has the required binaries, including libmongocrypt.
+The entry script starts a MongoDB topology, and then executes the desired `MAKEFILE_TARGET`.
+
+For example, to test against a sharded cluster, using enterprise auth, run:
+
+```bash
+TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
+```
 
 ## Talk To Us
 

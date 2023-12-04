@@ -149,7 +149,7 @@ func processStaple(cfg config, staple []byte) (*ResponseDetails, error) {
 	// If the server has a Must-Staple certificate and the server does not present a stapled OCSP response, error.
 	if mustStaple && len(staple) == 0 {
 		return nil, errors.New("server provided a certificate with the Must-Staple extension but did not " +
-			"provde a stapled OCSP response")
+			"provide a stapled OCSP response")
 	}
 
 	if len(staple) == 0 {
@@ -161,10 +161,10 @@ func processStaple(cfg config, staple []byte) (*ResponseDetails, error) {
 		// If the stapled response could not be parsed correctly, error. This can happen if the response is malformed,
 		// the response does not cover the certificate presented by the server, or if the response contains an error
 		// status.
-		return nil, fmt.Errorf("error parsing stapled response: %v", err)
+		return nil, fmt.Errorf("error parsing stapled response: %w", err)
 	}
 	if err = verifyResponse(cfg, parsedResponse); err != nil {
-		return nil, fmt.Errorf("error validating stapled response: %v", err)
+		return nil, fmt.Errorf("error validating stapled response: %w", err)
 	}
 
 	return extractResponseDetails(parsedResponse), nil
@@ -192,7 +192,7 @@ func isMustStapleCertificate(cert *x509.Certificate) (bool, error) {
 	// Use []*big.Int to ensure that all values in the sequence can be successfully unmarshalled.
 	var featureValues []*big.Int
 	if _, err := asn1.Unmarshal(featureExtension.Value, &featureValues); err != nil {
-		return false, fmt.Errorf("error unmarshalling TLS feature extension values: %v", err)
+		return false, fmt.Errorf("error unmarshalling TLS feature extension values: %w", err)
 	}
 
 	for _, value := range featureValues {

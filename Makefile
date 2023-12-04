@@ -24,10 +24,6 @@ build: cross-compile build-tests build-compile-check
 build-tests:
 	go test -short $(BUILD_TAGS) -run ^$$ ./...
 
-.PHONY: api-report
-api-report:
-	etc/api_report.sh
-
 .PHONY: build-compile-check
 build-compile-check:
 	etc/compile_check.sh
@@ -157,6 +153,7 @@ evg-test-load-balancers:
 	go test $(BUILD_TAGS) ./mongo/integration -run TestChangeStreamSpec -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestInitialDNSSeedlistDiscoverySpec/load_balanced -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration -run TestLoadBalancerSupport -v -timeout $(TEST_TIMEOUT)s >> test.suite
+	go test $(BUILD_TAGS) ./mongo/integration -run TestLoadBalancedConnectionHandshake -v -timeout $(TEST_TIMEOUT)s >> test.suite
 	go test $(BUILD_TAGS) ./mongo/integration/unified -run TestUnifiedSpec -v -timeout $(TEST_TIMEOUT)s >> test.suite
 
 .PHONY: evg-test-search-index
@@ -205,7 +202,7 @@ build-kms-test:
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
 benchmark:perf
-	go test $(BUILD_TAGS) -benchmem -bench=. ./benchmark
+	go test $(BUILD_TAGS) -benchmem -bench=. ./benchmark | test benchmark.suite
 
 .PHONY: driver-benchmark
 driver-benchmark:perf

@@ -623,7 +623,7 @@ func TestClientOptions(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					err := tc.opts.SetDirect(true).Validate()
-					assert.NotNil(t, err, "expected errror, got nil")
+					assert.NotNil(t, err, "expected error, got nil")
 					assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 				})
 			}
@@ -635,7 +635,7 @@ func TestClientOptions(t *testing.T) {
 			opts.cs.Scheme = connstring.SchemeMongoDBSRV
 
 			err := opts.SetDirect(true).Validate()
-			assert.NotNil(t, err, "expected errror, got nil")
+			assert.NotNil(t, err, "expected error, got nil")
 			assert.Equal(t, expectedErr.Error(), err.Error(), "expected error %v, got %v", expectedErr, err)
 		})
 	})
@@ -757,6 +757,52 @@ func TestClientOptions(t *testing.T) {
 
 				err := tc.opts.Validate()
 				assert.Equal(t, tc.err, err, "want error %v, got error %v", tc.err, err)
+			})
+		}
+	})
+	t.Run("server monitoring mode validation", func(t *testing.T) {
+		t.Parallel()
+
+		testCases := []struct {
+			name string
+			opts *ClientOptions
+			err  error
+		}{
+			{
+				name: "undefined",
+				opts: Client(),
+				err:  nil,
+			},
+			{
+				name: "auto",
+				opts: Client().SetServerMonitoringMode(ServerMonitoringModeAuto),
+				err:  nil,
+			},
+			{
+				name: "poll",
+				opts: Client().SetServerMonitoringMode(ServerMonitoringModePoll),
+				err:  nil,
+			},
+			{
+				name: "stream",
+				opts: Client().SetServerMonitoringMode(ServerMonitoringModeStream),
+				err:  nil,
+			},
+			{
+				name: "invalid",
+				opts: Client().SetServerMonitoringMode("invalid"),
+				err:  errors.New("invalid server monitoring mode: \"invalid\""),
+			},
+		}
+
+		for _, tc := range testCases {
+			tc := tc // Capture the range variable
+
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				err := tc.opts.Validate()
+				assert.Equal(t, tc.err, err, "expected error %v, got %v", tc.err, err)
 			})
 		}
 	})
