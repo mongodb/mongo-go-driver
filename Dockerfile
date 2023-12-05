@@ -54,4 +54,6 @@ COPY ./etc/docker_entry.sh /root/docker_entry.sh
 
 COPY --from=libmongocrypt /root/install /root/install
 
+ENV DOCKER_RUNNING=true
+
 ENTRYPOINT ["/bin/bash", "/root/docker_entry.sh"]
