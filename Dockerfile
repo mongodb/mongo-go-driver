@@ -16,15 +16,19 @@ COPY etc/install-libmongocrypt.sh /root/install-libmongocrypt.sh
 RUN cd /root && bash ./install-libmongocrypt.sh
 
 
-# Inherit from the drivers-evergreen-tools image and copy in the files
-# from the libmongocrypt build stage.
-FROM drivers-evergreen-tools
+# Copy in the files from the libmongocrypt build stage.
+FROM ubuntu:20.04
 
 # Install common deps.
 RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
   apt-get -qq update && \
   apt-get -qqy install --reinstall --no-install-recommends \
+    git \
+    ca-certificates \
+    curl \
+    wget \
+    sudo \
     tzdata \
     ca-certificates \
     pkg-config \

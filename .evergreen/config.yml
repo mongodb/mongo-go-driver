@@ -1528,6 +1528,7 @@ tasks:
   - name: test-docker-runner
     tags: ["pullrequest"]
     commands:
+      - func: bootstrap-mongo-orchestration
       - func: run-docker-test
 
   - name: test-load-balancer-noauth-nossl
