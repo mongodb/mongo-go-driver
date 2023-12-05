@@ -318,9 +318,6 @@ func TestClient(t *testing.T) {
 		})
 	})
 	t.Run("endSessions", func(t *testing.T) {
-		if len(os.Getenv("DOCKER_RUNNING")) > 0 {
-			t.Skip("This test does not work properly in docker.")
-		}
 		cs := integtest.ConnString(t)
 		originalBatchSize := endSessionsBatchSize
 		endSessionsBatchSize = 2
@@ -339,6 +336,9 @@ func TestClient(t *testing.T) {
 		for _, tc := range testCases {
 			if testing.Short() {
 				t.Skip("skipping integration test in short mode")
+			}
+			if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+				t.Skip("skipping test in docker environment")
 			}
 
 			t.Run(tc.name, func(t *testing.T) {
