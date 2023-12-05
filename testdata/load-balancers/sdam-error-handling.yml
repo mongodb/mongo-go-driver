@@ -153,7 +153,7 @@ tests:
             configureFailPoint: failCommand
             mode: { times: 1 }
             data:
-              failCommands: [isMaster]
+              failCommands: [isMaster, hello]
               closeConnection: true
               appName: *singleClientAppName
       - name: insertOne
