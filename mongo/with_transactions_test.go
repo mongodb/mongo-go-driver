@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -36,6 +37,9 @@ var (
 func TestConvenientTransactions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
+	}
+	if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+		t.Skip("skipping test in docker environment")
 	}
 
 	client := setupConvenientTransactions(t)
