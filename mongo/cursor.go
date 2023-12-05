@@ -93,6 +93,7 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 
 	// Convert documents slice to a sequence-style byte array.
 	buf := new(bytes.Buffer)
+	enc := new(bson.Encoder)
 	for _, doc := range documents {
 		switch t := doc.(type) {
 		case nil:
@@ -105,11 +106,9 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 		if err != nil {
 			return nil, err
 		}
-		enc := bson.NewEncoder(vw)
+		enc.Reset(vw)
 		enc.SetRegistry(registry)
 		err = enc.Encode(doc)
-		// var marshalErr error
-		// docsBytes, marshalErr = bson.MarshalAppendWithRegistry(registry, docsBytes, doc)
 		if err != nil {
 			return nil, err
 		}

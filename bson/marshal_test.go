@@ -27,6 +27,7 @@ var tInt32 = reflect.TypeOf(int32(0))
 
 func TestMarshalWithRegistry(t *testing.T) {
 	buf := new(bytes.Buffer)
+	enc := new(Encoder)
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var reg *bsoncodec.Registry
@@ -38,7 +39,7 @@ func TestMarshalWithRegistry(t *testing.T) {
 			buf.Reset()
 			vw, err := bsonrw.NewBSONValueWriter(buf)
 			noerr(t, err)
-			enc := NewEncoder(vw)
+			enc.Reset(vw)
 			enc.SetRegistry(reg)
 			err = enc.Encode(tc.val)
 			noerr(t, err)
@@ -53,6 +54,7 @@ func TestMarshalWithRegistry(t *testing.T) {
 
 func TestMarshalWithContext(t *testing.T) {
 	buf := new(bytes.Buffer)
+	enc := new(Encoder)
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var reg *bsoncodec.Registry
@@ -64,7 +66,7 @@ func TestMarshalWithContext(t *testing.T) {
 			buf.Reset()
 			vw, err := bsonrw.NewBSONValueWriter(buf)
 			noerr(t, err)
-			enc := NewEncoder(vw)
+			enc.Reset(vw)
 			enc.IntMinSize()
 			enc.SetRegistry(reg)
 			err = enc.Encode(tc.val)

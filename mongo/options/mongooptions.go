@@ -134,13 +134,14 @@ func (af *ArrayFilters) ToArray() ([]bson.Raw, error) {
 	}
 	filters := make([]bson.Raw, 0, len(af.Filters))
 	buf := new(bytes.Buffer)
+	enc := new(bson.Encoder)
 	for _, f := range af.Filters {
 		buf.Reset()
 		vw, err := bsonrw.NewBSONValueWriter(buf)
 		if err != nil {
 			return nil, err
 		}
-		enc := bson.NewEncoder(vw)
+		enc.Reset(vw)
 		enc.SetRegistry(registry)
 		err = enc.Encode(f)
 		if err != nil {
@@ -163,13 +164,14 @@ func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
 
 	idx, arr := bsoncore.AppendArrayStart(nil)
 	buf := new(bytes.Buffer)
+	enc := new(bson.Encoder)
 	for i, f := range af.Filters {
 		buf.Reset()
 		vw, err := bsonrw.NewBSONValueWriter(buf)
 		if err != nil {
 			return nil, err
 		}
-		enc := bson.NewEncoder(vw)
+		enc.Reset(vw)
 		enc.SetRegistry(registry)
 		err = enc.Encode(f)
 		if err != nil {
