@@ -318,6 +318,9 @@ func TestClient(t *testing.T) {
 		})
 	})
 	t.Run("endSessions", func(t *testing.T) {
+		if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+			t.Skip("This test does not work properly in docker.")
+		}
 		cs := integtest.ConnString(t)
 		originalBatchSize := endSessionsBatchSize
 		endSessionsBatchSize = 2
