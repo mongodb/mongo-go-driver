@@ -57,7 +57,7 @@ func TestCSOTProse(t *testing.T) {
 			SetMonitor(cm).
 			ApplyURI(mtest.ClusterURI())
 		integtest.AddTestServerAPIVersion(cliOptions)
-		cli, err := mongo.Connect(context.Background(), cliOptions)
+		cli, err := mongo.Connect(cliOptions)
 		assert.Nil(mt, err, "Connect error: %v", err)
 
 		// Insert 50 1MB documents (OP_MSG payloads can only fit 48MB in one batch).

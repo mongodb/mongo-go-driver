@@ -1080,7 +1080,7 @@ func ExampleCollection_Find_primitiveRegex() {
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 
 	// Connect to a mongodb server.
-	client, err := mongo.Connect(ctx, clientOptions)
+	client, err := mongo.Connect(clientOptions)
 	if err != nil {
 		panic(err)
 	}
@@ -1121,7 +1121,7 @@ func ExampleCollection_Find_regex() {
 	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
 
 	// Connect to a mongodb server.
-	client, err := mongo.Connect(ctx, clientOptions)
+	client, err := mongo.Connect(clientOptions)
 	if err != nil {
 		panic(err)
 	}

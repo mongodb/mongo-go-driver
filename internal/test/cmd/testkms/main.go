@@ -83,7 +83,7 @@ func main() {
 	}
 
 	cOpts := options.Client().ApplyURI(uri)
-	keyVaultClient, err := mongo.Connect(context.Background(), cOpts)
+	keyVaultClient, err := mongo.Connect(cOpts)
 	if err != nil {
 		panic(fmt.Sprintf("Connect error: %v", err))
 	}

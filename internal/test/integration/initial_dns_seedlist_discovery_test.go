@@ -76,7 +76,7 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
 	ctx := context.Background()
 
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 
 	defer func() { _ = client.Disconnect(ctx) }()

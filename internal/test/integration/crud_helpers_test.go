@@ -124,7 +124,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	integtest.AddTestServerAPIVersion(opts)
 
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
-		client, err := mongo.Connect(context.Background(), opts)
+		client, err := mongo.Connect(opts)
 		if err != nil {
 			return fmt.Errorf("error creating replica set client: %v", err)
 		}
@@ -134,7 +134,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	}
 
 	for _, host := range opts.Hosts {
-		shardClient, err := mongo.Connect(context.Background(), opts.SetHosts([]string{host}))
+		shardClient, err := mongo.Connect(opts.SetHosts([]string{host}))
 		if err != nil {
 			return fmt.Errorf("error creating client for mongos %v: %v", host, err)
 		}
@@ -1386,7 +1386,7 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	// Per the streamable hello test format description, a separate client must be used to execute this operation.
 	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 	integtest.AddTestServerAPIVersion(clientOpts)
-	client, err := mongo.Connect(context.Background(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 	defer func() {
 		_ = client.Disconnect(context.Background())

@@ -47,7 +47,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 				SetExtraOptions(mongocryptdSpawnArgs)
 			cliOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
 			integtest.AddTestServerAPIVersion(cliOpts)
-			encClient, err := mongo.Connect(context.Background(), cliOpts)
+			encClient, err := mongo.Connect(cliOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer func() {
 				err = encClient.Disconnect(context.Background())
@@ -70,7 +70,7 @@ func TestCSOTClientSideEncryptionProse(t *testing.T) {
 			mcryptOpts := options.Client().SetMonitor(mcryptMonitor).
 				ApplyURI("mongodb://localhost:23000/?timeoutMS=1000")
 			integtest.AddTestServerAPIVersion(mcryptOpts)
-			mcryptClient, err := mongo.Connect(context.Background(), mcryptOpts)
+			mcryptClient, err := mongo.Connect(mcryptOpts)
 			assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 			defer func() {
 				err = mcryptClient.Disconnect(context.Background())

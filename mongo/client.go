@@ -102,12 +102,12 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(ctx context.Context, opts ...*options.ClientOptions) (*Client, error) {
+func Connect(opts ...*options.ClientOptions) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
 		return nil, err
 	}
-	err = c.connect(ctx)
+	err = c.connect()
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 //
 // Connect starts background goroutines to monitor the state of the deployment and does not do any I/O in the main
 // goroutine. The Client.Ping method can be used to verify that the connection was created successfully.
-func (c *Client) connect(ctx context.Context) error {
+func (c *Client) connect() error {
 	if connector, ok := c.deployment.(driver.Connector); ok {
 		err := connector.Connect()
 		if err != nil {
@@ -246,25 +246,25 @@ func (c *Client) connect(ctx context.Context) error {
 	}
 
 	if c.mongocryptdFLE != nil {
-		if err := c.mongocryptdFLE.connect(ctx); err != nil {
+		if err := c.mongocryptdFLE.connect(); err != nil {
 			return err
 		}
 	}
 
 	if c.internalClientFLE != nil {
-		if err := c.internalClientFLE.connect(ctx); err != nil {
+		if err := c.internalClientFLE.connect(); err != nil {
 			return err
 		}
 	}
 
 	if c.keyVaultClientFLE != nil && c.keyVaultClientFLE != c.internalClientFLE && c.keyVaultClientFLE != c {
-		if err := c.keyVaultClientFLE.connect(ctx); err != nil {
+		if err := c.keyVaultClientFLE.connect(); err != nil {
 			return err
 		}
 	}
 
 	if c.metadataClientFLE != nil && c.metadataClientFLE != c.internalClientFLE && c.metadataClientFLE != c {
-		if err := c.metadataClientFLE.connect(ctx); err != nil {
+		if err := c.metadataClientFLE.connect(); err != nil {
 			return err
 		}
 	}

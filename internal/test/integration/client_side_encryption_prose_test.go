@@ -1153,7 +1153,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				mcryptOpts := options.Client().ApplyURI("mongodb://localhost:27021").
 					SetServerSelectionTimeout(1 * time.Second)
 				integtest.AddTestServerAPIVersion(mcryptOpts)
-				mcryptClient, err := mongo.Connect(context.Background(), mcryptOpts)
+				mcryptClient, err := mongo.Connect(mcryptOpts)
 				assert.Nil(mt, err, "mongocryptd Connect error: %v", err)
 
 				err = mcryptClient.Database("admin").RunCommand(context.Background(), bson.D{{handshake.LegacyHelloLowercase, 1}}).Err()
@@ -1364,7 +1364,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					SetAutoEncryptionOptions(aeOpts)
 
 				integtest.AddTestServerAPIVersion(ceOpts)
-				clientEncrypted, err := mongo.Connect(context.Background(), ceOpts)
+				clientEncrypted, err := mongo.Connect(ceOpts)
 				assert.Nil(mt, err, "Connect error: %v", err)
 				defer clientEncrypted.Disconnect(context.Background())
 
@@ -1682,7 +1682,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			assert.Nil(mt, err, "error on CreateCollection: %v", err)
 			err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 			assert.Nil(mt, err, "error on Drop: %v", err)
-			keyVaultClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
+			keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
 			assert.Nil(mt, err, "error on Connect: %v", err)
 			datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
 			_, err = datakeysColl.InsertOne(context.Background(), key1Document)
@@ -1700,7 +1700,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				SetKmsProviders(fullKmsProvidersMap).
 				SetBypassQueryAnalysis(true)
 			co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
-			encryptedClient, err := mongo.Connect(context.Background(), co)
+			encryptedClient, err := mongo.Connect(co)
 			assert.Nil(mt, err, "error on Connect: %v", err)
 			return encryptedClient, clientEncryption
 		}
@@ -2036,7 +2036,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							var keyVaultClient *mongo.Client
 							{
 								co := options.Client().ApplyURI(mtest.ClusterURI())
-								keyVaultClient, err = mongo.Connect(context.Background(), co)
+								keyVaultClient, err = mongo.Connect(co)
 								defer keyVaultClient.Disconnect(context.Background())
 								integtest.AddTestServerAPIVersion(co)
 								assert.Nil(mt, err, "error on Connect: %v", err)
@@ -2078,7 +2078,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							var keyVaultClient *mongo.Client
 							{
 								co := options.Client().ApplyURI(mtest.ClusterURI())
-								keyVaultClient, err = mongo.Connect(context.Background(), co)
+								keyVaultClient, err = mongo.Connect(co)
 								defer keyVaultClient.Disconnect(context.Background())
 								integtest.AddTestServerAPIVersion(co)
 								assert.Nil(mt, err, "error on Connect: %v", err)
@@ -2128,7 +2128,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				var keyVaultClient *mongo.Client
 				{
 					co := options.Client().ApplyURI(mtest.ClusterURI())
-					keyVaultClient, err = mongo.Connect(context.Background(), co)
+					keyVaultClient, err = mongo.Connect(co)
 					defer keyVaultClient.Disconnect(context.Background())
 					integtest.AddTestServerAPIVersion(co)
 					assert.Nil(mt, err, "error on Connect: %v", err)
@@ -2271,7 +2271,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				SetExtraOptions(mongocryptdSpawnArgs)
 			cliOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetAutoEncryptionOptions(aeo)
 			integtest.AddTestServerAPIVersion(cliOpts)
-			encClient, err := mongo.Connect(context.Background(), cliOpts)
+			encClient, err := mongo.Connect(cliOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer func() {
 				err = encClient.Disconnect(context.Background())
@@ -2291,7 +2291,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	mt.RunOpts("21. automatic data encryption keys", qeRunOpts, func(mt *mtest.T) {
 		setup := func() (*mongo.Client, *mongo.ClientEncryption, error) {
 			opts := options.Client().ApplyURI(mtest.ClusterURI())
-			client, err := mongo.Connect(context.Background(), opts)
+			client, err := mongo.Connect(opts)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -2603,7 +2603,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					assert.Nil(mt, err, "error on CreateCollection: %v", err)
 					err = mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
 					assert.Nil(mt, err, "error on Drop: %v", err)
-					keyVaultClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mtest.ClusterURI()))
+					keyVaultClient, err := mongo.Connect(options.Client().ApplyURI(mtest.ClusterURI()))
 					assert.Nil(mt, err, "error on Connect: %v", err)
 					datakeysColl := keyVaultClient.Database("keyvault").Collection("datakeys", options.Collection().SetWriteConcern(mtest.MajorityWc))
 					_, err = datakeysColl.InsertOne(context.Background(), key1Document)
@@ -2621,7 +2621,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKmsProviders(fullKmsProvidersMap).
 						SetBypassQueryAnalysis(true)
 					co := options.Client().SetAutoEncryptionOptions(aeo).ApplyURI(mtest.ClusterURI())
-					encryptedClient, err := mongo.Connect(context.Background(), co)
+					encryptedClient, err := mongo.Connect(co)
 					assert.Nil(mt, err, "error on Connect: %v", err)
 
 					// Insert 0, 6, 30, and 200.
@@ -2956,12 +2956,12 @@ func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *option
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
 			SetReadPreference(mtest.PrimaryRp).SetAutoEncryptionOptions(aeo).SetMonitor(cseMonitor)
 		integtest.AddTestServerAPIVersion(opts)
-		cpt.cseClient, err = mongo.Connect(context.Background(), opts)
+		cpt.cseClient, err = mongo.Connect(opts)
 		assert.Nil(mt, err, "Connect error for encrypted client: %v", err)
 		cpt.cseColl = cpt.cseClient.Database("db").Collection("coll")
 	}
 	if ceo != nil {
-		cpt.kvClient, err = mongo.Connect(context.Background(), kvClientOpts)
+		cpt.kvClient, err = mongo.Connect(kvClientOpts)
 		assert.Nil(mt, err, "Connect error for ClientEncryption key vault client: %v", err)
 		cpt.clientEnc, err = mongo.NewClientEncryption(cpt.kvClient, ceo)
 		assert.Nil(mt, err, "NewClientEncryption error: %v", err)
@@ -3029,7 +3029,7 @@ func newDeadlockTest(mt *mtest.T) *deadlockTest {
 
 	clientTestOpts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc)
 	integtest.AddTestServerAPIVersion(clientTestOpts)
-	if d.clientTest, err = mongo.Connect(context.Background(), clientTestOpts); err != nil {
+	if d.clientTest, err = mongo.Connect(clientTestOpts); err != nil {
 		mt.Fatalf("Connect error: %v", err)
 	}
 

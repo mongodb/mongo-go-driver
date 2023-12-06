@@ -65,7 +65,7 @@ func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
 	}
 	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
 	// can be inconsistent when multiple mongoses are used
-	return mongo.Connect(context.Background(), opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
+	return mongo.Connect(opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.

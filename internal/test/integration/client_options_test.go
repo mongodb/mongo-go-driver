@@ -24,7 +24,7 @@ func TestClientOptions_CustomDialer(t *testing.T) {
 	cs := integtest.ConnString(t)
 	opts := options.Client().ApplyURI(cs.String()).SetDialer(td)
 	integtest.AddTestServerAPIVersion(opts)
-	client, err := mongo.Connect(context.Background(), opts)
+	client, err := mongo.Connect(opts)
 	require.NoError(t, err)
 	_, err = client.ListDatabases(context.Background(), bson.D{})
 	require.NoError(t, err)

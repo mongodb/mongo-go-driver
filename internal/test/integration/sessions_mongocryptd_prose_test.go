@@ -100,9 +100,7 @@ func newTestSessionMongocryptdProseClient(mt *mtest.T) *mongo.Client {
 		ApplyURI(uri.String()).
 		SetMonitor(cmdMonitor)
 
-	ctx := context.Background()
-
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	require.NoError(mt, err, "could not connect to mongocryptd: %v", err)
 
 	return client
