@@ -53,7 +53,9 @@ func Marshal(val interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	enc := NewEncoder(vw)
+	enc := encPool.Get().(*Encoder)
+	defer encPool.Put(enc)
+	enc.Reset(vw)
 	enc.SetRegistry(DefaultRegistry)
 	err = enc.Encode(val)
 	if err != nil {
@@ -71,58 +73,19 @@ func MarshalValue(val interface{}) (bsontype.Type, []byte, error) {
 	return MarshalValueWithRegistry(DefaultRegistry, val)
 }
 
-// MarshalValueAppend will append the BSON encoding of val to dst. If dst is not large enough to hold the BSON encoding
-// of val, dst will be grown.
-//
-// Deprecated: Appending individual BSON elements to an existing slice will not be supported in Go
-// Driver 2.0.
-func MarshalValueAppend(dst []byte, val interface{}) (bsontype.Type, []byte, error) {
-	return MarshalValueAppendWithRegistry(DefaultRegistry, dst, val)
-}
-
 // MarshalValueWithRegistry returns the BSON encoding of val using Registry r.
 //
 // Deprecated: Using a custom registry to marshal individual BSON values will not be supported in Go
 // Driver 2.0.
 func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.Type, []byte, error) {
-	dst := make([]byte, 0)
-	return MarshalValueAppendWithRegistry(r, dst, val)
-}
-
-// MarshalValueWithContext returns the BSON encoding of val using EncodeContext ec.
-//
-// Deprecated: Using a custom EncodeContext to marshal individual BSON elements will not be
-// supported in Go Driver 2.0.
-func MarshalValueWithContext(ec bsoncodec.EncodeContext, val interface{}) (bsontype.Type, []byte, error) {
-	dst := make([]byte, 0)
-	return MarshalValueAppendWithContext(ec, dst, val)
-}
-
-// MarshalValueAppendWithRegistry will append the BSON encoding of val to dst using Registry r. If dst is not large
-// enough to hold the BSON encoding of val, dst will be grown.
-//
-// Deprecated: Appending individual BSON elements to an existing slice will not be supported in Go
-// Driver 2.0.
-func MarshalValueAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val interface{}) (bsontype.Type, []byte, error) {
-	return MarshalValueAppendWithContext(bsoncodec.EncodeContext{Registry: r}, dst, val)
-}
-
-// MarshalValueAppendWithContext will append the BSON encoding of val to dst using EncodeContext ec. If dst is not large
-// enough to hold the BSON encoding of val, dst will be grown.
-//
-// Deprecated: Appending individual BSON elements to an existing slice will not be supported in Go
-// Driver 2.0.
-func MarshalValueAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val interface{}) (bsontype.Type, []byte, error) {
-	// get a ValueWriter configured to write to dst
-	sw := new(bsonrw.SliceWriter)
-	*sw = dst
-	vwFlusher := bvwPool.GetAtModeElement(sw)
+	var sw bsonrw.SliceWriter
+	vwFlusher := bvwPool.GetAtModeElement(&sw)
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vwFlusher)
-	enc.ec = ec
+	enc.ec = bsoncodec.EncodeContext{Registry: r}
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -133,8 +96,7 @@ func MarshalValueAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val i
 	if err := vwFlusher.Flush(); err != nil {
 		return 0, nil, err
 	}
-	buffer := *sw
-	return bsontype.Type(buffer[0]), buffer[2:], nil
+	return bsontype.Type(sw[0]), sw[2:], nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
