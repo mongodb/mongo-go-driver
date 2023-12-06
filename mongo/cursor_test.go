@@ -21,13 +21,13 @@ import (
 )
 
 type testBatchCursor struct {
-	batches []*bsoncore.DocumentSequence
-	batch   *bsoncore.DocumentSequence
+	batches []*bsoncore.Iterator
+	batch   *bsoncore.Iterator
 	closed  bool
 }
 
 func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
-	batches := make([]*bsoncore.DocumentSequence, 0, numBatches)
+	batches := make([]*bsoncore.Iterator, 0, numBatches)
 
 	counter := 0
 	for batch := 0; batch < numBatches; batch++ {
