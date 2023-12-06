@@ -32,7 +32,7 @@ func BenchmarkClientWrite(b *testing.B) {
 	}
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
-			client, err := mongo.Connect(context.Background(), bm.opt)
+			client, err := mongo.Connect(bm.opt)
 			if err != nil {
 				b.Fatalf("error creating client: %v", err)
 			}
@@ -71,7 +71,7 @@ func BenchmarkClientBulkWrite(b *testing.B) {
 	}
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
-			client, err := mongo.Connect(context.Background(), bm.opt)
+			client, err := mongo.Connect(bm.opt)
 			if err != nil {
 				b.Fatalf("error creating client: %v", err)
 			}
@@ -115,7 +115,7 @@ func BenchmarkClientRead(b *testing.B) {
 	}
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
-			client, err := mongo.Connect(context.Background(), bm.opt)
+			client, err := mongo.Connect(bm.opt)
 			if err != nil {
 				b.Fatalf("error creating client: %v", err)
 			}

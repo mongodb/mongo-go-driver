@@ -181,7 +181,7 @@ func TestClient(t *testing.T) {
 				)
 				authClientOpts := options.Client().ApplyURI(cs)
 				integtest.AddTestServerAPIVersion(authClientOpts)
-				authClient, err := mongo.Connect(context.Background(), authClientOpts)
+				authClient, err := mongo.Connect(authClientOpts)
 				assert.Nil(mt, err, "authClient Connect error: %v", err)
 				defer func() { _ = authClient.Disconnect(context.Background()) }()
 
@@ -326,7 +326,7 @@ func TestClient(t *testing.T) {
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
 				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
 			integtest.AddTestServerAPIVersion(invalidClientOpts)
-			client, err := mongo.Connect(context.Background(), invalidClientOpts)
+			client, err := mongo.Connect(invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			err = client.Ping(context.Background(), readpref.Primary())
 			assert.NotNil(mt, err, "expected error for pinging invalid host, got nil")

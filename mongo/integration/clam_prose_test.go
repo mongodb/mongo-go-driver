@@ -321,7 +321,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 				integtest.AddTestServerAPIVersion(clientOpts)
 
-				client, err := mongo.Connect(ctx, clientOpts)
+				client, err := mongo.Connect(clientOpts)
 				assert.Nil(mt, err, "Connect error in setup: %v", err)
 
 				coll := mt.CreateCollection(mtest.Collection{
@@ -379,7 +379,7 @@ func TestCommandLoggingAndMonitoringProse(t *testing.T) {
 
 			integtest.AddTestServerAPIVersion(clientOpts)
 
-			client, err := mongo.Connect(context.Background(), clientOpts)
+			client, err := mongo.Connect(clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 
 			coll := mt.CreateCollection(mtest.Collection{

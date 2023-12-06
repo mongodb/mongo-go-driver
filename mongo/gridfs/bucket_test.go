@@ -38,7 +38,7 @@ func TestBucket_openDownloadStream(t *testing.T) {
 	cs := integtest.ConnString(t)
 	clientOpts := options.Client().ApplyURI(cs.Original)
 
-	client, err := mongo.Connect(context.Background(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 
 	db := client.Database("bucket")
