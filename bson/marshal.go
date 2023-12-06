@@ -78,7 +78,7 @@ func MarshalValue(val interface{}) (bsontype.Type, []byte, error) {
 // Deprecated: Using a custom registry to marshal individual BSON values will not be supported in Go
 // Driver 2.0.
 func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.Type, []byte, error) {
-	var sw bsonrw.SliceWriter
+	sw := bsonrw.SliceWriter(make([]byte, 0))
 	vwFlusher := bvwPool.GetAtModeElement(&sw)
 
 	// get an Encoder and encode the value
@@ -101,135 +101,22 @@ func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	return MarshalExtJSONWithRegistry(DefaultRegistry, val, canonical, escapeHTML)
-}
-
-// MarshalExtJSONAppend will append the extended JSON encoding of val to dst.
-// If dst is not large enough to hold the extended JSON encoding of val, dst
-// will be grown.
-//
-// Deprecated: Use [NewEncoder] and pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewExtJSONValueWriter] instead:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-// See [Encoder] for more examples.
-func MarshalExtJSONAppend(dst []byte, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	return MarshalExtJSONAppendWithRegistry(DefaultRegistry, dst, val, canonical, escapeHTML)
-}
-
-// MarshalExtJSONWithRegistry returns the extended JSON encoding of val using Registry r.
-//
-// Deprecated: Use [NewEncoder] and specify the Registry by calling [Encoder.SetRegistry] instead:
-//
-//	buf := new(bytes.Buffer)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.SetRegistry(reg)
-//
-// See [Encoder] for more examples.
-func MarshalExtJSONWithRegistry(r *bsoncodec.Registry, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	dst := make([]byte, 0, defaultDstCap)
-	return MarshalExtJSONAppendWithContext(bsoncodec.EncodeContext{Registry: r}, dst, val, canonical, escapeHTML)
-}
-
-// MarshalExtJSONWithContext returns the extended JSON encoding of val using Registry r.
-//
-// Deprecated: Use [NewEncoder] and use the Encoder configuration methods to set the desired marshal
-// behavior instead:
-//
-//	buf := new(bytes.Buffer)
-//	vw, err := bsonrw.NewBSONValueWriter(buf)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.IntMinSize()
-//
-// See [Encoder] for more examples.
-func MarshalExtJSONWithContext(ec bsoncodec.EncodeContext, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	dst := make([]byte, 0, defaultDstCap)
-	return MarshalExtJSONAppendWithContext(ec, dst, val, canonical, escapeHTML)
-}
-
-// MarshalExtJSONAppendWithRegistry will append the extended JSON encoding of
-// val to dst using Registry r. If dst is not large enough to hold the BSON
-// encoding of val, dst will be grown.
-//
-// Deprecated: Use [NewEncoder], pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewExtJSONValueWriter], and specify the Registry by calling [Encoder.SetRegistry]
-// instead:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-// See [Encoder] for more examples.
-func MarshalExtJSONAppendWithRegistry(r *bsoncodec.Registry, dst []byte, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	return MarshalExtJSONAppendWithContext(bsoncodec.EncodeContext{Registry: r}, dst, val, canonical, escapeHTML)
-}
-
-// MarshalExtJSONAppendWithContext will append the extended JSON encoding of
-// val to dst using Registry r. If dst is not large enough to hold the BSON
-// encoding of val, dst will be grown.
-//
-// Deprecated: Use [NewEncoder], pass the dst byte slice (wrapped by a bytes.Buffer) into
-// [bsonrw.NewExtJSONValueWriter], and use the Encoder configuration methods to set the desired marshal
-// behavior instead:
-//
-//	buf := bytes.NewBuffer(dst)
-//	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc, err := bson.NewEncoder(vw)
-//	if err != nil {
-//		panic(err)
-//	}
-//	enc.IntMinSize()
-//
-// See [Encoder] for more examples.
-func MarshalExtJSONAppendWithContext(ec bsoncodec.EncodeContext, dst []byte, val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	sw := new(bsonrw.SliceWriter)
-	*sw = dst
-	ejvw := extjPool.Get(sw, canonical, escapeHTML)
+	sw := bsonrw.SliceWriter(make([]byte, 0, defaultDstCap))
+	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
 	defer extjPool.Put(ejvw)
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 
 	enc.Reset(ejvw)
-	enc.ec = ec
+	enc.ec = bsoncodec.EncodeContext{Registry: DefaultRegistry}
 
 	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
 	}
 
-	return *sw, nil
+	return sw, nil
 }
 
 // IndentExtJSON will prefix and indent the provided extended JSON src and append it to dst.

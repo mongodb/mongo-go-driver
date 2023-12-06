@@ -80,28 +80,11 @@ func TestMarshalWithContext(t *testing.T) {
 	}
 }
 
-func TestMarshalExtJSONAppendWithContext(t *testing.T) {
-	t.Run("MarshalExtJSONAppendWithContext", func(t *testing.T) {
-		dst := make([]byte, 0, 1024)
+func TestMarshalExtJSON(t *testing.T) {
+	t.Run("MarshalExtJSON", func(t *testing.T) {
 		type teststruct struct{ Foo int }
 		val := teststruct{1}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		got, err := MarshalExtJSONAppendWithContext(ec, dst, val, true, false)
-		noerr(t, err)
-		want := []byte(`{"foo":{"$numberInt":"1"}}`)
-		if !bytes.Equal(got, want) {
-			t.Errorf("Bytes are not equal. got %v; want %v", got, want)
-			t.Errorf("Bytes:\n%s\n%s", got, want)
-		}
-	})
-}
-
-func TestMarshalExtJSONWithContext(t *testing.T) {
-	t.Run("MarshalExtJSONWithContext", func(t *testing.T) {
-		type teststruct struct{ Foo int }
-		val := teststruct{1}
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		got, err := MarshalExtJSONWithContext(ec, val, true, false)
+		got, err := MarshalExtJSON(val, true, false)
 		noerr(t, err)
 		want := []byte(`{"foo":{"$numberInt":"1"}}`)
 		if !bytes.Equal(got, want) {
