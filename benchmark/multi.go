@@ -17,7 +17,7 @@ func MultiFindMany(ctx context.Context, tm TimerManager, iters int) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	db, err := getClientDB(ctx)
+	db, err := getClientDB()
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func multiInsertCase(ctx context.Context, tm TimerManager, iters int, data strin
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	db, err := getClientDB(ctx)
+	db, err := getClientDB()
 	if err != nil {
 		return err
 	}

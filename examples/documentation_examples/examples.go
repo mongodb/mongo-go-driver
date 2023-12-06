@@ -8,6 +8,7 @@ package documentation_examples
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	logger "log"
@@ -1816,7 +1817,8 @@ func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.Session
 		log.Println("Transaction aborted. Caught exception during transaction.")
 
 		// If transient error, retry the whole transaction
-		if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+		var cmdErr mongo.CommandError
+		if errors.As(err, &cmdErr) && cmdErr.HasErrorLabel("TransientTransactionError") {
 			log.Println("TransientTransactionError, retrying transaction...")
 			continue
 		}
@@ -1883,7 +1885,8 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 			log.Println("Transaction aborted. Caught exception during transaction.")
 
 			// If transient error, retry the whole transaction
-			if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
+			var cmdErr mongo.CommandError
+			if errors.As(err, &cmdErr) && cmdErr.HasErrorLabel("TransientTransactionError") {
 				log.Println("TransientTransactionError, retrying transaction...")
 				continue
 			}
@@ -1963,7 +1966,7 @@ func WithTransactionExample(ctx context.Context) error {
 	uri := mtest.ClusterURI()
 
 	clientOpts := options.Client().ApplyURI(uri)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return err
 	}
@@ -2778,7 +2781,7 @@ func StableAPIExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
@@ -2800,7 +2803,7 @@ func StableAPIStrictExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
@@ -2822,7 +2825,7 @@ func StableAPINonStrictExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(false)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
@@ -2845,7 +2848,7 @@ func StableAPIDeprecationErrorsExample() {
 
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetDeprecationErrors(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}
@@ -2866,7 +2869,7 @@ func StableAPIStrictCountExample(t *testing.T) {
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1).SetStrict(true)
 	clientOpts := options.Client().ApplyURI(uri).SetServerAPIOptions(serverAPIOptions)
 
-	client, err := mongo.Connect(context.TODO(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	defer func() { _ = client.Disconnect(context.TODO()) }()
 

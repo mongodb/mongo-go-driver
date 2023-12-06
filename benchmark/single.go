@@ -24,12 +24,12 @@ const (
 	largeData             = "large_doc.json"
 )
 
-func getClientDB(ctx context.Context) (*mongo.Database, error) {
+func getClientDB() (*mongo.Database, error) {
 	cs, err := integtest.GetConnString()
 	if err != nil {
 		return nil, err
 	}
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(cs.String()))
+	client, err := mongo.Connect(options.Client().ApplyURI(cs.String()))
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	db, err := getClientDB(ctx)
+	db, err := getClientDB()
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func SingleFindOneByID(ctx context.Context, tm TimerManager, iters int) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	db, err := getClientDB(ctx)
+	db, err := getClientDB()
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func singleInsertCase(ctx context.Context, tm TimerManager, iters int, data stri
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	db, err := getClientDB(ctx)
+	db, err := getClientDB()
 	if err != nil {
 		return err
 	}

@@ -65,7 +65,7 @@ func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
 	}
 	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
 	// can be inconsistent when multiple mongoses are used
-	return mongo.Connect(context.Background(), opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
+	return mongo.Connect(opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.
@@ -91,13 +91,13 @@ func Setup(setupOpts ...*SetupOptions) error {
 		var err error
 		uri, err = integtest.MongoDBURI()
 		if err != nil {
-			return fmt.Errorf("error getting uri: %v", err)
+			return fmt.Errorf("error getting uri: %w", err)
 		}
 	}
 
 	testContext.connString, err = connstring.ParseAndValidate(uri)
 	if err != nil {
-		return fmt.Errorf("error parsing and validating connstring: %v", err)
+		return fmt.Errorf("error parsing and validating connstring: %w", err)
 	}
 
 	testContext.dataLake = os.Getenv("ATLAS_DATA_LAKE_INTEGRATION_TEST") == "true"
@@ -108,20 +108,20 @@ func Setup(setupOpts ...*SetupOptions) error {
 
 	cfg, err := topology.NewConfig(clientOpts, nil)
 	if err != nil {
-		return fmt.Errorf("error constructing topology config: %v", err)
+		return fmt.Errorf("error constructing topology config: %w", err)
 	}
 
 	testContext.topo, err = topology.New(cfg)
 	if err != nil {
-		return fmt.Errorf("error creating topology: %v", err)
+		return fmt.Errorf("error creating topology: %w", err)
 	}
 	if err = testContext.topo.Connect(); err != nil {
-		return fmt.Errorf("error connecting topology: %v", err)
+		return fmt.Errorf("error connecting topology: %w", err)
 	}
 
 	testContext.client, err = setupClient(options.Client().ApplyURI(uri))
 	if err != nil {
-		return fmt.Errorf("error connecting test client: %v", err)
+		return fmt.Errorf("error connecting test client: %w", err)
 	}
 
 	pingCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

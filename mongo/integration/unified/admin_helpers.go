@@ -86,7 +86,7 @@ func runCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 		SetHosts([]string{host})
 	integtest.AddTestServerAPIVersion(clientOpts)
 
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return fmt.Errorf("error creating client to host %q: %v", host, err)
 	}

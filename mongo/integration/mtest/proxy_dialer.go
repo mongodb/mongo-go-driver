@@ -51,7 +51,7 @@ func newProxyDialer() *proxyDialer {
 }
 
 func newProxyErrorWithWireMsg(wm []byte, err error) error {
-	return fmt.Errorf("proxy error for wiremessage %v: %v", wm, err)
+	return fmt.Errorf("proxy error for wiremessage %v: %w", wm, err)
 }
 
 // DialContext creates a new proxyConnection.
@@ -149,7 +149,7 @@ type proxyConn struct {
 // server.
 func (pc *proxyConn) Write(wm []byte) (n int, err error) {
 	if err := pc.dialer.storeSentMessage(wm); err != nil {
-		wrapped := fmt.Errorf("error storing sent message: %v", err)
+		wrapped := fmt.Errorf("error storing sent message: %w", err)
 		return 0, newProxyErrorWithWireMsg(wm, wrapped)
 	}
 
@@ -178,7 +178,7 @@ func (pc *proxyConn) Read(buffer []byte) (int, error) {
 	wm = bsoncore.UpdateLength(wm, idx, int32(len(wm[idx:])))
 
 	if err := pc.dialer.storeReceivedMessage(wm, pc.RemoteAddr().String()); err != nil {
-		wrapped := fmt.Errorf("error storing received message: %v", err)
+		wrapped := fmt.Errorf("error storing received message: %w", err)
 		return 0, newProxyErrorWithWireMsg(wm, wrapped)
 	}
 
