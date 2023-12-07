@@ -107,7 +107,7 @@ test-short:
 .PHONY: build-faas-awslambda
 build-faas-awslambda:
 	$(if $(MONGODB_URI),,$(error MONGODB_URI is not set))
-	$(MAKE) -C internal/faas/awslambda
+	$(MAKE) -C internal/cmd/faas/awslambda
 
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
