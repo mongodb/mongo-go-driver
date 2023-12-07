@@ -142,8 +142,7 @@ func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
 // write errors are included since the actual command did succeed, only writes
 // failed.
 func (info finishedInformation) success() bool {
-	var writeCmdErr WriteCommandError
-	if errors.As(info.cmdErr, &writeCmdErr) {
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
 		return true
 	}
 
@@ -627,8 +626,7 @@ func (op Operation) Execute(ctx context.Context) error {
 				// If the returned error is retryable and there are retries remaining (negative
 				// retries means retry indefinitely), then retry the operation. Set the server
 				// and connection to nil to request a new server and connection.
-				var rerr RetryablePoolError
-				if errors.As(err, &rerr) && rerr.Retryable() && retries != 0 {
+				if rerr, ok := err.(RetryablePoolError); ok && rerr.Retryable() && retries != 0 {
 					resetForRetry(err)
 					continue
 				}

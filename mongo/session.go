@@ -245,8 +245,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(ctx SessionCo
 			default:
 			}
 
-			var cerr CommandError
-			if errors.As(err, &cerr) {
+			if cerr, ok := err.(CommandError); ok {
 				if cerr.HasErrorLabel(driver.UnknownTransactionCommitResult) && !cerr.IsMaxTimeMSExpiredError() {
 					continue
 				}

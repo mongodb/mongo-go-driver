@@ -50,8 +50,7 @@ func TestConvenientTransactions(t *testing.T) {
 			{"killAllSessions", bson.A{}},
 		}).Err()
 		if err != nil {
-			var ce CommandError
-			if !errors.As(err, &ce) || ce.Code != errorInterrupted {
+			if ce, ok := err.(CommandError); !ok || ce.Code != errorInterrupted {
 				t.Fatalf("killAllSessions error: %v", err)
 			}
 		}

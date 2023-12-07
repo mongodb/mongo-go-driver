@@ -523,8 +523,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	}
 
 	// Ignore transient timeout errors.
-	var netErr net.Error
-	if errors.As(wrappedConnErr, &netErr) && netErr.Timeout() {
+	if netErr, ok := wrappedConnErr.(net.Error); ok && netErr.Timeout() {
 		return driver.NoChange
 	}
 	if errors.Is(wrappedConnErr, context.Canceled) || errors.Is(wrappedConnErr, context.DeadlineExceeded) {
@@ -630,8 +629,7 @@ func (s *Server) update() {
 					// We want to immediately retry on timeout error. Continue to next loop.
 					return true
 				}
-				var netErr net.Error
-				if errors.As(err, &netErr) && netErr.Timeout() {
+				if err, ok := err.(net.Error); ok && err.Timeout() {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.
 					return true

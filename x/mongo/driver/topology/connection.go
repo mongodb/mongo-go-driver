@@ -323,8 +323,7 @@ func transformNetworkError(ctx context.Context, originalError error, contextDead
 	if !contextDeadlineUsed {
 		return originalError
 	}
-	var netErr net.Error
-	if errors.As(originalError, &netErr) && netErr.Timeout() {
+	if netErr, ok := originalError.(net.Error); ok && netErr.Timeout() {
 		return context.DeadlineExceeded
 	}
 

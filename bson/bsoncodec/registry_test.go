@@ -352,8 +352,7 @@ func TestRegistryBuilder(t *testing.T) {
 					})
 					t.Run("Decoder", func(t *testing.T) {
 						wanterr := tc.wanterr
-						var ene ErrNoEncoder
-						if errors.As(tc.wanterr, &ene) {
+						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
 						}
 
@@ -777,8 +776,7 @@ func TestRegistry(t *testing.T) {
 						t.Parallel()
 
 						wanterr := tc.wanterr
-						var ene ErrNoEncoder
-						if errors.As(tc.wanterr, &ene) {
+						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
 						}
 

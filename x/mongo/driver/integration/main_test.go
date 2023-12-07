@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -70,8 +69,7 @@ func autherr(t *testing.T, err error) {
 	t.Helper()
 	switch e := err.(type) {
 	case topology.ConnectionError:
-		var authErr *auth.Error
-		if !errors.As(e.Wrapped, &authErr) {
+		if _, ok := e.Wrapped.(*auth.Error); !ok {
 			t.Fatal("Expected auth error and didn't get one")
 		}
 	case *auth.Error:
@@ -135,8 +133,7 @@ func dropCollection(t *testing.T, dbname, colname string) {
 	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
 		Database(dbname).ServerSelector(description.WriteSelector()).Deployment(integtest.Topology(t)).
 		Execute(context.Background())
-	var de driver.Error
-	if err != nil && !(errors.As(err, &de) && de.NamespaceNotFound()) {
+	if de, ok := err.(driver.Error); err != nil && !(ok && de.NamespaceNotFound()) {
 		require.NoError(t, err)
 	}
 }

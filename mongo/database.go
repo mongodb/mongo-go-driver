@@ -312,8 +312,8 @@ func (db *Database) Drop(ctx context.Context) error {
 
 	err = op.Execute(ctx)
 
-	var driverErr driver.Error
-	if err != nil && (!errors.As(err, &driverErr) || !driverErr.NamespaceNotFound()) {
+	driverErr, ok := err.(driver.Error)
+	if err != nil && (!ok || !driverErr.NamespaceNotFound()) {
 		return replaceErrors(err)
 	}
 	return nil
