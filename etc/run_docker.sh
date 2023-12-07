@@ -24,25 +24,26 @@ AUTH=${AUTH:-""}
 SSL=${SSL:=""}
 GO_BUILD_TAGS=${GO_BUILD_TAGS:-""}
 
-ENV="-e MONGODB_VERSION=$MONGODB_VERSION -e TOPOLOGY=$TOPOLOGY"
-ENV="$ENV -e MAKEFILE_TARGET=$MAKEFILE_TARGET -e AUTH=$AUTH"
-ENV="$ENV -e ORCHESTRATION_FILE=$ORCHESTRATION_FILE -e SSL=$SSL"
-ENV="$ENV -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
-ENV="$ENV -e MONGODB_URI=mongodb://host.docker.internal"
+ARGS="$PLATFORM --rm -i"
+ARGS="$ARGS -e MONGODB_VERSION=$MONGODB_VERSION -e TOPOLOGY=$TOPOLOGY"
+ARGS="$ARGS -e MAKEFILE_TARGET=$MAKEFILE_TARGET -e AUTH=$AUTH"
+ARGS="$ARGS -e ORCHESTRATION_FILE=$ORCHESTRATION_FILE -e SSL=$SSL"
+ARGS="$ARGS -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
+ARGS="$ARGS -e DRIVERS_TOOLS=/root/drivers-evergeen-tools"
+ARGS="$ARGS -e MONGODB_URI=mongodb://host.docker.internal"
 
 # Ensure host.docker.internal is available on Linux.
-EXTRA_ARGS=""
 if [ "$(uname -s)" = "Linux" ]; then
-    EXTRA_ARGS="--add-host"
+    ARGS="$ARGS --add-host host.docker.internal:127.0.0.1"
 fi
 
 # If there is a tty, add the -t arg.
-test -t 1 && EXTRA_ARGS="-t $EXTRA_ARGS"
+test -t 1 && ARGS="-t $ARGS"
 
-VOL="-v `pwd`:/src"
-VOL="$VOL -v $DRIVERS_TOOLS:/root/drivers-evergreen-tools"
+ARGS="$ARGS -v `pwd`:/src"
+ARGS="$ARGS -v $DRIVERS_TOOLS:/root/drivers-evergreen-tools"
 
-docker run $PLATFORM --rm $VOL $ENV $EXTRA_ARGS -i go-test
+docker run $ARGS go-test
 if [ -f "test.suite" ]; then
     tail test.suite
 fi
