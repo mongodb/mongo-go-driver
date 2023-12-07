@@ -125,7 +125,7 @@ evg-test-atlas-data-lake:
 
 .PHONY: evg-test-enterprise-auth
 evg-test-enterprise-auth:
-	go run -tags gssapi ./internal/cmd/entauth/main.go
+	go run -tags gssapi ./internal/cmd/testentauth/main.go
 
 .PHONY: evg-test-kmip
 evg-test-kmip:
