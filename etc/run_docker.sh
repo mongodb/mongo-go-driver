@@ -28,13 +28,21 @@ ENV="-e MONGODB_VERSION=$MONGODB_VERSION -e TOPOLOGY=$TOPOLOGY"
 ENV="$ENV -e MAKEFILE_TARGET=$MAKEFILE_TARGET -e AUTH=$AUTH"
 ENV="$ENV -e ORCHESTRATION_FILE=$ORCHESTRATION_FILE -e SSL=$SSL"
 ENV="$ENV -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
+ENV="$ENV -e MONGODB_URI=mongodb://host.docker.internal"
+
+# Ensure host.docker.internal is available on Linux.
+EXTRA_ARGS=""
+if [ "$(uname -s)" = "Linux" ]; then
+    EXTRA_ARGS="--add-host"
+fi
+
+# If there is a tty, add the -t arg.
+test -t 1 && EXTRA_ARGS="-t $EXTRA_ARGS"
 
 VOL="-v `pwd`:/src"
 VOL="$VOL -v $DRIVERS_TOOLS:/root/drivers-evergreen-tools"
-USE_TTY=""
-test -t 1 && USE_TTY="-t"
 
-docker run $PLATFORM --rm $VOL $ENV -i $USE_TTY go-test
+docker run $PLATFORM --rm $VOL $ENV $EXTRA_ARGS -i go-test
 if [ -f "test.suite" ]; then
     tail test.suite
 fi
