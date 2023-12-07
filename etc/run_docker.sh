@@ -34,7 +34,7 @@ ARGS="$ARGS -e MONGODB_URI=mongodb://host.docker.internal"
 
 # Ensure host.docker.internal is available on Linux.
 if [ "$(uname -s)" = "Linux" ]; then
-    ARGS="$ARGS --add-host host.docker.internal:127.0.0.1"
+    ARGS="$ARGS --add-host 127.0.0.1:host.docker.internal"
 fi
 
 # If there is a tty, add the -t arg.
