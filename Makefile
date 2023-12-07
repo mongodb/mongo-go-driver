@@ -112,7 +112,7 @@ build-faas-awslambda:
 ### Evergreen specific targets. ###
 .PHONY: build-aws-ecs-test
 build-aws-ecs-test:
-	go build $(BUILD_TAGS) ./internal/test/cmd/testaws/main.go
+	go build $(BUILD_TAGS) ./internal/cmd/testaws/main.go
 
 .PHONY: evg-test
 evg-test:
@@ -125,7 +125,7 @@ evg-test-atlas-data-lake:
 
 .PHONY: evg-test-enterprise-auth
 evg-test-enterprise-auth:
-	go run -tags gssapi ./internal/test/entauth/main.go
+	go run -tags gssapi ./internal/cmd/entauth/main.go
 
 .PHONY: evg-test-kmip
 evg-test-kmip:
@@ -192,7 +192,7 @@ evg-test-versioned-api:
 
 .PHONY: build-kms-test
 build-kms-test:
-	go build $(BUILD_TAGS) ./internal/test/cmd/testkms
+	go build $(BUILD_TAGS) ./internal/cmd/testkms
 
 ### Benchmark specific targets and support. ###
 .PHONY: benchmark
@@ -201,7 +201,7 @@ benchmark:perf
 
 .PHONY: driver-benchmark
 driver-benchmark:perf
-	@go run internal/test/benchmark/main.go | tee perf.suite
+	@go run internal/cmd/benchmark/main.go | tee perf.suite
 
 perf:driver-test-data.tar.gz
 	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/testdata/perf/
