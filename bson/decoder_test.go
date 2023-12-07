@@ -230,7 +230,7 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("SetRegistry", func(t *testing.T) {
 		t.Parallel()
 
-		r1, r2 := DefaultRegistry, NewRegistryBuilder().Build()
+		r1, r2 := DefaultRegistry, NewRegistry()
 		dc1 := bsoncodec.DecodeContext{Registry: r1}
 		dc2 := bsoncodec.DecodeContext{Registry: r2}
 		dec, err := NewDecoder(bsonrw.NewBSONDocumentReader([]byte{}))

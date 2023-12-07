@@ -166,9 +166,8 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 
 		return vw.WriteInt32(int32(val.Int()) * -1)
 	}
-	customReg := NewRegistryBuilder().
-		RegisterTypeEncoder(tInt32, encodeInt32).
-		Build()
+	customReg := NewRegistry()
+	customReg.RegisterTypeEncoder(tInt32, encodeInt32)
 
 	// Helper function to run the test and make assertions. The provided original value should result in the document
 	// {"x": {$numberInt: 1}} when marshalled with the default registry.

@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -31,9 +32,11 @@ const (
 )
 
 var (
-	interfaceAsMapRegistry = bson.NewRegistryBuilder().
-		RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.M{})).
-		Build()
+	interfaceAsMapRegistry = func() *bsoncodec.Registry {
+		reg := bson.NewRegistry()
+		reg.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.M{}))
+		return reg
+	}()
 )
 
 func TestDatabase(t *testing.T) {

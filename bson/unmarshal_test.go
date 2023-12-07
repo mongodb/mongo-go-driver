@@ -229,9 +229,8 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		val.SetInt(int64(-1 * i32))
 		return nil
 	}
-	customReg := NewRegistryBuilder().
-		RegisterTypeDecoder(tInt32, decodeInt32).
-		Build()
+	customReg := NewRegistry()
+	customReg.RegisterTypeDecoder(tInt32, decodeInt32)
 
 	docBytes := bsoncore.BuildDocumentFromElements(
 		nil,

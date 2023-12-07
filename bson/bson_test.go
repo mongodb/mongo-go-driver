@@ -183,7 +183,8 @@ func TestMapCodec(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				mapCodec := bsoncodec.NewMapCodec(tc.opts)
-				mapRegistry := NewRegistryBuilder().RegisterDefaultEncoder(reflect.Map, mapCodec).Build()
+				mapRegistry := NewRegistry()
+				mapRegistry.RegisterKindEncoder(reflect.Map, mapCodec)
 				buf.Reset()
 				vw, err := bsonrw.NewBSONValueWriter(buf)
 				assert.Nil(t, err)

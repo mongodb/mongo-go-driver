@@ -77,7 +77,8 @@ func TestUnmarshalValue(t *testing.T) {
 				bytes:    bsoncore.AppendString(nil, "hello world"),
 			},
 		}
-		rb := NewRegistryBuilder().RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec()).Build()
+		reg := NewRegistry()
+		reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec())
 		for _, tc := range testCases {
 			tc := tc
 
@@ -85,7 +86,7 @@ func TestUnmarshalValue(t *testing.T) {
 				t.Parallel()
 
 				gotValue := reflect.New(reflect.TypeOf(tc.val))
-				err := UnmarshalValueWithRegistry(rb, tc.bsontype, tc.bytes, gotValue.Interface())
+				err := UnmarshalValueWithRegistry(reg, tc.bsontype, tc.bytes, gotValue.Interface())
 				assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
 				assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
 			})
@@ -111,12 +112,13 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 			bytes:    bsoncore.AppendString(nil, strings.Repeat("t", 4096)),
 		},
 	}
-	rb := NewRegistryBuilder().RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec()).Build()
+	reg := NewRegistry()
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec())
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
-					err := UnmarshalValueWithRegistry(rb, bm.bsontype, bm.bytes, &[]byte{})
+					err := UnmarshalValueWithRegistry(reg, bm.bsontype, bm.bytes, &[]byte{})
 					if err != nil {
 						b.Fatal(err)
 					}
