@@ -30,11 +30,15 @@ ARGS="$ARGS -e MAKEFILE_TARGET=$MAKEFILE_TARGET -e AUTH=$AUTH"
 ARGS="$ARGS -e ORCHESTRATION_FILE=$ORCHESTRATION_FILE -e SSL=$SSL"
 ARGS="$ARGS -e GO_BUILD_TAGS=$GO_BUILD_TAGS"
 ARGS="$ARGS -e DRIVERS_TOOLS=/root/drivers-evergeen-tools"
-ARGS="$ARGS -e MONGODB_URI=mongodb://host.docker.internal"
 
-# Ensure host.docker.internal is available on Linux.
+# Ensure host.docker.internal is available on MacOS.
+if [ "$(uname -s)" = "Darwin" ]; then
+    ARGS="$ARGS -e MONGODB_URI=mongodb://host.docker.internal"
+fi
+
+# Ensure host network is available on Linux.
 if [ "$(uname -s)" = "Linux" ]; then
-    ARGS="$ARGS --add-host 127.0.0.1:host.docker.internal"
+    ARGS="$ARGS --network=host"
 fi
 
 # If there is a tty, add the -t arg.
