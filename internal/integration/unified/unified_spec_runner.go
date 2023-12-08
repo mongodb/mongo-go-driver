@@ -30,8 +30,6 @@ var (
 		// TODO(GODRIVER-2843): Fix and unskip these test cases.
 		"Find operation with snapshot":                                      "Test fails frequently. See GODRIVER-2843",
 		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",
-		// TODO(GODRIVER-2943): Fix and unskip this test case.
-		"Topology lifecycle": "Test times out.  See GODRIVER-2943",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
@@ -232,13 +230,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
-	// Count the number of expected log messages over all clients.
-	var expectedLogCount int
-	for _, clientLog := range tc.ExpectLogMessages {
-		expectedLogCount += len(clientLog.LogMessages)
-	}
-
-	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount, tc.setsFailPoint())
+	testCtx := newTestContext(context.Background(), tc.entities, tc.ExpectLogMessages, tc.setsFailPoint())
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already
