@@ -8,6 +8,7 @@ package operation
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"testing"
 
@@ -141,6 +142,10 @@ func TestAppendClientDriver(t *testing.T) {
 
 func TestAppendClientEnv(t *testing.T) {
 	clearTestEnv(t)
+
+	if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+		t.Skip("These tests gives different results when run in Docker due to extra environment data.")
+	}
 
 	tests := []struct {
 		name          string
