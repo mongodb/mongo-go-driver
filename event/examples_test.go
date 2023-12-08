@@ -47,7 +47,7 @@ func ExampleCommandMonitor() {
 		},
 	}
 	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017").SetMonitor(cmdMonitor)
-	client, err := mongo.Connect(context.Background(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -115,7 +115,7 @@ func TestArray(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
 			rdr := Array{0xe, 0x0, 0x0, 0x0, 0xa, '0', 0x0, 0xa, '1', 0x0, 0xa, 0x7a, 0x0, 0x0}
 			_, err := rdr.IndexErr(3)
-			if err != ErrOutOfBounds {
+			if !errors.Is(err, ErrOutOfBounds) {
 				t.Errorf("Out of bounds should be returned when accessing element beyond end of Array. got %v; want %v", err, ErrOutOfBounds)
 			}
 		})

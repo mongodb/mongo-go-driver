@@ -39,7 +39,7 @@ func Example_clientSideEncryption() {
 	clientOpts := options.Client().
 		ApplyURI(uri).
 		SetAutoEncryptionOptions(autoEncryptionOpts)
-	client, err := Connect(context.TODO(), clientOpts)
+	client, err := Connect(clientOpts)
 	if err != nil {
 		log.Fatalf("Connect error: %v", err)
 	}
@@ -78,9 +78,7 @@ func Example_clientSideEncryptionCreateKey() {
 	clientEncryptionOpts := options.ClientEncryption().
 		SetKeyVaultNamespace(keyVaultNamespace).
 		SetKmsProviders(kmsProviders)
-	keyVaultClient, err := Connect(
-		context.TODO(),
-		options.Client().ApplyURI(uri))
+	keyVaultClient, err := Connect(options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Fatalf("Connect error for keyVaultClient: %v", err)
 	}
@@ -142,7 +140,7 @@ func Example_clientSideEncryptionCreateKey() {
 	clientOptions := options.Client().
 		ApplyURI(uri).
 		SetAutoEncryptionOptions(autoEncryptionOpts)
-	client, err := Connect(context.TODO(), clientOptions)
+	client, err := Connect(clientOptions)
 	if err != nil {
 		log.Fatalf("Connect error for encrypted client: %v", err)
 	}
@@ -169,9 +167,8 @@ func Example_explictEncryption() {
 	keyVaultNamespace := keyVaultDBName + "." + keyVaultCollName
 
 	// The Client used to read/write application data.
-	client, err := Connect(
-		context.TODO(),
-		options.Client().ApplyURI("mongodb://localhost:27017"))
+	opts := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, err := Connect(opts)
 	if err != nil {
 		panic(err)
 	}
@@ -294,7 +291,7 @@ func Example_explictEncryptionWithAutomaticDecryption() {
 	clientOpts := options.Client().
 		ApplyURI("mongodb://localhost:27017").
 		SetAutoEncryptionOptions(autoEncryptionOpts)
-	client, err := Connect(context.TODO(), clientOpts)
+	client, err := Connect(clientOpts)
 	if err != nil {
 		panic(err)
 	}

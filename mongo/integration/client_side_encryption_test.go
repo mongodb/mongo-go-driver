@@ -43,7 +43,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 		"local": {"key": localMasterKey},
 	}
 
-	kvClient, err := mongo.Connect(context.Background(), kvClientOpts)
+	kvClient, err := mongo.Connect(kvClientOpts)
 	defer kvClient.Disconnect(context.Background())
 	assert.Nil(mt, err, "Connect error: %v", err)
 
@@ -135,7 +135,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		integtest.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(context.Background(), clientOpts)
+		client, err := mongo.Connect(clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
 		defer client.Disconnect(context.Background())
 
@@ -197,7 +197,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		integtest.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(context.Background(), clientOpts)
+		client, err := mongo.Connect(clientOpts)
 		assert.Nil(mt, err, "Connect error: %v", err)
 		defer client.Disconnect(context.Background())
 
@@ -361,7 +361,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 		clientOpts.Crypt = cc
 		integtest.AddTestServerAPIVersion(clientOpts)
 
-		client, err := mongo.Connect(context.Background(), clientOpts)
+		client, err := mongo.Connect(clientOpts)
 		defer client.Disconnect(context.Background())
 		assert.Nil(mt, err, "Connect error: %v", err)
 
@@ -506,7 +506,7 @@ func TestFLE2DocsExample(t *testing.T) {
 		{
 			cOpts := options.Client().ApplyURI(mtest.ClusterURI())
 			integtest.AddTestServerAPIVersion(cOpts)
-			keyVaultClient, err := mongo.Connect(context.Background(), cOpts)
+			keyVaultClient, err := mongo.Connect(cOpts)
 			assert.Nil(mt, err, "error in Connect: %v", err)
 			defer keyVaultClient.Disconnect(context.Background())
 			ceOpts := options.ClientEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys")
@@ -549,7 +549,7 @@ func TestFLE2DocsExample(t *testing.T) {
 			integtest.AddTestServerAPIVersion(cOpts)
 			aeOpts := options.AutoEncryption().SetKmsProviders(kmsProvidersMap).SetKeyVaultNamespace("keyvault.datakeys").SetEncryptedFieldsMap(encryptedFieldsMap).SetExtraOptions(getCryptSharedLibExtraOptions())
 			cOpts.SetAutoEncryptionOptions(aeOpts)
-			encryptedClient, err := mongo.Connect(context.Background(), cOpts)
+			encryptedClient, err := mongo.Connect(cOpts)
 			defer encryptedClient.Disconnect(context.Background())
 			assert.Nil(mt, err, "error in Connect: %v", err)
 			// Create the FLE 2 collection docsExample.encrypted.
@@ -595,5 +595,79 @@ func TestFLE2DocsExample(t *testing.T) {
 			val = resBSON.Lookup("encryptedUnindexed")
 			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
 		}
+	})
+}
+
+// `TestFLE2CreateCollectionWithAutoEncryption` is a regression test for a bug fixed in GODRIVER-2413.
+// Prior to GODRIVER-2413, the `IndexView.CreateMany` operation was not processed for automatic encryption. This resulted in no "listCollections" command sent.
+func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
+	mtOpts := mtest.NewOptions().
+		MinServerVersion("7.0").
+		Enterprise(true).
+		CreateClient(false).
+		Topologies(mtest.ReplicaSet,
+			mtest.Sharded,
+			mtest.LoadBalanced,
+			mtest.ShardedReplicaSet)
+	mt := mtest.New(t, mtOpts)
+
+	mt.Run("TestFLE2CreateCollectionWithAutoEncryption", func(mt *mtest.T) {
+		// Drop data from prior test runs.
+		{
+			err := mt.Client.Database("keyvault").Collection("datakeys").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+			err = mt.Client.Database("db").Drop(context.Background())
+			assert.Nil(mt, err, "error in Drop: %v", err)
+		}
+
+		kmsProvidersMap := map[string]map[string]interface{}{
+			"local": {"key": localMasterKey},
+		}
+
+		// Use an empty encryptedFields.
+		encryptedFields := bson.M{
+			"fields": []bson.M{},
+		}
+
+		// Store names of started commands.
+		startedCommands := make([]string, 0)
+		cmdMonitor := &event.CommandMonitor{
+			Started: func(_ context.Context, evt *event.CommandStartedEvent) {
+				startedCommands = append(startedCommands, evt.CommandName)
+			},
+		}
+
+		// Create a Client with Auto Encryption enabled.
+		var encryptedClient *mongo.Client
+		{
+			aeOpts := options.AutoEncryption().
+				SetKmsProviders(kmsProvidersMap).
+				SetKeyVaultNamespace("keyvault.datakeys").
+				SetExtraOptions(getCryptSharedLibExtraOptions())
+
+			cOpts := options.Client().
+				ApplyURI(mtest.ClusterURI()).
+				SetMonitor(cmdMonitor).
+				SetAutoEncryptionOptions(aeOpts)
+
+			integtest.AddTestServerAPIVersion(cOpts)
+
+			var err error
+			encryptedClient, err = mongo.Connect(cOpts)
+			defer encryptedClient.Disconnect(context.Background())
+			assert.Nil(mt, err, "error in Connect: %v", err)
+		}
+
+		// Create a collection with the encrypted fields.
+		encryptedClient.Database("db").CreateCollection(context.Background(), "coll", options.CreateCollection().SetEncryptedFields(encryptedFields))
+
+		// Check resulting events sent.
+		assert.Equal(mt, startedCommands, []string{
+			"create",          // Create ESC collection.
+			"create",          // Create ECOC collection.
+			"create",          // Create 'coll' collection.
+			"listCollections", // Run listCollections when processing `createIndexes` command for automatic encryption.
+			"createIndexes",
+		})
 	})
 }

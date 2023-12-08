@@ -341,7 +341,7 @@ func TestClient(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Setup a client and skip the test based on server version.
 				var started []*event.CommandStartedEvent
-				var failureReasons []string
+				var failureReasons []error
 				cmdMonitor := &event.CommandMonitor{
 					Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 						if evt.CommandName == "endSessions" {
@@ -357,7 +357,7 @@ func TestClient(t *testing.T) {
 				clientOpts := options.Client().ApplyURI(cs.Original).SetReadPreference(readpref.Primary()).
 					SetWriteConcern(writeconcern.Majority()).SetMonitor(cmdMonitor)
 				integtest.AddTestServerAPIVersion(clientOpts)
-				client, err := Connect(bgCtx, clientOpts)
+				client, err := Connect(clientOpts)
 				assert.Nil(t, err, "Connect error: %v", err)
 				defer func() {
 					_ = client.Disconnect(bgCtx)

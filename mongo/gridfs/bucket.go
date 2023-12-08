@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -51,9 +50,6 @@ type Bucket struct {
 	firstWriteDone bool
 	readBuf        []byte
 	writeBuf       []byte
-
-	readDeadline  time.Time
-	writeDeadline time.Time
 }
 
 // Upload contains options to upload a file to a bucket.
@@ -120,30 +116,30 @@ func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, err
 	return b, nil
 }
 
-// SetWriteDeadline sets the write deadline for this bucket.
-func (b *Bucket) SetWriteDeadline(t time.Time) error {
-	b.writeDeadline = t
-	return nil
+// OpenUploadStream creates a file ID new upload stream for a file given the
+// filename.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
+func (b *Bucket) OpenUploadStream(
+	ctx context.Context,
+	filename string,
+	opts ...*options.UploadOptions,
+) (*UploadStream, error) {
+	return b.OpenUploadStreamWithID(ctx, primitive.NewObjectID(), filename, opts...)
 }
 
-// SetReadDeadline sets the read deadline for this bucket
-func (b *Bucket) SetReadDeadline(t time.Time) error {
-	b.readDeadline = t
-	return nil
-}
-
-// OpenUploadStream creates a file ID new upload stream for a file given the filename.
-func (b *Bucket) OpenUploadStream(filename string, opts ...*options.UploadOptions) (*UploadStream, error) {
-	return b.OpenUploadStreamWithID(primitive.NewObjectID(), filename, opts...)
-}
-
-// OpenUploadStreamWithID creates a new upload stream for a file given the file ID and filename.
-func (b *Bucket) OpenUploadStreamWithID(fileID interface{}, filename string, opts ...*options.UploadOptions) (*UploadStream, error) {
-	ctx, cancel := deadlineContext(b.writeDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
+// OpenUploadStreamWithID creates a new upload stream for a file given the file
+// ID and filename.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
+func (b *Bucket) OpenUploadStreamWithID(
+	ctx context.Context,
+	fileID interface{},
+	filename string,
+	opts ...*options.UploadOptions,
+) (*UploadStream, error) {
 	if err := b.checkFirstWrite(ctx); err != nil {
 		return nil, err
 	}
@@ -153,32 +149,45 @@ func (b *Bucket) OpenUploadStreamWithID(fileID interface{}, filename string, opt
 		return nil, err
 	}
 
-	return newUploadStream(upload, fileID, filename, b.chunksColl, b.filesColl), nil
+	return newUploadStream(ctx, upload, fileID, filename, b.chunksColl, b.filesColl), nil
 }
 
 // UploadFromStream creates a fileID and uploads a file given a source stream.
 //
-// If this upload requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
-func (b *Bucket) UploadFromStream(filename string, source io.Reader, opts ...*options.UploadOptions) (primitive.ObjectID, error) {
+// If this upload requires a custom write deadline to be set on the bucket, it
+// cannot be done concurrently with other write operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
+func (b *Bucket) UploadFromStream(
+	ctx context.Context,
+	filename string,
+	source io.Reader,
+	opts ...*options.UploadOptions,
+) (primitive.ObjectID, error) {
 	fileID := primitive.NewObjectID()
-	err := b.UploadFromStreamWithID(fileID, filename, source, opts...)
+	err := b.UploadFromStreamWithID(ctx, fileID, filename, source, opts...)
 	return fileID, err
 }
 
 // UploadFromStreamWithID uploads a file given a source stream.
 //
-// If this upload requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
-func (b *Bucket) UploadFromStreamWithID(fileID interface{}, filename string, source io.Reader, opts ...*options.UploadOptions) error {
-	us, err := b.OpenUploadStreamWithID(fileID, filename, opts...)
+// If this upload requires a custom write deadline to be set on the bucket, it
+// cannot be done concurrently with other write operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer.
+func (b *Bucket) UploadFromStreamWithID(
+	ctx context.Context,
+	fileID interface{},
+	filename string,
+	source io.Reader,
+	opts ...*options.UploadOptions,
+) error {
+	us, err := b.OpenUploadStreamWithID(ctx, fileID, filename, opts...)
 	if err != nil {
-		return err
-	}
-
-	err = us.SetWriteDeadline(b.writeDeadline)
-	if err != nil {
-		_ = us.Close()
 		return err
 	}
 
@@ -204,20 +213,27 @@ func (b *Bucket) UploadFromStreamWithID(fileID interface{}, filename string, sou
 	return us.Close()
 }
 
-// OpenDownloadStream creates a stream from which the contents of the file can be read.
-func (b *Bucket) OpenDownloadStream(fileID interface{}) (*DownloadStream, error) {
-	return b.openDownloadStream(bson.D{
-		{"_id", fileID},
-	})
+// OpenDownloadStream creates a stream from which the contents of the file can
+// be read.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
+func (b *Bucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*DownloadStream, error) {
+	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
 
-// DownloadToStream downloads the file with the specified fileID and writes it to the provided io.Writer.
-// Returns the number of bytes written to the stream and an error, or nil if there was no error.
+// DownloadToStream downloads the file with the specified fileID and writes it
+// to the provided io.Writer. Returns the number of bytes written to the stream
+// and an error, or nil if there was no error.
 //
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
-func (b *Bucket) DownloadToStream(fileID interface{}, stream io.Writer) (int64, error) {
-	ds, err := b.OpenDownloadStream(fileID)
+// If this download requires a custom read deadline to be set on the bucket, it
+// cannot be done concurrently with other read operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
+func (b *Bucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
+	ds, err := b.OpenDownloadStream(ctx, fileID)
 	if err != nil {
 		return 0, err
 	}
@@ -225,8 +241,16 @@ func (b *Bucket) DownloadToStream(fileID interface{}, stream io.Writer) (int64, 
 	return b.downloadToStream(ds, stream)
 }
 
-// OpenDownloadStreamByName opens a download stream for the file with the given filename.
-func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.NameOptions) (*DownloadStream, error) {
+// OpenDownloadStreamByName opens a download stream for the file with the given
+// filename.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
+func (b *Bucket) OpenDownloadStreamByName(
+	ctx context.Context,
+	filename string,
+	opts ...*options.NameOptions,
+) (*DownloadStream, error) {
 	var numSkip int32 = -1
 	var sortOrder int32 = 1
 
@@ -250,17 +274,27 @@ func (b *Bucket) OpenDownloadStreamByName(filename string, opts ...*options.Name
 		numSkip = (-1 * numSkip) - 1
 	}
 
-	findOpts := options.Find().SetSkip(int64(numSkip)).SetSort(bson.D{{"uploadDate", sortOrder}})
+	findOpts := options.FindOne().SetSkip(int64(numSkip)).SetSort(bson.D{{"uploadDate", sortOrder}})
 
-	return b.openDownloadStream(bson.D{{"filename", filename}}, findOpts)
+	return b.openDownloadStream(ctx, bson.D{{"filename", filename}}, findOpts)
 }
 
-// DownloadToStreamByName downloads the file with the given name to the given io.Writer.
+// DownloadToStreamByName downloads the file with the given name to the given
+// io.Writer.
 //
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
-func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts ...*options.NameOptions) (int64, error) {
-	ds, err := b.OpenDownloadStreamByName(filename, opts...)
+// If this download requires a custom read deadline to be set on the bucket, it
+// cannot be done concurrently with other read operations operations on this
+// bucket that also require a custom deadline.
+//
+// The context provided to this method controls the entire lifetime of a
+// download stream io.Reader.
+func (b *Bucket) DownloadToStreamByName(
+	ctx context.Context,
+	filename string,
+	stream io.Writer,
+	opts ...*options.NameOptions,
+) (int64, error) {
+	ds, err := b.OpenDownloadStreamByName(ctx, filename, opts...)
 	if err != nil {
 		return 0, err
 	}
@@ -268,25 +302,11 @@ func (b *Bucket) DownloadToStreamByName(filename string, stream io.Writer, opts 
 	return b.downloadToStream(ds, stream)
 }
 
-// Delete deletes all chunks and metadata associated with the file with the given file ID.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline.
-//
-// Use SetWriteDeadline to set a deadline for the delete operation.
-func (b *Bucket) Delete(fileID interface{}) error {
-	ctx, cancel := deadlineContext(b.writeDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-	return b.DeleteContext(ctx, fileID)
-}
-
-// DeleteContext deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
+// Delete deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
 // delete operations with the provided context.
 //
 // Use the context parameter to time-out or cancel the delete operation. The deadline set by SetWriteDeadline is ignored.
-func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
+func (b *Bucket) Delete(ctx context.Context, fileID interface{}) error {
 	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
 	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
 	// be shared by both delete operations.
@@ -311,27 +331,16 @@ func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
 	return b.deleteChunks(ctx, fileID)
 }
 
-// Find returns the files collection documents that match the given filter.
-//
-// If this download requires a custom read deadline to be set on the bucket, it cannot be done concurrently with other
-// read operations operations on this bucket that also require a custom deadline.
-//
-// Use SetReadDeadline to set a deadline for the find operation.
-func (b *Bucket) Find(filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
-	ctx, cancel := deadlineContext(b.readDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
-	return b.FindContext(ctx, filter, opts...)
-}
-
-// FindContext returns the files collection documents that match the given filter and runs the underlying
+// Find returns the files collection documents that match the given filter and runs the underlying
 // find query with the provided context.
 //
 // Use the context parameter to time-out or cancel the find operation. The deadline set by SetReadDeadline
 // is ignored.
-func (b *Bucket) FindContext(ctx context.Context, filter interface{}, opts ...*options.GridFSFindOptions) (*mongo.Cursor, error) {
+func (b *Bucket) Find(
+	ctx context.Context,
+	filter interface{},
+	opts ...*options.GridFSFindOptions,
+) (*mongo.Cursor, error) {
 	gfsOpts := options.GridFSFind()
 	for _, opt := range opts {
 		if opt == nil {
@@ -391,20 +400,7 @@ func (b *Bucket) FindContext(ctx context.Context, filter interface{}, opts ...*o
 // write operations operations on this bucket that also require a custom deadline
 //
 // Use SetWriteDeadline to set a deadline for the rename operation.
-func (b *Bucket) Rename(fileID interface{}, newFilename string) error {
-	ctx, cancel := deadlineContext(b.writeDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
-	return b.RenameContext(ctx, fileID, newFilename)
-}
-
-// RenameContext renames the stored file with the specified file ID and runs the underlying update with the provided
-// context.
-//
-// Use the context parameter to time-out or cancel the rename operation. The deadline set by SetWriteDeadline is ignored.
-func (b *Bucket) RenameContext(ctx context.Context, fileID interface{}, newFilename string) error {
+func (b *Bucket) Rename(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
 		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
@@ -420,26 +416,11 @@ func (b *Bucket) RenameContext(ctx context.Context, fileID interface{}, newFilen
 	return nil
 }
 
-// Drop drops the files and chunks collections associated with this bucket.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline
-//
-// Use SetWriteDeadline to set a deadline for the drop operation.
-func (b *Bucket) Drop() error {
-	ctx, cancel := deadlineContext(b.writeDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
-	return b.DropContext(ctx)
-}
-
-// DropContext drops the files and chunks collections associated with this bucket and runs the drop operations with
+// Drop drops the files and chunks collections associated with this bucket and runs the drop operations with
 // the provided context.
 //
 // Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
-func (b *Bucket) DropContext(ctx context.Context) error {
+func (b *Bucket) Drop(ctx context.Context) error {
 	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
 	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
 	// be shared by both drop operations.
@@ -469,31 +450,33 @@ func (b *Bucket) GetChunksCollection() *mongo.Collection {
 	return b.chunksColl
 }
 
-func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOptions) (*DownloadStream, error) {
-	ctx, cancel := deadlineContext(b.readDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
-	cursor, err := b.findFile(ctx, filter, opts...)
-	if err != nil {
-		return nil, err
-	}
+func (b *Bucket) openDownloadStream(
+	ctx context.Context,
+	filter interface{},
+	opts ...*options.FindOneOptions,
+) (*DownloadStream, error) {
+	result := b.filesColl.FindOne(ctx, filter, opts...)
 
 	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
-	var foundFile File
-	if err = cursor.Decode(&foundFile); err != nil {
-		return nil, fmt.Errorf("error decoding files collection document: %v", err)
+	var resp findFileResponse
+	if err := result.Decode(&resp); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrFileNotFound
+		}
+
+		return nil, fmt.Errorf("error decoding files collection document: %w", err)
 	}
 
+	foundFile := newFileFromResponse(resp)
+
 	if foundFile.Length == 0 {
-		return newDownloadStream(nil, foundFile.ChunkSize, &foundFile), nil
+		return newDownloadStream(ctx, nil, foundFile.ChunkSize, foundFile), nil
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
-	if _, err := cursor.Current.LookupErr("chunkSize"); err != nil {
+	if foundFile.ChunkSize == 0 {
 		return nil, ErrMissingChunkSize
 	}
 
@@ -503,24 +486,10 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	}
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
-	return newDownloadStream(chunksCursor, foundFile.ChunkSize, &foundFile), nil
-}
-
-func deadlineContext(deadline time.Time) (context.Context, context.CancelFunc) {
-	if deadline.Equal(time.Time{}) {
-		return context.Background(), nil
-	}
-
-	return context.WithDeadline(context.Background(), deadline)
+	return newDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
 }
 
 func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, error) {
-	err := ds.SetReadDeadline(b.readDeadline)
-	if err != nil {
-		_ = ds.Close()
-		return 0, err
-	}
-
 	copied, err := io.Copy(stream, ds)
 	if err != nil {
 		_ = ds.Close()
@@ -533,20 +502,6 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
 	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
 	return err
-}
-
-func (b *Bucket) findFile(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (*mongo.Cursor, error) {
-	cursor, err := b.filesColl.Find(ctx, filter, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if !cursor.Next(ctx) {
-		_ = cursor.Close(ctx)
-		return nil, ErrFileNotFound
-	}
-
-	return cursor, nil
 }
 
 func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cursor, error) {

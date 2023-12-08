@@ -370,8 +370,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
-	wce, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var wce driver.WriteCommandError
+	if !errors.As(err, &wce) {
 		return result, err
 	}
 
@@ -465,8 +465,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	}
 
 	imResult := &InsertManyResult{InsertedIDs: result}
-	writeException, ok := err.(WriteException)
-	if !ok {
+	var writeException WriteException
+	if !errors.As(err, &writeException) {
 		return imResult, err
 	}
 
@@ -2174,12 +2174,14 @@ func (coll *Collection) SearchIndexes() SearchIndexView {
 
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
-func (coll *Collection) Drop(ctx context.Context) error {
-	// Follow Client-Side Encryption specification to check for encryptedFields.
-	// Drop does not have an encryptedFields option. See: GODRIVER-2413.
-	// Check for encryptedFields from the client EncryptedFieldsMap.
-	// Check for encryptedFields from the server if EncryptedFieldsMap is set.
-	ef := coll.db.getEncryptedFieldsFromMap(coll.name)
+func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectionOptions) error {
+	dco := options.MergeDropCollectionOptions(opts...)
+	ef := dco.EncryptedFields
+
+	if ef == nil {
+		ef = coll.db.getEncryptedFieldsFromMap(coll.name)
+	}
+
 	if ef == nil && coll.db.client.encryptedFieldsMap != nil {
 		var err error
 		if ef, err = coll.db.getEncryptedFieldsFromServer(ctx, coll.name); err != nil {
@@ -2198,7 +2200,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return fmt.Errorf("error transforming document: %v", err)
+		return fmt.Errorf("error transforming document: %w", err)
 	}
 
 	// Drop the two encryption-related, associated collections: `escCollection` and `ecocCollection`.

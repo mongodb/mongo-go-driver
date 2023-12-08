@@ -96,7 +96,7 @@ type startedInformation struct {
 	cmdName                  string
 	documentSequenceIncluded bool
 	connID                   string
-	driverConnectionID       uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
 	serviceID                *primitive.ObjectID
@@ -110,7 +110,7 @@ type finishedInformation struct {
 	response           bsoncore.Document
 	cmdErr             error
 	connID             string
-	driverConnectionID uint64 // TODO(GODRIVER-2824): change type to int64.
+	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
 	serviceID          *primitive.ObjectID
@@ -125,7 +125,8 @@ type finishedInformation struct {
 // write errors are included since the actual command did succeed, only writes
 // failed.
 func (info finishedInformation) success() bool {
-	if _, ok := info.cmdErr.(WriteCommandError); ok {
+	var writeCmdErr WriteCommandError
+	if errors.As(info.cmdErr, &writeCmdErr) {
 		return true
 	}
 
@@ -1475,7 +1476,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	}
 
 	t, data, err := wc.MarshalBSONValue()
-	if err == writeconcern.ErrEmptyWriteConcern {
+	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
 		return dst, nil
 	}
 	if err != nil {
@@ -1933,13 +1934,13 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 	if op.canPublishStartedEvent() {
 		started := &event.CommandStartedEvent{
-			Command:              redactStartedInformationCmd(op, info),
-			DatabaseName:         op.Database,
-			CommandName:          info.cmdName,
-			RequestID:            int64(info.requestID),
-			ConnectionID:         info.connID,
-			ServerConnectionID64: info.serverConnID,
-			ServiceID:            info.serviceID,
+			Command:            redactStartedInformationCmd(op, info),
+			DatabaseName:       op.Database,
+			CommandName:        info.cmdName,
+			RequestID:          int64(info.requestID),
+			ConnectionID:       info.connID,
+			ServerConnectionID: info.serverConnID,
+			ServiceID:          info.serviceID,
 		}
 		op.CommandMonitor.Started(ctx, started)
 	}
@@ -2012,13 +2013,13 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	finished := event.CommandFinishedEvent{
-		CommandName:          info.cmdName,
-		DatabaseName:         op.Database,
-		RequestID:            int64(info.requestID),
-		ConnectionID:         info.connID,
-		Duration:             info.duration,
-		ServerConnectionID64: info.serverConnID,
-		ServiceID:            info.serviceID,
+		CommandName:        info.cmdName,
+		DatabaseName:       op.Database,
+		RequestID:          int64(info.requestID),
+		ConnectionID:       info.connID,
+		Duration:           info.duration,
+		ServerConnectionID: info.serverConnID,
+		ServiceID:          info.serviceID,
 	}
 
 	if info.success() {
@@ -2032,7 +2033,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	}
 
 	failedEvent := &event.CommandFailedEvent{
-		Failure:              info.cmdErr.Error(),
+		Failure:              info.cmdErr,
 		CommandFinishedEvent: finished,
 	}
 	op.CommandMonitor.Failed(ctx, failedEvent)

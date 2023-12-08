@@ -107,7 +107,10 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	}
 
 	if olm := entityOptions.ObserveLogMessages; olm != nil {
-		clientLogger := newLogger(olm, expectedLogMessageCount(ctx))
+		expectedLogMessagesCount := expectedLogMessagesCount(ctx, entityOptions.ID)
+		ignoreLogMessages := ignoreLogMessages(ctx, entityOptions.ID)
+
+		clientLogger := newLogger(olm, expectedLogMessagesCount, ignoreLogMessages)
 
 		wrap := func(str string) options.LogLevel {
 			return options.LogLevel(logger.ParseLevel(str))
@@ -189,7 +192,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		entity.ignoredCommands[cmd] = struct{}{}
 	}
 
-	client, err := mongo.Connect(ctx, clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return nil, fmt.Errorf("error creating mongo.Client: %w", err)
 	}
@@ -408,7 +411,7 @@ func (c *clientEntity) processFailedEvent(_ context.Context, evt *event.CommandF
 		AppendString("commandName", evt.CommandName).
 		AppendInt64("requestId", evt.RequestID).
 		AppendString("connectionId", evt.ConnectionID).
-		AppendString("failure", evt.Failure)
+		AppendString("failure", evt.Failure.Error())
 	if evt.ServiceID != nil {
 		bsonBuilder.AppendString("serviceId", evt.ServiceID.String())
 	}

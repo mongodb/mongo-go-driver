@@ -8,6 +8,7 @@ package mtest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -463,11 +464,11 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 		}
 
 		// ignore ErrUnacknowledgedWrite. Client may be configured with unacknowledged write concern.
-		if err != nil && err != driver.ErrUnacknowledgedWrite {
+		if err != nil && !errors.Is(err, driver.ErrUnacknowledgedWrite) {
 			// ignore NamespaceExists errors for idempotency
 
-			cmdErr, ok := err.(mongo.CommandError)
-			if !ok || cmdErr.Code != namespaceExistsErrCode {
+			var cmdErr mongo.CommandError
+			if !errors.As(err, &cmdErr) || cmdErr.Code != namespaceExistsErrCode {
 				t.Fatalf("error creating collection or view: %v on server: %v", coll.Name, err)
 			}
 		}
@@ -515,7 +516,7 @@ func (t *T) ClearCollections() {
 			}
 
 			err := coll.created.Drop(context.Background())
-			if err == mongo.ErrUnacknowledgedWrite || err == driver.ErrUnacknowledgedWrite {
+			if errors.Is(err, mongo.ErrUnacknowledgedWrite) || errors.Is(err, driver.ErrUnacknowledgedWrite) {
 				// It's possible that a collection could have an unacknowledged write concern, which
 				// could prevent it from being dropped for sharded clusters. We can resolve this by
 				// re-instantiating the collection with a majority write concern before dropping.
@@ -684,13 +685,13 @@ func (t *T) createTestClient() {
 		// pin to first mongos
 		pinnedHostList := []string{testContext.connString.Hosts[0]}
 		uriOpts := options.Client().ApplyURI(testContext.connString.Original).SetHosts(pinnedHostList)
-		t.Client, err = mongo.Connect(context.Background(), uriOpts, clientOpts)
+		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
 		clientOpts.PoolMonitor = nil
 		t.mockDeployment = newMockDeployment()
 		clientOpts.Deployment = t.mockDeployment
-		t.Client, err = mongo.Connect(context.Background(), clientOpts)
+		t.Client, err = mongo.Connect(clientOpts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()
 		clientOpts.SetDialer(t.proxyDialer)
@@ -708,7 +709,7 @@ func (t *T) createTestClient() {
 		}
 
 		// Pass in uriOpts first so clientOpts wins if there are any conflicting settings.
-		t.Client, err = mongo.Connect(context.Background(), uriOpts, clientOpts)
+		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	}
 	if err != nil {
 		t.Fatalf("error creating client: %v", err)

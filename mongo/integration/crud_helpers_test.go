@@ -124,7 +124,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	integtest.AddTestServerAPIVersion(opts)
 
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
-		client, err := mongo.Connect(context.Background(), opts)
+		client, err := mongo.Connect(opts)
 		if err != nil {
 			return fmt.Errorf("error creating replica set client: %v", err)
 		}
@@ -134,7 +134,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	}
 
 	for _, host := range opts.Hosts {
-		shardClient, err := mongo.Connect(context.Background(), opts.SetHosts([]string{host}))
+		shardClient, err := mongo.Connect(opts.SetHosts([]string{host}))
 		if err != nil {
 			return fmt.Errorf("error creating client for mongos %v: %v", host, err)
 		}
@@ -1233,7 +1233,7 @@ func executeGridFSDownload(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (i
 		}
 	}
 
-	return bucket.DownloadToStream(fileID, new(bytes.Buffer))
+	return bucket.DownloadToStream(context.Background(), fileID, new(bytes.Buffer))
 }
 
 func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (int64, error) {
@@ -1253,7 +1253,7 @@ func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.R
 		}
 	}
 
-	return bucket.DownloadToStreamByName(file, new(bytes.Buffer))
+	return bucket.DownloadToStreamByName(context.Background(), file, new(bytes.Buffer))
 }
 
 func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
@@ -1324,13 +1324,14 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 
 	var collName string
 	elems, _ := args.Elements()
+	dco := options.DropCollection()
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
 
 		switch key {
 		case "encryptedFields":
-			mt.Fatalf("unsupported field: encryptedFields")
+			dco.SetEncryptedFields(val.Document())
 		case "collection":
 			collName = val.StringValue()
 		default:
@@ -1341,11 +1342,11 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 	coll := mt.DB.Collection(collName)
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			return coll.Drop(sc)
+			return coll.Drop(sc, dco)
 		})
 		return err
 	}
-	return coll.Drop(context.Background())
+	return coll.Drop(context.Background(), dco)
 }
 
 func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
@@ -1385,7 +1386,7 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	// Per the streamable hello test format description, a separate client must be used to execute this operation.
 	clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 	integtest.AddTestServerAPIVersion(clientOpts)
-	client, err := mongo.Connect(context.Background(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(mt, err, "Connect error: %v", err)
 	defer func() {
 		_ = client.Disconnect(context.Background())

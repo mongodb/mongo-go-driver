@@ -17,8 +17,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// ErrWrongIndex is used when the chunk retrieved from the server does not have the expected index.
-var ErrWrongIndex = errors.New("chunk index does not match expected index")
+// ErrMissingChunk indicates that the number of chunks read from the server is
+// less than expected.
+var ErrMissingChunk = errors.New("EOF missing one or more chunks")
 
 // ErrWrongSize is used when the chunk retrieved from the server does not have the expected size.
 var ErrWrongSize = errors.New("chunk size does not match expected size")
@@ -36,8 +37,8 @@ type DownloadStream struct {
 	bufferStart   int
 	bufferEnd     int
 	expectedChunk int32 // index of next expected chunk
-	readDeadline  time.Time
 	fileLen       int64
+	ctx           context.Context
 
 	// The pointer returned by GetFile. This should not be used in the actual DownloadStream code outside of the
 	// newDownloadStream constructor because the values can be mutated by the user after calling GetFile. Instead,
@@ -70,11 +71,10 @@ type File struct {
 	Metadata bson.Raw
 }
 
-var _ bson.Unmarshaler = (*File)(nil)
-
-// unmarshalFile is a temporary type used to unmarshal documents from the files collection and can be transformed into
-// a File instance. This type exists to avoid adding BSON struct tags to the exported File type.
-type unmarshalFile struct {
+// findFileResponse is a temporary type used to unmarshal documents from the
+// files collection and can be transformed into a File instance. This type
+// exists to avoid adding BSON struct tags to the exported File type.
+type findFileResponse struct {
 	ID         interface{} `bson:"_id"`
 	Length     int64       `bson:"length"`
 	ChunkSize  int32       `bson:"chunkSize"`
@@ -83,25 +83,18 @@ type unmarshalFile struct {
 	Metadata   bson.Raw    `bson:"metadata"`
 }
 
-// UnmarshalBSON implements the bson.Unmarshaler interface.
-//
-// Deprecated: Unmarshaling a File from BSON will not be supported in Go Driver 2.0.
-func (f *File) UnmarshalBSON(data []byte) error {
-	var temp unmarshalFile
-	if err := bson.Unmarshal(data, &temp); err != nil {
-		return err
+func newFileFromResponse(resp findFileResponse) *File {
+	return &File{
+		ID:         resp.ID,
+		Length:     resp.Length,
+		ChunkSize:  resp.ChunkSize,
+		UploadDate: resp.UploadDate,
+		Name:       resp.Name,
+		Metadata:   resp.Metadata,
 	}
-
-	f.ID = temp.ID
-	f.Length = temp.Length
-	f.ChunkSize = temp.ChunkSize
-	f.UploadDate = temp.UploadDate
-	f.Name = temp.Name
-	f.Metadata = temp.Metadata
-	return nil
 }
 
-func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
+func newDownloadStream(ctx context.Context, cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
 	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
 	return &DownloadStream{
@@ -112,6 +105,7 @@ func newDownloadStream(cursor *mongo.Cursor, chunkSize int32, file *File) *Downl
 		done:      cursor == nil,
 		fileLen:   file.Length,
 		file:      file,
+		ctx:       ctx,
 	}
 }
 
@@ -128,16 +122,6 @@ func (ds *DownloadStream) Close() error {
 	return nil
 }
 
-// SetReadDeadline sets the read deadline for this download stream.
-func (ds *DownloadStream) SetReadDeadline(t time.Time) error {
-	if ds.closed {
-		return ErrStreamClosed
-	}
-
-	ds.readDeadline = t
-	return nil
-}
-
 // Read reads the file from the server and writes it to a destination byte slice.
 func (ds *DownloadStream) Read(p []byte) (int, error) {
 	if ds.closed {
@@ -148,17 +132,12 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 		return 0, io.EOF
 	}
 
-	ctx, cancel := deadlineContext(ds.readDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
 	bytesCopied := 0
 	var err error
 	for bytesCopied < len(p) {
 		if ds.bufferStart >= ds.bufferEnd {
 			// Buffer is empty and can load in data from new chunk.
-			err = ds.fillBuffer(ctx)
+			err = ds.fillBuffer(ds.ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					if bytesCopied == 0 {
@@ -190,18 +169,13 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 		return 0, nil
 	}
 
-	ctx, cancel := deadlineContext(ds.readDeadline)
-	if cancel != nil {
-		defer cancel()
-	}
-
 	var skipped int64
 	var err error
 
 	for skipped < skip {
 		if ds.bufferStart >= ds.bufferEnd {
 			// Buffer is empty and can load in data from new chunk.
-			err = ds.fillBuffer(ctx)
+			err = ds.fillBuffer(ds.ctx)
 			if err != nil {
 				if err == errNoMoreChunks {
 					return skipped, nil
@@ -238,9 +212,9 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 			return ds.cursor.Err()
 		}
 		// If there are no more chunks, but we didn't read the expected number of chunks, return an
-		// ErrWrongIndex error to indicate that we're missing chunks at the end of the file.
+		// ErrMissingChunk error to indicate that we're missing chunks at the end of the file.
 		if ds.expectedChunk != ds.numChunks {
-			return ErrWrongIndex
+			return ErrMissingChunk
 		}
 		return errNoMoreChunks
 	}
@@ -258,7 +232,7 @@ func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
 	}
 
 	if chunkIndexInt32 != ds.expectedChunk {
-		return ErrWrongIndex
+		return ErrMissingChunk
 	}
 
 	ds.expectedChunk++

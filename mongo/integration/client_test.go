@@ -181,7 +181,7 @@ func TestClient(t *testing.T) {
 				)
 				authClientOpts := options.Client().ApplyURI(cs)
 				integtest.AddTestServerAPIVersion(authClientOpts)
-				authClient, err := mongo.Connect(context.Background(), authClientOpts)
+				authClient, err := mongo.Connect(authClientOpts)
 				assert.Nil(mt, err, "authClient Connect error: %v", err)
 				defer func() { _ = authClient.Disconnect(context.Background()) }()
 
@@ -326,7 +326,7 @@ func TestClient(t *testing.T) {
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
 				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
 			integtest.AddTestServerAPIVersion(invalidClientOpts)
-			client, err := mongo.Connect(context.Background(), invalidClientOpts)
+			client, err := mongo.Connect(invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			err = client.Ping(context.Background(), readpref.Primary())
 			assert.NotNil(mt, err, "expected error for pinging invalid host, got nil")
@@ -756,27 +756,6 @@ func TestClient(t *testing.T) {
 				pair.CommandName)
 
 			// Assert that appended OpCode is OP_MSG when API version is set.
-			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
-				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
-		}
-	})
-
-	// Test that OP_MSG is used for handshakes when loadBalanced is true.
-	opMsgLBOpts := mtest.NewOptions().ClientType(mtest.Proxy).MinServerVersion("5.0").Topologies(mtest.LoadBalanced)
-	mt.RunOpts("OP_MSG used for handshakes when loadBalanced is true", opMsgLBOpts, func(mt *mtest.T) {
-		err := mt.Client.Ping(context.Background(), mtest.PrimaryRp)
-		assert.Nil(mt, err, "Ping error: %v", err)
-
-		msgPairs := mt.GetProxiedMessages()
-		assert.True(mt, len(msgPairs) >= 3, "expected at least 3 events, got %v", len(msgPairs))
-
-		// First three messages should be connection handshakes: one for the heartbeat connection, another for the
-		// application connection, and a final one for the RTT monitor connection.
-		for idx, pair := range msgPairs[:3] {
-			assert.Equal(mt, "hello", pair.CommandName, "expected command name 'hello' at index %d, got %s", idx,
-				pair.CommandName)
-
-			// Assert that appended OpCode is OP_MSG when loadBalanced is true.
 			assert.Equal(mt, wiremessage.OpMsg, pair.Sent.OpCode,
 				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
 		}

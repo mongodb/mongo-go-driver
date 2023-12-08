@@ -49,7 +49,7 @@ func TestGridFS(t *testing.T) {
 		// will discover the other hosts during SDAM checks.
 		SetHosts(cs.Hosts[:1])
 
-	client, err := mongo.Connect(context.Background(), clientOpts)
+	client, err := mongo.Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
 	defer func() {
@@ -81,7 +81,7 @@ func TestGridFS(t *testing.T) {
 				bucket, err := NewBucket(db, tt.bucketOpts)
 				assert.Nil(t, err, "NewBucket error: %v", err)
 
-				us, err := bucket.OpenUploadStream("filename", tt.uploadOpts)
+				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
 				expectedBucketChunkSize := DefaultChunkSize

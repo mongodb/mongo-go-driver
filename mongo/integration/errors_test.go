@@ -12,6 +12,7 @@ package integration
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -45,18 +46,6 @@ func (n netErr) Temporary() bool {
 
 var _ net.Error = (*netErr)(nil)
 
-type wrappedError struct {
-	err error
-}
-
-func (we wrappedError) Error() string {
-	return we.err.Error()
-}
-
-func (we wrappedError) Unwrap() error {
-	return we.err
-}
-
 func TestErrors(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
@@ -86,7 +75,7 @@ func TestErrors(t *testing.T) {
 
 			clientOpts := options.Client().ApplyURI(mtest.ClusterURI())
 			integtest.AddTestServerAPIVersion(clientOpts)
-			client, err := mongo.Connect(context.Background(), clientOpts)
+			client, err := mongo.Connect(clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
 			defer func() { _ = client.Disconnect(context.Background()) }()
 
@@ -478,7 +467,7 @@ func TestErrors(t *testing.T) {
 					},
 					false,
 				},
-				{"wrapped error", wrappedError{mongo.CommandError{11000, "", nil, "blah", nil, nil}}, true},
+				{"wrapped error", fmt.Errorf("%w", mongo.CommandError{11000, "", nil, "blah", nil, nil}), true},
 				{"other error type", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {
@@ -499,7 +488,7 @@ func TestErrors(t *testing.T) {
 			}{
 				{"ServerError true", mongo.CommandError{100, "", []string{networkLabel}, "blah", nil, nil}, true},
 				{"ServerError false", mongo.CommandError{100, "", []string{otherLabel}, "blah", nil, nil}, false},
-				{"wrapped error", wrappedError{mongo.CommandError{100, "", []string{networkLabel}, "blah", nil, nil}}, true},
+				{"wrapped error", fmt.Errorf("%w", mongo.CommandError{100, "", []string{networkLabel}, "blah", nil, nil}), true},
 				{"other error type", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {
@@ -533,8 +522,8 @@ func TestErrors(t *testing.T) {
 				{"net error true", mongo.CommandError{
 					100, "", []string{"other"}, "blah", netErr{true}, nil}, true},
 				{"net error false", netErr{false}, false},
-				{"wrapped error", wrappedError{mongo.CommandError{
-					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}}, true},
+				{"wrapped error", fmt.Errorf("%w", mongo.CommandError{
+					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}), true},
 				{"other error", errors.New("foo"), false},
 			}
 			for _, tc := range testCases {

@@ -279,7 +279,8 @@
               },
               "data": {
                 "failCommands": [
-                  "isMaster"
+                  "isMaster",
+                  "hello"
                 ],
                 "closeConnection": true,
                 "appName": "lbSDAMErrorTestClient"
