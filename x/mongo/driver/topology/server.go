@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
@@ -525,7 +526,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	if netErr, ok := wrappedConnErr.(net.Error); ok && netErr.Timeout() {
 		return driver.NoChange
 	}
-	if wrappedConnErr == context.Canceled || wrappedConnErr == context.DeadlineExceeded {
+	if errors.Is(wrappedConnErr, context.Canceled) || errors.Is(wrappedConnErr, context.DeadlineExceeded) {
 		return driver.NoChange
 	}
 
@@ -623,7 +624,7 @@ func (s *Server) update() {
 			// Retry after the first timeout before clearing the pool in case of a FAAS pause as
 			// described in GODRIVER-2577.
 			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 1 {
-				if err == context.Canceled || err == context.DeadlineExceeded {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.
 					return true
@@ -1055,10 +1056,24 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
-		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+		descRaw, _ := bson.Marshal(struct {
+			description.Server `bson:",inline"`
+			Ok                 int32
+		}{
+			Server: desc,
+			Ok: func() int32 {
+				if desc.LastError != nil {
+					return 0
+				}
+
+				return 1
+			}(),
+		})
+
+		logServerMessage(s, logger.TopologyServerHeartbeatSucceeded,
 			logger.KeyAwaited, await,
 			logger.KeyDurationMS, duration.Milliseconds(),
-			logger.KeyReply, desc)
+			logger.KeyReply, bson.Raw(descRaw).String())
 	}
 }
 
