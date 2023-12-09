@@ -69,7 +69,7 @@ func (iter *Iterator) Reset() {
 // assumes that the underlying list is composed of documents and will return
 // an error otherwise.
 func (iter *Iterator) Documents() ([]Document, error) {
-	if len(iter.List) == 0 {
+	if iter == nil || len(iter.List) == 0 {
 		return nil, nil
 	}
 
@@ -81,7 +81,7 @@ func (iter *Iterator) Documents() ([]Document, error) {
 	docs := make([]Document, 0, len(vals))
 	for _, v := range vals {
 		if v.Type != bsontype.EmbeddedDocument {
-			return nil, ErrNonDocument
+			continue
 		}
 
 		docs = append(docs, v.Data)

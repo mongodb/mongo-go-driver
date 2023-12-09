@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -31,7 +32,7 @@ func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 
 	counter := 0
 	for batch := 0; batch < numBatches; batch++ {
-		var docSequence []byte
+		var values []bsoncore.Value
 
 		for doc := 0; doc < batchSize; doc++ {
 			var elem []byte
@@ -40,12 +41,18 @@ func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 
 			var doc []byte
 			doc = bsoncore.BuildDocumentFromElements(doc, elem)
-			docSequence = append(docSequence, doc...)
+			val := bsoncore.Value{
+				Type: bsontype.EmbeddedDocument,
+				Data: doc,
+			}
+
+			values = append(values, val)
 		}
 
-		batches = append(batches, &bsoncore.DocumentSequence{
-			Style: bsoncore.SequenceStyle,
-			Data:  docSequence,
+		arr := bsoncore.BuildArray(nil, values...)
+
+		batches = append(batches, &bsoncore.Iterator{
+			List: arr,
 		})
 	}
 
@@ -72,7 +79,7 @@ func (tbc *testBatchCursor) Next(context.Context) bool {
 	return true
 }
 
-func (tbc *testBatchCursor) Batch() *bsoncore.DocumentSequence {
+func (tbc *testBatchCursor) Batch() *bsoncore.Iterator {
 	return tbc.batch
 }
 
