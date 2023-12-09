@@ -134,6 +134,29 @@ func TestEnsureID(t *testing.T) {
 	}
 }
 
+func TestEnsureID_NilObjectID(t *testing.T) {
+	t.Parallel()
+
+	doc := bsoncore.NewDocumentBuilder().
+		AppendString("foo", "bar").
+		Build()
+
+	got, gotIDI, err := ensureID(doc, primitive.NilObjectID, nil, nil)
+	assert.NoError(t, err)
+
+	gotID, ok := gotIDI.(primitive.ObjectID)
+
+	assert.True(t, ok)
+	assert.NotEqual(t, primitive.NilObjectID, gotID)
+ 
+	want := bsoncore.NewDocumentBuilder().
+		AppendObjectID("_id", gotID).
+		AppendString("foo", "bar").
+		Build()
+
+	assert.Equal(t, want, got)
+}
+
 func TestMarshalAggregatePipeline(t *testing.T) {
 	// []byte of [{{"$limit", 12345}}]
 	index, arr := bsoncore.AppendArrayStart(nil)
