@@ -148,7 +148,7 @@ func TestEnsureID_NilObjectID(t *testing.T) {
 
 	assert.True(t, ok)
 	assert.NotEqual(t, primitive.NilObjectID, gotID)
- 
+
 	want := bsoncore.NewDocumentBuilder().
 		AppendObjectID("_id", gotID).
 		AppendString("foo", "bar").
