@@ -27,7 +27,7 @@ timeout:
         ls -la
 functions:
   fetch-source:
-    # Executes git clone and applies the submitted patch, if any
+    # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
       params:
@@ -145,7 +145,7 @@ functions:
             # If this was a patch build, doing a fresh clone would not actually test the patch
             cp -R ${PROJECT_DIRECTORY}/ $DRIVERS_TOOLS
           else
-            git clone https://github.com/mongodb-labs/drivers-evergreen-tools.git $DRIVERS_TOOLS
+            git clone -b docker-update https://github.com/blink1073/drivers-evergreen-tools.git $DRIVERS_TOOLS
           fi
           echo "{ \"releases\": { \"default\": \"$MONGODB_BINARIES\" }}" > $MONGO_ORCHESTRATION_HOME/orchestration.config
     - command: shell.exec

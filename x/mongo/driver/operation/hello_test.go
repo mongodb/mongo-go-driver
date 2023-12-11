@@ -382,6 +382,10 @@ func TestAppendClientPlatform(t *testing.T) {
 func TestEncodeClientMetadata(t *testing.T) {
 	clearTestEnv(t)
 
+	if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+		t.Skip("These tests gives different results when run in Docker due to extra environment data.")
+	}
+
 	type application struct {
 		Name string `bson:"name"`
 	}

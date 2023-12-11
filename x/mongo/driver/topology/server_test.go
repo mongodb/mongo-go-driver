@@ -131,6 +131,9 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
 	}
+	if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+		t.Skip("Skipping this test in docker.")
+	}
 
 	networkTimeoutError := &net.DNSError{
 		IsTimeout: true,
