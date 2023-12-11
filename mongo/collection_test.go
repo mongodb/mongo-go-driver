@@ -217,3 +217,100 @@ func TestCollection(t *testing.T) {
 		assert.Equal(t, aggErr, err, "expected error %v, got %v", aggErr, err)
 	})
 }
+
+func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		opts []*options.FindOneOptions
+		want []*options.FindOptions
+	}{
+		{
+			name: "nil",
+			opts: nil,
+			want: []*options.FindOptions{
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "empty",
+			opts: []*options.FindOneOptions{},
+			want: []*options.FindOptions{
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "singleton",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "multiplicity",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+				options.FindOne().SetSkip(2),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "interior null",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+				nil,
+				options.FindOne().SetSkip(2),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "start null",
+			opts: []*options.FindOneOptions{
+				nil,
+				options.FindOne().SetSkip(1),
+				options.FindOne().SetSkip(2),
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+		{
+			name: "end null",
+			opts: []*options.FindOneOptions{
+				options.FindOne().SetSkip(1),
+				options.FindOne().SetSkip(2),
+				nil,
+			},
+			want: []*options.FindOptions{
+				options.Find().SetSkip(1),
+				options.Find().SetSkip(2),
+				options.Find().SetLimit(-1),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := newFindOptionsFromFindOneOptions(test.opts...)
+			assert.Equal(t, test.want, got)
+		})
+	}
+}

@@ -159,14 +159,3 @@ func createHint(val bson.RawValue) (interface{}, error) {
 	}
 	return hint, nil
 }
-
-func createCommentString(val bson.RawValue) (string, error) {
-	switch val.Type {
-	case bsontype.String:
-		return val.StringValue(), nil
-	case bsontype.EmbeddedDocument:
-		return val.String(), nil
-	default:
-		return "", fmt.Errorf("unrecognized 'comment' value type: %T", val)
-	}
-}
