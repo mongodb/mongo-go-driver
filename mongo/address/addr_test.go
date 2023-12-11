@@ -22,6 +22,7 @@ func TestAddress_String(t *testing.T) {
 		{"A:27017", "a:27017"},
 		{"a:27017", "a:27017"},
 		{"a.sock", "a.sock"},
+		{"A.sock", "A.sock"},
 	}
 
 	for _, test := range tests {

@@ -28,8 +28,8 @@ const (
 	failPointsKey ctxKey = "test-failpoints"
 	// targetedFailPointsKey is used to store a map from a fail point name to the host on which the fail point is set.
 	targetedFailPointsKey ctxKey = "test-targeted-failpoints"
-	// expectedLogMessageCountKey is used to store the number of log messages expected to be received by the test runner.
-	expectedLogMessageCountKey ctxKey = "test-expected-log-message-count"
+	clientLogMessagesKey  ctxKey = "test-expected-log-message-count"
+	ignoreLogMessagesKey  ctxKey = "test-ignore-log-message-count"
 )
 
 // newTestContext creates a new Context derived from ctx with values initialized to store the state required for test
@@ -37,14 +37,14 @@ const (
 func newTestContext(
 	ctx context.Context,
 	entityMap *EntityMap,
-	expectedLogMessageCount int,
+	clientLogMessages []*clientLogMessages,
 	hasOperationalFailPoint bool,
 ) context.Context {
 	ctx = context.WithValue(ctx, operationalFailPointKey, hasOperationalFailPoint)
 	ctx = context.WithValue(ctx, entitiesKey, entityMap)
 	ctx = context.WithValue(ctx, failPointsKey, make(map[string]*mongo.Client))
 	ctx = context.WithValue(ctx, targetedFailPointsKey, make(map[string]string))
-	ctx = context.WithValue(ctx, expectedLogMessageCountKey, expectedLogMessageCount)
+	ctx = context.WithValue(ctx, clientLogMessagesKey, clientLogMessages)
 	return ctx
 }
 
@@ -84,6 +84,28 @@ func entities(ctx context.Context) *EntityMap {
 	return ctx.Value(entitiesKey).(*EntityMap)
 }
 
-func expectedLogMessageCount(ctx context.Context) int {
-	return ctx.Value(expectedLogMessageCountKey).(int)
+func expectedLogMessagesCount(ctx context.Context, clientID string) int {
+	messages := ctx.Value(clientLogMessagesKey).([]*clientLogMessages)
+
+	count := 0
+	for _, message := range messages {
+		if message.Client == clientID {
+			count += len(message.LogMessages)
+		}
+	}
+
+	return count
+}
+
+func ignoreLogMessages(ctx context.Context, clientID string) []*logMessage {
+	messages := ctx.Value(clientLogMessagesKey).([]*clientLogMessages)
+
+	ignoreMessages := []*logMessage{}
+	for _, message := range messages {
+		if message.Client == clientID {
+			ignoreMessages = append(ignoreMessages, message.IgnoreMessages...)
+		}
+	}
+
+	return ignoreMessages
 }
