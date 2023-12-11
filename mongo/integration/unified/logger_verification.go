@@ -79,17 +79,6 @@ type clientLogMessages struct {
 	LogMessages    []*logMessage `bson:"messages"`
 }
 
-// ignore checks to see if the message is in the "IgnoreMessages" slice.
-func (clm clientLogMessages) ignore(ctx context.Context, msg *logMessage) bool {
-	for _, ignoreMessage := range clm.IgnoreMessages {
-		if err := verifyLogMatch(ctx, ignoreMessage, msg); err == nil {
-			return true
-		}
-	}
-
-	return false
-}
-
 // logMessageValidator defines the expectation for log messages across all
 // clients.
 type logMessageValidator struct {
@@ -191,8 +180,7 @@ type logQueues struct {
 }
 
 // partitionLogQueue will partition the expected logs into "unordered" and
-// "ordered" log channels. This function will also remove any logs in the
-// "ignoreMessages" list for a client.
+// "ordered" log channels.
 func partitionLogQueue(ctx context.Context, exp *clientLogMessages) logQueues {
 	orderedLogCh := make(chan *logMessage, len(exp.LogMessages))
 	unorderedLogCh := make(chan *logMessage, len(exp.LogMessages))
@@ -241,12 +229,6 @@ func matchOrderedLogs(ctx context.Context, logs logQueues) <-chan error {
 		defer close(errs)
 
 		for actual := range logs.ordered {
-			// Ignore logs that are in the "IngoreMessages" slice of
-			// the expected results.
-			if logs.expected.ignore(ctx, actual) {
-				continue
-			}
-
 			expected := expLogMessages[0]
 			if expected == nil {
 				continue
