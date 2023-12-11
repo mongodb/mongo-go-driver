@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -379,4 +380,20 @@ func TestMarshalExtJSONIndent(t *testing.T) {
 			assert.Equal(t, expectedExtJSONBytes, extJSONBytes, "expected:\n%s\ngot:\n%s", expectedExtJSONBytes, extJSONBytes)
 		})
 	}
+}
+
+func TestMarshalConcurrently(t *testing.T) {
+	t.Parallel()
+
+	const size = 10_000
+
+	wg := sync.WaitGroup{}
+	wg.Add(size)
+	for i := 0; i < size; i++ {
+		go func() {
+			defer wg.Done()
+			_, _ = Marshal(struct{ LastError error }{})
+		}()
+	}
+	wg.Wait()
 }

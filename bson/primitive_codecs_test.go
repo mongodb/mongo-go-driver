@@ -28,7 +28,7 @@ import (
 func bytesFromDoc(doc interface{}) []byte {
 	b, err := Marshal(doc)
 	if err != nil {
-		panic(fmt.Errorf("Couldn't marshal BSON document: %v", err))
+		panic(fmt.Errorf("Couldn't marshal BSON document: %w", err))
 	}
 	return b
 }
@@ -471,7 +471,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				enc, err := NewEncoder(vw)
 				noerr(t, err)
 				err = enc.Encode(tc.value)
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
 				if diff := cmp.Diff([]byte(b), tc.b); diff != "" {

@@ -352,7 +352,7 @@ func (dve DefaultValueEncoders) mapEncodeValue(ec EncodeContext, dw bsonrw.Docum
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
@@ -427,7 +427,7 @@ func (dve DefaultValueEncoders) ArrayEncodeValue(ec EncodeContext, vw bsonrw.Val
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
@@ -496,7 +496,7 @@ func (dve DefaultValueEncoders) SliceEncodeValue(ec EncodeContext, vw bsonrw.Val
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err
