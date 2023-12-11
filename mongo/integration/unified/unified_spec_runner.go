@@ -120,8 +120,7 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 				// catch panics from looking up elements and fail if it's unexpected
 				if r := recover(); r != nil {
 					if !expectValidFail {
-						//mt.Fatal(r)
-						panic(r)
+						mt.Fatal(r)
 					}
 				}
 			}()
@@ -133,8 +132,7 @@ func runTestFile(t *testing.T, filepath string, expectValidFail bool, opts ...*O
 				mt.Fatalf("expected test to error, got nil")
 			}
 			if err != nil {
-				panic(err)
-				//mt.Fatal(err)
+				mt.Fatal(err)
 			}
 		})
 	}

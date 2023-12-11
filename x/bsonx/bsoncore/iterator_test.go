@@ -49,7 +49,7 @@ func TestIterator_Reset(t *testing.T) {
 			},
 		},
 		{
-			name: "mixed types",
+			name: "type mixing",
 			values: []Value{
 				{
 					Type: bsontype.String,
@@ -73,6 +73,7 @@ func TestIterator_Reset(t *testing.T) {
 		t.Run(tcase.name, func(t *testing.T) {
 			t.Parallel()
 
+			// 1. Create the iterator
 			array := BuildArray(nil, tcase.values...)
 			iter := &Iterator{List: array}
 
@@ -264,4 +265,42 @@ func TestIterator_Next(t *testing.T) {
 		})
 	}
 
+}
+
+// BenchmarkNext measures the performance of the Next function.
+func BenchmarkIterator_Next(b *testing.B) {
+	values := []Value{
+		{
+			Type: bsontype.Double,
+			Data: AppendDouble(nil, 3.14159),
+		},
+		{
+			Type: bsontype.String,
+			Data: AppendString(nil, "foo"),
+		},
+		{
+			Type: bsontype.EmbeddedDocument,
+			Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
+		},
+		{
+			Type: bsontype.Boolean,
+			Data: AppendBoolean(nil, true),
+		},
+	}
+
+	iter := &Iterator{}
+	iter.List = BuildArray(nil, values...)
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := iter.Next()
+		if err == io.EOF {
+			// If we reach the end of the list, reset the iterator for the next iteration.
+			iter.pos = 0
+		} else if err != nil {
+			b.Fatalf("Unexpected error: %v", err)
+		}
+	}
 }
