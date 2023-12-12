@@ -1526,7 +1526,6 @@ tasks:
       - func: run-atlas-data-lake-test
 
   - name: test-docker-runner
-    tags: ["pullrequest"]
     commands:
       - func: bootstrap-mongo-orchestration
       - func: run-docker-test
@@ -2586,6 +2585,7 @@ buildvariants:
       - name: "test-atlas-data-lake"
 
   - name: docker-runner-test
+    tags: ["pullrequest"]
     display_name: "Docker Runner Test"
     run_on:
       - ubuntu2204-large
