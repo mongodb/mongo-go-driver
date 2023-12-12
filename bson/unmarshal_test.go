@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"errors"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -100,7 +101,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
 		data := []byte("invalid")
 		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
-		if err != bsonrw.ErrInvalidJSON {
+		if !errors.Is(err, bsonrw.ErrInvalidJSON) {
 			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
 		}
 	})

@@ -429,7 +429,7 @@ func (b *Bucket) openDownloadStream(filter interface{}, opts ...*options.FindOpt
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
 	var foundFile File
 	if err = cursor.Decode(&foundFile); err != nil {
-		return nil, fmt.Errorf("error decoding files collection document: %v", err)
+		return nil, fmt.Errorf("error decoding files collection document: %w", err)
 	}
 
 	if foundFile.Length == 0 {
@@ -594,7 +594,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 	docRes := cloned.FindOne(ctx, bson.D{}, options.FindOne().SetProjection(bson.D{{"_id", 1}}))
 
 	_, err = docRes.Raw()
-	if err != mongo.ErrNoDocuments {
+	if !errors.Is(err, mongo.ErrNoDocuments) {
 		// nil, or error that occurred during the FindOne operation
 		return err
 	}

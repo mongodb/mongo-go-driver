@@ -126,7 +126,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	if mtest.ClusterTopologyKind() != mtest.Sharded {
 		client, err := mongo.Connect(context.Background(), opts)
 		if err != nil {
-			return fmt.Errorf("error creating replica set client: %v", err)
+			return fmt.Errorf("error creating replica set client: %w", err)
 		}
 		defer func() { _ = client.Disconnect(context.Background()) }()
 
@@ -136,7 +136,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 	for _, host := range opts.Hosts {
 		shardClient, err := mongo.Connect(context.Background(), opts.SetHosts([]string{host}))
 		if err != nil {
-			return fmt.Errorf("error creating client for mongos %v: %v", host, err)
+			return fmt.Errorf("error creating client for mongos %v: %w", host, err)
 		}
 
 		err = commandFn(shardClient)

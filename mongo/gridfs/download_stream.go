@@ -160,7 +160,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 			// Buffer is empty and can load in data from new chunk.
 			err = ds.fillBuffer(ctx)
 			if err != nil {
-				if err == errNoMoreChunks {
+				if errors.Is(err, errNoMoreChunks) {
 					if bytesCopied == 0 {
 						ds.done = true
 						return 0, io.EOF
@@ -203,7 +203,7 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 			// Buffer is empty and can load in data from new chunk.
 			err = ds.fillBuffer(ctx)
 			if err != nil {
-				if err == errNoMoreChunks {
+				if errors.Is(err, errNoMoreChunks) {
 					return skipped, nil
 				}
 				return skipped, err
