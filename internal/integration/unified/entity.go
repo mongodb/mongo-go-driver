@@ -360,7 +360,7 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 	}
 
 	if err != nil {
-		return fmt.Errorf("error constructing entity of type %q: %v", entityType, err)
+		return fmt.Errorf("error constructing entity of type %q: %w", entityType, err)
 	}
 	em.allEntities[entityOptions.ID] = struct{}{}
 	return nil
@@ -492,7 +492,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	var errs []error
 	for id, cursor := range em.cursorEntities {
 		if err := cursor.Close(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("error closing cursor with ID %q: %v", id, err))
+			errs = append(errs, fmt.Errorf("error closing cursor with ID %q: %w", id, err))
 		}
 	}
 
@@ -503,13 +503,13 @@ func (em *EntityMap) close(ctx context.Context) []error {
 		}
 
 		if err := client.disconnect(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
+			errs = append(errs, fmt.Errorf("error closing client with ID %q: %w", id, err))
 		}
 	}
 
 	for id, clientEncryption := range em.clientEncryptionEntities {
 		if err := clientEncryption.Close(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("error closing clientEncryption with ID: %q: %v", id, err))
+			errs = append(errs, fmt.Errorf("error closing clientEncryption with ID: %q: %w", id, err))
 		}
 	}
 
@@ -531,7 +531,7 @@ func (em *EntityMap) addClientEntity(ctx context.Context, entityOptions *entityO
 
 	client, err := newClientEntity(ctx, em, entityOptions)
 	if err != nil {
-		return fmt.Errorf("error creating client entity: %v", err)
+		return fmt.Errorf("error creating client entity: %w", err)
 	}
 
 	em.clientEntities[entityOptions.ID] = client
@@ -558,7 +558,7 @@ func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 // A string is returned as-is.
 func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string, defaultValue string) (string, error) {
 	credentialVal, err := kmsDocument.LookupErr(credentialName)
-	if err == bsoncore.ErrElementNotFound {
+	if errors.Is(err, bsoncore.ErrElementNotFound) {
 		return "", nil
 	}
 	if err != nil {
@@ -706,7 +706,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				"tlsCAFile":             tlsCAFile,
 			})
 			if err != nil {
-				return fmt.Errorf("error constructing tls config: %v", err)
+				return fmt.Errorf("error constructing tls config: %w", err)
 			}
 			tlsconf["kmip"] = cfg
 		}
@@ -778,7 +778,7 @@ func (em *EntityMap) addSessionEntity(entityOptions *entityOptions) error {
 
 	sess, err := client.StartSession(sessionOpts)
 	if err != nil {
-		return fmt.Errorf("error starting session: %v", err)
+		return fmt.Errorf("error starting session: %w", err)
 	}
 
 	em.sessions[entityOptions.ID] = sess
