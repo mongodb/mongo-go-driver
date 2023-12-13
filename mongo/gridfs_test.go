@@ -48,6 +48,8 @@ func TestGridFS(t *testing.T) {
 		// will discover the other hosts during SDAM checks.
 		SetHosts(cs.Hosts[:1])
 
+	integtest.AddTestServerAPIVersion(clientOpts)
+
 	client, err := Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")

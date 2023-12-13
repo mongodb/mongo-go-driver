@@ -37,6 +37,8 @@ func TestBucket_openDownloadStream(t *testing.T) {
 	cs := integtest.ConnString(t)
 	clientOpts := options.Client().ApplyURI(cs.Original)
 
+	integtest.AddTestServerAPIVersion(clientOpts)
+
 	client, err := Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 
