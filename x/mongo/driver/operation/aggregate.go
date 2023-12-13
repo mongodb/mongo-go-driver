@@ -49,6 +49,7 @@ type Aggregate struct {
 	hasOutputStage           bool
 	customOptions            map[string]bsoncore.Value
 	timeout                  *time.Duration
+	securityToken            string
 
 	result driver.CursorResponse
 }
@@ -67,6 +68,7 @@ func (a *Aggregate) Result(opts driver.CursorOptions) (*driver.BatchCursor, erro
 
 	clock := a.clock
 	opts.ServerAPI = a.serverAPI
+	opts.SecurityToken = a.securityToken
 	return driver.NewBatchCursor(a.result, clientSession, clock, opts)
 }
 
@@ -111,6 +113,7 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		IsOutputAggregate:              a.hasOutputStage,
 		MaxTime:                        a.maxTime,
 		Timeout:                        a.timeout,
+		SecurityToken:                  a.securityToken,
 	}.Execute(ctx)
 
 }
@@ -415,5 +418,16 @@ func (a *Aggregate) Timeout(timeout *time.Duration) *Aggregate {
 	}
 
 	a.timeout = timeout
+	return a
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (a *Aggregate) SecurityToken(token string) *Aggregate {
+	if a == nil {
+		a = new(Aggregate)
+	}
+
+	a.securityToken = token
+
 	return a
 }

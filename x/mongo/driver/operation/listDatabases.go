@@ -37,6 +37,7 @@ type ListDatabases struct {
 	crypt               driver.Crypt
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
+	securityToken       string
 
 	result ListDatabasesResult
 }
@@ -163,6 +164,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		Crypt:          ld.crypt,
 		ServerAPI:      ld.serverAPI,
 		Timeout:        ld.timeout,
+		SecurityToken:  ld.securityToken,
 	}.Execute(ctx)
 
 }
@@ -323,5 +325,16 @@ func (ld *ListDatabases) Timeout(timeout *time.Duration) *ListDatabases {
 	}
 
 	ld.timeout = timeout
+	return ld
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (ld *ListDatabases) SecurityToken(token string) *ListDatabases {
+	if ld == nil {
+		ld = new(ListDatabases)
+	}
+
+	ld.securityToken = token
+
 	return ld
 }

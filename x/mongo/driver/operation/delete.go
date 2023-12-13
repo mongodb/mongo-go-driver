@@ -24,25 +24,26 @@ import (
 
 // Delete performs a delete operation
 type Delete struct {
-	comment      bsoncore.Value
-	deletes      []bsoncore.Document
-	ordered      *bool
-	session      *session.Client
-	clock        *session.ClusterClock
-	collection   string
-	monitor      *event.CommandMonitor
-	crypt        driver.Crypt
-	database     string
-	deployment   driver.Deployment
-	selector     description.ServerSelector
-	writeConcern *writeconcern.WriteConcern
-	retry        *driver.RetryMode
-	hint         *bool
-	result       DeleteResult
-	serverAPI    *driver.ServerAPIOptions
-	let          bsoncore.Document
-	timeout      *time.Duration
-	logger       *logger.Logger
+	comment       bsoncore.Value
+	deletes       []bsoncore.Document
+	ordered       *bool
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	writeConcern  *writeconcern.WriteConcern
+	retry         *driver.RetryMode
+	hint          *bool
+	result        DeleteResult
+	serverAPI     *driver.ServerAPIOptions
+	let           bsoncore.Document
+	timeout       *time.Duration
+	logger        *logger.Logger
+	securityToken string
 }
 
 // DeleteResult represents a delete result returned by the server.
@@ -114,6 +115,7 @@ func (d *Delete) Execute(ctx context.Context) error {
 		ServerAPI:         d.serverAPI,
 		Timeout:           d.timeout,
 		Logger:            d.logger,
+		SecurityToken:     d.securityToken,
 	}.Execute(ctx)
 
 }
@@ -323,6 +325,17 @@ func (d *Delete) Logger(logger *logger.Logger) *Delete {
 	}
 
 	d.logger = logger
+
+	return d
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (d *Delete) SecurityToken(token string) *Delete {
+	if d == nil {
+		d = new(Delete)
+	}
+
+	d.securityToken = token
 
 	return d
 }

@@ -297,7 +297,8 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
 		Deployment(s.deployment).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
 		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).
-		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).Execute(ctx)
+		RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).ServerAPI(s.client.serverAPI).
+		SecurityToken(s.client.securityToken).Execute(ctx)
 
 	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()

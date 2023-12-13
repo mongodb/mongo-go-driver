@@ -62,6 +62,7 @@ type Find struct {
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
 	logger              *logger.Logger
+	securityToken       string
 }
 
 // NewFind constructs and returns a new Find.
@@ -74,6 +75,7 @@ func NewFind(filter bsoncore.Document) *Find {
 // Result returns the result of executing this operation.
 func (f *Find) Result(opts driver.CursorOptions) (*driver.BatchCursor, error) {
 	opts.ServerAPI = f.serverAPI
+	opts.SecurityToken = f.securityToken
 	return driver.NewBatchCursor(f.result, f.session, f.clock, opts)
 }
 
@@ -108,6 +110,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		ServerAPI:         f.serverAPI,
 		Timeout:           f.timeout,
 		Logger:            f.logger,
+		SecurityToken:     f.securityToken,
 	}.Execute(ctx)
 
 }
@@ -557,5 +560,16 @@ func (f *Find) Logger(logger *logger.Logger) *Find {
 	}
 
 	f.logger = logger
+	return f
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (f *Find) SecurityToken(token string) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.securityToken = token
+
 	return f
 }

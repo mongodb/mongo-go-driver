@@ -172,6 +172,7 @@ type SectionType uint8
 const (
 	SingleDocument SectionType = iota
 	DocumentSequence
+	SecurityToken
 )
 
 // OpmsgWireVersion is the minimum wire version needed to use OP_MSG
@@ -555,6 +556,10 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 		cursorIDs = append(cursorIDs, id)
 	}
 	return cursorIDs, src, true
+}
+
+func ReadSecurityToken(src []byte) (securityToken string, rem []byte, ok bool) {
+	return readcstring(src)
 }
 
 func appendi32(dst []byte, i32 int32) []byte {

@@ -205,6 +205,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
+	SecurityToken            *string
 	ServerAPIOptions         *ServerAPIOptions
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
@@ -805,6 +806,12 @@ func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
 	return c
 }
 
+func (c *ClientOptions) SetSecurityToken(token string) *ClientOptions {
+	c.SecurityToken = &token
+
+	return c
+}
+
 // SetServerSelectionTimeout specifies how long the driver will wait to find an available, suitable server to execute an
 // operation. This can also be set through the "serverSelectionTimeoutMS" URI option (e.g.
 // "serverSelectionTimeoutMS=30000"). The default value is 30 seconds.
@@ -1107,6 +1114,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.LoggerOptions != nil {
 			c.LoggerOptions = opt.LoggerOptions
+		}
+		if opt.SecurityToken != nil {
+			c.SecurityToken = opt.SecurityToken
 		}
 	}
 

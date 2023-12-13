@@ -22,18 +22,19 @@ import (
 
 // DropCollection performs a drop operation.
 type DropCollection struct {
-	session      *session.Client
-	clock        *session.ClusterClock
-	collection   string
-	monitor      *event.CommandMonitor
-	crypt        driver.Crypt
-	database     string
-	deployment   driver.Deployment
-	selector     description.ServerSelector
-	writeConcern *writeconcern.WriteConcern
-	result       DropCollectionResult
-	serverAPI    *driver.ServerAPIOptions
-	timeout      *time.Duration
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	writeConcern  *writeconcern.WriteConcern
+	result        DropCollectionResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
+	securityToken string
 }
 
 // DropCollectionResult represents a dropCollection result returned by the server.
@@ -102,6 +103,7 @@ func (dc *DropCollection) Execute(ctx context.Context) error {
 		WriteConcern:      dc.writeConcern,
 		ServerAPI:         dc.serverAPI,
 		Timeout:           dc.timeout,
+		SecurityToken:     dc.securityToken,
 	}.Execute(ctx)
 
 }
@@ -218,5 +220,16 @@ func (dc *DropCollection) Timeout(timeout *time.Duration) *DropCollection {
 	}
 
 	dc.timeout = timeout
+	return dc
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (dc *DropCollection) SecurityToken(token string) *DropCollection {
+	if dc == nil {
+		dc = new(DropCollection)
+	}
+
+	dc.securityToken = token
+
 	return dc
 }

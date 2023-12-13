@@ -31,6 +31,8 @@ type SentMessage struct {
 	// sent as part of the command document in OP_QUERY and as a document sequence outside the command document in
 	// OP_MSG.
 	DocumentSequence *bsoncore.DocumentSequence
+
+	SecurityToken string
 }
 
 type sentMsgParseFn func([]byte) (*SentMessage, error)
@@ -156,30 +158,42 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 		rpDoc = rpVal.Document()
 	}
 
-	var docSequence *bsoncore.DocumentSequence
-	if len(wm) != 0 {
-		// If there are bytes remaining in the wire message, they must correspond to a DocumentSequence section.
-		if wm, err = assertMsgSectionType(wm, wiremessage.DocumentSequence); err != nil {
-			return nil, fmt.Errorf("error verifying section type for document sequence: %v", err)
-		}
-
-		var data []byte
-		_, data, wm, ok = wiremessage.ReadMsgSectionRawDocumentSequence(wm)
-		if !ok {
-			return nil, errors.New("failed to read document sequence")
-		}
-
-		docSequence = &bsoncore.DocumentSequence{
-			Style: bsoncore.SequenceStyle,
-			Data:  data,
-		}
-	}
-
 	sm := &SentMessage{
-		Command:          commandDoc,
-		ReadPreference:   rpDoc,
-		DocumentSequence: docSequence,
+		Command:        commandDoc,
+		ReadPreference: rpDoc,
 	}
+
+	for len(wm) != 0 {
+		var st wiremessage.SectionType
+		var ok bool
+		st, wm, ok = wiremessage.ReadMsgSectionType(wm)
+		if !ok {
+			return nil, fmt.Errorf("failed to read wiremessage section type")
+		}
+
+		switch st {
+		case wiremessage.DocumentSequence:
+			var data []byte
+			_, data, wm, ok = wiremessage.ReadMsgSectionRawDocumentSequence(wm)
+			if !ok {
+				return nil, errors.New("failed to read document sequence")
+			}
+
+			sm.DocumentSequence = &bsoncore.DocumentSequence{
+				Style: bsoncore.SequenceStyle,
+				Data:  data,
+			}
+		case wiremessage.SecurityToken:
+			var securityToken string
+			securityToken, wm, ok = wiremessage.ReadSecurityToken(wm)
+			if !ok {
+				return nil, errors.New("failed to read security token")
+			}
+
+			sm.SecurityToken = securityToken
+		}
+	}
+
 	return sm, nil
 }
 

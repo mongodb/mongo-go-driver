@@ -22,20 +22,21 @@ import (
 
 // DropIndexes performs an dropIndexes operation.
 type DropIndexes struct {
-	index        *string
-	maxTime      *time.Duration
-	session      *session.Client
-	clock        *session.ClusterClock
-	collection   string
-	monitor      *event.CommandMonitor
-	crypt        driver.Crypt
-	database     string
-	deployment   driver.Deployment
-	selector     description.ServerSelector
-	writeConcern *writeconcern.WriteConcern
-	result       DropIndexesResult
-	serverAPI    *driver.ServerAPIOptions
-	timeout      *time.Duration
+	index         *string
+	maxTime       *time.Duration
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	writeConcern  *writeconcern.WriteConcern
+	result        DropIndexesResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
+	securityToken string
 }
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
@@ -99,6 +100,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		WriteConcern:      di.writeConcern,
 		ServerAPI:         di.serverAPI,
 		Timeout:           di.timeout,
+		SecurityToken:     di.securityToken,
 	}.Execute(ctx)
 
 }
@@ -238,5 +240,16 @@ func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
 	}
 
 	di.timeout = timeout
+	return di
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (di *DropIndexes) SecurityToken(token string) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.securityToken = token
+
 	return di
 }

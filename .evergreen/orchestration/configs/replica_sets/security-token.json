@@ -1,0 +1,55 @@
+{
+  "id": "repl0",
+  "members": [
+    {
+      "procParams": {
+        "ipv6": true,
+        "bind_ip": "127.0.0.1,::1",
+        "oplogSize": 500,
+        "port": 27017,
+        "setParameter": {
+          "multitenancySupport": 1,
+          "enableTestCommands": 1
+        }
+      },
+      "rsParams": {
+        "tags": {
+          "ordinal": "one",
+          "dc": "ny"
+        }
+      }
+    },
+    {
+      "procParams": {
+        "ipv6": true,
+        "bind_ip": "127.0.0.1,::1",
+        "oplogSize": 500,
+        "port": 27018,
+        "setParameter": {
+          "multitenancySupport": 1,
+          "enableTestCommands": 1
+        }
+      },
+      "rsParams": {
+        "tags": {
+          "ordinal": "two",
+          "dc": "pa"
+        }
+      }
+    },
+    {
+      "procParams": {
+        "ipv6": true,
+        "bind_ip": "127.0.0.1,::1",
+        "port": 27019,
+        "setParameter": {
+          "multitenancySupport": 1,
+          "enableTestCommands": 1
+        }
+      },
+      "rsParams": {
+        "arbiterOnly": true
+      }
+    }
+  ]
+}

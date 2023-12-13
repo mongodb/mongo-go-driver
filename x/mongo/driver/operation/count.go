@@ -41,6 +41,7 @@ type Count struct {
 	result         CountResult
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
+	securityToken  string
 }
 
 // CountResult represents a count result returned by the server.
@@ -126,6 +127,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		Selector:          c.selector,
 		ServerAPI:         c.serverAPI,
 		Timeout:           c.timeout,
+		SecurityToken:     c.securityToken,
 	}.Execute(ctx)
 
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
@@ -307,5 +309,16 @@ func (c *Count) Timeout(timeout *time.Duration) *Count {
 	}
 
 	c.timeout = timeout
+	return c
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (c *Count) SecurityToken(token string) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.securityToken = token
+
 	return c
 }

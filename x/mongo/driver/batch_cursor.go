@@ -42,6 +42,7 @@ type BatchCursor struct {
 	postBatchResumeToken bsoncore.Document
 	crypt                Crypt
 	serverAPI            *ServerAPIOptions
+	securityToken        string
 
 	// legacy server (< 3.2) fields
 	limit       int32
@@ -140,6 +141,7 @@ type CursorOptions struct {
 	CommandMonitor *event.CommandMonitor
 	Crypt          Crypt
 	ServerAPI      *ServerAPIOptions
+	SecurityToken  string
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -163,6 +165,7 @@ func NewBatchCursor(cr CursorResponse, clientSession *session.Client, clock *ses
 		crypt:                opts.Crypt,
 		serverAPI:            opts.ServerAPI,
 		serverDescription:    cr.Desc,
+		securityToken:        opts.SecurityToken,
 	}
 
 	if ds != nil {
@@ -305,6 +308,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 		Legacy:         LegacyKillCursors,
 		CommandMonitor: bc.cmdMonitor,
 		ServerAPI:      bc.serverAPI,
+		SecurityToken:  bc.securityToken,
 	}.Execute(ctx)
 }
 
@@ -398,6 +402,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 		CommandMonitor: bc.cmdMonitor,
 		Crypt:          bc.crypt,
 		ServerAPI:      bc.serverAPI,
+		SecurityToken:  bc.securityToken,
 	}.Execute(ctx)
 
 	// Once the cursor has been drained, we can unpin the connection if one is currently pinned.
