@@ -20,7 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ExampleBucket_OpenUploadStream() {
+func ExampleGridFSBucket_OpenUploadStream() {
 	var fileContent []byte
 	var bucket *mongo.GridFSBucket
 
@@ -49,7 +49,7 @@ func ExampleBucket_OpenUploadStream() {
 	}
 }
 
-func ExampleBucket_UploadFromStream() {
+func ExampleGridFSBucket_UploadFromStream() {
 	var fileContent []byte
 	var bucket *mongo.GridFSBucket
 
@@ -69,7 +69,7 @@ func ExampleBucket_UploadFromStream() {
 	fmt.Printf("new file created with ID %s", fileID)
 }
 
-func ExampleBucket_OpenDownloadStream() {
+func ExampleGridFSBucket_OpenDownloadStream() {
 	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
@@ -94,7 +94,7 @@ func ExampleBucket_OpenDownloadStream() {
 	}
 }
 
-func ExampleBucket_DownloadToStream() {
+func ExampleGridFSBucket_DownloadToStream() {
 	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
@@ -106,7 +106,7 @@ func ExampleBucket_DownloadToStream() {
 	}
 }
 
-func ExampleBucket_Delete() {
+func ExampleGridFSBucket_Delete() {
 	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
@@ -115,7 +115,7 @@ func ExampleBucket_Delete() {
 	}
 }
 
-func ExampleBucket_Find() {
+func ExampleGridFSBucket_Find() {
 	var bucket *mongo.GridFSBucket
 
 	// Specify a filter to find all files with a length greater than 1000 bytes.
@@ -146,7 +146,7 @@ func ExampleBucket_Find() {
 	}
 }
 
-func ExampleBucket_Rename() {
+func ExampleGridFSBucket_Rename() {
 	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
@@ -157,7 +157,7 @@ func ExampleBucket_Rename() {
 	}
 }
 
-func ExampleBucket_Drop() {
+func ExampleGridFSBucket_Drop() {
 	var bucket *mongo.GridFSBucket
 
 	if err := bucket.Drop(context.Background()); err != nil {
