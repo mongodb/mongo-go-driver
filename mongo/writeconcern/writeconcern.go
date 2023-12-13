@@ -8,7 +8,7 @@
 //
 // For more information about MongoDB write concerns, see
 // https://www.mongodb.com/docs/manual/reference/write-concern/
-package writeconcern // import "go.mongodb.org/mongo-driver/mongo/writeconcern"
+package writeconcern
 
 import (
 	"errors"
