@@ -19,7 +19,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -129,7 +128,7 @@ type EntityMap struct {
 	dbEntites                map[string]*mongo.Database
 	collEntities             map[string]*mongo.Collection
 	sessions                 map[string]mongo.Session
-	gridfsBuckets            map[string]*gridfs.Bucket
+	gridfsBuckets            map[string]*mongo.GridFSBucket
 	bsonValues               map[string]bson.RawValue
 	eventListEntities        map[string][]bson.Raw
 	bsonArrayEntities        map[string][]bson.Raw // for storing errors and failures from a loop operation
@@ -155,7 +154,7 @@ func (em *EntityMap) setClosed(val bool) {
 func newEntityMap() *EntityMap {
 	em := &EntityMap{
 		allEntities:              make(map[string]struct{}),
-		gridfsBuckets:            make(map[string]*gridfs.Bucket),
+		gridfsBuckets:            make(map[string]*mongo.GridFSBucket),
 		bsonValues:               make(map[string]bson.RawValue),
 		cursorEntities:           make(map[string]cursor),
 		clientEntities:           make(map[string]*clientEntity),
@@ -298,7 +297,7 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 	return nil
 }
 
-func (em *EntityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
+func (em *EntityMap) gridFSBucket(id string) (*mongo.GridFSBucket, error) {
 	bucket, ok := em.gridfsBuckets[id]
 	if !ok {
 		return nil, newEntityNotFoundError("gridfs bucket", id)
@@ -728,7 +727,7 @@ func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
 	}
 
-	bucket, err := gridfs.NewBucket(db, bucketOpts)
+	bucket, err := db.GridFSBucket(bucketOpts)
 	if err != nil {
 		return fmt.Errorf("error creating GridFS bucket: %v", err)
 	}

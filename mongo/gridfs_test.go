@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs
+package mongo
 
 import (
 	"context"
@@ -13,14 +13,13 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 var (
-	connsCheckedOut int
+	gridfsConnsCheckedOut int
 )
 
 func TestGridFS(t *testing.T) {
@@ -33,9 +32,9 @@ func TestGridFS(t *testing.T) {
 		Event: func(evt *event.PoolEvent) {
 			switch evt.Type {
 			case event.ConnectionCheckedOut:
-				connsCheckedOut++
+				gridfsConnsCheckedOut++
 			case event.ConnectionCheckedIn:
-				connsCheckedOut--
+				gridfsConnsCheckedOut--
 			}
 		},
 	}
@@ -49,12 +48,12 @@ func TestGridFS(t *testing.T) {
 		// will discover the other hosts during SDAM checks.
 		SetHosts(cs.Hosts[:1])
 
-	client, err := mongo.Connect(clientOpts)
+	client, err := Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 	db := client.Database("gridfs")
 	defer func() {
 		sessions := client.NumberSessionsInProgress()
-		conns := connsCheckedOut
+		conns := gridfsConnsCheckedOut
 
 		_ = db.Drop(context.Background())
 		_ = client.Disconnect(context.Background())
@@ -78,13 +77,13 @@ func TestGridFS(t *testing.T) {
 
 		for _, tt := range chunkSizeTests {
 			t.Run(tt.testName, func(t *testing.T) {
-				bucket, err := NewBucket(db, tt.bucketOpts)
+				bucket, err := db.GridFSBucket(tt.bucketOpts)
 				assert.Nil(t, err, "NewBucket error: %v", err)
 
 				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
-				expectedBucketChunkSize := DefaultChunkSize
+				expectedBucketChunkSize := DefaultGridFSChunkSize
 				if tt.bucketOpts != nil && tt.bucketOpts.ChunkSizeBytes != nil {
 					expectedBucketChunkSize = *tt.bucketOpts.ChunkSizeBytes
 				}

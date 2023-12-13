@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs
+package mongo
 
 import (
 	"context"
@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -26,7 +25,7 @@ func TestBucket_openDownloadStream(t *testing.T) {
 		{
 			name:   "nil filter",
 			filter: nil,
-			err:    mongo.ErrNilDocument,
+			err:    ErrNilDocument,
 		},
 		{
 			name:   "nonmatching filter",
@@ -38,14 +37,14 @@ func TestBucket_openDownloadStream(t *testing.T) {
 	cs := integtest.ConnString(t)
 	clientOpts := options.Client().ApplyURI(cs.Original)
 
-	client, err := mongo.Connect(clientOpts)
+	client, err := Connect(clientOpts)
 	assert.Nil(t, err, "Connect error: %v", err)
 
 	db := client.Database("bucket")
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			bucket, err := NewBucket(db)
+			bucket, err := db.GridFSBucket()
 			assert.NoError(t, err)
 
 			_, err = bucket.openDownloadStream(context.Background(), test.filter)
