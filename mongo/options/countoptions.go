@@ -15,12 +15,9 @@ type CountOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// TODO(GODRIVER-2386): CountOptions executor uses aggregation under the hood, which means this type has to be
-	// TODO a string for now.  This can be replaced with `Comment interface{}` once 2386 is implemented.
-
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	Comment interface{}
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
 	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
@@ -55,8 +52,8 @@ func (co *CountOptions) SetCollation(c *Collation) *CountOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (co *CountOptions) SetComment(c string) *CountOptions {
-	co.Comment = &c
+func (co *CountOptions) SetComment(comment interface{}) *CountOptions {
+	co.Comment = comment
 	return co
 }
 
