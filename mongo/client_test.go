@@ -337,7 +337,7 @@ func TestClient(t *testing.T) {
 			if testing.Short() {
 				t.Skip("skipping integration test in short mode")
 			}
-			if len(os.Getenv("DOCKER_RUNNING")) > 0 {
+			if os.Getenv("DOCKER_RUNNING") != "" {
 				t.Skip("skipping test in docker environment")
 			}
 
