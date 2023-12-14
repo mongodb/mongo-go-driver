@@ -48,7 +48,6 @@ type connection struct {
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	state int64
-	inUse bool
 	err   error
 
 	id                   string
@@ -87,7 +86,6 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 	id := fmt.Sprintf("%s[-%d]", addr, nextConnectionID())
 
 	c := &connection{
-		inUse:                cfg.inUse,
 		id:                   id,
 		addr:                 addr,
 		idleTimeout:          cfg.idleTimeout,

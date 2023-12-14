@@ -126,30 +126,26 @@ func (d *timeoutDialer) DialContext(ctx context.Context, network, address string
 	return &timeoutConn{c, d.errors}, e
 }
 
-// TestServerHeartbeatTimeout tests timeout retry for GODRIVER-2577.
+// TestServerHeartbeatTimeout tests timeout retry and preemptive canceling.
 func TestServerHeartbeatTimeout(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
-	}
-
 	networkTimeoutError := &net.DNSError{
 		IsTimeout: true,
 	}
 
 	testCases := []struct {
-		desc              string
-		ioErrors          []error
-		expectPoolCleared bool
+		desc                string
+		ioErrors            []error
+		expectInterruptions int
 	}{
 		{
-			desc:              "one single timeout should not clear the pool",
-			ioErrors:          []error{nil, networkTimeoutError, nil, networkTimeoutError, nil},
-			expectPoolCleared: false,
+			desc:                "one single timeout should not clear the pool",
+			ioErrors:            []error{nil, networkTimeoutError, nil, networkTimeoutError, nil},
+			expectInterruptions: 0,
 		},
 		{
-			desc:              "continuous timeouts should clear the pool",
-			ioErrors:          []error{nil, networkTimeoutError, networkTimeoutError, nil},
-			expectPoolCleared: true,
+			desc:                "continuous timeouts should clear the pool with interruption",
+			ioErrors:            []error{nil, networkTimeoutError, networkTimeoutError, nil},
+			expectInterruptions: 1,
 		},
 	}
 	for _, tc := range testCases {
@@ -195,7 +191,8 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			)
 			require.NoError(t, server.Connect(nil))
 			wg.Wait()
-			assert.Equal(t, tc.expectPoolCleared, tpm.IsPoolCleared(), "expected pool cleared to be %v but was %v", tc.expectPoolCleared, tpm.IsPoolCleared())
+			interruptions := tpm.Interruptions()
+			assert.Equal(t, tc.expectInterruptions, interruptions, "expected %d interruption but got %d", tc.expectInterruptions, interruptions)
 		})
 	}
 }

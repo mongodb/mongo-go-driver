@@ -535,9 +535,6 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	// timed out).
 	w := newWantConn()
 	defer func() {
-		if conn != nil {
-			conn.inUse = true
-		}
 		if err != nil {
 			w.cancel(p, err)
 		}
@@ -592,11 +589,6 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 	// If we didn't get an immediately available idle connection, also get in the queue for a new
 	// connection while we're waiting for an idle connection.
-	w.mu.Lock()
-	w.connOpts = append(w.connOpts, func(cfg *connectionConfig) {
-		cfg.inUse = true
-	})
-	w.mu.Unlock()
 	p.queueForNewConn(w)
 	p.stateMu.RUnlock()
 
@@ -759,8 +751,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
-// checkIn returns an idle connection to the pool. If the connection is perished or the pool is
-// closed, it is removed from the connection pool and closed.
+// checkIn returns an idle connection to the pool. It calls checkInWithCallback internally.
 func (p *pool) checkIn(conn *connection) error {
 	return p.checkInWithCallback(conn, func() (reason, bool) {
 		if mustLogPoolMessage(p) {
@@ -807,15 +798,18 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	})
 }
 
-func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) error {
+// checkInWithCallback returns a connection to the pool. If the connection is perished or the pool is
+// closed, it is removed from the connection pool and closed.
+// The callback parameter is expected to returns a reason of the check-in and a boolean value to
+// indicate whether the connection is perished.
+// Events and logs can also be added in the callback function.
+func (p *pool) checkInWithCallback(conn *connection, callback func() (reason, bool)) error {
 	if conn == nil {
 		return nil
 	}
 	if conn.pool != p {
 		return ErrWrongPool
 	}
-
-	conn.inUse = false
 
 	// Bump the connection idle deadline here because we're about to make the connection "available".
 	// The idle deadline is used to determine when a connection has reached its max idle time and
@@ -827,8 +821,8 @@ func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) e
 
 	var r reason
 	var perished bool
-	if cb != nil {
-		r, perished = cb()
+	if callback != nil {
+		r, perished = callback()
 	}
 	if perished {
 		_ = p.removeConnection(conn, r, nil)
@@ -861,45 +855,49 @@ func (p *pool) checkInWithCallback(conn *connection, cb func() (reason, bool)) e
 	return nil
 }
 
-// clearAll does same as the "clear" method and interrupts all in-use connections as well.
+// clear calls clearImpl internally with a false interruptAllConnections value.
+func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
+	p.clearImpl(err, serviceID, false)
+}
+
+// clearAll does same as the "clear" method but interrupts all connections.
 func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
 	p.clearImpl(err, serviceID, true)
 }
 
-func (p *pool) interruptInUseConnections() {
-	for _, conn := range p.conns {
-		if conn.inUse && p.stale(conn) {
-			_ = conn.closeWithErr(poolClearedError{
-				err:     fmt.Errorf("interrupted"),
-				address: p.address,
-			})
-			_ = p.checkInWithCallback(conn, func() (reason, bool) {
-				if mustLogPoolMessage(p) {
-					keysAndValues := logger.KeyValues{
-						logger.KeyDriverConnectionID, conn.driverConnectionID,
-					}
-
-					logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
+// interruptConnections interrupts the input connections.
+func (p *pool) interruptConnections(conns []*connection) {
+	for _, conn := range conns {
+		_ = conn.closeWithErr(poolClearedError{
+			err:     fmt.Errorf("interrupted"),
+			address: p.address,
+		})
+		_ = p.checkInWithCallback(conn, func() (reason, bool) {
+			if mustLogPoolMessage(p) {
+				keysAndValues := logger.KeyValues{
+					logger.KeyDriverConnectionID, conn.driverConnectionID,
 				}
 
-				if p.monitor != nil {
-					p.monitor.Event(&event.PoolEvent{
-						Type:         event.ConnectionCheckedIn,
-						ConnectionID: conn.driverConnectionID,
-						Address:      conn.addr.String(),
-					})
-				}
+				logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
+			}
 
-				r, ok := connectionPerished(conn)
-				if ok {
-					r = reason{
-						loggerConn: logger.ReasonConnClosedStale,
-						event:      event.ReasonStale,
-					}
+			if p.monitor != nil {
+				p.monitor.Event(&event.PoolEvent{
+					Type:         event.ConnectionCheckedIn,
+					ConnectionID: conn.driverConnectionID,
+					Address:      conn.addr.String(),
+				})
+			}
+
+			r, ok := connectionPerished(conn)
+			if ok {
+				r = reason{
+					loggerConn: logger.ReasonConnClosedStale,
+					event:      event.ReasonStale,
 				}
-				return r, ok
-			})
-		}
+			}
+			return r, ok
+		})
 	}
 }
 
@@ -908,11 +906,9 @@ func (p *pool) interruptInUseConnections() {
 // "paused". If serviceID is nil, clear marks all connections as stale. If serviceID is not nil,
 // clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
-func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
-	p.clearImpl(err, serviceID, false)
-}
-
-func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptInUseConnections bool) {
+// If interruptAllConnections is true, this function calls interruptConnections to interrupt all
+// non-idle connections.
+func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptAllConnections bool) {
 	if p.getState() == poolClosed {
 		return
 	}
@@ -953,15 +949,33 @@ func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptInUs
 			ServiceID: serviceID,
 			Error:     err,
 		}
-		if interruptInUseConnections {
+		if interruptAllConnections {
 			event.Interruption = true
 		}
 		p.monitor.Event(event)
 	}
 
 	p.removePerishedConns()
-	if interruptInUseConnections {
-		p.interruptInUseConnections()
+	if interruptAllConnections {
+		p.createConnectionsCond.L.Lock()
+		p.idleMu.Lock()
+
+		idleConns := make(map[*connection]bool, len(p.idleConns))
+		for _, idle := range p.idleConns {
+			idleConns[idle] = true
+		}
+
+		conns := make([]*connection, 0, len(p.conns))
+		for _, conn := range p.conns {
+			if _, ok := idleConns[conn]; !ok && p.stale(conn) {
+				conns = append(conns, conn)
+			}
+		}
+
+		p.idleMu.Unlock()
+		p.createConnectionsCond.L.Unlock()
+
+		p.interruptConnections(conns)
 	}
 
 	if serviceID == nil {
@@ -1093,11 +1107,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			return nil, nil, false
 		}
 
-		w.mu.Lock()
-		connOpts := w.connOpts
-		w.mu.Unlock()
-		connOpts = append(connOpts, p.connOpts...)
-		conn := newConnection(p.address, connOpts...)
+		conn := newConnection(p.address, p.connOpts...)
 		conn.pool = p
 		conn.driverConnectionID = atomic.AddInt64(&p.nextID, 1)
 		p.conns[conn.driverConnectionID] = conn
@@ -1311,8 +1321,6 @@ func compact(arr []*connection) []*connection {
 type wantConn struct {
 	ready chan struct{}
 
-	connOpts []ConnectionOption
-
 	mu   sync.Mutex // Guards conn, err
 	conn *connection
 	err  error
@@ -1349,7 +1357,6 @@ func (w *wantConn) tryDeliver(conn *connection, err error) bool {
 		panic("x/mongo/driver/topology: internal error: misuse of tryDeliver")
 	}
 
-	w.connOpts = w.connOpts[:0]
 	close(w.ready)
 
 	return true
@@ -1365,7 +1372,6 @@ func (w *wantConn) cancel(p *pool, err error) {
 
 	w.mu.Lock()
 	if w.conn == nil && w.err == nil {
-		w.connOpts = w.connOpts[:0]
 		close(w.ready) // catch misbehavior in future delivery
 	}
 	conn := w.conn
