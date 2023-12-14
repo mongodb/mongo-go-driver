@@ -36,7 +36,7 @@ func main() {
 		ApplyURI("mongodb://localhost:27017").
 		SetLoggerOptions(loggerOptions)
 
-	client, err := mongo.Connect(context.TODO(), clientOptions)
+	client, err := mongo.Connect(clientOptions)
 	if err != nil {
 		log.Fatalf("error connecting to MongoDB: %v", err)
 	}

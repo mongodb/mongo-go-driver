@@ -29,7 +29,7 @@ type Aggregate struct {
 	batchSize                *int32
 	bypassDocumentValidation *bool
 	collation                bsoncore.Document
-	comment                  *string
+	comment                  bsoncore.Value
 	hint                     bsoncore.Value
 	maxTime                  *time.Duration
 	pipeline                 bsoncore.Document
@@ -143,9 +143,8 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", a.collation)
 	}
-	if a.comment != nil {
-
-		dst = bsoncore.AppendStringElement(dst, "comment", *a.comment)
+	if a.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", a.comment)
 	}
 	if a.hint.Type != bsontype.Type(0) {
 
@@ -207,13 +206,13 @@ func (a *Aggregate) Collation(collation bsoncore.Document) *Aggregate {
 	return a
 }
 
-// Comment specifies an arbitrary string to help trace the operation through the database profiler, currentOp, and logs.
-func (a *Aggregate) Comment(comment string) *Aggregate {
+// Comment sets a value to help trace an operation.
+func (a *Aggregate) Comment(comment bsoncore.Value) *Aggregate {
 	if a == nil {
 		a = new(Aggregate)
 	}
 
-	a.comment = &comment
+	a.comment = comment
 	return a
 }
 
