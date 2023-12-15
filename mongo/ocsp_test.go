@@ -32,7 +32,7 @@ func TestOCSP(t *testing.T) {
 
 	t.Run("tls", func(t *testing.T) {
 		clientOpts := createOCSPClientOptions(cs.Original)
-		client, err := Connect(bgCtx, clientOpts)
+		client, err := Connect(clientOpts)
 		assert.Nil(t, err, "Connect error: %v", err)
 		defer func() { _ = client.Disconnect(bgCtx) }()
 
@@ -47,7 +47,7 @@ func TestOCSP(t *testing.T) {
 	})
 	t.Run("tlsInsecure", func(t *testing.T) {
 		clientOpts := createInsecureOCSPClientOptions(cs.Original)
-		client, err := Connect(bgCtx, clientOpts)
+		client, err := Connect(clientOpts)
 		assert.Nil(t, err, "Connect error: %v", err)
 		defer func() { _ = client.Disconnect(bgCtx) }()
 

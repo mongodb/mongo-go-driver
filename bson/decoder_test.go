@@ -253,7 +253,7 @@ func TestDecoderv2(t *testing.T) {
 
 		var got *D
 		err = dec.Decode(got)
-		if err != ErrDecodeToNil {
+		if !errors.Is(err, ErrDecodeToNil) {
 			t.Fatalf("Decode error mismatch; expected %v, got %v", ErrDecodeToNil, err)
 		}
 	})

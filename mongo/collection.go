@@ -299,7 +299,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		if err != nil {
 			return nil, err
 		}
-		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NewObjectID(), coll.bsonOpts, coll.registry)
+		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NilObjectID, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -370,8 +370,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
-	wce, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var wce driver.WriteCommandError
+	if !errors.As(err, &wce) {
 		return result, err
 	}
 
@@ -465,8 +465,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	}
 
 	imResult := &InsertManyResult{InsertedIDs: result}
-	writeException, ok := err.(WriteException)
-	if !ok {
+	var writeException WriteException
+	if !errors.As(err, &writeException) {
 		return imResult, err
 	}
 
@@ -1046,13 +1046,13 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
 	}
 	if ao.Comment != nil {
-		op.Comment(*ao.Comment)
-
-		commentVal, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
+		comment, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
-		cursorOpts.Comment = commentVal
+
+		op.Comment(comment)
+		cursorOpts.Comment = comment
 	}
 	if ao.Hint != nil {
 		if isUnorderedMap(ao.Hint) {
@@ -1176,7 +1176,12 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
 	if countOpts.Comment != nil {
-		op.Comment(*countOpts.Comment)
+		comment, err := marshalValue(countOpts.Comment, coll.bsonOpts, coll.registry)
+		if err != nil {
+			return 0, err
+		}
+
+		op.Comment(comment)
 	}
 	if countOpts.Hint != nil {
 		if isUnorderedMap(countOpts.Hint) {
@@ -1531,13 +1536,13 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
 	}
 	if fo.Comment != nil {
-		op.Comment(*fo.Comment)
-
-		commentVal, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
+		comment, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		cursorOpts.Comment = commentVal
+
+		op.Comment(comment)
+		cursorOpts.Comment = comment
 	}
 	if fo.CursorType != nil {
 		switch *fo.CursorType {
@@ -1637,6 +1642,36 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
 }
 
+func newFindOptionsFromFindOneOptions(opts ...*options.FindOneOptions) []*options.FindOptions {
+	findOpts := make([]*options.FindOptions, 0, len(opts))
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		findOpts = append(findOpts, &options.FindOptions{
+			AllowPartialResults: opt.AllowPartialResults,
+			Collation:           opt.Collation,
+			Comment:             opt.Comment,
+			Hint:                opt.Hint,
+			Max:                 opt.Max,
+			MaxTime:             opt.MaxTime,
+			Min:                 opt.Min,
+			Projection:          opt.Projection,
+			ReturnKey:           opt.ReturnKey,
+			ShowRecordID:        opt.ShowRecordID,
+			Skip:                opt.Skip,
+			Sort:                opt.Sort,
+		})
+	}
+
+	// Unconditionally send a limit to make sure only one document is returned and
+	// the cursor is not kept open by the server.
+	findOpts = append(findOpts, options.Find().SetLimit(-1))
+
+	return findOpts
+}
+
 // FindOne executes a find command and returns a SingleResult for one document in the collection.
 //
 // The filter parameter must be a document containing query operators and can be used to select the document to be
@@ -1653,31 +1688,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	findOpts := make([]*options.FindOptions, 0, len(opts))
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		findOpts = append(findOpts, &options.FindOptions{
-			AllowPartialResults: opt.AllowPartialResults,
-			Collation:           opt.Collation,
-			Comment:             opt.Comment,
-			Hint:                opt.Hint,
-			Max:                 opt.Max,
-			MaxTime:             opt.MaxTime,
-			Min:                 opt.Min,
-			Projection:          opt.Projection,
-			ReturnKey:           opt.ReturnKey,
-			ShowRecordID:        opt.ShowRecordID,
-			Skip:                opt.Skip,
-			Sort:                opt.Sort,
-		})
-	}
-	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
-	// by the server.
-	findOpts = append(findOpts, options.Find().SetLimit(-1))
-
-	cursor, err := coll.Find(ctx, filter, findOpts...)
+	cursor, err := coll.Find(ctx, filter, newFindOptionsFromFindOneOptions(opts...)...)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
@@ -2200,7 +2211,7 @@ func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectio
 func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return fmt.Errorf("error transforming document: %v", err)
+		return fmt.Errorf("error transforming document: %w", err)
 	}
 
 	// Drop the two encryption-related, associated collections: `escCollection` and `ecocCollection`.
