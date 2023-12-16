@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -87,13 +88,16 @@ func TestRTTMonitor(t *testing.T) {
 	t.Run("measures the average, minimum and 90th percentile RTT", func(t *testing.T) {
 		t.Parallel()
 
-		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+		dialer := driverutil.DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
+
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
-			createConnectionFn: func() *connection {
-				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
+			createConnectionFn: func() *driverutil.UnsafeConnection {
+				return driverutil.NewUnsafeConnection("", &driverutil.UnsafeConnectionOptions{
+					Dialer: dialer,
+				})
 			},
 			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
@@ -163,15 +167,15 @@ func TestRTTMonitor(t *testing.T) {
 	t.Run("can connect and disconnect repeatedly", func(t *testing.T) {
 		t.Parallel()
 
-		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+		dialer := driverutil.DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Second,
-			createConnectionFn: func() *connection {
-				return newConnection("", WithDialer(func(Dialer) Dialer {
-					return dialer
-				}))
+			createConnectionFn: func() *driverutil.UnsafeConnection {
+				return driverutil.NewUnsafeConnection("", &driverutil.UnsafeConnectionOptions{
+					Dialer: dialer,
+				})
 			},
 			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
@@ -186,13 +190,15 @@ func TestRTTMonitor(t *testing.T) {
 	t.Run("works after reset", func(t *testing.T) {
 		t.Parallel()
 
-		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+		dialer := driverutil.DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
-			createConnectionFn: func() *connection {
-				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
+			createConnectionFn: func() *driverutil.UnsafeConnection {
+				return driverutil.NewUnsafeConnection("", &driverutil.UnsafeConnectionOptions{
+					Dialer: dialer,
+				})
 			},
 			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
@@ -295,8 +301,8 @@ func TestRTTMonitor(t *testing.T) {
 		rtt := newRTTMonitor(&rttConfig{
 			interval: 10 * time.Millisecond,
 			timeout:  100 * time.Millisecond,
-			createConnectionFn: func() *connection {
-				return newConnection(address.Address(l.Addr().String()))
+			createConnectionFn: func() *driverutil.UnsafeConnection {
+				return driverutil.NewUnsafeConnection(address.Address(l.Addr().String()), nil)
 			},
 			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})

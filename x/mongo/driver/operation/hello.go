@@ -51,7 +51,7 @@ type Hello struct {
 	res bsoncore.Document
 }
 
-var _ driver.Handshaker = (*Hello)(nil)
+var _ mnet.Handshaker = (*Hello)(nil)
 
 // NewHello constructs a Hello.
 func NewHello() *Hello { return &Hello{} }
@@ -602,7 +602,11 @@ func (h *Hello) createOperation() driver.Operation {
 
 // GetHandshakeInformation performs the MongoDB handshake for the provided connection and returns the relevant
 // information about the server. This function implements the driver.Handshaker interface.
-func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, conn *mnet.Connection) (driver.HandshakeInformation, error) {
+func (h *Hello) GetHandshakeInformation(
+	ctx context.Context,
+	_ address.Address,
+	conn *mnet.Connection,
+) (mnet.HandshakeInformation, error) {
 	deployment := driver.SingleConnectionDeployment{C: conn}
 
 	op := driver.Operation{
@@ -622,10 +626,10 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 	}
 
 	if err := op.Execute(ctx); err != nil {
-		return driver.HandshakeInformation{}, err
+		return mnet.HandshakeInformation{}, err
 	}
 
-	info := driver.HandshakeInformation{
+	info := mnet.HandshakeInformation{
 		Description: h.Result(conn.Address()),
 	}
 	if speculativeAuthenticate, ok := h.res.Lookup("speculativeAuthenticate").DocumentOK(); ok {

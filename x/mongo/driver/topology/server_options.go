@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -23,7 +24,7 @@ var defaultRegistry = bson.NewRegistryBuilder().Build()
 type serverConfig struct {
 	clock                *session.ClusterClock
 	compressionOpts      []string
-	connectionOpts       []ConnectionOption
+	connectionOpts       *mnet.Options
 	appname              string
 	heartbeatInterval    time.Duration
 	heartbeatTimeout     time.Duration
@@ -77,9 +78,9 @@ func withMonitoringDisabled(fn func(bool) bool) ServerOption {
 }
 
 // WithConnectionOptions configures the server's connections.
-func WithConnectionOptions(fn func(...ConnectionOption) []ConnectionOption) ServerOption {
+func WithConnectionOptions(fn func(*mnet.Options) *mnet.Options) ServerOption {
 	return func(cfg *serverConfig) {
-		cfg.connectionOpts = fn(cfg.connectionOpts...)
+		cfg.connectionOpts = fn(cfg.connectionOpts)
 	}
 }
 

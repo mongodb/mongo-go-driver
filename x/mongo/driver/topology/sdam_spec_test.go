@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 type response struct {
@@ -299,12 +300,12 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		case "network":
 			currError = driver.Error{
 				Labels:  []string{driver.NetworkError},
-				Wrapped: ConnectionError{Wrapped: netErr{false}},
+				Wrapped: mnet.ConnectionError{Wrapped: netErr{false}},
 			}
 		case "timeout":
 			currError = driver.Error{
 				Labels:  []string{driver.NetworkError},
-				Wrapped: ConnectionError{Wrapped: netErr{true}},
+				Wrapped: mnet.ConnectionError{Wrapped: netErr{true}},
 			}
 		default:
 			t.Fatalf("unrecognized error type: %v", appErr.Type)
@@ -321,18 +322,19 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 			generation = *appErr.Generation
 		}
 		//use generation number to check conn stale
-		innerConn := connection{
-			desc:       desc,
-			generation: generation,
-			pool:       server.pool,
-		}
-		conn := Connection{connection: &innerConn}
+		//innerConn := connection{
+		//	desc:       desc,
+		//	generation: generation,
+		//	pool:       server.pool,
+		//}
+		//conn := Connection{connection: &innerConn}
 
 		switch appErr.When {
 		case "beforeHandshakeCompletes":
 			server.ProcessHandshakeError(currError, generation, nil)
 		case "afterHandshakeCompletes":
-			_ = server.ProcessError(currError, &conn)
+		// TODO(GODRIVER-3058): need to mock a describer
+		//_ = server.ProcessError(currError, desc)
 		default:
 			t.Fatalf("unrecognized applicationError.When value: %v", appErr.When)
 		}

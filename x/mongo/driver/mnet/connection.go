@@ -7,139 +7,50 @@
 package mnet
 
 import (
-	"context"
-	"fmt"
-	"io"
+	"sync"
 
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 )
-
-// WireMessageReader represents a Connection where server operations can be
-// read from.
-type WireMessageReader interface {
-	Read(ctx context.Context) ([]byte, error)
-}
-
-// WireMessageWriter represents a Connection where server operations can be
-// written to.
-type WireMessageWriter interface {
-	Write(ctx context.Context, wm []byte) error
-}
-
-// WireMessageReadWriteCloser represents a Connection where server operations
-// can read from, written to, and closed.
-type WireMessageReadWriteCloser interface {
-	WireMessageReader
-	WireMessageWriter
-	io.Closer
-}
-
-// Describer represents a Connection that can be described.
-type Describer interface {
-	Description() description.Server
-	ID() string
-	ServerConnectionID() *int64
-	DriverConnectionID() int64
-	Address() address.Address
-	Stale() bool
-}
-
-// Streamer represents a Connection that supports streaming wire protocol
-// messages using the moreToCome and exhaustAllowed flags.
-//
-// The SetStreaming and CurrentlyStreaming functions correspond to the
-// moreToCome flag on server responses. If a response has moreToCome set,
-// SetStreaming(true) will be called and CurrentlyStreaming() should return
-// true.
-//
-// CanStream corresponds to the exhaustAllowed flag. The operations layer will
-// set exhaustAllowed on outgoing wire messages to inform the server that the
-// driver supports streaming.
-type Streamer interface {
-	SetStreaming(bool)
-	CurrentlyStreaming() bool
-	SupportsStreaming() bool
-}
-
-// Compressor is an interface used to compress wire messages. If a Connection
-// supports compression it should implement this interface as well. The
-// CompressWireMessage method will be called during the execution of an
-// operation if the wire message is allowed to be compressed.
-type Compressor interface {
-	CompressWireMessage(src, dst []byte) ([]byte, error)
-}
-
-// Pinner represents a Connection that can be pinned by one or more cursors or
-// transactions. Implementations of this interface should maintain the following
-// invariants:
-//
-//  1. Each Pin* call should increment the number of references for the
-//     connection.
-//  2. Each Unpin* call should decrement the number of references for the
-//     connection.
-//  3. Calls to Close() should be ignored until all resources have unpinned the
-//     connection.
-type Pinner interface {
-	PinToCursor() error
-	PinToTransaction() error
-	UnpinFromCursor() error
-	UnpinFromTransaction() error
-}
 
 // Connection represents a connection to a MongoDB server.
 type Connection struct {
 	WireMessageReadWriteCloser
 	Describer
 	Streamer
-	Compressor
+	WireMessageCompressor
 	Pinner
+
+	// conn contains the underlying connection logic for the default
+	// implementation of mnet.Connection. conn is thread-unsafe to avoid
+	// lock contention, but the default usage should be made thread-safe.
+	unsafe *driverutil.UnsafeConnection
+
+	// mu guards logic that wrapps the thread-unsafe conn.
+	mu sync.RWMutex
 }
 
-// NewConnection creates a new Connection with the provided component. This
-// constructor returns a component that is already a Connection to avoid
-// mis-asserting the composite interfaces.
-func NewConnection(component interface{}) (*Connection, error) {
-	if _, ok := component.(*Connection); ok {
-		return component.(*Connection), nil
+// NewConnection will construct a connection object with the default
+// implementations.
+func NewConnection(addr address.Address, _ *Options) *Connection {
+	// Convert opts to UnsafeConnectionOptions.
+	unsafeOpts := &driverutil.UnsafeConnectionOptions{}
+
+	conn := &Connection{
+		unsafe: driverutil.NewUnsafeConnection(addr, unsafeOpts),
 	}
 
-	conn := &Connection{}
-	empty := true
+	conn.Describer = &defaultDescriber{}
+	conn.WireMessageReadWriteCloser = &defaultIO{}
+	conn.Pinner = &defaultPinner{}
+	conn.Streamer = &defaultStreamer{}
+	conn.WireMessageCompressor = &defaultCompressor{}
 
-	if describer, ok := component.(Describer); ok {
-		conn.Describer = describer
-
-		empty = false
-	}
-
-	if streamer, ok := component.(Streamer); ok {
-		conn.Streamer = streamer
-
-		empty = false
-	}
-
-	if compressor, ok := component.(Compressor); ok {
-		conn.Compressor = compressor
-
-		empty = false
-	}
-
-	if pinner, ok := component.(Pinner); ok {
-		conn.Pinner = pinner
-
-		empty = false
-	}
-
-	if rwc, ok := component.(WireMessageReadWriteCloser); ok {
-		conn.WireMessageReadWriteCloser = rwc
-
-		empty = false
-	}
-
-	if empty {
-		return nil, fmt.Errorf("unsupported type for Connection: %T", component)
-	}
-
-	return conn, nil
+	return conn
 }
+
+// TODO: Add logic
+func (c *Connection) Expire() error                 { return nil }
+func (c *Connection) Alive() bool                   { return false }
+func (c *Connection) LocalAddress() address.Address { return "" }
+func (c *Connection) IsClosed() bool                { return false }

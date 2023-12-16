@@ -40,11 +40,11 @@ func (c *changeStreamDeployment) RTTMonitor() driver.RTTMonitor {
 	return c.server.RTTMonitor()
 }
 
-func (c *changeStreamDeployment) ProcessError(err error, describer mnet.Describer) driver.ProcessErrorResult {
+func (c *changeStreamDeployment) ProcessError(err error, desc mnet.Describer) driver.ProcessErrorResult {
 	ep, ok := c.server.(driver.ErrorProcessor)
 	if !ok {
 		return driver.NoChange
 	}
 
-	return ep.ProcessError(err, describer)
+	return ep.ProcessError(err, desc)
 }

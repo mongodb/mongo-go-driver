@@ -13,8 +13,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
+
+var _ mnet.Describer = &ChannelConn{}
+var _ mnet.WireMessageReadWriteCloser = &ChannelConn{}
 
 // ChannelConn implements the driver.Connection interface by reading and writing wire messages
 // to a channel

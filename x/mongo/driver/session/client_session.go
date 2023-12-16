@@ -75,16 +75,16 @@ func (s TransactionState) String() string {
 	}
 }
 
-var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
-
-// LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
-// to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
-// and exists to be able to pin transactions to a connection without causing an import cycle.
-type LoadBalancedTransactionConnection interface {
-	mnet.WireMessageReadWriteCloser
-	mnet.Describer
-	mnet.Pinner
-}
+//var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
+//
+//// LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
+//// to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
+//// and exists to be able to pin transactions to a connection without causing an import cycle.
+//type LoadBalancedTransactionConnection interface {
+//	mnet.WireMessageReadWriteCloser
+//	mnet.Describer
+//	mnet.Pinner
+//}
 
 // Client is a session for clients to run commands.
 type Client struct {
@@ -119,7 +119,8 @@ type Client struct {
 	TransactionState TransactionState
 	PinnedServer     *description.Server
 	RecoveryToken    bson.Raw
-	PinnedConnection LoadBalancedTransactionConnection
+	//PinnedConnection LoadBalancedTransactionConnection // TODO: this should be removed
+	PinnedConnection *mnet.Connection
 	SnapshotTime     *primitive.Timestamp
 }
 

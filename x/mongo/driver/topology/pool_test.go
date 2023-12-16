@@ -15,9 +15,102 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
+
+type netconn struct {
+	net.Conn
+	closed chan struct{}
+	d      *dialer
+}
+
+func (nc *netconn) Close() error {
+	nc.closed <- struct{}{}
+	nc.d.connclosed(nc)
+	return nc.Conn.Close()
+}
+
+type dialer struct {
+	mnet.Dialer
+	opened        map[*netconn]struct{}
+	closed        map[*netconn]struct{}
+	closeCallBack func()
+	sync.Mutex
+}
+
+func newdialer(d mnet.Dialer) *dialer {
+	return &dialer{Dialer: d, opened: make(map[*netconn]struct{}), closed: make(map[*netconn]struct{})}
+}
+
+func (d *dialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
+	d.Lock()
+	defer d.Unlock()
+	c, err := d.Dialer.DialContext(ctx, network, address)
+	if err != nil {
+		return nil, err
+	}
+	nc := &netconn{Conn: c, closed: make(chan struct{}, 1), d: d}
+	d.opened[nc] = struct{}{}
+	return nc, nil
+}
+
+func (d *dialer) connclosed(nc *netconn) {
+	d.Lock()
+	defer d.Unlock()
+	d.closed[nc] = struct{}{}
+	if d.closeCallBack != nil {
+		d.closeCallBack()
+	}
+}
+
+func (d *dialer) lenopened() int {
+	d.Lock()
+	defer d.Unlock()
+	return len(d.opened)
+}
+
+func (d *dialer) lenclosed() int {
+	d.Lock()
+	defer d.Unlock()
+	return len(d.closed)
+}
+
+// bootstrapConnection creates a listener that will listen for a single connection
+// on the return address. The user provided run function will be called with the accepted
+// connection. The user is responsible for closing the connection.
+func bootstrapConnections(t *testing.T, num int, run func(net.Conn)) net.Addr {
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		t.Errorf("Could not set up a listener: %v", err)
+		t.FailNow()
+	}
+	go func() {
+		for i := 0; i < num; i++ {
+			c, err := l.Accept()
+			if err != nil {
+				t.Errorf("Could not accept a connection: %v", err)
+			}
+			go run(c)
+		}
+		_ = l.Close()
+	}()
+	return l.Addr()
+}
+
+type writeFailConn struct {
+	net.Conn
+}
+
+func (wfc *writeFailConn) Write([]byte) (int, error) {
+	return 0, errors.New("Write error")
+}
+
+func (wfc *writeFailConn) SetWriteDeadline(time.Time) error {
+	return nil
+}
 
 func TestPool(t *testing.T) {
 	t.Run("newPool", func(t *testing.T) {
@@ -26,7 +119,7 @@ func TestPool(t *testing.T) {
 		t.Run("minPoolSize should not exceed maxPoolSize", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{MinPoolSize: 100, MaxPoolSize: 10})
+			p := newPool(poolConfig{MinPoolSize: 100, MaxPoolSize: 10}, nil)
 			assert.Equalf(t, uint64(10), p.minSize, "expected minSize of a pool not to be greater than maxSize")
 
 			p.close(context.Background())
@@ -34,7 +127,7 @@ func TestPool(t *testing.T) {
 		t.Run("minPoolSize may exceed maxPoolSize of 0", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{MinPoolSize: 10, MaxPoolSize: 0})
+			p := newPool(poolConfig{MinPoolSize: 10, MaxPoolSize: 0}, nil)
 			assert.Equalf(t, uint64(10), p.minSize, "expected minSize of a pool to be greater than maxSize of 0")
 
 			p.close(context.Background())
@@ -42,8 +135,8 @@ func TestPool(t *testing.T) {
 		t.Run("should be paused", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{})
-			assert.Equalf(t, poolPaused, p.getState(), "expected new pool to be paused")
+			p := newPool(poolConfig{}, nil)
+			assert.Equalf(t, poolPaused, p.GetState(), "expected new pool to be paused")
 
 			p.close(context.Background())
 		})
@@ -63,14 +156,14 @@ func TestPool(t *testing.T) {
 
 			p1 := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p1.ready()
 			noerr(t, err)
 
 			c, err := p1.checkOut(context.Background())
 			noerr(t, err)
 
-			p2 := newPool(poolConfig{})
+			p2 := newPool(poolConfig{}, nil)
 			err = p2.ready()
 			noerr(t, err)
 
@@ -87,7 +180,7 @@ func TestPool(t *testing.T) {
 		t.Run("calling close multiple times does not panic", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{})
+			p := newPool(poolConfig{}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -106,13 +199,19 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
-			conns := make([]*connection, 3)
+			conns := make([]*driverutil.UnsafeConnection, 3)
 			for i := range conns {
 				conns[i], err = p.checkOut(context.Background())
 				noerr(t, err)
@@ -142,13 +241,19 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
-			conns := make([]*connection, 3)
+			conns := make([]*driverutil.UnsafeConnection, 3)
 			for i := range conns {
 				conns[i], err = p.checkOut(context.Background())
 				noerr(t, err)
@@ -179,7 +284,7 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -225,12 +330,12 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
 			// Check out 2 connections from the pool and add them to a conns slice.
-			conns := make([]*connection, 2)
+			conns := make([]*driverutil.UnsafeConnection, 2)
 			for i := 0; i < 2; i++ {
 				c, err := p.checkOut(context.Background())
 				noerr(t, err)
@@ -250,11 +355,11 @@ func TestPool(t *testing.T) {
 			// 2 in-use connections. Assert that both connections are still connected during
 			// graceful shutdown before they are checked in.
 			go func() {
-				for p.getState() == poolReady {
+				for p.GetState() == poolReady {
 					time.Sleep(time.Millisecond)
 				}
 				for _, c := range conns {
-					assert.Equalf(t, connConnected, c.state, "expected conn to still be connected")
+					assert.Equalf(t, connConnected, c.State, "expected conn to still be connected")
 
 					err := p.checkIn(c)
 					noerr(t, err)
@@ -280,7 +385,7 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -289,8 +394,8 @@ func TestPool(t *testing.T) {
 
 			p.close(context.Background())
 
-			c1 := &Connection{connection: c}
-			err = c1.Close()
+			// GODRIVER-3058
+			err = c.Close()
 			noerr(t, err)
 		})
 	})
@@ -309,11 +414,11 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
-			conns := make([]*connection, 3)
+			conns := make([]*driverutil.UnsafeConnection, 3)
 			for i := range conns {
 				conn, err := p.checkOut(context.Background())
 				noerr(t, err)
@@ -345,7 +450,7 @@ func TestPool(t *testing.T) {
 		t.Run("calling ready multiple times does not return an error", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{})
+			p := newPool(poolConfig{}, nil)
 			for i := 0; i < 5; i++ {
 				err := p.ready()
 				noerr(t, err)
@@ -365,7 +470,7 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -403,7 +508,7 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -451,16 +556,19 @@ func TestPool(t *testing.T) {
 			t.Parallel()
 
 			dialErr := errors.New("create new connection error")
-			p := newPool(poolConfig{}, WithDialer(func(Dialer) Dialer {
-				return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+			connOpts := &mnet.Options{
+				Dialer: mnet.DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 					return nil, dialErr
-				})
-			}))
+				}),
+			}
+
+			p := newPool(poolConfig{}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
 			_, err = p.checkOut(context.Background())
-			var want error = ConnectionError{Wrapped: dialErr, init: true}
+			var want error = mnet.ConnectionError{Wrapped: dialErr, Init: true}
 			assert.Equalf(t, want, err, "should return error from calling checkOut()")
 			// If a connection initialization error occurs during checkOut, removing and closing the
 			// failed connection both happen asynchronously with the checkOut. Wait for up to 2s for
@@ -486,12 +594,16 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(
 				poolConfig{
 					Address:     address.Address(addr.String()),
 					MaxIdleTime: time.Millisecond,
 				},
-				WithDialer(func(Dialer) Dialer { return d }),
+				connOpts,
 			)
 			err := p.ready()
 			noerr(t, err)
@@ -502,7 +614,7 @@ func TestPool(t *testing.T) {
 			noerr(t, err)
 			assert.Equalf(t, 1, d.lenopened(), "should have opened 1 connection")
 			assert.Equalf(t, 1, p.totalConnectionCount(), "pool should have 1 total connection")
-			assert.Equalf(t, time.Millisecond, c1.idleTimeout, "connection should have a 1ms idle timeout")
+			assert.Equalf(t, time.Millisecond, c1.IdleTimeout, "connection should have a 1ms idle timeout")
 
 			err = p.checkIn(c1)
 			noerr(t, err)
@@ -532,9 +644,15 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
@@ -561,7 +679,7 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -577,23 +695,20 @@ func TestPool(t *testing.T) {
 		t.Run("handshaker i/o fails", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(
-				poolConfig{},
-				WithHandshaker(func(Handshaker) Handshaker {
-					return operation.NewHello()
+			connOpts := &mnet.Options{
+				Handshaker: operation.NewHello(),
+				Dialer: mnet.DialerFunc(func(context.Context, string, string) (net.Conn, error) {
+					return &writeFailConn{&net.TCPConn{}}, nil
 				}),
-				WithDialer(func(Dialer) Dialer {
-					return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-						return &writeFailConn{&net.TCPConn{}}, nil
-					})
-				}),
-			)
+			}
+
+			p := newPool(poolConfig{}, connOpts)
 			err := p.ready()
 			noerr(t, err)
 
 			_, err = p.checkOut(context.Background())
-			assert.IsTypef(t, ConnectionError{}, err, "expected a ConnectionError")
-			if err, ok := err.(ConnectionError); ok {
+			assert.IsTypef(t, mnet.ConnectionError{}, err, "expected a ConnectionError")
+			if err, ok := err.(mnet.ConnectionError); ok {
 				assert.Containsf(
 					t,
 					err.Unwrap().Error(),
@@ -629,7 +744,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MaxPoolSize: 1,
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -669,7 +784,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MaxPoolSize: 1,
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -720,13 +835,16 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(
 				poolConfig{
 					Address:     address.Address(addr.String()),
 					MaxPoolSize: 2,
-				},
-				WithDialer(func(Dialer) Dialer { return d }),
-			)
+				}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
@@ -757,7 +875,7 @@ func TestPool(t *testing.T) {
 			// checkOut() completes is within 100ms.
 			var start time.Time
 			go func() {
-				c.close()
+				c.Close()
 				start = time.Now()
 				err := p.checkIn(c)
 				noerr(t, err)
@@ -791,7 +909,7 @@ func TestPool(t *testing.T) {
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MaxPoolSize: 1,
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -830,7 +948,7 @@ func TestPool(t *testing.T) {
 
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p.ready()
 			noerr(t, err)
 
@@ -861,9 +979,15 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
@@ -893,14 +1017,14 @@ func TestPool(t *testing.T) {
 
 			p1 := newPool(poolConfig{
 				Address: address.Address(addr.String()),
-			})
+			}, nil)
 			err := p1.ready()
 			noerr(t, err)
 
 			c, err := p1.checkOut(context.Background())
 			noerr(t, err)
 
-			p2 := newPool(poolConfig{})
+			p2 := newPool(poolConfig{}, nil)
 			err = p2.ready()
 			noerr(t, err)
 
@@ -921,10 +1045,15 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MaxIdleTime: 100 * time.Millisecond,
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 			defer p.close(context.Background())
@@ -954,11 +1083,17 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MinPoolSize: 3,
 				MaxIdleTime: 10 * time.Millisecond,
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 			defer p.close(context.Background())
@@ -994,10 +1129,16 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MinPoolSize: 3,
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
@@ -1018,11 +1159,16 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MinPoolSize: 20,
 				MaxPoolSize: 2,
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
@@ -1043,17 +1189,23 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address: address.Address(addr.String()),
 				// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
 				MaintainInterval: 10 * time.Millisecond,
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 
 			// Check out and check in 3 connections. Assert that there are 3 total and 3 idle
 			// connections in the pool.
-			conns := make([]*connection, 3)
+			conns := make([]*driverutil.UnsafeConnection, 3)
 			for i := range conns {
 				conns[i], err = p.checkOut(context.Background())
 				noerr(t, err)
@@ -1071,8 +1223,8 @@ func TestPool(t *testing.T) {
 			// perished connections and removes them from the pool.
 			p.idleMu.Lock()
 			for i := 0; i < 2; i++ {
-				p.idleConns[i].idleTimeout = time.Millisecond
-				p.idleConns[i].idleDeadline.Store(time.Now().Add(-1 * time.Hour))
+				p.idleConns[i].IdleTimeout = time.Millisecond
+				p.idleConns[i].IdleDeadline.Store(time.Now().Add(-1 * time.Hour))
 			}
 			p.idleMu.Unlock()
 			assertConnectionsClosed(t, d, 2)
@@ -1092,12 +1244,17 @@ func TestPool(t *testing.T) {
 			})
 
 			d := newdialer(&net.Dialer{})
+			connOpts := &mnet.Options{
+				Dialer: d,
+			}
+
 			p := newPool(poolConfig{
 				Address:     address.Address(addr.String()),
 				MinPoolSize: 3,
 				// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
 				MaintainInterval: 10 * time.Millisecond,
-			}, WithDialer(func(Dialer) Dialer { return d }))
+			}, connOpts)
+
 			err := p.ready()
 			noerr(t, err)
 			assertConnectionsOpened(t, d, 3)
@@ -1106,8 +1263,8 @@ func TestPool(t *testing.T) {
 
 			p.idleMu.Lock()
 			for i := 0; i < 2; i++ {
-				p.idleConns[i].idleTimeout = time.Millisecond
-				p.idleConns[i].idleDeadline.Store(time.Now().Add(-1 * time.Hour))
+				p.idleConns[i].IdleTimeout = time.Millisecond
+				p.idleConns[i].IdleDeadline.Store(time.Now().Add(-1 * time.Hour))
 			}
 			p.idleMu.Unlock()
 			assertConnectionsClosed(t, d, 2)

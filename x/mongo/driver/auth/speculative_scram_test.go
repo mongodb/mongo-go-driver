@@ -82,7 +82,11 @@ func TestSpeculativeSCRAM(t *testing.T) {
 					ReadResp: responses,
 				}
 
-				mnetconn, err := mnet.NewConnection(conn)
+				mnetconn := &mnet.Connection{
+					Describer:                  conn,
+					WireMessageReadWriteCloser: conn,
+				}
+
 				require.NoError(t, err)
 
 				// Do both parts of the handshake.
@@ -170,7 +174,11 @@ func TestSpeculativeSCRAM(t *testing.T) {
 					ReadResp: responses,
 				}
 
-				mnetconn, err := mnet.NewConnection(conn)
+				mnetconn := &mnet.Connection{
+					Describer:                  conn,
+					WireMessageReadWriteCloser: conn,
+				}
+
 				require.NoError(t, err)
 
 				info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)

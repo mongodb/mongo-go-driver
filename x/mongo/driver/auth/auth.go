@@ -66,14 +66,14 @@ type HandshakeOptions struct {
 }
 
 type authHandshaker struct {
-	wrapped driver.Handshaker
+	wrapped mnet.Handshaker
 	options *HandshakeOptions
 
-	handshakeInfo driver.HandshakeInformation
+	handshakeInfo mnet.HandshakeInformation
 	conversation  SpeculativeConversation
 }
 
-var _ driver.Handshaker = (*authHandshaker)(nil)
+var _ mnet.Handshaker = (*authHandshaker)(nil)
 
 // GetHandshakeInformation performs the initial MongoDB handshake to retrieve the required information for the provided
 // connection.
@@ -81,7 +81,7 @@ func (ah *authHandshaker) GetHandshakeInformation(
 	ctx context.Context,
 	addr address.Address,
 	conn *mnet.Connection,
-) (driver.HandshakeInformation, error) {
+) (mnet.HandshakeInformation, error) {
 	if ah.wrapped != nil {
 		return ah.wrapped.GetHandshakeInformation(ctx, addr, conn)
 	}
@@ -99,12 +99,12 @@ func (ah *authHandshaker) GetHandshakeInformation(
 			var err error
 			ah.conversation, err = speculativeAuth.CreateSpeculativeConversation()
 			if err != nil {
-				return driver.HandshakeInformation{}, newAuthError("failed to create conversation", err)
+				return mnet.HandshakeInformation{}, newAuthError("failed to create conversation", err)
 			}
 
 			firstMsg, err := ah.conversation.FirstMessage()
 			if err != nil {
-				return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
+				return mnet.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
 			}
 
 			op = op.SpeculativeAuthenticate(firstMsg)
@@ -114,7 +114,7 @@ func (ah *authHandshaker) GetHandshakeInformation(
 	var err error
 	ah.handshakeInfo, err = op.GetHandshakeInformation(ctx, addr, conn)
 	if err != nil {
-		return driver.HandshakeInformation{}, newAuthError("handshake failure", err)
+		return mnet.HandshakeInformation{}, newAuthError("handshake failure", err)
 	}
 	return ah.handshakeInfo, nil
 }
@@ -166,7 +166,7 @@ func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
 }
 
 // Handshaker creates a connection handshaker for the given authenticator.
-func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshaker {
+func Handshaker(h mnet.Handshaker, options *HandshakeOptions) mnet.Handshaker {
 	return &authHandshaker{
 		wrapped: h,
 		options: options,
@@ -177,7 +177,7 @@ func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshake
 type Config struct {
 	Connection    *mnet.Connection
 	ClusterClock  *session.ClusterClock
-	HandshakeInfo driver.HandshakeInformation
+	HandshakeInfo mnet.HandshakeInformation
 	ServerAPI     *driver.ServerAPIOptions
 	HTTPClient    *http.Client
 }

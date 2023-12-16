@@ -16,9 +16,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 // Connection pool state constants.
@@ -34,9 +36,6 @@ var ErrPoolNotPaused = PoolError("only a paused pool can be marked ready")
 
 // ErrPoolClosed is returned when attempting to check out a connection from a closed pool.
 var ErrPoolClosed = PoolError("attempted to check out a connection from closed connection pool")
-
-// ErrConnectionClosed is returned from an attempt to use an already closed connection.
-var ErrConnectionClosed = ConnectionError{ConnectionID: "<closed>", message: "connection is closed"}
 
 // ErrWrongPool is return when a connection is returned to a pool it doesn't belong to.
 var ErrWrongPool = PoolError("connection does not belong to this pool")
@@ -102,7 +101,7 @@ type pool struct {
 	// handshaking.
 	handshakeErrFn func(error, uint64, *primitive.ObjectID)
 
-	connOpts   []ConnectionOption
+	connOpts   driverutil.UnsafeConnectionOptions
 	generation *poolGenerationMap
 
 	maintainInterval time.Duration   // maintainInterval is the maintain() loop interval.
@@ -118,17 +117,17 @@ type pool struct {
 	// to the state of the guarded values must be made while holding the lock to prevent undefined
 	// behavior in the createConnections() waiting logic.
 	createConnectionsCond *sync.Cond
-	cancelBackgroundCtx   context.CancelFunc    // cancelBackgroundCtx is called to signal background goroutines to stop.
-	conns                 map[int64]*connection // conns holds all currently open connections.
-	newConnWait           wantConnQueue         // newConnWait holds all wantConn requests for new connections.
+	cancelBackgroundCtx   context.CancelFunc                     // cancelBackgroundCtx is called to signal background goroutines to stop.
+	conns                 map[int64]*driverutil.UnsafeConnection // conns holds all currently open connections.
+	newConnWait           wantConnQueue                          // newConnWait holds all wantConn requests for new connections.
 
-	idleMu       sync.Mutex    // idleMu guards idleConns, idleConnWait
-	idleConns    []*connection // idleConns holds all idle connections.
-	idleConnWait wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
+	idleMu       sync.Mutex                     // idleMu guards idleConns, idleConnWait
+	idleConns    []*driverutil.UnsafeConnection // idleConns holds all idle connections.
+	idleConnWait wantConnQueue                  // idleConnWait holds all wantConn requests for idle connections.
 }
 
 // getState returns the current state of the pool. Callers must not hold the stateMu lock.
-func (p *pool) getState() int {
+func (p *pool) GetState() int {
 	p.stateMu.RLock()
 	defer p.stateMu.RUnlock()
 
@@ -164,20 +163,20 @@ type reason struct {
 }
 
 // connectionPerished checks if a given connection is perished and should be removed from the pool.
-func connectionPerished(conn *connection) (reason, bool) {
+func connectionPerished(conn *driverutil.UnsafeConnection) (reason, bool) {
 	switch {
-	case conn.closed():
+	case conn.Closed():
 		// A connection would only be closed if it encountered a network error during an operation and closed itself.
 		return reason{
 			loggerConn: logger.ReasonConnClosedError,
 			event:      event.ReasonError,
 		}, true
-	case conn.idleTimeoutExpired():
+	case conn.IdleTimeoutExpired():
 		return reason{
 			loggerConn: logger.ReasonConnClosedIdle,
 			event:      event.ReasonIdle,
 		}, true
-	case conn.pool.stale(conn):
+	case conn.Pool.Stale(conn):
 		return reason{
 			loggerConn: logger.ReasonConnClosedStale,
 			event:      event.ReasonStale,
@@ -188,9 +187,11 @@ func connectionPerished(conn *connection) (reason, bool) {
 }
 
 // newPool creates a new pool. It will use the provided options when creating connections.
-func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
+func newPool(config poolConfig, connOpts *mnet.Options) *pool {
+	uConnOpts := mnet.NewUnsafeConnectionOptions(connOpts)
+
 	if config.MaxIdleTime != time.Duration(0) {
-		connOpts = append(connOpts, WithIdleTimeout(func(_ time.Duration) time.Duration { return config.MaxIdleTime }))
+		uConnOpts.IdleTimeout = config.MaxIdleTime
 	}
 
 	var maxConnecting uint64 = 2
@@ -212,22 +213,22 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		monitor:               config.PoolMonitor,
 		logger:                config.Logger,
 		handshakeErrFn:        config.handshakeErrFn,
-		connOpts:              connOpts,
+		connOpts:              uConnOpts,
 		generation:            newPoolGenerationMap(),
 		state:                 poolPaused,
 		maintainInterval:      maintainInterval,
 		maintainReady:         make(chan struct{}, 1),
 		backgroundDone:        &sync.WaitGroup{},
 		createConnectionsCond: sync.NewCond(&sync.Mutex{}),
-		conns:                 make(map[int64]*connection, config.MaxPoolSize),
-		idleConns:             make([]*connection, 0, config.MaxPoolSize),
+		conns:                 make(map[int64]*driverutil.UnsafeConnection, config.MaxPoolSize),
+		idleConns:             make([]*driverutil.UnsafeConnection, 0, config.MaxPoolSize),
 	}
 	// minSize must not exceed maxSize if maxSize is not 0
 	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
 		pool.minSize = pool.maxSize
 	}
-	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
+	pool.connOpts.GenerationNumberFn = pool.getGenerationForNewConnection
 	pool.generation.connect()
 
 	// Create a Context with cancellation that's used to signal the createConnections() and
@@ -274,8 +275,8 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 }
 
 // stale checks if a given connection's generation is below the generation of the pool
-func (p *pool) stale(conn *connection) bool {
-	return conn == nil || p.generation.stale(conn.desc.ServiceID, conn.generation)
+func (p *pool) Stale(conn *driverutil.UnsafeConnection) bool {
+	return conn == nil || p.generation.stale(conn.Desc.ServiceID, conn.Generation)
 }
 
 // ready puts the pool into the "ready" state and starts the background connection creation and
@@ -389,7 +390,7 @@ func (p *pool) close(ctx context.Context) {
 	// from newConnWait while holding the createConnectionsCond lock. We can't call removeConnection
 	// on the connections while holding any locks, so do that after we release the lock.
 	p.createConnectionsCond.L.Lock()
-	conns := make([]*connection, 0, len(p.conns))
+	conns := make([]*driverutil.UnsafeConnection, 0, len(p.conns))
 	for _, conn := range p.conns {
 		conns = append(conns, conn)
 	}
@@ -446,7 +447,7 @@ func (p *pool) unpinConnectionFromTransaction() {
 // checkOut enters a queue waiting for either the next idle or new connection. If the pool is not
 // ready, checkOut returns an error.
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
-func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
+func (p *pool) checkOut(ctx context.Context) (conn *driverutil.UnsafeConnection, err error) {
 	if mustLogPoolMessage(p) {
 		logPoolMessage(p, logger.ConnectionCheckoutStarted)
 	}
@@ -554,7 +555,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, w.conn.driverConnectionID,
+				logger.KeyDriverConnectionID, w.conn.DriverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionCheckedOut, keysAndValues...)
@@ -564,7 +565,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionCheckedOut,
 				Address:      p.address.String(),
-				ConnectionID: w.conn.driverConnectionID,
+				ConnectionID: w.conn.DriverConnectionID,
 			})
 		}
 
@@ -604,7 +605,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, w.conn.driverConnectionID,
+				logger.KeyDriverConnectionID, w.conn.DriverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionCheckedOut, keysAndValues...)
@@ -614,7 +615,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionCheckedOut,
 				Address:      p.address.String(),
-				ConnectionID: w.conn.driverConnectionID,
+				ConnectionID: w.conn.DriverConnectionID,
 			})
 		}
 		return w.conn, nil
@@ -656,19 +657,19 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 }
 
 // closeConnection closes a connection.
-func (p *pool) closeConnection(conn *connection) error {
-	if conn.pool != p {
+func (p *pool) closeConnection(conn *driverutil.UnsafeConnection) error {
+	if conn.Pool != p {
 		return ErrWrongPool
 	}
 
-	if atomic.LoadInt64(&conn.state) == connConnected {
-		conn.closeConnectContext()
-		conn.wait() // Make sure that the connection has finished connecting.
+	if atomic.LoadInt64(&conn.State) == connConnected {
+		conn.CloseConnectContext()
+		conn.Wait() // Make sure that the connection has finished connecting.
 	}
 
-	err := conn.close()
+	err := conn.Close()
 	if err != nil {
-		return ConnectionError{ConnectionID: conn.id, Wrapped: err, message: "failed to close net.Conn"}
+		return mnet.ConnectionError{ConnectionID: conn.ID, Wrapped: err, Message: "failed to close net.Conn"}
 	}
 
 	return nil
@@ -679,24 +680,24 @@ func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint
 }
 
 // removeConnection removes a connection from the pool and emits a "ConnectionClosed" event.
-func (p *pool) removeConnection(conn *connection, reason reason, err error) error {
+func (p *pool) removeConnection(conn *driverutil.UnsafeConnection, reason reason, err error) error {
 	if conn == nil {
 		return nil
 	}
 
-	if conn.pool != p {
+	if conn.Pool != p {
 		return ErrWrongPool
 	}
 
 	p.createConnectionsCond.L.Lock()
-	_, ok := p.conns[conn.driverConnectionID]
+	_, ok := p.conns[conn.DriverConnectionID]
 	if !ok {
 		// If the connection has been removed from the pool already, exit without doing any
 		// additional state changes.
 		p.createConnectionsCond.L.Unlock()
 		return nil
 	}
-	delete(p.conns, conn.driverConnectionID)
+	delete(p.conns, conn.DriverConnectionID)
 	// Signal the createConnectionsCond so any goroutines waiting for a new connection slot in the
 	// pool will proceed.
 	p.createConnectionsCond.Signal()
@@ -705,13 +706,13 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	// Only update the generation numbers map if the connection has retrieved its generation number.
 	// Otherwise, we'd decrement the count for the generation even though it had never been
 	// incremented.
-	if conn.hasGenerationNumber() {
-		p.generation.removeConnection(conn.desc.ServiceID)
+	if conn.HasGenerationNumber() {
+		p.generation.removeConnection(conn.Desc.ServiceID)
 	}
 
 	if mustLogPoolMessage(p) {
 		keysAndValues := logger.KeyValues{
-			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logger.KeyDriverConnectionID, conn.DriverConnectionID,
 			logger.KeyReason, reason.loggerConn,
 		}
 
@@ -726,7 +727,7 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionClosed,
 			Address:      p.address.String(),
-			ConnectionID: conn.driverConnectionID,
+			ConnectionID: conn.DriverConnectionID,
 			Reason:       reason.event,
 			Error:        err,
 		})
@@ -737,17 +738,17 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 
 // checkIn returns an idle connection to the pool. If the connection is perished or the pool is
 // closed, it is removed from the connection pool and closed.
-func (p *pool) checkIn(conn *connection) error {
+func (p *pool) checkIn(conn *driverutil.UnsafeConnection) error {
 	if conn == nil {
 		return nil
 	}
-	if conn.pool != p {
+	if conn.Pool != p {
 		return ErrWrongPool
 	}
 
 	if mustLogPoolMessage(p) {
 		keysAndValues := logger.KeyValues{
-			logger.KeyDriverConnectionID, conn.driverConnectionID,
+			logger.KeyDriverConnectionID, conn.DriverConnectionID,
 		}
 
 		logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
@@ -756,8 +757,8 @@ func (p *pool) checkIn(conn *connection) error {
 	if p.monitor != nil {
 		p.monitor.Event(&event.PoolEvent{
 			Type:         event.ConnectionCheckedIn,
-			ConnectionID: conn.driverConnectionID,
-			Address:      conn.addr.String(),
+			ConnectionID: conn.DriverConnectionID,
+			Address:      conn.Desc.Addr.String(),
 		})
 	}
 
@@ -766,11 +767,11 @@ func (p *pool) checkIn(conn *connection) error {
 
 // checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
 // not publish events. It is only intended for use by pool-internal functions.
-func (p *pool) checkInNoEvent(conn *connection) error {
+func (p *pool) checkInNoEvent(conn *driverutil.UnsafeConnection) error {
 	if conn == nil {
 		return nil
 	}
-	if conn.pool != p {
+	if conn.Pool != p {
 		return ErrWrongPool
 	}
 
@@ -780,7 +781,7 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	// idle connections stack for more than the configured duration (maxIdleTimeMS). Set it before
 	// we call connectionPerished(), which checks the idle deadline, because a newly "available"
 	// connection should never be perished due to max idle time.
-	conn.bumpIdleDeadline()
+	conn.BumpIdleDeadline()
 
 	if reason, perished := connectionPerished(conn); perished {
 		_ = p.removeConnection(conn, reason, nil)
@@ -790,7 +791,7 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 		return nil
 	}
 
-	if conn.pool.getState() == poolClosed {
+	if conn.Pool.GetState() == poolClosed {
 		_ = p.removeConnection(conn, reason{
 			loggerConn: logger.ReasonConnClosedPoolClosed,
 			event:      event.ReasonPoolClosed,
@@ -831,7 +832,7 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 // clear marks only connections associated with the given serviceID stale (for use in load balancer
 // mode).
 func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
-	if p.getState() == poolClosed {
+	if p.GetState() == poolClosed {
 		return
 	}
 
@@ -918,9 +919,10 @@ func (p *pool) getOrQueueForIdleConn(w *wantConn) bool {
 		}
 
 		if reason, perished := connectionPerished(conn); perished {
-			_ = conn.pool.removeConnection(conn, reason, nil)
+			// TODO: figure out how to clean this up, i.e. no x.(*pool).y()
+			_ = conn.Pool.(*pool).removeConnection(conn, reason, nil)
 			go func() {
-				_ = conn.pool.closeConnection(conn)
+				_ = conn.Pool.(*pool).closeConnection(conn)
 			}()
 			continue
 		}
@@ -982,7 +984,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 	// connection. When the condition becomes true, it creates a new connection and returns the
 	// waiting wantConn and new connection. If the Context is cancelled or there are any
 	// errors, wait returns with "ok = false".
-	wait := func() (*wantConn, *connection, bool) {
+	wait := func() (*wantConn, *driverutil.UnsafeConnection, bool) {
 		p.createConnectionsCond.L.Lock()
 		defer p.createConnectionsCond.L.Unlock()
 
@@ -1000,10 +1002,12 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			return nil, nil, false
 		}
 
-		conn := newConnection(p.address, p.connOpts...)
-		conn.pool = p
-		conn.driverConnectionID = atomic.AddInt64(&p.nextID, 1)
-		p.conns[conn.driverConnectionID] = conn
+		// TODO: Make a constructor
+		//conn := newConnection(p.address, p.connOpts...)
+		conn := &driverutil.UnsafeConnection{}
+		conn.Pool = p
+		conn.DriverConnectionID = atomic.AddInt64(&p.nextID, 1)
+		p.conns[conn.DriverConnectionID] = conn
 
 		return w, conn, true
 	}
@@ -1016,7 +1020,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, conn.driverConnectionID,
+				logger.KeyDriverConnectionID, conn.DriverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionCreated, keysAndValues...)
@@ -1026,13 +1030,13 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionCreated,
 				Address:      p.address.String(),
-				ConnectionID: conn.driverConnectionID,
+				ConnectionID: conn.DriverConnectionID,
 			})
 		}
 
 		// Pass the createConnections context to connect to allow pool close to cancel connection
 		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
-		err := conn.connect(ctx)
+		err := conn.Connect(ctx)
 		if err != nil {
 			w.tryDeliver(nil, err)
 
@@ -1043,7 +1047,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			// message being delivered to the same waiting wantConn in idleConnWait when the wait
 			// queues are cleared.
 			if p.handshakeErrFn != nil {
-				p.handshakeErrFn(err, conn.generation, conn.desc.ServiceID)
+				p.handshakeErrFn(err, conn.Generation, conn.Desc.ServiceID)
 			}
 
 			_ = p.removeConnection(conn, reason{
@@ -1058,7 +1062,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 
 		if mustLogPoolMessage(p) {
 			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, conn.driverConnectionID,
+				logger.KeyDriverConnectionID, conn.DriverConnectionID,
 			}
 
 			logPoolMessage(p, logger.ConnectionReady, keysAndValues...)
@@ -1068,7 +1072,7 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			p.monitor.Event(&event.PoolEvent{
 				Type:         event.ConnectionReady,
 				Address:      p.address.String(),
-				ConnectionID: conn.driverConnectionID,
+				ConnectionID: conn.DriverConnectionID,
 			})
 		}
 
@@ -1194,7 +1198,7 @@ func (p *pool) removePerishedConns() {
 
 // compact removes any nil pointers from the slice and keeps the non-nil pointers, retaining the
 // order of the non-nil pointers.
-func compact(arr []*connection) []*connection {
+func compact(arr []*driverutil.UnsafeConnection) []*driverutil.UnsafeConnection {
 	offset := 0
 	for i := range arr {
 		if arr[i] == nil {
@@ -1215,7 +1219,7 @@ type wantConn struct {
 	ready chan struct{}
 
 	mu   sync.Mutex // Guards conn, err
-	conn *connection
+	conn *driverutil.UnsafeConnection
 	err  error
 }
 
@@ -1236,7 +1240,7 @@ func (w *wantConn) waiting() bool {
 }
 
 // tryDeliver attempts to deliver conn, err to w and reports whether it succeeded.
-func (w *wantConn) tryDeliver(conn *connection, err error) bool {
+func (w *wantConn) tryDeliver(conn *driverutil.UnsafeConnection, err error) bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 

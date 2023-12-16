@@ -7,9 +7,7 @@
 package topology
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -18,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -79,9 +78,9 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		return nil, err
 	}
 
-	var connOpts []ConnectionOption
 	var serverOpts []ServerOption
 
+	connOpts := &mnet.Options{}
 	cfgp := &Config{}
 
 	// Set the default "ServerSelectionTimeout" to 30 seconds.
@@ -123,24 +122,14 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	// Compressors & ZlibLevel
 	var comps []string
 	if len(co.Compressors) > 0 {
-		comps = co.Compressors
+		connOpts.Compressors = co.Compressors
 
-		connOpts = append(connOpts, WithCompressors(
-			func(compressors []string) []string {
-				return append(compressors, comps...)
-			},
-		))
-
-		for _, comp := range comps {
+		for _, comp := range co.Compressors {
 			switch comp {
 			case "zlib":
-				connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
-					return co.ZlibLevel
-				}))
+				connOpts.ZlibLevel = co.ZlibLevel
 			case "zstd":
-				connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
-					return co.ZstdLevel
-				}))
+				connOpts.ZstdLevel = co.ZstdLevel
 			}
 		}
 
@@ -155,10 +144,13 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 
 	// Handshaker
-	var handshaker = func(driver.Handshaker) driver.Handshaker {
-		return operation.NewHello().AppName(appName).Compressors(comps).ClusterClock(clock).
-			ServerAPI(serverAPI).LoadBalanced(loadBalanced)
-	}
+	connOpts.Handshaker = operation.NewHello().
+		AppName(appName).
+		Compressors(comps).
+		ClusterClock(clock).
+		ServerAPI(serverAPI).
+		LoadBalanced(loadBalanced)
+
 	// Auth & Database & Password & Username
 	if co.Auth != nil {
 		cred := &auth.Cred{
@@ -199,25 +191,20 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			handshakeOpts.DBUser = cred.Source + "." + cred.Username
 		}
 
-		handshaker = func(driver.Handshaker) driver.Handshaker {
-			return auth.Handshaker(nil, handshakeOpts)
-		}
+		connOpts.Handshaker = auth.Handshaker(nil, handshakeOpts)
 	}
-	connOpts = append(connOpts, WithHandshaker(handshaker))
+
 	// ConnectTimeout
 	if co.ConnectTimeout != nil {
 		serverOpts = append(serverOpts, WithHeartbeatTimeout(
 			func(time.Duration) time.Duration { return *co.ConnectTimeout },
 		))
-		connOpts = append(connOpts, WithConnectTimeout(
-			func(time.Duration) time.Duration { return *co.ConnectTimeout },
-		))
+
+		connOpts.ConnectTimeout = *co.ConnectTimeout
 	}
 	// Dialer
 	if co.Dialer != nil {
-		connOpts = append(connOpts, WithDialer(
-			func(Dialer) Dialer { return co.Dialer },
-		))
+		connOpts.Dialer = co.Dialer
 	}
 	// Direct
 	if co.Direct != nil && *co.Direct {
@@ -272,9 +259,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 	// Monitor
 	if co.Monitor != nil {
-		connOpts = append(connOpts, WithMonitor(
-			func(*event.CommandMonitor) *event.CommandMonitor { return co.Monitor },
-		))
+		connOpts.CommandMonitor = co.Monitor
 	}
 	// ServerMonitor
 	if co.ServerMonitor != nil {
@@ -294,43 +279,25 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 	// SocketTimeout
 	if co.SocketTimeout != nil {
-		connOpts = append(
-			connOpts,
-			WithReadTimeout(func(time.Duration) time.Duration { return *co.SocketTimeout }),
-			WithWriteTimeout(func(time.Duration) time.Duration { return *co.SocketTimeout }),
-		)
+		connOpts.ReadTimeout = *co.SocketTimeout
+		connOpts.WriteTimeout = *co.SocketTimeout
 	}
 	// TLSConfig
 	if co.TLSConfig != nil {
-		connOpts = append(connOpts, WithTLSConfig(
-			func(*tls.Config) *tls.Config {
-				return co.TLSConfig
-			},
-		))
+		connOpts.TLSConfig = co.TLSConfig
 	}
 
 	// HTTP Client
 	if co.HTTPClient != nil {
-		connOpts = append(connOpts, WithHTTPClient(
-			func(*http.Client) *http.Client {
-				return co.HTTPClient
-			},
-		))
+		connOpts.HTTPClient = co.HTTPClient
 	}
 
 	// OCSP cache
-	ocspCache := ocsp.NewCache()
-	connOpts = append(
-		connOpts,
-		WithOCSPCache(func(ocsp.Cache) ocsp.Cache { return ocspCache }),
-	)
+	connOpts.OCSPCache = ocsp.NewCache()
 
 	// Disable communication with external OCSP responders.
 	if co.DisableOCSPEndpointCheck != nil {
-		connOpts = append(
-			connOpts,
-			WithDisableOCSPEndpointCheck(func(bool) bool { return *co.DisableOCSPEndpointCheck }),
-		)
+		connOpts.DisableOCSPEndpointCheck = *co.DisableOCSPEndpointCheck
 	}
 
 	// LoadBalanced
@@ -341,10 +308,8 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			serverOpts,
 			WithServerLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
 		)
-		connOpts = append(
-			connOpts,
-			WithConnectionLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
-		)
+
+		connOpts.LoadBalanced = *co.LoadBalanced
 	}
 
 	lgr, err := newLogger(co.LoggerOptions)
@@ -363,7 +328,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	serverOpts = append(
 		serverOpts,
 		WithClock(func(*session.ClusterClock) *session.ClusterClock { return clock }),
-		WithConnectionOptions(func(...ConnectionOption) []ConnectionOption { return connOpts }))
+		WithConnectionOptions(func(*mnet.Options) *mnet.Options { return connOpts }))
 
 	cfgp.ServerOpts = serverOpts
 

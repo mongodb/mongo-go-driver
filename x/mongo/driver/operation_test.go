@@ -551,12 +551,14 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("ExecuteExhaust", func(t *testing.T) {
 		t.Run("errors if connection is not streaming", func(t *testing.T) {
-			conn, err := mnet.NewConnection(&mockConnection{
-				rStreaming: false,
-			})
-			require.NoError(t, err)
+			mockConn := &mockConnection{}
 
-			err = Operation{}.ExecuteExhaust(context.TODO(), conn)
+			conn := &mnet.Connection{
+				Describer:                  mockConn,
+				WireMessageReadWriteCloser: mockConn,
+			}
+
+			err := Operation{}.ExecuteExhaust(context.TODO(), conn)
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 	})
@@ -571,7 +573,7 @@ func TestOperation(t *testing.T) {
 		nonStreamingResponse := createExhaustServerResponse(serverResponseDoc, false)
 
 		// Create a connection that reports that it cannot stream messages.
-		conn := &mockConnection{
+		mockConn := &mockConnection{
 			rDesc: description.Server{
 				WireVersion: &description.VersionRange{
 					Max: 6,
@@ -581,8 +583,10 @@ func TestOperation(t *testing.T) {
 			rCanStream: false,
 		}
 
-		mnetconn, err := mnet.NewConnection(conn)
-		require.NoError(t, err)
+		mnetconn := &mnet.Connection{
+			Describer:                  mockConn,
+			WireMessageReadWriteCloser: mockConn,
+		}
 
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -591,33 +595,37 @@ func TestOperation(t *testing.T) {
 			Database:   "admin",
 			Deployment: SingleConnectionDeployment{C: mnetconn},
 		}
-		err = op.Execute(context.TODO())
+
+		err := op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
 
 		// The wire message sent to the server should not have exhaustAllowed=true. After execution, the connection
 		// should not be in a streaming state.
-		assertExhaustAllowedSet(t, conn.pWriteWM, false)
-		assert.False(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be false")
+		assertExhaustAllowedSet(t, mockConn.pWriteWM, false)
+		assert.False(t, mockConn.CurrentlyStreaming(), "expected CurrentlyStreaming to be false")
 
 		// Modify the connection to report that it can stream and create a new server response with moreToCome=true.
 		streamingResponse := createExhaustServerResponse(serverResponseDoc, true)
-		conn.rReadWM = streamingResponse
-		conn.rCanStream = true
+		mockConn.rReadWM = streamingResponse
+		mockConn.rCanStream = true
 		err = op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
-		assertExhaustAllowedSet(t, conn.pWriteWM, true)
-		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
+		assertExhaustAllowedSet(t, mockConn.pWriteWM, true)
+		assert.True(t, mockConn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 
 		// Reset the server response and go through ExecuteExhaust to mimic streaming the next response. After
 		// execution, the connection should still be in a streaming state.
-		conn.rReadWM = streamingResponse
+		mockConn.rReadWM = streamingResponse
 		err = op.ExecuteExhaust(context.TODO(), mnetconn)
 		assert.Nil(t, err, "ExecuteExhaust error: %v", err)
-		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
+		assert.True(t, mockConn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
 	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
-		conn, err := mnet.NewConnection(&mockConnection{})
-		require.NoError(t, err)
+		mockconn := &mockConnection{}
+		conn := &mnet.Connection{
+			Describer:                  mockconn,
+			WireMessageReadWriteCloser: mockconn,
+		}
 
 		// Create a context that's already timed out.
 		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(893934480, 0))
@@ -632,15 +640,18 @@ func TestOperation(t *testing.T) {
 			},
 		}
 
-		err = op.Execute(ctx)
+		err := op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
 		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
-		conn, err := mnet.NewConnection(&mockConnection{})
-		require.NoError(t, err)
+		mockconn := &mockConnection{}
+		conn := &mnet.Connection{
+			Describer:                  mockconn,
+			WireMessageReadWriteCloser: mockconn,
+		}
 
 		// Create a context and cancel it immediately.
 		ctx, cancel := context.WithCancel(context.Background())
@@ -649,13 +660,13 @@ func TestOperation(t *testing.T) {
 		op := Operation{
 			Database:   "foobar",
 			Deployment: SingleConnectionDeployment{C: conn},
-			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil
+
 			},
 		}
-
-		err = op.Execute(ctx)
+		err := op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context canceled and is therefore not a driver.Error marked with
 		// the TransientTransactionError label.
@@ -719,6 +730,9 @@ func (m *mockServerSelector) SelectServer(description.Topology, []description.Se
 func (m *mockServerSelector) String() string {
 	panic("not implemented")
 }
+
+var _ mnet.Describer = &mockConnection{}
+var _ mnet.WireMessageReadWriteCloser = &mockConnection{}
 
 type mockConnection struct {
 	// parameters

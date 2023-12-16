@@ -51,8 +51,8 @@ type connection struct {
 	responses []bson.D // responses to send when ReadWireMessage is called
 }
 
-var _ mnet.WireMessageReadWriteCloser = &connection{}
-var _ mnet.Describer = &connection{}
+//var _ mnet.WireMessageReadWriteCloser = &connection{}
+//var _ mnet.Describer = &connection{}
 
 // WriteWireMessage is a no-op.
 func (c *connection) Write(context.Context, []byte) error {
@@ -140,7 +140,10 @@ func (md *mockDeployment) Kind() description.TopologyKind {
 
 // Connection implements the driver.Server interface.
 func (md *mockDeployment) Connection(context.Context) (*mnet.Connection, error) {
-	return mnet.NewConnection(md.conn)
+	//return mnet.NewConnection(md.conn)
+
+	// Need to add a constructor here.
+	return &mnet.Connection{}, nil
 }
 
 // RTTMonitor implements the driver.Server interface.

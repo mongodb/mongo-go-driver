@@ -138,12 +138,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 		}
 		curresp.ErrorProcessor = ep
 
-		refConn := info.Connection.Pinner
-		if refConn == nil {
-			//debug.PrintStack()
-			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
-		}
-		if err := refConn.PinToCursor(); err != nil {
+		if err := info.Connection.PinToCursor(); err != nil {
 			return CursorResponse{}, fmt.Errorf("error incrementing connection reference count when creating a cursor: %v", err)
 		}
 		curresp.Connection = info.Connection
@@ -287,7 +282,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 }
 
 func (bc *BatchCursor) unpinConnection() error {
-	if bc.connection == nil || bc.connection.Pinner == nil {
+	if bc.connection == nil {
 		return nil
 	}
 

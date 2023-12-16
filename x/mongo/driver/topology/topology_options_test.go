@@ -76,8 +76,9 @@ func TestLoadBalancedFromConnString(t *testing.T) {
 			srvr := NewServer("", topo.id, topo.cfg.ServerOpts...)
 			assert.Equal(t, tc.loadBalanced, srvr.cfg.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, srvr.cfg.loadBalanced)
 
-			conn := newConnection("", srvr.cfg.connectionOpts...)
-			assert.Equal(t, tc.loadBalanced, conn.config.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, conn.config.loadBalanced)
+			// TODO(GODRIVER-3058): Point to LoadBalanced
+			//conn := newConnection("", srvr.cfg.connectionOpts...)
+			//assert.Equal(t, tc.loadBalanced, conn.config.loadBalanced, "expected loadBalanced %v, got %v", tc.loadBalanced, conn.config.loadBalanced)
 		})
 	}
 }

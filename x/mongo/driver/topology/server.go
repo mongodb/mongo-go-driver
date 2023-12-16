@@ -117,7 +117,7 @@ type Server struct {
 	// heartbeatCtx should be used for individual heartbeats and should be a child of globalCtx so that it will be
 	// cancelled automatically during shutdown.
 	heartbeatLock      sync.Mutex
-	conn               *connection
+	conn               *driverutil.UnsafeConnection
 	globalCtx          context.Context
 	globalCtxCancel    context.CancelFunc
 	heartbeatCtx       context.Context
@@ -191,8 +191,8 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		handshakeErrFn:   s.ProcessHandshakeError,
 	}
 
-	connectionOpts := copyConnectionOpts(cfg.connectionOpts)
-	s.pool = newPool(pc, connectionOpts...)
+	connectionOpts := cfg.connectionOpts
+	s.pool = newPool(pc, connectionOpts)
 	s.publishServerOpeningEvent(s.address)
 
 	return s
@@ -214,8 +214,8 @@ func logServerMessage(srv *Server, msg string, keysAndValues ...interface{}) {
 	var serverConnectionID *int64
 
 	if srv.conn != nil {
-		driverConnectionID = srv.conn.driverConnectionID
-		serverConnectionID = srv.conn.serverConnectionID
+		driverConnectionID = srv.conn.DriverConnectionID
+		serverConnectionID = srv.conn.ServerConnectionID
 	}
 
 	srv.cfg.logger.Print(logger.LevelDebug,
@@ -310,20 +310,25 @@ func (s *Server) Connection(ctx context.Context) (*mnet.Connection, error) {
 		return nil, err
 	}
 
-	serverConn := &Connection{
-		connection: conn,
-		cleanupServerFn: func() {
-			// Decrement the operation count whenever the caller is done with the connection. Note
-			// that cleanupServerFn() is not called while the connection is pinned to a cursor or
-			// transaction, so the operation count is not decremented until the cursor is closed or
-			// the transaction is committed or aborted. Use an int64 instead of a uint64 to mitigate
-			// the impact of any possible bugs that could cause the uint64 to underflow, which would
-			// make the server much less selectable.
-			atomic.AddInt64(&s.operationCount, -1)
-		},
-	}
+	fmt.Println("use this: ", conn)
 
-	return mnet.NewConnection(serverConn)
+	// TODO: bake logic into mnet.Connection
+	//serverConn := &Connection{
+	//	connection: conn,
+	//	cleanupServerFn: func() {
+	//		// Decrement the operation count whenever the caller is done with the connection. Note
+	//		// that cleanupServerFn() is not called while the connection is pinned to a cursor or
+	//		// transaction, so the operation count is not decremented until the cursor is closed or
+	//		// the transaction is committed or aborted. Use an int64 instead of a uint64 to mitigate
+	//		// the impact of any possible bugs that could cause the uint64 to underflow, which would
+	//		// make the server much less selectable.
+	//		atomic.AddInt64(&s.operationCount, -1)
+	//	},
+	//}
+
+	return &mnet.Connection{}, nil
+
+	//return mnet.NewConnection(serverConn)
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
@@ -431,7 +436,7 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
-func (s *Server) ProcessError(err error, describer mnet.Describer) driver.ProcessErrorResult {
+func (s *Server) ProcessError(err error, desc mnet.Describer) driver.ProcessErrorResult {
 	// Ignore nil errors.
 	if err == nil {
 		return driver.NoChange
@@ -442,7 +447,7 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// the pool generation to increment. Processing errors for stale connections could result in
 	// handling the same error root cause multiple times (e.g. a temporary network interrupt causing
 	// all connections to the same server to return errors).
-	if describer.Stale() {
+	if desc.Stale() {
 		return driver.NoChange
 	}
 
@@ -455,7 +460,7 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// Get the wire version and service ID from the connection description because they will never
 	// change for the lifetime of a connection and can possibly be different between connections to
 	// the same server.
-	connDesc := describer.Description()
+	connDesc := desc.Description()
 	wireVersion := connDesc.WireVersion
 	serviceID := connDesc.ServiceID
 
@@ -568,7 +573,7 @@ func (s *Server) update() {
 		// We don't need to take s.heartbeatLock here because closeServer is called synchronously when the select checks
 		// below detect that the server is being closed, so we can be sure that the connection isn't being used.
 		if s.conn != nil {
-			_ = s.conn.close()
+			_ = s.conn.Close()
 		}
 	}
 
@@ -657,7 +662,7 @@ func (s *Server) update() {
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
 		// without waiting. If the server has transitioned to Unknown from a network error, we want to do another
 		// check without waiting in case it was a transient error and the server isn't actually down.
-		connectionIsStreaming := s.conn != nil && s.conn.getCurrentlyStreaming()
+		connectionIsStreaming := s.conn != nil && s.conn.IsStreaming()
 		transitionedFromNetworkError := desc.LastError != nil && unwrapConnectionError(desc.LastError) != nil &&
 			previousDescription.Kind != description.Unknown
 
@@ -724,29 +729,26 @@ func (s *Server) updateDescription(desc description.Server) {
 
 // createConnection creates a new connection instance but does not call connect on it. The caller must call connect
 // before the connection can be used for network operations.
-func (s *Server) createConnection() *connection {
-	opts := copyConnectionOpts(s.cfg.connectionOpts)
-	opts = append(opts,
-		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		// We override whatever handshaker is currently attached to the options with a basic
-		// one because need to make sure we don't do auth.
-		WithHandshaker(func(h Handshaker) Handshaker {
-			return operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
-				ServerAPI(s.cfg.serverAPI)
-		}),
-		// Override any monitors specified in options with nil to avoid monitoring heartbeats.
-		WithMonitor(func(*event.CommandMonitor) *event.CommandMonitor { return nil }),
-	)
+func (s *Server) createConnection() *driverutil.UnsafeConnection {
+	opts := s.cfg.connectionOpts
 
-	return newConnection(s.address, opts...)
-}
+	opts.ConnectTimeout = s.cfg.heartbeatTimeout
+	opts.ReadTimeout = s.cfg.heartbeatTimeout
+	opts.WriteTimeout = s.cfg.heartbeatTimeout
 
-func copyConnectionOpts(opts []ConnectionOption) []ConnectionOption {
-	optsCopy := make([]ConnectionOption, len(opts))
-	copy(optsCopy, opts)
-	return optsCopy
+	// We override whatever handshaker is currently attached to the options with
+	// a basic one because need to make sure we don't do auth.
+	opts.Handshaker = operation.
+		NewHello().
+		AppName(s.cfg.appname).
+		Compressors(s.cfg.compressionOpts).
+		ServerAPI(s.cfg.serverAPI)
+
+	// Override any monitors specified in options with nil to avoid monitoring
+	// heartbeats.
+	opts.CommandMonitor = nil
+
+	return &driverutil.UnsafeConnection{}
 }
 
 func (s *Server) setupHeartbeatConnection() error {
@@ -762,12 +764,12 @@ func (s *Server) setupHeartbeatConnection() error {
 	s.conn = conn
 	s.heartbeatLock.Unlock()
 
-	return s.conn.connect(s.heartbeatCtx)
+	return s.conn.Connect(s.heartbeatCtx)
 }
 
 // cancelCheck cancels in-progress connection dials and reads. It does not set any fields on the server.
 func (s *Server) cancelCheck() {
-	var conn *connection
+	var conn *driverutil.UnsafeConnection
 
 	// Take heartbeatLock for mutual exclusion with the checks in the update function.
 	s.heartbeatLock.Lock()
@@ -784,9 +786,9 @@ func (s *Server) cancelCheck() {
 	// If the connection exists, we need to wait for it to be connected because conn.connect() and
 	// conn.close() cannot be called concurrently. If the connection wasn't successfully opened, its
 	// state was set back to disconnected, so calling conn.close() will be a no-op.
-	conn.closeConnectContext()
-	conn.wait()
-	_ = conn.close()
+	conn.CloseConnectContext()
+	conn.Wait()
+	_ = conn.Close()
 }
 
 func (s *Server) checkWasCancelled() bool {
@@ -825,10 +827,10 @@ func (s *Server) check() (description.Server, error) {
 
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
-	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
+	if s.conn == nil || s.conn.Closed() || s.checkWasCancelled() {
 		connID := "0"
 		if s.conn != nil {
-			connID = s.conn.ID()
+			connID = s.conn.ID
 		}
 		s.publishServerHeartbeatStartedEvent(connID, false)
 		// Create a new connection and add it's handshake RTT as a sample.
@@ -836,13 +838,13 @@ func (s *Server) check() (description.Server, error) {
 		duration = time.Since(start)
 		connID = "0"
 		if s.conn != nil {
-			connID = s.conn.ID()
+			connID = s.conn.ID
 		}
 		if err == nil {
 			// Use the description from the connection handshake as the value for this check.
-			s.rttMonitor.addSample(s.conn.helloRTT)
-			descPtr = &s.conn.desc
-			s.publishServerHeartbeatSucceededEvent(connID, duration, s.conn.desc, false)
+			s.rttMonitor.addSample(s.conn.HelloRTT)
+			descPtr = &s.conn.Desc
+			s.publishServerHeartbeatSucceededEvent(connID, duration, s.conn.Desc, false)
 		} else {
 			err = unwrapConnectionError(err)
 			s.publishServerHeartbeatFailedEvent(connID, duration, err, false)
@@ -851,17 +853,20 @@ func (s *Server) check() (description.Server, error) {
 		// An existing connection is being used. Use the server description properties to execute the right heartbeat.
 
 		// Wrap conn in a type that implements driver.StreamerConnection.
-		iconn := initConnection{s.conn}
-		heartbeatConn, _ := mnet.NewConnection(iconn)
+		//iconn := initConnection{s.conn}
+		//heartbeatConn, _ := mnet.NewConnection(iconn)
+
+		// TODO: Create a constructor for the mnet connection
+		heartbeatConn := &mnet.Connection{}
 
 		baseOperation := s.createBaseOperation(heartbeatConn)
 		previousDescription := s.Description()
 		streamable := isStreamingEnabled(s) && isStreamable(s)
 
-		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
+		s.publishServerHeartbeatStartedEvent(s.conn.ID, s.conn.IsStreaming() || streamable)
 
 		switch {
-		case s.conn.getCurrentlyStreaming():
+		case s.conn.IsStreaming():
 			// The connection is already in a streaming state, so we stream the next response.
 			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
 		case streamable:
@@ -878,16 +883,16 @@ func (s *Server) check() (description.Server, error) {
 			if socketTimeout != 0 {
 				socketTimeout += s.cfg.heartbeatInterval
 			}
-			s.conn.setSocketTimeout(socketTimeout)
+			s.conn.SetSocketTimeout(socketTimeout)
 			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
 				MaxAwaitTimeMS(maxAwaitTimeMS)
-			s.conn.setCanStream(true)
+			s.conn.Streamable(true)
 			err = baseOperation.Execute(s.heartbeatCtx)
 		default:
 			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
 			// execute a regular heartbeat without any additional parameters.
 
-			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
+			s.conn.SetSocketTimeout(s.cfg.heartbeatTimeout)
 			err = baseOperation.Execute(s.heartbeatCtx)
 		}
 
@@ -903,14 +908,14 @@ func (s *Server) check() (description.Server, error) {
 		if err == nil {
 			tempDesc := baseOperation.Result(s.address)
 			descPtr = &tempDesc
-			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatSucceededEvent(s.conn.ID, duration, tempDesc, s.conn.IsStreaming() || streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
-				_ = s.conn.close()
+				_ = s.conn.Close()
 			}
-			s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatFailedEvent(s.conn.ID, duration, err, s.conn.IsStreaming() || streamable)
 		}
 	}
 
@@ -936,7 +941,7 @@ func (s *Server) check() (description.Server, error) {
 }
 
 func extractTopologyVersion(err error) *description.TopologyVersion {
-	if ce, ok := err.(ConnectionError); ok {
+	if ce, ok := err.(mnet.ConnectionError); ok {
 		err = ce.Wrapped
 	}
 
@@ -1101,7 +1106,7 @@ func unwrapConnectionError(err error) error {
 	// This is essentially an implementation of errors.As to unwrap this error until we get a ConnectionError and then
 	// return ConnectionError.Wrapped.
 
-	connErr, ok := err.(ConnectionError)
+	connErr, ok := err.(mnet.ConnectionError)
 	if ok {
 		return connErr.Wrapped
 	}
@@ -1111,7 +1116,7 @@ func unwrapConnectionError(err error) error {
 		return nil
 	}
 
-	connErr, ok = driverErr.Wrapped.(ConnectionError)
+	connErr, ok = driverErr.Wrapped.(mnet.ConnectionError)
 	if ok {
 		return connErr.Wrapped
 	}

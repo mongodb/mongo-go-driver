@@ -22,8 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 var host *string
@@ -68,7 +68,7 @@ func noerr(t *testing.T, err error) {
 func autherr(t *testing.T, err error) {
 	t.Helper()
 	switch e := err.(type) {
-	case topology.ConnectionError:
+	case mnet.ConnectionError:
 		_, ok := e.Wrapped.(*auth.Error)
 		if !ok {
 			t.Fatal("Expected auth error and didn't get one")

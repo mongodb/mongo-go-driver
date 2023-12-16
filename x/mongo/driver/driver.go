@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
@@ -104,26 +103,6 @@ const (
 // method after it decodes a wire message.
 type ErrorProcessor interface {
 	ProcessError(err error, desc mnet.Describer) ProcessErrorResult
-}
-
-// HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that
-// augments description.Server by also tracking server connection ID and authentication-related fields. We use this type
-// rather than adding authentication-related fields to description.Server to avoid retaining sensitive information in a
-// user-facing type. The server connection ID is stored in this type because unlike description.Server, all handshakes are
-// correlated with a single network connection.
-type HandshakeInformation struct {
-	Description             description.Server
-	SpeculativeAuthenticate bsoncore.Document
-	ServerConnectionID      *int64
-	SaslSupportedMechs      []string
-}
-
-// Handshaker is the interface implemented by types that can perform a MongoDB
-// handshake over a provided driver.Connection. This is used during connection
-// initialization. Implementations must be goroutine safe.
-type Handshaker interface {
-	GetHandshakeInformation(context.Context, address.Address, *mnet.Connection) (HandshakeInformation, error)
-	FinishHandshake(context.Context, *mnet.Connection) error
 }
 
 // SingleServerDeployment is an implementation of Deployment that always returns a single server.

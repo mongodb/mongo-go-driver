@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -35,7 +36,7 @@ type rttConfig struct {
 	timeout time.Duration
 
 	minRTTWindow       time.Duration
-	createConnectionFn func() *connection
+	createConnectionFn func() *driverutil.UnsafeConnection
 	createOperationFn  func(*mnet.Connection) *operation.Hello
 }
 
@@ -109,16 +110,16 @@ func (r *rttMonitor) disconnect() {
 }
 
 func (r *rttMonitor) start() {
-	var conn *connection
+	var conn *driverutil.UnsafeConnection
 	defer func() {
 		if conn != nil {
 			// If the connection exists, we need to wait for it to be connected because
 			// conn.connect() and conn.close() cannot be called concurrently. If the connection
 			// wasn't successfully opened, its state was set back to disconnected, so calling
 			// conn.close() will be a no-op.
-			conn.closeConnectContext()
-			conn.wait()
-			_ = conn.close()
+			conn.CloseConnectContext()
+			conn.Wait()
+			_ = conn.Close()
 		}
 	}()
 
@@ -127,19 +128,19 @@ func (r *rttMonitor) start() {
 
 	for {
 		conn := r.cfg.createConnectionFn()
-		err := conn.connect(r.ctx)
+		err := conn.Connect(r.ctx)
 
 		// Add an RTT sample from the new connection handshake and start a runHellos() loop if we
 		// successfully established the new connection. Otherwise, close the connection and try to
 		// create another new connection.
 		if err == nil {
-			r.addSample(conn.helloRTT)
+			r.addSample(conn.HelloRTT)
 			r.runHellos(conn)
 		}
 
 		// Close any connection here because we're either about to try to create another new
 		// connection or we're about to exit the loop.
-		_ = conn.close()
+		_ = conn.Close()
 
 		// If a connection error happens quickly, always wait for the monitoring interval to try
 		// to create a new connection to prevent creating connections too quickly.
@@ -153,7 +154,7 @@ func (r *rttMonitor) start() {
 
 // runHellos runs "hello" operations in a loop using the provided connection, measuring and
 // recording the operation durations as RTT samples. If it encounters any errors, it returns.
-func (r *rttMonitor) runHellos(conn *connection) {
+func (r *rttMonitor) runHellos(conn *driverutil.UnsafeConnection) {
 	ticker := time.NewTicker(r.cfg.interval)
 	defer ticker.Stop()
 
@@ -175,12 +176,15 @@ func (r *rttMonitor) runHellos(conn *connection) {
 		// that "connectTimeoutMS" provides at least enough time for a single round trip.
 		timeout := r.cfg.timeout
 		if timeout <= 0 {
-			timeout = conn.config.connectTimeout
+			timeout = conn.ConnectTimeout
 		}
 		ctx, cancel := context.WithTimeout(r.ctx, timeout)
 
 		start := time.Now()
-		iconn, _ := mnet.NewConnection(initConnection{conn})
+		//iconn, _ := mnet.NewConnection(initConnection{conn})
+
+		// TODO add a constructor to create the new connection.
+		iconn := &mnet.Connection{}
 
 		err := r.cfg.createOperationFn(iconn).Execute(ctx)
 		cancel()

@@ -43,16 +43,19 @@ func TestPlainAuthenticator_Fails(t *testing.T) {
 			Max: 6,
 		},
 	}
+
 	c := &drivertest.ChannelConn{
 		Written:  make(chan []byte, 1),
 		ReadResp: resps,
 		Desc:     desc,
 	}
 
-	mnetconn, err := mnet.NewConnection(c)
-	require.NoError(t, err)
+	mnetconn := &mnet.Connection{
+		Describer:                  c,
+		WireMessageReadWriteCloser: c,
+	}
 
-	err = authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -95,10 +98,12 @@ func TestPlainAuthenticator_Extra_server_message(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn, err := mnet.NewConnection(c)
-	require.NoError(t, err)
+	mnetconn := &mnet.Connection{
+		Describer:                  c,
+		WireMessageReadWriteCloser: c,
+	}
 
-	err = authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err == nil {
 		t.Fatalf("expected an error but got none")
 	}
@@ -136,10 +141,12 @@ func TestPlainAuthenticator_Succeeds(t *testing.T) {
 		Desc:     desc,
 	}
 
-	mnetconn, err := mnet.NewConnection(c)
-	require.NoError(t, err)
+	mnetconn := &mnet.Connection{
+		Describer:                  c,
+		WireMessageReadWriteCloser: c,
+	}
 
-	err = authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	if err != nil {
 		t.Fatalf("expected no error but got \"%s\"", err)
 	}
@@ -178,16 +185,19 @@ func TestPlainAuthenticator_SucceedsBoolean(t *testing.T) {
 			Max: 6,
 		},
 	}
+
 	c := &drivertest.ChannelConn{
 		Written:  make(chan []byte, 1),
 		ReadResp: resps,
 		Desc:     desc,
 	}
 
-	mnetconn, err := mnet.NewConnection(c)
-	require.NoError(t, err)
+	mnetconn := &mnet.Connection{
+		Describer:                  c,
+		WireMessageReadWriteCloser: c,
+	}
 
-	err = authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
+	err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 	require.NoError(t, err, "Auth error")
 	require.Len(t, c.Written, 1, "expected 1 messages to be sent")
 

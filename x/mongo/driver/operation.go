@@ -422,8 +422,7 @@ func (op Operation) getServerAndConnection(
 	// If the provided client session has a pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
 	if op.Client != nil && op.Client.PinnedConnection != nil {
-		conn, err := mnet.NewConnection(op.Client.PinnedConnection)
-		return server, conn, err
+		return server, op.Client.PinnedConnection, nil
 	}
 
 	// Otherwise, default to checking out a connection from the server's pool.
@@ -434,11 +433,6 @@ func (op Operation) getServerAndConnection(
 
 	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
 	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
-		if conn.Pinner == nil {
-			// Close the original connection to avoid a leak.
-			_ = conn.Close()
-			return nil, nil, fmt.Errorf("expected Connection used to start a transaction to be a PinnedConnection, but got %T", conn)
-		}
 		if err := conn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
@@ -730,9 +724,9 @@ func (op Operation) Execute(ctx context.Context) error {
 		moreToCome := wiremessage.IsMsgMoreToCome(*wm)
 
 		// compress wiremessage if allowed
-		if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
+		if op.canCompress(startedInfo.cmdName) {
 			b := memoryPool.Get().(*[]byte)
-			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
+			*b, err = conn.CompressWireMessage(*wm, (*b)[:0])
 			memoryPool.Put(wm)
 			wm = b
 			if err != nil {
@@ -1055,8 +1049,8 @@ func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) 
 
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
-	if streamer := conn.Streamer; streamer != nil {
-		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
+	if conn.Streamable() {
+		conn.StartStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
 	length, _, _, opcode, rem, ok := wiremessage.ReadHeader(wm)
@@ -1271,7 +1265,7 @@ func (op Operation) createMsgWireMessage(
 	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
 	// respond with the MoreToCome flag and then stream responses over this connection.
-	if streamer := conn.Streamer; streamer != nil && streamer.SupportsStreaming() {
+	if conn.Streamable() {
 		flags |= wiremessage.ExhaustAllowed
 	}
 

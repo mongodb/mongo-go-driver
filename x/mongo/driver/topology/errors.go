@@ -14,41 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
-// ConnectionError represents a connection error.
-type ConnectionError struct {
-	ConnectionID string
-	Wrapped      error
-
-	// init will be set to true if this error occurred during connection initialization or
-	// during a connection handshake.
-	init    bool
-	message string
-}
-
-// Error implements the error interface.
-func (e ConnectionError) Error() string {
-	message := e.message
-	if e.init {
-		fullMsg := "error occurred during connection handshake"
-		if message != "" {
-			fullMsg = fmt.Sprintf("%s: %s", fullMsg, message)
-		}
-		message = fullMsg
-	}
-	if e.Wrapped != nil && message != "" {
-		return fmt.Sprintf("connection(%s) %s: %s", e.ConnectionID, message, e.Wrapped.Error())
-	}
-	if e.Wrapped != nil {
-		return fmt.Sprintf("connection(%s) %s", e.ConnectionID, e.Wrapped.Error())
-	}
-	return fmt.Sprintf("connection(%s) %s", e.ConnectionID, message)
-}
-
-// Unwrap returns the underlying error.
-func (e ConnectionError) Unwrap() error {
-	return e.Wrapped
-}
-
 // ServerSelectionError represents a Server Selection error.
 type ServerSelectionError struct {
 	Desc    description.Topology

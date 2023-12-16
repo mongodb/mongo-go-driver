@@ -190,20 +190,16 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	// Use a dialer that returns mock connections that always respond with a
 	// "hello" reply. If there's a failpoint configured in the test, use a
 	// dialer that returns connections that mock the configured failpoint.
-	sOpts = append(sOpts, WithConnectionOptions(func(...ConnectionOption) []ConnectionOption {
-		return []ConnectionOption{
-			WithDialer(func(Dialer) Dialer {
-				return DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-					msc := newMockSlowConn(makeHelloReply(), delay)
-					if closeConnection {
-						msc.Close()
-					}
-					return msc, nil
-				})
+	sOpts = append(sOpts, WithConnectionOptions(func(*mnet.Options) *mnet.Options {
+		return &mnet.Options{
+			Dialer: mnet.DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+				msc := newMockSlowConn(makeHelloReply(), delay)
+				if closeConnection {
+					msc.Close()
+				}
+				return msc, nil
 			}),
-			WithHandshaker(func(h Handshaker) Handshaker {
-				return operation.NewHello()
-			}),
+			Handshaker: operation.NewHello(),
 		}
 	}))
 

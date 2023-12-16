@@ -15,9 +15,108 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
+
+type testNetConn struct {
+	nc  net.Conn
+	buf []byte
+
+	deadlineerr error
+	writeerr    error
+	readerr     error
+	closed      bool
+
+	deadline      time.Time
+	readDeadline  time.Time
+	writeDeadline time.Time
+}
+
+func (tnc *testNetConn) Read(b []byte) (n int, err error) {
+	if len(tnc.buf) > 0 {
+		n := copy(b, tnc.buf)
+		tnc.buf = tnc.buf[n:]
+		return n, nil
+	}
+	if tnc.readerr != nil {
+		return 0, tnc.readerr
+	}
+	if tnc.nc == nil {
+		return 0, nil
+	}
+	return tnc.nc.Read(b)
+}
+
+func (tnc *testNetConn) Write(b []byte) (n int, err error) {
+	if tnc.writeerr != nil {
+		return 0, tnc.writeerr
+	}
+	if tnc.nc == nil {
+		idx := len(tnc.buf)
+		tnc.buf = append(tnc.buf, make([]byte, len(b))...)
+		copy(tnc.buf[idx:], b)
+		return len(b), nil
+	}
+	return tnc.nc.Write(b)
+}
+
+func (tnc *testNetConn) Close() error {
+	tnc.closed = true
+	if tnc.nc == nil {
+		return nil
+	}
+	return tnc.nc.Close()
+}
+
+func (tnc *testNetConn) LocalAddr() net.Addr {
+	if tnc.nc == nil {
+		return nil
+	}
+	return tnc.nc.LocalAddr()
+}
+
+func (tnc *testNetConn) RemoteAddr() net.Addr {
+	if tnc.nc == nil {
+		return nil
+	}
+	return tnc.nc.RemoteAddr()
+}
+
+func (tnc *testNetConn) SetDeadline(t time.Time) error {
+	tnc.deadline = t
+	if tnc.deadlineerr != nil {
+		return tnc.deadlineerr
+	}
+	if tnc.nc == nil {
+		return nil
+	}
+	return tnc.nc.SetDeadline(t)
+}
+
+func (tnc *testNetConn) SetReadDeadline(t time.Time) error {
+	tnc.readDeadline = t
+	if tnc.deadlineerr != nil {
+		return tnc.deadlineerr
+	}
+	if tnc.nc == nil {
+		return nil
+	}
+	return tnc.nc.SetReadDeadline(t)
+}
+
+func (tnc *testNetConn) SetWriteDeadline(t time.Time) error {
+	tnc.writeDeadline = t
+	if tnc.deadlineerr != nil {
+		return tnc.deadlineerr
+	}
+	if tnc.nc == nil {
+		return nil
+	}
+	return tnc.nc.SetWriteDeadline(t)
+}
 
 func TestCMAPProse(t *testing.T) {
 	t.Run("created and closed events", func(t *testing.T) {
@@ -74,19 +173,19 @@ func TestCMAPProse(t *testing.T) {
 				// the pool should publish connection created and closed events.
 				clearEvents()
 
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+				var dialer mnet.DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{writeerr: errors.New("write error")}, nil
 				}
 
 				cfg := getConfig()
 				cfg.MinPoolSize = 1
-				connOpts := []ConnectionOption{
-					WithDialer(func(Dialer) Dialer { return dialer }),
-					WithHandshaker(func(Handshaker) Handshaker {
-						return operation.NewHello()
-					}),
+
+				connOpts := &mnet.Options{
+					Dialer:     dialer,
+					Handshaker: operation.NewHello(),
 				}
-				pool := createTestPool(t, cfg, connOpts...)
+
+				pool := createTestPool(t, cfg, connOpts)
 				defer pool.close(context.Background())
 
 				// Wait up to 3 seconds for the maintain() goroutine to run and for 1 connection
@@ -111,18 +210,18 @@ func TestCMAPProse(t *testing.T) {
 				// return the error.
 				clearEvents()
 
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+				var dialer mnet.DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{writeerr: errors.New("write error")}, nil
 				}
 
 				cfg := getConfig()
-				connOpts := []ConnectionOption{
-					WithDialer(func(Dialer) Dialer { return dialer }),
-					WithHandshaker(func(Handshaker) Handshaker {
-						return operation.NewHello()
-					}),
+
+				connOpts := &mnet.Options{
+					Dialer:     dialer,
+					Handshaker: operation.NewHello(),
 				}
-				pool := createTestPool(t, cfg, connOpts...)
+
+				pool := createTestPool(t, cfg, connOpts)
 				defer pool.close(context.Background())
 
 				_, err := pool.checkOut(context.Background())
@@ -135,17 +234,16 @@ func TestCMAPProse(t *testing.T) {
 				// error while connecting, checkOut() should return that error and publish an event.
 				clearEvents()
 
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+				var dialer mnet.DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{writeerr: errors.New("write error")}, nil
 				}
 
-				connOpts := []ConnectionOption{
-					WithDialer(func(Dialer) Dialer { return dialer }),
-					WithHandshaker(func(Handshaker) Handshaker {
-						return operation.NewHello()
-					}),
+				connOpts := &mnet.Options{
+					Dialer:     dialer,
+					Handshaker: operation.NewHello(),
 				}
-				pool := createTestPool(t, getConfig(), connOpts...)
+
+				pool := createTestPool(t, getConfig(), connOpts)
 				defer pool.close(context.Background())
 
 				_, err := pool.checkOut(context.Background())
@@ -159,22 +257,22 @@ func TestCMAPProse(t *testing.T) {
 				// the pool and an event should be published.
 				clearEvents()
 
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+				var dialer mnet.DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{writeerr: errors.New("write error")}, nil
 				}
 
-				// We don't use the WithHandshaker option so the connection won't error during handshaking.
-				connOpts := []ConnectionOption{
-					WithDialer(func(Dialer) Dialer { return dialer }),
+				connOpts := &mnet.Options{
+					Dialer: dialer,
 				}
-				pool := createTestPool(t, getConfig(), connOpts...)
+
+				pool := createTestPool(t, getConfig(), connOpts)
 				defer pool.close(context.Background())
 
 				conn, err := pool.checkOut(context.Background())
 				assert.Nil(t, err, "checkOut() error: %v", err)
 
 				// Force a network error by writing to the connection.
-				err = conn.writeWireMessage(context.Background(), nil)
+				err = conn.WriteWireMessage(context.Background(), nil)
 				assert.NotNil(t, err, "expected writeWireMessage error, got nil")
 
 				err = pool.checkIn(conn)
@@ -193,10 +291,15 @@ func TestCMAPProse(t *testing.T) {
 				clearEvents()
 
 				numConns := 5
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+				var dialer mnet.DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{}, nil
 				}
-				pool := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
+
+				connOpts := &mnet.Options{
+					Dialer: dialer,
+				}
+
+				pool := createTestPool(t, getConfig(), connOpts)
 				defer pool.close(context.Background())
 
 				conns := checkoutConnections(t, pool, numConns)
@@ -225,10 +328,15 @@ func TestCMAPProse(t *testing.T) {
 				clearEvents()
 
 				numConns := 5
-				var dialer DialerFunc = func(context.Context, string, string) (net.Conn, error) {
+				var dialer mnet.DialerFunc = func(context.Context, string, string) (net.Conn, error) {
 					return &testNetConn{}, nil
 				}
-				pool := createTestPool(t, getConfig(), WithDialer(func(Dialer) Dialer { return dialer }))
+
+				connOpts := &mnet.Options{
+					Dialer: dialer,
+				}
+
+				pool := createTestPool(t, getConfig(), connOpts)
 
 				conns := checkoutConnections(t, pool, numConns)
 				assertConnectionCounts(t, pool, numConns, 0)
@@ -265,17 +373,17 @@ func TestCMAPProse(t *testing.T) {
 	})
 }
 
-func createTestPool(t *testing.T, cfg poolConfig, opts ...ConnectionOption) *pool {
+func createTestPool(t *testing.T, cfg poolConfig, opts *mnet.Options) *pool {
 	t.Helper()
 
-	pool := newPool(cfg, opts...)
+	pool := newPool(cfg, opts)
 	err := pool.ready()
 	assert.Nil(t, err, "connect error: %v", err)
 	return pool
 }
 
-func checkoutConnections(t *testing.T, p *pool, numConns int) []*connection {
-	conns := make([]*connection, 0, numConns)
+func checkoutConnections(t *testing.T, p *pool, numConns int) []*driverutil.UnsafeConnection {
+	conns := make([]*driverutil.UnsafeConnection, 0, numConns)
 
 	for i := 0; i < numConns; i++ {
 		conn, err := p.checkOut(context.Background())

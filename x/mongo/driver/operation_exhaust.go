@@ -16,7 +16,7 @@ import (
 // ExecuteExhaust reads a response from the provided StreamerConnection. This will error if the connection's
 // CurrentlyStreaming function returns false.
 func (op Operation) ExecuteExhaust(ctx context.Context, conn *mnet.Connection) error {
-	if !conn.CurrentlyStreaming() {
+	if !conn.IsStreaming() {
 		return errors.New("exhaust read must be done with a connection that is currently streaming")
 	}
 
