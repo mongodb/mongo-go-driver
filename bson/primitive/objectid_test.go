@@ -37,6 +37,13 @@ func BenchmarkObjectIDFromHex(b *testing.B) {
 	}
 }
 
+func BenchmarkNewObjectIDFromTimestamp(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		timestamp := time.Now().Add(time.Duration(i) * time.Millisecond)
+		_ = NewObjectIDFromTimestamp(timestamp)
+	}
+}
+
 func TestFromHex_RoundTrip(t *testing.T) {
 	before := NewObjectID()
 	after, err := ObjectIDFromHex(before.Hex())

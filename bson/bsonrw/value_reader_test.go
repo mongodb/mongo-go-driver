@@ -1527,7 +1527,7 @@ func errequal(t *testing.T, err1, err2 error) bool {
 		return false
 	}
 
-	if err1 == err2 { // They are the same error, they are equal
+	if errors.Is(err1, err2) { // They are the same error, they are equal
 		return true
 	}
 

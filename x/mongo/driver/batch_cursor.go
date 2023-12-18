@@ -79,7 +79,7 @@ type CursorResponse struct {
 func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 	response := info.ServerResponse
 	cur, err := response.LookupErr("cursor")
-	if err == bsoncore.ErrElementNotFound {
+	if errors.Is(err, bsoncore.ErrElementNotFound) {
 		return CursorResponse{}, ErrNoCursor
 	}
 	if err != nil {
@@ -451,8 +451,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 	// If we're in load balanced mode and the pinned connection encounters a network error, we should not use it for
 	// future commands. Per the spec, the connection will not be unpinned until the cursor is actually closed, but
 	// we set the cursor ID to 0 to ensure the Close() call will not execute a killCursors command.
-	var driverErr Error
-	if errors.As(bc.err, &driverErr) && driverErr.NetworkError() && bc.connection != nil {
+	if driverErr, ok := bc.err.(Error); ok && driverErr.NetworkError() && bc.connection != nil {
 		bc.id = 0
 	}
 

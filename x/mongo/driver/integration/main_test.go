@@ -69,8 +69,7 @@ func autherr(t *testing.T, err error) {
 	t.Helper()
 	switch e := err.(type) {
 	case topology.ConnectionError:
-		_, ok := e.Wrapped.(*auth.Error)
-		if !ok {
+		if _, ok := e.Wrapped.(*auth.Error); !ok {
 			t.Fatal("Expected auth error and didn't get one")
 		}
 	case *auth.Error:

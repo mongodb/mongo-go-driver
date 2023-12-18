@@ -52,7 +52,7 @@ func (b *backgroundRoutine) start() {
 			}
 
 			if err := runOperation(b.mt, b.testCase, op, nil, nil); err != nil {
-				b.err = fmt.Errorf("error running operation %s: %v", op.Name, err)
+				b.err = fmt.Errorf("error running operation %s: %w", op.Name, err)
 			}
 		}
 	}()

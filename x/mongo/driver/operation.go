@@ -142,8 +142,7 @@ func convertInt64PtrToInt32Ptr(i64 *int64) *int32 {
 // write errors are included since the actual command did succeed, only writes
 // failed.
 func (info finishedInformation) success() bool {
-	var writeCmdErr WriteCommandError
-	if errors.As(info.cmdErr, &writeCmdErr) {
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
 		return true
 	}
 
@@ -459,7 +458,7 @@ func (op Operation) getServerAndConnection(
 		if err := pinnedConn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
-			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
+			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %w", err)
 		}
 		op.Client.PinnedConnection = pinnedConn
 	}
@@ -1749,7 +1748,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc = bsoncore.AppendBooleanElement(doc, "enabled", *hedgeEnabled)
 		doc, err = bsoncore.AppendDocumentEnd(doc, hedgeIdx)
 		if err != nil {
-			return nil, fmt.Errorf("error creating hedge document: %v", err)
+			return nil, fmt.Errorf("error creating hedge document: %w", err)
 		}
 	}
 

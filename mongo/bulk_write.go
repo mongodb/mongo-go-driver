@@ -72,7 +72,7 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 
 		bwErr.WriteErrors = append(bwErr.WriteErrors, batchErr.WriteErrors...)
 
-		commandErrorOccurred := err != nil && err != driver.ErrUnacknowledgedWrite
+		commandErrorOccurred := err != nil && !errors.Is(err, driver.ErrUnacknowledgedWrite)
 		writeErrorOccurred := len(batchErr.WriteErrors) > 0 || batchErr.WriteConcernError != nil
 		if !continueOnError && (commandErrorOccurred || writeErrorOccurred) {
 			if err != nil {
@@ -171,7 +171,7 @@ func (bw *bulkWrite) runInsert(ctx context.Context, batch bulkWriteBatch) (opera
 		if err != nil {
 			return operation.InsertResult{}, err
 		}
-		doc, _, err = ensureID(doc, primitive.NewObjectID(), bw.collection.bsonOpts, bw.collection.registry)
+		doc, _, err = ensureID(doc, primitive.NilObjectID, bw.collection.bsonOpts, bw.collection.registry)
 		if err != nil {
 			return operation.InsertResult{}, err
 		}
