@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Entry point for Dockerfile for launching running a go test.
+# Entry point for Dockerfile for running a go test.
 #
 set -eux
 
