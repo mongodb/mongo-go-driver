@@ -185,7 +185,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 			}
 		case wiremessage.SecurityToken:
 			var securityToken string
-			securityToken, wm, ok = wiremessage.ReadSecurityToken(wm)
+			securityToken, wm, ok = wiremessage.ReadMsgSectionSecurityToken(wm)
 			if !ok {
 				return nil, errors.New("failed to read security token")
 			}

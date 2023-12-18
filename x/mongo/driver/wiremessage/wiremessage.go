@@ -426,6 +426,11 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 	return identifier, rem, rest, true
 }
 
+// ReadMsgSectionSecurityToken reads a security token from src.
+func ReadMsgSectionSecurityToken(src []byte) (securityToken string, rem []byte, ok bool) {
+	return readcstring(src)
+}
+
 // ReadMsgChecksum reads a checksum from src.
 func ReadMsgChecksum(src []byte) (checksum uint32, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
@@ -556,10 +561,6 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 		cursorIDs = append(cursorIDs, id)
 	}
 	return cursorIDs, src, true
-}
-
-func ReadSecurityToken(src []byte) (securityToken string, rem []byte, ok bool) {
-	return readcstring(src)
 }
 
 func appendi32(dst []byte, i32 int32) []byte {
