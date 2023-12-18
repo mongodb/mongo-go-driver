@@ -5,7 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 // Package address provides structured representations of network addresses.
-package address // import "go.mongodb.org/mongo-driver/mongo/address"
+package address
 
 import (
 	"net"

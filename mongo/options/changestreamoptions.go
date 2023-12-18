@@ -23,9 +23,10 @@ type ChangeStreamOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	// A string or document that will be included in server logs, profiling logs,
+	// and currentOp queries to help trace the operation. The default is nil,
+	// which means that no comment will be included in the logs.
+	Comment interface{}
 
 	// Specifies how the updated document should be returned in change notifications for update operations. The default
 	// is options.Default, which means that only partial update deltas will be included in the change notification.
@@ -90,8 +91,8 @@ func (cso *ChangeStreamOptions) SetCollation(c Collation) *ChangeStreamOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (cso *ChangeStreamOptions) SetComment(comment string) *ChangeStreamOptions {
-	cso.Comment = &comment
+func (cso *ChangeStreamOptions) SetComment(comment interface{}) *ChangeStreamOptions {
+	cso.Comment = comment
 	return cso
 }
 

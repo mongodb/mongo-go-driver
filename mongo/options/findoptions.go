@@ -30,9 +30,10 @@ type FindOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	// A string or document that will be included in server logs, profiling logs,
+	// and currentOp queries to help trace the operation. The default is nil,
+	// which means that no comment will be included in the logs.
+	Comment interface{}
 
 	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
 	// means that the cursor will be closed by the server when the last batch of documents is retrieved.
@@ -129,8 +130,8 @@ func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOptions) SetComment(comment string) *FindOptions {
-	f.Comment = &comment
+func (f *FindOptions) SetComment(comment interface{}) *FindOptions {
+	f.Comment = comment
 	return f
 }
 
@@ -233,9 +234,10 @@ type FindOneOptions struct {
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
-	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
-	// The default is nil, which means that no comment will be included in the logs.
-	Comment *string
+	// A string or document that will be included in server logs, profiling logs,
+	// and currentOp queries to help trace the operation. The default is nil,
+	// which means that no comment will be included in the logs.
+	Comment interface{}
 
 	// The index to use for the aggregation. This should either be the index name as a string or the index specification
 	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
@@ -296,7 +298,7 @@ func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneOptions) SetComment(comment string) *FindOneOptions {
+func (f *FindOneOptions) SetComment(comment interface{}) *FindOneOptions {
 	f.Comment = &comment
 	return f
 }

@@ -191,14 +191,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
-	if comment := cs.options.Comment; comment != nil {
-		cs.aggregate.Comment(*comment)
-
-		commentVal, err := marshalValue(comment, cs.bsonOpts, cs.registry)
+	if cs.options.Comment != nil {
+		comment, err := marshalValue(cs.options.Comment, cs.bsonOpts, cs.registry)
 		if err != nil {
 			return nil, err
 		}
-		cs.cursorOptions.Comment = commentVal
+
+		cs.aggregate.Comment(comment)
+		cs.cursorOptions.Comment = comment
 	}
 	if cs.options.BatchSize != nil {
 		cs.aggregate.BatchSize(*cs.options.BatchSize)
