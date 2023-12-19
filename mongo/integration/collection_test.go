@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -1973,24 +1972,4 @@ func assertKillCursorsCommandsAreMonitored(mt *mtest.T, cmdName string, cursorFn
 	assert.Equal(mt, cmdName, evt.CommandName, "expected command %q, got %q", cmdName, evt.CommandName)
 	evt = mt.GetStartedEvent()
 	assert.Equal(mt, "killCursors", evt.CommandName, "expected command 'killCursors', got %q", evt.CommandName)
-}
-
-func TestSecurityToken(t *testing.T) {
-	mt := mtest.New(t)
-
-	opts := mtest.NewOptions().ClientType(mtest.Proxy)
-	mt.RunOpts("", opts, func(mt *mtest.T) {
-		_, err := mt.Coll.DeleteOne(context.Background(), bson.M{})
-		// assert.NoError(mt, err)
-		fmt.Println(err)
-
-		msgs := mt.GetProxiedMessages()
-		for _, msg := range msgs {
-			if msg.CommandName != "delete" {
-				continue
-			}
-			fmt.Printf("%q\n", msg.Sent.RawMessage)
-			fmt.Println(msg.Sent.SecurityToken)
-		}
-	})
 }
