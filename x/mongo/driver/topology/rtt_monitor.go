@@ -212,7 +212,7 @@ func (r *rttMonitor) reset() {
 }
 
 // appendMovingMin will append the RTT to the movingMin list which tracks a
-// minimum RTT within the last "minRTTSamples" RTT samples.
+// minimum RTT within the last "minRTTSamplesForMovingMin" RTT samples.
 func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 	if r.movingMin == nil || rtt < 0 {
 		return
