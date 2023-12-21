@@ -154,9 +154,45 @@ The usage of host.docker.internal comes from the [Docker networking documentatio
 
 There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
 
+### Load Balancer
+
+To launch the load balancer on MacOS, run the following.
+
+- `brew install haproxy`
+- Clone drivers-evergreen-tools and save the path as `DRIVERS_TOOLS`.
+- Start the servers using (or use the docker-based method below):
+
+```bash
+LOAD_BALANCER=true TOPOLOGY=sharded_cluster AUTH=noauth SSL=nossl MONGODB_VERSION=6.0 DRIVERS_TOOLS=$PWD/drivers-evergreen-tools MONGO_ORCHESTRATION_HOME=$PWD/drivers-evergreen-tools/.evergreen/orchestration $PWD/drivers-evergreen-tools/.evergreen/run-orchestration.sh
+```
+
+- Start the load balancer using:
+
+```bash
+MONGODB_URI='mongodb://localhost:27017,localhost:27018/' $PWD/drivers-evergreen-tools/.evergreen/run-load-balancer.sh start
+```
+
+- Run the load balancer tests (or use the docker runner below with `evg-test-load-balancers`):
+
+```bash
+make evg-test-load-balancers
+```
+
 ### Testing in Docker
 
 We support local testing in Docker.  To test using docker, you will need to set the `DRIVERS_TOOLs` environment variable to point to a local clone of the drivers-evergreen-tools repository. This is essential for running the testing matrix in a container. You can set the `DRIVERS_TOOLS` variable in your shell profile or in your project-specific environment.
+
+1. First, start the drivers-tools server docker container, as:
+
+```bash
+bash $DRIVERS_TOOLS/.evergreen/docker/start-server.sh
+```
+
+See the readme in `$DRIVERS_TOOLS/.evergreen/docker` for more information on usage.
+
+2. Next, start any other required services in another terminal, like a load balancer.
+
+1. Finally, run the Go Driver tests using the following script in this repo:
 
 ```bash
 bash etc/run_docker.sh
@@ -164,9 +200,10 @@ bash etc/run_docker.sh
 
 The script takes an optional argument for the `MAKEFILE_TARGET` and allows for some environment variable overrides.
 The docker container has the required binaries, including libmongocrypt.
-The entry script starts a MongoDB topology, and then executes the desired `MAKEFILE_TARGET`.
+The entry script executes the desired `MAKEFILE_TARGET`.
 
-For example, to test against a sharded cluster, using enterprise auth, run:
+For example, to test against a sharded cluster (make sure you started the server with a sharded_cluster),
+using enterprise auth, run:
 
 ```bash
 TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
