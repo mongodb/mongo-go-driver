@@ -187,6 +187,15 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 			}
 		}
 		return nil
+	case "wait":
+		waitMS, err := convertValueToMilliseconds(operation.Arguments.Lookup("ms"))
+		if err != nil {
+			return err
+		}
+
+		time.Sleep(waitMS)
+
+		return nil
 	case "waitForEvent":
 		var wfeArgs waitForEventArguments
 		if err := bson.Unmarshal(operation.Arguments, &wfeArgs); err != nil {
@@ -458,4 +467,13 @@ func verifyIndexExists(ctx context.Context, dbName, collName, indexName string, 
 			indexName, ns, expectedExists, exists)
 	}
 	return nil
+}
+
+func convertValueToMilliseconds(val bson.RawValue) (time.Duration, error) {
+	int32Val, ok := val.Int32OK()
+	if !ok {
+		return 0, fmt.Errorf("failed to convert value of type %s to int32", val.Type)
+	}
+
+	return time.Duration(int32Val) * time.Millisecond, nil
 }

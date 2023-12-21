@@ -7,6 +7,7 @@
 package topology
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"math"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
+	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -22,6 +24,8 @@ const (
 	rttAlphaValue = 0.2
 	minSamples    = 10
 	maxSamples    = 500
+	minRTTSamples = 2
+	maxRTTSamples = 10
 )
 
 type rttConfig struct {
@@ -51,12 +55,14 @@ type rttMonitor struct {
 	rtt90         time.Duration
 	averageRTT    time.Duration
 	averageRTTSet bool
+	movingMin     *list.List
 
 	closeWg  sync.WaitGroup
 	cfg      *rttConfig
 	ctx      context.Context
 	cancelFn context.CancelFunc
 	started  bool
+	id       uuid.UUID
 }
 
 var _ driver.RTTMonitor = &rttMonitor{}
@@ -71,11 +77,15 @@ func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	// number of samples must be between [10, 500].
 	numSamples := int(math.Max(minSamples, math.Min(maxSamples, float64((cfg.minRTTWindow)/cfg.interval))))
 
+	id, _ := uuid.New()
+
 	return &rttMonitor{
-		samples:  make([]time.Duration, numSamples),
-		cfg:      cfg,
-		ctx:      ctx,
-		cancelFn: cancel,
+		samples:   make([]time.Duration, numSamples),
+		cfg:       cfg,
+		ctx:       ctx,
+		cancelFn:  cancel,
+		movingMin: list.New(),
+		id:        id,
 	}
 }
 
@@ -132,8 +142,8 @@ func (r *rttMonitor) start() {
 		// successfully established the new connection. Otherwise, close the connection and try to
 		// create another new connection.
 		if err == nil {
-			r.addSample(conn.helloRTT)
 			r.runHellos(conn)
+			r.addSample(conn.helloRTT)
 		}
 
 		// Close any connection here because we're either about to try to create another new
@@ -201,10 +211,41 @@ func (r *rttMonitor) reset() {
 		r.samples[i] = 0
 	}
 	r.offset = 0
-	r.minRTT = 0
-	r.rtt90 = 0
+	r.movingMin = list.New()
 	r.averageRTT = 0
 	r.averageRTTSet = false
+}
+
+// appendMovingMin will append the RTT to a the movingMin list which tracks a
+// a minimum RTT within the last "minRTTSamples" RTT samples.
+func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
+	if r.movingMin == nil || rtt < 0 {
+		return
+	}
+
+	if r.movingMin.Len() == maxRTTSamples {
+		r.movingMin.Remove(r.movingMin.Front())
+	}
+
+	r.movingMin.PushBack(rtt)
+}
+
+// min will return the minimum value in the movingMin list.
+func (r *rttMonitor) min() time.Duration {
+	if r.movingMin == nil || r.movingMin.Len() < minRTTSamples {
+		return 0
+	}
+
+	var min time.Duration
+	for e := r.movingMin.Front(); e != nil; e = e.Next() {
+		val := e.Value.(time.Duration)
+
+		if min == 0 || val < min {
+			min = val
+		}
+	}
+
+	return min
 }
 
 func (r *rttMonitor) addSample(rtt time.Duration) {
@@ -215,11 +256,7 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 
 	r.samples[r.offset] = rtt
 	r.offset = (r.offset + 1) % len(r.samples)
-	// Set the minRTT and 90th percentile RTT of all collected samples. Require at least 10 samples before
-	// setting these to prevent noisy samples on startup from artificially increasing RTT and to allow the
-	// calculation of a 90th percentile.
-	r.minRTT = min(r.samples, minSamples)
-	r.rtt90 = percentile(90.0, r.samples, minSamples)
+	r.appendMovingMin(rtt)
 
 	if !r.averageRTTSet {
 		r.averageRTT = rtt
@@ -228,26 +265,6 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 	}
 
 	r.averageRTT = time.Duration(rttAlphaValue*float64(rtt) + (1-rttAlphaValue)*float64(r.averageRTT))
-}
-
-// min returns the minimum value of the slice of duration samples. Zero values are not considered
-// samples and are ignored. If no samples or fewer than minSamples are found in the slice, min
-// returns 0.
-func min(samples []time.Duration, minSamples int) time.Duration {
-	count := 0
-	min := time.Duration(math.MaxInt64)
-	for _, d := range samples {
-		if d > 0 {
-			count++
-		}
-		if d > 0 && d < min {
-			min = d
-		}
-	}
-	if count == 0 || count < minSamples {
-		return 0
-	}
-	return min
 }
 
 // percentile returns the specified percentile value of the slice of duration samples. Zero values
@@ -285,7 +302,7 @@ func (r *rttMonitor) Min() time.Duration {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.minRTT
+	return r.min()
 }
 
 // P90 returns the 90th percentile observed round-trip time over the window period.
