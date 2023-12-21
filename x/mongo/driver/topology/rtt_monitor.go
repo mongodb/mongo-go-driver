@@ -15,17 +15,16 @@ import (
 	"time"
 
 	"github.com/montanaflynn/stats"
-	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
 const (
-	rttAlphaValue = 0.2
-	minSamples    = 10
-	maxSamples    = 500
-	minRTTSamples = 2
-	maxRTTSamples = 10
+	rttAlphaValue             = 0.2
+	minSamples                = 10
+	maxSamples                = 500
+	minRTTSamplesForMovingMin = 2
+	maxRTTSamplesForMovingMin = 10
 )
 
 type rttConfig struct {
@@ -62,7 +61,6 @@ type rttMonitor struct {
 	ctx      context.Context
 	cancelFn context.CancelFunc
 	started  bool
-	id       uuid.UUID
 }
 
 var _ driver.RTTMonitor = &rttMonitor{}
@@ -77,15 +75,12 @@ func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	// number of samples must be between [10, 500].
 	numSamples := int(math.Max(minSamples, math.Min(maxSamples, float64((cfg.minRTTWindow)/cfg.interval))))
 
-	id, _ := uuid.New()
-
 	return &rttMonitor{
 		samples:   make([]time.Duration, numSamples),
 		cfg:       cfg,
 		ctx:       ctx,
 		cancelFn:  cancel,
 		movingMin: list.New(),
-		id:        id,
 	}
 }
 
@@ -216,14 +211,14 @@ func (r *rttMonitor) reset() {
 	r.averageRTTSet = false
 }
 
-// appendMovingMin will append the RTT to a the movingMin list which tracks a
-// a minimum RTT within the last "minRTTSamples" RTT samples.
+// appendMovingMin will append the RTT to the movingMin list which tracks a
+// minimum RTT within the last "minRTTSamples" RTT samples.
 func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 	if r.movingMin == nil || rtt < 0 {
 		return
 	}
 
-	if r.movingMin.Len() == maxRTTSamples {
+	if r.movingMin.Len() == maxRTTSamplesForMovingMin {
 		r.movingMin.Remove(r.movingMin.Front())
 	}
 
@@ -232,7 +227,7 @@ func (r *rttMonitor) appendMovingMin(rtt time.Duration) {
 
 // min will return the minimum value in the movingMin list.
 func (r *rttMonitor) min() time.Duration {
-	if r.movingMin == nil || r.movingMin.Len() < minRTTSamples {
+	if r.movingMin == nil || r.movingMin.Len() < minRTTSamplesForMovingMin {
 		return 0
 	}
 
