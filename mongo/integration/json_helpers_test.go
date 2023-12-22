@@ -39,7 +39,7 @@ var (
 	gcpEmail                        = os.Getenv("GCP_EMAIL")
 	gcpPrivateKey                   = os.Getenv("GCP_PRIVATE_KEY")
 	tlsCAFileKMIP                   = os.Getenv("CSFLE_TLS_CA_FILE")
-	tlsClientCertificateKeyFileKMIP = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
+	tlsClientCertificateKeyFileKMIP = os.Getenv("CSFLE_TLS_CERT_FILE")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
