@@ -12,7 +12,60 @@ import (
 
 // FindArgs represents arguments that can be used to configure a Find operation.
 type FindArgs struct {
-	FindOneArgs
+	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
+	// returning an error. The default value is false.
+	AllowPartialResults *bool
+
+	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
+	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// default value is nil, which means the default collation of the collection will be used.
+	Collation *Collation
+
+	// A string that will be included in server logs, profiling logs, and currentOp queries to help trace the operation.
+	// The default is nil, which means that no comment will be included in the logs.
+	Comment *string
+
+	// The index to use for the aggregation. This should either be the index name as a string or the index specification
+	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
+	// which means that no hint will be sent.
+	Hint interface{}
+
+	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
+	// there is no maximum value.
+	Max interface{}
+
+	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// is no time limit for query execution.
+	//
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
+	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
+	// is ignored if Timeout is set on the client.
+	MaxTime *time.Duration
+
+	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
+	// there is no minimum value.
+	Min interface{}
+
+	// A document describing which fields will be included in the document returned by the operation. The default value
+	// is nil, which means all fields will be included.
+	Projection interface{}
+
+	// If true, the document returned by the operation will only contain fields corresponding to the index used. The
+	// default value is false.
+	ReturnKey *bool
+
+	// If true, a $recordId field with a record identifier will be included in the document returned by the operation.
+	// The default value is false.
+	ShowRecordID *bool
+
+	// The number of documents to skip before selecting the document to be returned. The default value is 0.
+	Skip *int64
+
+	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
+	// returned. The driver will return an error if the sort parameter is a multi-key map.
+	Sort interface{}
+
+	// The above are in common with FindOneArgs.
 
 	// AllowDiskUse specifies whether the server can write temporary data to disk while executing the Find operation.
 	// This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option
@@ -53,9 +106,16 @@ type FindOptions struct {
 	Opts []func(*FindArgs) error
 }
 
+var _ Options[FindArgs] = (*FindOptions)(nil)
+
 // Find creates a new FindOptions instance.
 func Find() *FindOptions {
 	return &FindOptions{}
+}
+
+// ArgsSetters returns a list of FindArgs setter functions.
+func (f *FindOptions) ArgsSetters() []func(*FindArgs) error {
+	return f.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
@@ -294,9 +354,16 @@ type FindOneOptions struct {
 	Opts []func(*FindOneArgs) error
 }
 
+var _ Options[FindOneArgs] = (*FindOneOptions)(nil)
+
 // FindOne creates a new FindOneOptions instance.
 func FindOne() *FindOneOptions {
 	return &FindOneOptions{}
+}
+
+// ArgsSetters returns a list of FindOneArgs setter functions.
+func (f *FindOneOptions) ArgsSetters() []func(*FindOneArgs) error {
+	return f.Opts
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.

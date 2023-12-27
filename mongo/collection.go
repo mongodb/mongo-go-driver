@@ -1404,7 +1404,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...*options.FindOptions) (cur *Cursor, err error) {
+	opts ...options.Options[options.FindArgs]) (cur *Cursor, err error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1436,13 +1436,10 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	fo := &options.FindArgs{}
-	for _, opt := range opts {
-		for _, optFn := range opt.Opts {
-			if err := optFn(fo); err != nil {
-				return nil, err
-			}
-		}
+	fa := &options.FindArgs{}
+	err = options.Merge(fa, opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
@@ -1451,36 +1448,36 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).MaxTime(fa.MaxTime).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 
-	if fo.AllowDiskUse != nil {
-		op.AllowDiskUse(*fo.AllowDiskUse)
+	if fa.AllowDiskUse != nil {
+		op.AllowDiskUse(*fa.AllowDiskUse)
 	}
-	if fo.AllowPartialResults != nil {
-		op.AllowPartialResults(*fo.AllowPartialResults)
+	if fa.AllowPartialResults != nil {
+		op.AllowPartialResults(*fa.AllowPartialResults)
 	}
-	if fo.BatchSize != nil {
-		cursorOpts.BatchSize = *fo.BatchSize
-		op.BatchSize(*fo.BatchSize)
+	if fa.BatchSize != nil {
+		cursorOpts.BatchSize = *fa.BatchSize
+		op.BatchSize(*fa.BatchSize)
 	}
-	if fo.Collation != nil {
-		op.Collation(bsoncore.Document(fo.Collation.ToDocument()))
+	if fa.Collation != nil {
+		op.Collation(bsoncore.Document(fa.Collation.ToDocument()))
 	}
-	if fo.Comment != nil {
-		op.Comment(*fo.Comment)
+	if fa.Comment != nil {
+		op.Comment(*fa.Comment)
 
-		commentVal, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
+		commentVal, err := marshalValue(fa.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		cursorOpts.Comment = commentVal
 	}
-	if fo.CursorType != nil {
-		switch *fo.CursorType {
+	if fa.CursorType != nil {
+		switch *fa.CursorType {
 		case options.Tailable:
 			op.Tailable(true)
 		case options.TailableAwait:
@@ -1488,25 +1485,25 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 			op.AwaitData(true)
 		}
 	}
-	if fo.Hint != nil {
-		if isUnorderedMap(fo.Hint) {
+	if fa.Hint != nil {
+		if isUnorderedMap(fa.Hint) {
 			return nil, ErrMapForOrderedArgument{"hint"}
 		}
-		hint, err := marshalValue(fo.Hint, coll.bsonOpts, coll.registry)
+		hint, err := marshalValue(fa.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Hint(hint)
 	}
-	if fo.Let != nil {
-		let, err := marshal(fo.Let, coll.bsonOpts, coll.registry)
+	if fa.Let != nil {
+		let, err := marshal(fa.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Let(let)
 	}
-	if fo.Limit != nil {
-		limit := *fo.Limit
+	if fa.Limit != nil {
+		limit := *fa.Limit
 		if limit < 0 {
 			limit = -1 * limit
 			op.SingleBatch(true)
@@ -1514,47 +1511,47 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		cursorOpts.Limit = int32(limit)
 		op.Limit(limit)
 	}
-	if fo.Max != nil {
-		max, err := marshal(fo.Max, coll.bsonOpts, coll.registry)
+	if fa.Max != nil {
+		max, err := marshal(fa.Max, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Max(max)
 	}
-	if fo.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*fo.MaxAwaitTime / time.Millisecond)
+	if fa.MaxAwaitTime != nil {
+		cursorOpts.MaxTimeMS = int64(*fa.MaxAwaitTime / time.Millisecond)
 	}
-	if fo.Min != nil {
-		min, err := marshal(fo.Min, coll.bsonOpts, coll.registry)
+	if fa.Min != nil {
+		min, err := marshal(fa.Min, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Min(min)
 	}
-	if fo.NoCursorTimeout != nil {
-		op.NoCursorTimeout(*fo.NoCursorTimeout)
+	if fa.NoCursorTimeout != nil {
+		op.NoCursorTimeout(*fa.NoCursorTimeout)
 	}
-	if fo.Projection != nil {
-		proj, err := marshal(fo.Projection, coll.bsonOpts, coll.registry)
+	if fa.Projection != nil {
+		proj, err := marshal(fa.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Projection(proj)
 	}
-	if fo.ReturnKey != nil {
-		op.ReturnKey(*fo.ReturnKey)
+	if fa.ReturnKey != nil {
+		op.ReturnKey(*fa.ReturnKey)
 	}
-	if fo.ShowRecordID != nil {
-		op.ShowRecordID(*fo.ShowRecordID)
+	if fa.ShowRecordID != nil {
+		op.ShowRecordID(*fa.ShowRecordID)
 	}
-	if fo.Skip != nil {
-		op.Skip(*fo.Skip)
+	if fa.Skip != nil {
+		op.Skip(*fa.Skip)
 	}
-	if fo.Sort != nil {
-		if isUnorderedMap(fo.Sort) {
+	if fa.Sort != nil {
+		if isUnorderedMap(fa.Sort) {
 			return nil, ErrMapForOrderedArgument{"sort"}
 		}
-		sort, err := marshal(fo.Sort, coll.bsonOpts, coll.registry)
+		sort, err := marshal(fa.Sort, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -1587,25 +1584,54 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions) *SingleResult {
+	opts ...options.Options[options.FindOneArgs]) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	opt := func(args *options.FindArgs) error {
-		for _, opt := range opts {
-			if opt == nil {
-				continue
-			}
-			for _, optFn := range opt.Opts {
-				if optFn == nil {
-					continue
-				}
-				if err := optFn(&args.FindOneArgs); err != nil {
-					return err
-				}
-			}
+		foa := &options.FindOneArgs{}
+		err := options.Merge(foa, opts...)
+		if err != nil {
+			return err
+		}
+
+		if foa.AllowPartialResults != nil {
+			args.AllowPartialResults = foa.AllowPartialResults
+		}
+		if foa.Collation != nil {
+			args.Collation = foa.Collation
+		}
+		if foa.Comment != nil {
+			args.Comment = foa.Comment
+		}
+		if foa.Hint != nil {
+			args.Hint = foa.Hint
+		}
+		if foa.Max != nil {
+			args.Max = foa.Max
+		}
+		if foa.MaxTime != nil {
+			args.MaxTime = foa.MaxTime
+		}
+		if foa.Min != nil {
+			args.Min = foa.Min
+		}
+		if foa.Projection != nil {
+			args.Projection = foa.Projection
+		}
+		if foa.ReturnKey != nil {
+			args.ReturnKey = foa.ReturnKey
+		}
+		if foa.ShowRecordID != nil {
+			args.ShowRecordID = foa.ShowRecordID
+		}
+		if foa.Skip != nil {
+			args.Skip = foa.Skip
+		}
+		if foa.Sort != nil {
+			args.Sort = foa.Sort
 		}
 		return nil
 	}
