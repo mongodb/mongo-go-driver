@@ -8,7 +8,7 @@ package options
 
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
-	FindArgs | FindOneArgs
+	FindArgs | FindOneArgs | InsertOneArgs
 }
 
 // Options is an interface that wraps a method to return a list of setter

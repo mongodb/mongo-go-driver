@@ -1059,7 +1059,7 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("documents")
 	}
 
-	res, err := coll.InsertOne(ctx, document, opts)
+	res, err := coll.InsertOne(ctx, document, []options.Options[options.InsertOneArgs]{opts}...)
 	raw := emptyCoreDocument
 	if res != nil {
 		t, data, err := bson.MarshalValue(res.InsertedID)

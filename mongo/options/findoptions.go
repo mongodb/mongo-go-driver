@@ -12,12 +12,12 @@ import (
 
 // FindArgs represents arguments that can be used to configure a Find operation.
 type FindArgs struct {
-	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
-	// returning an error. The default value is false.
+	// AllowPartial results specifies whether the Find operation on a sharded cluster can return partial results if some
+	// shards are down rather than returning an error. The default value is false.
 	AllowPartialResults *bool
 
-	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
-	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
+	// Collation specifies a collation to use for string comparisons during the operation. This option is only valid for
+	// MongoDB versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
 	Collation *Collation
 
@@ -26,44 +26,44 @@ type FindArgs struct {
 	// which means that no comment will be included in the logs.
 	Comment interface{}
 
-	// The index to use for the aggregation. This should either be the index name as a string or the index specification
-	// as a document. The driver will return an error if the hint parameter is a multi-key map. The default value is nil,
-	// which means that no hint will be sent.
+	// Hint is the index to use for the Find operation. This should either be the index name as a string or the index
+	// specification as a document. The driver will return an error if the hint parameter is a multi-key map. The default
+	// value is nil, which means that no hint will be sent.
 	Hint interface{}
 
-	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
+	// Max is a document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
 	// there is no maximum value.
 	Max interface{}
 
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
+	// MaxTime is the maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
+	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in its
+	// place to control the amount of time that a single operation can run before returning an error. MaxTime is ignored if
+	// Timeout is set on the client.
 	MaxTime *time.Duration
 
-	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
+	// Min is a document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
 	// there is no minimum value.
 	Min interface{}
 
-	// A document describing which fields will be included in the document returned by the operation. The default value
-	// is nil, which means all fields will be included.
+	// Project is a document describing which fields will be included in the documents returned by the Find operation. The
+	// default value is nil, which means all fields will be included.
 	Projection interface{}
 
-	// If true, the document returned by the operation will only contain fields corresponding to the index used. The
-	// default value is false.
+	// ReturnKey specifies whether the documents returned by the Find operation will only contain fields corresponding to the
+	// index used. The default value is false.
 	ReturnKey *bool
 
-	// If true, a $recordId field with a record identifier will be included in the document returned by the operation.
-	// The default value is false.
+	// ShowRecordID specifies whether a $recordId field with a record identifier will be included in the documents returned by
+	// the Find operation. The default value is false.
 	ShowRecordID *bool
 
-	// The number of documents to skip before selecting the document to be returned. The default value is 0.
+	// Skip is the number of documents to skip before adding documents to the result. The default value is 0.
 	Skip *int64
 
-	// A document specifying the sort order to apply to the query. The first document in the sorted order will be
-	// returned. The driver will return an error if the sort parameter is a multi-key map.
+	// Sort is a document specifying the order in which documents should be returned.  The driver will return an error if the
+	// sort parameter is a multi-key map.
 	Sort interface{}
 
 	// The above are in common with FindOneArgs.

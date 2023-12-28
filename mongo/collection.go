@@ -400,21 +400,12 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...*options.InsertOneOptions) (*InsertOneResult, error) {
+	opts ...options.Options[options.InsertOneArgs]) (*InsertOneResult, error) {
 
 	args := &options.InsertOneArgs{}
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		for _, optFn := range opt.Opts {
-			if optFn == nil {
-				continue
-			}
-			if err := optFn(args); err != nil {
-				return nil, err
-			}
-		}
+	err := options.Merge(args, opts...)
+	if err != nil {
+		return nil, err
 	}
 	imOpts := options.InsertMany()
 

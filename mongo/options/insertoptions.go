@@ -24,9 +24,16 @@ type InsertOneOptions struct {
 	Opts []func(*InsertOneArgs) error
 }
 
+var _ Options[InsertOneArgs] = (*InsertOneOptions)(nil)
+
 // InsertOne creates a new InsertOneOptions instance.
 func InsertOne() *InsertOneOptions {
 	return &InsertOneOptions{}
+}
+
+// ArgsSetters returns a list of InsertOneArgs setter functions.
+func (ioo *InsertOneOptions) ArgsSetters() []func(*InsertOneArgs) error {
+	return ioo.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
