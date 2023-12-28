@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongo // import "go.mongodb.org/mongo-driver/mongo"
+package mongo
 
 import (
 	"bytes"
@@ -153,8 +153,11 @@ func marshal(
 }
 
 // ensureID inserts the given ObjectID as an element named "_id" at the
-// beginning of the given BSON document if there is not an "_id" already. If
-// there is already an element named "_id", the document is not modified. It
+// beginning of the given BSON document if there is not an "_id" already.
+// If the given ObjectID is primitive.NilObjectID, a new object ID will be
+// generated with time.Now().
+//
+// If there is already an element named "_id", the document is not modified. It
 // returns the resulting document and the decoded Go value of the "_id" element.
 func ensureID(
 	doc bsoncore.Document,
@@ -195,6 +198,9 @@ func ensureID(
 	const extraSpace = 17
 	doc = make(bsoncore.Document, 0, len(olddoc)+extraSpace)
 	_, doc = bsoncore.ReserveLength(doc)
+	if oid.IsZero() {
+		oid = primitive.NewObjectID()
+	}
 	doc = bsoncore.AppendObjectIDElement(doc, "_id", oid)
 
 	// Remove and re-write the BSON document length header.

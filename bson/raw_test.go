@@ -9,6 +9,7 @@ package bson
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -52,7 +53,7 @@ func TestRaw(t *testing.T) {
 			r := make(Raw, 5)
 			binary.LittleEndian.PutUint32(r[0:4], 200)
 			got := r.Validate()
-			if got != want {
+			if !errors.Is(got, want) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
@@ -62,7 +63,7 @@ func TestRaw(t *testing.T) {
 			binary.LittleEndian.PutUint32(r[0:4], 8)
 			r[4], r[5], r[6], r[7] = '\x02', 'f', 'o', 'o'
 			got := r.Validate()
-			if got != want {
+			if !errors.Is(got, want) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})
@@ -72,7 +73,7 @@ func TestRaw(t *testing.T) {
 			binary.LittleEndian.PutUint32(r[0:4], 9)
 			r[4], r[5], r[6], r[7], r[8] = '\x0A', 'f', 'o', 'o', '\x00'
 			got := r.Validate()
-			if got != want {
+			if !errors.Is(got, want) {
 				t.Errorf("Did not get expected error. got %v; want %v", got, want)
 			}
 		})

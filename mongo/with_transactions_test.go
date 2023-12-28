@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -36,6 +37,9 @@ var (
 func TestConvenientTransactions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
+	}
+	if os.Getenv("DOCKER_RUNNING") != "" {
+		t.Skip("skipping test in docker environment")
 	}
 
 	client := setupConvenientTransactions(t)
@@ -576,7 +580,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	fullClientOpts := []*options.ClientOptions{baseClientOpts}
 	fullClientOpts = append(fullClientOpts, extraClientOpts...)
 
-	client, err := Connect(bgCtx, fullClientOpts...)
+	client, err := Connect(fullClientOpts...)
 	assert.Nil(t, err, "Connect error: %v", err)
 
 	version, err := getServerVersion(client.Database("admin"))
@@ -593,7 +597,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	// For sharded clusters, disconnect the previous Client and create a new one that's pinned to a single mongos.
 	_ = client.Disconnect(bgCtx)
 	fullClientOpts = append(fullClientOpts, options.Client().SetHosts([]string{cs.Hosts[0]}))
-	client, err = Connect(bgCtx, fullClientOpts...)
+	client, err = Connect(fullClientOpts...)
 	assert.Nil(t, err, "Connect error: %v", err)
 	return client
 }

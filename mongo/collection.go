@@ -299,7 +299,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		if err != nil {
 			return nil, err
 		}
-		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NewObjectID(), coll.bsonOpts, coll.registry)
+		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NilObjectID, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -370,8 +370,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
-	wce, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var wce driver.WriteCommandError
+	if !errors.As(err, &wce) {
 		return result, err
 	}
 
@@ -467,8 +467,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	}
 
 	imResult := &InsertManyResult{InsertedIDs: result}
-	writeException, ok := err.(WriteException)
-	if !ok {
+	var writeException WriteException
+	if !errors.As(err, &writeException) {
 		return imResult, err
 	}
 
@@ -1048,13 +1048,13 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
 	}
 	if ao.Comment != nil {
-		op.Comment(*ao.Comment)
-
-		commentVal, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
+		comment, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
-		cursorOpts.Comment = commentVal
+
+		op.Comment(comment)
+		cursorOpts.Comment = comment
 	}
 	if ao.Hint != nil {
 		if isUnorderedMap(ao.Hint) {
@@ -1178,7 +1178,12 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
 	if countOpts.Comment != nil {
-		op.Comment(*countOpts.Comment)
+		comment, err := marshalValue(countOpts.Comment, coll.bsonOpts, coll.registry)
+		if err != nil {
+			return 0, err
+		}
+
+		op.Comment(comment)
 	}
 	if countOpts.Hint != nil {
 		if isUnorderedMap(countOpts.Hint) {
@@ -1468,13 +1473,13 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Collation(bsoncore.Document(fa.Collation.ToDocument()))
 	}
 	if fa.Comment != nil {
-		op.Comment(*fa.Comment)
-
-		commentVal, err := marshalValue(fa.Comment, coll.bsonOpts, coll.registry)
+		comment, err := marshalValue(fa.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
-		cursorOpts.Comment = commentVal
+
+		op.Comment(comment)
+		cursorOpts.Comment = comment
 	}
 	if fa.CursorType != nil {
 		switch *fa.CursorType {
@@ -1574,22 +1579,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
 }
 
-// FindOne executes a find command and returns a SingleResult for one document in the collection.
-//
-// The filter parameter must be a document containing query operators and can be used to select the document to be
-// returned. It cannot be nil. If the filter does not match any documents, a SingleResult with an error set to
-// ErrNoDocuments will be returned. If the filter matches multiple documents, one will be selected from the matched set.
-//
-// The opts parameter can be used to specify options for this operation (see the options.FindOneOptions documentation).
-//
-// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
-func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...options.Options[options.FindOneArgs]) *SingleResult {
-
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
+func newFindOptionsFromFindOneOptions(opts ...options.Options[options.FindOneArgs]) *options.FindOptions {
 	opt := func(args *options.FindArgs) error {
 		foa := &options.FindOneArgs{}
 		err := options.Merge(foa, opts...)
@@ -1641,9 +1631,26 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 
 	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
 	// by the server.
-	findOpts.SetLimit(-1)
+	return findOpts.SetLimit(-1)
+}
 
-	cursor, err := coll.Find(ctx, filter, findOpts)
+// FindOne executes a find command and returns a SingleResult for one document in the collection.
+//
+// The filter parameter must be a document containing query operators and can be used to select the document to be
+// returned. It cannot be nil. If the filter does not match any documents, a SingleResult with an error set to
+// ErrNoDocuments will be returned. If the filter matches multiple documents, one will be selected from the matched set.
+//
+// The opts parameter can be used to specify options for this operation (see the options.FindOneOptions documentation).
+//
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
+func (coll *Collection) FindOne(ctx context.Context, filter interface{},
+	opts ...options.Options[options.FindOneArgs]) *SingleResult {
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	cursor, err := coll.Find(ctx, filter, newFindOptionsFromFindOneOptions(opts...))
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
@@ -2166,7 +2173,7 @@ func (coll *Collection) Drop(ctx context.Context, opts ...*options.DropCollectio
 func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return fmt.Errorf("error transforming document: %v", err)
+		return fmt.Errorf("error transforming document: %w", err)
 	}
 
 	// Drop the two encryption-related, associated collections: `escCollection` and `ecocCollection`.
