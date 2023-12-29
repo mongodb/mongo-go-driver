@@ -50,11 +50,10 @@ type rttMonitor struct {
 	connMu        sync.Mutex
 	samples       []time.Duration
 	offset        int
-	minRTT        time.Duration
-	rtt90         time.Duration
 	averageRTT    time.Duration
 	averageRTTSet bool
 	movingMin     *list.List
+	minRTT        time.Duration
 
 	closeWg  sync.WaitGroup
 	cfg      *rttConfig
@@ -251,7 +250,9 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 
 	r.samples[r.offset] = rtt
 	r.offset = (r.offset + 1) % len(r.samples)
+
 	r.appendMovingMin(rtt)
+	r.minRTT = r.min()
 
 	if !r.averageRTTSet {
 		r.averageRTT = rtt
@@ -297,15 +298,7 @@ func (r *rttMonitor) Min() time.Duration {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.min()
-}
-
-// P90 returns the 90th percentile observed round-trip time over the window period.
-func (r *rttMonitor) P90() time.Duration {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	return r.rtt90
+	return r.minRTT
 }
 
 // Stats returns stringified stats of the current state of the monitor.
@@ -335,6 +328,6 @@ func (r *rttMonitor) Stats() string {
 	}
 
 	return fmt.Sprintf(`Round-trip-time monitor statistics:`+"\n"+
-		`average RTT: %v, minimum RTT: %v, 90th percentile RTT: %v, standard dev: %v`+"\n",
-		time.Duration(avg), r.minRTT, r.rtt90, time.Duration(stdDev))
+		`average RTT: %v, minimum RTT: %v, standard dev: %v`+"\n",
+		time.Duration(avg), r.minRTT, time.Duration(stdDev))
 }

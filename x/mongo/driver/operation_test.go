@@ -56,26 +56,6 @@ func compareErrors(err1, err2 error) bool {
 	return true
 }
 
-var _ RTTMonitor = &mockRTTMonitor{}
-
-type mockRTTMonitor struct {
-	ewma  time.Duration
-	min   time.Duration
-	stats string
-}
-
-func (mockr *mockRTTMonitor) EWMA() time.Duration {
-	return mockr.ewma
-}
-
-func (mockr *mockRTTMonitor) Min() time.Duration {
-	return mockr.min
-}
-
-func (mockr *mockRTTMonitor) Stats() string {
-	return mockr.stats
-}
-
 func TestOperation(t *testing.T) {
 	int64ToPtr := func(i64 int64) *int64 { return &i64 }
 
@@ -298,44 +278,50 @@ func TestOperation(t *testing.T) {
 		defer cancel()
 
 		testCases := []struct {
-			name string
-			op   Operation
-			ctx  context.Context
-			rtt  RTTMonitor
-			want uint64
-			err  error
+			name     string
+			op       Operation
+			ctx      context.Context
+			rtt      RTTMonitor
+			rttMin   time.Duration
+			rttStats string
+			want     uint64
+			err      error
 		}{
 			{
-				name: "uses context deadline and rtt90 with timeout",
-				op:   Operation{MaxTime: &maxTime},
-				ctx:  timeoutCtx,
-				rtt:  &mockRTTMonitor{min: shortRTT},
-				want: 5000,
-				err:  nil,
+				name:     "uses context deadline and rtt90 with timeout",
+				op:       Operation{MaxTime: &maxTime},
+				ctx:      timeoutCtx,
+				rttMin:   shortRTT,
+				rttStats: "",
+				want:     5000,
+				err:      nil,
 			},
 			{
-				name: "uses MaxTime without timeout",
-				op:   Operation{MaxTime: &maxTime},
-				ctx:  context.Background(),
-				rtt:  &mockRTTMonitor{min: longRTT},
-				want: 2000,
-				err:  nil,
+				name:     "uses MaxTime without timeout",
+				op:       Operation{MaxTime: &maxTime},
+				ctx:      context.Background(),
+				rttMin:   longRTT,
+				rttStats: "",
+				want:     2000,
+				err:      nil,
 			},
 			{
-				name: "errors when remaining timeout is less than rtt90",
-				op:   Operation{MaxTime: &maxTime},
-				ctx:  timeoutCtx,
-				rtt:  &mockRTTMonitor{min: timeout},
-				want: 0,
-				err:  ErrDeadlineWouldBeExceeded,
+				name:     "errors when remaining timeout is less than rtt90",
+				op:       Operation{MaxTime: &maxTime},
+				ctx:      timeoutCtx,
+				rttMin:   timeout,
+				rttStats: "",
+				want:     0,
+				err:      ErrDeadlineWouldBeExceeded,
 			},
 			{
-				name: "errors when MaxTime is negative",
-				op:   Operation{MaxTime: &negMaxTime},
-				ctx:  context.Background(),
-				rtt:  &mockRTTMonitor{min: longRTT},
-				want: 0,
-				err:  ErrNegativeMaxTime,
+				name:     "errors when MaxTime is negative",
+				op:       Operation{MaxTime: &negMaxTime},
+				ctx:      context.Background(),
+				rttMin:   longRTT,
+				rttStats: "",
+				want:     0,
+				err:      ErrNegativeMaxTime,
 			},
 		}
 		for _, tc := range testCases {
@@ -344,7 +330,7 @@ func TestOperation(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rtt, "")
+				got, err := tc.op.calculateMaxTimeMS(tc.ctx, tc.rttMin, tc.rttStats)
 
 				// Assert that the calculated maxTimeMS is less than or equal to the expected value. A few
 				// milliseconds will have elapsed toward the context deadline, and (remainingTimeout
