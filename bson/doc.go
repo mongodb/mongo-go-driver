@@ -72,7 +72,7 @@
 //  5. uint8 and uint16 marshal to a BSON int32.
 //  6. When encoding with EncodeContext.MinSize set to true, uint, uint32, and uint64 will marshal to a BSON int32 if
 //     the value falls within the inclusive range of math.MinInt32 to math.MaxInt32. Otherwise, they will marshal to a
-//     BSON int64. See Encoder examples for usage of EncodeContext.MinSize.
+//     BSON int64. See Encoder examples for usage of Encoder.IntMinSize.
 //  7. BSON null and undefined values will unmarshal into the zero value of a field (e.g. unmarshalling a BSON null or
 //     undefined value into a string will yield the empty string.).
 //
