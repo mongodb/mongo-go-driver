@@ -8,7 +8,7 @@
 //
 // For more information about MongoDB read concerns, see
 // https://www.mongodb.com/docs/manual/reference/read-concern/
-package readconcern // import "go.mongodb.org/mongo-driver/mongo/readconcern"
+package readconcern
 
 import (
 	"errors"

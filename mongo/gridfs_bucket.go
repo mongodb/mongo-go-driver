@@ -52,8 +52,8 @@ type GridFSBucket struct {
 	writeBuf       []byte
 }
 
-// Upload contains options to upload a file to a bucket.
-type Upload struct {
+// upload contains options to upload a file to a bucket.
+type upload struct {
 	chunkSize int32
 	metadata  bson.D
 }
@@ -590,8 +590,8 @@ func (b *GridFSBucket) checkFirstWrite(ctx context.Context) error {
 	return nil
 }
 
-func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, error) {
-	upload := &Upload{
+func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*upload, error) {
+	upload := &upload{
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 

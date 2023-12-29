@@ -17,10 +17,11 @@ import (
 )
 
 // ErrMissingChunk indicates that the number of chunks read from the server is
-// less than expected.
+// less than expected. This error is specific to GridFS operations.
 var ErrMissingChunk = errors.New("EOF missing one or more chunks")
 
-// ErrWrongSize is used when the chunk retrieved from the server does not have the expected size.
+// ErrWrongSize is used when the chunk retrieved from the server does not have
+// the expected size. This error is specific to GridFS operations.
 var ErrWrongSize = errors.New("chunk size does not match expected size")
 
 var errNoMoreChunks = errors.New("no more chunks remaining")

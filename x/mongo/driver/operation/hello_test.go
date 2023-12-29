@@ -8,6 +8,7 @@ package operation
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"testing"
 
@@ -141,6 +142,10 @@ func TestAppendClientDriver(t *testing.T) {
 
 func TestAppendClientEnv(t *testing.T) {
 	clearTestEnv(t)
+
+	if os.Getenv("DOCKER_RUNNING") != "" {
+		t.Skip("These tests gives different results when run in Docker due to extra environment data.")
+	}
 
 	tests := []struct {
 		name          string
@@ -376,6 +381,10 @@ func TestAppendClientPlatform(t *testing.T) {
 
 func TestEncodeClientMetadata(t *testing.T) {
 	clearTestEnv(t)
+
+	if os.Getenv("DOCKER_RUNNING") != "" {
+		t.Skip("These tests gives different results when run in Docker due to extra environment data.")
+	}
 
 	type application struct {
 		Name string `bson:"name"`

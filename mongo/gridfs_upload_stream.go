@@ -29,7 +29,7 @@ var ErrStreamClosed = errors.New("stream is closed or aborted")
 // uploaded using the Write method. After an upload is complete, the Close method must be called to write file
 // metadata.
 type GridFSUploadStream struct {
-	*Upload // chunk size and metadata
+	*upload // chunk size and metadata
 	FileID  interface{}
 
 	chunkIndex  int
@@ -46,13 +46,13 @@ type GridFSUploadStream struct {
 // NewUploadStream creates a new upload stream.
 func newUploadStream(
 	ctx context.Context,
-	upload *Upload,
+	up *upload,
 	fileID interface{},
 	filename string,
 	chunks, files *Collection,
 ) *GridFSUploadStream {
 	return &GridFSUploadStream{
-		Upload: upload,
+		upload: up,
 		FileID: fileID,
 
 		chunksColl: chunks,
