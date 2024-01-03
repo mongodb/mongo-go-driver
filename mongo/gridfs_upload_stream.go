@@ -18,9 +18,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
+// uploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
 // lengths is equal to the batch size.
-const UploadBufferSize = 16 * 1024 * 1024 // 16 MiB
+const uploadBufferSize = 16 * 1024 * 1024 // 16 MiB
 
 // ErrStreamClosed is an error returned if an operation is attempted on a closed/aborted stream.
 var ErrStreamClosed = errors.New("stream is closed or aborted")
@@ -58,7 +58,7 @@ func newUploadStream(
 		chunksColl: chunks,
 		filename:   filename,
 		filesColl:  files,
-		buffer:     make([]byte, UploadBufferSize),
+		buffer:     make([]byte, uploadBufferSize),
 		ctx:        ctx,
 	}
 }
@@ -100,7 +100,7 @@ func (us *GridFSUploadStream) Write(p []byte) (int, error) {
 		p = p[n:]
 		us.bufferIndex += n
 
-		if us.bufferIndex == UploadBufferSize {
+		if us.bufferIndex == uploadBufferSize {
 			err := us.uploadChunks(us.ctx, false)
 			if err != nil {
 				return 0, err
@@ -166,10 +166,10 @@ func (us *GridFSUploadStream) uploadChunks(ctx context.Context, uploadPartial bo
 
 	// copy any remaining bytes to beginning of buffer and set buffer index
 	bytesUploaded := numChunks * int(us.chunkSize)
-	if bytesUploaded != UploadBufferSize && !uploadPartial {
+	if bytesUploaded != uploadBufferSize && !uploadPartial {
 		copy(us.buffer[0:], us.buffer[bytesUploaded:us.bufferIndex])
 	}
-	us.bufferIndex = UploadBufferSize - bytesUploaded
+	us.bufferIndex = uploadBufferSize - bytesUploaded
 	return nil
 }
 

@@ -544,21 +544,6 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 	return names, nil
 }
 
-// ReadConcern returns the read concern used to configure the Database object.
-func (db *Database) ReadConcern() *readconcern.ReadConcern {
-	return db.readConcern
-}
-
-// ReadPreference returns the read preference used to configure the Database object.
-func (db *Database) ReadPreference() *readpref.ReadPref {
-	return db.readPreference
-}
-
-// WriteConcern returns the write concern used to configure the Database object.
-func (db *Database) WriteConcern() *writeconcern.WriteConcern {
-	return db.writeConcern
-}
-
 // Watch returns a change stream for all changes to the corresponding database. See
 // https://www.mongodb.com/docs/manual/changeStreams/ for more information about change streams.
 //
@@ -990,9 +975,9 @@ func (db *Database) GridFSBucket(opts ...*options.BucketOptions) (*GridFSBucket,
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
 		db:        db,
-		wc:        db.WriteConcern(),
-		rc:        db.ReadConcern(),
-		rp:        db.ReadPreference(),
+		wc:        db.writeConcern,
+		rc:        db.readConcern,
+		rp:        db.readPreference,
 	}
 
 	bo := options.GridFSBucket()
