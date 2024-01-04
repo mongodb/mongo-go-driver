@@ -128,6 +128,10 @@ func (d *timeoutDialer) DialContext(ctx context.Context, network, address string
 
 // TestServerHeartbeatTimeout tests timeout retry and preemptive canceling.
 func TestServerHeartbeatTimeout(t *testing.T) {
+	if os.Getenv("DOCKER_RUNNING") != "" {
+		t.Skip("Skipping this test in docker.")
+	}
+
 	networkTimeoutError := &net.DNSError{
 		IsTimeout: true,
 	}
