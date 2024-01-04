@@ -8,6 +8,7 @@ package topology
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -29,6 +30,10 @@ type generationStats struct {
 // load balancer, there is only one service ID: primitive.NilObjectID. For load-balanced deployments, each server behind
 // the load balancer will have a unique service ID.
 type poolGenerationMap struct {
+	// state must be accessed using the atomic package and should be at the beginning of the struct.
+	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
+	// - suggested layout: https://go101.org/article/memory-layout.html
+	state         int64
 	generationMap map[primitive.ObjectID]*generationStats
 
 	sync.Mutex
@@ -40,6 +45,14 @@ func newPoolGenerationMap() *poolGenerationMap {
 	}
 	pgm.generationMap[primitive.NilObjectID] = &generationStats{}
 	return pgm
+}
+
+func (p *poolGenerationMap) connect() {
+	atomic.StoreInt64(&p.state, generationConnected)
+}
+
+func (p *poolGenerationMap) disconnect() {
+	atomic.StoreInt64(&p.state, generationDisconnected)
 }
 
 // addConnection increments the connection count for the generation associated with the given service ID and returns the
@@ -91,6 +104,18 @@ func (p *poolGenerationMap) clear(serviceIDPtr *primitive.ObjectID) {
 	if stats, ok := p.generationMap[serviceID]; ok {
 		stats.generation++
 	}
+}
+
+func (p *poolGenerationMap) stale(serviceIDPtr *primitive.ObjectID, knownGeneration uint64) bool {
+	// If the map has been disconnected, all connections should be considered stale to ensure that they're closed.
+	if atomic.LoadInt64(&p.state) == generationDisconnected {
+		return true
+	}
+
+	if generation, ok := p.getGeneration(serviceIDPtr); ok {
+		return knownGeneration < generation
+	}
+	return false
 }
 
 func (p *poolGenerationMap) getGeneration(serviceIDPtr *primitive.ObjectID) (uint64, bool) {

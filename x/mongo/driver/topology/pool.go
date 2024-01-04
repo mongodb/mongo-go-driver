@@ -228,6 +228,8 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	}
 	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
+	pool.generation.connect()
+
 	// Create a Context with cancellation that's used to signal the createConnections() and
 	// maintain() background goroutines to stop. Also create a "backgroundDone" WaitGroup that is
 	// used to wait for the background goroutines to return.
@@ -273,18 +275,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 
 // stale checks if a given connection's generation is below the generation of the pool
 func (p *pool) stale(conn *connection) bool {
-	if conn == nil {
-		return true
-	}
-	p.stateMu.RLock()
-	defer p.stateMu.RUnlock()
-	if p.state == poolClosed {
-		return true
-	}
-	if generation, ok := p.generation.getGeneration(conn.desc.ServiceID); ok {
-		return conn.generation < generation
-	}
-	return false
+	return conn == nil || p.generation.stale(conn.desc.ServiceID, conn.generation)
 }
 
 // ready puts the pool into the "ready" state and starts the background connection creation and
@@ -352,6 +343,8 @@ func (p *pool) close(ctx context.Context) {
 
 	// Wait for all background goroutines to exit.
 	p.backgroundDone.Wait()
+
+	p.generation.disconnect()
 
 	if ctx == nil {
 		ctx = context.Background()
