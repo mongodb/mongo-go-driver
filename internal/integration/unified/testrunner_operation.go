@@ -196,22 +196,22 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		if err := operationRaw.Unmarshal(threadOp); err != nil {
 			return fmt.Errorf("error unmarshaling 'operation' argument: %v", err)
 		}
-		ch := entities(ctx).waitChans[lookupString(args, "thread")]
-		go func(op *operation) {
-			err := op.execute(ctx, loopDone)
-			ch <- err
-		}(threadOp)
+		thread := lookupString(args, "thread")
+		routine, ok := entities(ctx).routinesMap.Load(thread)
+		if !ok {
+			return fmt.Errorf("run on unknown thread: %s", thread)
+		}
+		routine.(*backgroundRoutine).addTask(threadOp.Name, func() error {
+			return threadOp.execute(ctx, loopDone)
+		})
 		return nil
 	case "waitForThread":
-		if ch, ok := entities(ctx).waitChans[lookupString(args, "thread")]; ok {
-			select {
-			case err := <-ch:
-				return err
-			case <-time.After(10 * time.Second):
-				return fmt.Errorf("timed out after 10 seconds")
-			}
+		thread := lookupString(args, "thread")
+		routine, ok := entities(ctx).routinesMap.Load(thread)
+		if !ok {
+			return fmt.Errorf("wait for unknown thread: %s", thread)
 		}
-		return nil
+		return routine.(*backgroundRoutine).stop()
 	case "waitForEvent":
 		var wfeArgs waitForEventArguments
 		if err := bson.Unmarshal(op.Arguments, &wfeArgs); err != nil {

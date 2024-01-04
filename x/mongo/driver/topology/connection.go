@@ -48,7 +48,6 @@ type connection struct {
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 	state int64
-	err   error
 
 	id                   string
 	nc                   net.Conn // When nil, the connection is closed.
@@ -338,7 +337,6 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 	if atomic.LoadInt64(&c.state) != connConnected {
 		return ConnectionError{
 			ConnectionID: c.id,
-			Wrapped:      c.err,
 			message:      "connection is closed",
 		}
 	}
@@ -393,7 +391,6 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 	if atomic.LoadInt64(&c.state) != connConnected {
 		return nil, ConnectionError{
 			ConnectionID: c.id,
-			Wrapped:      c.err,
 			message:      "connection is closed",
 		}
 	}
@@ -492,13 +489,6 @@ func (c *connection) close() error {
 	}
 
 	return err
-}
-
-func (c *connection) closeWithErr(err error) error {
-	c.err = err
-	c.closeConnectContext()
-	c.wait() // Make sure that the connection has finished connecting.
-	return c.close()
 }
 
 func (c *connection) closed() bool {

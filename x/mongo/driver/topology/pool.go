@@ -228,8 +228,6 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 	}
 	pool.connOpts = append(pool.connOpts, withGenerationNumberFn(func(_ generationNumberFn) generationNumberFn { return pool.getGenerationForNewConnection }))
 
-	pool.generation.connect()
-
 	// Create a Context with cancellation that's used to signal the createConnections() and
 	// maintain() background goroutines to stop. Also create a "backgroundDone" WaitGroup that is
 	// used to wait for the background goroutines to return.
@@ -278,7 +276,9 @@ func (p *pool) stale(conn *connection) bool {
 	if conn == nil {
 		return true
 	}
-	if atomic.LoadInt64(&p.generation.state) == generationDisconnected {
+	p.stateMu.RLock()
+	defer p.stateMu.RUnlock()
+	if p.state == poolClosed {
 		return true
 	}
 	if generation, ok := p.generation.getGeneration(conn.desc.ServiceID); ok {
@@ -352,8 +352,6 @@ func (p *pool) close(ctx context.Context) {
 
 	// Wait for all background goroutines to exit.
 	p.backgroundDone.Wait()
-
-	p.generation.disconnect()
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -751,59 +749,38 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
-// checkIn returns an idle connection to the pool. It calls checkInWithCallback internally.
+// checkIn returns an idle connection to the pool. If the connection is perished or the pool is
+// closed, it is removed from the connection pool and closed.
 func (p *pool) checkIn(conn *connection) error {
-	return p.checkInWithCallback(conn, func() (reason, bool) {
-		if mustLogPoolMessage(p) {
-			keysAndValues := logger.KeyValues{
-				logger.KeyDriverConnectionID, conn.driverConnectionID,
-			}
+	if conn == nil {
+		return nil
+	}
+	if conn.pool != p {
+		return ErrWrongPool
+	}
 
-			logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
+	if mustLogPoolMessage(p) {
+		keysAndValues := logger.KeyValues{
+			logger.KeyDriverConnectionID, conn.driverConnectionID,
 		}
 
-		if p.monitor != nil {
-			p.monitor.Event(&event.PoolEvent{
-				Type:         event.ConnectionCheckedIn,
-				ConnectionID: conn.driverConnectionID,
-				Address:      conn.addr.String(),
-			})
-		}
+		logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
+	}
 
-		r, perished := connectionPerished(conn)
-		if !perished && conn.pool.getState() == poolClosed {
-			perished = true
-			r = reason{
-				loggerConn: logger.ReasonConnClosedPoolClosed,
-				event:      event.ReasonPoolClosed,
-			}
-		}
-		return r, perished
-	})
+	if p.monitor != nil {
+		p.monitor.Event(&event.PoolEvent{
+			Type:         event.ConnectionCheckedIn,
+			ConnectionID: conn.driverConnectionID,
+			Address:      conn.addr.String(),
+		})
+	}
+
+	return p.checkInNoEvent(conn)
 }
 
 // checkInNoEvent returns a connection to the pool. It behaves identically to checkIn except it does
 // not publish events. It is only intended for use by pool-internal functions.
 func (p *pool) checkInNoEvent(conn *connection) error {
-	return p.checkInWithCallback(conn, func() (reason, bool) {
-		r, perished := connectionPerished(conn)
-		if !perished && conn.pool.getState() == poolClosed {
-			perished = true
-			r = reason{
-				loggerConn: logger.ReasonConnClosedPoolClosed,
-				event:      event.ReasonPoolClosed,
-			}
-		}
-		return r, perished
-	})
-}
-
-// checkInWithCallback returns a connection to the pool. If the connection is perished or the pool is
-// closed, it is removed from the connection pool and closed.
-// The callback parameter is expected to returns a reason of the check-in and a boolean value to
-// indicate whether the connection is perished.
-// Events and logs can also be added in the callback function.
-func (p *pool) checkInWithCallback(conn *connection, callback func() (reason, bool)) error {
 	if conn == nil {
 		return nil
 	}
@@ -819,10 +796,13 @@ func (p *pool) checkInWithCallback(conn *connection, callback func() (reason, bo
 	// connection should never be perished due to max idle time.
 	conn.bumpIdleDeadline()
 
-	var r reason
-	var perished bool
-	if callback != nil {
-		r, perished = callback()
+	r, perished := connectionPerished(conn)
+	if !perished && conn.pool.getState() == poolClosed {
+		perished = true
+		r = reason{
+			loggerConn: logger.ReasonConnClosedPoolClosed,
+			event:      event.ReasonPoolClosed,
+		}
 	}
 	if perished {
 		_ = p.removeConnection(conn, r, nil)
@@ -868,36 +848,13 @@ func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
 // interruptConnections interrupts the input connections.
 func (p *pool) interruptConnections(conns []*connection) {
 	for _, conn := range conns {
-		_ = conn.closeWithErr(poolClearedError{
-			err:     fmt.Errorf("interrupted"),
-			address: p.address,
-		})
-		_ = p.checkInWithCallback(conn, func() (reason, bool) {
-			if mustLogPoolMessage(p) {
-				keysAndValues := logger.KeyValues{
-					logger.KeyDriverConnectionID, conn.driverConnectionID,
-				}
-
-				logPoolMessage(p, logger.ConnectionCheckedIn, keysAndValues...)
-			}
-
-			if p.monitor != nil {
-				p.monitor.Event(&event.PoolEvent{
-					Type:         event.ConnectionCheckedIn,
-					ConnectionID: conn.driverConnectionID,
-					Address:      conn.addr.String(),
-				})
-			}
-
-			r, ok := connectionPerished(conn)
-			if ok {
-				r = reason{
-					loggerConn: logger.ReasonConnClosedStale,
-					event:      event.ReasonStale,
-				}
-			}
-			return r, ok
-		})
+		_ = p.removeConnection(conn, reason{
+			loggerConn: logger.ReasonConnClosedStale,
+			event:      event.ReasonStale,
+		}, nil)
+		go func(c *connection) {
+			_ = p.closeConnection(c)
+		}(conn)
 	}
 }
 

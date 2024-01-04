@@ -112,6 +112,70 @@ func newCollectionEntityOptions(id string, databaseID string, collectionName str
 	return options
 }
 
+type task struct {
+	name    string
+	execute func() error
+}
+
+type backgroundRoutine struct {
+	tasks chan *task
+	wg    sync.WaitGroup
+	err   error
+}
+
+func (b *backgroundRoutine) start() {
+	b.wg.Add(1)
+
+	go func() {
+		defer b.wg.Done()
+
+		for t := range b.tasks {
+			if b.err != nil {
+				continue
+			}
+
+			ch := make(chan error)
+			go func(task *task) {
+				ch <- task.execute()
+			}(t)
+			select {
+			case err := <-ch:
+				if err != nil {
+					b.err = fmt.Errorf("error running operation %s: %v", t.name, err)
+				}
+			case <-time.After(10 * time.Second):
+				b.err = fmt.Errorf("timed out after 10 seconds")
+			}
+		}
+	}()
+}
+
+func (b *backgroundRoutine) stop() error {
+	close(b.tasks)
+	b.wg.Wait()
+	return b.err
+}
+
+func (b *backgroundRoutine) addTask(name string, execute func() error) bool {
+	select {
+	case b.tasks <- &task{
+		name:    name,
+		execute: execute,
+	}:
+		return true
+	default:
+		return false
+	}
+}
+
+func newBackgroundRoutine() *backgroundRoutine {
+	routine := &backgroundRoutine{
+		tasks: make(chan *task, 10),
+	}
+
+	return routine
+}
+
 type clientEncryptionOpts struct {
 	KeyVaultClient    string              `bson:"keyVaultClient"`
 	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
@@ -136,7 +200,7 @@ type EntityMap struct {
 	successValues            map[string]int32
 	iterationValues          map[string]int32
 	clientEncryptionEntities map[string]*mongo.ClientEncryption
-	waitChans                map[string]chan error
+	routinesMap              sync.Map // maps thread name to *backgroundRoutine
 	evtLock                  sync.Mutex
 	closed                   atomic.Value
 	// keyVaultClientIDs tracks IDs of clients used as a keyVaultClient in ClientEncryption objects.
@@ -168,7 +232,6 @@ func newEntityMap() *EntityMap {
 		successValues:            make(map[string]int32),
 		iterationValues:          make(map[string]int32),
 		clientEncryptionEntities: make(map[string]*mongo.ClientEncryption),
-		waitChans:                make(map[string]chan error),
 		keyVaultClientIDs:        make(map[string]bool),
 	}
 	em.setClosed(false)
@@ -286,7 +349,9 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 	case "session":
 		err = em.addSessionEntity(entityOptions)
 	case "thread":
-		em.waitChans[entityOptions.ID] = make(chan error)
+		routine := newBackgroundRoutine()
+		em.routinesMap.Store(entityOptions.ID, routine)
+		routine.start()
 	case "bucket":
 		err = em.addGridFSBucketEntity(entityOptions)
 	case "clientEncryption":
