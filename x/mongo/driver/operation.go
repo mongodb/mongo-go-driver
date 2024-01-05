@@ -1550,7 +1550,7 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration
 			maxTimeMS := remainingTimeout - rttMin
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
-					"remaining time %v until context deadline is less than or equal to 90th percentile RTT: %w\n%v",
+					"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
 					remainingTimeout,
 					ErrDeadlineWouldBeExceeded,
 					rttStats)
