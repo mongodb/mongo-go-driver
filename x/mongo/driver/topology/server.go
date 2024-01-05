@@ -334,7 +334,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 		return
 	}
 	// Ignore the error if the connection is stale.
-	if startingGenerationNumber < s.pool.generation.getGeneration(serviceID) {
+	if generation, _ := s.pool.generation.getGeneration(serviceID); startingGenerationNumber < generation {
 		return
 	}
 
@@ -641,7 +641,11 @@ func (s *Server) update() {
 				// Clear the pool once the description has been updated to Unknown. Pass in a nil service ID to clear
 				// because the monitoring routine only runs for non-load balanced deployments in which servers don't return
 				// IDs.
-				s.pool.clear(err, nil)
+				if timeoutCnt > 0 {
+					s.pool.clearAll(err, nil)
+				} else {
+					s.pool.clear(err, nil)
+				}
 			}
 			// We're either not handling a timeout error, or we just handled the 2nd consecutive
 			// timeout error. In either case, reset the timeout count to 0 and return false to
