@@ -178,17 +178,15 @@ func TestMapCodec(t *testing.T) {
 			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
 			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
 		}
-		buf := new(bytes.Buffer)
-		enc := new(Encoder)
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				mapCodec := bsoncodec.NewMapCodec(tc.opts)
 				mapRegistry := NewRegistry()
 				mapRegistry.RegisterKindEncoder(reflect.Map, mapCodec)
-				buf.Reset()
+				buf := new(bytes.Buffer)
 				vw, err := bsonrw.NewBSONValueWriter(buf)
 				assert.Nil(t, err)
-				enc.Reset(vw)
+				enc := NewEncoder(vw)
 				enc.SetRegistry(mapRegistry)
 				err = enc.Encode(mapObj)
 				assert.Nil(t, err, "Encode error: %v", err)

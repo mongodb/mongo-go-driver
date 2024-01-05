@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -148,7 +149,11 @@ func executeBucketDownloadByName(ctx context.Context, operation *operation) (*op
 		case "filename":
 			filename = val.StringValue()
 		case "revision":
-			opts.SetRevision(int32(val.AsInt64()))
+			revision := val.AsInt64()
+			if revision < math.MinInt32 || revision > math.MaxInt32 {
+				return nil, fmt.Errorf("revision overflows int32: %d", revision)
+			}
+			opts.SetRevision(int32(revision))
 		default:
 			return nil, fmt.Errorf("unrecognized bucket download option %q", key)
 		}
