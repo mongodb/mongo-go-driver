@@ -894,13 +894,11 @@ func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptAllC
 
 	if sendEvent && p.monitor != nil {
 		event := &event.PoolEvent{
-			Type:      event.PoolCleared,
-			Address:   p.address.String(),
-			ServiceID: serviceID,
-			Error:     err,
-		}
-		if interruptAllConnections {
-			event.Interruption = true
+			Type:         event.PoolCleared,
+			Address:      p.address.String(),
+			ServiceID:    serviceID,
+			Interruption: interruptAllConnections,
+			Error:        err,
 		}
 		p.monitor.Event(event)
 	}

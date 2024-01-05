@@ -452,10 +452,14 @@ func TestServer(t *testing.T) {
 		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, wantGeneration, wantNumConns uint64) {
 			t.Helper()
 
+			getGeneration := func(serviceIDPtr *primitive.ObjectID) uint64 {
+				generation, _ := server.pool.generation.getGeneration(serviceIDPtr)
+				return generation
+			}
+
 			// On connection failure, the connection is removed and closed after delivering the
 			// error to Connection(), so it may still count toward the generation connection count
 			// briefly. Wait up to 100ms for the generation connection count to reach the target.
-			generation, _ := server.pool.generation.getGeneration(&serviceID)
 			assert.Eventuallyf(t,
 				func() bool {
 					generation, _ := server.pool.generation.getGeneration(&serviceID)
@@ -463,10 +467,10 @@ func TestServer(t *testing.T) {
 					return generation == wantGeneration && numConns == wantNumConns
 				},
 				100*time.Millisecond,
-				1*time.Millisecond,
+				10*time.Millisecond,
 				"expected generation number %v, got %v; expected connection count %v, got %v",
 				wantGeneration,
-				generation,
+				getGeneration(&serviceID),
 				wantNumConns,
 				server.pool.generation.getNumConns(&serviceID))
 		}
