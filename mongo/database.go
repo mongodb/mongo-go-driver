@@ -975,9 +975,6 @@ func (db *Database) GridFSBucket(opts ...*options.BucketOptions) (*GridFSBucket,
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
 		db:        db,
-		wc:        db.writeConcern,
-		rc:        db.readConcern,
-		rp:        db.readPreference,
 	}
 
 	bo := options.GridFSBucket()
