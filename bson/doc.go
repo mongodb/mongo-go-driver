@@ -68,7 +68,7 @@
 //  2. int8, int16, and int32 marshal to a BSON int32.
 //  3. int marshals to a BSON int32 if the value is between math.MinInt32 and math.MaxInt32, inclusive, and a BSON int64
 //     otherwise.
-//  4. int64 marshals to BSON int64.
+//  4. int64 marshals to BSON int64 (unless [Encoder.IntMinSize] is set).
 //  5. uint8 and uint16 marshal to a BSON int32.
 //  6. When encoding with EncodeContext.MinSize set to true, uint, uint32, and uint64 will marshal to a BSON int32 if
 //     the value falls within the inclusive range of math.MinInt32 to math.MaxInt32. Otherwise, they will marshal to a
