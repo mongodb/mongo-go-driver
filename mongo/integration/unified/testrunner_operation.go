@@ -50,10 +50,10 @@ func (lp *loopArgs) iterationsStored() bool {
 	return lp.IterationsEntityID != ""
 }
 
-func executeTestRunnerOperation(ctx context.Context, operation *operation, loopDone <-chan struct{}) error {
-	args := operation.Arguments
+func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-chan struct{}) error {
+	args := op.Arguments
 
-	switch operation.Name {
+	switch op.Name {
 	case "failPoint":
 		clientID := lookupString(args, "client")
 		client, err := entities(ctx).client(clientID)
@@ -187,9 +187,34 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 			}
 		}
 		return nil
+	case "runOnThread":
+		operationRaw, err := args.LookupErr("operation")
+		if err != nil {
+			return fmt.Errorf("'operation' argument not found in runOnThread operation")
+		}
+		threadOp := new(operation)
+		if err := operationRaw.Unmarshal(threadOp); err != nil {
+			return fmt.Errorf("error unmarshaling 'operation' argument: %v", err)
+		}
+		thread := lookupString(args, "thread")
+		routine, ok := entities(ctx).routinesMap.Load(thread)
+		if !ok {
+			return fmt.Errorf("run on unknown thread: %s", thread)
+		}
+		routine.(*backgroundRoutine).addTask(threadOp.Name, func() error {
+			return threadOp.execute(ctx, loopDone)
+		})
+		return nil
+	case "waitForThread":
+		thread := lookupString(args, "thread")
+		routine, ok := entities(ctx).routinesMap.Load(thread)
+		if !ok {
+			return fmt.Errorf("wait for unknown thread: %s", thread)
+		}
+		return routine.(*backgroundRoutine).stop()
 	case "waitForEvent":
 		var wfeArgs waitForEventArguments
-		if err := bson.Unmarshal(operation.Arguments, &wfeArgs); err != nil {
+		if err := bson.Unmarshal(op.Arguments, &wfeArgs); err != nil {
 			return fmt.Errorf("error unmarshalling event to waitForEventArguments: %v", err)
 		}
 
@@ -198,7 +223,7 @@ func executeTestRunnerOperation(ctx context.Context, operation *operation, loopD
 
 		return waitForEvent(wfeCtx, wfeArgs)
 	default:
-		return fmt.Errorf("unrecognized testRunner operation %q", operation.Name)
+		return fmt.Errorf("unrecognized testRunner operation %q", op.Name)
 	}
 }
 
