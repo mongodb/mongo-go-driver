@@ -10,7 +10,7 @@ if [ -z $DRIVERS_TOOLS ]; then
   export DRIVERS_TOOLS="$(dirname $(dirname $(dirname `pwd`)))/drivers-tools"
 fi
 
-if [ "Windows_NT" = "$OS" ]; then
+if [ "Windows_NT" = "${OS:-}" ]; then
     export GOPATH=$(cygpath -m $GOPATH)
     export GOCACHE=$(cygpath -m $GOCACHE)
     export DRIVERS_TOOLS=$(cygpath -m $DRIVERS_TOOLS)
@@ -53,6 +53,10 @@ fi
 # client-side encryption, which requires linking the libmongocrypt C library.
 if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
+fi
+
+if [[ ! -d "$(pwd)/install" ]] && [[ $GO_BUILD_TAGS == *"cse"* ]]; then
+  bash $(pwd)/etc/install-libmongocrypt.sh
 fi
 
 if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then

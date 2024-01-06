@@ -16,7 +16,7 @@ export CSFLE_TLS_CA_FILE="${PARENT_DIR}/testdata/kmip-certs/ca-ec.pem"
 export CSFLE_TLS_CERT_FILE="${PARENT_DIR}/testdata/kmip-certs/server-ec.pem"
 export CSFLE_TLS_CLIENT_CERT_FILE="${PARENT_DIR}/testdata/kmip-certs/client-ec.pem"
 
-if [ "Windows_NT" = "$OS" ]; then
+if [ "Windows_NT" = "${OS:-}" ]; then
   export CSFLE_TLS_CA_FILE=$(cygpath -m $CSFLE_TLS_CA_FILE)
   export CSFLE_TLS_CERT_FILE=$(cygpath -m $CSFLE_TLS_CERT_FILE)
   export CSFLE_TLS_CLIENT_CERT_FILE=$(cygpath -m $CSFLE_TLS_CLIENT_CERT_FILE)
