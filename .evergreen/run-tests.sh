@@ -20,8 +20,13 @@ export GOROOT="${GOROOT}"
 export PATH="${GOROOT}/bin:${GCC_PATH}:$GOPATH/bin:$PATH"
 export PROJECT="${project}"
 
-export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
-export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
+if [ "$(uname -s)" = "Darwin" ]; then
+  export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
+  export DYLD_FALLBACK_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
+else
+  export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
+  export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
+fi
 
 export GOFLAGS=-mod=vendor
 
@@ -82,4 +87,5 @@ BUILD_TAGS="${RACE} -tags=${GO_BUILD_TAGS}" \
 CRYPT_SHARED_LIB_PATH=$CRYPT_SHARED_LIB_PATH \
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
 LD_LIBRARY_PATH=$LD_LIBRARY_PATH \
+MACOS_LIBRARY_PATH=$DYLD_FALLBACK_LIBRARY_PATH \
 make $MAKEFILE_TARGET
