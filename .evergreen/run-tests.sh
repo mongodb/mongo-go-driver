@@ -55,8 +55,15 @@ if [ -z ${GO_BUILD_TAGS+x} ]; then
   GO_BUILD_TAGS="cse"
 fi
 
-if [[ ! -d "$(pwd)/install" ]] && [[ $GO_BUILD_TAGS == *"cse"* ]]; then
-  bash $(pwd)/etc/install-libmongocrypt.sh
+if [[ $GO_BUILD_TAGS == *"cse"* ]]; then
+  if [ "Windows_NT" = "$OS" ]; then
+    if [ ! -d /cygdrive/c/libmongocrypt/bin ]; then
+      bash $(pwd)/etc/install-libmongocrypt.sh
+    fi
+    export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+  elif [ ! -d "$(pwd)/install" ]; then
+    bash $(pwd)/etc/install-libmongocrypt.sh
+  fi
 fi
 
 if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then

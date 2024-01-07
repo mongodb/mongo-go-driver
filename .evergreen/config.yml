@@ -97,12 +97,6 @@ functions:
           go version
           go env
 
-          # Install libmongocrypt.
-          bash etc/install-libmongocrypt.sh
-          if [ "Windows_NT" = "$OS" ]; then
-            export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-          fi
-
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
@@ -849,7 +843,6 @@ functions:
       params:
         working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
-        background: true
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         args:
           - ./etc/setup-encryption.sh
@@ -859,7 +852,7 @@ functions:
         binary: bash
         include_expansions_in_env: ["DRIVERS_TOOLS"]
         args:
-          - .evergreen/await-encryption.sh
+          - $DRIVERS_TOOLS/.evergreen/csfle/await_servers.sh
 
   run-kms-tls-test:
     - command: shell.exec
