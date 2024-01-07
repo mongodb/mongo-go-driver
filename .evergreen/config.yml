@@ -859,7 +859,7 @@ functions:
         binary: bash
         include_expansions_in_env: ["DRIVERS_TOOLS"]
         args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/await_servers.sh
+          - .evergreen/await-encryption.sh
 
   run-kms-tls-test:
     - command: shell.exec
