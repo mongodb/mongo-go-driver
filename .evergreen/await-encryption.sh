@@ -8,5 +8,5 @@ if [ -z "$DRIVERS_TOOLS" ]; then
     exit 1
 fi
 
-source ./secrets-export.sh
+source ./etc/secrets-export.sh
 bash $DRIVERS_TOOLS/.evergreen/csfle/await_servers.sh
