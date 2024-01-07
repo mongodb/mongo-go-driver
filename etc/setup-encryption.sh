@@ -20,10 +20,10 @@ bash $DRIVERS_TOOLS/.evergreen/csfle/setup_secrets.sh
 
 # Map some of the secrets to expected environment variables.
 source ./secrets-export.sh
-echo "export AZURE_TENANT_ID=\"$FLE_AZURE_TENANTID\"" >> secrets-export.sh
+echo "\nexport AZURE_TENANT_ID=\"$FLE_AZURE_TENANTID\"" >> secrets-export.sh
 echo "export AZURE_CLIENT_ID=\"$FLE_AZURE_CLIENTID\"" >> secrets-export.sh
 echo "export AZURE_CLIENT_SECRET=\"$FLE_AZURE_CLIENTSECRET\"" >> secrets-export.sh
 echo "export GCP_EMAIL=\"$FLE_GCP_EMAIL\"" >> secrets-export.sh
-echo "export GCP_PRIVATE_KEY=\"$FLE_GCP_PRIVATEKEY\"" >> secrets-export.sh
+echo "export GCP_PRIVATE_KEY=\"$FLE_GCP_PRIVATEKEY\"\n" >> secrets-export.sh
 
 bash $DRIVERS_TOOLS/.evergreen/csfle/start_servers.sh
