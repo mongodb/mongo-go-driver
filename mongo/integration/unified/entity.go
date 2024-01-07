@@ -31,7 +31,7 @@ var (
 
 var (
 	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
-	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CERT_FILE")
+	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CLIENT_CERT_FILE")
 )
 
 type storeEventsAsEntitiesConfig struct {
