@@ -8,5 +8,6 @@ if [ -z "$DRIVERS_TOOLS" ]; then
     exit 1
 fi
 
-source ./etc/secrets-export.sh
+DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source $DIR../etc/secrets-export.sh
 bash $DRIVERS_TOOLS/.evergreen/csfle/await_servers.sh
