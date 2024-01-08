@@ -8,22 +8,15 @@ package bsoncore
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-// ErrCorruptedDocument is returned when a full document couldn't be read from
+// errCorruptedDocument is returned when a full document couldn't be read from
 // the sequence.
-var ErrCorruptedDocument = errors.New("invalid DocumentSequence: corrupted document")
-
-// ErrNonDocument is returned when a DocumentSequence contains a non-document
-// BSON value.
-var ErrNonDocument = errors.New("invalid DocumentSequence: a non-document value was found in sequence")
-
-// ErrInvalidDocumentSequenceStyle is returned when an unknown
-// DocumentSequenceStyle is set on a DocumentSequence.
-var ErrInvalidDocumentSequenceStyle = errors.New("invalid DocumentSequenceStyle")
+var errCorruptedDocument = errors.New("invalid DocumentSequence: corrupted document")
 
 // Iterator maintains a list of BSON values and keeps track of the current
 // position in relation to its Next() method.
@@ -75,13 +68,13 @@ func (iter *Iterator) Documents() ([]Document, error) {
 
 	vals, err := iter.List.Values()
 	if err != nil {
-		return nil, ErrCorruptedDocument
+		return nil, errCorruptedDocument
 	}
 
 	docs := make([]Document, 0, len(vals))
 	for _, v := range vals {
 		if v.Type != bsontype.EmbeddedDocument {
-			continue
+			return nil, fmt.Errorf("invalid DocumentSequence: a non-document value was found in sequence")
 		}
 
 		docs = append(docs, v.Data)
@@ -99,19 +92,20 @@ func (iter *Iterator) Next() (*Value, error) {
 
 	if iter.pos < 4 {
 		if len(iter.List) < 4 {
-			return nil, ErrCorruptedDocument
+			return nil, errCorruptedDocument
 		}
 
 		iter.pos = 4 // Skip the length of the document
 	}
 
-	if len(iter.List[iter.pos:]) == 1 && iter.List[iter.pos] == 0x00 {
+	rem := iter.List[iter.pos:]
+	if len(rem) == 1 && rem[0] == 0x00 {
 		return nil, io.EOF // At the end of the document
 	}
 
-	elem, _, ok := ReadElement(iter.List[iter.pos:])
+	elem, _, ok := ReadElement(rem)
 	if !ok {
-		return nil, ErrCorruptedDocument
+		return nil, errCorruptedDocument
 	}
 
 	iter.pos += len(elem)
