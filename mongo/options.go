@@ -4,11 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package options
+package mongo
+
+import "go.mongodb.org/mongo-driver/mongo/options"
 
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
-	FindArgs | FindOneArgs | InsertOneArgs
+	options.FindArgs | options.FindOneArgs | options.InsertOneArgs
 }
 
 // Options is an interface that wraps a method to return a list of setter
@@ -17,8 +19,13 @@ type Options[T Args] interface {
 	ArgsSetters() []func(*T) error
 }
 
-// Merge will functionally merge a slice of Options in a "last-one-wins" manner.
-func Merge[T Args](args *T, opts ...Options[T]) error {
+var _ Options[options.FindArgs] = (*options.FindOptions)(nil)
+var _ Options[options.FindOneArgs] = (*options.FindOneOptions)(nil)
+var _ Options[options.InsertOneArgs] = (*options.InsertOneOptions)(nil)
+
+// NewArgsFromOptions will functionally merge a slice of mongo.Options in a "last-one-wins" manner.
+func NewArgsFromOptions[T Args](opts ...Options[T]) (*T, error) {
+	args := new(T)
 	for _, opt := range opts {
 		if opt == nil {
 			continue
@@ -28,9 +35,9 @@ func Merge[T Args](args *T, opts ...Options[T]) error {
 				continue
 			}
 			if err := setArgs(args); err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return args, nil
 }

@@ -107,8 +107,6 @@ type FindOptions struct {
 	Opts []func(*FindArgs) error
 }
 
-var _ Options[FindArgs] = (*FindOptions)(nil)
-
 // Find creates a new FindOptions instance.
 func Find() *FindOptions {
 	return &FindOptions{}
@@ -355,8 +353,6 @@ type FindOneArgs struct {
 type FindOneOptions struct {
 	Opts []func(*FindOneArgs) error
 }
-
-var _ Options[FindOneArgs] = (*FindOneOptions)(nil)
 
 // FindOne creates a new FindOneOptions instance.
 func FindOne() *FindOneOptions {

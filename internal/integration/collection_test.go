@@ -80,22 +80,22 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("options are converted", convertedOptsOpts, func(mt *mtest.T) {
 			nilOptsTestCases := []struct {
 				name            string
-				opts            []options.Options[options.InsertOneArgs]
+				opts            []mongo.Options[options.InsertOneArgs]
 				expectOptionSet bool
 			}{
 				{
 					"only nil is passed",
-					[]options.Options[options.InsertOneArgs]{nil},
+					[]mongo.Options[options.InsertOneArgs]{nil},
 					false,
 				},
 				{
 					"non-nil options is passed before nil",
-					[]options.Options[options.InsertOneArgs]{options.InsertOne().SetBypassDocumentValidation(true), nil},
+					[]mongo.Options[options.InsertOneArgs]{options.InsertOne().SetBypassDocumentValidation(true), nil},
 					true,
 				},
 				{
 					"non-nil options is passed after nil",
-					[]options.Options[options.InsertOneArgs]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
+					[]mongo.Options[options.InsertOneArgs]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
 					true,
 				},
 			}

@@ -400,10 +400,9 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...options.Options[options.InsertOneArgs]) (*InsertOneResult, error) {
+	opts ...Options[options.InsertOneArgs]) (*InsertOneResult, error) {
 
-	args := &options.InsertOneArgs{}
-	err := options.Merge(args, opts...)
+	args, err := NewArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1400,7 +1399,16 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...options.Options[options.FindArgs]) (cur *Cursor, err error) {
+	opts ...Options[options.FindArgs]) (*Cursor, error) {
+	args, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return coll.find(ctx, filter, args)
+}
+
+func (coll *Collection) find(ctx context.Context, filter interface{},
+	args *options.FindArgs) (cur *Cursor, err error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1432,39 +1440,33 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	fa := &options.FindArgs{}
-	err = options.Merge(fa, opts...)
-	if err != nil {
-		return nil, err
-	}
-
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fa.MaxTime).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).MaxTime(args.MaxTime).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(coll.bsonOpts, coll.registry)
 
-	if fa.AllowDiskUse != nil {
-		op.AllowDiskUse(*fa.AllowDiskUse)
+	if args.AllowDiskUse != nil {
+		op.AllowDiskUse(*args.AllowDiskUse)
 	}
-	if fa.AllowPartialResults != nil {
-		op.AllowPartialResults(*fa.AllowPartialResults)
+	if args.AllowPartialResults != nil {
+		op.AllowPartialResults(*args.AllowPartialResults)
 	}
-	if fa.BatchSize != nil {
-		cursorOpts.BatchSize = *fa.BatchSize
-		op.BatchSize(*fa.BatchSize)
+	if args.BatchSize != nil {
+		cursorOpts.BatchSize = *args.BatchSize
+		op.BatchSize(*args.BatchSize)
 	}
-	if fa.Collation != nil {
-		op.Collation(bsoncore.Document(fa.Collation.ToDocument()))
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
-	if fa.Comment != nil {
-		comment, err := marshalValue(fa.Comment, coll.bsonOpts, coll.registry)
+	if args.Comment != nil {
+		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -1472,8 +1474,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Comment(comment)
 		cursorOpts.Comment = comment
 	}
-	if fa.CursorType != nil {
-		switch *fa.CursorType {
+	if args.CursorType != nil {
+		switch *args.CursorType {
 		case options.Tailable:
 			op.Tailable(true)
 		case options.TailableAwait:
@@ -1481,25 +1483,25 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 			op.AwaitData(true)
 		}
 	}
-	if fa.Hint != nil {
-		if isUnorderedMap(fa.Hint) {
+	if args.Hint != nil {
+		if isUnorderedMap(args.Hint) {
 			return nil, ErrMapForOrderedArgument{"hint"}
 		}
-		hint, err := marshalValue(fa.Hint, coll.bsonOpts, coll.registry)
+		hint, err := marshalValue(args.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Hint(hint)
 	}
-	if fa.Let != nil {
-		let, err := marshal(fa.Let, coll.bsonOpts, coll.registry)
+	if args.Let != nil {
+		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Let(let)
 	}
-	if fa.Limit != nil {
-		limit := *fa.Limit
+	if args.Limit != nil {
+		limit := *args.Limit
 		if limit < 0 {
 			limit = -1 * limit
 			op.SingleBatch(true)
@@ -1507,47 +1509,47 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		cursorOpts.Limit = int32(limit)
 		op.Limit(limit)
 	}
-	if fa.Max != nil {
-		max, err := marshal(fa.Max, coll.bsonOpts, coll.registry)
+	if args.Max != nil {
+		max, err := marshal(args.Max, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Max(max)
 	}
-	if fa.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*fa.MaxAwaitTime / time.Millisecond)
+	if args.MaxAwaitTime != nil {
+		cursorOpts.MaxTimeMS = int64(*args.MaxAwaitTime / time.Millisecond)
 	}
-	if fa.Min != nil {
-		min, err := marshal(fa.Min, coll.bsonOpts, coll.registry)
+	if args.Min != nil {
+		min, err := marshal(args.Min, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Min(min)
 	}
-	if fa.NoCursorTimeout != nil {
-		op.NoCursorTimeout(*fa.NoCursorTimeout)
+	if args.NoCursorTimeout != nil {
+		op.NoCursorTimeout(*args.NoCursorTimeout)
 	}
-	if fa.Projection != nil {
-		proj, err := marshal(fa.Projection, coll.bsonOpts, coll.registry)
+	if args.Projection != nil {
+		proj, err := marshal(args.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Projection(proj)
 	}
-	if fa.ReturnKey != nil {
-		op.ReturnKey(*fa.ReturnKey)
+	if args.ReturnKey != nil {
+		op.ReturnKey(*args.ReturnKey)
 	}
-	if fa.ShowRecordID != nil {
-		op.ShowRecordID(*fa.ShowRecordID)
+	if args.ShowRecordID != nil {
+		op.ShowRecordID(*args.ShowRecordID)
 	}
-	if fa.Skip != nil {
-		op.Skip(*fa.Skip)
+	if args.Skip != nil {
+		op.Skip(*args.Skip)
 	}
-	if fa.Sort != nil {
-		if isUnorderedMap(fa.Sort) {
+	if args.Sort != nil {
+		if isUnorderedMap(args.Sort) {
 			return nil, ErrMapForOrderedArgument{"sort"}
 		}
-		sort, err := marshal(fa.Sort, coll.bsonOpts, coll.registry)
+		sort, err := marshal(args.Sort, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -1570,59 +1572,24 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
 }
 
-func newFindOptionsFromFindOneOptions(opts ...options.Options[options.FindOneArgs]) *options.FindOptions {
-	opt := func(args *options.FindArgs) error {
-		foa := &options.FindOneArgs{}
-		err := options.Merge(foa, opts...)
-		if err != nil {
-			return err
-		}
-
-		if foa.AllowPartialResults != nil {
-			args.AllowPartialResults = foa.AllowPartialResults
-		}
-		if foa.Collation != nil {
-			args.Collation = foa.Collation
-		}
-		if foa.Comment != nil {
-			args.Comment = foa.Comment
-		}
-		if foa.Hint != nil {
-			args.Hint = foa.Hint
-		}
-		if foa.Max != nil {
-			args.Max = foa.Max
-		}
-		if foa.MaxTime != nil {
-			args.MaxTime = foa.MaxTime
-		}
-		if foa.Min != nil {
-			args.Min = foa.Min
-		}
-		if foa.Projection != nil {
-			args.Projection = foa.Projection
-		}
-		if foa.ReturnKey != nil {
-			args.ReturnKey = foa.ReturnKey
-		}
-		if foa.ShowRecordID != nil {
-			args.ShowRecordID = foa.ShowRecordID
-		}
-		if foa.Skip != nil {
-			args.Skip = foa.Skip
-		}
-		if foa.Sort != nil {
-			args.Sort = foa.Sort
-		}
-		return nil
+func newFindArgsFromFindOneArgs(args *options.FindOneArgs) *options.FindArgs {
+	var limit int64 = -1
+	v := &options.FindArgs{Limit: &limit}
+	if args != nil {
+		v.AllowPartialResults = args.AllowPartialResults
+		v.Collation = args.Collation
+		v.Comment = args.Comment
+		v.Hint = args.Hint
+		v.Max = args.Max
+		v.MaxTime = args.MaxTime
+		v.Min = args.Min
+		v.Projection = args.Projection
+		v.ReturnKey = args.ReturnKey
+		v.ShowRecordID = args.ShowRecordID
+		v.Skip = args.Skip
+		v.Sort = args.Sort
 	}
-	findOpts := &options.FindOptions{
-		Opts: []func(*options.FindArgs) error{opt},
-	}
-
-	// Unconditionally send a limit to make sure only one document is returned and the cursor is not kept open
-	// by the server.
-	return findOpts.SetLimit(-1)
+	return v
 }
 
 // FindOne executes a find command and returns a SingleResult for one document in the collection.
@@ -1635,13 +1602,17 @@ func newFindOptionsFromFindOneOptions(opts ...options.Options[options.FindOneArg
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...options.Options[options.FindOneArgs]) *SingleResult {
+	opts ...Options[options.FindOneArgs]) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	cursor, err := coll.Find(ctx, filter, newFindOptionsFromFindOneOptions(opts...))
+	args, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil
+	}
+	cursor, err := coll.find(ctx, filter, newFindArgsFromFindOneArgs(args))
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,

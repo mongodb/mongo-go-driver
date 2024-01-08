@@ -218,87 +218,36 @@ func TestCollection(t *testing.T) {
 	})
 }
 
-func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
+func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		opts []options.Options[options.FindOneArgs]
-		want []options.Options[options.FindArgs]
+		args *options.FindOneArgs
+		want *options.FindArgs
 	}{
 		{
 			name: "nil",
-			opts: nil,
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetLimit(-1),
+			args: nil,
+			want: &options.FindArgs{
+				Limit: ptrOf(int64(-1)),
 			},
 		},
 		{
 			name: "empty",
-			opts: []options.Options[options.FindOneArgs]{},
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetLimit(-1),
+			args: &options.FindOneArgs{},
+			want: &options.FindArgs{
+				Limit: ptrOf(int64(-1)),
 			},
 		},
 		{
-			name: "singleton",
-			opts: []options.Options[options.FindOneArgs]{
-				options.FindOne().SetSkip(1),
+			name: "non empty",
+			args: &options.FindOneArgs{
+				Skip: ptrOf(int64(1)),
 			},
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetSkip(1),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "multiplicity",
-			opts: []options.Options[options.FindOneArgs]{
-				options.FindOne().SetSkip(1),
-				options.FindOne().SetSkip(2),
-			},
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "interior null",
-			opts: []options.Options[options.FindOneArgs]{
-				options.FindOne().SetSkip(1),
-				nil,
-				options.FindOne().SetSkip(2),
-			},
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "start null",
-			opts: []options.Options[options.FindOneArgs]{
-				nil,
-				options.FindOne().SetSkip(1),
-				options.FindOne().SetSkip(2),
-			},
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "end null",
-			opts: []options.Options[options.FindOneArgs]{
-				options.FindOne().SetSkip(1),
-				options.FindOne().SetSkip(2),
-				nil,
-			},
-			want: []options.Options[options.FindArgs]{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
+			want: &options.FindArgs{
+				Skip:  ptrOf(int64(1)),
+				Limit: ptrOf(int64(-1)),
 			},
 		},
 	}
@@ -309,14 +258,7 @@ func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			var err error
-			got := &options.FindArgs{}
-			err = options.Merge(got, []options.Options[options.FindArgs]{newFindOptionsFromFindOneOptions(test.opts...)}...)
-			assert.NoError(t, err, "unexpected merging error")
-			want := &options.FindArgs{}
-			err = options.Merge(want, test.want...)
-			assert.NoError(t, err, "unexpected merging error")
-			assert.Equal(t, want, got)
+			assert.Equal(t, test.want, newFindArgsFromFindOneArgs(test.args))
 		})
 	}
 }

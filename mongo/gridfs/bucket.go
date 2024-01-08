@@ -453,7 +453,7 @@ func (b *Bucket) GetChunksCollection() *mongo.Collection {
 func (b *Bucket) openDownloadStream(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.Options[options.FindOneArgs],
+	opts ...mongo.Options[options.FindOneArgs],
 ) (*DownloadStream, error) {
 	result := b.filesColl.FindOne(ctx, filter, opts...)
 

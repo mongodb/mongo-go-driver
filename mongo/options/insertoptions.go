@@ -24,8 +24,6 @@ type InsertOneOptions struct {
 	Opts []func(*InsertOneArgs) error
 }
 
-var _ Options[InsertOneArgs] = (*InsertOneOptions)(nil)
-
 // InsertOne creates a new InsertOneOptions instance.
 func InsertOne() *InsertOneOptions {
 	return &InsertOneOptions{}

@@ -5,3 +5,7 @@
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
 package mongo
+
+func ptrOf[T any](v T) *T {
+	return &v
+}
