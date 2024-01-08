@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	serverAddress          = address.Address("localhost:27017")
+	serverAddress          = address.Address("127.0.0.1:27017")
 	maxDocumentSize uint32 = 16777216
 	maxMessageSize  uint32 = 48000000
 	maxBatchCount   uint32 = 100000
