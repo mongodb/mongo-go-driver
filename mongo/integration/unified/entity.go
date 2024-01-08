@@ -615,7 +615,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["gcp"]["email"] = gcpEmail
 		}
 
-		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", "FLE_GCP_PRIVATE_KEY", "")
+		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", "FLE_GCP_PRIVATEKEY", "")
 		if err != nil {
 			return err
 		}

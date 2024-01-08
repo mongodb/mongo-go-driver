@@ -37,7 +37,7 @@ var (
 	azureClientID                   = os.Getenv("FLE_AZURE_CLIENTID")
 	azureClientSecret               = os.Getenv("FLE_AZURE_CLIENTSECRET")
 	gcpEmail                        = os.Getenv("FLE_GCP_EMAIL")
-	gcpPrivateKey                   = os.Getenv("FLE_GCP_PRIVATE_KEY")
+	gcpPrivateKey                   = os.Getenv("FLE_GCP_PRIVATEKEY")
 	tlsCAFileKMIP                   = os.Getenv("CSFLE_TLS_CA_FILE")
 	tlsClientCertificateKeyFileKMIP = os.Getenv("CSFLE_TLS_CLIENT_CERT_FILE")
 )
