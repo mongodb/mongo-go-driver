@@ -46,7 +46,7 @@ if [ "$SSL" != "nossl" -a -z "${SERVERLESS+x}" ]; then
 fi
 
 if [ -f "secrets-export.sh" ]; then
-    source secrets-export.sh
+    source $(pwd)/secrets-export.sh
 fi
 
 # If GO_BUILD_TAGS is not set, set the default Go build tags to "cse" to enable
@@ -61,7 +61,7 @@ if [[ $GO_BUILD_TAGS == *"cse"* ]]; then
       bash $(pwd)/etc/install-libmongocrypt.sh
     fi
     export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
-  elif [ ! -d "$(pwd)/install" ]; then
+  elif [ ! -d "$PKG_CONFIG_PATH" ]; then
     bash $(pwd)/etc/install-libmongocrypt.sh
   fi
 fi
