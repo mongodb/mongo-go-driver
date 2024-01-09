@@ -2319,30 +2319,6 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
 
-            if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
-              echo "expected SERVERLESS_MONGODB_VERSION to be set"
-              exit 1
-            fi
-
-            # Download the enterprise server download for current platform to $MONGODB_BINARIES.
-            # This is required for tests that need mongocryptd.
-            # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-                --component archive \
-                --version ${SERVERLESS_MONGODB_VERSION} \
-                --edition enterprise \
-                --out $MONGODB_BINARIES \
-                --strip-path-components 2
-
-            # Download the crypt_shared dynamic library for the current platform.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-              --component crypt_shared \
-              --version ${SERVERLESS_MONGODB_VERSION} \
-              --edition enterprise \
-              --out . \
-              --only "**/mongo_crypt_v1.*" \
-              --strip-path-components 1
-
             # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
             # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
             # downloaded files.
