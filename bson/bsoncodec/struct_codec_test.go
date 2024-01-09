@@ -140,6 +140,21 @@ func TestIsZero(t *testing.T) {
 			omitZeroStruct: true,
 			want:           false,
 		},
+		{
+			description: "empty map",
+			value:       map[string]string{},
+			want:        true,
+		},
+		{
+			description: "empty slice",
+			value:       []struct{}{},
+			want:        true,
+		},
+		{
+			description: "empty string",
+			value:       "",
+			want:        true,
+		},
 	}
 
 	for _, tc := range testCases {

@@ -396,7 +396,10 @@ func isZero(v reflect.Value, omitZeroStruct bool) bool {
 	if (kind != reflect.Ptr || !v.IsNil()) && v.Type().Implements(tZeroer) {
 		return v.Interface().(Zeroer).IsZero()
 	}
-	if kind == reflect.Struct {
+	switch kind {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Struct:
 		if !omitZeroStruct {
 			return false
 		}
