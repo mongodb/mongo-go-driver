@@ -98,6 +98,10 @@ func Setup(setupOpts ...*SetupOptions) error {
 	clientOpts := options.Client().ApplyURI(uri)
 	testutil.AddTestServerAPIVersion(clientOpts)
 
+	if tok := os.Getenv("MONGODB_SECURITY_TOKEN"); tok != "" {
+		clientOpts = clientOpts.SetSecurityToken(tok)
+	}
+
 	cfg, err := topology.NewConfig(clientOpts, nil)
 	if err != nil {
 		return fmt.Errorf("error constructing topology config: %v", err)
@@ -111,7 +115,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		return fmt.Errorf("error connecting topology: %v", err)
 	}
 
-	testContext.client, err = setupClient(options.Client().ApplyURI(uri))
+	testContext.client, err = setupClient(clientOpts)
 	if err != nil {
 		return fmt.Errorf("error connecting test client: %v", err)
 	}
@@ -243,7 +247,7 @@ func Teardown() error {
 
 func getServerVersion() (string, error) {
 	var serverStatus bson.Raw
-	err := testContext.client.Database(TestDb).RunCommand(
+	err := testContext.client.Database("admin").RunCommand(
 		context.Background(),
 		bson.D{{"buildInfo", 1}},
 	).Decode(&serverStatus)

@@ -46,6 +46,7 @@ type Update struct {
 	let                      bsoncore.Document
 	timeout                  *time.Duration
 	logger                   *logger.Logger
+	securityToken            string
 }
 
 // Upsert contains the information for an upsert in an Update operation.
@@ -165,6 +166,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		ServerAPI:         u.serverAPI,
 		Timeout:           u.timeout,
 		Logger:            u.logger,
+		SecurityToken:     u.securityToken,
 	}.Execute(ctx)
 
 }
@@ -410,5 +412,16 @@ func (u *Update) Logger(logger *logger.Logger) *Update {
 	}
 
 	u.logger = logger
+	return u
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (u *Update) SecurityToken(token string) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.securityToken = token
+
 	return u
 }

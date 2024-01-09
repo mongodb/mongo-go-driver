@@ -20,19 +20,20 @@ import (
 
 // ListIndexes performs a listIndexes operation.
 type ListIndexes struct {
-	batchSize  *int32
-	maxTime    *time.Duration
-	session    *session.Client
-	clock      *session.ClusterClock
-	collection string
-	monitor    *event.CommandMonitor
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	retry      *driver.RetryMode
-	crypt      driver.Crypt
-	serverAPI  *driver.ServerAPIOptions
-	timeout    *time.Duration
+	batchSize     *int32
+	maxTime       *time.Duration
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	retry         *driver.RetryMode
+	crypt         driver.Crypt
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
+	securityToken string
 
 	result driver.CursorResponse
 }
@@ -49,6 +50,7 @@ func (li *ListIndexes) Result(opts driver.CursorOptions) (*driver.BatchCursor, e
 
 	clock := li.clock
 	opts.ServerAPI = li.serverAPI
+	opts.SecurityToken = li.securityToken
 	return driver.NewBatchCursor(li.result, clientSession, clock, opts)
 }
 
@@ -83,6 +85,7 @@ func (li *ListIndexes) Execute(ctx context.Context) error {
 		Type:           driver.Read,
 		ServerAPI:      li.serverAPI,
 		Timeout:        li.timeout,
+		SecurityToken:  li.securityToken,
 	}.Execute(ctx)
 
 }
@@ -229,5 +232,16 @@ func (li *ListIndexes) Timeout(timeout *time.Duration) *ListIndexes {
 	}
 
 	li.timeout = timeout
+	return li
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (li *ListIndexes) SecurityToken(token string) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
+	}
+
+	li.securityToken = token
+
 	return li
 }

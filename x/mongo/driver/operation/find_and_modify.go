@@ -50,6 +50,7 @@ type FindAndModify struct {
 	serverAPI                *driver.ServerAPIOptions
 	let                      bsoncore.Document
 	timeout                  *time.Duration
+	securityToken            string
 
 	result FindAndModifyResult
 }
@@ -143,6 +144,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		Crypt:          fam.crypt,
 		ServerAPI:      fam.serverAPI,
 		Timeout:        fam.timeout,
+		SecurityToken:  fam.securityToken,
 	}.Execute(ctx)
 
 }
@@ -473,5 +475,16 @@ func (fam *FindAndModify) Timeout(timeout *time.Duration) *FindAndModify {
 	}
 
 	fam.timeout = timeout
+	return fam
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (fam *FindAndModify) SecurityToken(token string) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
+	}
+
+	fam.securityToken = token
+
 	return fam
 }

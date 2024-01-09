@@ -172,6 +172,7 @@ type SectionType uint8
 const (
 	SingleDocument SectionType = iota
 	DocumentSequence
+	SecurityToken
 )
 
 // OpmsgWireVersion is the minimum wire version needed to use OP_MSG
@@ -423,6 +424,11 @@ func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []by
 	}
 
 	return identifier, rem, rest, true
+}
+
+// ReadMsgSectionSecurityToken reads a security token from src.
+func ReadMsgSectionSecurityToken(src []byte) (securityToken string, rem []byte, ok bool) {
+	return readcstring(src)
 }
 
 // ReadMsgChecksum reads a checksum from src.

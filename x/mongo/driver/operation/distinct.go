@@ -42,6 +42,7 @@ type Distinct struct {
 	result         DistinctResult
 	serverAPI      *driver.ServerAPIOptions
 	timeout        *time.Duration
+	securityToken  string
 }
 
 // DistinctResult represents a distinct result returned by the server.
@@ -105,6 +106,7 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Selector:          d.selector,
 		ServerAPI:         d.serverAPI,
 		Timeout:           d.timeout,
+		SecurityToken:     d.securityToken,
 	}.Execute(ctx)
 
 }
@@ -307,5 +309,16 @@ func (d *Distinct) Timeout(timeout *time.Duration) *Distinct {
 	}
 
 	d.timeout = timeout
+	return d
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (d *Distinct) SecurityToken(token string) *Distinct {
+	if d == nil {
+		d = new(Distinct)
+	}
+
+	d.securityToken = token
+
 	return d
 }

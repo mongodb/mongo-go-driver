@@ -306,6 +306,8 @@ type Operation struct {
 
 	Logger *logger.Logger
 
+	SecurityToken string
+
 	// cmdName is only set when serializing OP_MSG and is used internally in readWireMessage.
 	cmdName string
 }
@@ -1248,7 +1250,18 @@ func (op Operation) createMsgWireMessage(ctx context.Context, maxTimeMS uint64, 
 		dst = bsoncore.UpdateLength(dst, idx, int32(len(dst[idx:])))
 	}
 
+	if len(op.SecurityToken) > 0 {
+		dst = wiremessage.AppendMsgSectionType(dst, wiremessage.SecurityToken)
+		dst = appendCString(dst, op.SecurityToken)
+	}
+
 	return bsoncore.UpdateLength(dst, wmindex, int32(len(dst[wmindex:]))), info, nil
+}
+
+func appendCString(buf []byte, s string) []byte {
+	buf = append(buf, s...)
+	buf = append(buf, 0)
+	return buf
 }
 
 // addCommandFields adds the fields for a command to the wire message in dst. This assumes that the start of the document

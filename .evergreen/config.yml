@@ -144,6 +144,7 @@ functions:
              export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib
              export PATH="$PATH"
+             export PROJECT_ORCHESTRATION_HOME="$PROJECT_DIRECTORY/.evergreen/orchestration"
           EOT
           # See what we variables we've set.
           cat expansion.yml
@@ -1172,6 +1173,16 @@ functions:
         script: |
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
+
+  run-security-token-tests:
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          ${PROJECT_DIRECTORY}/.evergreen/run-security-token.sh
 
   run-deployed-aws-lambda-tests:
     - command: ec2.assume_role
@@ -2267,6 +2278,17 @@ tasks:
       - func: bootstrap-mongo-orchestration
       - func: run-fuzz-tests
 
+  - name: "test-security-token"
+    commands:
+      - func: bootstrap-mongo-orchestration
+        vars:
+          TOPOLOGY: "replica_set"
+          AUTH: "auth"
+          SSL: "ssl"
+          VERSION: "latest"
+          ORCHESTRATION_FILE: "security-token.json"
+      - func: run-security-token-tests
+
   - name: "test-aws-lambda"
     tags:
       - latest
@@ -2415,6 +2437,15 @@ axes:
       - id: "ubuntu2004-go-1-20"
         display_name: "Ubuntu 20.04"
         run_on: ubuntu2004-build
+        variables:
+          GO_DIST: "/opt/golang/go1.20"
+
+  - id: os-security-token
+    display_name: OS
+    values:
+      - id: "rhel87-64-go-1-20"
+        display_name: "RHEL 8.7"
+        run_on: rhel8.7-large
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
@@ -2729,6 +2760,12 @@ buildvariants:
     display_name: "Serverless ${os-serverless}"
     tasks:
       - "serverless_task_group"
+
+  - matrix_name: "security-token"
+    matrix_spec: { version: ["latest"], os-security-token: "*" }
+    display_name: "Security Token ${os-security-token}"
+    tasks:
+      - "test-security-token"
 
   - matrix_name: "kms-kmip-test"
     matrix_spec: { version: ["latest"], os-ssl-40: ["ubuntu1804-64-go-1-20"] }

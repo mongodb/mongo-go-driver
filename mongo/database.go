@@ -186,10 +186,12 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	// read concern. Remove this note once readConcern is correctly passed to the operation
 	// level.
 	return op.Session(sess).CommandMonitor(db.client.monitor).
-		ServerSelector(readSelect).ClusterClock(db.client.clock).
-		Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
-		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
-		Timeout(db.client.timeout).Logger(db.client.logger), sess, nil
+			ServerSelector(readSelect).ClusterClock(db.client.clock).
+			Database(db.name).Deployment(db.client.deployment).ReadConcern(db.readConcern).
+			Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
+			Timeout(db.client.timeout).Logger(db.client.logger).SecurityToken(db.client.securityToken),
+		sess,
+		nil
 }
 
 // RunCommand executes the given command against the database. This function does not obey the Database's read
@@ -298,7 +300,7 @@ func (db *Database) Drop(ctx context.Context) error {
 		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI)
+		ServerAPI(db.client.serverAPI).SecurityToken(db.client.securityToken)
 
 	err = op.Execute(ctx)
 
@@ -392,7 +394,8 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).Crypt(db.client.cryptFLE).
-		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout)
+		ServerAPI(db.client.serverAPI).Timeout(db.client.timeout).
+		SecurityToken(db.client.securityToken)
 
 	cursorOpts := db.client.createBaseCursorOptions()
 	if lco.NameOnly != nil {
@@ -666,7 +669,7 @@ func (db *Database) createCollection(ctx context.Context, name string, opts ...*
 
 func (db *Database) createCollectionOperation(name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
 	cco := options.MergeCreateCollectionOptions(opts...)
-	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
+	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI).SecurityToken(db.client.securityToken)
 
 	if cco.Capped != nil {
 		op.Capped(*cco.Capped)
@@ -792,7 +795,8 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 	op := operation.NewCreate(viewName).
 		ViewOn(viewOn).
 		Pipeline(pipelineArray).
-		ServerAPI(db.client.serverAPI)
+		ServerAPI(db.client.serverAPI).
+		SecurityToken(db.client.securityToken)
 	cvo := options.MergeCreateViewOptions(opts...)
 	if cvo.Collation != nil {
 		op.Collation(bsoncore.Document(cvo.Collation.ToDocument()))

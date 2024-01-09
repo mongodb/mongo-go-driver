@@ -23,21 +23,22 @@ import (
 
 // CreateIndexes performs a createIndexes operation.
 type CreateIndexes struct {
-	commitQuorum bsoncore.Value
-	indexes      bsoncore.Document
-	maxTime      *time.Duration
-	session      *session.Client
-	clock        *session.ClusterClock
-	collection   string
-	monitor      *event.CommandMonitor
-	crypt        driver.Crypt
-	database     string
-	deployment   driver.Deployment
-	selector     description.ServerSelector
-	writeConcern *writeconcern.WriteConcern
-	result       CreateIndexesResult
-	serverAPI    *driver.ServerAPIOptions
-	timeout      *time.Duration
+	commitQuorum  bsoncore.Value
+	indexes       bsoncore.Document
+	maxTime       *time.Duration
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	writeConcern  *writeconcern.WriteConcern
+	result        CreateIndexesResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
+	securityToken string
 }
 
 // CreateIndexesResult represents a createIndexes result returned by the server.
@@ -117,6 +118,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		WriteConcern:      ci.writeConcern,
 		ServerAPI:         ci.serverAPI,
 		Timeout:           ci.timeout,
+		SecurityToken:     ci.securityToken,
 	}.Execute(ctx)
 
 }
@@ -274,5 +276,16 @@ func (ci *CreateIndexes) Timeout(timeout *time.Duration) *CreateIndexes {
 	}
 
 	ci.timeout = timeout
+	return ci
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (ci *CreateIndexes) SecurityToken(token string) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
+	}
+
+	ci.securityToken = token
+
 	return ci
 }

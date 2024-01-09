@@ -19,15 +19,16 @@ import (
 
 // EndSessions performs an endSessions operation.
 type EndSessions struct {
-	sessionIDs bsoncore.Document
-	session    *session.Client
-	clock      *session.ClusterClock
-	monitor    *event.CommandMonitor
-	crypt      driver.Crypt
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	serverAPI  *driver.ServerAPIOptions
+	sessionIDs    bsoncore.Document
+	session       *session.Client
+	clock         *session.ClusterClock
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	serverAPI     *driver.ServerAPIOptions
+	securityToken string
 }
 
 // NewEndSessions constructs and returns a new EndSessions.
@@ -59,6 +60,7 @@ func (es *EndSessions) Execute(ctx context.Context) error {
 		Deployment:        es.deployment,
 		Selector:          es.selector,
 		ServerAPI:         es.serverAPI,
+		SecurityToken:     es.securityToken,
 	}.Execute(ctx)
 
 }
@@ -157,5 +159,16 @@ func (es *EndSessions) ServerAPI(serverAPI *driver.ServerAPIOptions) *EndSession
 	}
 
 	es.serverAPI = serverAPI
+	return es
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (es *EndSessions) SecurityToken(token string) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
+	}
+
+	es.securityToken = token
+
 	return es
 }

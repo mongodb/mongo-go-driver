@@ -32,6 +32,7 @@ type AbortTransaction struct {
 	writeConcern  *writeconcern.WriteConcern
 	retry         *driver.RetryMode
 	serverAPI     *driver.ServerAPIOptions
+	securityToken string
 }
 
 // NewAbortTransaction constructs and returns a new AbortTransaction.
@@ -64,6 +65,7 @@ func (at *AbortTransaction) Execute(ctx context.Context) error {
 		Selector:          at.selector,
 		WriteConcern:      at.writeConcern,
 		ServerAPI:         at.serverAPI,
+		SecurityToken:     at.securityToken,
 	}.Execute(ctx)
 
 }
@@ -195,5 +197,16 @@ func (at *AbortTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *Abort
 	}
 
 	at.serverAPI = serverAPI
+	return at
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (at *AbortTransaction) SecurityToken(token string) *AbortTransaction {
+	if at == nil {
+		at = new(AbortTransaction)
+	}
+
+	at.securityToken = token
+
 	return at
 }

@@ -9,6 +9,7 @@ package mtest
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -630,6 +631,10 @@ func (t *T) createTestClient() {
 	// set ServerAPIOptions to latest version if required
 	if clientOpts.Deployment == nil && t.clientType != Mock && clientOpts.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		clientOpts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
+	}
+
+	if tok := os.Getenv("MONGODB_SECURITY_TOKEN"); tok != "" {
+		clientOpts = clientOpts.SetSecurityToken(tok)
 	}
 
 	// Setup command monitor

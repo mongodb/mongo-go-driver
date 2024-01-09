@@ -244,6 +244,12 @@ type ClientOptions struct {
 	// may be used in its place to control the amount of time that a single operation can run before returning
 	// an error. Setting SocketTimeout and Timeout on a single client will result in undefined behavior.
 	SocketTimeout *time.Duration
+
+	// SecurityToken specifies a security token that is sent with every command.
+	//
+	// Deprecated: This option is for internal use only and should not be set.
+	// It may be changed or removed in any release.
+	SecurityToken *string
 }
 
 // Client creates a new ClientOptions instance.
@@ -805,6 +811,16 @@ func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
 	return c
 }
 
+// SetSecurityToken sets a security token that is sent with every command.
+//
+// Deprecated: This option is for internal use only and should not be set. It
+// may be changed or removed in any release.
+func (c *ClientOptions) SetSecurityToken(token string) *ClientOptions {
+	c.SecurityToken = &token
+
+	return c
+}
+
 // SetServerSelectionTimeout specifies how long the driver will wait to find an available, suitable server to execute an
 // operation. This can also be set through the "serverSelectionTimeoutMS" URI option (e.g.
 // "serverSelectionTimeoutMS=30000"). The default value is 30 seconds.
@@ -1107,6 +1123,9 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.LoggerOptions != nil {
 			c.LoggerOptions = opt.LoggerOptions
+		}
+		if opt.SecurityToken != nil {
+			c.SecurityToken = opt.SecurityToken
 		}
 	}
 

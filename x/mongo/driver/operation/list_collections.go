@@ -37,6 +37,7 @@ type ListCollections struct {
 	batchSize             *int32
 	serverAPI             *driver.ServerAPIOptions
 	timeout               *time.Duration
+	securityToken         string
 }
 
 // NewListCollections constructs and returns a new ListCollections.
@@ -49,6 +50,7 @@ func NewListCollections(filter bsoncore.Document) *ListCollections {
 // Result returns the result of executing this operation.
 func (lc *ListCollections) Result(opts driver.CursorOptions) (*driver.ListCollectionsBatchCursor, error) {
 	opts.ServerAPI = lc.serverAPI
+	opts.SecurityToken = lc.securityToken
 	bc, err := driver.NewBatchCursor(lc.result, lc.session, lc.clock, opts)
 	if err != nil {
 		return nil, err
@@ -88,6 +90,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		Legacy:            driver.LegacyListCollections,
 		ServerAPI:         lc.serverAPI,
 		Timeout:           lc.timeout,
+		SecurityToken:     lc.securityToken,
 	}.Execute(ctx)
 
 }
@@ -262,5 +265,16 @@ func (lc *ListCollections) Timeout(timeout *time.Duration) *ListCollections {
 	}
 
 	lc.timeout = timeout
+	return lc
+}
+
+// SecurityToken sets the JWT security token for this operation.
+func (lc *ListCollections) SecurityToken(token string) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
+	}
+
+	lc.securityToken = token
+
 	return lc
 }

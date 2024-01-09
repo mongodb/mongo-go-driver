@@ -195,6 +195,10 @@ evg-test-versioned-api:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration >> test.suite
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration/unified >> test.suite
 
+.PHONY: evg-test-security-token
+evg-test-security-token:
+	go test $(BUILD_TAGS) -run "Test(Database|Collection)" -v -timeout $(TEST_TIMEOUT)s ./mongo/integration >> test.suite
+
 .PHONY: build-kms-test
 build-kms-test:
 	go build $(BUILD_TAGS) ./cmd/testkms
