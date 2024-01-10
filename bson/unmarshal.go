@@ -164,14 +164,8 @@ func unmarshalFromReader(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val 
 	dec := decPool.Get().(*Decoder)
 	defer decPool.Put(dec)
 
-	err := dec.Reset(vr)
-	if err != nil {
-		return err
-	}
-	err = dec.SetContext(dc)
-	if err != nil {
-		return err
-	}
+	dec.Reset(vr)
+	dec.dc = dc
 
 	return dec.Decode(val)
 }

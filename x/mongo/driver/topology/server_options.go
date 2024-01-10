@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-var defaultRegistry = bson.NewRegistryBuilder().Build()
+var defaultRegistry = bson.NewRegistry()
 
 type serverConfig struct {
 	clock                *session.ClusterClock

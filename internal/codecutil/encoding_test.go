@@ -24,8 +24,7 @@ func testEncFn(t *testing.T) EncoderFn {
 		rw, err := bsonrw.NewBSONValueWriter(w)
 		require.NoError(t, err, "failed to construct BSONValue writer")
 
-		enc, err := bson.NewEncoder(rw)
-		require.NoError(t, err, "failed to construct encoder")
+		enc := bson.NewEncoder(rw)
 
 		return enc, nil
 	}
