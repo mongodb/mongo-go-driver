@@ -30,7 +30,7 @@ type ClientEncryption struct {
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
-func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncryptionOptions) (*ClientEncryption, error) {
+func NewClientEncryption(keyVaultClient *Client, opts ...Options[options.ClientEncryptionArgs]) (*ClientEncryption, error) {
 	if keyVaultClient == nil {
 		return nil, errors.New("keyVaultClient must not be nil")
 	}
@@ -38,31 +38,16 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 	ce := &ClientEncryption{
 		keyVaultClient: keyVaultClient,
 	}
-	ceo := options.ClientEncryption()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.KeyVaultNamespace != "" {
-			ceo.KeyVaultNamespace = opt.KeyVaultNamespace
-		}
-		if opt.KmsProviders != nil {
-			ceo.KmsProviders = opt.KmsProviders
-		}
-		if opt.TLSConfig != nil {
-			ceo.TLSConfig = opt.TLSConfig
-		}
-		if opt.HTTPClient != nil {
-			ceo.HTTPClient = opt.HTTPClient
-		}
+	cea, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	// create keyVaultColl
-	db, coll := splitNamespace(ceo.KeyVaultNamespace)
+	db, coll := splitNamespace(cea.KeyVaultNamespace)
 	ce.keyVaultColl = ce.keyVaultClient.Database(db).Collection(coll, keyVaultCollOpts)
 
-	kmsProviders, err := marshal(ceo.KmsProviders, nil, nil)
+	kmsProviders, err := marshal(cea.KmsProviders, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating KMS providers map: %w", err)
 	}
@@ -73,7 +58,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		// ClientEncryption because it's only needed for AutoEncryption and we don't expect users to
 		// have the crypt_shared library installed if they're using ClientEncryption.
 		SetCryptSharedLibDisabled(true).
-		SetHTTPClient(ceo.HTTPClient))
+		SetHTTPClient(cea.HTTPClient))
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +70,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...*options.ClientEncrypti
 		MongoCrypt: mc,
 		KeyFn:      kr.cryptKeys,
 		CollInfoFn: cir.cryptCollInfo,
-		TLSConfig:  ceo.TLSConfig,
+		TLSConfig:  cea.TLSConfig,
 	})
 
 	return ce, nil

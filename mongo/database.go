@@ -573,7 +573,7 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...Options[options.ChangeStreamArgs]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,

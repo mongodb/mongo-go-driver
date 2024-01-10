@@ -83,7 +83,7 @@ type ChangeStream struct {
 	bsonOpts        *options.BSONOptions
 	registry        *bsoncodec.Registry
 	streamType      StreamType
-	options         *options.ChangeStreamOptions
+	arguments       *options.ChangeStreamArgs
 	selector        description.ServerSelector
 	operationTime   *primitive.Timestamp
 	wireVersion     *description.VersionRange
@@ -101,57 +101,8 @@ type changeStreamConfig struct {
 	crypt          driver.Crypt
 }
 
-// mergeChangeStreamOptions combines the given ChangeStreamOptions instances into a single ChangeStreamOptions in a
-// last-property-wins fashion.
-func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.ChangeStreamOptions {
-	csOpts := options.ChangeStream()
-	for _, cso := range opts {
-		if cso == nil {
-			continue
-		}
-		if cso.BatchSize != nil {
-			csOpts.BatchSize = cso.BatchSize
-		}
-		if cso.Collation != nil {
-			csOpts.Collation = cso.Collation
-		}
-		if cso.Comment != nil {
-			csOpts.Comment = cso.Comment
-		}
-		if cso.FullDocument != nil {
-			csOpts.FullDocument = cso.FullDocument
-		}
-		if cso.FullDocumentBeforeChange != nil {
-			csOpts.FullDocumentBeforeChange = cso.FullDocumentBeforeChange
-		}
-		if cso.MaxAwaitTime != nil {
-			csOpts.MaxAwaitTime = cso.MaxAwaitTime
-		}
-		if cso.ResumeAfter != nil {
-			csOpts.ResumeAfter = cso.ResumeAfter
-		}
-		if cso.ShowExpandedEvents != nil {
-			csOpts.ShowExpandedEvents = cso.ShowExpandedEvents
-		}
-		if cso.StartAtOperationTime != nil {
-			csOpts.StartAtOperationTime = cso.StartAtOperationTime
-		}
-		if cso.StartAfter != nil {
-			csOpts.StartAfter = cso.StartAfter
-		}
-		if cso.Custom != nil {
-			csOpts.Custom = cso.Custom
-		}
-		if cso.CustomPipeline != nil {
-			csOpts.CustomPipeline = cso.CustomPipeline
-		}
-	}
-
-	return csOpts
-}
-
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...Options[options.ChangeStreamArgs]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -160,12 +111,17 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
+	args, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	cs := &ChangeStream{
 		client:     config.client,
 		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
-		options:    mergeChangeStreamOptions(opts...),
+		arguments:  args,
 		selector: description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(config.readPreference),
 			description.LatencySelector(config.client.localThreshold),
@@ -188,11 +144,11 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
-	if cs.options.Collation != nil {
-		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
+	if cs.arguments.Collation != nil {
+		cs.aggregate.Collation(bsoncore.Document(cs.arguments.Collation.ToDocument()))
 	}
-	if cs.options.Comment != nil {
-		comment, err := marshalValue(cs.options.Comment, cs.bsonOpts, cs.registry)
+	if cs.arguments.Comment != nil {
+		comment, err := marshalValue(cs.arguments.Comment, cs.bsonOpts, cs.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -200,18 +156,18 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.aggregate.Comment(comment)
 		cs.cursorOptions.Comment = comment
 	}
-	if cs.options.BatchSize != nil {
-		cs.aggregate.BatchSize(*cs.options.BatchSize)
-		cs.cursorOptions.BatchSize = *cs.options.BatchSize
+	if cs.arguments.BatchSize != nil {
+		cs.aggregate.BatchSize(*cs.arguments.BatchSize)
+		cs.cursorOptions.BatchSize = *cs.arguments.BatchSize
 	}
-	if cs.options.MaxAwaitTime != nil {
-		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
+	if cs.arguments.MaxAwaitTime != nil {
+		cs.cursorOptions.MaxTimeMS = int64(*cs.arguments.MaxAwaitTime / time.Millisecond)
 	}
-	if cs.options.Custom != nil {
+	if cs.arguments.Custom != nil {
 		// Marshal all custom options before passing to the initial aggregate. Return
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
-		for optionName, optionValue := range cs.options.Custom {
+		for optionName, optionValue := range cs.arguments.Custom {
 			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
@@ -223,11 +179,11 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		}
 		cs.aggregate.CustomOptions(customOptions)
 	}
-	if cs.options.CustomPipeline != nil {
+	if cs.arguments.CustomPipeline != nil {
 		// Marshal all custom pipeline options before building pipeline slice. Return
 		// any errors from Marshaling.
 		cs.pipelineOptions = make(map[string]bsoncore.Value)
-		for optionName, optionValue := range cs.options.CustomPipeline {
+		for optionName, optionValue := range cs.arguments.CustomPipeline {
 			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
@@ -253,9 +209,9 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	// When starting a change stream, cache startAfter as the first resume token if it is set. If not, cache
 	// resumeAfter. If neither is set, do not cache a resume token.
-	resumeToken := cs.options.StartAfter
+	resumeToken := cs.arguments.StartAfter
 	if resumeToken == nil {
-		resumeToken = cs.options.ResumeAfter
+		resumeToken = cs.arguments.ResumeAfter
 	}
 	var marshaledToken bson.Raw
 	if resumeToken != nil {
@@ -402,8 +358,8 @@ AggregateExecuteLoop:
 	}
 
 	cs.updatePbrtFromCommand()
-	if cs.options.StartAtOperationTime == nil && cs.options.ResumeAfter == nil &&
-		cs.options.StartAfter == nil && cs.wireVersion.Max >= 7 &&
+	if cs.arguments.StartAtOperationTime == nil && cs.arguments.ResumeAfter == nil &&
+		cs.arguments.StartAfter == nil && cs.wireVersion.Max >= 7 &&
 		cs.emptyBatch() && cs.resumeToken == nil {
 		cs.operationTime = cs.sess.OperationTime
 	}
@@ -484,17 +440,17 @@ func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 		plDoc = bsoncore.AppendBooleanElement(plDoc, "allChangesForCluster", true)
 	}
 
-	if cs.options.FullDocument != nil && *cs.options.FullDocument != options.Default {
-		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+	if cs.arguments.FullDocument != nil && *cs.arguments.FullDocument != options.Default {
+		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.arguments.FullDocument))
 	}
 
-	if cs.options.FullDocumentBeforeChange != nil {
-		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocumentBeforeChange", string(*cs.options.FullDocumentBeforeChange))
+	if cs.arguments.FullDocumentBeforeChange != nil {
+		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocumentBeforeChange", string(*cs.arguments.FullDocumentBeforeChange))
 	}
 
-	if cs.options.ResumeAfter != nil {
+	if cs.arguments.ResumeAfter != nil {
 		var raDoc bsoncore.Document
-		raDoc, cs.err = marshal(cs.options.ResumeAfter, cs.bsonOpts, cs.registry)
+		raDoc, cs.err = marshal(cs.arguments.ResumeAfter, cs.bsonOpts, cs.registry)
 		if cs.err != nil {
 			return nil, cs.err
 		}
@@ -502,13 +458,13 @@ func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
 	}
 
-	if cs.options.ShowExpandedEvents != nil {
-		plDoc = bsoncore.AppendBooleanElement(plDoc, "showExpandedEvents", *cs.options.ShowExpandedEvents)
+	if cs.arguments.ShowExpandedEvents != nil {
+		plDoc = bsoncore.AppendBooleanElement(plDoc, "showExpandedEvents", *cs.arguments.ShowExpandedEvents)
 	}
 
-	if cs.options.StartAfter != nil {
+	if cs.arguments.StartAfter != nil {
 		var saDoc bsoncore.Document
-		saDoc, cs.err = marshal(cs.options.StartAfter, cs.bsonOpts, cs.registry)
+		saDoc, cs.err = marshal(cs.arguments.StartAfter, cs.bsonOpts, cs.registry)
 		if cs.err != nil {
 			return nil, cs.err
 		}
@@ -516,8 +472,8 @@ func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "startAfter", saDoc)
 	}
 
-	if cs.options.StartAtOperationTime != nil {
-		plDoc = bsoncore.AppendTimestampElement(plDoc, "startAtOperationTime", cs.options.StartAtOperationTime.T, cs.options.StartAtOperationTime.I)
+	if cs.arguments.StartAtOperationTime != nil {
+		plDoc = bsoncore.AppendTimestampElement(plDoc, "startAtOperationTime", cs.arguments.StartAtOperationTime.T, cs.arguments.StartAtOperationTime.I)
 	}
 
 	// Append custom pipeline options.
@@ -546,30 +502,30 @@ func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {
 func (cs *ChangeStream) replaceOptions(wireVersion *description.VersionRange) {
 	// Cached resume token: use the resume token as the resumeAfter option and set no other resume options
 	if cs.resumeToken != nil {
-		cs.options.SetResumeAfter(cs.resumeToken)
-		cs.options.SetStartAfter(nil)
-		cs.options.SetStartAtOperationTime(nil)
+		cs.arguments.ResumeAfter = cs.resumeToken
+		cs.arguments.StartAfter = nil
+		cs.arguments.StartAtOperationTime = nil
 		return
 	}
 
 	// No cached resume token but cached operation time: use the operation time as the startAtOperationTime option and
 	// set no other resume options
-	if (cs.sess.OperationTime != nil || cs.options.StartAtOperationTime != nil) && wireVersion.Max >= 7 {
-		opTime := cs.options.StartAtOperationTime
+	if (cs.sess.OperationTime != nil || cs.arguments.StartAtOperationTime != nil) && wireVersion.Max >= 7 {
+		opTime := cs.arguments.StartAtOperationTime
 		if cs.operationTime != nil {
 			opTime = cs.sess.OperationTime
 		}
 
-		cs.options.SetStartAtOperationTime(opTime)
-		cs.options.SetResumeAfter(nil)
-		cs.options.SetStartAfter(nil)
+		cs.arguments.StartAtOperationTime = opTime
+		cs.arguments.ResumeAfter = nil
+		cs.arguments.StartAfter = nil
 		return
 	}
 
 	// No cached resume token or operation time: set none of the resume options
-	cs.options.SetResumeAfter(nil)
-	cs.options.SetStartAfter(nil)
-	cs.options.SetStartAtOperationTime(nil)
+	cs.arguments.ResumeAfter = nil
+	cs.arguments.StartAfter = nil
+	cs.arguments.StartAtOperationTime = nil
 }
 
 // ID returns the ID for this change stream, or 0 if the cursor has been closed or exhausted.

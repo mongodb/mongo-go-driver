@@ -374,60 +374,40 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
+func (c *Client) StartSession(opts ...Options[options.SessionArgs]) (Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
 
-	sopts := options.Session()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.CausalConsistency != nil {
-			sopts.CausalConsistency = opt.CausalConsistency
-		}
-		if opt.DefaultReadConcern != nil {
-			sopts.DefaultReadConcern = opt.DefaultReadConcern
-		}
-		if opt.DefaultReadPreference != nil {
-			sopts.DefaultReadPreference = opt.DefaultReadPreference
-		}
-		if opt.DefaultWriteConcern != nil {
-			sopts.DefaultWriteConcern = opt.DefaultWriteConcern
-		}
-		if opt.DefaultMaxCommitTime != nil {
-			sopts.DefaultMaxCommitTime = opt.DefaultMaxCommitTime
-		}
-		if opt.Snapshot != nil {
-			sopts.Snapshot = opt.Snapshot
-		}
+	sessArgs, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
-	if sopts.CausalConsistency == nil && (sopts.Snapshot == nil || !*sopts.Snapshot) {
-		sopts.CausalConsistency = &options.DefaultCausalConsistency
+	if sessArgs.CausalConsistency == nil && (sessArgs.Snapshot == nil || !*sessArgs.Snapshot) {
+		sessArgs.CausalConsistency = &options.DefaultCausalConsistency
 	}
 	coreOpts := &session.ClientOptions{
 		DefaultReadConcern:    c.readConcern,
 		DefaultReadPreference: c.readPreference,
 		DefaultWriteConcern:   c.writeConcern,
 	}
-	if sopts.CausalConsistency != nil {
-		coreOpts.CausalConsistency = sopts.CausalConsistency
+	if sessArgs.CausalConsistency != nil {
+		coreOpts.CausalConsistency = sessArgs.CausalConsistency
 	}
-	if sopts.DefaultReadConcern != nil {
-		coreOpts.DefaultReadConcern = sopts.DefaultReadConcern
+	if sessArgs.DefaultReadConcern != nil {
+		coreOpts.DefaultReadConcern = sessArgs.DefaultReadConcern
 	}
-	if sopts.DefaultWriteConcern != nil {
-		coreOpts.DefaultWriteConcern = sopts.DefaultWriteConcern
+	if sessArgs.DefaultWriteConcern != nil {
+		coreOpts.DefaultWriteConcern = sessArgs.DefaultWriteConcern
 	}
-	if sopts.DefaultReadPreference != nil {
-		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
+	if sessArgs.DefaultReadPreference != nil {
+		coreOpts.DefaultReadPreference = sessArgs.DefaultReadPreference
 	}
-	if sopts.DefaultMaxCommitTime != nil {
-		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
+	if sessArgs.DefaultMaxCommitTime != nil {
+		coreOpts.DefaultMaxCommitTime = sessArgs.DefaultMaxCommitTime
 	}
-	if sopts.Snapshot != nil {
-		coreOpts.Snapshot = sopts.Snapshot
+	if sessArgs.Snapshot != nil {
+		coreOpts.Snapshot = sessArgs.Snapshot
 	}
 
 	sess, err := session.NewClientSession(c.sessionPool, c.id, coreOpts)
@@ -679,7 +659,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...Options[options.ListDatabasesArgs]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -711,28 +691,20 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	})
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
-	ldo := options.ListDatabases()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.NameOnly != nil {
-			ldo.NameOnly = opt.NameOnly
-		}
-		if opt.AuthorizedDatabases != nil {
-			ldo.AuthorizedDatabases = opt.AuthorizedDatabases
-		}
+	lda, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return ListDatabasesResult{}, err
 	}
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
 		ServerAPI(c.serverAPI).Timeout(c.timeout)
 
-	if ldo.NameOnly != nil {
-		op = op.NameOnly(*ldo.NameOnly)
+	if lda.NameOnly != nil {
+		op = op.NameOnly(*lda.NameOnly)
 	}
-	if ldo.AuthorizedDatabases != nil {
-		op = op.AuthorizedDatabases(*ldo.AuthorizedDatabases)
+	if lda.AuthorizedDatabases != nil {
+		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
 	}
 
 	retry := driver.RetryNone
@@ -760,7 +732,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...Options[options.ListDatabasesArgs]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -833,7 +805,7 @@ func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.Sessio
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...Options[options.ChangeStreamArgs]) (*ChangeStream, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}

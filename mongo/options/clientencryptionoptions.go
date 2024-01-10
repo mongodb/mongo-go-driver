@@ -14,30 +14,51 @@ import (
 	"go.mongodb.org/mongo-driver/internal/httputil"
 )
 
-// ClientEncryptionOptions represents all possible options used to configure a ClientEncryption instance.
-type ClientEncryptionOptions struct {
+// ClientEncryptionArgs represents all possible arguments used to configure a ClientEncryption instance.
+type ClientEncryptionArgs struct {
 	KeyVaultNamespace string
 	KmsProviders      map[string]map[string]interface{}
 	TLSConfig         map[string]*tls.Config
 	HTTPClient        *http.Client
 }
 
+// ClientEncryptionOptions represents functional options that configure a ClientEncryptionArgs.
+type ClientEncryptionOptions struct {
+	Opts []func(*ClientEncryptionArgs) error
+}
+
 // ClientEncryption creates a new ClientEncryptionOptions instance.
 func ClientEncryption() *ClientEncryptionOptions {
 	return &ClientEncryptionOptions{
-		HTTPClient: httputil.DefaultHTTPClient,
+		Opts: []func(*ClientEncryptionArgs) error{
+			func(arg *ClientEncryptionArgs) error {
+				arg.HTTPClient = httputil.DefaultHTTPClient
+				return nil
+			},
+		},
 	}
+}
+
+// ArgsSetters returns a list of ClientEncryptionArgs setter functions.
+func (c *ClientEncryptionOptions) ArgsSetters() []func(*ClientEncryptionArgs) error {
+	return c.Opts
 }
 
 // SetKeyVaultNamespace specifies the namespace of the key vault collection. This is required.
 func (c *ClientEncryptionOptions) SetKeyVaultNamespace(ns string) *ClientEncryptionOptions {
-	c.KeyVaultNamespace = ns
+	c.Opts = append(c.Opts, func(args *ClientEncryptionArgs) error {
+		args.KeyVaultNamespace = ns
+		return nil
+	})
 	return c
 }
 
 // SetKmsProviders specifies options for KMS providers. This is required.
 func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[string]interface{}) *ClientEncryptionOptions {
-	c.KmsProviders = providers
+	c.Opts = append(c.Opts, func(args *ClientEncryptionArgs) error {
+		args.KmsProviders = providers
+		return nil
+	})
 	return c
 }
 
@@ -46,15 +67,18 @@ func (c *ClientEncryptionOptions) SetKmsProviders(providers map[string]map[strin
 //
 // This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
 func (c *ClientEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *ClientEncryptionOptions {
-	tlsConfigs := make(map[string]*tls.Config)
-	for provider, config := range tlsOpts {
-		// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
-		if config.MinVersion == 0 {
-			config.MinVersion = tls.VersionTLS12
+	c.Opts = append(c.Opts, func(args *ClientEncryptionArgs) error {
+		tlsConfigs := make(map[string]*tls.Config)
+		for provider, config := range tlsOpts {
+			// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
+			if config.MinVersion == 0 {
+				config.MinVersion = tls.VersionTLS12
+			}
+			tlsConfigs[provider] = config
 		}
-		tlsConfigs[provider] = config
-	}
-	c.TLSConfig = tlsConfigs
+		args.TLSConfig = tlsConfigs
+		return nil
+	})
 	return c
 }
 

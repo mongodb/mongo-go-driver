@@ -6,8 +6,8 @@
 
 package options
 
-// ListDatabasesOptions represents options that can be used to configure a ListDatabases operation.
-type ListDatabasesOptions struct {
+// ListDatabasesArgs represents arguments that can be used to configure a ListDatabases operation.
+type ListDatabasesArgs struct {
 	// If true, only the Name field of the returned DatabaseSpecification objects will be populated. The default value
 	// is false.
 	NameOnly *bool
@@ -18,19 +18,35 @@ type ListDatabasesOptions struct {
 	AuthorizedDatabases *bool
 }
 
+// ListDatabasesOptions represents functional options that configure a ListDatabasesArgs.
+type ListDatabasesOptions struct {
+	Opts []func(*ListDatabasesArgs) error
+}
+
 // ListDatabases creates a new ListDatabasesOptions instance.
 func ListDatabases() *ListDatabasesOptions {
 	return &ListDatabasesOptions{}
 }
 
+// ArgsSetters returns a list of ListDatabasesArgs setter functions.
+func (ld *ListDatabasesOptions) ArgsSetters() []func(*ListDatabasesArgs) error {
+	return ld.Opts
+}
+
 // SetNameOnly sets the value for the NameOnly field.
 func (ld *ListDatabasesOptions) SetNameOnly(b bool) *ListDatabasesOptions {
-	ld.NameOnly = &b
+	ld.Opts = append(ld.Opts, func(args *ListDatabasesArgs) error {
+		args.NameOnly = &b
+		return nil
+	})
 	return ld
 }
 
 // SetAuthorizedDatabases sets the value for the AuthorizedDatabases field.
 func (ld *ListDatabasesOptions) SetAuthorizedDatabases(b bool) *ListDatabasesOptions {
-	ld.AuthorizedDatabases = &b
+	ld.Opts = append(ld.Opts, func(args *ListDatabasesArgs) error {
+		args.AuthorizedDatabases = &b
+		return nil
+	})
 	return ld
 }
