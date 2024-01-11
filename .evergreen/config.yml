@@ -2395,7 +2395,7 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
-      - func: start-cse-servers
+      #- func: start-cse-servers
       - command: shell.exec
         params:
           shell: "bash"
