@@ -2370,20 +2370,8 @@ task_groups:
             ${PREPARE_SHELL}
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
-      - command: gotest.parse_files
-        params:
-          files:
-            - "src/go.mongodb.org/mongo-driver/*.suite"
-      - command: s3.put
-        params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: mongodb-logs.tar.gz
-          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
-          bucket: mciuploads
-          permissions: public-read
-          content_type: ${content_type|application/x-gzip}
-          display_name: "mongodb-logs.tar.gz"
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - ".serverless"
 
@@ -2395,7 +2383,7 @@ task_groups:
       - func: prepare-resources
       - func: fix-absolute-paths
       - func: make-files-executable
-      #- func: start-cse-servers
+      - func: start-cse-servers
       - command: shell.exec
         params:
           shell: "bash"
@@ -2416,20 +2404,8 @@ task_groups:
             ${PREPARE_SHELL}
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh serverless_next
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
-      - command: gotest.parse_files
-        params:
-          files:
-            - "src/go.mongodb.org/mongo-driver/*.suite"
-      - command: s3.put
-        params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: mongodb-logs.tar.gz
-          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
-          bucket: mciuploads
-          permissions: public-read
-          content_type: ${content_type|application/x-gzip}
-          display_name: "mongodb-logs.tar.gz"
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - ".serverless"
 
