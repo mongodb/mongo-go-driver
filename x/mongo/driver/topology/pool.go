@@ -78,6 +78,7 @@ type poolConfig struct {
 	PoolMonitor      *event.PoolMonitor
 	Logger           *logger.Logger
 	handshakeErrFn   func(error, uint64, *primitive.ObjectID)
+	ConnectTimeout   time.Duration
 }
 
 type pool struct {
@@ -122,9 +123,10 @@ type pool struct {
 	conns                 map[int64]*connection // conns holds all currently open connections.
 	newConnWait           wantConnQueue         // newConnWait holds all wantConn requests for new connections.
 
-	idleMu       sync.Mutex    // idleMu guards idleConns, idleConnWait
-	idleConns    []*connection // idleConns holds all idle connections.
-	idleConnWait wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
+	idleMu         sync.Mutex    // idleMu guards idleConns, idleConnWait
+	idleConns      []*connection // idleConns holds all idle connections.
+	idleConnWait   wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
+	connectTimeout time.Duration
 }
 
 // getState returns the current state of the pool. Callers must not hold the stateMu lock.
@@ -221,6 +223,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		createConnectionsCond: sync.NewCond(&sync.Mutex{}),
 		conns:                 make(map[int64]*connection, config.MaxPoolSize),
 		idleConns:             make([]*connection, 0, config.MaxPoolSize),
+		connectTimeout:        config.ConnectTimeout,
 	}
 	// minSize must not exceed maxSize if maxSize is not 0
 	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
@@ -1030,8 +1033,12 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 			})
 		}
 
-		// Pass the createConnections context to connect to allow pool close to cancel connection
-		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
+		// Pass the createConnections context to connect to allow pool close to
+		// cancel connection establishment so shutdown doesn't block indefinitely if
+		// connectTimeout=0.
+		ctx, cancel := context.WithTimeout(ctx, p.connectTimeout)
+		defer cancel()
+
 		err := conn.connect(ctx)
 		if err != nil {
 			w.tryDeliver(nil, err)

@@ -206,7 +206,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		}
 	}))
 
-	s := NewServer("mongodb://fake", primitive.NewObjectID(), sOpts...)
+	s := NewServer("mongodb://fake", primitive.NewObjectID(), defaultConnectionTimeout, sOpts...)
 	s.state = serverConnected
 	require.NoError(t, err, "error connecting connection pool")
 	defer s.pool.close(context.Background())
@@ -272,7 +272,6 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	}
 
 	checkEvents(t, test.Events, testInfo.finalEventChan, test.Ignore)
-
 }
 
 func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *event.PoolEvent, ignoreEvents []string) {
@@ -288,7 +287,6 @@ func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *ev
 		}
 
 		if expectedEvent.Address != nil {
-
 			if expectedEvent.Address == float64(42) { // can be any address
 				if validEvent.Address == "" {
 					t.Errorf("expected address in event, instead received none in %v", expectedEvent.EventType)

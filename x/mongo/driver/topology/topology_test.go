@@ -287,7 +287,7 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
 		atomic.StoreInt64(&topo.state, topologyConnected)
-		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id)
+		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id, defaultConnectionTimeout)
 		noerr(t, err)
 		topo.servers[address.Address("one")] = srvr
 		desc := topo.desc.Load().(description.Topology)
@@ -320,7 +320,7 @@ func TestServerSelection(t *testing.T) {
 
 		// manually add the servers to the topology
 		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id)
+			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id, defaultConnectionTimeout)
 			noerr(t, err)
 			topo.servers[srv.Addr] = s
 		}
@@ -381,7 +381,7 @@ func TestServerSelection(t *testing.T) {
 		}
 		topo.desc.Store(desc)
 		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id)
+			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id, defaultConnectionTimeout)
 			noerr(t, err)
 			topo.servers[srv.Addr] = s
 		}
@@ -973,6 +973,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 		server := NewServer(
 			address.Address(testDesc.Address),
 			primitive.NilObjectID,
+			defaultConnectionTimeout,
 			withMonitoringDisabled(func(bool) bool { return true }))
 		servers[testDesc.Address] = server
 

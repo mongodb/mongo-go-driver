@@ -202,144 +202,6 @@ func TestConnection(t *testing.T) {
 					}
 				})
 			})
-			t.Run("connectTimeout is applied correctly", func(t *testing.T) {
-				testCases := []struct {
-					name           string
-					contextTimeout time.Duration
-					connectTimeout time.Duration
-					maxConnectTime time.Duration
-				}{
-					// The timeout to dial a connection should be min(context timeout, connectTimeoutMS), so 1ms for
-					// both of the tests declared below. Both tests also specify a 50ms max connect time to provide
-					// a large buffer for lag and avoid test flakiness.
-
-					{"context timeout is lower", 1 * time.Millisecond, 100 * time.Millisecond, 50 * time.Millisecond},
-					{"connect timeout is lower", 100 * time.Millisecond, 1 * time.Millisecond, 50 * time.Millisecond},
-				}
-
-				for _, tc := range testCases {
-					t.Run("timeout applied to socket establishment: "+tc.name, func(t *testing.T) {
-						// Ensure the initial connection dial can be timed out and the connection propagates the error
-						// from the dialer in this case.
-
-						connOpts := []ConnectionOption{
-							WithDialer(func(Dialer) Dialer {
-								return DialerFunc(func(ctx context.Context, _, _ string) (net.Conn, error) {
-									<-ctx.Done()
-									return nil, ctx.Err()
-								})
-							}),
-							WithConnectTimeout(func(time.Duration) time.Duration {
-								return tc.connectTimeout
-							}),
-						}
-						conn := newConnection("", connOpts...)
-
-						var connectErr error
-						callback := func(ctx context.Context) {
-							connectCtx, cancel := context.WithTimeout(ctx, tc.contextTimeout)
-							defer cancel()
-
-							connectErr = conn.connect(connectCtx)
-						}
-						assert.Soon(t, callback, tc.maxConnectTime)
-
-						ce, ok := connectErr.(ConnectionError)
-						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
-						assert.Equal(t, context.DeadlineExceeded, ce.Unwrap(), "expected wrapped error to be %v, got %v",
-							context.DeadlineExceeded, ce.Unwrap())
-					})
-					t.Run("timeout applied to TLS handshake: "+tc.name, func(t *testing.T) {
-						// Ensure the TLS handshake can be timed out and the connection propagates the error from the
-						// tlsConn in this case.
-
-						// Start a TCP listener on a random port and use the listener address as the
-						// target for connections. The listener will act as a source of connections
-						// that never respond, allowing the timeout logic to always trigger.
-						l, err := net.Listen("tcp", "localhost:0")
-						assert.Nil(t, err, "net.Listen() error: %q", err)
-						defer l.Close()
-
-						connOpts := []ConnectionOption{
-							WithConnectTimeout(func(time.Duration) time.Duration {
-								return tc.connectTimeout
-							}),
-							WithTLSConfig(func(*tls.Config) *tls.Config {
-								return &tls.Config{ServerName: "test"}
-							}),
-						}
-						conn := newConnection(address.Address(l.Addr().String()), connOpts...)
-
-						var connectErr error
-						callback := func(ctx context.Context) {
-							connectCtx, cancel := context.WithTimeout(ctx, tc.contextTimeout)
-							defer cancel()
-
-							connectErr = conn.connect(connectCtx)
-						}
-						assert.Soon(t, callback, tc.maxConnectTime)
-
-						ce, ok := connectErr.(ConnectionError)
-						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
-
-						isTimeout := func(err error) bool {
-							if errors.Is(err, context.DeadlineExceeded) {
-								return true
-							}
-							if ne, ok := err.(net.Error); ok {
-								return ne.Timeout()
-							}
-							return false
-						}
-						assert.True(t,
-							isTimeout(ce.Unwrap()),
-							"expected wrapped error to be a timeout error, but got %q",
-							ce.Unwrap())
-					})
-					t.Run("timeout is not applied to handshaker: "+tc.name, func(t *testing.T) {
-						// Ensure that no additional timeout is applied to the handshake after the connection has been
-						// established.
-
-						var getInfoCtx, finishCtx context.Context
-						handshaker := &testHandshaker{
-							getHandshakeInformation: func(ctx context.Context, _ address.Address, _ driver.Connection) (driver.HandshakeInformation, error) {
-								getInfoCtx = ctx
-								return driver.HandshakeInformation{}, nil
-							},
-							finishHandshake: func(ctx context.Context, _ driver.Connection) error {
-								finishCtx = ctx
-								return nil
-							},
-						}
-
-						connOpts := []ConnectionOption{
-							WithConnectTimeout(func(time.Duration) time.Duration {
-								return tc.connectTimeout
-							}),
-							WithDialer(func(Dialer) Dialer {
-								return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
-									return &net.TCPConn{}, nil
-								})
-							}),
-							WithHandshaker(func(Handshaker) Handshaker {
-								return handshaker
-							}),
-						}
-						conn := newConnection("", connOpts...)
-
-						err := conn.connect(context.Background())
-						assert.Nil(t, err, "connect error: %v", err)
-
-						assertNoContextTimeout := func(t *testing.T, ctx context.Context) {
-							t.Helper()
-							dl, ok := ctx.Deadline()
-							assert.False(t, ok, "expected context to have no deadline, but got deadline %v", dl)
-						}
-						assertNoContextTimeout(t, getInfoCtx)
-						assertNoContextTimeout(t, finishCtx)
-					})
-				}
-			})
 		})
 		t.Run("writeWireMessage", func(t *testing.T) {
 			t.Run("closed connection", func(t *testing.T) {
@@ -775,7 +637,8 @@ func TestConnection(t *testing.T) {
 
 				addr := bootstrapConnections(t, numConns, func(nc net.Conn) {})
 				pool := newPool(poolConfig{
-					Address: address.Address(addr.String()),
+					Address:        address.Address(addr.String()),
+					ConnectTimeout: defaultConnectionTimeout,
 				})
 				err := pool.ready()
 				assert.Nil(t, err, "pool.connect() error: %v", err)

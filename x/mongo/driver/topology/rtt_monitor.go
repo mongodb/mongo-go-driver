@@ -32,13 +32,10 @@ type rttConfig struct {
 	// the operation takes longer than the interval.
 	interval time.Duration
 
-	// The timeout applied to running the "hello" operation. If the timeout is reached while running
-	// the operation, the RTT sample is discarded. The default is 1 minute.
-	timeout time.Duration
-
 	minRTTWindow       time.Duration
 	createConnectionFn func() *connection
 	createOperationFn  func(driver.Connection) *operation.Hello
+	connectTimeout     time.Duration
 }
 
 type rttMonitor struct {
@@ -64,6 +61,8 @@ type rttMonitor struct {
 
 var _ driver.RTTMonitor = &rttMonitor{}
 
+// TODO(GODRIVER-2348): Experiment passing the connectTimeout when constructing
+// Rtt monitors, from server.
 func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	if cfg.interval <= 0 {
 		panic("RTT monitor interval must be greater than 0")
@@ -130,7 +129,13 @@ func (r *rttMonitor) start() {
 
 	for {
 		conn := r.cfg.createConnectionFn()
-		err := conn.connect(r.ctx)
+
+		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.connectTimeout)
+		defer cancel()
+
+		// TODO(GODRIVER-2348): Apply the connection timeout passed when constructing
+		// RTTM by the server.
+		err := conn.connect(ctx)
 
 		// Add an RTT sample from the new connection handshake and start a runHellos() loop if we
 		// successfully established the new connection. Otherwise, close the connection and try to
@@ -176,11 +181,7 @@ func (r *rttMonitor) runHellos(conn *connection) {
 		// server or a proxy stops responding to requests on the RTT connection but does not close
 		// the TCP socket, effectively creating an operation that will never complete. We expect
 		// that "connectTimeoutMS" provides at least enough time for a single round trip.
-		timeout := r.cfg.timeout
-		if timeout <= 0 {
-			timeout = conn.config.connectTimeout
-		}
-		ctx, cancel := context.WithTimeout(r.ctx, timeout)
+		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.connectTimeout)
 
 		start := time.Now()
 		err := r.cfg.createOperationFn(initConnection{conn}).Execute(ctx)

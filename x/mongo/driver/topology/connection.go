@@ -164,16 +164,9 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
 	// holding the lock longer than necessary.
 	c.connectContextMutex.Lock()
-	var handshakeCtx context.Context
-	handshakeCtx, c.cancelConnectContext = context.WithCancel(ctx)
-	c.connectContextMutex.Unlock()
 
-	dialCtx := handshakeCtx
-	var dialCancel context.CancelFunc
-	if c.config.connectTimeout != 0 {
-		dialCtx, dialCancel = context.WithTimeout(handshakeCtx, c.config.connectTimeout)
-		defer dialCancel()
-	}
+	ctx, c.cancelConnectContext = context.WithCancel(ctx)
+	c.connectContextMutex.Unlock()
 
 	defer func() {
 		var cancelFn context.CancelFunc
@@ -191,7 +184,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	close(c.connectContextMade)
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
-	tempNc, err := c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
+	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
 		return ConnectionError{Wrapped: err, init: true}
 	}
@@ -207,7 +200,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 			HTTPClient:              c.config.httpClient,
 		}
-		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+
 		if err != nil {
 			return ConnectionError{Wrapped: err, init: true}
 		}
@@ -223,7 +217,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	var handshakeInfo driver.HandshakeInformation
 	handshakeStartTime := time.Now()
 	handshakeConn := initConnection{c}
-	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
+	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
 	if err == nil {
 		// We only need to retain the Description field as the connection's description. The authentication-related
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
@@ -247,7 +241,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
 		// the handshake.
-		err = handshaker.FinishHandshake(handshakeCtx, handshakeConn)
+		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 
 	// We have a failed handshake here

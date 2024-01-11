@@ -90,7 +90,8 @@ func TestRTTMonitor(t *testing.T) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
+			interval:       10 * time.Millisecond,
+			connectTimeout: defaultConnectionTimeout,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
@@ -146,8 +147,9 @@ func TestRTTMonitor(t *testing.T) {
 		for _, tc := range cases {
 			t.Run(tc.desc, func(t *testing.T) {
 				rtt := newRTTMonitor(&rttConfig{
-					interval:     tc.interval,
-					minRTTWindow: 5 * time.Minute,
+					connectTimeout: defaultConnectionTimeout,
+					interval:       tc.interval,
+					minRTTWindow:   5 * time.Minute,
 				})
 				assert.Equal(t, tc.wantSamplesLen, len(rtt.samples), "expected samples length to match")
 			})
@@ -161,7 +163,8 @@ func TestRTTMonitor(t *testing.T) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Second,
+			connectTimeout: defaultConnectionTimeout,
+			interval:       10 * time.Second,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer {
 					return dialer
@@ -184,7 +187,8 @@ func TestRTTMonitor(t *testing.T) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
+			connectTimeout: defaultConnectionTimeout,
+			interval:       10 * time.Millisecond,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
@@ -282,8 +286,8 @@ func TestRTTMonitor(t *testing.T) {
 		}()
 
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
-			timeout:  100 * time.Millisecond,
+			interval:       10 * time.Millisecond,
+			connectTimeout: 100 * time.Millisecond,
 			createConnectionFn: func() *connection {
 				return newConnection(address.Address(l.Addr().String()))
 			},

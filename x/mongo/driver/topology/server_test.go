@@ -168,6 +168,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			server := NewServer(
 				address.Address("localhost:27017"),
 				primitive.NewObjectID(),
+				defaultConnectionTimeout,
 				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
 					return tpm.PoolMonitor
 				}),
@@ -219,6 +220,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			desc:              "successful connection should not clear the pool",
 			expectErr:         false,
 			expectPoolCleared: false,
+			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
 			desc: "timeout error during dialing should clear the pool",
@@ -263,6 +265,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			},
 			expectErr:         true,
 			expectPoolCleared: true,
+			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
 			desc: "operation context timeout with unrelated dial errors should clear the pool",
@@ -301,15 +304,13 @@ func TestServerConnectionTimeout(t *testing.T) {
 			server := NewServer(
 				address.Address(l.Addr().String()),
 				primitive.NewObjectID(),
+				tc.connectTimeout,
 				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
 					return tpm.PoolMonitor
 				}),
 				// Replace the default dialer and handshaker with the test dialer and handshaker, if
 				// present.
 				WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
-					if tc.connectTimeout > 0 {
-						opts = append(opts, WithConnectTimeout(func(time.Duration) time.Duration { return tc.connectTimeout }))
-					}
 					if tc.dialer != nil {
 						opts = append(opts, WithDialer(tc.dialer))
 					}
@@ -382,6 +383,7 @@ func TestServer(t *testing.T) {
 			s := NewServer(
 				address.Address("localhost"),
 				primitive.NewObjectID(),
+				defaultConnectionTimeout,
 				WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 					return append(connOpts,
 						WithHandshaker(func(Handshaker) Handshaker {
@@ -563,7 +565,13 @@ func TestServer(t *testing.T) {
 					WithMaxConnecting(func(uint64) uint64 { return 1 }),
 				}
 
-				server, err := ConnectServer(address.Address("localhost:27017"), nil, primitive.NewObjectID(), serverOpts...)
+				server, err := ConnectServer(
+					address.Address("localhost:27017"),
+					nil,
+					primitive.NewObjectID(),
+					defaultConnectionTimeout,
+					serverOpts...,
+				)
 				assert.Nil(t, err, "ConnectServer error: %v", err)
 				defer func() {
 					_ = server.Disconnect(context.Background())
@@ -597,6 +605,7 @@ func TestServer(t *testing.T) {
 		d := newdialer(&net.Dialer{})
 		s := NewServer(address.Address(addr.String()),
 			primitive.NewObjectID(),
+			defaultConnectionTimeout,
 			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
 				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
 			}),
@@ -644,7 +653,14 @@ func TestServer(t *testing.T) {
 			updated.Store(true)
 			return desc
 		}
-		s, err := ConnectServer(address.Address("localhost"), updateCallback, primitive.NewObjectID())
+
+		s, err := ConnectServer(
+			address.Address("localhost"),
+			updateCallback,
+			primitive.NewObjectID(),
+			defaultConnectionTimeout,
+		)
+
 		require.NoError(t, err)
 		s.updateDescription(description.Server{Addr: s.address})
 		require.True(t, updated.Load().(bool))
@@ -659,10 +675,10 @@ func TestServer(t *testing.T) {
 			return append(connOpts, dialerOpt)
 		})
 
-		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpt)
+		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), defaultConnectionTimeout, serverOpt)
 
 		// do a heartbeat with a nil connection so a new one will be dialed
-		_, err := s.check()
+		_, err := s.check(context.Background())
 		assert.Nil(t, err, "check error: %v", err)
 		assert.NotNil(t, s.conn, "no connection dialed in check")
 
@@ -679,7 +695,7 @@ func TestServer(t *testing.T) {
 		if err = channelConn.AddResponse(makeHelloReply()); err != nil {
 			t.Fatalf("error adding response: %v", err)
 		}
-		_, err = s.check()
+		_, err = s.check(context.Background())
 		assert.Nil(t, err, "check error: %v", err)
 
 		wm = channelConn.GetWrittenMessage()
@@ -723,10 +739,10 @@ func TestServer(t *testing.T) {
 			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 		}
 
-		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), serverOpts...)
+		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), defaultConnectionTimeout, serverOpts...)
 
 		// set up heartbeat connection, which doesn't send events
-		_, err := s.check()
+		_, err := s.check(context.Background())
 		assert.Nil(t, err, "check error: %v", err)
 
 		channelConn := s.conn.nc.(*drivertest.ChannelNetConn)
@@ -738,7 +754,7 @@ func TestServer(t *testing.T) {
 			if err = channelConn.AddResponse(makeHelloReply()); err != nil {
 				t.Fatalf("error adding response: %v", err)
 			}
-			_, err = s.check()
+			_, err = s.check(context.Background())
 			_ = channelConn.GetWrittenMessage()
 			assert.Nil(t, err, "check error: %v", err)
 
@@ -760,7 +776,7 @@ func TestServer(t *testing.T) {
 			// do a heartbeat with a non-nil connection
 			readErr := errors.New("error")
 			channelConn.ReadErr <- readErr
-			_, err = s.check()
+			_, err = s.check(context.Background())
 			_ = channelConn.GetWrittenMessage()
 			assert.Nil(t, err, "check error: %v", err)
 
@@ -783,6 +799,7 @@ func TestServer(t *testing.T) {
 
 		s := NewServer(address.Address("localhost"),
 			primitive.NewObjectID(),
+			defaultConnectionTimeout,
 			WithServerAppName(func(string) string { return name }))
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
 	})
@@ -792,6 +809,7 @@ func TestServer(t *testing.T) {
 		s := NewServer(
 			address.Address("localhost"),
 			primitive.NewObjectID(),
+			defaultConnectionTimeout,
 			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 				return append(
 					connOpts,
@@ -805,42 +823,6 @@ func TestServer(t *testing.T) {
 		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
 		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
 		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
-	})
-	t.Run("heartbeat contexts are not leaked", func(t *testing.T) {
-		// The context created for heartbeats should be cancelled when it is no longer needed to avoid leaks.
-
-		server, err := ConnectServer(
-			address.Address("invalid"),
-			nil,
-			primitive.NewObjectID(),
-			withMonitoringDisabled(func(bool) bool {
-				return true
-			}),
-		)
-		assert.Nil(t, err, "ConnectServer error: %v", err)
-
-		// Expect check to return an error in the server description because the server address doesn't exist. This is
-		// OK because we just want to ensure the heartbeat context is created.
-		desc, err := server.check()
-		assert.Nil(t, err, "check error: %v", err)
-		assert.NotNil(t, desc.LastError, "expected server description to contain an error, got nil")
-		assert.NotNil(t, server.heartbeatCtx, "expected heartbeatCtx to be non-nil, got nil")
-		assert.Nil(t, server.heartbeatCtx.Err(), "expected heartbeatCtx error to be nil, got %v", server.heartbeatCtx.Err())
-
-		// Override heartbeatCtxCancel with a wrapper that records whether or not it was called.
-		oldCancelFn := server.heartbeatCtxCancel
-		var previousCtxCancelled bool
-		server.heartbeatCtxCancel = func() {
-			previousCtxCancelled = true
-			oldCancelFn()
-		}
-
-		// The second check call should attempt to create a new heartbeat connection and should cancel the previous
-		// heartbeatCtx during the process.
-		desc, err = server.check()
-		assert.Nil(t, err, "check error: %v", err)
-		assert.NotNil(t, desc.LastError, "expected server description to contain an error, got nil")
-		assert.True(t, previousCtxCancelled, "expected check to cancel previous context but did not")
 	})
 }
 
@@ -1188,7 +1170,7 @@ func TestServer_ProcessError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := NewServer(address.Address(""), primitive.NewObjectID())
+			server := NewServer(address.Address(""), primitive.NewObjectID(), defaultConnectionTimeout)
 			server.state = serverConnected
 			err := server.pool.ready()
 			require.Nil(t, err, "pool.ready() error: %v", err)

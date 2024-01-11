@@ -116,12 +116,15 @@ type Server struct {
 	// globalCtx should be created in NewServer and cancelled in Disconnect to signal that the server is shutting down.
 	// heartbeatCtx should be used for individual heartbeats and should be a child of globalCtx so that it will be
 	// cancelled automatically during shutdown.
-	heartbeatLock      sync.Mutex
-	conn               *connection
-	globalCtx          context.Context
-	globalCtxCancel    context.CancelFunc
-	heartbeatCtx       context.Context
-	heartbeatCtxCancel context.CancelFunc
+	heartbeatLock   sync.Mutex
+	conn            *connection
+	globalCtx       context.Context
+	globalCtxCancel context.CancelFunc
+
+	// cancelHeartbeat will wignal to cancel any blocking operations while
+	// checking the status of the server during heartbeat monitoring.
+	cancelHeartbeat   chan struct{}
+	heartbeatCanceled bool
 
 	processErrorLock sync.Mutex
 	rttMonitor       *rttMonitor
@@ -138,9 +141,10 @@ func ConnectServer(
 	addr address.Address,
 	updateCallback updateTopologyCallback,
 	topologyID primitive.ObjectID,
+	connectTimeout time.Duration,
 	opts ...ServerOption,
 ) (*Server, error) {
-	srvr := NewServer(addr, topologyID, opts...)
+	srvr := NewServer(addr, topologyID, connectTimeout, opts...)
 	err := srvr.Connect(updateCallback)
 	if err != nil {
 		return nil, err
@@ -150,18 +154,25 @@ func ConnectServer(
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...ServerOption) *Server {
+func NewServer(
+	addr address.Address,
+	topologyID primitive.ObjectID,
+	connectTimeout time.Duration,
+	opts ...ServerOption,
+) *Server {
 	cfg := newServerConfig(opts...)
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
+		id:    1,
 		state: serverDisconnected,
 
 		cfg:     cfg,
 		address: addr,
 
-		done:          make(chan struct{}),
-		checkNow:      make(chan struct{}, 1),
-		disconnecting: make(chan struct{}),
+		done:            make(chan struct{}),
+		checkNow:        make(chan struct{}, 1),
+		disconnecting:   make(chan struct{}),
+		cancelHeartbeat: make(chan struct{}, 1),
 
 		topologyID: topologyID,
 
@@ -175,6 +186,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		minRTTWindow:       5 * time.Minute,
 		createConnectionFn: s.createConnection,
 		createOperationFn:  s.createBaseOperation,
+		connectTimeout:     connectTimeout,
 	}
 	s.rttMonitor = newRTTMonitor(rttCfg)
 
@@ -189,6 +201,7 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		PoolMonitor:      cfg.poolMonitor,
 		Logger:           cfg.logger,
 		handshakeErrFn:   s.ProcessHandshakeError,
+		ConnectTimeout:   connectTimeout,
 	}
 
 	connectionOpts := copyConnectionOpts(cfg.connectionOpts)
@@ -602,8 +615,19 @@ func (s *Server) update() {
 
 		previousDescription := s.Description()
 
+		// Create a context for the blocking operations associated with checking the
+		// status of a server.
+		ctx, cancel := context.WithCancel(context.Background())
+
+		go func() {
+			select {
+			case <-s.cancelHeartbeat:
+				cancel()
+			}
+		}()
+
 		// Perform the next check.
-		desc, err := s.check()
+		desc, err := s.check(ctx)
 		if err == errCheckCancelled {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
@@ -726,7 +750,6 @@ func (s *Server) updateDescription(desc description.Server) {
 func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
-		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
 		// We override whatever handshaker is currently attached to the options with a basic
@@ -748,31 +771,40 @@ func copyConnectionOpts(opts []ConnectionOption) []ConnectionOption {
 	return optsCopy
 }
 
-func (s *Server) setupHeartbeatConnection() error {
+func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 	conn := s.createConnection()
 
-	// Take the lock when assigning the context and connection because they're accessed by cancelCheck.
+	// Take the lock when assigning the connection because they're accessed by
+	// cancelCheck.
 	s.heartbeatLock.Lock()
-	if s.heartbeatCtxCancel != nil {
-		// Ensure the previous context is cancelled to avoid a leak.
-		s.heartbeatCtxCancel()
-	}
-	s.heartbeatCtx, s.heartbeatCtxCancel = context.WithCancel(s.globalCtx)
+
 	s.conn = conn
+
 	s.heartbeatLock.Unlock()
 
-	return s.conn.connect(s.heartbeatCtx)
+	ctx, _ = context.WithTimeout(ctx, s.cfg.heartbeatTimeout)
+
+	return s.conn.connect(ctx)
 }
 
-// cancelCheck cancels in-progress connection dials and reads. It does not set any fields on the server.
+// cancelCheck cancels in-progress connection dials and reads. It does not set
+// any fields on the server.
 func (s *Server) cancelCheck() {
 	var conn *connection
 
-	// Take heartbeatLock for mutual exclusion with the checks in the update function.
+	// Take heartbeatLock for mutual exclusion with the checks in the update
+	// function.
 	s.heartbeatLock.Lock()
-	if s.heartbeatCtx != nil {
-		s.heartbeatCtxCancel()
+
+	// Only send the cancellation signal if the heartbeat has not been canceled.
+	// If it has already been canceled, then sending again could block
+	// indefinitely.
+	if !s.heartbeatCanceled {
+		s.cancelHeartbeat <- struct{}{}
+
+		s.heartbeatCanceled = true
 	}
+
 	conn = s.conn
 	s.heartbeatLock.Unlock()
 
@@ -789,7 +821,10 @@ func (s *Server) cancelCheck() {
 }
 
 func (s *Server) checkWasCancelled() bool {
-	return s.heartbeatCtx.Err() != nil
+	s.heartbeatLock.Lock()
+	defer s.heartbeatLock.Unlock()
+
+	return s.heartbeatCanceled
 }
 
 func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
@@ -815,7 +850,7 @@ func isStreamable(srv *Server) bool {
 	return srv.Description().Kind != description.Unknown && srv.Description().TopologyVersion != nil
 }
 
-func (s *Server) check() (description.Server, error) {
+func (s *Server) check(ctx context.Context) (description.Server, error) {
 	var descPtr *description.Server
 	var err error
 	var duration time.Duration
@@ -831,7 +866,7 @@ func (s *Server) check() (description.Server, error) {
 		}
 		s.publishServerHeartbeatStartedEvent(connID, false)
 		// Create a new connection and add it's handshake RTT as a sample.
-		err = s.setupHeartbeatConnection()
+		err = s.setupHeartbeatConnection(ctx)
 		duration = time.Since(start)
 		connID = "0"
 		if s.conn != nil {
@@ -860,7 +895,7 @@ func (s *Server) check() (description.Server, error) {
 		switch {
 		case s.conn.getCurrentlyStreaming():
 			// The connection is already in a streaming state, so we stream the next response.
-			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
+			err = baseOperation.StreamResponse(ctx, heartbeatConn) // HERE
 		case streamable:
 			// The server supports the streamable protocol. Set the socket timeout to
 			// connectTimeoutMS+heartbeatFrequencyMS and execute an awaitable hello request. Set conn.canStream so
@@ -879,13 +914,13 @@ func (s *Server) check() (description.Server, error) {
 			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
 				MaxAwaitTimeMS(maxAwaitTimeMS)
 			s.conn.setCanStream(true)
-			err = baseOperation.Execute(s.heartbeatCtx)
+			err = baseOperation.Execute(ctx) // HERE
 		default:
 			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
 			// execute a regular heartbeat without any additional parameters.
 
 			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
-			err = baseOperation.Execute(s.heartbeatCtx)
+			err = baseOperation.Execute(ctx) // HERE
 		}
 
 		duration = time.Since(start)

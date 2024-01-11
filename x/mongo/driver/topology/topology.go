@@ -948,7 +948,7 @@ func (t *Topology) addServer(addr address.Address) error {
 		return nil
 	}
 
-	svr, err := ConnectServer(addr, t.updateCallback, t.id, t.cfg.ServerOpts...)
+	svr, err := ConnectServer(addr, t.updateCallback, t.id, t.cfg.ConnectTimeout, t.cfg.ServerOpts...)
 	if err != nil {
 		return err
 	}
