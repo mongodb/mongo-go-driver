@@ -10,11 +10,9 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
-	"github.com/montanaflynn/stats"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -48,8 +46,6 @@ type rttMonitor struct {
 	// disconnecting will await the cancellation of a started connection. The
 	// use case for rttMonitor.connect needs to be goroutine safe.
 	connMu        sync.Mutex
-	samples       []time.Duration
-	offset        int
 	averageRTT    time.Duration
 	averageRTTSet bool
 	movingMin     *list.List
@@ -70,12 +66,8 @@ func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	// Determine the number of samples we need to keep to store the minWindow of RTT durations. The
-	// number of samples must be between [10, 500].
-	numSamples := int(math.Max(minSamples, math.Min(maxSamples, float64((cfg.minRTTWindow)/cfg.interval))))
 
 	return &rttMonitor{
-		samples:   make([]time.Duration, numSamples),
 		cfg:       cfg,
 		ctx:       ctx,
 		cancelFn:  cancel,
@@ -201,10 +193,6 @@ func (r *rttMonitor) reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for i := range r.samples {
-		r.samples[i] = 0
-	}
-	r.offset = 0
 	r.movingMin = list.New()
 	r.averageRTT = 0
 	r.averageRTTSet = false
@@ -248,9 +236,6 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.samples[r.offset] = rtt
-	r.offset = (r.offset + 1) % len(r.samples)
-
 	r.appendMovingMin(rtt)
 	r.minRTT = r.min()
 
@@ -261,28 +246,6 @@ func (r *rttMonitor) addSample(rtt time.Duration) {
 	}
 
 	r.averageRTT = time.Duration(rttAlphaValue*float64(rtt) + (1-rttAlphaValue)*float64(r.averageRTT))
-}
-
-// percentile returns the specified percentile value of the slice of duration samples. Zero values
-// are not considered samples and are ignored. If no samples or fewer than minSamples are found
-// in the slice, percentile returns 0.
-func percentile(perc float64, samples []time.Duration, minSamples int) time.Duration {
-	// Convert Durations to float64s.
-	floatSamples := make([]float64, 0, len(samples))
-	for _, sample := range samples {
-		if sample > 0 {
-			floatSamples = append(floatSamples, float64(sample))
-		}
-	}
-	if len(floatSamples) == 0 || len(floatSamples) < minSamples {
-		return 0
-	}
-
-	p, err := stats.Percentile(floatSamples, perc)
-	if err != nil {
-		panic(fmt.Errorf("x/mongo/driver/topology: error calculating %f percentile RTT: %v for samples:\n%v", perc, err, floatSamples))
-	}
-	return time.Duration(p)
 }
 
 // EWMA returns the exponentially weighted moving average observed round-trip time.
@@ -306,28 +269,6 @@ func (r *rttMonitor) Stats() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// Calculate standard deviation and average (non-EWMA) of samples.
-	var sum float64
-	floatSamples := make([]float64, 0, len(r.samples))
-	for _, sample := range r.samples {
-		if sample > 0 {
-			floatSamples = append(floatSamples, float64(sample))
-			sum += float64(sample)
-		}
-	}
-
-	var avg, stdDev float64
-	if len(floatSamples) > 0 {
-		avg = sum / float64(len(floatSamples))
-
-		var err error
-		stdDev, err = stats.StandardDeviation(floatSamples)
-		if err != nil {
-			panic(fmt.Errorf("x/mongo/driver/topology: error calculating standard deviation RTT: %v for samples:\n%v", err, floatSamples))
-		}
-	}
-
 	return fmt.Sprintf(`Round-trip-time monitor statistics:`+"\n"+
-		`average RTT: %v, minimum RTT: %v, standard dev: %v`+"\n",
-		time.Duration(avg), r.minRTT, time.Duration(stdDev))
+		`moving average RTT: %v, minimum RTT: %v`+"\n", r.averageRTT, r.minRTT)
 }

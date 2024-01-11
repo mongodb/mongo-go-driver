@@ -760,7 +760,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			err = ctx.Err()
 		} else if deadline, ok := ctx.Deadline(); ok {
 			if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
-				err = context.DeadlineExceeded
+				err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
 			}
 		}
 
@@ -1547,7 +1547,7 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration
 
 			// Always round up to the next millisecond value so we never truncate the calculated
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-			maxTimeMS := remainingTimeout - rttMin
+			maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
 					"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
@@ -1555,7 +1555,8 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration
 					ErrDeadlineWouldBeExceeded,
 					rttStats)
 			}
-			return uint64(maxTimeMS.Milliseconds()), nil
+
+			return uint64(maxTimeMS), nil
 		}
 	} else if op.MaxTime != nil {
 		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate

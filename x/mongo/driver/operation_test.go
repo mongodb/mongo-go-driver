@@ -269,11 +269,15 @@ func TestOperation(t *testing.T) {
 		})
 	})
 	t.Run("calculateMaxTimeMS", func(t *testing.T) {
-		timeout := 5 * time.Second
-		maxTime := 2 * time.Second
-		negMaxTime := -2 * time.Second
-		shortRTT := 50 * time.Millisecond
-		longRTT := 10 * time.Second
+		var (
+			timeout     = 5 * time.Second
+			maxTime     = 2 * time.Second
+			negMaxTime  = -2 * time.Second
+			shortRTT    = 50 * time.Millisecond
+			longRTT     = 10 * time.Second
+			verShortRTT = 400 * time.Microsecond
+		)
+
 		timeoutCtx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
 		defer cancel()
 
@@ -322,6 +326,15 @@ func TestOperation(t *testing.T) {
 				rttStats: "",
 				want:     0,
 				err:      ErrNegativeMaxTime,
+			},
+			{
+				name:     "sub millisecond rtt should round up",
+				op:       Operation{MaxTime: &verShortRTT},
+				ctx:      context.Background(),
+				rttMin:   longRTT,
+				rttStats: "",
+				want:     1,
+				err:      nil,
 			},
 		}
 		for _, tc := range testCases {

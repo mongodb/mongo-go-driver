@@ -119,41 +119,6 @@ func TestRTTMonitor(t *testing.T) {
 			rtt.Min())
 	})
 
-	t.Run("creates the correct size samples slice", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			desc           string
-			interval       time.Duration
-			wantSamplesLen int
-		}{
-			{
-				desc:           "default",
-				interval:       10 * time.Second,
-				wantSamplesLen: 30,
-			},
-			{
-				desc:           "min",
-				interval:       10 * time.Minute,
-				wantSamplesLen: 10,
-			},
-			{
-				desc:           "max",
-				interval:       1 * time.Millisecond,
-				wantSamplesLen: 500,
-			},
-		}
-		for _, tc := range cases {
-			t.Run(tc.desc, func(t *testing.T) {
-				rtt := newRTTMonitor(&rttConfig{
-					interval:     tc.interval,
-					minRTTWindow: 5 * time.Minute,
-				})
-				assert.Equal(t, tc.wantSamplesLen, len(rtt.samples), "expected samples length to match")
-			})
-		}
-	})
-
 	t.Run("can connect and disconnect repeatedly", func(t *testing.T) {
 		t.Parallel()
 
