@@ -269,3 +269,22 @@ func TestNewCursorFromDocuments(t *testing.T) {
 			mockErr, cur.Err())
 	})
 }
+
+func BenchmarkNewCursorFromDocuments(b *testing.B) {
+	// Prepare sample data
+	documents := []interface{}{
+		bson.D{{"_id", 0}, {"foo", "bar"}},
+		bson.D{{"_id", 1}, {"baz", "qux"}},
+		bson.D{{"_id", 2}, {"quux", "quuz"}},
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := NewCursorFromDocuments(documents, nil, nil)
+		if err != nil {
+			b.Fatalf("Error creating cursor: %v", err)
+		}
+	}
+}

@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -91,7 +92,9 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 		registry = bson.DefaultRegistry
 	}
 
-	// Convert documents slice to a sequence-style byte array.
+	buf := new(bytes.Buffer)
+	enc := new(bson.Encoder)
+
 	values := make([]bsoncore.Value, len(documents))
 	for i, doc := range documents {
 		switch t := doc.(type) {
@@ -101,15 +104,25 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 			// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
 			doc = bson.Raw(t)
 		}
-		bytes, err := bson.MarshalWithRegistry(registry, doc)
+
+		vw, err := bsonrw.NewBSONValueWriter(buf)
 		if err != nil {
+			return nil, err
+		}
+
+		enc.Reset(vw)
+		enc.SetRegistry(registry)
+
+		if err = enc.Encode(doc); err != nil {
 			return nil, err
 		}
 
 		values[i] = bsoncore.Value{
 			Type: bson.TypeEmbeddedDocument,
-			Data: bytes,
+			Data: bytes.Clone(buf.Bytes()),
 		}
+
+		buf.Reset()
 	}
 
 	c := &Cursor{
@@ -261,10 +274,7 @@ func getDecoder(
 	}
 
 	if reg != nil {
-		// TODO:(GODRIVER-2719): Remove error handling.
-		if err := dec.SetRegistry(reg); err != nil {
-			return nil, err
-		}
+		dec.SetRegistry(reg)
 	}
 
 	return dec, nil
