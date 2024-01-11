@@ -8,6 +8,7 @@ package mtest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -469,11 +470,11 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 		}
 
 		// ignore ErrUnacknowledgedWrite. Client may be configured with unacknowledged write concern.
-		if err != nil && err != driver.ErrUnacknowledgedWrite {
+		if err != nil && !errors.Is(err, driver.ErrUnacknowledgedWrite) {
 			// ignore NamespaceExists errors for idempotency
 
-			cmdErr, ok := err.(mongo.CommandError)
-			if !ok || cmdErr.Code != namespaceExistsErrCode {
+			var cmdErr mongo.CommandError
+			if !errors.As(err, &cmdErr) || cmdErr.Code != namespaceExistsErrCode {
 				t.Fatalf("error creating collection or view: %v on server: %v", coll.Name, err)
 			}
 		}
@@ -521,7 +522,7 @@ func (t *T) ClearCollections() {
 			}
 
 			err := coll.created.Drop(context.Background())
-			if err == mongo.ErrUnacknowledgedWrite || err == driver.ErrUnacknowledgedWrite {
+			if errors.Is(err, mongo.ErrUnacknowledgedWrite) || errors.Is(err, driver.ErrUnacknowledgedWrite) {
 				// It's possible that a collection could have an unacknowledged write concern, which
 				// could prevent it from being dropped for sharded clusters. We can resolve this by
 				// re-instantiating the collection with a majority write concern before dropping.

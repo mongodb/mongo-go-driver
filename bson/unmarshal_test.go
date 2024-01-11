@@ -7,8 +7,10 @@
 package bson
 
 import (
+	"errors"
 	"math/rand"
 	"reflect"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -99,7 +101,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
 		data := []byte("invalid")
 		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
-		if err != bsonrw.ErrInvalidJSON {
+		if !errors.Is(err, bsonrw.ErrInvalidJSON) {
 			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
 		}
 	})
@@ -772,4 +774,22 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			assert.DifferentAddressRanges(t, data, tc.getByteSlice(got))
 		})
 	}
+}
+
+func TestUnmarshalConcurrently(t *testing.T) {
+	t.Parallel()
+
+	const size = 10_000
+
+	data := []byte{16, 0, 0, 0, 10, 108, 97, 115, 116, 101, 114, 114, 111, 114, 0, 0}
+	wg := sync.WaitGroup{}
+	wg.Add(size)
+	for i := 0; i < size; i++ {
+		go func() {
+			defer wg.Done()
+			var res struct{ LastError error }
+			_ = Unmarshal(data, &res)
+		}()
+	}
+	wg.Wait()
 }

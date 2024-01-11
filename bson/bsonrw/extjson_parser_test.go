@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"errors"
 	"io"
 	"strings"
 	"testing"
@@ -47,7 +48,7 @@ type readKeyValueTestCase struct {
 
 func expectSpecificError(expected error) expectedErrorFunc {
 	return func(t *testing.T, err error, desc string) {
-		if err != expected {
+		if !errors.Is(err, expected) {
 			t.Helper()
 			t.Errorf("%s: Expected %v but got: %v", desc, expected, err)
 			t.FailNow()

@@ -889,9 +889,8 @@ func compareErrors(err1, err2 error) bool {
 		return false
 	}
 
-	ospe1, ok1 := err1.(*os.PathError)
-	ospe2, ok2 := err2.(*os.PathError)
-	if ok1 && ok2 {
+	var ospe1, ospe2 *os.PathError
+	if errors.As(err1, &ospe1) && errors.As(err2, &ospe2) {
 		return ospe1.Op == ospe2.Op && ospe1.Path == ospe2.Path
 	}
 

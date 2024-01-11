@@ -9,7 +9,9 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -32,21 +34,12 @@ var (
 	errorInterrupted int32 = 11601
 )
 
-type wrappedError struct {
-	err error
-}
-
-func (we wrappedError) Error() string {
-	return we.err.Error()
-}
-
-func (we wrappedError) Unwrap() error {
-	return we.err
-}
-
 func TestConvenientTransactions(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test in short mode")
+	}
+	if os.Getenv("DOCKER_RUNNING") != "" {
+		t.Skip("skipping test in docker environment")
 	}
 
 	client := setupConvenientTransactions(t)
@@ -436,12 +429,12 @@ func TestConvenientTransactions(t *testing.T) {
 		res, err := sess.WithTransaction(context.Background(), func(SessionContext) (interface{}, error) {
 			if returnError {
 				returnError = false
-				return nil, wrappedError{
+				return nil, fmt.Errorf("%w",
 					CommandError{
 						Name:   "test Error",
 						Labels: []string{driver.TransientTransactionError},
 					},
-				}
+				)
 			}
 			return false, nil
 		})

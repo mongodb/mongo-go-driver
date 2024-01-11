@@ -267,7 +267,7 @@ func percentile(perc float64, samples []time.Duration, minSamples int) time.Dura
 
 	p, err := stats.Percentile(floatSamples, perc)
 	if err != nil {
-		panic(fmt.Errorf("x/mongo/driver/topology: error calculating %f percentile RTT: %v for samples:\n%v", perc, err, floatSamples))
+		panic(fmt.Errorf("x/mongo/driver/topology: error calculating %f percentile RTT: %w for samples:\n%v", perc, err, floatSamples))
 	}
 	return time.Duration(p)
 }
@@ -318,7 +318,7 @@ func (r *rttMonitor) Stats() string {
 		var err error
 		stdDev, err = stats.StandardDeviation(floatSamples)
 		if err != nil {
-			panic(fmt.Errorf("x/mongo/driver/topology: error calculating standard deviation RTT: %v for samples:\n%v", err, floatSamples))
+			panic(fmt.Errorf("x/mongo/driver/topology: error calculating standard deviation RTT: %w for samples:\n%v", err, floatSamples))
 		}
 	}
 

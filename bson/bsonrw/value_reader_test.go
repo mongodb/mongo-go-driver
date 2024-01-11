@@ -8,6 +8,7 @@ package bsonrw
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -185,7 +186,7 @@ func TestValueReader(t *testing.T) {
 			// invalid length
 			vr.d = []byte{0x00, 0x00}
 			_, err := vr.ReadDocument()
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				t.Errorf("Expected io.EOF with document length too small. got %v; want %v", err, io.EOF)
 			}
 
@@ -239,7 +240,7 @@ func TestValueReader(t *testing.T) {
 
 			vr.frame--
 			_, err = vr.ReadDocument()
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				t.Errorf("Should return error when attempting to read length with not enough bytes. got %v; want %v", err, io.EOF)
 			}
 		})
@@ -1482,7 +1483,7 @@ func TestValueReader(t *testing.T) {
 						frame: 0,
 					}
 					gotType, got, gotErr := vr.ReadValueBytes(nil)
-					if gotErr != tc.wantErr {
+					if !errors.Is(gotErr, tc.wantErr) {
 						t.Errorf("Did not receive expected error. got %v; want %v", gotErr, tc.wantErr)
 					}
 					if tc.wantErr == nil && gotType != tc.wantType {
@@ -1526,7 +1527,7 @@ func errequal(t *testing.T, err1, err2 error) bool {
 		return false
 	}
 
-	if err1 == err2 { // They are the same error, they are equal
+	if errors.Is(err1, err2) { // They are the same error, they are equal
 		return true
 	}
 

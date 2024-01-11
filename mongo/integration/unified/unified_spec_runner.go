@@ -27,11 +27,16 @@ var (
 		// GODRIVER-1773: This test runs a "find" with limit=4 and batchSize=3. It expects batchSize values of three for
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": "See GODRIVER-1773",
+
 		// TODO(GODRIVER-2843): Fix and unskip these test cases.
 		"Find operation with snapshot":                                      "Test fails frequently. See GODRIVER-2843",
 		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",
-		// TODO(GODRIVER-2943): Fix and unskip this test case.
-		"Topology lifecycle": "Test times out.  See GODRIVER-2943",
+
+		// TODO(GODRIVER-3043): Avoid Appending Write/Read Concern in Atlas Search
+		// Index Helper Commands.
+		"dropSearchIndex ignores read and write concern":       "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
+		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
+		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
@@ -223,13 +228,7 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 		return fmt.Errorf("schema version %q not supported: %v", tc.schemaVersion, err)
 	}
 
-	// Count the number of expected log messages over all clients.
-	var expectedLogCount int
-	for _, clientLog := range tc.ExpectLogMessages {
-		expectedLogCount += len(clientLog.LogMessages)
-	}
-
-	testCtx := newTestContext(context.Background(), tc.entities, expectedLogCount, tc.setsFailPoint())
+	testCtx := newTestContext(context.Background(), tc.entities, tc.ExpectLogMessages, tc.setsFailPoint())
 
 	defer func() {
 		// If anything fails while doing test cleanup, we only log the error because the actual test may have already

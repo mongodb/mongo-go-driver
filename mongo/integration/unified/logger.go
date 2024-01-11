@@ -7,6 +7,7 @@
 package unified
 
 import (
+	"context"
 	"sync"
 
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -33,19 +34,21 @@ type Logger struct {
 	// orderMu guards the order value, which increments each time the "Info"
 	// method is called. This is necessary since "Info" could be called from
 	// multiple go routines, e.g. SDAM logs.
-	orderMu  sync.RWMutex
-	logQueue chan orderedLogMessage
+	orderMu        sync.RWMutex
+	logQueue       chan orderedLogMessage
+	ignoreMessages []*logMessage
 }
 
-func newLogger(olm *observeLogMessages, bufSize int) *Logger {
+func newLogger(olm *observeLogMessages, bufSize int, ignoreMessages []*logMessage) *Logger {
 	if olm == nil {
 		return nil
 	}
 
 	return &Logger{
-		lastOrder: 1,
-		logQueue:  make(chan orderedLogMessage, bufSize),
-		bufSize:   bufSize,
+		lastOrder:      1,
+		logQueue:       make(chan orderedLogMessage, bufSize),
+		bufSize:        bufSize,
+		ignoreMessages: ignoreMessages,
 	}
 }
 
@@ -65,8 +68,6 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		return
 	}
 
-	defer func() { log.lastOrder++ }()
-
 	// Add the Diff back to the level, as there is no need to create a
 	// logging offset.
 	level = level + logger.DiffToInfo
@@ -76,12 +77,19 @@ func (log *Logger) Info(level int, msg string, args ...interface{}) {
 		panic(err)
 	}
 
+	for _, ignoreMessage := range log.ignoreMessages {
+		if err := verifyLogMatch(context.Background(), ignoreMessage, logMessage); err == nil {
+			return
+		}
+	}
+
+	defer func() { log.lastOrder++ }()
+
 	// Send the log message to the "orderedLogMessage" channel for
 	// validation.
 	log.logQueue <- orderedLogMessage{
 		order:      log.lastOrder + 1,
-		logMessage: logMessage,
-	}
+		logMessage: logMessage}
 
 	// If the order has reached the buffer size, then close the channel.
 	if log.lastOrder == log.bufSize {

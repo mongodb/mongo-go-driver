@@ -31,7 +31,7 @@ func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 		Extra     map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary gridFSBucketOptions object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary gridFSBucketOptions object: %w", err)
 	}
 	if len(temp.Extra) > 0 {
 		return fmt.Errorf("unrecognized fields for gridFSBucketOptions: %v", mapKeys(temp.Extra))
@@ -50,14 +50,14 @@ func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 	if temp.RP != nil {
 		rp, err := temp.RP.ToReadPrefOption()
 		if err != nil {
-			return fmt.Errorf("error parsing read preference document: %v", err)
+			return fmt.Errorf("error parsing read preference document: %w", err)
 		}
 		bo.SetReadPreference(rp)
 	}
 	if temp.WC != nil {
 		wc, err := temp.WC.toWriteConcernOption()
 		if err != nil {
-			return fmt.Errorf("error parsing write concern document: %v", err)
+			return fmt.Errorf("error parsing write concern document: %w", err)
 		}
 		bo.SetWriteConcern(wc)
 	}

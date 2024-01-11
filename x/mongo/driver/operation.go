@@ -458,7 +458,7 @@ func (op Operation) getServerAndConnection(
 		if err := pinnedConn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
-			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
+			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %w", err)
 		}
 		op.Client.PinnedConnection = pinnedConn
 	}
@@ -1492,7 +1492,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	}
 
 	t, data, err := wc.MarshalBSONValue()
-	if err == writeconcern.ErrEmptyWriteConcern {
+	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
 		return dst, nil
 	}
 	if err != nil {
@@ -1748,7 +1748,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc = bsoncore.AppendBooleanElement(doc, "enabled", *hedgeEnabled)
 		doc, err = bsoncore.AppendDocumentEnd(doc, hedgeIdx)
 		if err != nil {
-			return nil, fmt.Errorf("error creating hedge document: %v", err)
+			return nil, fmt.Errorf("error creating hedge document: %w", err)
 		}
 	}
 

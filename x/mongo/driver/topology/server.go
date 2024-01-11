@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
@@ -415,8 +416,8 @@ func (s *Server) RequestImmediateCheck() {
 // (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
 // handling and (nil, false) otherwise.
 func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
-	writeCmdErr, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var writeCmdErr driver.WriteCommandError
+	if !errors.As(err, &writeCmdErr) {
 		return nil, false
 	}
 
@@ -525,7 +526,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	if netErr, ok := wrappedConnErr.(net.Error); ok && netErr.Timeout() {
 		return driver.NoChange
 	}
-	if wrappedConnErr == context.Canceled || wrappedConnErr == context.DeadlineExceeded {
+	if errors.Is(wrappedConnErr, context.Canceled) || errors.Is(wrappedConnErr, context.DeadlineExceeded) {
 		return driver.NoChange
 	}
 
@@ -549,9 +550,7 @@ func (s *Server) update() {
 	checkNow := s.checkNow
 	done := s.done
 
-	defer func() {
-		_ = recover()
-	}()
+	defer logUnexpectedFailure(s.cfg.logger, "Encountered unexpected failure updating server")
 
 	closeServer := func() {
 		s.subLock.Lock()
@@ -603,7 +602,7 @@ func (s *Server) update() {
 
 		// Perform the next check.
 		desc, err := s.check()
-		if err == errCheckCancelled {
+		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
 			}
@@ -625,7 +624,7 @@ func (s *Server) update() {
 			// Retry after the first timeout before clearing the pool in case of a FAAS pause as
 			// described in GODRIVER-2577.
 			if err := unwrapConnectionError(desc.LastError); err != nil && timeoutCnt < 1 {
-				if err == context.Canceled || err == context.DeadlineExceeded {
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					timeoutCnt++
 					// We want to immediately retry on timeout error. Continue to next loop.
 					return true
@@ -683,10 +682,7 @@ func (s *Server) updateDescription(desc description.Server) {
 		return
 	}
 
-	defer func() {
-		//  ¯\_(ツ)_/¯
-		_ = recover()
-	}()
+	defer logUnexpectedFailure(s.cfg.logger, "Encountered unexpected failure updating server description")
 
 	// Anytime we update the server description to something other than "unknown", set the pool to
 	// "ready". Do this before updating the description so that connections can be checked out as
@@ -1060,10 +1056,24 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 	}
 
 	if mustLogServerMessage(s) {
-		logServerMessage(s, logger.TopologyServerHeartbeatStarted,
+		descRaw, _ := bson.Marshal(struct {
+			description.Server `bson:",inline"`
+			Ok                 int32
+		}{
+			Server: desc,
+			Ok: func() int32 {
+				if desc.LastError != nil {
+					return 0
+				}
+
+				return 1
+			}(),
+		})
+
+		logServerMessage(s, logger.TopologyServerHeartbeatSucceeded,
 			logger.KeyAwaited, await,
 			logger.KeyDurationMS, duration.Milliseconds(),
-			logger.KeyReply, desc)
+			logger.KeyReply, bson.Raw(descRaw).String())
 	}
 }
 

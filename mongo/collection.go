@@ -256,7 +256,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		if err != nil {
 			return nil, err
 		}
-		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NewObjectID(), coll.bsonOpts, coll.registry)
+		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NilObjectID, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -313,8 +313,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
-	wce, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var wce driver.WriteCommandError
+	if !errors.As(err, &wce) {
 		return result, err
 	}
 
@@ -388,8 +388,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	imResult := &InsertManyResult{InsertedIDs: result}
-	writeException, ok := err.(WriteException)
-	if !ok {
+	var writeException WriteException
+	if !errors.As(err, &writeException) {
 		return imResult, err
 	}
 
@@ -1806,7 +1806,7 @@ func (coll *Collection) Drop(ctx context.Context) error {
 func (coll *Collection) dropEncryptedCollection(ctx context.Context, ef interface{}) error {
 	efBSON, err := marshal(ef, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return fmt.Errorf("error transforming document: %v", err)
+		return fmt.Errorf("error transforming document: %w", err)
 	}
 
 	// Drop the two encryption-related, associated collections: `escCollection` and `ecocCollection`.

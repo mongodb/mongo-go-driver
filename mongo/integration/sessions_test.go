@@ -415,7 +415,7 @@ func TestSessionsProse(t *testing.T) {
 			},
 			"findOneAndDelete": func(ctx context.Context) error {
 				result := mt.Coll.FindOneAndDelete(ctx, bson.D{})
-				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+				if err := result.Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 					return err
 				}
 				return nil
@@ -424,14 +424,14 @@ func TestSessionsProse(t *testing.T) {
 				result := mt.Coll.FindOneAndUpdate(ctx, bson.D{},
 					bson.D{{"$set", bson.D{{"a", 1}}}})
 
-				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+				if err := result.Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 					return err
 				}
 				return nil
 			},
 			"findOneAndReplace": func(ctx context.Context) error {
 				result := mt.Coll.FindOneAndReplace(ctx, bson.D{}, bson.D{{"a", 1}})
-				if err := result.Err(); err != nil && err != mongo.ErrNoDocuments {
+				if err := result.Err(); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 					return err
 				}
 				return nil
@@ -469,7 +469,7 @@ func TestSessionsProse(t *testing.T) {
 				cmd := cmd
 				errs.Go(func() error {
 					if err := op(ctx); err != nil {
-						return fmt.Errorf("error running %s operation: %v", cmd, err)
+						return fmt.Errorf("error running %s operation: %w", cmd, err)
 					}
 					return nil
 				})
