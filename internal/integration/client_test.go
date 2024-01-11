@@ -103,8 +103,11 @@ func (sc *slowConn) Read(b []byte) (n int, err error) {
 func TestClient(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
+	reg := bson.NewRegistry()
+	reg.RegisterTypeEncoder(reflect.TypeOf(int64(0)), &negateCodec{})
+	reg.RegisterTypeDecoder(reflect.TypeOf(int64(0)), &negateCodec{})
 	registryOpts := options.Client().
-		SetRegistry(bson.NewRegistryBuilder().RegisterCodec(reflect.TypeOf(int64(0)), &negateCodec{}).Build())
+		SetRegistry(reg)
 	mt.RunOpts("registry passed to cursors", mtest.NewOptions().ClientOptions(registryOpts), func(mt *mtest.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), negateCodec{ID: 10})
 		assert.Nil(mt, err, "InsertOne error: %v", err)
