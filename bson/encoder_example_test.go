@@ -234,3 +234,33 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	// {"x":{"$numberInt":"3"},"y":{"$numberInt":"4"}}
 	// {"x":{"$numberInt":"4"},"y":{"$numberInt":"5"}}
 }
+
+func ExampleEncoder_IntMinSize() {
+	// Create an encoder that will marshal integers as the minimum BSON int size
+	// (either 32 or 64 bits) that can represent the integer value.
+	type foo struct {
+		Bar uint32
+	}
+
+	buf := new(bytes.Buffer)
+	vw, err := bsonrw.NewBSONValueWriter(buf)
+	if err != nil {
+		panic(err)
+	}
+
+	enc, err := bson.NewEncoder(vw)
+	if err != nil {
+		panic(err)
+	}
+
+	enc.IntMinSize()
+
+	err = enc.Encode(foo{2})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(bson.Raw(buf.Bytes()).String())
+	// Output:
+	// {"bar": {"$numberInt":"2"}}
+}
