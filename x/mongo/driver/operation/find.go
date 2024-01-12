@@ -30,7 +30,7 @@ type Find struct {
 	awaitData           *bool
 	batchSize           *int32
 	collation           bsoncore.Document
-	comment             *string
+	comment             bsoncore.Value
 	filter              bsoncore.Document
 	hint                bsoncore.Value
 	let                 bsoncore.Document
@@ -136,8 +136,8 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", f.collation)
 	}
-	if f.comment != nil {
-		dst = bsoncore.AppendStringElement(dst, "comment", *f.comment)
+	if f.comment.Type != bsontype.Type(0) {
+		dst = bsoncore.AppendValueElement(dst, "comment", f.comment)
 	}
 	if f.filter != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "filter", f.filter)
@@ -240,13 +240,13 @@ func (f *Find) Collation(collation bsoncore.Document) *Find {
 	return f
 }
 
-// Comment sets a string to help trace an operation.
-func (f *Find) Comment(comment string) *Find {
+// Comment sets a value to help trace an operation.
+func (f *Find) Comment(comment bsoncore.Value) *Find {
 	if f == nil {
 		f = new(Find)
 	}
 
-	f.comment = &comment
+	f.comment = comment
 	return f
 }
 

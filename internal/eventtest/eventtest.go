@@ -76,3 +76,11 @@ func (tpm *TestPoolMonitor) IsPoolCleared() bool {
 	})
 	return len(poolClearedEvents) > 0
 }
+
+// Interruptions returns the number of interruptions in the events recorded by the testPoolMonitor.
+func (tpm *TestPoolMonitor) Interruptions() int {
+	interruptions := tpm.Events(func(evt *event.PoolEvent) bool {
+		return evt.Interruption
+	})
+	return len(interruptions)
+}

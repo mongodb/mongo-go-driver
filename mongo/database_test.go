@@ -54,7 +54,7 @@ func TestDatabase(t *testing.T) {
 			wc2 := &writeconcern.WriteConcern{W: 10}
 			rcLocal := readconcern.Local()
 			rcMajority := readconcern.Majority()
-			reg := bsoncodec.NewRegistryBuilder().Build()
+			reg := bsoncodec.NewRegistry()
 
 			opts := options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetWriteConcern(wc1).
 				SetReadPreference(rpSecondary).SetReadConcern(rcMajority).SetWriteConcern(wc2).SetRegistry(reg)
@@ -71,7 +71,7 @@ func TestDatabase(t *testing.T) {
 			rpPrimary := readpref.Primary()
 			rcLocal := readconcern.Local()
 			wc1 := &writeconcern.WriteConcern{W: 10}
-			reg := bsoncodec.NewRegistryBuilder().Build()
+			reg := bsoncodec.NewRegistry()
 
 			client := setupClient(options.Client().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetRegistry(reg))
 			got := client.Database("foo", options.Database().SetWriteConcern(wc1))
@@ -97,7 +97,7 @@ func TestDatabase(t *testing.T) {
 	})
 	t.Run("TransientTransactionError label", func(t *testing.T) {
 		client := setupClient(options.Client().ApplyURI("mongodb://nonexistent").SetServerSelectionTimeout(3 * time.Second))
-		err := client.connect(bgCtx)
+		err := client.connect()
 		defer func() { _ = client.Disconnect(bgCtx) }()
 		assert.Nil(t, err, "expected nil, got %v", err)
 

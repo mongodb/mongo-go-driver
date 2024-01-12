@@ -316,7 +316,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		versionRange := description.NewVersionRange(0, *appErr.MaxWireVersion)
 		desc.WireVersion = &versionRange
 
-		generation := server.pool.generation.getGeneration(nil)
+		generation, _ := server.pool.generation.getGeneration(nil)
 		if appErr.Generation != nil {
 			generation = *appErr.Generation
 		}
@@ -548,7 +548,7 @@ func runTest(t *testing.T, directory string, filename string) {
 					topo.serversLock.Lock()
 					actualServer := topo.servers[address.Address(addr)]
 					topo.serversLock.Unlock()
-					actualGeneration := actualServer.pool.generation.getGeneration(nil)
+					actualGeneration, _ := actualServer.pool.generation.getGeneration(nil)
 					assert.Equal(t, server.Pool.Generation, actualGeneration,
 						"expected server pool generation to be %v, got %v", server.Pool.Generation, actualGeneration)
 				}

@@ -127,10 +127,10 @@ func (d *timeoutDialer) DialContext(ctx context.Context, network, address string
 	return &timeoutConn{c, d.errors}, e
 }
 
-// TestServerHeartbeatTimeout tests timeout retry for GODRIVER-2577.
+// TestServerHeartbeatTimeout tests timeout retry and preemptive canceling.
 func TestServerHeartbeatTimeout(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test in short mode")
+	if os.Getenv("DOCKER_RUNNING") != "" {
+		t.Skip("Skipping this test in docker.")
 	}
 
 	networkTimeoutError := &net.DNSError{
@@ -138,19 +138,19 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 	}
 
 	testCases := []struct {
-		desc              string
-		ioErrors          []error
-		expectPoolCleared bool
+		desc                string
+		ioErrors            []error
+		expectInterruptions int
 	}{
 		{
-			desc:              "one single timeout should not clear the pool",
-			ioErrors:          []error{nil, networkTimeoutError, nil, networkTimeoutError, nil},
-			expectPoolCleared: false,
+			desc:                "one single timeout should not clear the pool",
+			ioErrors:            []error{nil, networkTimeoutError, nil, networkTimeoutError, nil},
+			expectInterruptions: 0,
 		},
 		{
-			desc:              "continuous timeouts should clear the pool",
-			ioErrors:          []error{nil, networkTimeoutError, networkTimeoutError, nil},
-			expectPoolCleared: true,
+			desc:                "continuous timeouts should clear the pool with interruption",
+			ioErrors:            []error{nil, networkTimeoutError, networkTimeoutError, nil},
+			expectInterruptions: 1,
 		},
 	}
 	for _, tc := range testCases {
@@ -196,7 +196,8 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			)
 			require.NoError(t, server.Connect(nil))
 			wg.Wait()
-			assert.Equal(t, tc.expectPoolCleared, tpm.IsPoolCleared(), "expected pool cleared to be %v but was %v", tc.expectPoolCleared, tpm.IsPoolCleared())
+			interruptions := tpm.Interruptions()
+			assert.Equal(t, tc.expectInterruptions, interruptions, "expected %d interruption but got %d", tc.expectInterruptions, interruptions)
 		})
 	}
 }
@@ -441,7 +442,7 @@ func TestServer(t *testing.T) {
 				require.NotNil(t, s.Description().LastError)
 			}
 
-			generation := s.pool.generation.getGeneration(nil)
+			generation, _ := s.pool.generation.getGeneration(nil)
 			if (tt.connectionError || tt.networkError) && generation != 1 {
 				t.Errorf("Expected pool to be drained once on connection or network error. got %d; want %d", generation, 1)
 			}
@@ -452,20 +453,25 @@ func TestServer(t *testing.T) {
 		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, wantGeneration, wantNumConns uint64) {
 			t.Helper()
 
+			getGeneration := func(serviceIDPtr *primitive.ObjectID) uint64 {
+				generation, _ := server.pool.generation.getGeneration(serviceIDPtr)
+				return generation
+			}
+
 			// On connection failure, the connection is removed and closed after delivering the
 			// error to Connection(), so it may still count toward the generation connection count
 			// briefly. Wait up to 100ms for the generation connection count to reach the target.
 			assert.Eventuallyf(t,
 				func() bool {
-					generation := server.pool.generation.getGeneration(&serviceID)
+					generation, _ := server.pool.generation.getGeneration(&serviceID)
 					numConns := server.pool.generation.getNumConns(&serviceID)
 					return generation == wantGeneration && numConns == wantNumConns
 				},
 				100*time.Millisecond,
-				1*time.Millisecond,
+				10*time.Millisecond,
 				"expected generation number %v, got %v; expected connection count %v, got %v",
 				wantGeneration,
-				server.pool.generation.getGeneration(&serviceID),
+				getGeneration(&serviceID),
 				wantNumConns,
 				server.pool.generation.getNumConns(&serviceID))
 		}
@@ -1202,9 +1208,10 @@ func TestServer_ProcessError(t *testing.T) {
 				desc,
 				"expected and actual server descriptions are different")
 
+			generation, _ := server.pool.generation.getGeneration(nil)
 			assert.Equal(t,
 				tc.wantGeneration,
-				server.pool.generation.getGeneration(nil),
+				generation,
 				"expected and actual pool generation are different")
 		})
 	}

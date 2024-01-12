@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package mongo // import "go.mongodb.org/mongo-driver/mongo"
+package mongo
 
 import (
 	"bytes"
@@ -67,10 +67,7 @@ func getEncoder(
 	reg *bsoncodec.Registry,
 ) (*bson.Encoder, error) {
 	vw := bvwPool.Get(w)
-	enc, err := bson.NewEncoder(vw)
-	if err != nil {
-		return nil, err
-	}
+	enc := bson.NewEncoder(vw)
 
 	if opts != nil {
 		if opts.ErrorOnInlineDuplicates {
@@ -100,10 +97,7 @@ func getEncoder(
 	}
 
 	if reg != nil {
-		// TODO:(GODRIVER-2719): Remove error handling.
-		if err := enc.SetRegistry(reg); err != nil {
-			return nil, err
-		}
+		enc.SetRegistry(reg)
 	}
 
 	return enc, nil
@@ -153,8 +147,11 @@ func marshal(
 }
 
 // ensureID inserts the given ObjectID as an element named "_id" at the
-// beginning of the given BSON document if there is not an "_id" already. If
-// there is already an element named "_id", the document is not modified. It
+// beginning of the given BSON document if there is not an "_id" already.
+// If the given ObjectID is primitive.NilObjectID, a new object ID will be
+// generated with time.Now().
+//
+// If there is already an element named "_id", the document is not modified. It
 // returns the resulting document and the decoded Go value of the "_id" element.
 func ensureID(
 	doc bsoncore.Document,
@@ -195,6 +192,9 @@ func ensureID(
 	const extraSpace = 17
 	doc = make(bsoncore.Document, 0, len(olddoc)+extraSpace)
 	_, doc = bsoncore.ReserveLength(doc)
+	if oid.IsZero() {
+		oid = primitive.NewObjectID()
+	}
 	doc = bsoncore.AppendObjectIDElement(doc, "_id", oid)
 
 	// Remove and re-write the BSON document length header.
@@ -231,7 +231,7 @@ func marshalAggregatePipeline(
 	registry *bsoncodec.Registry,
 ) (bsoncore.Document, bool, error) {
 	switch t := pipeline.(type) {
-	case bsoncodec.ValueMarshaler:
+	case bson.ValueMarshaler:
 		btype, val, err := t.MarshalBSONValue()
 		if err != nil {
 			return nil, false, err
@@ -349,7 +349,7 @@ func marshalUpdateValue(
 		u.Type = bsontype.EmbeddedDocument
 		u.Data = t
 		return u, documentCheckerFunc(u.Data)
-	case bsoncodec.Marshaler:
+	case bson.Marshaler:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data, err = t.MarshalBSON()
 		if err != nil {
@@ -357,7 +357,7 @@ func marshalUpdateValue(
 		}
 
 		return u, documentCheckerFunc(u.Data)
-	case bsoncodec.ValueMarshaler:
+	case bson.ValueMarshaler:
 		u.Type, u.Data, err = t.MarshalBSONValue()
 		if err != nil {
 			return u, err

@@ -9,6 +9,7 @@ package bson
 import (
 	"math/rand"
 	"reflect"
+	"sync"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -229,9 +230,8 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		val.SetInt(int64(-1 * i32))
 		return nil
 	}
-	customReg := NewRegistryBuilder().
-		RegisterTypeDecoder(tInt32, decodeInt32).
-		Build()
+	customReg := NewRegistry()
+	customReg.RegisterTypeDecoder(tInt32, decodeInt32)
 
 	docBytes := bsoncore.BuildDocumentFromElements(
 		nil,
@@ -772,4 +772,22 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			assert.DifferentAddressRanges(t, data, tc.getByteSlice(got))
 		})
 	}
+}
+
+func TestUnmarshalConcurrently(t *testing.T) {
+	t.Parallel()
+
+	const size = 10_000
+
+	data := []byte{16, 0, 0, 0, 10, 108, 97, 115, 116, 101, 114, 114, 111, 114, 0, 0}
+	wg := sync.WaitGroup{}
+	wg.Add(size)
+	for i := 0; i < size; i++ {
+		go func() {
+			defer wg.Done()
+			var res struct{ LastError error }
+			_ = Unmarshal(data, &res)
+		}()
+	}
+	wg.Wait()
 }

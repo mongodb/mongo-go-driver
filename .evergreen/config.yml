@@ -27,7 +27,7 @@ timeout:
         ls -la
 functions:
   fetch-source:
-    # Executes git clone and applies the submitted patch, if any
+    # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
       params:
@@ -166,7 +166,7 @@ functions:
           . ${DRIVERS_TOOLS}/.evergreen/venv-utils.sh
           . ${DRIVERS_TOOLS}/.evergreen/find-python3.sh
 
-          export PYTHON3_BINARY="$(find_python3)"
+          export PYTHON3_BINARY="$(find_python3 2>/dev/null)"
           venvcreate "$PYTHON3_BINARY" venv
 
           echo "PYTHON3_BINARY: $PYTHON3_BINARY" >>expansion.yml
@@ -175,7 +175,11 @@ functions:
       params:
         file: src/go.mongodb.org/mongo-driver/expansion.yml
 
-  upload-mo-artifacts:
+  handle-test-artifacts:
+    - command: gotest.parse_files
+      params:
+        files:
+          - "src/go.mongodb.org/mongo-driver/*.suite"
     - command: shell.exec
       params:
         shell: "bash"
@@ -196,12 +200,31 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
+        optional: true
         local_file: ${PROJECT_DIRECTORY}/fuzz.tgz
         remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/${task_id}-${execution}-fuzz.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/x-gzip
         display_name: "fuzz.tgz"
+    - command: shell.exec
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          find . -name \*.suite | xargs tar czf test_suite.tgz
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/go.mongodb.org/mongo-driver/test_suite.tgz
+        optional: true
+        remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-test_suite.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: ${content_type|text/plain}
+        display_name: "test_suite.tgz"
 
   bootstrap-mongohoused:
     - command: shell.exec
@@ -263,15 +286,26 @@ functions:
       params:
         shell: "bash"
         script: |
-          ${PREPARE_SHELL}
-          cd "$MONGO_ORCHESTRATION_HOME"
-          # source the mongo-orchestration virtualenv if it exists
-          if [ -f venv/bin/activate ]; then
-            . venv/bin/activate
-          elif [ -f venv/Scripts/activate ]; then
-            . venv/Scripts/activate
+          # Ensure the instance profile is reassigned for aws tests.
+          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
+          if [ -f "./aws_e2e_setup.json" ]; then
+            . ./activate-authawsvenv.sh
+            python ./lib/aws_assign_instance_profile.py
           fi
-          mongo-orchestration stop
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
+          # balancer is not running.
+          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
+          # Stop orchestration and remove drivers tools.
+          bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
           cd -
           rm -rf $DRIVERS_TOOLS || true
 
@@ -701,26 +735,6 @@ functions:
           TEST_INDEX_URI="${TEST_INDEX_URI}" \
           make evg-test-search-index
 
-  stop-load-balancer:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          # Attempt to shut down a running load balancer. Ignore any errors that happen if the load
-          # balancer is not running.
-          DRIVERS_TOOLS=${DRIVERS_TOOLS} MONGODB_URI=${MONGODB_URI} bash ${DRIVERS_TOOLS}/.evergreen/run-load-balancer.sh stop || echo "Ignoring load balancer stop error"
-
-  teardown-aws:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          cd "${DRIVERS_TOOLS}/.evergreen/auth_aws"
-          if [ -f "./aws_e2e_setup.json" ]; then
-            . ./activate-authawsvenv.sh
-            python ./lib/aws_assign_instance_profile.py
-          fi
-
   add-aws-auth-variables-to-file:
     - command: ec2.assume_role
       params:
@@ -901,17 +915,11 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe -u kms_kmip_server.py \
+          . ./activate-kmstlsvenv.sh
+          python -u kms_kmip_server.py \
               --port 5698 \
               --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
               --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-          else
-            ./kmstlsvenv/bin/python3 -u kms_kmip_server.py \
-              --port 5698 \
-              --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
-              --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-          fi
 
     - command: shell.exec
       params:
@@ -919,11 +927,8 @@ functions:
         background: true
         script: |
           cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          if [ "Windows_NT" = "$OS" ]; then
-            kmstlsvenv/Scripts/python.exe bottle.py fake_azure:imds
-          else
-            ./kmstlsvenv/bin/python3 bottle.py fake_azure:imds
-          fi
+          . ./activate-kmstlsvenv.sh
+          python bottle.py fake_azure:imds
 
     - command: shell.exec
       params:
@@ -1018,16 +1023,9 @@ pre:
   - func: windows-fix
   - func: fix-absolute-paths
   - func: make-files-executable
-  - func: start-cse-servers
 
 post:
-  - command: gotest.parse_files
-    params:
-      files:
-        - "src/go.mongodb.org/mongo-driver/*.suite"
-  - func: upload-mo-artifacts
-  - func: stop-load-balancer
-  - func: teardown-aws
+  - func: handle-test-artifacts
   - func: cleanup
 
 tasks:
@@ -1061,6 +1059,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1075,6 +1074,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1090,6 +1090,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1105,6 +1106,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1120,6 +1122,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1134,6 +1137,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1148,6 +1152,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1163,6 +1168,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1178,6 +1184,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "server"
@@ -1515,8 +1522,8 @@ tasks:
       - func: run-atlas-data-lake-test
 
   - name: test-docker-runner
-    tags: ["pullrequest"]
     commands:
+      - func: bootstrap-mongo-orchestration
       - func: run-docker-test
 
   - name: test-load-balancer-noauth-nossl
@@ -1557,6 +1564,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1572,6 +1580,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1586,6 +1595,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1600,6 +1610,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1617,6 +1628,7 @@ tasks:
           TOPOLOGY: "replica_set"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "replica_set"
@@ -1631,6 +1643,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1645,6 +1658,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1660,6 +1674,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1675,6 +1690,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "noauth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1690,6 +1706,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1704,6 +1721,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1719,6 +1737,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1734,6 +1753,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "ssl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1749,6 +1769,7 @@ tasks:
           TOPOLOGY: "sharded_cluster"
           AUTH: "auth"
           SSL: "nossl"
+      - func: start-cse-servers
       - func: run-tests
         vars:
           TOPOLOGY: "sharded_cluster"
@@ -1820,6 +1841,7 @@ tasks:
           AUTH: "auth"
           SSL: "nossl"
           REQUIRE_API_VERSION: true
+      - func: start-cse-servers
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1836,6 +1858,7 @@ tasks:
           AUTH: "noauth"
           SSL: "nossl"
           ORCHESTRATION_FILE: "versioned-api-testing.json"
+      - func: start-cse-servers
       - func: run-versioned-api-test
         vars:
           TOPOLOGY: "server"
@@ -1909,6 +1932,7 @@ tasks:
   - name: "test-serverless"
     tags: ["serverless"]
     commands:
+      - func: start-cse-servers
       - func: "run-serverless-tests"
         vars:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
@@ -2289,30 +2313,6 @@ task_groups:
           script: |
             ${PREPARE_SHELL}
 
-            if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
-              echo "expected SERVERLESS_MONGODB_VERSION to be set"
-              exit 1
-            fi
-
-            # Download the enterprise server download for current platform to $MONGODB_BINARIES.
-            # This is required for tests that need mongocryptd.
-            # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-                --component archive \
-                --version ${SERVERLESS_MONGODB_VERSION} \
-                --edition enterprise \
-                --out $MONGODB_BINARIES \
-                --strip-path-components 2
-
-            # Download the crypt_shared dynamic library for the current platform.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-              --component crypt_shared \
-              --version ${SERVERLESS_MONGODB_VERSION} \
-              --edition enterprise \
-              --out . \
-              --only "**/mongo_crypt_v1.*" \
-              --strip-path-components 1
-
             # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
             # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
             # downloaded files.
@@ -2345,20 +2345,8 @@ task_groups:
             SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
             SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
               bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
-      - command: gotest.parse_files
-        params:
-          files:
-            - "src/go.mongodb.org/mongo-driver/*.suite"
-      - command: s3.put
-        params:
-          aws_key: ${aws_key}
-          aws_secret: ${aws_secret}
-          local_file: mongodb-logs.tar.gz
-          remote_file: ${UPLOAD_BUCKET}/${build_variant}/${revision}/${version_id}/${build_id}/logs/${task_id}-${execution}-mongodb-logs.tar.gz
-          bucket: mciuploads
-          permissions: public-read
-          content_type: ${content_type|application/x-gzip}
-          display_name: "mongodb-logs.tar.gz"
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - ".serverless"
 
@@ -2395,8 +2383,11 @@ task_groups:
             export GCPKMS_ZONE=${GCPKMS_ZONE}
             export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - testgcpkms-task
+
   - name: testazurekms_task_group
     setup_group_can_fail_task: true
     teardown_group_can_fail_task: true
@@ -2433,6 +2424,8 @@ task_groups:
             export AZUREKMS_SCOPE=${AZUREKMS_SCOPE}
             export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
             $DRIVERS_TOOLS/.evergreen/csfle/azurekms/delete-vm.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     tasks:
       - testazurekms-task
 
@@ -2464,6 +2457,8 @@ task_groups:
             AWS_REGION: us-east-1
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2502,6 +2497,8 @@ task_groups:
           add_expansions_to_env: true
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
+      - func: handle-test-artifacts
+      - func: cleanup
     setup_group_can_fail_task: true
     setup_group_timeout_secs: 1800
     tasks:
@@ -2558,6 +2555,7 @@ buildvariants:
       - name: "test-atlas-data-lake"
 
   - name: docker-runner-test
+    tags: ["pullrequest"]
     display_name: "Docker Runner Test"
     run_on:
       - ubuntu2204-large

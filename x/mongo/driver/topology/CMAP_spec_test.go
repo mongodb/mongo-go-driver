@@ -9,6 +9,7 @@ package topology
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"path"
@@ -523,7 +524,12 @@ func runOperationInThread(t *testing.T, operation map[string]interface{}, testIn
 		}
 		return c.Close()
 	case "clear":
-		s.pool.clear(nil, nil)
+		needInterruption, ok := operation["interruptInUseConnections"].(bool)
+		if ok && needInterruption {
+			s.pool.clearAll(fmt.Errorf("spec test clear"), nil)
+		} else {
+			s.pool.clear(fmt.Errorf("spec test clear"), nil)
+		}
 	case "close":
 		s.pool.close(context.Background())
 	case "ready":

@@ -531,7 +531,7 @@ func (h *Hello) handshakeCommand(dst []byte, desc description.SelectedServer) ([
 func (h *Hello) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	// Use "hello" if topology is LoadBalanced, API version is declared or server
 	// has responded with "helloOk". Otherwise, use legacy hello.
-	if desc.Kind == description.LoadBalanced || h.serverAPI != nil || desc.Server.HelloOK {
+	if h.loadBalanced || h.serverAPI != nil || desc.Server.HelloOK {
 		dst = bsoncore.AppendInt32Element(dst, "hello", 1)
 	} else {
 		dst = bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1)
@@ -576,8 +576,8 @@ func (h *Hello) StreamResponse(ctx context.Context, conn *mnet.Connection) error
 // loadBalanced is False. If this is the case, then the drivers MUST use legacy
 // hello for the first message of the initial handshake with the OP_QUERY
 // protocol
-func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, deployment driver.Deployment) bool {
-	return srvAPI == nil && deployment.Kind() != description.LoadBalanced
+func isLegacyHandshake(srvAPI *driver.ServerAPIOptions, loadbalanced bool) bool {
+	return srvAPI == nil && !loadbalanced
 }
 
 func (h *Hello) createOperation() driver.Operation {
@@ -593,7 +593,7 @@ func (h *Hello) createOperation() driver.Operation {
 		ServerAPI: h.serverAPI,
 	}
 
-	if isLegacyHandshake(h.serverAPI, h.d) {
+	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
 		op.Legacy = driver.LegacyHandshake
 	}
 
@@ -617,7 +617,7 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 		ServerAPI: h.serverAPI,
 	}
 
-	if isLegacyHandshake(h.serverAPI, deployment) {
+	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
 		op.Legacy = driver.LegacyHandshake
 	}
 

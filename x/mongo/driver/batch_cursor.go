@@ -144,7 +144,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
 		}
 		if err := refConn.PinToCursor(); err != nil {
-			return CursorResponse{}, fmt.Errorf("error incrementing connection reference count when creating a cursor: %v", err)
+			return CursorResponse{}, fmt.Errorf("error incrementing connection reference count when creating a cursor: %w", err)
 		}
 		curresp.Connection = info.Connection
 	}
@@ -453,7 +453,8 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 	// If we're in load balanced mode and the pinned connection encounters a network error, we should not use it for
 	// future commands. Per the spec, the connection will not be unpinned until the cursor is actually closed, but
 	// we set the cursor ID to 0 to ensure the Close() call will not execute a killCursors command.
-	if driverErr, ok := bc.err.(Error); ok && driverErr.NetworkError() && bc.connection != nil {
+	var driverErr Error
+	if errors.As(bc.err, &driverErr) && driverErr.NetworkError() && bc.connection != nil {
 		bc.id = 0
 	}
 

@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -91,7 +92,8 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	}
 
 	// Convert documents slice to a sequence-style byte array.
-	var docsBytes []byte
+	buf := new(bytes.Buffer)
+	enc := new(bson.Encoder)
 	for _, doc := range documents {
 		switch t := doc.(type) {
 		case nil:
@@ -100,15 +102,20 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 			// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
 			doc = bson.Raw(t)
 		}
-		var marshalErr error
-		docsBytes, marshalErr = bson.MarshalAppendWithRegistry(registry, docsBytes, doc)
-		if marshalErr != nil {
-			return nil, marshalErr
+		vw, err := bsonrw.NewBSONValueWriter(buf)
+		if err != nil {
+			return nil, err
+		}
+		enc.Reset(vw)
+		enc.SetRegistry(registry)
+		err = enc.Encode(doc)
+		if err != nil {
+			return nil, err
 		}
 	}
 
 	c := &Cursor{
-		bc:       driver.NewBatchCursorFromDocuments(docsBytes),
+		bc:       driver.NewBatchCursorFromDocuments(buf.Bytes()),
 		registry: registry,
 		err:      err,
 	}
@@ -160,13 +167,13 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		ctx = context.Background()
 	}
 	doc, err := c.batch.Next()
-	switch err {
-	case nil:
+	switch {
+	case err == nil:
 		// Consume the next document in the current batch.
 		c.batchLength--
 		c.Current = bson.Raw(doc)
 		return true
-	case io.EOF: // Need to do a getMore
+	case errors.Is(err, io.EOF): // Need to do a getMore
 	default:
 		c.err = err
 		return false
@@ -204,12 +211,12 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		c.batch = c.bc.Batch()
 		c.batchLength = c.batch.DocumentCount()
 		doc, err = c.batch.Next()
-		switch err {
-		case nil:
+		switch {
+		case err == nil:
 			c.batchLength--
 			c.Current = bson.Raw(doc)
 			return true
-		case io.EOF: // Empty batch so we continue
+		case errors.Is(err, io.EOF): // Empty batch so we continue
 		default:
 			c.err = err
 			return false
@@ -255,10 +262,7 @@ func getDecoder(
 	}
 
 	if reg != nil {
-		// TODO:(GODRIVER-2719): Remove error handling.
-		if err := dec.SetRegistry(reg); err != nil {
-			return nil, err
-		}
+		dec.SetRegistry(reg)
 	}
 
 	return dec, nil
