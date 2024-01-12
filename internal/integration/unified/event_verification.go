@@ -61,7 +61,8 @@ type cmapEvent struct {
 	ConnectionCheckedInEvent *struct{} `bson:"connectionCheckedInEvent"`
 
 	PoolClearedEvent *struct {
-		HasServiceID *bool `bson:"hasServiceId"`
+		HasServiceID              *bool `bson:"hasServiceId"`
+		InterruptInUseConnections *bool `bson:"interruptInUseConnections"`
 	} `bson:"poolClearedEvent"`
 }
 
@@ -360,6 +361,10 @@ func verifyCMAPEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				if err := verifyServiceID(*expectServiceID, actual.ServiceID); err != nil {
 					return newEventVerificationError(idx, client, "error verifying serviceID: %v", err)
 				}
+			}
+			if expectInterruption := evt.PoolClearedEvent.InterruptInUseConnections; expectInterruption != nil && *expectInterruption != actual.Interruption {
+				return newEventVerificationError(idx, client, "expected interruptInUseConnections %v, got %v",
+					expectInterruption, actual.Interruption)
 			}
 		default:
 			return newEventVerificationError(idx, client, "no expected event set on cmapEvent instance")
