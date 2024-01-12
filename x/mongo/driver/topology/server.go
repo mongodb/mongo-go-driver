@@ -323,7 +323,7 @@ func (s *Server) Connection(ctx context.Context) (*mnet.Connection, error) {
 		},
 	}
 
-	return mnet.NewConnection(serverConn)
+	return mnet.NewConnection(serverConn), nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
@@ -852,7 +852,7 @@ func (s *Server) check() (description.Server, error) {
 
 		// Wrap conn in a type that implements driver.StreamerConnection.
 		iconn := initConnection{s.conn}
-		heartbeatConn, _ := mnet.NewConnection(iconn)
+		heartbeatConn := mnet.NewConnection(iconn)
 
 		baseOperation := s.createBaseOperation(heartbeatConn)
 		previousDescription := s.Description()

@@ -8,7 +8,6 @@ package mnet
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -99,47 +98,30 @@ type Connection struct {
 // NewConnection creates a new Connection with the provided component. This
 // constructor returns a component that is already a Connection to avoid
 // mis-asserting the composite interfaces.
-func NewConnection(component interface{}) (*Connection, error) {
+func NewConnection(component WireMessageReadWriteCloser) *Connection {
 	if _, ok := component.(*Connection); ok {
-		return component.(*Connection), nil
+		return component.(*Connection)
 	}
 
-	conn := &Connection{}
-	empty := true
+	conn := &Connection{
+		WireMessageReadWriteCloser: component,
+	}
 
 	if describer, ok := component.(Describer); ok {
 		conn.Describer = describer
-
-		empty = false
 	}
 
 	if streamer, ok := component.(Streamer); ok {
 		conn.Streamer = streamer
-
-		empty = false
 	}
 
 	if compressor, ok := component.(Compressor); ok {
 		conn.Compressor = compressor
-
-		empty = false
 	}
 
 	if pinner, ok := component.(Pinner); ok {
 		conn.Pinner = pinner
-
-		empty = false
 	}
 
-	if rwc, ok := component.(WireMessageReadWriteCloser); ok {
-		conn.WireMessageReadWriteCloser = rwc
-
-		empty = false
-	}
-
-	if empty {
-		return nil, fmt.Errorf("unsupported type for Connection: %T", component)
-	}
-
-	return conn, nil
+	return conn
 }

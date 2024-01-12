@@ -226,7 +226,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	iconn := initConnection{c}
 
-	handshakeConn, _ := mnet.NewConnection(iconn)
+	handshakeConn := mnet.NewConnection(iconn)
 
 	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
 	if err == nil {

@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
@@ -82,8 +81,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 					ReadResp: responses,
 				}
 
-				mnetconn, err := mnet.NewConnection(conn)
-				require.NoError(t, err)
+				mnetconn := mnet.NewConnection(conn)
 
 				// Do both parts of the handshake.
 				info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
@@ -170,8 +168,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 					ReadResp: responses,
 				}
 
-				mnetconn, err := mnet.NewConnection(conn)
-				require.NoError(t, err)
+				mnetconn := mnet.NewConnection(conn)
 
 				info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 				assert.Nil(t, err, "GetHandshakeInformation error: %v", err)

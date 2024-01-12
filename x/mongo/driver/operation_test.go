@@ -551,12 +551,11 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("ExecuteExhaust", func(t *testing.T) {
 		t.Run("errors if connection is not streaming", func(t *testing.T) {
-			conn, err := mnet.NewConnection(&mockConnection{
+			conn := mnet.NewConnection(&mockConnection{
 				rStreaming: false,
 			})
-			require.NoError(t, err)
 
-			err = Operation{}.ExecuteExhaust(context.TODO(), conn)
+			err := Operation{}.ExecuteExhaust(context.TODO(), conn)
 			assert.NotNil(t, err, "expected error, got nil")
 		})
 	})
@@ -581,8 +580,7 @@ func TestOperation(t *testing.T) {
 			rCanStream: false,
 		}
 
-		mnetconn, err := mnet.NewConnection(conn)
-		require.NoError(t, err)
+		mnetconn := mnet.NewConnection(conn)
 
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -591,7 +589,7 @@ func TestOperation(t *testing.T) {
 			Database:   "admin",
 			Deployment: SingleConnectionDeployment{C: mnetconn},
 		}
-		err = op.Execute(context.TODO())
+		err := op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
 
 		// The wire message sent to the server should not have exhaustAllowed=true. After execution, the connection
@@ -616,8 +614,7 @@ func TestOperation(t *testing.T) {
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
 	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
-		conn, err := mnet.NewConnection(&mockConnection{})
-		require.NoError(t, err)
+		conn := mnet.NewConnection(&mockConnection{})
 
 		// Create a context that's already timed out.
 		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(893934480, 0))
@@ -632,15 +629,14 @@ func TestOperation(t *testing.T) {
 			},
 		}
 
-		err = op.Execute(ctx)
+		err := op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
 		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
-		conn, err := mnet.NewConnection(&mockConnection{})
-		require.NoError(t, err)
+		conn := mnet.NewConnection(&mockConnection{})
 
 		// Create a context and cancel it immediately.
 		ctx, cancel := context.WithCancel(context.Background())
@@ -655,7 +651,7 @@ func TestOperation(t *testing.T) {
 			},
 		}
 
-		err = op.Execute(ctx)
+		err := op.Execute(ctx)
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context canceled and is therefore not a driver.Error marked with
 		// the TransientTransactionError label.
