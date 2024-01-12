@@ -67,10 +67,7 @@ func getEncoder(
 	reg *bsoncodec.Registry,
 ) (*bson.Encoder, error) {
 	vw := bvwPool.Get(w)
-	enc, err := bson.NewEncoder(vw)
-	if err != nil {
-		return nil, err
-	}
+	enc := bson.NewEncoder(vw)
 
 	if opts != nil {
 		if opts.ErrorOnInlineDuplicates {
@@ -100,10 +97,7 @@ func getEncoder(
 	}
 
 	if reg != nil {
-		// TODO:(GODRIVER-2719): Remove error handling.
-		if err := enc.SetRegistry(reg); err != nil {
-			return nil, err
-		}
+		enc.SetRegistry(reg)
 	}
 
 	return enc, nil
@@ -237,7 +231,7 @@ func marshalAggregatePipeline(
 	registry *bsoncodec.Registry,
 ) (bsoncore.Document, bool, error) {
 	switch t := pipeline.(type) {
-	case bsoncodec.ValueMarshaler:
+	case bson.ValueMarshaler:
 		btype, val, err := t.MarshalBSONValue()
 		if err != nil {
 			return nil, false, err
@@ -355,7 +349,7 @@ func marshalUpdateValue(
 		u.Type = bsontype.EmbeddedDocument
 		u.Data = t
 		return u, documentCheckerFunc(u.Data)
-	case bsoncodec.Marshaler:
+	case bson.Marshaler:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data, err = t.MarshalBSON()
 		if err != nil {
@@ -363,7 +357,7 @@ func marshalUpdateValue(
 		}
 
 		return u, documentCheckerFunc(u.Data)
-	case bsoncodec.ValueMarshaler:
+	case bson.ValueMarshaler:
 		u.Type, u.Data, err = t.MarshalBSONValue()
 		if err != nil {
 			return u, err

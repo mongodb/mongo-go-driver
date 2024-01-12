@@ -26,7 +26,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Uses registry attached to value", func(t *testing.T) {
 			t.Parallel()
 
-			reg := bsoncodec.NewRegistryBuilder().Build()
+			reg := bsoncodec.NewRegistry()
 			val := RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "foobar"), r: reg}
 			var s string
 			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(s)}
@@ -64,7 +64,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			reg := bsoncodec.NewRegistryBuilder().Build()
+			reg := bsoncodec.NewRegistry()
 			var val RawValue
 			var s string
 			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(s)}
@@ -76,7 +76,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns DecodeValue error", func(t *testing.T) {
 			t.Parallel()
 
-			reg := NewRegistryBuilder().Build()
+			reg := NewRegistry()
 			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)}
 			var s string
 			want := fmt.Errorf("cannot decode %v into a string type", bsontype.Double)
@@ -88,7 +88,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Success", func(t *testing.T) {
 			t.Parallel()
 
-			reg := NewRegistryBuilder().Build()
+			reg := NewRegistry()
 			want := float64(3.14159)
 			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, want)}
 			var got float64
@@ -115,7 +115,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			dc := bsoncodec.DecodeContext{Registry: bsoncodec.NewRegistryBuilder().Build()}
+			dc := bsoncodec.DecodeContext{Registry: bsoncodec.NewRegistry()}
 			var val RawValue
 			var s string
 			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(s)}
@@ -127,7 +127,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns DecodeValue error", func(t *testing.T) {
 			t.Parallel()
 
-			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+			dc := bsoncodec.DecodeContext{Registry: NewRegistry()}
 			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)}
 			var s string
 			want := fmt.Errorf("cannot decode %v into a string type", bsontype.Double)
@@ -139,7 +139,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Success", func(t *testing.T) {
 			t.Parallel()
 
-			dc := bsoncodec.DecodeContext{Registry: NewRegistryBuilder().Build()}
+			dc := bsoncodec.DecodeContext{Registry: NewRegistry()}
 			want := float64(3.14159)
 			val := RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, want)}
 			var got float64

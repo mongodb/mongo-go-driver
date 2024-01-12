@@ -47,8 +47,7 @@ func TestEncoderEncode(t *testing.T) {
 			got := make(bsonrw.SliceWriter, 0, 1024)
 			vw, err := bsonrw.NewBSONValueWriter(&got)
 			noerr(t, err)
-			enc, err := NewEncoder(vw)
-			noerr(t, err)
+			enc := NewEncoder(vw)
 			err = enc.Encode(tc.val)
 			noerr(t, err)
 
@@ -105,8 +104,7 @@ func TestEncoderEncode(t *testing.T) {
 					vw, err = bsonrw.NewBSONValueWriter(&b)
 					noerr(t, err)
 				}
-				enc, err := NewEncoder(vw)
-				noerr(t, err)
+				enc := NewEncoder(vw)
 				got := enc.Encode(marshaler)
 				want := tc.wanterr
 				if !compareErrors(got, want) {
@@ -285,8 +283,7 @@ func TestEncoderConfiguration(t *testing.T) {
 			got := new(bytes.Buffer)
 			vw, err := bsonrw.NewBSONValueWriter(got)
 			require.NoError(t, err, "bsonrw.NewBSONValueWriter error")
-			enc, err := NewEncoder(vw)
-			require.NoError(t, err, "NewEncoder error")
+			enc := NewEncoder(vw)
 
 			tc.configure(enc)
 
