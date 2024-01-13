@@ -19,8 +19,6 @@ import (
 
 const (
 	rttAlphaValue             = 0.2
-	minSamples                = 10
-	maxSamples                = 500
 	minRTTSamplesForMovingMin = 2
 	maxRTTSamplesForMovingMin = 10
 )
