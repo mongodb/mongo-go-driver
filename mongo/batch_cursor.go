@@ -25,7 +25,7 @@ type batchCursor interface {
 
 	// Batch will return a DocumentSequence for the current batch of documents. The returned
 	// DocumentSequence is only valid until the next call to Next or Close.
-	Batch() *bsoncore.DocumentSequence
+	Batch() *bsoncore.Iterator
 
 	// Server returns a pointer to the cursor's server.
 	Server() driver.Server

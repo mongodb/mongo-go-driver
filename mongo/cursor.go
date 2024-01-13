@@ -33,7 +33,7 @@ type Cursor struct {
 	Current bson.Raw
 
 	bc            batchCursor
-	batch         *bsoncore.DocumentSequence
+	batch         *bsoncore.Iterator
 	batchLength   int
 	bsonOpts      *options.BSONOptions
 	registry      *bsoncodec.Registry
@@ -72,9 +72,10 @@ func newCursorWithSession(
 		c.closeImplicitSession()
 	}
 
-	// Initialize just the batchLength here so RemainingBatchLength will return an accurate result. The actual batch
-	// will be pulled up by the first Next/TryNext call.
-	c.batchLength = c.bc.Batch().DocumentCount()
+	// Initialize just the batchLength here so RemainingBatchLength will return an
+	// accurate result. The actual batch will be pulled up by the first
+	// Next/TryNext call.
+	c.batchLength = c.bc.Batch().Count()
 	return c, nil
 }
 
@@ -91,10 +92,11 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 		registry = bson.DefaultRegistry
 	}
 
-	// Convert documents slice to a sequence-style byte array.
 	buf := new(bytes.Buffer)
 	enc := new(bson.Encoder)
-	for _, doc := range documents {
+
+	values := make([]bsoncore.Value, len(documents))
+	for i, doc := range documents {
 		switch t := doc.(type) {
 		case nil:
 			return nil, ErrNilDocument
@@ -102,20 +104,32 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 			// Slight optimization so we'll just use MarshalBSON and not go through the codec machinery.
 			doc = bson.Raw(t)
 		}
+
 		vw, err := bsonrw.NewBSONValueWriter(buf)
 		if err != nil {
 			return nil, err
 		}
+
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
-		err = enc.Encode(doc)
-		if err != nil {
+
+		if err = enc.Encode(doc); err != nil {
 			return nil, err
 		}
+
+		dup := make([]byte, len(buf.Bytes()))
+		copy(dup, buf.Bytes())
+
+		values[i] = bsoncore.Value{
+			Type: bson.TypeEmbeddedDocument,
+			Data: dup,
+		}
+
+		buf.Reset()
 	}
 
 	c := &Cursor{
-		bc:       driver.NewBatchCursorFromDocuments(buf.Bytes()),
+		bc:       driver.NewBatchCursorFromList(bsoncore.BuildArray(nil, values...)),
 		registry: registry,
 		err:      err,
 	}
@@ -123,7 +137,8 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	// Initialize batch and batchLength here. The underlying batch cursor will be preloaded with the
 	// provided contents, and thus already has a batch before calls to Next/TryNext.
 	c.batch = c.bc.Batch()
-	c.batchLength = c.bc.Batch().DocumentCount()
+	c.batchLength = c.bc.Batch().Count()
+
 	return c, nil
 }
 
@@ -166,12 +181,12 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	doc, err := c.batch.Next()
+	val, err := c.batch.Next()
 	switch {
 	case err == nil:
 		// Consume the next document in the current batch.
 		c.batchLength--
-		c.Current = bson.Raw(doc)
+		c.Current = bson.Raw(val.Data)
 		return true
 	case errors.Is(err, io.EOF): // Need to do a getMore
 	default:
@@ -209,12 +224,12 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 
 		// Use the new batch to update the batch and batchLength fields. Consume the first document in the batch.
 		c.batch = c.bc.Batch()
-		c.batchLength = c.batch.DocumentCount()
-		doc, err = c.batch.Next()
+		c.batchLength = c.batch.Count()
+		val, err = c.batch.Next()
 		switch {
 		case err == nil:
 			c.batchLength--
-			c.Current = bson.Raw(doc)
+			c.Current = bson.Raw(val.Data)
 			return true
 		case errors.Is(err, io.EOF): // Empty batch so we continue
 		default:
@@ -348,7 +363,7 @@ func (c *Cursor) RemainingBatchLength() int {
 
 // addFromBatch adds all documents from batch to sliceVal starting at the given index. It returns the new slice value,
 // the next empty index in the slice, and an error if one occurs.
-func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, batch *bsoncore.DocumentSequence,
+func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, batch *bsoncore.Iterator,
 	index int) (reflect.Value, int, error) {
 
 	docs, err := batch.Documents()

@@ -30,7 +30,7 @@ type SentMessage struct {
 	// The documents sent for an insert, update, or delete command. This is separated into its own field because it's
 	// sent as part of the command document in OP_QUERY and as a document sequence outside the command document in
 	// OP_MSG.
-	DocumentSequence *bsoncore.DocumentSequence
+	Batch *bsoncore.Iterator
 }
 
 type sentMsgParseFn func([]byte) (*SentMessage, error)
@@ -87,26 +87,25 @@ func parseOpQuery(wm []byte) (*SentMessage, error) {
 
 	// For OP_QUERY, inserts, updates, and deletes are sent as a BSON array of documents inside the main command
 	// document. Pull these sequences out into an ArrayStyle DocumentSequence.
-	var docSequence *bsoncore.DocumentSequence
+	var batch *bsoncore.Iterator
 	cmdElems, _ := commandDoc.Elements()
 	for _, elem := range cmdElems {
 		switch elem.Key() {
 		case "documents", "updates", "deletes":
-			docSequence = &bsoncore.DocumentSequence{
-				Style: bsoncore.ArrayStyle,
-				Data:  elem.Value().Array(),
+			batch = &bsoncore.Iterator{
+				List: elem.Value().Array(),
 			}
 		}
-		if docSequence != nil {
+		if batch != nil {
 			// There can only be one of these arrays in a well-formed command, so we exit the loop once one is found.
 			break
 		}
 	}
 
 	sm := &SentMessage{
-		Command:          commandDoc,
-		ReadPreference:   rpDoc,
-		DocumentSequence: docSequence,
+		Command:        commandDoc,
+		ReadPreference: rpDoc,
+		Batch:          batch,
 	}
 	return sm, nil
 }
@@ -156,7 +155,7 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 		rpDoc = rpVal.Document()
 	}
 
-	var docSequence *bsoncore.DocumentSequence
+	var batch *bsoncore.Iterator
 	if len(wm) != 0 {
 		// If there are bytes remaining in the wire message, they must correspond to a DocumentSequence section.
 		if wm, err = assertMsgSectionType(wm, wiremessage.DocumentSequence); err != nil {
@@ -169,16 +168,15 @@ func parseSentOpMsg(wm []byte) (*SentMessage, error) {
 			return nil, errors.New("failed to read document sequence")
 		}
 
-		docSequence = &bsoncore.DocumentSequence{
-			Style: bsoncore.SequenceStyle,
-			Data:  data,
+		batch = &bsoncore.Iterator{
+			List: data,
 		}
 	}
 
 	sm := &SentMessage{
-		Command:          commandDoc,
-		ReadPreference:   rpDoc,
-		DocumentSequence: docSequence,
+		Command:        commandDoc,
+		ReadPreference: rpDoc,
+		Batch:          batch,
 	}
 	return sm, nil
 }

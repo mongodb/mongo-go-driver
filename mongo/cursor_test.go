@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,17 +22,17 @@ import (
 )
 
 type testBatchCursor struct {
-	batches []*bsoncore.DocumentSequence
-	batch   *bsoncore.DocumentSequence
+	batches []*bsoncore.Iterator
+	batch   *bsoncore.Iterator
 	closed  bool
 }
 
 func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
-	batches := make([]*bsoncore.DocumentSequence, 0, numBatches)
+	batches := make([]*bsoncore.Iterator, 0, numBatches)
 
 	counter := 0
 	for batch := 0; batch < numBatches; batch++ {
-		var docSequence []byte
+		var values []bsoncore.Value
 
 		for doc := 0; doc < batchSize; doc++ {
 			var elem []byte
@@ -40,12 +41,18 @@ func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 
 			var doc []byte
 			doc = bsoncore.BuildDocumentFromElements(doc, elem)
-			docSequence = append(docSequence, doc...)
+			val := bsoncore.Value{
+				Type: bsontype.EmbeddedDocument,
+				Data: doc,
+			}
+
+			values = append(values, val)
 		}
 
-		batches = append(batches, &bsoncore.DocumentSequence{
-			Style: bsoncore.SequenceStyle,
-			Data:  docSequence,
+		arr := bsoncore.BuildArray(nil, values...)
+
+		batches = append(batches, &bsoncore.Iterator{
+			List: arr,
 		})
 	}
 
@@ -72,7 +79,7 @@ func (tbc *testBatchCursor) Next(context.Context) bool {
 	return true
 }
 
-func (tbc *testBatchCursor) Batch() *bsoncore.DocumentSequence {
+func (tbc *testBatchCursor) Batch() *bsoncore.Iterator {
 	return tbc.batch
 }
 
@@ -261,4 +268,23 @@ func TestNewCursorFromDocuments(t *testing.T) {
 		assert.Equal(t, mockErr, cur.Err(), "expected Cursor error %v, got %v",
 			mockErr, cur.Err())
 	})
+}
+
+func BenchmarkNewCursorFromDocuments(b *testing.B) {
+	// Prepare sample data
+	documents := []interface{}{
+		bson.D{{"_id", 0}, {"foo", "bar"}},
+		bson.D{{"_id", 1}, {"baz", "qux"}},
+		bson.D{{"_id", 2}, {"quux", "quuz"}},
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := NewCursorFromDocuments(documents, nil, nil)
+		if err != nil {
+			b.Fatalf("Error creating cursor: %v", err)
+		}
+	}
 }
