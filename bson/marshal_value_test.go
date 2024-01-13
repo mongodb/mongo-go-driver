@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
@@ -31,83 +30,6 @@ func TestMarshalValue(t *testing.T) {
 
 				valueType, valueBytes, err := MarshalValue(tc.val)
 				assert.Nil(t, err, "MarshalValue error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueAppend", func(t *testing.T) {
-		t.Parallel()
-
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueAppend(nil, tc.val)
-				assert.Nil(t, err, "MarshalValueAppend error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueWithRegistry", func(t *testing.T) {
-		t.Parallel()
-
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueWithRegistry(DefaultRegistry, tc.val)
-				assert.Nil(t, err, "MarshalValueWithRegistry error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueWithContext", func(t *testing.T) {
-		t.Parallel()
-
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueWithContext(ec, tc.val)
-				assert.Nil(t, err, "MarshalValueWithContext error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueAppendWithRegistry", func(t *testing.T) {
-		t.Parallel()
-
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueAppendWithRegistry(DefaultRegistry, nil, tc.val)
-				assert.Nil(t, err, "MarshalValueAppendWithRegistry error: %v", err)
-				compareMarshalValueResults(t, tc, valueType, valueBytes)
-			})
-		}
-	})
-	t.Run("MarshalValueAppendWithContext", func(t *testing.T) {
-		t.Parallel()
-
-		ec := bsoncodec.EncodeContext{Registry: DefaultRegistry}
-		for _, tc := range marshalValueTestCases {
-			tc := tc
-
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				valueType, valueBytes, err := MarshalValueAppendWithContext(ec, nil, tc.val)
-				assert.Nil(t, err, "MarshalValueWithContext error: %v", err)
 				compareMarshalValueResults(t, tc, valueType, valueBytes)
 			})
 		}

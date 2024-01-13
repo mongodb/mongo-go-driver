@@ -7,6 +7,7 @@
 package bsoncodec_test
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"reflect"
@@ -66,11 +67,18 @@ func ExampleRegistry_customEncoder() {
 
 	// Marshal the document as BSON. Expect that the int field is encoded to the
 	// same value and that the negatedInt field is encoded as the negated value.
-	b, err := bson.MarshalWithRegistry(reg, doc)
+	buf := new(bytes.Buffer)
+	vw, err := bsonrw.NewBSONValueWriter(buf)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(bson.Raw(b).String())
+	enc := bson.NewEncoder(vw)
+	enc.SetRegistry(reg)
+	err = enc.Encode(doc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(bson.Raw(buf.Bytes()).String())
 	// Output: {"int": {"$numberInt":"1"},"negatedint": {"$numberInt":"-1"}}
 }
 
@@ -200,11 +208,18 @@ func ExampleRegistry_RegisterKindEncoder() {
 
 	// Marshal the document as BSON. Expect that all fields are encoded as BSON
 	// int64 (represented as "$numberLong" when encoded as Extended JSON).
-	b, err := bson.MarshalWithRegistry(reg, doc)
+	buf := new(bytes.Buffer)
+	vw, err := bsonrw.NewBSONValueWriter(buf)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(bson.Raw(b).String())
+	enc := bson.NewEncoder(vw)
+	enc.SetRegistry(reg)
+	err = enc.Encode(doc)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(bson.Raw(buf.Bytes()).String())
 	// Output: {"myint": {"$numberLong":"1"},"int32": {"$numberLong":"1"},"int64": {"$numberLong":"1"}}
 }
 
