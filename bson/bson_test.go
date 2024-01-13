@@ -18,6 +18,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -180,10 +181,17 @@ func TestMapCodec(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				mapCodec := bsoncodec.NewMapCodec(tc.opts)
-				mapRegistry := NewRegistryBuilder().RegisterDefaultEncoder(reflect.Map, mapCodec).Build()
-				val, err := MarshalWithRegistry(mapRegistry, mapObj)
-				assert.Nil(t, err, "Marshal error: %v", err)
-				assert.True(t, strings.Contains(string(val), tc.key), "expected result to contain %v, got: %v", tc.key, string(val))
+				mapRegistry := NewRegistry()
+				mapRegistry.RegisterKindEncoder(reflect.Map, mapCodec)
+				buf := new(bytes.Buffer)
+				vw, err := bsonrw.NewBSONValueWriter(buf)
+				assert.Nil(t, err)
+				enc := NewEncoder(vw)
+				enc.SetRegistry(mapRegistry)
+				err = enc.Encode(mapObj)
+				assert.Nil(t, err, "Encode error: %v", err)
+				str := buf.String()
+				assert.True(t, strings.Contains(str, tc.key), "expected result to contain %v, got: %v", tc.key, str)
 			})
 		}
 	})

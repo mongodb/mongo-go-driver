@@ -58,24 +58,6 @@ func NewDecoder(vr bsonrw.ValueReader) (*Decoder, error) {
 	}, nil
 }
 
-// NewDecoderWithContext returns a new decoder that uses DecodeContext dc to read from vr.
-//
-// Deprecated: Use [NewDecoder] and use the Decoder configuration methods set the desired unmarshal
-// behavior instead.
-func NewDecoderWithContext(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader) (*Decoder, error) {
-	if dc.Registry == nil {
-		dc.Registry = DefaultRegistry
-	}
-	if vr == nil {
-		return nil, errors.New("cannot create a new Decoder with a nil ValueReader")
-	}
-
-	return &Decoder{
-		dc: dc,
-		vr: vr,
-	}, nil
-}
-
 // Decode reads the next BSON document from the stream and decodes it into the
 // value pointed to by val.
 //
@@ -136,26 +118,13 @@ func (d *Decoder) Decode(val interface{}) error {
 
 // Reset will reset the state of the decoder, using the same *DecodeContext used in
 // the original construction but using vr for reading.
-func (d *Decoder) Reset(vr bsonrw.ValueReader) error {
-	// TODO:(GODRIVER-2719): Remove error return value.
+func (d *Decoder) Reset(vr bsonrw.ValueReader) {
 	d.vr = vr
-	return nil
 }
 
 // SetRegistry replaces the current registry of the decoder with r.
-func (d *Decoder) SetRegistry(r *bsoncodec.Registry) error {
-	// TODO:(GODRIVER-2719): Remove error return value.
+func (d *Decoder) SetRegistry(r *bsoncodec.Registry) {
 	d.dc.Registry = r
-	return nil
-}
-
-// SetContext replaces the current registry of the decoder with dc.
-//
-// Deprecated: Use the Decoder configuration methods to set the desired unmarshal behavior instead.
-func (d *Decoder) SetContext(dc bsoncodec.DecodeContext) error {
-	// TODO:(GODRIVER-2719): Remove error return value.
-	d.dc = dc
-	return nil
 }
 
 // DefaultDocumentM causes the Decoder to always unmarshal documents into the primitive.M type. This
