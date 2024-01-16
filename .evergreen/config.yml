@@ -2368,7 +2368,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
       - func: handle-test-artifacts
       - func: cleanup
@@ -2402,7 +2401,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh serverless_next
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
       - func: handle-test-artifacts
       - func: cleanup
