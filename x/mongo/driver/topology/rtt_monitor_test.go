@@ -120,6 +120,29 @@ func TestRTTMonitor(t *testing.T) {
 			rtt.Min())
 	})
 
+	t.Run("can connect and disconnect repeatedly", func(t *testing.T) {
+		t.Parallel()
+
+		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
+			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
+		})
+		rtt := newRTTMonitor(&rttConfig{
+			interval: 10 * time.Second,
+			createConnectionFn: func() *connection {
+				return newConnection("", WithDialer(func(Dialer) Dialer {
+					return dialer
+				}))
+			},
+			createOperationFn: func(conn driver.Connection) *operation.Hello {
+				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
+			},
+		})
+		for i := 0; i < 100; i++ {
+			rtt.connect()
+			rtt.disconnect()
+		}
+	})
+
 	t.Run("works after reset", func(t *testing.T) {
 		t.Parallel()
 
