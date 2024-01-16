@@ -188,7 +188,7 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		}
 		return nil
 	case "wait":
-		waitMS, err := convertValueToMilliseconds(operation.Arguments.Lookup("ms"))
+		waitMS, err := convertValueToMilliseconds(args.Lookup("ms"))
 		if err != nil {
 			return err
 		}

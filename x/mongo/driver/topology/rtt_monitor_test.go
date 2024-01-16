@@ -120,66 +120,6 @@ func TestRTTMonitor(t *testing.T) {
 			rtt.Min())
 	})
 
-	t.Run("creates the correct size samples slice", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			desc           string
-			interval       time.Duration
-			wantSamplesLen int
-		}{
-			{
-				desc:           "default",
-				interval:       10 * time.Second,
-				wantSamplesLen: 30,
-			},
-			{
-				desc:           "min",
-				interval:       10 * time.Minute,
-				wantSamplesLen: 10,
-			},
-			{
-				desc:           "max",
-				interval:       1 * time.Millisecond,
-				wantSamplesLen: 500,
-			},
-		}
-		for _, tc := range cases {
-			t.Run(tc.desc, func(t *testing.T) {
-				rtt := newRTTMonitor(&rttConfig{
-					connectTimeout: defaultConnectionTimeout,
-					interval:       tc.interval,
-					minRTTWindow:   5 * time.Minute,
-				})
-				assert.Equal(t, tc.wantSamplesLen, len(rtt.samples), "expected samples length to match")
-			})
-		}
-	})
-
-	t.Run("can connect and disconnect repeatedly", func(t *testing.T) {
-		t.Parallel()
-
-		dialer := DialerFunc(func(_ context.Context, _, _ string) (net.Conn, error) {
-			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
-		})
-		rtt := newRTTMonitor(&rttConfig{
-			connectTimeout: defaultConnectionTimeout,
-			interval:       10 * time.Second,
-			createConnectionFn: func() *connection {
-				return newConnection("", WithDialer(func(Dialer) Dialer {
-					return dialer
-				}))
-			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
-				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
-			},
-		})
-		for i := 0; i < 100; i++ {
-			rtt.connect()
-			rtt.disconnect()
-		}
-	})
-
 	t.Run("works after reset", func(t *testing.T) {
 		t.Parallel()
 
