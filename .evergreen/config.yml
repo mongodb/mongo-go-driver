@@ -97,6 +97,12 @@ functions:
           go version
           go env
 
+          # Install libmongocrypt.
+          bash etc/install-libmongocrypt.sh
+          if [ "Windows_NT" = "$OS" ]; then
+            export PATH=$PATH:/cygdrive/c/libmongocrypt/bin
+          fi
+
           cat <<EOT > expansion.yml
           CURRENT_VERSION: "$CURRENT_VERSION"
           DRIVERS_TOOLS: "$DRIVERS_TOOLS"
