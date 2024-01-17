@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
 
@@ -347,26 +347,26 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
-	uri, err := url.Parse(t.cfg.URI)
+	p := connstring.Parser{}
+	cs, err := p.Parse(t.cfg.URI)
 	if err != nil {
 		return err
 	}
-	parsedHosts := strings.Split(uri.Host, ",")
 	if mustLogTopologyMessage(t, logger.LevelInfo) {
-		logTopologyThirdPartyUsage(t, parsedHosts)
+		logTopologyThirdPartyUsage(t, cs.Hosts)
 	}
 	if t.pollingRequired {
 		// sanity check before passing the hostname to resolver
-		if len(parsedHosts) != 1 {
+		if len(cs.Hosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
-		_, _, err = net.SplitHostPort(uri.Host)
+		_, _, err = net.SplitHostPort(cs.Hosts[0])
 		if err == nil {
 			// we were able to successfully extract a port from the host,
 			// but should not be able to when using SRV
 			return fmt.Errorf("URI with srv must not include a port number")
 		}
-		go t.pollSRVRecords(uri.Host)
+		go t.pollSRVRecords(cs.Hosts[0])
 		t.pollingwg.Add(1)
 	}
 
