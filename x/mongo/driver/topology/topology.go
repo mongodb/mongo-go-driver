@@ -347,8 +347,8 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
-	p := connstring.Parser{}
-	cs, err := p.Parse(t.cfg.URI)
+	// Use nil DNSResolver to skip SRV lookup.
+	cs, err := (&connstring.Parser{}).Parse(t.cfg.URI)
 	if err != nil {
 		return err
 	}

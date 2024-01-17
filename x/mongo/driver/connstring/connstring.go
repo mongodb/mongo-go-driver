@@ -871,10 +871,12 @@ const (
 	SchemeMongoDBSRV = "mongodb+srv"
 )
 
+// Parser represents a mongo URI parser which contains a DNS resolver for SRV lookup.
 type Parser struct {
 	DNSResolver *dns.Resolver
 }
 
+// Parse parses the provided URI into a ConnString object.
 func (p *Parser) Parse(original string) (ConnString, error) {
 	var connStr ConnString
 	connStr.Original = original
