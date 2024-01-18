@@ -152,9 +152,7 @@ func New(cfg *Config) (*Topology, error) {
 		return t.apply(context.Background(), desc)
 	}
 
-	if t.cfg.URI != "" {
-		t.pollingRequired = strings.HasPrefix(t.cfg.URI, "mongodb+srv://") && !t.cfg.LoadBalanced
-	}
+	t.pollingRequired = (t.cfg.Scheme == connstring.SchemeMongoDBSRV) && !t.cfg.LoadBalanced
 
 	t.publishTopologyOpeningEvent()
 
@@ -347,26 +345,21 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
-	// Use nil DNSResolver to skip SRV lookup.
-	cs, err := (&connstring.Parser{}).Parse(t.cfg.URI)
-	if err != nil {
-		return err
-	}
 	if mustLogTopologyMessage(t, logger.LevelInfo) {
-		logTopologyThirdPartyUsage(t, cs.Hosts)
+		logTopologyThirdPartyUsage(t, t.cfg.Hosts)
 	}
 	if t.pollingRequired {
 		// sanity check before passing the hostname to resolver
-		if len(cs.Hosts) != 1 {
+		if len(t.cfg.Hosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
-		_, _, err = net.SplitHostPort(cs.Hosts[0])
+		_, _, err = net.SplitHostPort(t.cfg.Hosts[0])
 		if err == nil {
 			// we were able to successfully extract a port from the host,
 			// but should not be able to when using SRV
 			return fmt.Errorf("URI with srv must not include a port number")
 		}
-		go t.pollSRVRecords(cs.Hosts[0])
+		go t.pollSRVRecords(t.cfg.Hosts[0])
 		t.pollingwg.Add(1)
 	}
 

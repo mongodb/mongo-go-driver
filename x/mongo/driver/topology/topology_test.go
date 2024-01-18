@@ -656,9 +656,17 @@ func TestTopologyConstruction(t *testing.T) {
 		testCases := []struct {
 			name            string
 			uri             string
+			scheme          string
+			hosts           []string
 			pollingRequired bool
 		}{
-			{"normal", "mongodb://localhost:27017", false},
+			{
+				name:            "normal",
+				uri:             "mongodb://localhost:27017",
+				scheme:          "mongodb",
+				hosts:           []string{"localhost:27017"},
+				pollingRequired: false,
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -668,7 +676,8 @@ func TestTopologyConstruction(t *testing.T) {
 				topo, err := New(cfg)
 				assert.Nil(t, err, "topology.New error: %v", err)
 
-				assert.Equal(t, tc.uri, topo.cfg.URI, "expected topology URI to be %v, got %v", tc.uri, topo.cfg.URI)
+				assert.Equal(t, tc.scheme, topo.cfg.Scheme, "expected topology scheme to be %v, got %v", tc.scheme, topo.cfg.Scheme)
+				assert.Equal(t, tc.hosts, topo.cfg.Hosts, "expected topology hosts to be %v, got %v", tc.hosts, topo.cfg.Hosts)
 				assert.Equal(t, tc.pollingRequired, topo.pollingRequired,
 					"expected topo.pollingRequired to be %v, got %v", tc.pollingRequired, topo.pollingRequired)
 			})

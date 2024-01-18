@@ -89,8 +89,8 @@ func ParseAndValidate(s string) (ConnString, error) {
 // but does not check that all values are valid. Use `ConnString.Validate()`
 // to run the validation checks separately.
 func Parse(s string) (ConnString, error) {
-	p := Parser{DNSResolver: dns.DefaultResolver}
-	connStr, err := p.Parse(s)
+	p := parser{dnsResolver: dns.DefaultResolver}
+	connStr, err := p.parse(s)
 	if err != nil {
 		err = fmt.Errorf("error parsing uri: %w", err)
 	}
@@ -133,6 +133,7 @@ type ConnString struct {
 	MaxConnectingSet                   bool
 	Password                           string
 	PasswordSet                        bool
+	RawHosts                           []string
 	ReadConcernLevel                   string
 	ReadPreference                     string
 	ReadPreferenceTagSets              []map[string]string
@@ -305,38 +306,6 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 	default:
 		return fmt.Errorf("invalid auth mechanism")
 	}
-	return nil
-}
-
-func (u *ConnString) addHost(host string) error {
-	if host == "" {
-		return nil
-	}
-	host, err := url.QueryUnescape(host)
-	if err != nil {
-		return fmt.Errorf("invalid host %q: %w", host, err)
-	}
-
-	_, port, err := net.SplitHostPort(host)
-	// this is unfortunate that SplitHostPort actually requires
-	// a port to exist.
-	if err != nil {
-		var addrError *net.AddrError
-		if !errors.As(err, &addrError) || addrError.Err != "missing port in address" {
-			return err
-		}
-	}
-
-	if port != "" {
-		d, err := strconv.Atoi(port)
-		if err != nil {
-			return fmt.Errorf("port must be an integer: %w", err)
-		}
-		if d <= 0 || d >= 65536 {
-			return fmt.Errorf("port must be in the range [1, 65535]")
-		}
-	}
-	u.Hosts = append(u.Hosts, host)
 	return nil
 }
 
@@ -841,6 +810,37 @@ func (u ConnString) validateSSL() error {
 	return nil
 }
 
+func sanitizeHost(host string) (string, error) {
+	if host == "" {
+		return host, nil
+	}
+	host, err := url.QueryUnescape(host)
+	if err != nil {
+		return host, fmt.Errorf("invalid host %q: %w", host, err)
+	}
+
+	_, port, err := net.SplitHostPort(host)
+	// this is unfortunate that SplitHostPort actually requires
+	// a port to exist.
+	if err != nil {
+		var addrError *net.AddrError
+		if !errors.As(err, &addrError) || addrError.Err != "missing port in address" {
+			return host, err
+		}
+	}
+
+	if port != "" {
+		d, err := strconv.Atoi(port)
+		if err != nil {
+			return host, fmt.Errorf("port must be an integer: %w", err)
+		}
+		if d <= 0 || d >= 65536 {
+			return host, fmt.Errorf("port must be in the range [1, 65535]")
+		}
+	}
+	return host, nil
+}
+
 // ConnectMode informs the driver on how to connect
 // to the server.
 type ConnectMode uint8
@@ -871,13 +871,11 @@ const (
 	SchemeMongoDBSRV = "mongodb+srv"
 )
 
-// Parser represents a mongo URI parser which contains a DNS resolver for SRV lookup.
-type Parser struct {
-	DNSResolver *dns.Resolver
+type parser struct {
+	dnsResolver *dns.Resolver
 }
 
-// Parse parses the provided URI into a ConnString object.
-func (p *Parser) Parse(original string) (ConnString, error) {
+func (p *parser) parse(original string) (ConnString, error) {
 	var connStr ConnString
 	connStr.Original = original
 	uri := original
@@ -943,7 +941,16 @@ func (p *Parser) Parse(original string) (ConnString, error) {
 		hosts = uri[:idx]
 	}
 
-	parsedHosts := strings.Split(hosts, ",")
+	for _, host := range strings.Split(hosts, ",") {
+		host, err = sanitizeHost(host)
+		if err != nil {
+			return connStr, fmt.Errorf("invalid host %q: %w", host, err)
+		}
+		if host != "" {
+			connStr.RawHosts = append(connStr.RawHosts, host)
+		}
+	}
+	connStr.Hosts = connStr.RawHosts
 	uri = uri[len(hosts):]
 	extractedDatabase, err := extractDatabaseFromURI(uri)
 	if err != nil {
@@ -961,8 +968,8 @@ func (p *Parser) Parse(original string) (ConnString, error) {
 
 	// grab connection arguments from TXT record and enable SSL if "mongodb+srv://"
 	var connectionArgsFromTXT []string
-	if connStr.Scheme == SchemeMongoDBSRV && p.DNSResolver != nil {
-		connectionArgsFromTXT, err = p.DNSResolver.GetConnectionArgsFromTXT(hosts)
+	if connStr.Scheme == SchemeMongoDBSRV && p.dnsResolver != nil {
+		connectionArgsFromTXT, err = p.dnsResolver.GetConnectionArgsFromTXT(hosts)
 		if err != nil {
 			return connStr, err
 		}
@@ -983,8 +990,8 @@ func (p *Parser) Parse(original string) (ConnString, error) {
 	}
 
 	// do SRV lookup if "mongodb+srv://"
-	if connStr.Scheme == SchemeMongoDBSRV && p.DNSResolver != nil {
-		parsedHosts, err = p.DNSResolver.ParseHosts(hosts, connStr.SRVServiceName, true)
+	if connStr.Scheme == SchemeMongoDBSRV && p.dnsResolver != nil {
+		parsedHosts, err := p.dnsResolver.ParseHosts(hosts, connStr.SRVServiceName, true)
 		if err != nil {
 			return connStr, err
 		}
@@ -997,13 +1004,18 @@ func (p *Parser) Parse(original string) (ConnString, error) {
 			})
 			parsedHosts = parsedHosts[:connStr.SRVMaxHosts]
 		}
-	}
 
-	for _, host := range parsedHosts {
-		err = connStr.addHost(host)
-		if err != nil {
-			return connStr, fmt.Errorf("invalid host %q: %w", host, err)
+		var hosts []string
+		for _, host := range parsedHosts {
+			host, err = sanitizeHost(host)
+			if err != nil {
+				return connStr, fmt.Errorf("invalid host %q: %w", host, err)
+			}
+			if host != "" {
+				hosts = append(hosts, host)
+			}
 		}
+		connStr.Hosts = hosts
 	}
 	if len(connStr.Hosts) == 0 {
 		return connStr, fmt.Errorf("must have at least 1 host")

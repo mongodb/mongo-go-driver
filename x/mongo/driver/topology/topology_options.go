@@ -31,7 +31,8 @@ type Config struct {
 	ReplicaSetName         string
 	SeedList               []string
 	ServerOpts             []ServerOption
-	URI                    string
+	Scheme                 string
+	Hosts                  []string
 	ServerSelectionTimeout time.Duration
 	ServerMonitor          *event.ServerMonitor
 	SRVMaxHosts            int
@@ -101,7 +102,8 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		}))
 	}
 
-	cfgp.URI = co.GetURI()
+	cfgp.Hosts = co.GetRawHosts()
+	cfgp.Scheme = co.GetScheme()
 
 	if co.SRVServiceName != nil {
 		cfgp.SRVServiceName = *co.SRVServiceName

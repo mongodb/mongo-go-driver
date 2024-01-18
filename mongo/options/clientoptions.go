@@ -237,7 +237,6 @@ type ClientOptions struct {
 	ZstdLevel                *int
 
 	err error
-	uri string
 	cs  *connstring.ConnString
 
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
@@ -329,10 +328,29 @@ func (c *ClientOptions) validate() error {
 	return nil
 }
 
+// GetRawHosts returns the raw hosts. If ApplyURI was not called during construction, this returns a nil.
+func (c *ClientOptions) GetRawHosts() []string {
+	if c.cs == nil {
+		return nil
+	}
+	return c.cs.RawHosts
+}
+
+// GetScheme returns the scheme. If ApplyURI was not called during construction, this returns "".
+func (c *ClientOptions) GetScheme() string {
+	if c.cs == nil {
+		return ""
+	}
+	return c.cs.Scheme
+}
+
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
 // construction, this returns "".
 func (c *ClientOptions) GetURI() string {
-	return c.uri
+	if c.cs == nil {
+		return ""
+	}
+	return c.cs.Original
 }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
@@ -354,7 +372,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		return c
 	}
 
-	c.uri = uri
 	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
@@ -1122,9 +1139,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.err != nil {
 			c.err = opt.err
-		}
-		if opt.uri != "" {
-			c.uri = opt.uri
 		}
 		if opt.cs != nil {
 			c.cs = opt.cs
