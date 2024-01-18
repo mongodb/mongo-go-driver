@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs
+package mongo
 
 import (
 	"bytes"
@@ -17,7 +17,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -27,20 +26,21 @@ import (
 
 // TODO: add sessions options
 
-// DefaultChunkSize is the default size of each file chunk.
-const DefaultChunkSize int32 = 255 * 1024 // 255 KiB
+// DefaultGridFSChunkSize is the default size of each file chunk.
+const DefaultGridFSChunkSize int32 = 255 * 1024 // 255 KiB
 
 // ErrFileNotFound occurs if a user asks to download a file with a file ID that isn't found in the files collection.
 var ErrFileNotFound = errors.New("file with given parameters not found")
 
-// ErrMissingChunkSize occurs when downloading a file if the files collection document is missing the "chunkSize" field.
-var ErrMissingChunkSize = errors.New("files collection document does not contain a 'chunkSize' field")
+// ErrMissingGridFSChunkSize occurs when downloading a file if the files
+// collection document is missing the "chunkSize" field.
+var ErrMissingGridFSChunkSize = errors.New("files collection document does not contain a 'chunkSize' field")
 
-// Bucket represents a GridFS bucket.
-type Bucket struct {
-	db         *mongo.Database
-	chunksColl *mongo.Collection // collection to store file chunks
-	filesColl  *mongo.Collection // collection to store file metadata
+// GridFSBucket represents a GridFS bucket.
+type GridFSBucket struct {
+	db         *Database
+	chunksColl *Collection // collection to store file chunks
+	filesColl  *Collection // collection to store file metadata
 
 	name      string
 	chunkSize int32
@@ -53,68 +53,10 @@ type Bucket struct {
 	writeBuf       []byte
 }
 
-// Upload contains options to upload a file to a bucket.
-type Upload struct {
+// upload contains options to upload a file to a bucket.
+type upload struct {
 	chunkSize int32
 	metadata  bson.D
-}
-
-// NewBucket creates a GridFS bucket.
-func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, error) {
-	b := &Bucket{
-		name:      "fs",
-		chunkSize: DefaultChunkSize,
-		db:        db,
-		wc:        db.WriteConcern(),
-		rc:        db.ReadConcern(),
-		rp:        db.ReadPreference(),
-	}
-
-	bo := options.GridFSBucket()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Name != nil {
-			bo.Name = opt.Name
-		}
-		if opt.ChunkSizeBytes != nil {
-			bo.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.WriteConcern != nil {
-			bo.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadConcern != nil {
-			bo.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			bo.ReadPreference = opt.ReadPreference
-		}
-	}
-	if bo.Name != nil {
-		b.name = *bo.Name
-	}
-	if bo.ChunkSizeBytes != nil {
-		b.chunkSize = *bo.ChunkSizeBytes
-	}
-	if bo.WriteConcern != nil {
-		b.wc = bo.WriteConcern
-	}
-	if bo.ReadConcern != nil {
-		b.rc = bo.ReadConcern
-	}
-	if bo.ReadPreference != nil {
-		b.rp = bo.ReadPreference
-	}
-
-	var collOpts = options.Collection().SetWriteConcern(b.wc).SetReadConcern(b.rc).SetReadPreference(b.rp)
-
-	b.chunksColl = db.Collection(b.name+".chunks", collOpts)
-	b.filesColl = db.Collection(b.name+".files", collOpts)
-	b.readBuf = make([]byte, b.chunkSize)
-	b.writeBuf = make([]byte, b.chunkSize)
-
-	return b, nil
 }
 
 // OpenUploadStream creates a file ID new upload stream for a file given the
@@ -122,11 +64,11 @@ func NewBucket(db *mongo.Database, opts ...*options.BucketOptions) (*Bucket, err
 //
 // The context provided to this method controls the entire lifetime of an
 // upload stream io.Writer.
-func (b *Bucket) OpenUploadStream(
+func (b *GridFSBucket) OpenUploadStream(
 	ctx context.Context,
 	filename string,
 	opts ...*options.UploadOptions,
-) (*UploadStream, error) {
+) (*GridFSUploadStream, error) {
 	return b.OpenUploadStreamWithID(ctx, primitive.NewObjectID(), filename, opts...)
 }
 
@@ -135,12 +77,12 @@ func (b *Bucket) OpenUploadStream(
 //
 // The context provided to this method controls the entire lifetime of an
 // upload stream io.Writer.
-func (b *Bucket) OpenUploadStreamWithID(
+func (b *GridFSBucket) OpenUploadStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
 	opts ...*options.UploadOptions,
-) (*UploadStream, error) {
+) (*GridFSUploadStream, error) {
 	if err := b.checkFirstWrite(ctx); err != nil {
 		return nil, err
 	}
@@ -161,7 +103,7 @@ func (b *Bucket) OpenUploadStreamWithID(
 //
 // The context provided to this method controls the entire lifetime of an
 // upload stream io.Writer.
-func (b *Bucket) UploadFromStream(
+func (b *GridFSBucket) UploadFromStream(
 	ctx context.Context,
 	filename string,
 	source io.Reader,
@@ -180,7 +122,7 @@ func (b *Bucket) UploadFromStream(
 //
 // The context provided to this method controls the entire lifetime of an
 // upload stream io.Writer.
-func (b *Bucket) UploadFromStreamWithID(
+func (b *GridFSBucket) UploadFromStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
@@ -219,7 +161,7 @@ func (b *Bucket) UploadFromStreamWithID(
 //
 // The context provided to this method controls the entire lifetime of a
 // download stream io.Reader.
-func (b *Bucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*DownloadStream, error) {
+func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*GridFSDownloadStream, error) {
 	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
 
@@ -233,7 +175,7 @@ func (b *Bucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*D
 //
 // The context provided to this method controls the entire lifetime of a
 // download stream io.Reader.
-func (b *Bucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
+func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(ctx, fileID)
 	if err != nil {
 		return 0, err
@@ -247,11 +189,11 @@ func (b *Bucket) DownloadToStream(ctx context.Context, fileID interface{}, strea
 //
 // The context provided to this method controls the entire lifetime of a
 // download stream io.Reader.
-func (b *Bucket) OpenDownloadStreamByName(
+func (b *GridFSBucket) OpenDownloadStreamByName(
 	ctx context.Context,
 	filename string,
 	opts ...*options.NameOptions,
-) (*DownloadStream, error) {
+) (*GridFSDownloadStream, error) {
 	var numSkip int32 = -1
 	var sortOrder int32 = 1
 
@@ -289,7 +231,7 @@ func (b *Bucket) OpenDownloadStreamByName(
 //
 // The context provided to this method controls the entire lifetime of a
 // download stream io.Reader.
-func (b *Bucket) DownloadToStreamByName(
+func (b *GridFSBucket) DownloadToStreamByName(
 	ctx context.Context,
 	filename string,
 	stream io.Writer,
@@ -307,12 +249,12 @@ func (b *Bucket) DownloadToStreamByName(
 // delete operations with the provided context.
 //
 // Use the context parameter to time-out or cancel the delete operation. The deadline set by SetWriteDeadline is ignored.
-func (b *Bucket) Delete(ctx context.Context, fileID interface{}) error {
+func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
 	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
 	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
 	// be shared by both delete operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().Timeout() != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().Timeout())
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().timeout != nil && !csot.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
 		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
@@ -337,11 +279,11 @@ func (b *Bucket) Delete(ctx context.Context, fileID interface{}) error {
 //
 // Use the context parameter to time-out or cancel the find operation. The deadline set by SetReadDeadline
 // is ignored.
-func (b *Bucket) Find(
+func (b *GridFSBucket) Find(
 	ctx context.Context,
 	filter interface{},
 	opts ...*options.GridFSFindOptions,
-) (*mongo.Cursor, error) {
+) (*Cursor, error) {
 	gfsOpts := options.GridFSFind()
 	for _, opt := range opts {
 		if opt == nil {
@@ -401,7 +343,7 @@ func (b *Bucket) Find(
 // write operations operations on this bucket that also require a custom deadline
 //
 // Use SetWriteDeadline to set a deadline for the rename operation.
-func (b *Bucket) Rename(ctx context.Context, fileID interface{}, newFilename string) error {
+func (b *GridFSBucket) Rename(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
 		bson.D{{"$set", bson.D{{"filename", newFilename}}}},
@@ -421,12 +363,12 @@ func (b *Bucket) Rename(ctx context.Context, fileID interface{}, newFilename str
 // the provided context.
 //
 // Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
-func (b *Bucket) Drop(ctx context.Context) error {
+func (b *GridFSBucket) Drop(ctx context.Context) error {
 	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
 	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
 	// be shared by both drop operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().Timeout() != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().Timeout())
+	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().timeout != nil && !csot.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
 		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
@@ -442,28 +384,28 @@ func (b *Bucket) Drop(ctx context.Context) error {
 }
 
 // GetFilesCollection returns a handle to the collection that stores the file documents for this bucket.
-func (b *Bucket) GetFilesCollection() *mongo.Collection {
+func (b *GridFSBucket) GetFilesCollection() *Collection {
 	return b.filesColl
 }
 
 // GetChunksCollection returns a handle to the collection that stores the file chunks for this bucket.
-func (b *Bucket) GetChunksCollection() *mongo.Collection {
+func (b *GridFSBucket) GetChunksCollection() *Collection {
 	return b.chunksColl
 }
 
-func (b *Bucket) openDownloadStream(
+func (b *GridFSBucket) openDownloadStream(
 	ctx context.Context,
 	filter interface{},
 	opts ...*options.FindOneOptions,
-) (*DownloadStream, error) {
+) (*GridFSDownloadStream, error) {
 	result := b.filesColl.FindOne(ctx, filter, opts...)
 
-	// Unmarshal the data into a File instance, which can be passed to newDownloadStream. The _id value has to be
+	// Unmarshal the data into a File instance, which can be passed to newGridFSDownloadStream. The _id value has to be
 	// parsed out separately because "_id" will not match the File.ID field and we want to avoid exposing BSON tags
 	// in the File type. After parsing it, use RawValue.Unmarshal to ensure File.ID is set to the appropriate value.
 	var resp findFileResponse
 	if err := result.Decode(&resp); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
+		if errors.Is(err, ErrNoDocuments) {
 			return nil, ErrFileNotFound
 		}
 
@@ -473,12 +415,12 @@ func (b *Bucket) openDownloadStream(
 	foundFile := newFileFromResponse(resp)
 
 	if foundFile.Length == 0 {
-		return newDownloadStream(ctx, nil, foundFile.ChunkSize, foundFile), nil
+		return newGridFSDownloadStream(ctx, nil, foundFile.ChunkSize, foundFile), nil
 	}
 
 	// For a file with non-zero length, chunkSize must exist so we know what size to expect when downloading chunks.
 	if foundFile.ChunkSize == 0 {
-		return nil, ErrMissingChunkSize
+		return nil, ErrMissingGridFSChunkSize
 	}
 
 	chunksCursor, err := b.findChunks(ctx, foundFile.ID)
@@ -487,10 +429,10 @@ func (b *Bucket) openDownloadStream(
 	}
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
-	return newDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
+	return newGridFSDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
 }
 
-func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, error) {
+func (b *GridFSBucket) downloadToStream(ds *GridFSDownloadStream, stream io.Writer) (int64, error) {
 	copied, err := io.Copy(stream, ds)
 	if err != nil {
 		_ = ds.Close()
@@ -500,12 +442,12 @@ func (b *Bucket) downloadToStream(ds *DownloadStream, stream io.Writer) (int64, 
 	return copied, ds.Close()
 }
 
-func (b *Bucket) deleteChunks(ctx context.Context, fileID interface{}) error {
+func (b *GridFSBucket) deleteChunks(ctx context.Context, fileID interface{}) error {
 	_, err := b.chunksColl.DeleteMany(ctx, bson.D{{"files_id", fileID}})
 	return err
 }
 
-func (b *Bucket) findChunks(ctx context.Context, fileID interface{}) (*mongo.Cursor, error) {
+func (b *GridFSBucket) findChunks(ctx context.Context, fileID interface{}) (*Cursor, error) {
 	chunksCursor, err := b.chunksColl.Find(ctx,
 		bson.D{{"files_id", fileID}},
 		options.Find().SetSort(bson.D{{"n", 1}})) // sort by chunk index
@@ -559,7 +501,7 @@ func numericalIndexDocsEqual(expected, actual bsoncore.Document) (bool, error) {
 }
 
 // Create an index if it doesn't already exist
-func createNumericalIndexIfNotExists(ctx context.Context, iv mongo.IndexView, model mongo.IndexModel) error {
+func createNumericalIndexIfNotExists(ctx context.Context, iv IndexView, model IndexModel) error {
 	c, err := iv.List(ctx)
 	if err != nil {
 		return err
@@ -596,7 +538,7 @@ func createNumericalIndexIfNotExists(ctx context.Context, iv mongo.IndexView, mo
 }
 
 // create indexes on the files and chunks collection if needed
-func (b *Bucket) createIndexes(ctx context.Context) error {
+func (b *GridFSBucket) createIndexes(ctx context.Context) error {
 	// must use primary read pref mode to check if files coll empty
 	cloned, err := b.filesColl.Clone(options.Collection().SetReadPreference(readpref.Primary()))
 	if err != nil {
@@ -606,7 +548,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 	docRes := cloned.FindOne(ctx, bson.D{}, options.FindOne().SetProjection(bson.D{{"_id", 1}}))
 
 	_, err = docRes.Raw()
-	if err != mongo.ErrNoDocuments {
+	if err != ErrNoDocuments {
 		// nil, or error that occurred during the FindOne operation
 		return err
 	}
@@ -614,14 +556,14 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 	filesIv := b.filesColl.Indexes()
 	chunksIv := b.chunksColl.Indexes()
 
-	filesModel := mongo.IndexModel{
+	filesModel := IndexModel{
 		Keys: bson.D{
 			{"filename", int32(1)},
 			{"uploadDate", int32(1)},
 		},
 	}
 
-	chunksModel := mongo.IndexModel{
+	chunksModel := IndexModel{
 		Keys: bson.D{
 			{"files_id", int32(1)},
 			{"n", int32(1)},
@@ -635,7 +577,7 @@ func (b *Bucket) createIndexes(ctx context.Context) error {
 	return createNumericalIndexIfNotExists(ctx, chunksIv, chunksModel)
 }
 
-func (b *Bucket) checkFirstWrite(ctx context.Context) error {
+func (b *GridFSBucket) checkFirstWrite(ctx context.Context) error {
 	if !b.firstWriteDone {
 		// before the first write operation, must determine if files collection is empty
 		// if so, create indexes if they do not already exist
@@ -649,8 +591,8 @@ func (b *Bucket) checkFirstWrite(ctx context.Context) error {
 	return nil
 }
 
-func (b *Bucket) parseUploadOptions(opts ...*options.UploadOptions) (*Upload, error) {
-	upload := &Upload{
+func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*upload, error) {
+	upload := &upload{
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 

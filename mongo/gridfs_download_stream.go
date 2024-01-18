@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs
+package mongo
 
 import (
 	"context"
@@ -14,23 +14,23 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // ErrMissingChunk indicates that the number of chunks read from the server is
-// less than expected.
+// less than expected. This error is specific to GridFS operations.
 var ErrMissingChunk = errors.New("EOF missing one or more chunks")
 
-// ErrWrongSize is used when the chunk retrieved from the server does not have the expected size.
+// ErrWrongSize is used when the chunk retrieved from the server does not have
+// the expected size. This error is specific to GridFS operations.
 var ErrWrongSize = errors.New("chunk size does not match expected size")
 
 var errNoMoreChunks = errors.New("no more chunks remaining")
 
-// DownloadStream is a io.Reader that can be used to download a file from a GridFS bucket.
-type DownloadStream struct {
+// GridFSDownloadStream is a io.Reader that can be used to download a file from a GridFS bucket.
+type GridFSDownloadStream struct {
 	numChunks     int32
 	chunkSize     int32
-	cursor        *mongo.Cursor
+	cursor        *Cursor
 	done          bool
 	closed        bool
 	buffer        []byte // store up to 1 chunk if the user provided buffer isn't big enough
@@ -40,15 +40,16 @@ type DownloadStream struct {
 	fileLen       int64
 	ctx           context.Context
 
-	// The pointer returned by GetFile. This should not be used in the actual DownloadStream code outside of the
-	// newDownloadStream constructor because the values can be mutated by the user after calling GetFile. Instead,
+	// The pointer returned by GetFile. This should not be used in the actual GridFSDownloadStream code outside of the
+	// newGridFSDownloadStream constructor because the values can be mutated by the user after calling GetFile. Instead,
 	// any values needed in the code should be stored separately and copied over in the constructor.
-	file *File
+	file *GridFSFile
 }
 
-// File represents a file stored in GridFS. This type can be used to access file information when downloading using the
-// DownloadStream.GetFile method.
-type File struct {
+// GridFSFile represents a file stored in GridFS. This type can be used to
+// access file information when downloading using the
+// GridFSDownloadStream.GetFile method.
+type GridFSFile struct {
 	// ID is the file's ID. This will match the file ID specified when uploading the file. If an upload helper that
 	// does not require a file ID was used, this field will be a primitive.ObjectID.
 	ID interface{}
@@ -83,8 +84,8 @@ type findFileResponse struct {
 	Metadata   bson.Raw    `bson:"metadata"`
 }
 
-func newFileFromResponse(resp findFileResponse) *File {
-	return &File{
+func newFileFromResponse(resp findFileResponse) *GridFSFile {
+	return &GridFSFile{
 		ID:         resp.ID,
 		Length:     resp.Length,
 		ChunkSize:  resp.ChunkSize,
@@ -94,10 +95,10 @@ func newFileFromResponse(resp findFileResponse) *File {
 	}
 }
 
-func newDownloadStream(ctx context.Context, cursor *mongo.Cursor, chunkSize int32, file *File) *DownloadStream {
+func newGridFSDownloadStream(ctx context.Context, cursor *Cursor, chunkSize int32, file *GridFSFile) *GridFSDownloadStream {
 	numChunks := int32(math.Ceil(float64(file.Length) / float64(chunkSize)))
 
-	return &DownloadStream{
+	return &GridFSDownloadStream{
 		numChunks: numChunks,
 		chunkSize: chunkSize,
 		cursor:    cursor,
@@ -110,7 +111,7 @@ func newDownloadStream(ctx context.Context, cursor *mongo.Cursor, chunkSize int3
 }
 
 // Close closes this download stream.
-func (ds *DownloadStream) Close() error {
+func (ds *GridFSDownloadStream) Close() error {
 	if ds.closed {
 		return ErrStreamClosed
 	}
@@ -123,7 +124,7 @@ func (ds *DownloadStream) Close() error {
 }
 
 // Read reads the file from the server and writes it to a destination byte slice.
-func (ds *DownloadStream) Read(p []byte) (int, error) {
+func (ds *GridFSDownloadStream) Read(p []byte) (int, error) {
 	if ds.closed {
 		return 0, ErrStreamClosed
 	}
@@ -160,7 +161,7 @@ func (ds *DownloadStream) Read(p []byte) (int, error) {
 }
 
 // Skip skips a given number of bytes in the file.
-func (ds *DownloadStream) Skip(skip int64) (int64, error) {
+func (ds *GridFSDownloadStream) Skip(skip int64) (int64, error) {
 	if ds.closed {
 		return 0, ErrStreamClosed
 	}
@@ -199,11 +200,11 @@ func (ds *DownloadStream) Skip(skip int64) (int64, error) {
 }
 
 // GetFile returns a File object representing the file being downloaded.
-func (ds *DownloadStream) GetFile() *File {
+func (ds *GridFSDownloadStream) GetFile() *GridFSFile {
 	return ds.file
 }
 
-func (ds *DownloadStream) fillBuffer(ctx context.Context) error {
+func (ds *GridFSDownloadStream) fillBuffer(ctx context.Context) error {
 	if !ds.cursor.Next(ctx) {
 		ds.done = true
 		// Check for cursor error, otherwise there are no more chunks.

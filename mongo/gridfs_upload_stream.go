@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs
+package mongo
 
 import (
 	"errors"
@@ -16,27 +16,26 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// UploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
+// uploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
 // lengths is equal to the batch size.
-const UploadBufferSize = 16 * 1024 * 1024 // 16 MiB
+const uploadBufferSize = 16 * 1024 * 1024 // 16 MiB
 
 // ErrStreamClosed is an error returned if an operation is attempted on a closed/aborted stream.
 var ErrStreamClosed = errors.New("stream is closed or aborted")
 
-// UploadStream is used to upload a file in chunks. This type implements the io.Writer interface and a file can be
+// GridFSUploadStream is used to upload a file in chunks. This type implements the io.Writer interface and a file can be
 // uploaded using the Write method. After an upload is complete, the Close method must be called to write file
 // metadata.
-type UploadStream struct {
-	*Upload // chunk size and metadata
+type GridFSUploadStream struct {
+	*upload // chunk size and metadata
 	FileID  interface{}
 
 	chunkIndex  int
-	chunksColl  *mongo.Collection // collection to store file chunks
+	chunksColl  *Collection // collection to store file chunks
 	filename    string
-	filesColl   *mongo.Collection // collection to store file metadata
+	filesColl   *Collection // collection to store file metadata
 	closed      bool
 	buffer      []byte
 	bufferIndex int
@@ -47,25 +46,25 @@ type UploadStream struct {
 // NewUploadStream creates a new upload stream.
 func newUploadStream(
 	ctx context.Context,
-	upload *Upload,
+	up *upload,
 	fileID interface{},
 	filename string,
-	chunks, files *mongo.Collection,
-) *UploadStream {
-	return &UploadStream{
-		Upload: upload,
+	chunks, files *Collection,
+) *GridFSUploadStream {
+	return &GridFSUploadStream{
+		upload: up,
 		FileID: fileID,
 
 		chunksColl: chunks,
 		filename:   filename,
 		filesColl:  files,
-		buffer:     make([]byte, UploadBufferSize),
+		buffer:     make([]byte, uploadBufferSize),
 		ctx:        ctx,
 	}
 }
 
 // Close writes file metadata to the files collection and cleans up any resources associated with the UploadStream.
-func (us *UploadStream) Close() error {
+func (us *GridFSUploadStream) Close() error {
 	if us.closed {
 		return ErrStreamClosed
 	}
@@ -86,7 +85,7 @@ func (us *UploadStream) Close() error {
 
 // Write transfers the contents of a byte slice into this upload stream. If the stream's underlying buffer fills up,
 // the buffer will be uploaded as chunks to the server. Implements the io.Writer interface.
-func (us *UploadStream) Write(p []byte) (int, error) {
+func (us *GridFSUploadStream) Write(p []byte) (int, error) {
 	if us.closed {
 		return 0, ErrStreamClosed
 	}
@@ -101,7 +100,7 @@ func (us *UploadStream) Write(p []byte) (int, error) {
 		p = p[n:]
 		us.bufferIndex += n
 
-		if us.bufferIndex == UploadBufferSize {
+		if us.bufferIndex == uploadBufferSize {
 			err := us.uploadChunks(us.ctx, false)
 			if err != nil {
 				return 0, err
@@ -112,7 +111,7 @@ func (us *UploadStream) Write(p []byte) (int, error) {
 }
 
 // Abort closes the stream and deletes all file chunks that have already been written.
-func (us *UploadStream) Abort() error {
+func (us *GridFSUploadStream) Abort() error {
 	if us.closed {
 		return ErrStreamClosed
 	}
@@ -130,7 +129,7 @@ func (us *UploadStream) Abort() error {
 // if uploadPartial is true, any data at the end of the buffer that is smaller than a chunk will be uploaded as a partial
 // chunk. if it is false, the data will be moved to the front of the buffer.
 // uploadChunks sets us.bufferIndex to the next available index in the buffer after uploading
-func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) error {
+func (us *GridFSUploadStream) uploadChunks(ctx context.Context, uploadPartial bool) error {
 	chunks := float64(us.bufferIndex) / float64(us.chunkSize)
 	numChunks := int(math.Ceil(chunks))
 	if !uploadPartial {
@@ -167,14 +166,14 @@ func (us *UploadStream) uploadChunks(ctx context.Context, uploadPartial bool) er
 
 	// copy any remaining bytes to beginning of buffer and set buffer index
 	bytesUploaded := numChunks * int(us.chunkSize)
-	if bytesUploaded != UploadBufferSize && !uploadPartial {
+	if bytesUploaded != uploadBufferSize && !uploadPartial {
 		copy(us.buffer[0:], us.buffer[bytesUploaded:us.bufferIndex])
 	}
-	us.bufferIndex = UploadBufferSize - bytesUploaded
+	us.bufferIndex = uploadBufferSize - bytesUploaded
 	return nil
 }
 
-func (us *UploadStream) createFilesCollDoc(ctx context.Context) error {
+func (us *GridFSUploadStream) createFilesCollDoc(ctx context.Context) error {
 	doc := bson.D{
 		{"_id", us.FileID},
 		{"length", us.fileLen},

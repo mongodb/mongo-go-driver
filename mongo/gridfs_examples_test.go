@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package gridfs_test
+package mongo_test
 
 import (
 	"bytes"
@@ -16,13 +16,13 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ExampleBucket_OpenUploadStream() {
+func ExampleGridFSBucket_OpenUploadStream() {
 	var fileContent []byte
-	var bucket *gridfs.Bucket
+	var bucket *mongo.GridFSBucket
 
 	// Specify the Metadata option to include a "metadata" field in the files
 	// collection document.
@@ -49,9 +49,9 @@ func ExampleBucket_OpenUploadStream() {
 	}
 }
 
-func ExampleBucket_UploadFromStream() {
+func ExampleGridFSBucket_UploadFromStream() {
 	var fileContent []byte
-	var bucket *gridfs.Bucket
+	var bucket *mongo.GridFSBucket
 
 	// Specify the Metadata option to include a "metadata" field in the files
 	// collection document.
@@ -69,8 +69,8 @@ func ExampleBucket_UploadFromStream() {
 	fmt.Printf("new file created with ID %s", fileID)
 }
 
-func ExampleBucket_OpenDownloadStream() {
-	var bucket *gridfs.Bucket
+func ExampleGridFSBucket_OpenDownloadStream() {
+	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
 	// Use WithContext to force a timeout if the download does not succeed in
@@ -94,8 +94,8 @@ func ExampleBucket_OpenDownloadStream() {
 	}
 }
 
-func ExampleBucket_DownloadToStream() {
-	var bucket *gridfs.Bucket
+func ExampleGridFSBucket_DownloadToStream() {
+	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
 	ctx := context.Background()
@@ -106,8 +106,8 @@ func ExampleBucket_DownloadToStream() {
 	}
 }
 
-func ExampleBucket_Delete() {
-	var bucket *gridfs.Bucket
+func ExampleGridFSBucket_Delete() {
+	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
 	if err := bucket.Delete(context.Background(), fileID); err != nil {
@@ -115,8 +115,8 @@ func ExampleBucket_Delete() {
 	}
 }
 
-func ExampleBucket_Find() {
-	var bucket *gridfs.Bucket
+func ExampleGridFSBucket_Find() {
+	var bucket *mongo.GridFSBucket
 
 	// Specify a filter to find all files with a length greater than 1000 bytes.
 	filter := bson.D{
@@ -146,8 +146,8 @@ func ExampleBucket_Find() {
 	}
 }
 
-func ExampleBucket_Rename() {
-	var bucket *gridfs.Bucket
+func ExampleGridFSBucket_Rename() {
+	var bucket *mongo.GridFSBucket
 	var fileID primitive.ObjectID
 
 	ctx := context.Background()
@@ -157,8 +157,8 @@ func ExampleBucket_Rename() {
 	}
 }
 
-func ExampleBucket_Drop() {
-	var bucket *gridfs.Bucket
+func ExampleGridFSBucket_Drop() {
+	var bucket *mongo.GridFSBucket
 
 	if err := bucket.Drop(context.Background()); err != nil {
 		log.Fatal(err)
