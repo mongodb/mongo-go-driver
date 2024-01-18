@@ -248,11 +248,7 @@ func ExampleEncoder_IntMinSize() {
 		panic(err)
 	}
 
-	enc, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
-
+	enc := bson.NewEncoder(vw)
 	enc.IntMinSize()
 
 	err = enc.Encode(foo{2})
