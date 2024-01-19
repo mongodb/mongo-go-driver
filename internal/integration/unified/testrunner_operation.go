@@ -82,7 +82,7 @@ func assertEventCount(ctx context.Context, args assertEventCountArguments) error
 			}
 		}
 
-		return fmt.Errorf("expected event %q to have occured %v times, actual: %v",
+		return fmt.Errorf("expected event %q to have occurred %v times, actual: %v",
 			rawEventType, args.Count, actualCount)
 	}
 
