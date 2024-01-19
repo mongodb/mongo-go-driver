@@ -2712,7 +2712,6 @@ buildvariants:
       - "serverless_task_group"
 
   - matrix_name: "serverless-next"
-    tags: ["pullrequest"]
     matrix_spec: { os-serverless: "*" }
     display_name: "Serverless Next ${os-serverless}"
     tasks:
