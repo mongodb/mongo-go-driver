@@ -161,7 +161,7 @@ func NewServer(
 	connectTimeout time.Duration,
 	opts ...ServerOption,
 ) *Server {
-	cfg := newServerConfig(opts...)
+	cfg := newServerConfig(connectTimeout, opts...)
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
 		state: serverDisconnected,
@@ -767,8 +767,9 @@ func (s *Server) updateDescription(desc description.Server) {
 func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
-		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
+		// TODO(GODRIVER-2348): Deprecate this logic
+		WithReadTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
+		WithWriteTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
 		// We override whatever handshaker is currently attached to the options with a basic
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
@@ -797,27 +798,14 @@ func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 
 	s.conn = conn
 
+	if s.cfg.connectTimeout != 0 {
+		var cancelFn context.CancelFunc
+		ctx, cancelFn = context.WithTimeout(ctx, s.cfg.connectTimeout)
+
+		defer cancelFn()
+	}
+
 	s.heartbeatLock.Unlock()
-
-	// Apply a deadline of connectTimeoutMS to connect. Release the resources of
-	// this context when complete.
-	ctx, cancel := context.WithTimeout(ctx, s.cfg.heartbeatTimeout)
-	defer cancel()
-
-	// There is a possibility that the topolgy is disconnected while the heartbeat
-	// connection is mid-setup. In this case, we need to cancel establishing the
-	// connection immediately.
-	done := make(chan struct{})
-	defer close(done) // close the Go routine if seutp conmpletes w/o signal.
-
-	go func() {
-		select {
-		case <-s.cancelHeartbeatCheck:
-			cancel()
-		case <-done:
-			// Do nothing, cancel will be handled when the function returns.
-		}
-	}()
 
 	return s.conn.connect(ctx)
 }
@@ -836,7 +824,6 @@ func (s *Server) cancelCheck() {
 	// indefinitely.
 	if !s.heartbeatCanceled {
 		s.cancelHeartbeatCheck <- struct{}{}
-		s.cancelHeartbeatSetup <- struct{}{}
 
 		s.heartbeatCanceled = true
 	}
@@ -942,7 +929,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 			// If connectTimeoutMS=0, the socket timeout should be infinite. Otherwise, it is connectTimeoutMS +
 			// heartbeatFrequencyMS to account for the fact that the query will block for heartbeatFrequencyMS
 			// server-side.
-			socketTimeout := s.cfg.heartbeatTimeout
+			socketTimeout := s.cfg.connectTimeout
 			if socketTimeout != 0 {
 				socketTimeout += s.cfg.heartbeatInterval
 			}
@@ -954,8 +941,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 		default:
 			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
 			// execute a regular heartbeat without any additional parameters.
-
-			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
+			s.conn.setSocketTimeout(s.cfg.connectTimeout)
 			err = baseOperation.Execute(ctx) // HERE
 		}
 

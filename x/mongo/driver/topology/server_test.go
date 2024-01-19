@@ -808,11 +808,12 @@ func TestServer(t *testing.T) {
 	})
 	t.Run("createConnection overwrites WithSocketTimeout", func(t *testing.T) {
 		socketTimeout := 40 * time.Second
+		connectTimeout := 10 * time.Second
 
 		s := NewServer(
 			address.Address("localhost"),
 			primitive.NewObjectID(),
-			defaultConnectionTimeout,
+			connectTimeout,
 			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 				return append(
 					connOpts,
@@ -823,9 +824,16 @@ func TestServer(t *testing.T) {
 		)
 
 		conn := s.createConnection()
-		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
-		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
-		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
+		assert.Equal(t, s.cfg.connectTimeout, 10*time.Second,
+			"expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.connectTimeout)
+
+		// TODO(GODRIVER-2348): The following two tests might be removed when
+		// feature-gating CSOT
+		assert.Equal(t, s.cfg.connectTimeout, conn.readTimeout,
+			"expected readTimeout to be: %v, got: %v", s.cfg.connectTimeout, conn.readTimeout)
+
+		assert.Equal(t, s.cfg.connectTimeout, conn.writeTimeout,
+			"expected writeTimeout to be: %v, got: %v", s.cfg.connectTimeout, conn.writeTimeout)
 	})
 }
 

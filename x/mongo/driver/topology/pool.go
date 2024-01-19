@@ -1091,10 +1091,18 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		// Pass the createConnections context to connect to allow pool close to
 		// cancel connection establishment so shutdown doesn't block indefinitely if
 		// connectTimeout=0.
-		ctx, cancel := context.WithTimeout(ctx, p.connectTimeout)
-		defer cancel()
+		//
+		// Per the specifications, an explicit value of connectTimeout=0 means the
+		// timeout is "infinite".
+		connctx := context.Background()
+		if p.connectTimeout != 0 {
+			var cancel context.CancelFunc
+			connctx, cancel = context.WithTimeout(ctx, p.connectTimeout)
 
-		err := conn.connect(ctx)
+			defer cancel()
+		}
+
+		err := conn.connect(connctx)
 		if err != nil {
 			w.tryDeliver(nil, err)
 

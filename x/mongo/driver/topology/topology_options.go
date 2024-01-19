@@ -209,12 +209,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		}
 	}
 	connOpts = append(connOpts, WithHandshaker(handshaker))
-	// ConnectTimeout
-	if co.ConnectTimeout != nil {
-		serverOpts = append(serverOpts, WithHeartbeatTimeout(
-			func(time.Duration) time.Duration { return *co.ConnectTimeout },
-		))
-	}
+
 	// Dialer
 	if co.Dialer != nil {
 		connOpts = append(connOpts, WithDialer(

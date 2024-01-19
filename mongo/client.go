@@ -214,7 +214,13 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.serverAPI = topology.ServerAPIFromServerOptions(cfg.ServerOpts)
+
+	var connectTimeout time.Duration
+	if clientOpt.ConnectTimeout != nil {
+		connectTimeout = *clientOpt.ConnectTimeout
+	}
+
+	client.serverAPI = topology.ServerAPIFromServerOptions(connectTimeout, cfg.ServerOpts)
 
 	if client.deployment == nil {
 		client.deployment, err = topology.New(cfg)
