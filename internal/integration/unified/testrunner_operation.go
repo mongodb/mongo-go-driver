@@ -50,6 +50,45 @@ func (lp *loopArgs) iterationsStored() bool {
 	return lp.IterationsEntityID != ""
 }
 
+type assertEventCountArguments struct {
+	ClientID string              `bson:"client"`
+	Event    map[string]bson.Raw `bson:"event"`
+	Count    int32               `bson:"count"`
+}
+
+func assertEventCount(ctx context.Context, args assertEventCountArguments) error {
+	client, err := entities(ctx).client(args.ClientID)
+	if err != nil {
+		return err
+	}
+
+	for rawEventType, eventDoc := range args.Event {
+		eventType, ok := monitoringEventTypeFromString(rawEventType)
+		if !ok {
+			continue
+		}
+
+		var actualCount int32
+		switch eventType {
+		case serverDescriptionChangedEvent:
+			actualCount = getServerDescriptionChangedEventCount(client, eventDoc)
+			if actualCount == args.Count {
+				return nil
+			}
+		default:
+			actualCount = client.getEventCount(eventType)
+			if actualCount == args.Count {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("expected event %q to have occurred %v times, actual: %v",
+			rawEventType, args.Count, actualCount)
+	}
+
+	return nil
+}
+
 func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-chan struct{}) error {
 	args := op.Arguments
 
@@ -145,6 +184,13 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		coll := lookupString(args, "collectionName")
 		index := lookupString(args, "indexName")
 		return verifyIndexExists(ctx, db, coll, index, false)
+	case "assertEventCount":
+		var aecArgs assertEventCountArguments
+		if err := bson.Unmarshal(op.Arguments, &aecArgs); err != nil {
+			return fmt.Errorf("error unmarshalling event to assertEventCountArguments: %v", err)
+		}
+
+		return assertEventCount(ctx, aecArgs)
 	case "loop":
 		var unmarshaledArgs loopArgs
 		if err := bson.Unmarshal(args, &unmarshaledArgs); err != nil {
