@@ -68,13 +68,10 @@ func ExampleRegistry_customEncoder() {
 	// Marshal the document as BSON. Expect that the int field is encoded to the
 	// same value and that the negatedInt field is encoded as the negated value.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewValueWriter(buf)
 	enc := bson.NewEncoder(vw)
 	enc.SetRegistry(reg)
-	err = enc.Encode(doc)
+	err := enc.Encode(doc)
 	if err != nil {
 		panic(err)
 	}
@@ -209,13 +206,10 @@ func ExampleRegistry_RegisterKindEncoder() {
 	// Marshal the document as BSON. Expect that all fields are encoded as BSON
 	// int64 (represented as "$numberLong" when encoded as Extended JSON).
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewValueWriter(buf)
 	enc := bson.NewEncoder(vw)
 	enc.SetRegistry(reg)
-	err = enc.Encode(doc)
+	err := enc.Encode(doc)
 	if err != nil {
 		panic(err)
 	}

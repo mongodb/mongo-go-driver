@@ -56,9 +56,6 @@ func (me MarshalError) Error() string {
 //	}
 type Pipeline []bson.D
 
-// bvwPool is a pool of BSON value writers. BSON value writers
-var bvwPool = bsonrw.NewBSONValueWriterPool()
-
 // getEncoder takes a writer, BSON options, and a BSON registry and returns a properly configured
 // bson.Encoder that writes to the given writer.
 func getEncoder(
@@ -66,7 +63,7 @@ func getEncoder(
 	opts *options.BSONOptions,
 	reg *bsoncodec.Registry,
 ) (*bson.Encoder, error) {
-	vw := bvwPool.Get(w)
+	vw := bsonrw.NewValueWriter(w)
 	enc := bson.NewEncoder(vw)
 
 	if opts != nil {
@@ -170,10 +167,7 @@ func ensureID(
 		var id struct {
 			ID interface{} `bson:"_id"`
 		}
-		dec, err := getDecoder(doc, bsonOpts, reg)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error configuring BSON decoder: %w", err)
-		}
+		dec := getDecoder(doc, bsonOpts, reg)
 		err = dec.Decode(&id)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error unmarshaling BSON document: %w", err)

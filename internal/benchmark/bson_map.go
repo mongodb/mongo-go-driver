@@ -53,10 +53,7 @@ func bsonMapEncoding(tm TimerManager, iters int, dataSet string) error {
 	buf := new(bytes.Buffer)
 	for i := 0; i < iters; i++ {
 		buf.Reset()
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		if err != nil {
-			return err
-		}
+		vw := bsonrw.NewValueWriter(buf)
 		err = bson.NewEncoder(vw).Encode(doc)
 		if err != nil {
 			return err

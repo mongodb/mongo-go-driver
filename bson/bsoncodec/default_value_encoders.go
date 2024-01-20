@@ -24,8 +24,6 @@ import (
 
 var defaultValueEncoders DefaultValueEncoders
 
-var bvwPool = bsonrw.NewBSONValueWriterPool()
-
 var errInvalidValue = errors.New("cannot encode invalid element")
 
 var sliceWriterPool = sync.Pool{
@@ -826,8 +824,7 @@ func (dve DefaultValueEncoders) CodeWithScopeEncodeValue(ec EncodeContext, vw bs
 	defer sliceWriterPool.Put(sw)
 	*sw = (*sw)[:0]
 
-	scopeVW := bvwPool.Get(sw)
-	defer bvwPool.Put(scopeVW)
+	scopeVW := bsonrw.NewValueWriter(sw)
 
 	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))
 	if err != nil {

@@ -17,9 +17,6 @@ import (
 
 const defaultDstCap = 256
 
-var bvwPool = bsonrw.NewBSONValueWriterPool()
-var extjPool = bsonrw.NewExtJSONValueWriterPool()
-
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a valid BSON document.
 //
@@ -49,15 +46,12 @@ type ValueMarshaler interface {
 // marshaling process accordingly.
 func Marshal(val interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		return nil, err
-	}
+	vw := bsonrw.NewValueWriter(buf)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
 	enc.SetRegistry(DefaultRegistry)
-	err = enc.Encode(val)
+	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
 	}
@@ -79,31 +73,24 @@ func MarshalValue(val interface{}) (bsontype.Type, []byte, error) {
 // Driver 2.0.
 func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.Type, []byte, error) {
 	sw := bsonrw.SliceWriter(make([]byte, 0))
-	vwFlusher := bvwPool.GetAtModeElement(&sw)
+	vw := bsonrw.NewValueWriter(&sw)
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
-	enc.Reset(vwFlusher)
+	enc.Reset(vw)
 	enc.ec = bsoncodec.EncodeContext{Registry: r}
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
 
-	// flush the bytes written because we cannot guarantee that a full document has been written
-	// after the flush, *sw will be in the format
-	// [value type, 0 (null byte to indicate end of empty element name), value bytes..]
-	if err := vwFlusher.Flush(); err != nil {
-		return 0, nil, err
-	}
 	return bsontype.Type(sw[0]), sw[2:], nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
 	sw := bsonrw.SliceWriter(make([]byte, 0, defaultDstCap))
-	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
-	defer extjPool.Put(ejvw)
+	ejvw := bsonrw.NewExtJSONValueWriter(&sw, canonical, escapeHTML)
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)

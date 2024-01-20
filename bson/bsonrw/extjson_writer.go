@@ -15,66 +15,11 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
-
-// ExtJSONValueWriterPool is a pool for ExtJSON ValueWriters.
-//
-// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
-type ExtJSONValueWriterPool struct {
-	pool sync.Pool
-}
-
-// NewExtJSONValueWriterPool creates a new pool for ValueWriter instances that write to ExtJSON.
-//
-// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
-func NewExtJSONValueWriterPool() *ExtJSONValueWriterPool {
-	return &ExtJSONValueWriterPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(extJSONValueWriter)
-			},
-		},
-	}
-}
-
-// Get retrieves a ExtJSON ValueWriter from the pool and resets it to use w as the destination.
-//
-// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ExtJSONValueWriterPool) Get(w io.Writer, canonical, escapeHTML bool) ValueWriter {
-	vw := bvwp.pool.Get().(*extJSONValueWriter)
-	if writer, ok := w.(*SliceWriter); ok {
-		vw.reset(*writer, canonical, escapeHTML)
-		vw.w = writer
-		return vw
-	}
-	vw.buf = vw.buf[:0]
-	vw.w = w
-	return vw
-}
-
-// Put inserts a ValueWriter into the pool. If the ValueWriter is not a ExtJSON ValueWriter, nothing
-// happens and ok will be false.
-//
-// Deprecated: ExtJSONValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ExtJSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
-	bvw, ok := vw.(*extJSONValueWriter)
-	if !ok {
-		return false
-	}
-
-	if _, ok := bvw.w.(*SliceWriter); ok {
-		bvw.buf = nil
-	}
-	bvw.w = nil
-
-	bvwp.pool.Put(bvw)
-	return true
-}
 
 type ejvwState struct {
 	mode mode
@@ -92,15 +37,11 @@ type extJSONValueWriter struct {
 }
 
 // NewExtJSONValueWriter creates a ValueWriter that writes Extended JSON to w.
-func NewExtJSONValueWriter(w io.Writer, canonical, escapeHTML bool) (ValueWriter, error) {
-	if w == nil {
-		return nil, errNilWriter
-	}
-
+func NewExtJSONValueWriter(w io.Writer, canonical, escapeHTML bool) ValueWriter {
 	// Enable newlines for all Extended JSON value writers created by NewExtJSONValueWriter. We
 	// expect these value writers to be used with an Encoder, which should add newlines after
 	// encoded Extended JSON documents.
-	return newExtJSONWriter(w, canonical, escapeHTML, true), nil
+	return newExtJSONWriter(w, canonical, escapeHTML, true)
 }
 
 func newExtJSONWriter(w io.Writer, canonical, escapeHTML, newlines bool) *extJSONValueWriter {
@@ -127,20 +68,6 @@ func newExtJSONWriterFromSlice(buf []byte, canonical, escapeHTML bool) *extJSONV
 		canonical:  canonical,
 		escapeHTML: escapeHTML,
 	}
-}
-
-func (ejvw *extJSONValueWriter) reset(buf []byte, canonical, escapeHTML bool) {
-	if ejvw.stack == nil {
-		ejvw.stack = make([]ejvwState, 1, 5)
-	}
-
-	ejvw.stack = ejvw.stack[:1]
-	ejvw.stack[0] = ejvwState{mode: mTopLevel}
-	ejvw.canonical = canonical
-	ejvw.escapeHTML = escapeHTML
-	ejvw.frame = 0
-	ejvw.buf = buf
-	ejvw.w = nil
 }
 
 func (ejvw *extJSONValueWriter) advanceFrame() {

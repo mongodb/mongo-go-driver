@@ -35,67 +35,9 @@ func putValueWriter(vw *valueWriter) {
 	}
 }
 
-// BSONValueWriterPool is a pool for BSON ValueWriters.
-//
-// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
-type BSONValueWriterPool struct {
-	pool sync.Pool
-}
-
-// NewBSONValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
-//
-// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
-func NewBSONValueWriterPool() *BSONValueWriterPool {
-	return &BSONValueWriterPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(valueWriter)
-			},
-		},
-	}
-}
-
-// Get retrieves a BSON ValueWriter from the pool and resets it to use w as the destination.
-//
-// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *BSONValueWriterPool) Get(w io.Writer) ValueWriter {
-	vw := bvwp.pool.Get().(*valueWriter)
-
-	// TODO: Having to call reset here with the same buffer doesn't really make sense.
-	vw.reset(vw.buf)
-	vw.buf = vw.buf[:0]
-	vw.w = w
-	return vw
-}
-
-// GetAtModeElement retrieves a ValueWriterFlusher from the pool and resets it to use w as the destination.
-//
-// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *BSONValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlusher {
-	vw := bvwp.Get(w).(*valueWriter)
-	vw.push(mElement)
-	return vw
-}
-
-// Put inserts a ValueWriter into the pool. If the ValueWriter is not a BSON ValueWriter, nothing
-// happens and ok will be false.
-//
-// Deprecated: BSONValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *BSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
-	bvw, ok := vw.(*valueWriter)
-	if !ok {
-		return false
-	}
-
-	bvwp.pool.Put(bvw)
-	return true
-}
-
 // This is here so that during testing we can change it and not require
 // allocating a 4GB slice.
 var maxSize = math.MaxInt32
-
-var errNilWriter = errors.New("cannot create a ValueWriter from a nil io.Writer")
 
 type errMaxDocumentSizeExceeded struct {
 	size int64
@@ -188,15 +130,12 @@ func (vw *valueWriter) pop() {
 	}
 }
 
-// NewBSONValueWriter creates a ValueWriter that writes BSON to w.
+// NewValueWriter creates a ValueWriter that writes BSON to w.
 //
 // This ValueWriter will only write entire documents to the io.Writer and it
 // will buffer the document as it is built.
-func NewBSONValueWriter(w io.Writer) (ValueWriter, error) {
-	if w == nil {
-		return nil, errNilWriter
-	}
-	return newValueWriter(w), nil
+func NewValueWriter(w io.Writer) ValueWriter {
+	return newValueWriter(w)
 }
 
 func newValueWriter(w io.Writer) *valueWriter {

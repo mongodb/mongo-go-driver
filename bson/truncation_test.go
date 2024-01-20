@@ -33,12 +33,11 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		assert.Nil(t, err)
+		vw := bsonrw.NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(DefaultRegistry)
-		err = enc.Encode(&input)
+		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
@@ -60,12 +59,11 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		assert.Nil(t, err)
+		vw := bsonrw.NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(DefaultRegistry)
-		err = enc.Encode(&input)
+		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs

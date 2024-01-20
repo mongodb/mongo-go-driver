@@ -59,7 +59,7 @@ func Unmarshal(data []byte, val interface{}) error {
 //
 // See [Decoder] for more examples.
 func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) error {
-	vr := bsonrw.NewBSONDocumentReader(data)
+	vr := bsonrw.NewValueReader(data)
 	return unmarshalFromReader(bsoncodec.DecodeContext{Registry: r}, vr, val)
 }
 
@@ -78,7 +78,7 @@ func UnmarshalWithRegistry(r *bsoncodec.Registry, data []byte, val interface{}) 
 //
 // See [Decoder] for more examples.
 func UnmarshalWithContext(dc bsoncodec.DecodeContext, data []byte, val interface{}) error {
-	vr := bsonrw.NewBSONDocumentReader(data)
+	vr := bsonrw.NewValueReader(data)
 	return unmarshalFromReader(dc, vr, val)
 }
 

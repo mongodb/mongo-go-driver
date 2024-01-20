@@ -105,11 +105,7 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 			doc = bson.Raw(t)
 		}
 
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		if err != nil {
-			return nil, err
-		}
-
+		vw := bsonrw.NewValueWriter(buf)
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
 
@@ -243,11 +239,8 @@ func getDecoder(
 	data []byte,
 	opts *options.BSONOptions,
 	reg *bsoncodec.Registry,
-) (*bson.Decoder, error) {
-	dec, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
-	if err != nil {
-		return nil, err
-	}
+) *bson.Decoder {
+	dec := bson.NewDecoder(bsonrw.NewValueReader(data))
 
 	if opts != nil {
 		if opts.AllowTruncatingDoubles {
@@ -280,16 +273,13 @@ func getDecoder(
 		dec.SetRegistry(reg)
 	}
 
-	return dec, nil
+	return dec
 }
 
 // Decode will unmarshal the current document into val and return any errors from the unmarshalling process without any
 // modification. If val is nil or is a typed nil, an error will be returned.
 func (c *Cursor) Decode(val interface{}) error {
-	dec, err := getDecoder(c.Current, c.bsonOpts, c.registry)
-	if err != nil {
-		return fmt.Errorf("error configuring BSON decoder: %w", err)
-	}
+	dec := getDecoder(c.Current, c.bsonOpts, c.registry)
 
 	return dec.Decode(val)
 }
@@ -380,10 +370,7 @@ func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, bat
 		}
 
 		currElem := sliceVal.Index(index).Addr().Interface()
-		dec, err := getDecoder(doc, c.bsonOpts, c.registry)
-		if err != nil {
-			return sliceVal, index, fmt.Errorf("error configuring BSON decoder: %w", err)
-		}
+		dec := getDecoder(doc, c.bsonOpts, c.registry)
 		err = dec.Decode(currElem)
 		if err != nil {
 			return sliceVal, index, err

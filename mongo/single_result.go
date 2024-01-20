@@ -9,7 +9,6 @@ package mongo
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -75,10 +74,7 @@ func (sr *SingleResult) Decode(v interface{}) error {
 		return sr.err
 	}
 
-	dec, err := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
-	if err != nil {
-		return fmt.Errorf("error configuring BSON decoder: %w", err)
-	}
+	dec := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
 
 	return dec.Decode(v)
 }
