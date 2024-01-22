@@ -228,7 +228,6 @@ func ExampleEncoder_IntMinSize() {
 	vw := bsonrw.NewValueWriter(buf)
 
 	enc := bson.NewEncoder(vw)
-
 	enc.IntMinSize()
 
 	err := enc.Encode(foo{2})
