@@ -182,7 +182,7 @@ func (writeServerSelector) SelectServer(t Topology, candidates []Server) ([]Serv
 	case Single, LoadBalanced:
 		return candidates, nil
 	default:
-                // Determine the capacity of the results slice.
+		// Determine the capacity of the results slice.
 		selected := 0
 		for _, candidate := range candidates {
 			switch candidate.Kind {
@@ -191,7 +191,7 @@ func (writeServerSelector) SelectServer(t Topology, candidates []Server) ([]Serv
 			}
 		}
 
-                // Append candidates to the results slice.
+		// Append candidates to the results slice.
 		result := make([]Server, 0, selected)
 		for _, candidate := range candidates {
 			switch candidate.Kind {
