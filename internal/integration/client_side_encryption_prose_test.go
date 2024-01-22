@@ -2154,7 +2154,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			"azure": {},
 		}
 		vw := bsonrw.NewValueWriter(buf)
-		err = bson.NewEncoder(vw).Encode(kmsProvidersMap)
+		err := bson.NewEncoder(vw).Encode(kmsProvidersMap)
 		assert.Nil(mt, err, "error in Encode: %v", err)
 
 		getClient := func(header http.Header) *http.Client {

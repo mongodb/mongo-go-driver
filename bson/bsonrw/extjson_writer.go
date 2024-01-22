@@ -41,7 +41,7 @@ func NewExtJSONValueWriter(w io.Writer, canonical, escapeHTML bool) ValueWriter 
 	// Enable newlines for all Extended JSON value writers created by NewExtJSONValueWriter. We
 	// expect these value writers to be used with an Encoder, which should add newlines after
 	// encoded Extended JSON documents.
-	return newExtJSONWriter(w, canonical, escapeHTML, true)
+	return newExtJSONWriter(w, canonical, escapeHTML, false)
 }
 
 func newExtJSONWriter(w io.Writer, canonical, escapeHTML, newlines bool) *extJSONValueWriter {
