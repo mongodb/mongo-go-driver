@@ -468,7 +468,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				b := make(bsonrw.SliceWriter, 0, 512)
 				vw := bsonrw.NewValueWriter(&b)
 				enc := NewEncoder(vw)
-				err = enc.Encode(tc.value)
+				err := enc.Encode(tc.value)
 				if !errors.Is(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
@@ -1047,7 +1047,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					vr := bsonrw.NewValueReader(tc.b)
 					dec := NewDecoder(vr)
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
-					err = dec.Decode(gotVal.Interface())
+					err := dec.Decode(gotVal.Interface())
 					noerr(t, err)
 					got := gotVal.Elem().Interface()
 					want := tc.value

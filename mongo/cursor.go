@@ -87,7 +87,7 @@ func newEmptyCursor() *Cursor {
 // bson.DefaultRegistry will be used.
 //
 // The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
-func NewCursorFromDocuments(documents []interface{}, err error, registry *bsoncodec.Registry) (*Cursor, error) {
+func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bsoncodec.Registry) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
@@ -109,7 +109,7 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
 
-		if err = enc.Encode(doc); err != nil {
+		if err := enc.Encode(doc); err != nil {
 			return nil, err
 		}
 
@@ -127,7 +127,7 @@ func NewCursorFromDocuments(documents []interface{}, err error, registry *bsonco
 	c := &Cursor{
 		bc:       driver.NewBatchCursorFromList(bsoncore.BuildArray(nil, values...)),
 		registry: registry,
-		err:      err,
+		err:      preloadedErr,
 	}
 
 	// Initialize batch and batchLength here. The underlying batch cursor will be preloaded with the

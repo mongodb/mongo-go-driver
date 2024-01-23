@@ -17,6 +17,9 @@ import (
 
 const defaultDstCap = 256
 
+var bvwPool = bsonrw.NewBSONValueWriterPool()
+var extjPool = bsonrw.NewExtJSONValueWriterPool()
+
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a valid BSON document.
 //
@@ -73,24 +76,31 @@ func MarshalValue(val interface{}) (bsontype.Type, []byte, error) {
 // Driver 2.0.
 func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.Type, []byte, error) {
 	sw := bsonrw.SliceWriter(make([]byte, 0))
-	vw := bsonrw.NewValueWriter(&sw)
+	vwFlusher := bvwPool.GetAtModeElement(&sw)
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
-	enc.Reset(vw)
+	enc.Reset(vwFlusher)
 	enc.ec = bsoncodec.EncodeContext{Registry: r}
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
 
+	// flush the bytes written because we cannot guarantee that a full document has been written
+	// after the flush, *sw will be in the format
+	// [value type, 0 (null byte to indicate end of empty element name), value bytes..]
+	if err := vwFlusher.Flush(); err != nil {
+		return 0, nil, err
+	}
 	return bsontype.Type(sw[0]), sw[2:], nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
 	sw := bsonrw.SliceWriter(make([]byte, 0, defaultDstCap))
-	ejvw := bsonrw.NewExtJSONValueWriter(&sw, canonical, escapeHTML)
+	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
+	defer extjPool.Put(ejvw)
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
