@@ -320,11 +320,31 @@ func (c *clientEntity) getEventCount(eventType monitoringEventType) int32 {
 	return c.eventsCount[eventType]
 }
 
-func (c *clientEntity) getServerDescriptionChangedEventCount(evt serverDescriptionChangedEventInfo) int32 {
+func (c *clientEntity) getServerDescriptionChangedEventCount(expected serverDescriptionChangedEventInfo) int32 {
 	c.serverDescriptionChangedEventsCountLock.Lock()
 	defer c.serverDescriptionChangedEventsCountLock.Unlock()
 
-	return c.serverDescriptionChangedEventsCount[evt]
+	// If the previousDescription or newDescription is "nil" in the expected case,
+	// then those fields can be anything.
+	for actual, count := range c.serverDescriptionChangedEventsCount {
+		actPrevD := actual.PreviousDescription
+		expPrevD := expected.PreviousDescription
+
+		if expPrevD != nil && expPrevD.Type != actPrevD.Type {
+			continue
+		}
+
+		actNewD := actual.NewDescription
+		expNewD := expected.NewDescription
+
+		if expNewD != nil && expNewD.Type != actNewD.Type {
+			continue
+		}
+
+		return count
+	}
+
+	return 0
 }
 
 func getSecondsSinceEpoch() float64 {
