@@ -49,60 +49,62 @@ func TestSDAMErrorHandling(t *testing.T) {
 	// blockConnection and appName.
 	mt.RunOpts("before handshake completes", baseMtOpts().Auth(true).MinServerVersion("4.4"), func(mt *mtest.T) {
 		mt.RunOpts("network errors", noClientOpts, func(mt *mtest.T) {
-			mt.Run("pool cleared on network timeout", func(mt *mtest.T) {
-				// Assert that the pool is cleared when a connection created by an application
-				// operation thread encounters a timeout caused by socketTimeoutMS during
-				// handshaking.
+			// TODO(GODRIVER-2348): Can we remove this / update it to be specific to
+			// timeoutMS instead of socketTimeoutMS?
+			//mt.Run("pool cleared on network timeout", func(mt *mtest.T) {
+			//	// Assert that the pool is cleared when a connection created by an application
+			//	// operation thread encounters a timeout caused by socketTimeoutMS during
+			//	// handshaking.
 
-				appName := "authConnectTimeoutTest"
-				// Set failpoint on saslContinue instead of saslStart because saslStart isn't done when using
-				// speculative auth.
-				mt.SetFailPoint(mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode: mtest.FailPointMode{
-						Times: 1,
-					},
-					Data: mtest.FailPointData{
-						FailCommands:    []string{"saslContinue"},
-						BlockConnection: true,
-						BlockTimeMS:     150,
-						AppName:         appName,
-					},
-				})
+			//	appName := "authConnectTimeoutTest"
+			//	// Set failpoint on saslContinue instead of saslStart because saslStart isn't done when using
+			//	// speculative auth.
+			//	mt.SetFailPoint(mtest.FailPoint{
+			//		ConfigureFailPoint: "failCommand",
+			//		Mode: mtest.FailPointMode{
+			//			Times: 1,
+			//		},
+			//		Data: mtest.FailPointData{
+			//			FailCommands:    []string{"saslContinue"},
+			//			BlockConnection: true,
+			//			BlockTimeMS:     150,
+			//			AppName:         appName,
+			//		},
+			//	})
 
-				// Reset the client with the appName specified in the failpoint and the pool monitor.
-				tpm := eventtest.NewTestPoolMonitor()
-				mt.ResetClient(baseClientOpts().
-					SetAppName(appName).
-					SetPoolMonitor(tpm.PoolMonitor).
-					// Set a 100ms socket timeout so that the saslContinue delay of 150ms causes a
-					// timeout during socket read (i.e. a timeout not caused by the InsertOne context).
-					SetSocketTimeout(100 * time.Millisecond))
+			//	// Reset the client with the appName specified in the failpoint and the pool monitor.
+			//	tpm := eventtest.NewTestPoolMonitor()
+			//	mt.ResetClient(baseClientOpts().
+			//		SetAppName(appName).
+			//		SetPoolMonitor(tpm.PoolMonitor).
+			//		// Set a 100ms socket timeout so that the saslContinue delay of 150ms causes a
+			//		// timeout during socket read (i.e. a timeout not caused by the InsertOne context).
+			//		SetTimeout(100 * time.Millisecond))
 
-				// Use context.Background() so that the new connection will not time out due to an
-				// operation-scoped timeout.
-				_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
-				assert.NotNil(mt, err, "expected InsertOne error, got nil")
-				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
-				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
-				// Assert that the pool is cleared within 2 seconds.
-				assert.Soon(mt, func(ctx context.Context) {
-					ticker := time.NewTicker(100 * time.Millisecond)
-					defer ticker.Stop()
+			//	// Use context.Background() so that the new connection will not time out due to an
+			//	// operation-scoped timeout.
+			//	_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"test", 1}})
+			//	assert.NotNil(mt, err, "expected InsertOne error, got nil")
+			//	assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
+			//	assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
+			//	// Assert that the pool is cleared within 2 seconds.
+			//	assert.Soon(mt, func(ctx context.Context) {
+			//		ticker := time.NewTicker(100 * time.Millisecond)
+			//		defer ticker.Stop()
 
-					for {
-						select {
-						case <-ticker.C:
-						case <-ctx.Done():
-							return
-						}
+			//		for {
+			//			select {
+			//			case <-ticker.C:
+			//			case <-ctx.Done():
+			//				return
+			//			}
 
-						if tpm.IsPoolCleared() {
-							return
-						}
-					}
-				}, 2*time.Second)
-			})
+			//			if tpm.IsPoolCleared() {
+			//				return
+			//			}
+			//		}
+			//	}, 2*time.Second)
+			//})
 
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {
 				mt.Run("background", func(mt *mtest.T) {

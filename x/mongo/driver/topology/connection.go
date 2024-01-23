@@ -523,11 +523,6 @@ func (c *connection) getCurrentlyStreaming() bool {
 	return c.currentlyStreaming
 }
 
-func (c *connection) setSocketTimeout(timeout time.Duration) {
-	c.readTimeout = timeout
-	c.writeTimeout = timeout
-}
-
 func (c *connection) ID() string {
 	return c.id
 }

@@ -611,8 +611,10 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			clientOpts.SetRetryReads(value.(bool))
 		case "retrywrites":
 			clientOpts.SetRetryWrites(value.(bool))
+		// TODO(GODRIVER-2348): How are we supposed to handle socketTimeoutMS once
+		// deprecated?
 		case "sockettimeoutms":
-			clientOpts.SetSocketTimeout(time.Duration(value.(int32)) * time.Millisecond)
+			clientOpts.SetTimeout(time.Duration(value.(int32)) * time.Millisecond)
 		case "w":
 			wc.W = value
 			wcSet = true

@@ -606,6 +606,11 @@ func (s *Server) update() {
 	performCheck := func() (description.Server, error) {
 		// Create a context for the blocking operations associated with checking the
 		// status of a server.
+		//
+		// The Server Monitoring spec already mandates that drivers set and
+		// dynamically update the read/write timeout of the dedicated connections
+		// used in monitoring threads, so we rely on that to time out commands
+		// rather than adding complexity to the behavior of timeoutMS.
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel() // Release context resources for the check.
 
@@ -767,9 +772,11 @@ func (s *Server) updateDescription(desc description.Server) {
 func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
-		// TODO(GODRIVER-2348): Deprecate this logic
-		WithReadTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
-		WithWriteTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
+		// TODO(GODRIVER-2348): Should we be setting a read/write timeout? If so,
+		// what should the value be? Do we still want this data to be set at the
+		// topology level?
+		//WithReadTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
+		//WithWriteTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
 		// We override whatever handshaker is currently attached to the options with a basic
 		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
@@ -926,22 +933,29 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 
 			// Calculation for maxAwaitTimeMS is taken from time.Duration.Milliseconds (added in Go 1.13).
 			maxAwaitTimeMS := int64(s.cfg.heartbeatInterval) / 1e6
+
 			// If connectTimeoutMS=0, the socket timeout should be infinite. Otherwise, it is connectTimeoutMS +
 			// heartbeatFrequencyMS to account for the fact that the query will block for heartbeatFrequencyMS
 			// server-side.
-			socketTimeout := s.cfg.connectTimeout
-			if socketTimeout != 0 {
-				socketTimeout += s.cfg.heartbeatInterval
+			rwTimeout := s.cfg.connectTimeout
+			if rwTimeout != 0 {
+				rwTimeout += s.cfg.heartbeatInterval
 			}
-			s.conn.setSocketTimeout(socketTimeout)
+
+			s.conn.readTimeout = rwTimeout
+			s.conn.writeTimeout = rwTimeout
+
 			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
 				MaxAwaitTimeMS(maxAwaitTimeMS)
 			s.conn.setCanStream(true)
 			err = baseOperation.Execute(ctx) // HERE
 		default:
-			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
-			// execute a regular heartbeat without any additional parameters.
-			s.conn.setSocketTimeout(s.cfg.connectTimeout)
+			// The server doesn't support the awaitable protocol. Set the RW timeout
+			// to connectTimeoutMS and execute a regular heartbeat without any
+			// additional parameters.
+			s.conn.readTimeout = s.cfg.connectTimeout
+			s.conn.writeTimeout = s.cfg.connectTimeout
+
 			err = baseOperation.Execute(ctx) // HERE
 		}
 
