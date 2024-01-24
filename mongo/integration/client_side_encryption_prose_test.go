@@ -1408,13 +1408,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}{
 			{
 				"invalid certificate",
-				8000,
+				9000,
 				"INVALID_CERT",
 				"expired",
 			},
 			{
 				"invalid hostname",
-				8001,
+				9001,
 				"INVALID_HOSTNAME",
 				"SANs",
 			},
@@ -1462,12 +1462,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "127.0.0.1:8002",
+				"identityPlatformEndpoint": "127.0.0.1:9002",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "127.0.0.1:8002",
+				"endpoint":   "127.0.0.1:9002",
 			},
 			"kmip": {
 				"endpoint": "127.0.0.1:5698",
@@ -1483,15 +1483,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "127.0.0.1:8000",
+				"identityPlatformEndpoint": "127.0.0.1:9000",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "127.0.0.1:8000",
+				"endpoint":   "127.0.0.1:9000",
 			},
 			"kmip": {
-				"endpoint": "127.0.0.1:8000",
+				"endpoint": "127.0.0.1:9000",
 			},
 		}
 
@@ -1504,15 +1504,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "127.0.0.1:8001",
+				"identityPlatformEndpoint": "127.0.0.1:9001",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "127.0.0.1:8001",
+				"endpoint":   "127.0.0.1:9001",
 			},
 			"kmip": {
-				"endpoint": "127.0.0.1:8001",
+				"endpoint": "127.0.0.1:9001",
 			},
 		}
 
@@ -1570,22 +1570,22 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		awsMasterKeyNoClientCert := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8002",
+			"endpoint": "127.0.0.1:9002",
 		}
 		awsMasterKeyWithTLS := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8002",
+			"endpoint": "127.0.0.1:9002",
 		}
 		awsMasterKeyExpired := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8000",
+			"endpoint": "127.0.0.1:9000",
 		}
 		awsMasterKeyInvalidHostname := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8001",
+			"endpoint": "127.0.0.1:9001",
 		}
 		azureMasterKey := map[string]interface{}{
 			"keyVaultEndpoint": "doesnotexist.local",

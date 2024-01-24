@@ -845,21 +845,21 @@ functions:
           ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
 
   start-cse-servers:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
     - command: subprocess.exec
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
+        working_dir: src
         binary: bash
-        background: true
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         args:
-          - ./etc/setup-encryption.sh
-    - command: subprocess.exec
-      params:
-        working_dir: src/go.mongodb.org/mongo-driver
-        binary: bash
-        include_expansions_in_env: ["DRIVERS_TOOLS"]
-        args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/await_servers.sh
+          - |
+            export CSFLE_TLS_CA_FILE="$(pwd)/testdata/kmip-certs/ca-ec.pem"
+            export CSFLE_TLS_CERT_FILE="$(pwd)/testdata/kmip-certs/server-ec.pem"
+            export CSFLE_TLS_CLIENT_CERT_FILE="$(pwd)/testdata/kmip-certs/client-ec.pem"
+            bash ${DRIVERS_TOOLS}/.evergreen/csfle/setup_secrets.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/csfle/start_servers.sh
 
   run-kms-tls-test:
     - command: shell.exec
