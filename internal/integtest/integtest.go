@@ -29,7 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-var connectionString connstring.ConnString
+var connectionString *connstring.ConnString
 var connectionStringOnce sync.Once
 var connectionStringErr error
 var liveTopology *topology.Topology
@@ -211,7 +211,7 @@ func AddServerlessAuthCredentials(uri string) (string, error) {
 }
 
 // ConnString gets the globally configured connection string.
-func ConnString(t *testing.T) connstring.ConnString {
+func ConnString(t *testing.T) *connstring.ConnString {
 	connectionStringOnce.Do(func() {
 		uri, err := MongoDBURI()
 		require.NoError(t, err, "error constructing mongodb URI: %v", err)
@@ -228,7 +228,7 @@ func ConnString(t *testing.T) connstring.ConnString {
 	return connectionString
 }
 
-func GetConnString() (connstring.ConnString, error) {
+func GetConnString() (*connstring.ConnString, error) {
 	mongodbURI := os.Getenv("MONGODB_URI")
 	if mongodbURI == "" {
 		mongodbURI = "mongodb://localhost:27017"
@@ -238,7 +238,7 @@ func GetConnString() (connstring.ConnString, error) {
 
 	cs, err := connstring.ParseAndValidate(mongodbURI)
 	if err != nil {
-		return connstring.ConnString{}, err
+		return nil, err
 	}
 
 	return cs, nil
@@ -249,7 +249,7 @@ func DBName(t *testing.T) string {
 	return GetDBName(ConnString(t))
 }
 
-func GetDBName(cs connstring.ConnString) string {
+func GetDBName(cs *connstring.ConnString) string {
 	if cs.Database != "" {
 		return cs.Database
 	}

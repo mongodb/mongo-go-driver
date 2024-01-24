@@ -578,7 +578,7 @@ func TestClientOptions(t *testing.T) {
 				// definition. The ConnString should only be recorded if there was no error while parsing.
 				cs, err := connstring.ParseAndValidate(tc.uri)
 				if err == nil {
-					tc.result.cs = &cs
+					tc.result.cs = cs
 				}
 
 				// We have to sort string slices in comparison, as Hosts resolved from SRV URIs do not have a set order.

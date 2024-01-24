@@ -73,14 +73,14 @@ var random = randutil.NewLockedRand()
 
 // ParseAndValidate parses the provided URI into a ConnString object.
 // It check that all values are valid.
-func ParseAndValidate(s string) (ConnString, error) {
+func ParseAndValidate(s string) (*ConnString, error) {
 	connStr, err := Parse(s)
 	if err != nil {
-		return connStr, err
+		return nil, err
 	}
 	err = connStr.Validate()
 	if err != nil {
-		return connStr, fmt.Errorf("error validating uri: %w", err)
+		return nil, fmt.Errorf("error validating uri: %w", err)
 	}
 	return connStr, nil
 }
@@ -88,11 +88,11 @@ func ParseAndValidate(s string) (ConnString, error) {
 // Parse parses the provided URI into a ConnString object
 // but does not check that all values are valid. Use `ConnString.Validate()`
 // to run the validation checks separately.
-func Parse(s string) (ConnString, error) {
+func Parse(s string) (*ConnString, error) {
 	p := parser{dnsResolver: dns.DefaultResolver}
 	connStr, err := p.parse(s)
 	if err != nil {
-		err = fmt.Errorf("error parsing uri: %w", err)
+		return nil, fmt.Errorf("error parsing uri: %w", err)
 	}
 	return connStr, err
 }
@@ -188,20 +188,20 @@ type ConnString struct {
 	UnknownOptions map[string][]string
 }
 
-func (u ConnString) String() string {
+func (u *ConnString) String() string {
 	return u.Original
 }
 
 // HasAuthParameters returns true if this ConnString has any authentication parameters set and therefore represents
 // a request for authentication.
-func (u ConnString) HasAuthParameters() bool {
+func (u *ConnString) HasAuthParameters() bool {
 	// Check all auth parameters except for AuthSource because an auth source without other credentials is semantically
 	// valid and must not be interpreted as a request for authentication.
 	return u.AuthMechanism != "" || u.AuthMechanismProperties != nil || u.UsernameSet || u.PasswordSet
 }
 
 // Validate checks that the Auth and SSL parameters are valid values.
-func (u ConnString) Validate() error {
+func (u *ConnString) Validate() error {
 	var err error
 
 	if err = u.validateAuth(); err != nil {
@@ -699,7 +699,7 @@ func (u *ConnString) addOptions(connectionArgPairs []string) error {
 	return nil
 }
 
-func (u ConnString) validateAuth() error {
+func (u *ConnString) validateAuth() error {
 	switch strings.ToLower(u.AuthMechanism) {
 	case "mongodb-cr":
 		if u.Username == "" {
@@ -784,7 +784,7 @@ func (u ConnString) validateAuth() error {
 	return nil
 }
 
-func (u ConnString) validateSSL() error {
+func (u *ConnString) validateSSL() error {
 	if !u.SSL {
 		return nil
 	}
@@ -814,31 +814,31 @@ func sanitizeHost(host string) (string, error) {
 	if host == "" {
 		return host, nil
 	}
-	host, err := url.QueryUnescape(host)
+	unescaped, err := url.QueryUnescape(host)
 	if err != nil {
-		return host, fmt.Errorf("invalid host %q: %w", host, err)
+		return "", fmt.Errorf("invalid host %q: %w", host, err)
 	}
 
-	_, port, err := net.SplitHostPort(host)
+	_, port, err := net.SplitHostPort(unescaped)
 	// this is unfortunate that SplitHostPort actually requires
 	// a port to exist.
 	if err != nil {
 		var addrError *net.AddrError
 		if !errors.As(err, &addrError) || addrError.Err != "missing port in address" {
-			return host, err
+			return "", err
 		}
 	}
 
 	if port != "" {
 		d, err := strconv.Atoi(port)
 		if err != nil {
-			return host, fmt.Errorf("port must be an integer: %w", err)
+			return "", fmt.Errorf("port must be an integer: %w", err)
 		}
 		if d <= 0 || d >= 65536 {
-			return host, fmt.Errorf("port must be in the range [1, 65535]")
+			return "", fmt.Errorf("port must be in the range [1, 65535]")
 		}
 	}
-	return host, nil
+	return unescaped, nil
 }
 
 // ConnectMode informs the driver on how to connect
@@ -875,8 +875,8 @@ type parser struct {
 	dnsResolver *dns.Resolver
 }
 
-func (p *parser) parse(original string) (ConnString, error) {
-	var connStr ConnString
+func (p *parser) parse(original string) (*ConnString, error) {
+	connStr := &ConnString{}
 	connStr.Original = original
 	uri := original
 
@@ -890,7 +890,7 @@ func (p *parser) parse(original string) (ConnString, error) {
 		// remove the scheme
 		uri = uri[len(SchemeMongoDB)+3:]
 	} else {
-		return connStr, errors.New(`scheme must be "mongodb" or "mongodb+srv"`)
+		return nil, errors.New(`scheme must be "mongodb" or "mongodb+srv"`)
 	}
 
 	if idx := strings.Index(uri, "@"); idx != -1 {
@@ -908,24 +908,24 @@ func (p *parser) parse(original string) (ConnString, error) {
 
 		// Validate and process the username.
 		if strings.Contains(username, "/") {
-			return connStr, fmt.Errorf("unescaped slash in username")
+			return nil, fmt.Errorf("unescaped slash in username")
 		}
 		connStr.Username, err = url.PathUnescape(username)
 		if err != nil {
-			return connStr, fmt.Errorf("invalid username: %w", err)
+			return nil, fmt.Errorf("invalid username: %w", err)
 		}
 		connStr.UsernameSet = true
 
 		// Validate and process the password.
 		if strings.Contains(password, ":") {
-			return connStr, fmt.Errorf("unescaped colon in password")
+			return nil, fmt.Errorf("unescaped colon in password")
 		}
 		if strings.Contains(password, "/") {
-			return connStr, fmt.Errorf("unescaped slash in password")
+			return nil, fmt.Errorf("unescaped slash in password")
 		}
 		connStr.Password, err = url.PathUnescape(password)
 		if err != nil {
-			return connStr, fmt.Errorf("invalid password: %w", err)
+			return nil, fmt.Errorf("invalid password: %w", err)
 		}
 	}
 
@@ -933,10 +933,10 @@ func (p *parser) parse(original string) (ConnString, error) {
 	hosts := uri
 	if idx := strings.IndexAny(uri, "/?@"); idx != -1 {
 		if uri[idx] == '@' {
-			return connStr, fmt.Errorf("unescaped @ sign in user info")
+			return nil, fmt.Errorf("unescaped @ sign in user info")
 		}
 		if uri[idx] == '?' {
-			return connStr, fmt.Errorf("must have a / before the query ?")
+			return nil, fmt.Errorf("must have a / before the query ?")
 		}
 		hosts = uri[:idx]
 	}
@@ -944,7 +944,7 @@ func (p *parser) parse(original string) (ConnString, error) {
 	for _, host := range strings.Split(hosts, ",") {
 		host, err = sanitizeHost(host)
 		if err != nil {
-			return connStr, fmt.Errorf("invalid host %q: %w", host, err)
+			return nil, fmt.Errorf("invalid host %q: %w", host, err)
 		}
 		if host != "" {
 			connStr.RawHosts = append(connStr.RawHosts, host)
@@ -954,7 +954,7 @@ func (p *parser) parse(original string) (ConnString, error) {
 	uri = uri[len(hosts):]
 	extractedDatabase, err := extractDatabaseFromURI(uri)
 	if err != nil {
-		return connStr, err
+		return nil, err
 	}
 
 	uri = extractedDatabase.uri
@@ -963,7 +963,7 @@ func (p *parser) parse(original string) (ConnString, error) {
 	// grab connection arguments from URI
 	connectionArgsFromQueryString, err := extractQueryArgsFromURI(uri)
 	if err != nil {
-		return connStr, err
+		return nil, err
 	}
 
 	// grab connection arguments from TXT record and enable SSL if "mongodb+srv://"
@@ -971,7 +971,7 @@ func (p *parser) parse(original string) (ConnString, error) {
 	if connStr.Scheme == SchemeMongoDBSRV && p.dnsResolver != nil {
 		connectionArgsFromTXT, err = p.dnsResolver.GetConnectionArgsFromTXT(hosts)
 		if err != nil {
-			return connStr, err
+			return nil, err
 		}
 
 		// SSL is enabled by default for SRV, but can be manually disabled with "ssl=false".
@@ -986,7 +986,7 @@ func (p *parser) parse(original string) (ConnString, error) {
 
 	err = connStr.addOptions(connectionArgPairs)
 	if err != nil {
-		return connStr, err
+		return nil, err
 	}
 
 	// do SRV lookup if "mongodb+srv://"
@@ -1018,12 +1018,12 @@ func (p *parser) parse(original string) (ConnString, error) {
 		connStr.Hosts = hosts
 	}
 	if len(connStr.Hosts) == 0 {
-		return connStr, fmt.Errorf("must have at least 1 host")
+		return nil, fmt.Errorf("must have at least 1 host")
 	}
 
 	err = connStr.setDefaultAuthParams(extractedDatabase.db)
 	if err != nil {
-		return connStr, err
+		return nil, err
 	}
 
 	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.

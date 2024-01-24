@@ -377,7 +377,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.err = err
 		return c
 	}
-	c.cs = &cs
+	c.cs = cs
 
 	if cs.AppName != "" {
 		c.AppName = &cs.AppName
