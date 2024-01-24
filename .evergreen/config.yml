@@ -851,9 +851,9 @@ functions:
     - command: shell.exec
       params:
         working_dir: src
-        binary: bash
+        shell: bash
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
-        args:
+        script:
           - |
             export CSFLE_TLS_CA_FILE="$(pwd)/testdata/kmip-certs/ca-ec.pem"
             export CSFLE_TLS_CERT_FILE="$(pwd)/testdata/kmip-certs/server-ec.pem"
