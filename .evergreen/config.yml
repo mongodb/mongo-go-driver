@@ -855,6 +855,7 @@ functions:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         args:
           - |
+            set -eux
             export CSFLE_TLS_CA_FILE="$(pwd)/testdata/kmip-certs/ca-ec.pem"
             export CSFLE_TLS_CERT_FILE="$(pwd)/testdata/kmip-certs/server-ec.pem"
             export CSFLE_TLS_CLIENT_CERT_FILE="$(pwd)/testdata/kmip-certs/client-ec.pem"
