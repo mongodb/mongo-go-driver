@@ -848,19 +848,13 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
-    - command: shell.exec
+    - command: subprocess.exec
       params:
         working_dir: src
-        shell: bash
+        binary: bash
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
-        script:
-          - |
-            export CSFLE_TLS_CA_FILE="$(pwd)/testdata/kmip-certs/ca-ec.pem"
-            export CSFLE_TLS_CERT_FILE="$(pwd)/testdata/kmip-certs/server-ec.pem"
-            export CSFLE_TLS_CLIENT_CERT_FILE="$(pwd)/testdata/kmip-certs/client-ec.pem"
-            ls ${DRIVERS_TOOLS}/.evergreen/csfle
-            bash ${DRIVERS_TOOLS}/.evergreen/csfle/setup_secrets.sh
-            bash ${DRIVERS_TOOLS}/.evergreen/csfle/start_servers.sh
+        args:
+          - etc/setup-encryption.sh
 
   run-kms-tls-test:
     - command: shell.exec
