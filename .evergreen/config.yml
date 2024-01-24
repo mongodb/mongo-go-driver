@@ -848,22 +848,19 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
-    - command: subprocess.exec
+    - command: shell.exec
       params:
-        working_dir: src/go.mongodb.org/mongo-driver
+        working_dir: src
         binary: bash
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         args:
           - |
-            set -eux
-            echo "1"
             export CSFLE_TLS_CA_FILE="$(pwd)/testdata/kmip-certs/ca-ec.pem"
-            echo "2"
             export CSFLE_TLS_CERT_FILE="$(pwd)/testdata/kmip-certs/server-ec.pem"
-            echo "3"
             export CSFLE_TLS_CLIENT_CERT_FILE="$(pwd)/testdata/kmip-certs/client-ec.pem"
-            echo "4"
-
+            ls ${DRIVERS_TOOLS}/.evergreen/csfle
+            bash ${DRIVERS_TOOLS}/.evergreen/csfle/setup_secrets.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/csfle/start_servers.sh
 
   run-kms-tls-test:
     - command: shell.exec
