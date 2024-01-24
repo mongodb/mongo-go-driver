@@ -850,7 +850,7 @@ functions:
         role_arn: ${aws_test_secrets_role}
     - command: subprocess.exec
       params:
-        working_dir: src
+        working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
         args:
