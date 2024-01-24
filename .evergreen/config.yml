@@ -863,12 +863,7 @@ functions:
             echo "3"
             export CSFLE_TLS_CLIENT_CERT_FILE="$(pwd)/testdata/kmip-certs/client-ec.pem"
             echo "4"
-            ls ${DRIVERS_TOOLS}/.evergreen/csfle
-            echo "5"
-            bash ${DRIVERS_TOOLS}/.evergreen/csfle/setup_secrets.sh
-            echo "6"
-            bash ${DRIVERS_TOOLS}/.evergreen/csfle/start_servers.sh
-            echo "7"
+
 
   run-kms-tls-test:
     - command: shell.exec
