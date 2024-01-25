@@ -2680,7 +2680,7 @@ buildvariants:
       - "serverless_task_group"
 
   - matrix_name: "serverless-proxy"
-    matrix_spec: { os-serverless: "*", serverless-type: "prox" }
+    matrix_spec: { os-serverless: "*", serverless-type: "proxy" }
     display_name: "${serverless-type} ${os-serverless}"
     tasks:
       - "serverless_task_group"
