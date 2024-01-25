@@ -170,10 +170,7 @@ func ensureID(
 		var id struct {
 			ID interface{} `bson:"_id"`
 		}
-		dec, err := getDecoder(doc, bsonOpts, reg)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error configuring BSON decoder: %w", err)
-		}
+		dec := getDecoder(doc, bsonOpts, reg)
 		err = dec.Decode(&id)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error unmarshaling BSON document: %w", err)

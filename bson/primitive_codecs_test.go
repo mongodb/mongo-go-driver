@@ -466,10 +466,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 				t.Parallel()
 
 				b := make(bsonrw.SliceWriter, 0, 512)
-				vw, err := bsonrw.NewBSONValueWriter(&b)
-				noerr(t, err)
+				vw := bsonrw.NewValueWriter(&b)
 				enc := NewEncoder(vw)
-				err = enc.Encode(tc.value)
+				err := enc.Encode(tc.value)
 				if !errors.Is(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
@@ -1045,11 +1044,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("Decode", func(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := bsonrw.NewBSONDocumentReader(tc.b)
-					dec, err := NewDecoder(vr)
-					noerr(t, err)
+					vr := bsonrw.NewValueReader(tc.b)
+					dec := NewDecoder(vr)
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
-					err = dec.Decode(gotVal.Interface())
+					err := dec.Decode(gotVal.Interface())
 					noerr(t, err)
 					got := gotVal.Elem().Interface()
 					want := tc.value

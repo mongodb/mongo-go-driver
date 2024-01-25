@@ -49,15 +49,12 @@ type ValueMarshaler interface {
 // marshaling process accordingly.
 func Marshal(val interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		return nil, err
-	}
+	vw := bsonrw.NewValueWriter(buf)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
 	enc.SetRegistry(DefaultRegistry)
-	err = enc.Encode(val)
+	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
 	}

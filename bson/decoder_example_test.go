@@ -31,10 +31,7 @@ func ExampleDecoder() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
-	if err != nil {
-		panic(err)
-	}
+	decoder := bson.NewDecoder(bsonrw.NewValueReader(data))
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -70,10 +67,7 @@ func ExampleDecoder_DefaultDocumentM() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
 	// into a City struct.
-	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
-	if err != nil {
-		panic(err)
-	}
+	decoder := bson.NewDecoder(bsonrw.NewValueReader(data))
 
 	type City struct {
 		Name       string      `bson:"name"`
@@ -111,10 +105,7 @@ func ExampleDecoder_UseJSONStructTags() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder, err := bson.NewDecoder(bsonrw.NewBSONDocumentReader(data))
-	if err != nil {
-		panic(err)
-	}
+	decoder := bson.NewDecoder(bsonrw.NewValueReader(data))
 
 	type Product struct {
 		Name  string `json:"name"`
@@ -147,10 +138,7 @@ func ExampleDecoder_extendedJSON() {
 	if err != nil {
 		panic(err)
 	}
-	decoder, err := bson.NewDecoder(vr)
-	if err != nil {
-		panic(err)
-	}
+	decoder := bson.NewDecoder(vr)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -185,10 +173,7 @@ func ExampleDecoder_multipleExtendedJSONDocuments() {
 	if err != nil {
 		panic(err)
 	}
-	decoder, err := bson.NewDecoder(vr)
-	if err != nil {
-		panic(err)
-	}
+	decoder := bson.NewDecoder(vr)
 
 	type Coordinate struct {
 		X int
