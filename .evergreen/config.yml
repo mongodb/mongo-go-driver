@@ -1021,57 +1021,6 @@ functions:
           ${PREPARE_SHELL}
           ${PROJECT_DIRECTORY}/.evergreen/run-fuzz.sh
 
-  serverless-crypt-shared:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
-            echo "expected SERVERLESS_MONGODB_VERSION to be set"
-            exit 1
-          fi
-
-          # Download the enterprise server download for current platform to $MONGODB_BINARIES.
-          # This is required for tests that need mongocryptd.
-          # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-          ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-              --component archive \
-              --version ${SERVERLESS_MONGODB_VERSION} \
-              --edition enterprise \
-              --out $MONGODB_BINARIES \
-              --strip-path-components 2
-
-          # Download the crypt_shared dynamic library for the current platform.
-          ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-            --component crypt_shared \
-            --version ${SERVERLESS_MONGODB_VERSION} \
-            --edition enterprise \
-            --out . \
-            --only "**/mongo_crypt_v1.*" \
-            --strip-path-components 1
-
-          # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
-          # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
-          # downloaded files.
-          CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
-            -name 'mongo_crypt_v1.so' -o \
-            -name 'mongo_crypt_v1.dll' -o \
-            -name 'mongo_crypt_v1.dylib')"
-
-          # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
-          if [ "Windows_NT" = "$OS" ]; then
-              CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
-          fi
-
-          echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
-
-    # Load the expansion file to make an evergreen variable with the current unique version
-    - command: expansions.update
-      params:
-        file: crypt-expansion.yml
-
 pre:
   - func: fetch-source
   - func: prepare-resources
@@ -2340,6 +2289,16 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
+  - id: serverless-type
+    display_name: "Serverless Type"
+    values:
+      - id: "original"
+        display_name: "Serverless"
+      - id: "proxy"
+        display_name: "Serverless Proxy"
+        variables:
+          VAULT_NAME: "serverless_next"
+
 task_groups:
   - name: serverless_task_group
     setup_group_can_fail_task: true
@@ -2355,12 +2314,36 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh ${VAULT_NAME}
             bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
       - command: expansions.update
         params:
           file: serverless-expansion.yml
-      - func: serverless-crypt-shared
+      - command: shell.exec
+        params:
+          shell: "bash"
+          script: |
+            ${PREPARE_SHELL}
+
+            # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
+            # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
+            # downloaded files.
+            CRYPT_SHARED_LIB_PATH="$(find $(pwd) -maxdepth 1 -type f \
+              -name 'mongo_crypt_v1.so' -o \
+              -name 'mongo_crypt_v1.dll' -o \
+              -name 'mongo_crypt_v1.dylib')"
+
+            # If we're on Windows, convert the "cygdrive" path to Windows-style paths.
+            if [ "Windows_NT" = "$OS" ]; then
+                CRYPT_SHARED_LIB_PATH=$(cygpath -m $CRYPT_SHARED_LIB_PATH)
+            fi
+
+            echo "CRYPT_SHARED_LIB_PATH: $CRYPT_SHARED_LIB_PATH" >> crypt-expansion.yml
+
+      # Load the expansion file to make an evergreen variable with the current unique version
+      - command: expansions.update
+        params:
+          file: crypt-expansion.yml
 
     teardown_group:
       - command: shell.exec
@@ -2368,40 +2351,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
-      - func: handle-test-artifacts
-      - func: cleanup
-    tasks:
-      - ".serverless"
-
-  - name: serverless_next_task_group
-    setup_group_can_fail_task: true
-    setup_group_timeout_secs: 1800 # 30 minutes
-    setup_group:
-      - func: fetch-source
-      - func: prepare-resources
-      - func: fix-absolute-paths
-      - func: make-files-executable
-      - func: start-cse-servers
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh serverless_next
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
-      - command: expansions.update
-        params:
-          file: serverless-expansion.yml
-      - func: serverless-crypt-shared
-
-    teardown_group:
-      - command: shell.exec
-        params:
-          shell: "bash"
-          script: |
-            ${PREPARE_SHELL}
-            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh ${VAULT_NAME}
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
@@ -2637,7 +2587,13 @@ buildvariants:
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    display_name: "${version} ${os-ssl-40}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy"
+
+  - matrix_name: "tests-latest-zlib-zstd-support"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2679,46 +2635,58 @@ buildvariants:
 
   - matrix_name: "race-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
 
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    display_name: "API Version ${version} ${os-ssl-40}"
+    tasks:
+      - name: ".versioned-api"
+
+  - matrix_name: "versioned-api-latest-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    display_name: "Load Balancer Support ${version} ${os-ssl-40}"
+    tasks:
+      - name: ".load-balancer"
+
+  - matrix_name: "load-balancer-latest-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
     tags: ["pullrequest"]
-    matrix_spec: { os-serverless: "*" }
-    display_name: "Serverless ${os-serverless}"
+    matrix_spec: { os-serverless: "*", serverless-type: "original" }
+    display_name: "${serverless-type} ${os-serverless}"
     tasks:
       - "serverless_task_group"
 
-  - matrix_name: "serverless-next"
-    matrix_spec: { os-serverless: "*" }
-    display_name: "Serverless Next ${os-serverless}"
+  - matrix_name: "serverless-proxy"
+    matrix_spec: { os-serverless: "*", serverless-type: "prox" }
+    display_name: "${serverless-type} ${os-serverless}"
     tasks:
-      - "serverless_next_task_group"
+      - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
@@ -2731,7 +2699,7 @@ buildvariants:
         batchtime: 1440 # Run at most once per 24 hours.
 
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["latest"], os-faas-80: ["rhel87-large-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group
