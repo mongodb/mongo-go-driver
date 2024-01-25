@@ -216,14 +216,10 @@ func TestConnection(t *testing.T) {
 				testCases := []struct {
 					name        string
 					ctxDeadline time.Duration
-					timeout     time.Duration
 					deadline    time.Time
 				}{
-					{"no deadline", 0, 0, time.Now().Add(1 * time.Second)},
-					{"ctx deadline", 5 * time.Second, 0, time.Now().Add(6 * time.Second)},
-					{"timeout", 0, 10 * time.Second, time.Now().Add(11 * time.Second)},
-					{"both (ctx wins)", 15 * time.Second, 20 * time.Second, time.Now().Add(16 * time.Second)},
-					{"both (timeout wins)", 30 * time.Second, 25 * time.Second, time.Now().Add(26 * time.Second)},
+					{"no deadline", 0, time.Now().Add(1 * time.Second)},
+					{"ctx deadline", 5 * time.Second, time.Now().Add(6 * time.Second)},
 				}
 
 				for _, tc := range testCases {
@@ -240,7 +236,7 @@ func TestConnection(t *testing.T) {
 							message:      "failed to set write deadline",
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set writeDeadline error")}
-						conn := &connection{id: "foobar", nc: tnc, writeTimeout: tc.timeout, state: connConnected}
+						conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 						got := conn.writeWireMessage(ctx, []byte{})
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)
@@ -345,14 +341,10 @@ func TestConnection(t *testing.T) {
 				testCases := []struct {
 					name        string
 					ctxDeadline time.Duration
-					timeout     time.Duration
 					deadline    time.Time
 				}{
-					{"no deadline", 0, 0, time.Now().Add(1 * time.Second)},
-					{"ctx deadline", 5 * time.Second, 0, time.Now().Add(6 * time.Second)},
-					{"timeout", 0, 10 * time.Second, time.Now().Add(11 * time.Second)},
-					{"both (ctx wins)", 15 * time.Second, 20 * time.Second, time.Now().Add(16 * time.Second)},
-					{"both (timeout wins)", 30 * time.Second, 25 * time.Second, time.Now().Add(26 * time.Second)},
+					{"no deadline", 0, time.Now().Add(1 * time.Second)},
+					{"ctx deadline", 5 * time.Second, time.Now().Add(6 * time.Second)},
 				}
 
 				for _, tc := range testCases {
@@ -369,7 +361,7 @@ func TestConnection(t *testing.T) {
 							message:      "failed to set read deadline",
 						}
 						tnc := &testNetConn{deadlineerr: errors.New("set readDeadline error")}
-						conn := &connection{id: "foobar", nc: tnc, readTimeout: tc.timeout, state: connConnected}
+						conn := &connection{id: "foobar", nc: tnc, state: connConnected}
 						_, got := conn.readWireMessage(ctx)
 						if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 							t.Errorf("errors do not match. got %v; want %v", got, want)

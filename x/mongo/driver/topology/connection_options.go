@@ -52,8 +52,6 @@ type connectionConfig struct {
 	handshaker               Handshaker
 	idleTimeout              time.Duration
 	cmdMonitor               *event.CommandMonitor
-	readTimeout              time.Duration
-	writeTimeout             time.Duration
 	tlsConfig                *tls.Config
 	httpClient               *http.Client
 	compressors              []string
@@ -124,20 +122,6 @@ func WithHandshaker(fn func(Handshaker) Handshaker) ConnectionOption {
 func WithIdleTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 	return func(c *connectionConfig) {
 		c.idleTimeout = fn(c.idleTimeout)
-	}
-}
-
-// WithReadTimeout configures the maximum read time for a connection.
-func WithReadTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
-	return func(c *connectionConfig) {
-		c.readTimeout = fn(c.readTimeout)
-	}
-}
-
-// WithWriteTimeout configures the maximum write time for a connection.
-func WithWriteTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
-	return func(c *connectionConfig) {
-		c.writeTimeout = fn(c.writeTimeout)
 	}
 }
 

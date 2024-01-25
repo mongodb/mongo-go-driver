@@ -54,8 +54,6 @@ type connection struct {
 	addr                 address.Address
 	idleTimeout          time.Duration
 	idleDeadline         atomic.Value // Stores a time.Time
-	readTimeout          time.Duration
-	writeTimeout         time.Duration
 	desc                 description.Server
 	helloRTT             time.Duration
 	compressor           wiremessage.CompressorID
@@ -88,8 +86,6 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		id:                   id,
 		addr:                 addr,
 		idleTimeout:          cfg.idleTimeout,
-		readTimeout:          cfg.readTimeout,
-		writeTimeout:         cfg.writeTimeout,
 		connectDone:          make(chan struct{}),
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
@@ -335,17 +331,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		}
 	}
 
-	var deadline time.Time
-	if c.writeTimeout != 0 {
-		deadline = time.Now().Add(c.writeTimeout)
-	}
-
-	var contextDeadlineUsed bool
-	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
-		contextDeadlineUsed = true
-		deadline = dl
-	}
-
+	deadline, contextDeadlineUsed := ctx.Deadline()
 	if err := c.nc.SetWriteDeadline(deadline); err != nil {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set write deadline"}
 	}
@@ -389,17 +375,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		}
 	}
 
-	var deadline time.Time
-	if c.readTimeout != 0 {
-		deadline = time.Now().Add(c.readTimeout)
-	}
-
-	var contextDeadlineUsed bool
-	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
-		contextDeadlineUsed = true
-		deadline = dl
-	}
-
+	deadline, contextDeadlineUsed := ctx.Deadline()
 	if err := c.nc.SetReadDeadline(deadline); err != nil {
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}

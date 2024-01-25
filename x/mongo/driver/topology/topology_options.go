@@ -293,16 +293,6 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	if co.ConnectTimeout != nil {
 		cfgp.ConnectTimeout = *co.ConnectTimeout
 	}
-	// TODO(GODRIVER-2348): Should we be setting a read/write timeout? If so,
-	// what should the value be? Do we still want this data to be set at the
-	// topology level?
-	//if co.Timeout != nil {
-	//	connOpts = append(
-	//		connOpts,
-	//		WithReadTimeout(func(time.Duration) time.Duration { return *co.Timeout }),
-	//		WithWriteTimeout(func(time.Duration) time.Duration { return *co.Timeout }),
-	//	)
-	//}
 	// TLSConfig
 	if co.TLSConfig != nil {
 		connOpts = append(connOpts, WithTLSConfig(

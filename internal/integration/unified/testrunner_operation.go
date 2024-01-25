@@ -436,7 +436,6 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 			if args.eventCompleted(client) {
 				return nil
 			}
-
 		}
 
 		time.Sleep(100 * time.Millisecond)

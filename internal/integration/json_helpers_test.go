@@ -110,11 +110,6 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "serverSelectionTimeoutMS":
 			sst := convertValueToMilliseconds(t, opt)
 			clientOpts.SetServerSelectionTimeout(sst)
-		// TODO(GODRIVER-2348): How are we supposed to handle socketTimeoutMS once
-		// deprecated?
-		//case "socketTimeoutMS":
-		//	st := convertValueToMilliseconds(t, opt)
-		//	clientOpts.SetSocketTimeout(st)
 		case "minPoolSize":
 			clientOpts.SetMinPoolSize(uint64(opt.AsInt64()))
 		case "maxPoolSize":

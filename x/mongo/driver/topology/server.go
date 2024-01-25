@@ -772,13 +772,6 @@ func (s *Server) updateDescription(desc description.Server) {
 func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
-		// TODO(GODRIVER-2348): Should we be setting a read/write timeout? If so,
-		// what should the value be? Do we still want this data to be set at the
-		// topology level?
-		//WithReadTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
-		//WithWriteTimeout(func(time.Duration) time.Duration { return 10 * time.Second }),
-		// We override whatever handshaker is currently attached to the options with a basic
-		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
 			return operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
 				ServerAPI(s.cfg.serverAPI)
@@ -880,10 +873,88 @@ func isStreamable(srv *Server) bool {
 	return srv.Description().Kind != description.Unknown && srv.Description().TopologyVersion != nil
 }
 
+func (s *Server) streamable() bool {
+	return isStreamingEnabled(s) && isStreamable(s)
+}
+
+// getSocketTimeout will return the maximum allowable duration for streaming /
+// polling a hello command during server monitoring.
+func getSocketTimeout(srv *Server) time.Duration {
+	if srv.conn.getCurrentlyStreaming() || srv.streamable() {
+		// If connectTimeoutMS=0, the operation timeout should be infinite.
+		// Otherwise, it is connectTimeoutMS + heartbeatFrequencyMS to account for
+		// the fact that the query will block for heartbeatFrequencyMS
+		// server-side.
+		streamingTO := srv.cfg.connectTimeout
+		if streamingTO != 0 {
+			streamingTO += srv.cfg.heartbeatInterval
+		}
+
+		return streamingTO
+	}
+
+	// The server doesn't support the awaitable protocol. Set the socket timeout
+	// to connectTimeoutMS and execute a regular heartbeat without any
+	// additional parameters.
+	return srv.cfg.connectTimeout
+}
+
+// contextWithSocketTimeout will apply the appropriate socket timeout to the
+// parent context for server monitoring.
+func contextWithSocketTimeout(parent context.Context, srv *Server) (context.Context, context.CancelFunc) {
+	var cancel context.CancelFunc
+
+	timeout := getSocketTimeout(srv)
+	if timeout == 0 {
+		return parent, cancel
+	}
+
+	return context.WithTimeout(parent, timeout)
+}
+
+// doHandshake will construct the hello operation use to execute a handshake
+// between the client and a server. Depending on the configuration and version,
+// this function will either poll, stream, or resume streaming.
+func doHandshake(ctx context.Context, srv *Server) (description.Server, error) {
+	heartbeatConn := initConnection{srv.conn}
+	handshakeOp := srv.createBaseOperation(heartbeatConn)
+
+	ctx, cancel := contextWithSocketTimeout(ctx, srv)
+	defer cancel()
+
+	// If we are currently streaming, get more data and return the result.
+	if srv.conn.getCurrentlyStreaming() {
+		if err := handshakeOp.StreamResponse(ctx, heartbeatConn); err != nil {
+			return description.Server{}, err
+		}
+
+		return handshakeOp.Result(srv.address), nil
+	}
+
+	// If the server supports streaming, update it so the next handshake streams
+	// the response.
+	if srv.streamable() {
+		srv.conn.setCanStream(true)
+
+		maxAwaitTimeMS := int64(srv.cfg.heartbeatInterval) / 1e6
+
+		handshakeOp = handshakeOp.
+			TopologyVersion(srv.Description().TopologyVersion).
+			MaxAwaitTimeMS(maxAwaitTimeMS)
+	}
+
+	// Perform the handshake.
+	if err := handshakeOp.Execute(ctx); err != nil {
+		return description.Server{}, err
+	}
+
+	return handshakeOp.Result(srv.address), nil
+}
+
 func (s *Server) check(ctx context.Context) (description.Server, error) {
 	var descPtr *description.Server
 	var err error
-	var duration time.Duration
+	var execDuration time.Duration
 
 	start := time.Now()
 
@@ -897,7 +968,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 		s.publishServerHeartbeatStartedEvent(connID, false)
 		// Create a new connection and add it's handshake RTT as a sample.
 		err = s.setupHeartbeatConnection(ctx)
-		duration = time.Since(start)
+		execDuration = time.Since(start)
 		connID = "0"
 		if s.conn != nil {
 			connID = s.conn.ID()
@@ -906,84 +977,47 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			s.publishServerHeartbeatSucceededEvent(connID, duration, s.conn.desc, false)
+			s.publishServerHeartbeatSucceededEvent(connID, execDuration, s.conn.desc, false)
 		} else {
 			err = unwrapConnectionError(err)
-			s.publishServerHeartbeatFailedEvent(connID, duration, err, false)
+			s.publishServerHeartbeatFailedEvent(connID, execDuration, err, false)
 		}
 	} else {
-		// An existing connection is being used. Use the server description properties to execute the right heartbeat.
+		// An existing connection is being used. Use the server description
+		// properties to execute the right heartbeat.
 
-		// Wrap conn in a type that implements driver.StreamerConnection.
-		heartbeatConn := initConnection{s.conn}
-		baseOperation := s.createBaseOperation(heartbeatConn)
-		previousDescription := s.Description()
 		streamable := isStreamingEnabled(s) && isStreamable(s)
 
 		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
 
-		switch {
-		case s.conn.getCurrentlyStreaming():
-			// The connection is already in a streaming state, so we stream the next response.
-			err = baseOperation.StreamResponse(ctx, heartbeatConn) // HERE
-		case streamable:
-			// The server supports the streamable protocol. Set the socket timeout to
-			// connectTimeoutMS+heartbeatFrequencyMS and execute an awaitable hello request. Set conn.canStream so
-			// the wire message will advertise streaming support to the server.
+		var tempDesc description.Server
+		tempDesc, err = doHandshake(ctx, s) // Perform a handshake with the server
 
-			// Calculation for maxAwaitTimeMS is taken from time.Duration.Milliseconds (added in Go 1.13).
-			maxAwaitTimeMS := int64(s.cfg.heartbeatInterval) / 1e6
-
-			// If connectTimeoutMS=0, the socket timeout should be infinite. Otherwise, it is connectTimeoutMS +
-			// heartbeatFrequencyMS to account for the fact that the query will block for heartbeatFrequencyMS
-			// server-side.
-			rwTimeout := s.cfg.connectTimeout
-			if rwTimeout != 0 {
-				rwTimeout += s.cfg.heartbeatInterval
-			}
-
-			s.conn.readTimeout = rwTimeout
-			s.conn.writeTimeout = rwTimeout
-
-			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
-				MaxAwaitTimeMS(maxAwaitTimeMS)
-			s.conn.setCanStream(true)
-			err = baseOperation.Execute(ctx) // HERE
-		default:
-			// The server doesn't support the awaitable protocol. Set the RW timeout
-			// to connectTimeoutMS and execute a regular heartbeat without any
-			// additional parameters.
-			s.conn.readTimeout = s.cfg.connectTimeout
-			s.conn.writeTimeout = s.cfg.connectTimeout
-
-			err = baseOperation.Execute(ctx) // HERE
-		}
-
-		duration = time.Since(start)
+		execDuration = time.Since(start)
 
 		// We need to record an RTT sample in the polling case so that if the server
 		// is < 4.4, or if polling is specified by the user, then the
 		// RTT-short-circuit feature of CSOT is not disabled.
 		if !streamable {
-			s.rttMonitor.addSample(duration)
+			s.rttMonitor.addSample(execDuration)
 		}
 
 		if err == nil {
-			tempDesc := baseOperation.Result(s.address)
 			descPtr = &tempDesc
-			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), execDuration,
+				tempDesc, s.conn.getCurrentlyStreaming() || streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
 				_ = s.conn.close()
 			}
-			s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatFailedEvent(s.conn.ID(), execDuration, err, s.conn.getCurrentlyStreaming() || streamable)
 		}
 	}
 
 	if descPtr != nil {
-		// The check was successful. Set the average RTT and the 90th percentile RTT and return.
+		// The check was successful. Set the average RTT and return.
 		desc := *descPtr
 		desc = desc.SetAverageRTT(s.rttMonitor.EWMA())
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
