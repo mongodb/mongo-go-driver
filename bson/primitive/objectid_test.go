@@ -44,6 +44,52 @@ func BenchmarkNewObjectIDFromTimestamp(b *testing.B) {
 	}
 }
 
+func BenchmarkObjectIDJSON(b *testing.B) {
+	b.Run("Marshal", func(b *testing.B) {
+		id := NewObjectID()
+		data, err := id.MarshalJSON()
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.SetBytes(int64(len(data)))
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = id.MarshalJSON()
+		}
+	})
+	b.Run("Unmarshal", func(b *testing.B) {
+		id := NewObjectID()
+		data, err := id.MarshalJSON()
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.SetBytes(int64(len(data)))
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var v ObjectID
+			if err := v.UnmarshalJSON(data); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("UnmarshalOID", func(b *testing.B) {
+		data, err := json.Marshal(map[string]string{
+			"$oid": NewObjectID().Hex(),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.SetBytes(int64(len(data)))
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var v ObjectID
+			if err := v.UnmarshalJSON(data); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
 func TestFromHex_RoundTrip(t *testing.T) {
 	before := NewObjectID()
 	after, err := ObjectIDFromHex(before.Hex())
