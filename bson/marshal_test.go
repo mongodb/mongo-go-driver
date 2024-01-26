@@ -36,11 +36,10 @@ func TestMarshalWithRegistry(t *testing.T) {
 				reg = DefaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw, err := bsonrw.NewBSONValueWriter(buf)
-			noerr(t, err)
+			vw := bsonrw.NewValueWriter(buf)
 			enc := NewEncoder(vw)
 			enc.SetRegistry(reg)
-			err = enc.Encode(tc.val)
+			err := enc.Encode(tc.val)
 			noerr(t, err)
 
 			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
@@ -61,12 +60,11 @@ func TestMarshalWithContext(t *testing.T) {
 				reg = DefaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw, err := bsonrw.NewBSONValueWriter(buf)
-			noerr(t, err)
+			vw := bsonrw.NewValueWriter(buf)
 			enc := NewEncoder(vw)
 			enc.IntMinSize()
 			enc.SetRegistry(reg)
-			err = enc.Encode(tc.val)
+			err := enc.Encode(tc.val)
 			noerr(t, err)
 
 			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
@@ -180,8 +178,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
 
 		buf := new(bytes.Buffer)
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		assert.Nil(t, err)
+		vw := bsonrw.NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.SetRegistry(customReg)
 		err = enc.Encode(original)
