@@ -2168,6 +2168,16 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
+  - id: serverless-type
+    display_name: "Serverless Type"
+    values:
+      - id: "original"
+        display_name: "Serverless"
+      - id: "proxy"
+        display_name: "Serverless Proxy"
+        variables:
+          VAULT_NAME: "serverless_next"
+
 task_groups:
   - name: serverless_task_group
     setup_group_can_fail_task: true
@@ -2183,12 +2193,8 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-
-            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
-            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
-            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
-            LOADBALANCED=ON \
-              bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh ${VAULT_NAME}
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
       - command: expansions.update
         params:
           file: serverless-expansion.yml
@@ -2224,12 +2230,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-
-            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
-            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
-            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
-            SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
-              bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh ${VAULT_NAME}
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
@@ -2552,8 +2553,14 @@ buildvariants:
 
   - matrix_name: "serverless"
     tags: ["pullrequest"]
-    matrix_spec: { os-serverless: "*" }
-    display_name: "Serverless ${os-serverless}"
+    matrix_spec: { os-serverless: "*", serverless-type: "original" }
+    display_name: "${serverless-type} ${os-serverless}"
+    tasks:
+      - "serverless_task_group"
+
+  - matrix_name: "serverless-proxy"
+    matrix_spec: { os-serverless: "*", serverless-type: "proxy" }
+    display_name: "${serverless-type} ${os-serverless}"
     tasks:
       - "serverless_task_group"
 
