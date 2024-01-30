@@ -156,7 +156,7 @@ There is currently no arm64 support for the go1.x runtime, see [here](https://do
 
 Most of the tests requiring `libmongocrypt` can be run using the Docker workflow.
 
-However, some of the tests requires secrets handling.  Please see the team [Wiki](https://wiki.corp.mongodb.com/pages/viewpage.action?spaceKey=DRIVERS&title=Testing+CSFLE) for more information.
+However, some of the tests require secrets handling.  Please see the team [Wiki](https://wiki.corp.mongodb.com/pages/viewpage.action?spaceKey=DRIVERS&title=Testing+CSFLE) for more information.
 
 The test suite can be run with or without the secrets as follows:
 
