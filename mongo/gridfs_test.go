@@ -79,8 +79,7 @@ func TestGridFS(t *testing.T) {
 
 		for _, tt := range chunkSizeTests {
 			t.Run(tt.testName, func(t *testing.T) {
-				bucket, err := db.GridFSBucket(tt.bucketOpts)
-				assert.Nil(t, err, "NewBucket error: %v", err)
+				bucket := db.GridFSBucket(tt.bucketOpts)
 
 				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)

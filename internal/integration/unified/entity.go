@@ -796,12 +796,7 @@ func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
 	}
 
-	bucket, err := db.GridFSBucket(bucketOpts)
-	if err != nil {
-		return fmt.Errorf("error creating GridFS bucket: %v", err)
-	}
-
-	em.gridfsBuckets[entityOptions.ID] = bucket
+	em.gridfsBuckets[entityOptions.ID] = db.GridFSBucket(bucketOpts)
 	return nil
 }
 

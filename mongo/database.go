@@ -970,7 +970,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
 // container for files.
-func (db *Database) GridFSBucket(opts ...*options.BucketOptions) (*GridFSBucket, error) {
+func (db *Database) GridFSBucket(opts ...*options.BucketOptions) *GridFSBucket {
 	b := &GridFSBucket{
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
@@ -1021,5 +1021,5 @@ func (db *Database) GridFSBucket(opts ...*options.BucketOptions) (*GridFSBucket,
 	b.readBuf = make([]byte, b.chunkSize)
 	b.writeBuf = make([]byte, b.chunkSize)
 
-	return b, nil
+	return b
 }
