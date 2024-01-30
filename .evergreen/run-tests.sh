@@ -19,9 +19,8 @@ fi
 export GOROOT="${GOROOT}"
 export PATH="${GOROOT}/bin:${GCC_PATH}:$GOPATH/bin:$PATH"
 export PROJECT="${project}"
-export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
 export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
-export GOFLAGS=-mod=vendor
 
 if [ "$(uname -s)" = "Darwin" ]; then
   export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib/pkgconfig
