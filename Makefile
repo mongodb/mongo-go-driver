@@ -137,7 +137,7 @@ evg-test-kmip:
 
 .PHONY: evg-test-kms
 evg-test-kms:
-	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
+	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./internal/integration -run TestClientSideEncryptionProse/kms_tls_tests >> test.suite
 
 .PHONY: evg-test-load-balancers
 evg-test-load-balancers:
