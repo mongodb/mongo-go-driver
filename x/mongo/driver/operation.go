@@ -48,6 +48,12 @@ var (
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
 	// errDatabaseNameEmpty occurs when a database name is not provided.
 	errDatabaseNameEmpty = errors.New("database name cannot be empty")
+	// errEmptyWriteConcern indicates that a write concern has no fields set.
+	errEmptyWriteConcern = errors.New("a write concern must have at least one field set")
+	// errNegativeW indicates that a negative integer `w` field was specified.
+	errNegativeW = errors.New("write concern `w` field cannot be a negative number")
+	// errInconsistent indicates that an inconsistent write concern was specified.
+	errInconsistent = errors.New("a write concern cannot have both w=0 and j=true")
 )
 
 const (
@@ -1169,6 +1175,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 }
 
 func (op Operation) createLegacyHandshakeWireMessage(
+	ctx context.Context,
 	maxTimeMS uint64,
 	dst []byte,
 	desc description.SelectedServer,
@@ -1213,7 +1220,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 		return dst, info, err
 	}
 
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1285,7 +1292,7 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, info, err
 	}
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1352,7 +1359,7 @@ func (op Operation) createWireMessage(
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	if isLegacyHandshake(op, desc) {
-		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
+		return op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
 	}
 
 	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
@@ -1460,7 +1467,61 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
+func getWriteConcernTimeout(ctx context.Context, op Operation, wc writeconcern.WriteConcern) time.Duration {
+	if contextDeadline, ok := ctx.Deadline(); ok {
+		return time.Until(contextDeadline)
+	}
+
+	if op.Timeout != nil {
+		return *op.Timeout
+	}
+
+	return time.Duration(wc.SealedWTimeout)
+}
+
+func marshalBSONWriteConcern(wc writeconcern.WriteConcern) (bsontype.Type, []byte, error) {
+	var elems []byte
+	if wc.W != nil {
+		// Only support string or int values for W. That aligns with the
+		// documentation and the behavior of other functions, like Acknowledged.
+		switch w := wc.W.(type) {
+		case int:
+			if w < 0 {
+				return 0, nil, errNegativeW
+			}
+
+			// If Journal=true and W=0, return an error because that write
+			// concern is ambiguous.
+			if wc.Journal != nil && *wc.Journal && w == 0 {
+				return 0, nil, errInconsistent
+			}
+
+			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
+		case string:
+			elems = bsoncore.AppendStringElement(elems, "w", w)
+		default:
+			return 0,
+				nil,
+				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
+		}
+	}
+
+	if wc.Journal != nil {
+		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
+	}
+
+	if wc.SealedWTimeout != 0 {
+		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(time.Duration(wc.SealedWTimeout)/time.Millisecond))
+	}
+
+	if len(elems) == 0 {
+		return 0, nil, errEmptyWriteConcern
+	}
+
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+}
+
+func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumWriteConcernWireVersion)) {
 		return dst, nil
 	}
@@ -1469,15 +1530,18 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 		return dst, nil
 	}
 
-	t, data, err := wc.MarshalBSONValue()
-	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
+	wc.SealedWTimeout = driverutil.TimeDuration(getWriteConcernTimeout(ctx, op, *wc))
+
+	typ, wcBSON, err := marshalBSONWriteConcern(*wc)
+	if errors.Is(err, errEmptyWriteConcern) {
 		return dst, nil
 	}
+
 	if err != nil {
 		return dst, err
 	}
 
-	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
+	return append(bsoncore.AppendHeader(dst, typ, "writeConcern"), wcBSON...), nil
 }
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {

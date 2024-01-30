@@ -12,7 +12,6 @@ import (
 	"path"
 	"reflect"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -49,6 +48,7 @@ type connectionStringTest struct {
 	Valid        bool     `bson:"valid"`
 	ReadConcern  bson.Raw `bson:"readConcern"`
 	WriteConcern bson.Raw `bson:"writeConcern"`
+	SkipReason   string   `bson:"skipReason"`
 }
 
 type documentTestFile struct {
@@ -99,6 +99,10 @@ func runConnectionStringTestFile(t *testing.T, filePath string) {
 }
 
 func runConnectionStringTest(t *testing.T, test connectionStringTest) {
+	if test.SkipReason != "" {
+		t.Skip(test.SkipReason)
+	}
+
 	cs, err := connstring.ParseAndValidate(test.URI)
 	if !test.Valid {
 		assert.NotNil(t, err, "expected Parse error, got nil")
@@ -122,11 +126,6 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 				assert.False(t, cs.WNumberSet, "expected WNumberSet to be false, got true")
 				assert.Equal(t, expected, cs.WString, "expected w value %v, got %v", expected, cs.WString)
 			}
-		}
-		if expectedWc.timeoutSet {
-			assert.True(t, cs.WTimeoutSet, "expected WTimeoutSet, got false")
-			assert.Equal(t, expectedWc.WTimeout, cs.WTimeout,
-				"expected timeout value %v, got %v", expectedWc.WTimeout, cs.WTimeout)
 		}
 		if expectedWc.jSet {
 			assert.True(t, cs.JSet, "expected JSet, got false")
@@ -222,9 +221,8 @@ func readConcernFromRaw(t *testing.T, rc bson.Raw) *readconcern.ReadConcern {
 
 type writeConcern struct {
 	*writeconcern.WriteConcern
-	jSet       bool
-	wSet       bool
-	timeoutSet bool
+	jSet bool
+	wSet bool
 }
 
 func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
@@ -248,14 +246,12 @@ func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
 			default:
 				t.Fatalf("unexpected type for w: %v", val.Type)
 			}
-		case "wtimeoutMS":
-			wc.timeoutSet = true
-			timeout := time.Duration(val.Int32()) * time.Millisecond
-			wc.WriteConcern.WTimeout = timeout
 		case "journal":
 			wc.jSet = true
 			j := val.Boolean()
 			wc.WriteConcern.Journal = &j
+		case "wtimeoutMS": // Do nothing, this field is deprecated
+			t.Skip("the wtimeoutMS write concern option is not supported")
 		default:
 			t.Fatalf("unrecognized write concern field: %v", key)
 		}

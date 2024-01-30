@@ -1974,7 +1974,6 @@ func WithTransactionExample(ctx context.Context) error {
 
 	// Prereq: Create collections.
 	wcMajority := writeconcern.Majority()
-	wcMajority.WTimeout = 1 * time.Second
 	wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 	fooColl := client.Database("mydb1").Collection("foo", wcMajorityCollectionOpts)
 	barColl := client.Database("mydb1").Collection("bar", wcMajorityCollectionOpts)
@@ -2555,7 +2554,6 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	rc := readconcern.Majority()
 	wc := writeconcern.Majority()
-	wc.WTimeout = 1000
 	// Use a causally-consistent session to run some operations
 	opts := options.Session().SetDefaultReadConcern(rc).SetDefaultWriteConcern(wc)
 	session1, err := client.StartSession(opts)

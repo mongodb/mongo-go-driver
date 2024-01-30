@@ -16,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -36,8 +37,8 @@ var (
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
 	impossibleWc = &writeconcern.WriteConcern{
-		W:        30,
-		WTimeout: time.Second,
+		W:              30,
+		SealedWTimeout: driverutil.TimeDuration(time.Second),
 	}
 )
 

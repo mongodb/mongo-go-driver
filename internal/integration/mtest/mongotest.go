@@ -14,7 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
@@ -522,7 +521,6 @@ func (t *T) ClearCollections() {
 				// re-instantiating the collection with a majority write concern before dropping.
 				collname := coll.created.Name()
 				wcm := writeconcern.Majority()
-				wcm.WTimeout = 1 * time.Second
 				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
 				_ = wccoll.Drop(context.Background())
 

@@ -519,7 +519,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.TLSConfig = tlsConfig
 	}
 
-	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
+	if cs.JSet || cs.WString != "" || cs.WNumberSet {
 		c.WriteConcern = &writeconcern.WriteConcern{}
 
 		if len(cs.WString) > 0 {
@@ -530,10 +530,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 		if cs.JSet {
 			c.WriteConcern.Journal = &cs.J
-		}
-
-		if cs.WTimeoutSet {
-			c.WriteConcern.WTimeout = cs.WTimeout
 		}
 	}
 

@@ -153,7 +153,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// Insert the copied key document into keyvault.datakeys with majority write concern.
 		wcMajority := writeconcern.Majority()
-		wcMajority.WTimeout = 1 * time.Second
 		wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 		wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 		_, err = wcmColl.InsertOne(context.Background(), alteredKeydoc)
@@ -1887,7 +1886,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 
 			wcMajority := writeconcern.Majority()
-			wcMajority.WTimeout = 1 * time.Second
 			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 			_, err = wcmColl.Indexes().CreateOne(context.Background(), keyVaultIndex)

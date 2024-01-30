@@ -13,10 +13,10 @@ package writeconcern
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -76,16 +76,18 @@ type WriteConcern struct {
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#j-option
 	Journal *bool
 
-	// WTimeout specifies a time limit for the write concern. It sets the
-	// "wtimeout" option in a MongoDB write concern.
+	// SealedWTimeout sets a time limit for the write concern, configuring the
+	// "wtimeout" option in a MongoDB write concern under specific driver
+	// conditions. Particularly when the user or driver retries committing a
+	// transaction without a client or operation-level timeout. In such cases, the
+	// default value for WTimeout, as specified, is 10,000 milliseconds.
 	//
-	// It is only applicable for "w" values greater than 1. Using a WTimeout and
-	// setting Timeout on the Client at the same time will result in undefined
-	// behavior.
-	//
-	// For more information about the "wtimeout" option, see
-	// https://www.mongodb.com/docs/manual/reference/write-concern/#wtimeout
-	WTimeout time.Duration
+	// This field serves as a driver convenience for maintaining state and is,
+	// therefore, not directly settable by users. To define a write concern
+	// timeout, please either set a client-level timeout (Client.SetTimeout) or
+	// set an operation-level timeout (i.e., set a deadline on the context passed
+	// to an operation).
+	SealedWTimeout driverutil.TimeDuration
 }
 
 // Unacknowledged returns a WriteConcern that requests no acknowledgment of
@@ -182,14 +184,6 @@ func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 
 	if wc.Journal != nil {
 		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
-	}
-
-	if wc.WTimeout < 0 {
-		return 0, nil, ErrNegativeWTimeout
-	}
-
-	if wc.WTimeout != 0 {
-		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wc.WTimeout/time.Millisecond))
 	}
 
 	if len(elems) == 0 {

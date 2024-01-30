@@ -14,10 +14,12 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/uuid"
@@ -230,7 +232,7 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(context.Background(), nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -965,6 +967,73 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 
 			got := filterDeprioritizedServers(tc.candidates, tc.deprioritized)
 			assert.ElementsMatch(t, got, tc.want)
+		})
+	}
+}
+
+func TestMarshalBSONWriteConcern(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		writeConcern writeconcern.WriteConcern
+		wantBSONType bsontype.Type
+		want         bson.D
+		wantErr      string
+	}{
+		{
+			name:         "empty",
+			writeConcern: writeconcern.WriteConcern{},
+			wantBSONType: 0x0,
+			want:         nil,
+			wantErr:      "a write concern must have at least one field set",
+		},
+		{
+			name:         "journal only",
+			writeConcern: *writeconcern.Journaled(),
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}},
+			wantErr:      "a write concern must have at least one field set",
+		},
+		{
+			name: "journal and wtimout",
+			writeConcern: writeconcern.WriteConcern{
+				Journal: func() *bool {
+					b := true
+
+					return &b
+				}(),
+				SealedWTimeout: driverutil.TimeDuration(10 * time.Millisecond),
+			},
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}, {"wtimeout", int64(10 * time.Millisecond / time.Millisecond)}},
+			wantErr:      "a write concern must have at least one field set",
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern)
+			assert.Equal(t, test.wantBSONType, gotBSONType)
+
+			wantBSON := []byte(nil)
+
+			if test.want != nil {
+				var err error
+
+				wantBSON, err = bson.Marshal(test.want)
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, wantBSON, gotBSON)
+
+			if gotErr != nil {
+				assert.EqualError(t, gotErr, test.wantErr)
+			}
 		})
 	}
 }

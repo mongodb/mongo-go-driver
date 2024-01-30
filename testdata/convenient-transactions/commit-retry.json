@@ -150,6 +150,7 @@
     },
     {
       "description": "commitTransaction retry only overwrites write concern w option",
+      "skipReason": "GODRIVER-2348: wtimeout is deprecated",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {

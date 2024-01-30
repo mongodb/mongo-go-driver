@@ -180,10 +180,6 @@ type ConnString struct {
 	ZstdLevel                          int
 	ZstdLevelSet                       bool
 
-	WTimeout              time.Duration
-	WTimeoutSet           bool
-	WTimeoutSetFromOption bool
-
 	Options        map[string][]string
 	UnknownOptions map[string][]string
 }
@@ -382,11 +378,6 @@ func (p *parser) parse(original string) error {
 	err = p.setDefaultAuthParams(extractedDatabase.db)
 	if err != nil {
 		return err
-	}
-
-	// If WTimeout was set from manual options passed in, set WTImeoutSet to true.
-	if p.WTimeoutSetFromOption {
-		p.WTimeoutSet = true
 	}
 
 	return nil
@@ -983,24 +974,6 @@ func (p *parser) addOption(pair string) error {
 
 		p.WString = value
 		p.WNumberSet = false
-
-	case "wtimeoutms":
-		n, err := strconv.Atoi(value)
-		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %q: %q", key, value)
-		}
-		p.WTimeout = time.Duration(n) * time.Millisecond
-		p.WTimeoutSet = true
-	case "wtimeout":
-		// Defer to wtimeoutms, but not to a manually-set option.
-		if p.WTimeoutSet {
-			break
-		}
-		n, err := strconv.Atoi(value)
-		if err != nil || n < 0 {
-			return fmt.Errorf("invalid value for %q: %q", key, value)
-		}
-		p.WTimeout = time.Duration(n) * time.Millisecond
 	case "zlibcompressionlevel":
 		level, err := strconv.Atoi(value)
 		if err != nil || (level < -1 || level > 9) {

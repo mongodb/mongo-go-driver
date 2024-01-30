@@ -402,9 +402,6 @@ func createWriteConcern(t testing.TB, opt bson.RawValue) *writeconcern.WriteConc
 		val := elem.Value()
 
 		switch key {
-		case "wtimeout":
-			wtimeout := convertValueToMilliseconds(t, val)
-			wc.WTimeout = wtimeout
 		case "j":
 			j := val.Boolean()
 			wc.Journal = &j

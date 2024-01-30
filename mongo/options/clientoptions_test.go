@@ -446,11 +446,6 @@ func TestClientOptions(t *testing.T) {
 				baseClient().SetWriteConcern(&writeconcern.WriteConcern{W: 3}),
 			},
 			{
-				"WriteConcern WTimeout",
-				"mongodb://localhost/?wTimeoutMS=45000",
-				baseClient().SetWriteConcern(&writeconcern.WriteConcern{WTimeout: 45 * time.Second}),
-			},
-			{
 				"ZLibLevel",
 				"mongodb://localhost/?zlibCompressionLevel=4",
 				baseClient().SetZlibLevel(4),

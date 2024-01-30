@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -461,21 +462,23 @@ func (c *Client) CommitTransaction() error {
 	return nil
 }
 
-// UpdateCommitTransactionWriteConcern will set the write concern to majority and potentially set  a
-// w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
-// retryable error or after a successful commit transaction operation.
+// UpdateCommitTransactionWriteConcern will apply "w: maority" to the write
+// concern of the commitTransaction command. This function is specific to when
+// commitTransaction is retried, either by the driver's internal retry logic or
+// explicitly by the user calling commitTransaction again, drivers MUST apply
+// "w: majority" to the write concern of the commitTransaction command. If
+// the transaction is using a writeConcern that is not the server default (i.e.
+// specified via TransactionOptions during the “startTransaction“ call or
+// otherwise inherited), any other write concern options (e.g. “wtimeout“) MUST
+// be left as-is when applying "w: majority". Finally, if the modified write
+// concern does not include a "wtimeout" value, drivers MUST also apply
+// "wtimeout: 10000"" to the write concern in order to avoid waiting forever (or
+// until a socket timeout) if the majority write concern cannot be satisfied.
 func (c *Client) UpdateCommitTransactionWriteConcern() {
-	wc := &writeconcern.WriteConcern{}
-	timeout := 10 * time.Second
-	if c.CurrentWc != nil {
-		*wc = *c.CurrentWc
-		if c.CurrentWc.WTimeout != 0 {
-			timeout = c.CurrentWc.WTimeout
-		}
+	c.CurrentWc = &writeconcern.WriteConcern{
+		W:              "majority",
+		SealedWTimeout: driverutil.TimeDuration(10 * time.Second),
 	}
-	wc.W = "majority"
-	wc.WTimeout = timeout
-	c.CurrentWc = wc
 }
 
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns
