@@ -30,7 +30,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -116,7 +115,7 @@ type testCase struct {
 
 	// set in code if the test is a GridFS test
 	chunkSize int32
-	bucket    *gridfs.Bucket
+	bucket    *mongo.GridFSBucket
 
 	// set in code to track test context
 	testTopology    *topology.Topology
@@ -185,9 +184,12 @@ var directories = []string{
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
-var specTestRegistry = bson.NewRegistryBuilder().
-	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
-	RegisterTypeDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData)).Build()
+var specTestRegistry = func() *bsoncodec.Registry {
+	reg := bson.NewRegistry()
+	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
+	reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData))
+	return reg
+}()
 
 func TestUnifiedSpecs(t *testing.T) {
 	for _, specDir := range directories {
@@ -357,12 +359,12 @@ func createBucket(mt *mtest.T, testFile testFile, testCase *testCase) {
 	}
 	chunkSize := testCase.chunkSize
 	if chunkSize == 0 {
-		chunkSize = gridfs.DefaultChunkSize
+		chunkSize = mongo.DefaultGridFSChunkSize
 	}
 	bucketOpts.SetChunkSizeBytes(chunkSize)
 
 	var err error
-	testCase.bucket, err = gridfs.NewBucket(mt.DB, bucketOpts)
+	testCase.bucket, err = mt.DB.GridFSBucket(bucketOpts)
 	assert.Nil(mt, err, "NewBucket error: %v", err)
 }
 
@@ -425,7 +427,7 @@ func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 m
 	return verifyError(op.opError, err)
 }
 
-func executeGridFSOperation(mt *mtest.T, bucket *gridfs.Bucket, op *operation) error {
+func executeGridFSOperation(mt *mtest.T, bucket *mongo.GridFSBucket, op *operation) error {
 	// no results for GridFS operations
 	assert.Nil(mt, op.Result, "unexpected result for GridFS operation")
 

@@ -19,14 +19,8 @@ import (
 func ExampleEncoder() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewValueWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -41,7 +35,7 @@ func ExampleEncoder() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err = encoder.Encode(product)
+	err := encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}
@@ -63,14 +57,8 @@ func (k CityState) String() string {
 func ExampleEncoder_StringifyMapKeysWithFmt() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewValueWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
 	// using fmt.Sprintf instead of the default string conversion logic.
@@ -81,7 +69,7 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 	zipCodes := map[CityState][]int{
 		{City: "New York", State: "NY"}: {10001, 10301, 10451},
 	}
-	err = encoder.Encode(zipCodes)
+	err := encoder.Encode(zipCodes)
 	if err != nil {
 		panic(err)
 	}
@@ -94,14 +82,8 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 func ExampleEncoder_UseJSONStructTags() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewValueWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `json:"name"`
@@ -120,7 +102,7 @@ func ExampleEncoder_UseJSONStructTags() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err = encoder.Encode(product)
+	err := encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}
@@ -133,14 +115,8 @@ func ExampleEncoder_UseJSONStructTags() {
 func ExampleEncoder_multipleBSONDocuments() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewBSONValueWriter(buf)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewValueWriter(buf)
+	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
 		X int
@@ -183,14 +159,8 @@ func ExampleEncoder_extendedJSON() {
 	// Create an Encoder that writes canonical Extended JSON values to a
 	// bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewExtJSONValueWriter(buf, true, false)
+	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -205,7 +175,7 @@ func ExampleEncoder_extendedJSON() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err = encoder.Encode(product)
+	err := encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}
@@ -218,14 +188,8 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	// Create an Encoder that writes canonical Extended JSON values to a
 	// bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw, err := bsonrw.NewExtJSONValueWriter(buf, true, false)
-	if err != nil {
-		panic(err)
-	}
-	encoder, err := bson.NewEncoder(vw)
-	if err != nil {
-		panic(err)
-	}
+	vw := bsonrw.NewExtJSONValueWriter(buf, true, false)
+	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
 		X int
@@ -251,4 +215,27 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	// {"x":{"$numberInt":"2"},"y":{"$numberInt":"3"}}
 	// {"x":{"$numberInt":"3"},"y":{"$numberInt":"4"}}
 	// {"x":{"$numberInt":"4"},"y":{"$numberInt":"5"}}
+}
+
+func ExampleEncoder_IntMinSize() {
+	// Create an encoder that will marshal integers as the minimum BSON int size
+	// (either 32 or 64 bits) that can represent the integer value.
+	type foo struct {
+		Bar uint32
+	}
+
+	buf := new(bytes.Buffer)
+	vw := bsonrw.NewValueWriter(buf)
+
+	enc := bson.NewEncoder(vw)
+	enc.IntMinSize()
+
+	err := enc.Encode(foo{2})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(bson.Raw(buf.Bytes()).String())
+	// Output:
+	// {"bar": {"$numberInt":"2"}}
 }

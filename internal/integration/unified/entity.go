@@ -19,7 +19,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -112,6 +111,70 @@ func newCollectionEntityOptions(id string, databaseID string, collectionName str
 	return options
 }
 
+type task struct {
+	name    string
+	execute func() error
+}
+
+type backgroundRoutine struct {
+	tasks chan *task
+	wg    sync.WaitGroup
+	err   error
+}
+
+func (b *backgroundRoutine) start() {
+	b.wg.Add(1)
+
+	go func() {
+		defer b.wg.Done()
+
+		for t := range b.tasks {
+			if b.err != nil {
+				continue
+			}
+
+			ch := make(chan error)
+			go func(task *task) {
+				ch <- task.execute()
+			}(t)
+			select {
+			case err := <-ch:
+				if err != nil {
+					b.err = fmt.Errorf("error running operation %s: %v", t.name, err)
+				}
+			case <-time.After(10 * time.Second):
+				b.err = fmt.Errorf("timed out after 10 seconds")
+			}
+		}
+	}()
+}
+
+func (b *backgroundRoutine) stop() error {
+	close(b.tasks)
+	b.wg.Wait()
+	return b.err
+}
+
+func (b *backgroundRoutine) addTask(name string, execute func() error) bool {
+	select {
+	case b.tasks <- &task{
+		name:    name,
+		execute: execute,
+	}:
+		return true
+	default:
+		return false
+	}
+}
+
+func newBackgroundRoutine() *backgroundRoutine {
+	routine := &backgroundRoutine{
+		tasks: make(chan *task, 10),
+	}
+
+	return routine
+}
+
 type clientEncryptionOpts struct {
 	KeyVaultClient    string              `bson:"keyVaultClient"`
 	KeyVaultNamespace string              `bson:"keyVaultNamespace"`
@@ -129,13 +192,14 @@ type EntityMap struct {
 	dbEntites                map[string]*mongo.Database
 	collEntities             map[string]*mongo.Collection
 	sessions                 map[string]mongo.Session
-	gridfsBuckets            map[string]*gridfs.Bucket
+	gridfsBuckets            map[string]*mongo.GridFSBucket
 	bsonValues               map[string]bson.RawValue
 	eventListEntities        map[string][]bson.Raw
 	bsonArrayEntities        map[string][]bson.Raw // for storing errors and failures from a loop operation
 	successValues            map[string]int32
 	iterationValues          map[string]int32
 	clientEncryptionEntities map[string]*mongo.ClientEncryption
+	routinesMap              sync.Map // maps thread name to *backgroundRoutine
 	evtLock                  sync.Mutex
 	closed                   atomic.Value
 	// keyVaultClientIDs tracks IDs of clients used as a keyVaultClient in ClientEncryption objects.
@@ -155,7 +219,7 @@ func (em *EntityMap) setClosed(val bool) {
 func newEntityMap() *EntityMap {
 	em := &EntityMap{
 		allEntities:              make(map[string]struct{}),
-		gridfsBuckets:            make(map[string]*gridfs.Bucket),
+		gridfsBuckets:            make(map[string]*mongo.GridFSBucket),
 		bsonValues:               make(map[string]bson.RawValue),
 		cursorEntities:           make(map[string]cursor),
 		clientEntities:           make(map[string]*clientEntity),
@@ -283,6 +347,10 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 		err = em.addCollectionEntity(entityOptions)
 	case "session":
 		err = em.addSessionEntity(entityOptions)
+	case "thread":
+		routine := newBackgroundRoutine()
+		em.routinesMap.Store(entityOptions.ID, routine)
+		routine.start()
 	case "bucket":
 		err = em.addGridFSBucketEntity(entityOptions)
 	case "clientEncryption":
@@ -298,7 +366,7 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 	return nil
 }
 
-func (em *EntityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
+func (em *EntityMap) gridFSBucket(id string) (*mongo.GridFSBucket, error) {
 	bucket, ok := em.gridfsBuckets[id]
 	if !ok {
 		return nil, newEntityNotFoundError("gridfs bucket", id)
@@ -728,7 +796,7 @@ func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
 	}
 
-	bucket, err := gridfs.NewBucket(db, bucketOpts)
+	bucket, err := db.GridFSBucket(bucketOpts)
 	if err != nil {
 		return fmt.Errorf("error creating GridFS bucket: %v", err)
 	}

@@ -28,6 +28,12 @@ var (
 		// the "find" and one for the "getMore", but we send three for both.
 		"A successful find event with a getmore and the server kills the cursor (<= 4.4)": "See GODRIVER-1773",
 
+		// GODRIVER-2577: The following spec tests require canceling ops immediately, but the current logic clears pools
+		// and cancels in-progress ops after two the heartbeat failures.
+		"Connection pool clear uses interruptInUseConnections=true after monitor timeout":                      "Godriver clears after multiple timeout",
+		"Error returned from connection pool clear with interruptInUseConnections=true is retryable":           "Godriver clears after multiple timeout",
+		"Error returned from connection pool clear with interruptInUseConnections=true is retryable for write": "Godriver clears after multiple timeout",
+
 		// TODO(GODRIVER-2843): Fix and unskip these test cases.
 		"Find operation with snapshot":                                      "Test fails frequently. See GODRIVER-2843",
 		"Write commands with snapshot session do not affect snapshot reads": "Test fails frequently. See GODRIVER-2843",

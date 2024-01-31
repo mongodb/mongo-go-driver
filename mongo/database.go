@@ -544,21 +544,6 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 	return names, nil
 }
 
-// ReadConcern returns the read concern used to configure the Database object.
-func (db *Database) ReadConcern() *readconcern.ReadConcern {
-	return db.readConcern
-}
-
-// ReadPreference returns the read preference used to configure the Database object.
-func (db *Database) ReadPreference() *readpref.ReadPref {
-	return db.readPreference
-}
-
-// WriteConcern returns the write concern used to configure the Database object.
-func (db *Database) WriteConcern() *writeconcern.WriteConcern {
-	return db.writeConcern
-}
-
 // Watch returns a change stream for all changes to the corresponding database. See
 // https://www.mongodb.com/docs/manual/changeStreams/ for more information about change streams.
 //
@@ -981,4 +966,60 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 		Crypt(db.client.cryptFLE)
 
 	return replaceErrors(op.Execute(ctx))
+}
+
+// GridFSBucket is used to construct a GridFS bucket which can be used as a
+// container for files.
+func (db *Database) GridFSBucket(opts ...*options.BucketOptions) (*GridFSBucket, error) {
+	b := &GridFSBucket{
+		name:      "fs",
+		chunkSize: DefaultGridFSChunkSize,
+		db:        db,
+	}
+
+	bo := options.GridFSBucket()
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+		if opt.Name != nil {
+			bo.Name = opt.Name
+		}
+		if opt.ChunkSizeBytes != nil {
+			bo.ChunkSizeBytes = opt.ChunkSizeBytes
+		}
+		if opt.WriteConcern != nil {
+			bo.WriteConcern = opt.WriteConcern
+		}
+		if opt.ReadConcern != nil {
+			bo.ReadConcern = opt.ReadConcern
+		}
+		if opt.ReadPreference != nil {
+			bo.ReadPreference = opt.ReadPreference
+		}
+	}
+	if bo.Name != nil {
+		b.name = *bo.Name
+	}
+	if bo.ChunkSizeBytes != nil {
+		b.chunkSize = *bo.ChunkSizeBytes
+	}
+	if bo.WriteConcern != nil {
+		b.wc = bo.WriteConcern
+	}
+	if bo.ReadConcern != nil {
+		b.rc = bo.ReadConcern
+	}
+	if bo.ReadPreference != nil {
+		b.rp = bo.ReadPreference
+	}
+
+	var collOpts = options.Collection().SetWriteConcern(b.wc).SetReadConcern(b.rc).SetReadPreference(b.rp)
+
+	b.chunksColl = db.Collection(b.name+".chunks", collOpts)
+	b.filesColl = db.Collection(b.name+".files", collOpts)
+	b.readBuf = make([]byte, b.chunkSize)
+	b.writeBuf = make([]byte, b.chunkSize)
+
+	return b, nil
 }

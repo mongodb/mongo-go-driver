@@ -10,6 +10,7 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
@@ -2147,12 +2149,13 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	})
 
 	mt.RunOpts("18. Azure IMDS Credentials", noClientOpts, func(mt *mtest.T) {
-		buf := make([]byte, 0, 256)
+		buf := new(bytes.Buffer)
 		kmsProvidersMap := map[string]map[string]interface{}{
 			"azure": {},
 		}
-		p, err := bson.MarshalAppend(buf[:0], kmsProvidersMap)
-		assert.Nil(mt, err, "error in MarshalAppendWithRegistry: %v", err)
+		vw := bsonrw.NewValueWriter(buf)
+		err := bson.NewEncoder(vw).Encode(kmsProvidersMap)
+		assert.Nil(mt, err, "error in Encode: %v", err)
 
 		getClient := func(header http.Header) *http.Client {
 			lt := &localTransport{
@@ -2167,7 +2170,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		mt.Run("Case 1: Success", func(mt *mtest.T) {
 			opts := &mongocryptopts.MongoCryptOptions{
-				KmsProviders: p,
+				KmsProviders: buf.Bytes(),
 				HTTPClient:   getClient(nil),
 			}
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
@@ -2182,7 +2185,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=empty-json")
 			opts := &mongocryptopts.MongoCryptOptions{
-				KmsProviders: p,
+				KmsProviders: buf.Bytes(),
 				HTTPClient:   getClient(header),
 			}
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
@@ -2194,7 +2197,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=bad-json")
 			opts := &mongocryptopts.MongoCryptOptions{
-				KmsProviders: p,
+				KmsProviders: buf.Bytes(),
 				HTTPClient:   getClient(header),
 			}
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
@@ -2206,7 +2209,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=404")
 			opts := &mongocryptopts.MongoCryptOptions{
-				KmsProviders: p,
+				KmsProviders: buf.Bytes(),
 				HTTPClient:   getClient(header),
 			}
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
@@ -2218,7 +2221,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=500")
 			opts := &mongocryptopts.MongoCryptOptions{
-				KmsProviders: p,
+				KmsProviders: buf.Bytes(),
 				HTTPClient:   getClient(header),
 			}
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
@@ -2230,7 +2233,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			header := make(http.Header)
 			header.Set("X-MongoDB-HTTP-TestParams", "case=slow")
 			opts := &mongocryptopts.MongoCryptOptions{
-				KmsProviders: p,
+				KmsProviders: buf.Bytes(),
 				HTTPClient:   getClient(header),
 			}
 			crypt, err := mongocrypt.NewMongoCrypt(opts)

@@ -25,8 +25,7 @@ func TestBasicEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := make(bsonrw.SliceWriter, 0, 1024)
-			vw, err := bsonrw.NewBSONValueWriter(&got)
-			noerr(t, err)
+			vw := bsonrw.NewValueWriter(&got)
 			reg := DefaultRegistry
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
 			noerr(t, err)
@@ -45,11 +44,9 @@ func TestEncoderEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := make(bsonrw.SliceWriter, 0, 1024)
-			vw, err := bsonrw.NewBSONValueWriter(&got)
-			noerr(t, err)
-			enc, err := NewEncoder(vw)
-			noerr(t, err)
-			err = enc.Encode(tc.val)
+			vw := bsonrw.NewValueWriter(&got)
+			enc := NewEncoder(vw)
+			err := enc.Encode(tc.val)
 			noerr(t, err)
 
 			if !bytes.Equal(got, tc.want) {
@@ -95,18 +92,15 @@ func TestEncoderEncode(t *testing.T) {
 				marshaler := testMarshaler{buf: tc.buf, err: tc.err}
 
 				var vw bsonrw.ValueWriter
-				var err error
 				b := make(bsonrw.SliceWriter, 0, 100)
 				compareVW := false
 				if tc.vw != nil {
 					vw = tc.vw
 				} else {
 					compareVW = true
-					vw, err = bsonrw.NewBSONValueWriter(&b)
-					noerr(t, err)
+					vw = bsonrw.NewValueWriter(&b)
 				}
-				enc, err := NewEncoder(vw)
-				noerr(t, err)
+				enc := NewEncoder(vw)
 				got := enc.Encode(marshaler)
 				want := tc.wanterr
 				if !compareErrors(got, want) {
@@ -283,14 +277,12 @@ func TestEncoderConfiguration(t *testing.T) {
 			t.Parallel()
 
 			got := new(bytes.Buffer)
-			vw, err := bsonrw.NewBSONValueWriter(got)
-			require.NoError(t, err, "bsonrw.NewBSONValueWriter error")
-			enc, err := NewEncoder(vw)
-			require.NoError(t, err, "NewEncoder error")
+			vw := bsonrw.NewValueWriter(got)
+			enc := NewEncoder(vw)
 
 			tc.configure(enc)
 
-			err = enc.Encode(tc.input)
+			err := enc.Encode(tc.input)
 			if tc.wantErr != nil {
 				assert.Equal(t, tc.wantErr, err, "expected and actual errors do not match")
 				return

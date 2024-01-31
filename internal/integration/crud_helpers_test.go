@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/unified"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -1216,7 +1215,7 @@ func executeEstimatedDocumentCount(mt *mtest.T, sess mongo.Session, args bson.Ra
 	return mt.Coll.EstimatedDocumentCount(context.Background())
 }
 
-func executeGridFSDownload(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (int64, error) {
+func executeGridFSDownload(mt *mtest.T, bucket *mongo.GridFSBucket, args bson.Raw) (int64, error) {
 	mt.Helper()
 
 	var fileID primitive.ObjectID
@@ -1236,7 +1235,7 @@ func executeGridFSDownload(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (i
 	return bucket.DownloadToStream(context.Background(), fileID, new(bytes.Buffer))
 }
 
-func executeGridFSDownloadByName(mt *mtest.T, bucket *gridfs.Bucket, args bson.Raw) (int64, error) {
+func executeGridFSDownloadByName(mt *mtest.T, bucket *mongo.GridFSBucket, args bson.Raw) (int64, error) {
 	mt.Helper()
 
 	var file string

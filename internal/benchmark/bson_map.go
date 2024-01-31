@@ -7,11 +7,13 @@
 package benchmark
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 func bsonMapDecoding(tm TimerManager, iters int, dataSet string) error {
@@ -47,15 +49,17 @@ func bsonMapEncoding(tm TimerManager, iters int, dataSet string) error {
 		return err
 	}
 
-	var buf []byte
 	tm.ResetTimer()
+	buf := new(bytes.Buffer)
 	for i := 0; i < iters; i++ {
-		buf, err = bson.MarshalAppend(buf[:0], doc)
+		buf.Reset()
+		vw := bsonrw.NewValueWriter(buf)
+		err = bson.NewEncoder(vw).Encode(doc)
 		if err != nil {
-			return nil
+			return err
 		}
 
-		if len(buf) == 0 {
+		if buf.Len() == 0 {
 			return errors.New("encoding failed")
 		}
 	}

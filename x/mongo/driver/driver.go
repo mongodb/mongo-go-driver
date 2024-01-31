@@ -82,9 +82,6 @@ type RTTMonitor interface {
 	// Min returns the minimum observed round-trip time over the window period.
 	Min() time.Duration
 
-	// P90 returns the 90th percentile observed round-trip time over the window period.
-	P90() time.Duration
-
 	// Stats returns stringified stats of the current state of the monitor.
 	Stats() string
 }
