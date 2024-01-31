@@ -9,6 +9,7 @@ package bson
 import (
 	"bytes"
 	"encoding/json"
+	"sync"
 
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -41,6 +42,13 @@ type ValueMarshaler interface {
 	MarshalBSONValue() (bsontype.Type, []byte, error)
 }
 
+// Pool of buffers for marshalling BSON.
+var bufPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 // Marshal returns the BSON encoding of val as a BSON document. If val is not a type that can be transformed into a
 // document, MarshalValue should be used instead.
 //
@@ -48,8 +56,25 @@ type ValueMarshaler interface {
 // marshal val into a []byte. Marshal will inspect struct tags and alter the
 // marshaling process accordingly.
 func Marshal(val interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	vw := bsonrw.NewValueWriter(buf)
+	sw := bufPool.Get().(*bytes.Buffer)
+	defer func() {
+		// Proper usage of a sync.Pool requires each entry to have approximately
+		// the same memory cost. To obtain this property when the stored type
+		// contains a variably-sized buffer, we add a hard limit on the maximum
+		// buffer to place back in the pool. We limit the size to 16MiB because
+		// that's the maximum wire message size supported by any current MongoDB
+		// server.
+		//
+		// Comment based on
+		// https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
+		//
+		// Recycle byte slices that are smaller than 16MiB and at least half
+		// occupied.
+		if sw.Cap() < 16*1024*1024 && sw.Cap()/2 < sw.Len() {
+			bufPool.Put(sw)
+		}
+	}()
+	vw := bsonrw.NewValueWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
@@ -58,8 +83,8 @@ func Marshal(val interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return buf.Bytes(), nil
+	buf := append([]byte(nil), sw.Bytes()...)
+	return buf, nil
 }
 
 // MarshalValue returns the BSON encoding of val.
