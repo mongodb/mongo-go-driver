@@ -272,12 +272,9 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("calculateMaxTimeMS", func(t *testing.T) {
 		var (
-			timeout     = 5 * time.Second
-			maxTime     = 2 * time.Second
-			negMaxTime  = -2 * time.Second
-			shortRTT    = 50 * time.Millisecond
-			longRTT     = 10 * time.Second
-			verShortRTT = 400 * time.Microsecond
+			timeout  = 5 * time.Second
+			shortRTT = 50 * time.Millisecond
+			longRTT  = 10 * time.Second
 		)
 
 		timeoutCtx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
@@ -295,7 +292,6 @@ func TestOperation(t *testing.T) {
 		}{
 			{
 				name:     "uses context deadline and rtt90 with timeout",
-				op:       Operation{MaxTime: &maxTime},
 				ctx:      timeoutCtx,
 				rttMin:   shortRTT,
 				rttStats: "",
@@ -303,35 +299,7 @@ func TestOperation(t *testing.T) {
 				err:      nil,
 			},
 			{
-				name:     "uses MaxTime without timeout",
-				op:       Operation{MaxTime: &maxTime},
-				ctx:      context.Background(),
-				rttMin:   longRTT,
-				rttStats: "",
-				want:     2000,
-				err:      nil,
-			},
-			{
-				name:     "errors when remaining timeout is less than rtt90",
-				op:       Operation{MaxTime: &maxTime},
-				ctx:      timeoutCtx,
-				rttMin:   timeout,
-				rttStats: "",
-				want:     0,
-				err:      ErrDeadlineWouldBeExceeded,
-			},
-			{
-				name:     "errors when MaxTime is negative",
-				op:       Operation{MaxTime: &negMaxTime},
-				ctx:      context.Background(),
-				rttMin:   longRTT,
-				rttStats: "",
-				want:     0,
-				err:      ErrNegativeMaxTime,
-			},
-			{
 				name:     "sub millisecond rtt should round up",
-				op:       Operation{MaxTime: &verShortRTT},
 				ctx:      context.Background(),
 				rttMin:   longRTT,
 				rttStats: "",

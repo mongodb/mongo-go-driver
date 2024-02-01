@@ -298,9 +298,6 @@ func (b *GridFSBucket) Find(
 		if opt.Limit != nil {
 			gfsOpts.Limit = opt.Limit
 		}
-		if opt.MaxTime != nil {
-			gfsOpts.MaxTime = opt.MaxTime
-		}
 		if opt.NoCursorTimeout != nil {
 			gfsOpts.NoCursorTimeout = opt.NoCursorTimeout
 		}
@@ -320,9 +317,6 @@ func (b *GridFSBucket) Find(
 	}
 	if gfsOpts.Limit != nil {
 		find.SetLimit(int64(*gfsOpts.Limit))
-	}
-	if gfsOpts.MaxTime != nil {
-		find.SetMaxTime(*gfsOpts.MaxTime)
 	}
 	if gfsOpts.NoCursorTimeout != nil {
 		find.SetNoCursorTimeout(*gfsOpts.NoCursorTimeout)

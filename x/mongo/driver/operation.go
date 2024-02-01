@@ -287,9 +287,6 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
-	// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
-	MaxTime *time.Duration
-
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
@@ -1605,34 +1602,36 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
-	if csot.IsTimeoutContext(ctx) {
-		if deadline, ok := ctx.Deadline(); ok {
-			remainingTimeout := time.Until(deadline)
-
-			// Always round up to the next millisecond value so we never truncate the calculated
-			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-			maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
-			if maxTimeMS <= 0 {
-				return 0, fmt.Errorf(
-					"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
-					remainingTimeout,
-					ErrDeadlineWouldBeExceeded,
-					rttStats)
-			}
-
-			return uint64(maxTimeMS), nil
-		}
-	} else if op.MaxTime != nil {
-		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
-		// no timeout and is allowed.
-		if *op.MaxTime < 0 {
-			return 0, ErrNegativeMaxTime
-		}
-		// Always round up to the next millisecond value so we never truncate the requested
-		// MaxTime value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-		return uint64((*op.MaxTime + (time.Millisecond - 1)) / time.Millisecond), nil
+	// TODO(GODRIVER-2348): Should this be removed? This line prevents context-
+	// specific timesouts from adding a maxTimeMS to the operation WM. Per the
+	// CSOT specifications, we should set the maxTimeMS:
+	// - [timeoutMS] MUST be configurable at the level of a MongoClient,
+	// MongoDatabase, MongoCollection, or of a single operation
+	// - If timeoutMS is set, drivers MUST append a maxTimeMS field to commands
+	// executed against a MongoDB serve
+	if !csot.IsTimeoutContext(ctx) {
+		return 0, nil
 	}
-	return 0, nil
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 0, nil
+	}
+
+	remainingTimeout := time.Until(deadline)
+
+	// Always round up to the next millisecond value so we never truncate the calculated
+	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+	maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
+	if maxTimeMS <= 0 {
+		return 0, fmt.Errorf(
+			"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
+			remainingTimeout,
+			ErrDeadlineWouldBeExceeded,
+			rttStats)
+	}
+
+	return uint64(maxTimeMS), nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this

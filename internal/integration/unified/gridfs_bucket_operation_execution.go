@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -40,7 +39,7 @@ func createBucketFindCursor(ctx context.Context, operation *operation) (*cursorR
 
 		switch key {
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			return nil, newSkipTestError("the maxTimeMS collection option is not supported")
 		case "filter":
 			filter = val.Document()
 		default:

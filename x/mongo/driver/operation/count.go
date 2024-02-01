@@ -25,7 +25,6 @@ import (
 
 // Count represents a count operation.
 type Count struct {
-	maxTime        *time.Duration
 	query          bsoncore.Document
 	session        *session.Client
 	clock          *session.ClusterClock
@@ -121,7 +120,6 @@ func (c *Count) Execute(ctx context.Context) error {
 		Crypt:             c.crypt,
 		Database:          c.database,
 		Deployment:        c.deployment,
-		MaxTime:           c.maxTime,
 		ReadConcern:       c.readConcern,
 		ReadPreference:    c.readPreference,
 		Selector:          c.selector,
@@ -149,16 +147,6 @@ func (c *Count) command(dst []byte, _ description.SelectedServer) ([]byte, error
 		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)
 	}
 	return dst, nil
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (c *Count) MaxTime(maxTime *time.Duration) *Count {
-	if c == nil {
-		c = new(Count)
-	}
-
-	c.maxTime = maxTime
-	return c
 }
 
 // Query determines what results are returned from find.

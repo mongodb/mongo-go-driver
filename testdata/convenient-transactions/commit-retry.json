@@ -430,6 +430,7 @@
     },
     {
       "description": "commit is not retried after MaxTimeMSExpired error",
+      "skipReason": "GODRIVER-2348: maxTimeMS is deprecated",
       "failPoint": {
         "configureFailPoint": "failCommand",
         "mode": {

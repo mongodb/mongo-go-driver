@@ -26,7 +26,6 @@ import (
 type Distinct struct {
 	collation      bsoncore.Document
 	key            *string
-	maxTime        *time.Duration
 	query          bsoncore.Document
 	session        *session.Client
 	clock          *session.ClusterClock
@@ -100,7 +99,6 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Crypt:             d.crypt,
 		Database:          d.database,
 		Deployment:        d.deployment,
-		MaxTime:           d.maxTime,
 		ReadConcern:       d.readConcern,
 		ReadPreference:    d.readPreference,
 		Selector:          d.selector,
@@ -148,16 +146,6 @@ func (d *Distinct) Key(key string) *Distinct {
 	}
 
 	d.key = &key
-	return d
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (d *Distinct) MaxTime(maxTime *time.Duration) *Distinct {
-	if d == nil {
-		d = new(Distinct)
-	}
-
-	d.maxTime = maxTime
 	return d
 }
 
