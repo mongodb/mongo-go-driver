@@ -526,7 +526,6 @@ functions:
             echo "crypt_shared library will be loaded from path: $CRYPT_SHARED_LIB_PATH"
           fi
 
-          export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${MONGODB_URI}" \
@@ -575,7 +574,6 @@ functions:
           # Per the LB testing spec, the URI of an LB fronting a single mongos should be used to configure internal
           # testing Client instances, so we set MONGODB_URI to SINGLE_MONGOS_LB_URI.
 
-          export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${SINGLE_MONGOS_LB_URI}" \
@@ -874,7 +872,6 @@ functions:
           source ./secrets-export.sh
           export KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}"
 
-          export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${MONGODB_URI}" \
@@ -896,7 +893,6 @@ functions:
           source ./secrets-export.sh
           export KMS_MOCK_SERVERS_RUNNING="true"
 
-          export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
           MONGODB_URI="${MONGODB_URI}" \
@@ -1696,15 +1692,13 @@ tasks:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
   # Build with the oldest supported version of Go.
-  - name: go1.13-build
+  - name: go1.18-build
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          # We only test building the compilecheck submodule with Go 1.13 because the root module's
-          # go.mod file contains retract directives, which are not supported until Go 1.16.
           targets: "build-compile-check"
-          BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
+          BUILD_ENV: "PATH=/opt/golang/go1.18/bin:$PATH GOROOT=/opt/golang/go1.18"
 
   # Build with the same Go version that we're using for tests.
   - name: build

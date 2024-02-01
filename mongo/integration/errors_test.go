@@ -77,7 +77,7 @@ func TestErrors(t *testing.T) {
 			integtest.AddTestServerAPIVersion(clientOpts)
 			client, err := mongo.Connect(context.Background(), clientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
-			defer client.Disconnect(context.Background())
+			defer func() { _ = client.Disconnect(context.Background()) }()
 
 			// A connection getting closed should manifest as an io.EOF error.
 			err = client.Ping(context.Background(), mtest.PrimaryRp)

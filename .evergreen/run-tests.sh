@@ -28,8 +28,6 @@ else
   export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
 fi
 
-export GOFLAGS=-mod=vendor
-
 SSL=${SSL:-nossl}
 if [ "$SSL" != "nossl" -a -z "${SERVERLESS+x}" ]; then
     export MONGO_GO_DRIVER_CA_FILE="${DRIVERS_TOOLS}/.evergreen/x509gen/ca.pem"
