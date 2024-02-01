@@ -364,6 +364,27 @@ func BenchmarkSelector_Sharded(b *testing.B) {
 	}
 }
 
+func Benchmark_SelectServer_SelectServer(b *testing.B) {
+	topology := Topology{Kind: ReplicaSet} // You can change the topology as needed
+	candidates := []Server{
+		{Kind: Mongos},
+		{Kind: RSPrimary},
+		{Kind: Standalone},
+	}
+
+	selector := writeServerSelector{} // Assuming this is the receiver type
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := selector.SelectServer(topology, candidates)
+		if err != nil {
+			b.Fatalf("Error selecting server: %v", err)
+		}
+	}
+}
+
 func TestSelector_Single(t *testing.T) {
 	t.Parallel()
 
