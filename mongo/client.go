@@ -405,9 +405,6 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		if opt.DefaultWriteConcern != nil {
 			sopts.DefaultWriteConcern = opt.DefaultWriteConcern
 		}
-		if opt.DefaultMaxCommitTime != nil {
-			sopts.DefaultMaxCommitTime = opt.DefaultMaxCommitTime
-		}
 		if opt.Snapshot != nil {
 			sopts.Snapshot = opt.Snapshot
 		}
@@ -431,9 +428,6 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	}
 	if sopts.DefaultReadPreference != nil {
 		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
-	}
-	if sopts.DefaultMaxCommitTime != nil {
-		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
 	}
 	if sopts.Snapshot != nil {
 		coreOpts.Snapshot = sopts.Snapshot

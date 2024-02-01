@@ -297,9 +297,6 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 			if txnOpts.WriteConcern != nil {
 				sessOpts.SetDefaultWriteConcern(txnOpts.WriteConcern)
 			}
-			if txnOpts.MaxCommitTime != nil {
-				sessOpts.SetDefaultMaxCommitTime(txnOpts.MaxCommitTime)
-			}
 		default:
 			t.Fatalf("unrecognized session option: %v", name)
 		}
@@ -374,8 +371,7 @@ func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionO
 		case "readConcern":
 			txnOpts.SetReadConcern(createReadConcern(opt))
 		case "maxCommitTimeMS":
-			t := time.Duration(opt.Int32()) * time.Millisecond
-			txnOpts.SetMaxCommitTime(&t)
+			t.Skip("GODRIVER-2348: maxCommitTimeMS is deprecated")
 		default:
 			t.Fatalf("unrecognized transaction option: %v", opt)
 		}

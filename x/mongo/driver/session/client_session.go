@@ -117,16 +117,14 @@ type Client struct {
 
 	// options for the current transaction
 	// most recently set by transactionopt
-	CurrentRc  *readconcern.ReadConcern
-	CurrentRp  *readpref.ReadPref
-	CurrentWc  *writeconcern.WriteConcern
-	CurrentMct *time.Duration
+	CurrentRc *readconcern.ReadConcern
+	CurrentRp *readpref.ReadPref
+	CurrentWc *writeconcern.WriteConcern
 
 	// default transaction options
-	transactionRc            *readconcern.ReadConcern
-	transactionRp            *readpref.ReadPref
-	transactionWc            *writeconcern.WriteConcern
-	transactionMaxCommitTime *time.Duration
+	transactionRc *readconcern.ReadConcern
+	transactionRp *readpref.ReadPref
+	transactionWc *writeconcern.WriteConcern
 
 	pool             *Pool
 	TransactionState TransactionState
@@ -201,9 +199,6 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*
 	}
 	if mergedOpts.DefaultWriteConcern != nil {
 		c.transactionWc = mergedOpts.DefaultWriteConcern
-	}
-	if mergedOpts.DefaultMaxCommitTime != nil {
-		c.transactionMaxCommitTime = mergedOpts.DefaultMaxCommitTime
 	}
 	if mergedOpts.Snapshot != nil {
 		c.Snapshot = *mergedOpts.Snapshot
@@ -412,7 +407,6 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentRc = opts.ReadConcern
 		c.CurrentRp = opts.ReadPreference
 		c.CurrentWc = opts.WriteConcern
-		c.CurrentMct = opts.MaxCommitTime
 	}
 
 	if c.CurrentRc == nil {
@@ -425,10 +419,6 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 
 	if c.CurrentWc == nil {
 		c.CurrentWc = c.transactionWc
-	}
-
-	if c.CurrentMct == nil {
-		c.CurrentMct = c.transactionMaxCommitTime
 	}
 
 	if !c.CurrentWc.Acknowledged() {

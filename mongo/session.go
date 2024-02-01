@@ -281,15 +281,11 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 		if opt.WriteConcern != nil {
 			topts.WriteConcern = opt.WriteConcern
 		}
-		if opt.MaxCommitTime != nil {
-			topts.MaxCommitTime = opt.MaxCommitTime
-		}
 	}
 	coreOpts := &session.TransactionOptions{
 		ReadConcern:    topts.ReadConcern,
 		ReadPreference: topts.ReadPreference,
 		WriteConcern:   topts.WriteConcern,
-		MaxCommitTime:  topts.MaxCommitTime,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)
