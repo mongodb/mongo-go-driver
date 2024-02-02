@@ -33,6 +33,22 @@ func IsTimeoutContext(ctx context.Context) bool {
 	return ctx.Value(timeoutKey{}) != nil
 }
 
+type skipMaxTime struct{}
+
+// NewSkipMaxTimeContext returns a new context with a "skipMaxTime" value that
+// is used to inform operation construction to not add a maxTimeMS to a wire
+// message, regardless of a context deadline. This is specifically used for
+// monitoring where non-awaitable hello commands are put on the wire.
+func NewSkipMaxTimeContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, skipMaxTime{}, true)
+}
+
+// IsSkipMaxTimeContext checks if the provided context has been assigned the
+// "skipMaxTime" value.
+func IsSkipMaxTimeContext(ctx context.Context) bool {
+	return ctx.Value(skipMaxTime{}) != nil
+}
+
 // ZeroRTTMonitor implements the RTTMonitor interface and is used internally for testing. It returns 0 for all
 // RTT calculations and an empty string for RTT statistics.
 type ZeroRTTMonitor struct{}

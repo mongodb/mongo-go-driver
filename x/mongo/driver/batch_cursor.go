@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -468,16 +467,6 @@ func (bc *BatchCursor) PostBatchResumeToken() bsoncore.Document {
 // SetBatchSize sets the batchSize for future getMore operations.
 func (bc *BatchCursor) SetBatchSize(size int32) {
 	bc.batchSize = size
-}
-
-// SetMaxTime will set the maximum amount of time the server will allow the
-// operations to execute. The server will error if this field is set but the
-// cursor is not configured with awaitData=true.
-//
-// The time.Duration value passed by this setter will be converted and rounded
-// down to the nearest millisecond.
-func (bc *BatchCursor) SetMaxTime(dur time.Duration) {
-	bc.maxTimeMS = int64(dur / time.Millisecond)
 }
 
 // SetComment sets the comment for future getMore operations.

@@ -285,7 +285,6 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 		batchSize int32
 		command   bson.Raw
 		comment   bson.Raw
-		maxTime   time.Duration
 	)
 
 	opts := options.RunCmd()
@@ -307,7 +306,7 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 		case "comment":
 			comment = val.Document()
 		case "maxTimeMS":
-			maxTime = time.Duration(val.AsInt64()) * time.Millisecond
+			return nil, newSkipTestError("GODRIVER-2348: maxTimeMS not supported")
 		case "cursorTimeout":
 			return nil, newSkipTestError("cursorTimeout not supported")
 		case "timeoutMode":
@@ -328,10 +327,6 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 
 	if batchSize > 0 {
 		cursor.SetBatchSize(batchSize)
-	}
-
-	if maxTime > 0 {
-		cursor.SetMaxTime(maxTime)
 	}
 
 	if len(comment) > 0 {

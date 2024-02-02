@@ -1602,14 +1602,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
-	// TODO(GODRIVER-2348): Should this be removed? This line prevents context-
-	// specific timesouts from adding a maxTimeMS to the operation WM. Per the
-	// CSOT specifications, we should set the maxTimeMS:
-	// - [timeoutMS] MUST be configurable at the level of a MongoClient,
-	// MongoDatabase, MongoCollection, or of a single operation
-	// - If timeoutMS is set, drivers MUST append a maxTimeMS field to commands
-	// executed against a MongoDB serve
-	if !csot.IsTimeoutContext(ctx) {
+	if csot.IsSkipMaxTimeContext(ctx) {
 		return 0, nil
 	}
 

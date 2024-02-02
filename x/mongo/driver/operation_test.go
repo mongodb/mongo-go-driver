@@ -616,7 +616,7 @@ func TestOperation(t *testing.T) {
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
-		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
+		assert.True(t, errors.Is(err, context.DeadlineExceeded))
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
 		conn := new(mockConnection)
