@@ -417,6 +417,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -447,6 +448,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -511,6 +513,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -600,7 +603,6 @@ functions:
           MONGODB_URI="${SERVERLESS_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
-          SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
           MAKEFILE_TARGET=evg-test-serverless \
             sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
@@ -868,6 +870,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -890,6 +893,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1891,6 +1895,7 @@ tasks:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
