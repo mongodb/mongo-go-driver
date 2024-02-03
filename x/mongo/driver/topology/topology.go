@@ -53,10 +53,6 @@ var ErrTopologyClosed = errors.New("topology is closed")
 // already connected Topology.
 var ErrTopologyConnected = errors.New("topology is connected or connecting")
 
-// ErrServerSelectionTimeout is returned from server selection when the server
-// selection process took longer than allowed by the timeout.
-var ErrServerSelectionTimeout = errors.New("server selection timeout")
-
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
 
@@ -114,17 +110,17 @@ var (
 	_ driver.Subscriber = &Topology{}
 )
 
-type serverSelectionState struct {
-	selector    description.ServerSelector
-	timeoutChan <-chan time.Time
-}
-
-func newServerSelectionState(selector description.ServerSelector, timeoutChan <-chan time.Time) serverSelectionState {
-	return serverSelectionState{
-		selector:    selector,
-		timeoutChan: timeoutChan,
-	}
-}
+//type serverSelectionState struct {
+//	selector    description.ServerSelector
+//	timeoutChan <-chan time.Time
+//}
+//
+//func newServerSelectionState(selector description.ServerSelector, timeoutChan <-chan time.Time) serverSelectionState {
+//	return serverSelectionState{
+//		selector:    selector,
+//		timeoutChan: timeoutChan,
+//	}
+//}
 
 // New creates a new topology. A "nil" config is interpreted as the default configuration.
 func New(cfg *Config) (*Topology, error) {
@@ -491,6 +487,44 @@ func (t *Topology) RequestImmediateCheck() {
 	t.serversLock.Unlock()
 }
 
+// getServerSelectionTimeout will determine the value of the CSOT and return the
+// minimum of that value and serverSelectionTimeoutMS.
+func getServerSelectionTimeout(ctx context.Context, topo *Topology) time.Duration {
+	deadline, ok := ctx.Deadline()
+
+	// If there is no CSOT, then just return the serverSelectionTimeoutMS
+	if !ok && topo.cfg.Timeout == nil {
+		return topo.cfg.ServerSelectionTimeout
+	}
+
+	var csot time.Duration
+	if ok {
+		csot = time.Until(deadline) // op-level takes precedence
+	} else {
+		csot = *topo.cfg.Timeout
+	}
+
+	// Take the minimum of the two.
+	if csot > 0 && csot < topo.cfg.ServerSelectionTimeout {
+		return csot
+	}
+
+	return topo.cfg.ServerSelectionTimeout
+}
+
+// contextWithServerSelectionTimeout will apply the appropriate server selection
+// timeout to the parent context for selecting a server.
+func contextWithServerSelectionTimeout(parent context.Context, topo *Topology) (context.Context, context.CancelFunc) {
+	var cancel context.CancelFunc
+
+	timeout := getServerSelectionTimeout(parent, topo)
+	if timeout == 0 {
+		return parent, cancel
+	}
+
+	return context.WithTimeout(parent, timeout)
+}
+
 // SelectServer selects a server with given a selector. SelectServer complies with the
 // server selection spec, and will time out after serverSelectionTimeout or when the
 // parent context is done.
@@ -502,17 +536,22 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 		return nil, ErrTopologyClosed
 	}
-	var ssTimeoutCh <-chan time.Time
+	//var ssTimeoutCh <-chan time.Time
 
-	if t.cfg.ServerSelectionTimeout > 0 {
-		ssTimeout := time.NewTimer(t.cfg.ServerSelectionTimeout)
-		ssTimeoutCh = ssTimeout.C
-		defer ssTimeout.Stop()
-	}
+	//if t.cfg.ServerSelectionTimeout > 0 {
+	//	ssTimeout := time.NewTimer(t.cfg.ServerSelectionTimeout)
+	//	ssTimeoutCh = ssTimeout.C
+	//	defer ssTimeout.Stop()
+	//}
 
 	var doneOnce bool
 	var sub *driver.Subscription
-	selectionState := newServerSelectionState(ss, ssTimeoutCh)
+	//selectionState := newServerSelectionState(ss, ssTimeoutCh)
+
+	var cancel context.CancelFunc
+	ctx, cancel = contextWithServerSelectionTimeout(ctx, t)
+
+	defer cancel()
 
 	// Record the start time.
 	startTime := time.Now()
@@ -527,7 +566,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 			// for the first pass, select a server from the current description.
 			// this improves selection speed for up-to-date topology descriptions.
-			suitable, selectErr = t.selectServerFromDescription(t.Description(), selectionState)
+			suitable, selectErr = t.selectServerFromDescription(t.Description(), ss)
 			doneOnce = true
 		} else {
 			// if the first pass didn't select a server, the previous description did not contain a suitable server, so
@@ -545,7 +584,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 				defer func() { _ = t.Unsubscribe(sub) }()
 			}
 
-			suitable, selectErr = t.selectServerFromSubscription(ctx, sub.Updates, selectionState)
+			suitable, selectErr = t.selectServerFromSubscription(ctx, sub.Updates, ss)
 		}
 		if selectErr != nil {
 			if mustLogServerSelection(t, logger.LevelDebug) {
@@ -692,20 +731,21 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 // selectServerFromSubscription loops until a topology description is available for server selection. It returns
 // when the given context expires, server selection timeout is reached, or a description containing a selectable
 // server is available.
-func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptionCh <-chan description.Topology,
-	selectionState serverSelectionState) ([]description.Server, error) {
+func (t *Topology) selectServerFromSubscription(
+	ctx context.Context,
+	subscriptionCh <-chan description.Topology,
+	srvSelector description.ServerSelector,
+) ([]description.Server, error) {
 
 	current := t.Description()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
-		case <-selectionState.timeoutChan:
-			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: current}
 		case current = <-subscriptionCh:
 		}
 
-		suitable, err := t.selectServerFromDescription(current, selectionState)
+		suitable, err := t.selectServerFromDescription(current, srvSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -718,8 +758,10 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 }
 
 // selectServerFromDescription process the given topology description and returns a slice of suitable servers.
-func (t *Topology) selectServerFromDescription(desc description.Topology,
-	selectionState serverSelectionState) ([]description.Server, error) {
+func (t *Topology) selectServerFromDescription(
+	desc description.Topology,
+	srvSelector description.ServerSelector,
+) ([]description.Server, error) {
 
 	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
 	// selecting a server from a description is not a blocking operation.
@@ -747,7 +789,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 		allowed[i] = desc.Servers[idx]
 	}
 
-	suitable, err := selectionState.selector.SelectServer(desc, allowed)
+	suitable, err := srvSelector.SelectServer(desc, allowed)
 	if err != nil {
 		return nil, ServerSelectionError{Wrapped: err, Desc: desc}
 	}

@@ -34,6 +34,7 @@ type Config struct {
 	ServerOpts             []ServerOption
 	URI                    string
 	ConnectTimeout         time.Duration
+	Timeout                *time.Duration
 	ServerSelectionTimeout time.Duration
 	ServerMonitor          *event.ServerMonitor
 	SRVMaxHosts            int
@@ -84,7 +85,9 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	var connOpts []ConnectionOption
 	var serverOpts []ServerOption
 
-	cfgp := &Config{}
+	cfgp := &Config{
+		Timeout: co.Timeout,
+	}
 
 	// Set the default "ServerSelectionTimeout" to 30 seconds.
 	cfgp.ServerSelectionTimeout = defaultServerSelectionTimeout

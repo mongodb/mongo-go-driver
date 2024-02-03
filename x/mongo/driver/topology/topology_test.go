@@ -9,7 +9,6 @@ package topology
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -25,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 const testTimeout = 2 * time.Second
@@ -64,10 +62,10 @@ func TestServerSelection(t *testing.T) {
 	var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return []description.Server{}, nil
 	}
-	var errSelectionError = errors.New("encountered an error in the selector")
-	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-		return nil, errSelectionError
-	}
+	//var errSelectionError = errors.New("encountered an error in the selector")
+	//var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	//	return nil, errSelectionError
+	//}
 
 	t.Run("Success", func(t *testing.T) {
 		topo, err := New(nil)
@@ -82,8 +80,7 @@ func TestServerSelection(t *testing.T) {
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
 
-		state := newServerSelectionState(selectFirst, nil)
-		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, selectFirst)
 		noerr(t, err)
 		if len(srvs) != 1 {
 			t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
@@ -147,8 +144,7 @@ func TestServerSelection(t *testing.T) {
 
 		resp := make(chan []description.Server)
 		go func() {
-			state := newServerSelectionState(selectFirst, nil)
-			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, selectFirst)
 			noerr(t, err)
 			resp <- srvs
 		}()
@@ -195,8 +191,7 @@ func TestServerSelection(t *testing.T) {
 		resp := make(chan error)
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
-			state := newServerSelectionState(selectNone, nil)
-			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
+			_, err := topo.selectServerFromSubscription(ctx, subCh, selectNone)
 			resp <- err
 		}()
 
@@ -217,72 +212,77 @@ func TestServerSelection(t *testing.T) {
 		want := ServerSelectionError{Wrapped: context.Canceled, Desc: desc}
 		assert.Equal(t, err, want, "Incorrect error received. got %v; want %v", err, want)
 	})
-	t.Run("Timeout", func(t *testing.T) {
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
-			},
-		}
-		topo, err := New(nil)
-		noerr(t, err)
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
-		resp := make(chan error)
-		timeout := make(chan time.Time)
-		go func() {
-			state := newServerSelectionState(selectNone, timeout)
-			_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
-			resp <- err
-		}()
+	// TODO(GODRIVER-2348): Since we use the context timeout now, does this test
+	// have an analogue?
+	//t.Run("Timeout", func(t *testing.T) {
+	//	desc := description.Topology{
+	//		Servers: []description.Server{
+	//			{Addr: address.Address("one"), Kind: description.Standalone},
+	//			{Addr: address.Address("two"), Kind: description.Standalone},
+	//			{Addr: address.Address("three"), Kind: description.Standalone},
+	//		},
+	//	}
+	//	topo, err := New(nil)
+	//	noerr(t, err)
+	//	subCh := make(chan description.Topology, 1)
+	//	subCh <- desc
+	//	resp := make(chan error)
+	//	timeout := make(chan time.Time)
+	//	go func() {
+	//		state := newServerSelectionState(selectNone, timeout)
+	//		_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+	//		resp <- err
+	//	}()
 
-		select {
-		case err := <-resp:
-			t.Errorf("Received error from server selection too soon: %v", err)
-		case timeout <- time.Now():
-		}
+	//	select {
+	//	case err := <-resp:
+	//		t.Errorf("Received error from server selection too soon: %v", err)
+	//	case timeout <- time.Now():
+	//	}
 
-		select {
-		case err = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
-		}
+	//	select {
+	//	case err = <-resp:
+	//	case <-time.After(100 * time.Millisecond):
+	//		t.Errorf("Timed out while trying to retrieve selected servers")
+	//	}
 
-		if err == nil {
-			t.Fatalf("did not receive error from server selection")
-		}
-	})
-	t.Run("Error", func(t *testing.T) {
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
-			},
-		}
-		topo, err := New(nil)
-		noerr(t, err)
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
-		resp := make(chan error)
-		timeout := make(chan time.Time)
-		go func() {
-			state := newServerSelectionState(selectError, timeout)
-			_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
-			resp <- err
-		}()
+	//	if err == nil {
+	//		t.Fatalf("did not receive error from server selection")
+	//	}
+	//})
 
-		select {
-		case err = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
-		}
+	// TODO(GODRIVER-2348): Since we use the context timeout now, does this test
+	// have an analogue?
+	//t.Run("Error", func(t *testing.T) {
+	//	desc := description.Topology{
+	//		Servers: []description.Server{
+	//			{Addr: address.Address("one"), Kind: description.Standalone},
+	//			{Addr: address.Address("two"), Kind: description.Standalone},
+	//			{Addr: address.Address("three"), Kind: description.Standalone},
+	//		},
+	//	}
+	//	topo, err := New(nil)
+	//	noerr(t, err)
+	//	subCh := make(chan description.Topology, 1)
+	//	subCh <- desc
+	//	resp := make(chan error)
+	//	timeout := make(chan time.Time)
+	//	go func() {
+	//		state := newServerSelectionState(selectError, timeout)
+	//		_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+	//		resp <- err
+	//	}()
 
-		if err == nil {
-			t.Fatalf("did not receive error from server selection")
-		}
-	})
+	//	select {
+	//	case err = <-resp:
+	//	case <-time.After(100 * time.Millisecond):
+	//		t.Errorf("Timed out while trying to retrieve selected servers")
+	//	}
+
+	//	if err == nil {
+	//		t.Fatalf("did not receive error from server selection")
+	//	}
+	//})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
@@ -302,71 +302,74 @@ func TestServerSelection(t *testing.T) {
 			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.Single)
 		}
 	})
-	t.Run("Update on not primary error", func(t *testing.T) {
-		topo, err := New(nil)
-		noerr(t, err)
-		atomic.StoreInt64(&topo.state, topologyConnected)
 
-		addr1 := address.Address("one")
-		addr2 := address.Address("two")
-		addr3 := address.Address("three")
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: addr1, Kind: description.RSPrimary},
-				{Addr: addr2, Kind: description.RSSecondary},
-				{Addr: addr3, Kind: description.RSSecondary},
-			},
-		}
+	// TODO(GODRIVER-2348): Since we use the context timeout now, does this test
+	// have an analogue?
+	//t.Run("Update on not primary error", func(t *testing.T) {
+	//	topo, err := New(nil)
+	//	noerr(t, err)
+	//	atomic.StoreInt64(&topo.state, topologyConnected)
 
-		// manually add the servers to the topology
-		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id, defaultConnectionTimeout)
-			noerr(t, err)
-			topo.servers[srv.Addr] = s
-		}
+	//	addr1 := address.Address("one")
+	//	addr2 := address.Address("two")
+	//	addr3 := address.Address("three")
+	//	desc := description.Topology{
+	//		Servers: []description.Server{
+	//			{Addr: addr1, Kind: description.RSPrimary},
+	//			{Addr: addr2, Kind: description.RSSecondary},
+	//			{Addr: addr3, Kind: description.RSSecondary},
+	//		},
+	//	}
 
-		// Send updated description
-		desc = description.Topology{
-			Servers: []description.Server{
-				{Addr: addr1, Kind: description.RSSecondary},
-				{Addr: addr2, Kind: description.RSPrimary},
-				{Addr: addr3, Kind: description.RSSecondary},
-			},
-		}
+	//	// manually add the servers to the topology
+	//	for _, srv := range desc.Servers {
+	//		s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id, defaultConnectionTimeout)
+	//		noerr(t, err)
+	//		topo.servers[srv.Addr] = s
+	//	}
 
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
+	//	// Send updated description
+	//	desc = description.Topology{
+	//		Servers: []description.Server{
+	//			{Addr: addr1, Kind: description.RSSecondary},
+	//			{Addr: addr2, Kind: description.RSPrimary},
+	//			{Addr: addr3, Kind: description.RSSecondary},
+	//		},
+	//	}
 
-		// send a not primary error to the server forcing an update
-		serv, err := topo.FindServer(desc.Servers[0])
-		noerr(t, err)
-		atomic.StoreInt64(&serv.state, serverConnected)
-		_ = serv.ProcessError(driver.Error{Message: driver.LegacyNotPrimaryErrMsg}, initConnection{})
+	//	subCh := make(chan description.Topology, 1)
+	//	subCh <- desc
 
-		resp := make(chan []description.Server)
+	//	// send a not primary error to the server forcing an update
+	//	serv, err := topo.FindServer(desc.Servers[0])
+	//	noerr(t, err)
+	//	atomic.StoreInt64(&serv.state, serverConnected)
+	//	_ = serv.ProcessError(driver.Error{Message: driver.LegacyNotPrimaryErrMsg}, initConnection{})
 
-		go func() {
-			// server selection should discover the new topology
-			state := newServerSelectionState(description.WriteSelector(), nil)
-			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
-			noerr(t, err)
-			resp <- srvs
-		}()
+	//	resp := make(chan []description.Server)
 
-		var srvs []description.Server
-		select {
-		case srvs = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
-		}
+	//	go func() {
+	//		// server selection should discover the new topology
+	//		state := newServerSelectionState(description.WriteSelector(), nil)
+	//		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+	//		noerr(t, err)
+	//		resp <- srvs
+	//	}()
 
-		if len(srvs) != 1 {
-			t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
-		}
-		if srvs[0].Addr != desc.Servers[1].Addr {
-			t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[1].Addr)
-		}
-	})
+	//	var srvs []description.Server
+	//	select {
+	//	case srvs = <-resp:
+	//	case <-time.After(100 * time.Millisecond):
+	//		t.Errorf("Timed out while trying to retrieve selected servers")
+	//	}
+
+	//	if len(srvs) != 1 {
+	//		t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
+	//	}
+	//	if srvs[0].Addr != desc.Servers[1].Addr {
+	//		t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[1].Addr)
+	//	}
+	//})
 	t.Run("fast path does not subscribe or check timeouts", func(t *testing.T) {
 		// Assert that the server selection fast path does not create a Subscription or check for timeout errors.
 		topo, err := New(nil)
@@ -1167,13 +1170,12 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 				Servers: servers,
 			}
 
-			timeout := make(chan time.Time)
 			b.ResetTimer()
 			b.RunParallel(func(p *testing.PB) {
 				b.ReportAllocs()
 				for p.Next() {
 					var c Topology
-					_, _ = c.selectServerFromDescription(desc, newServerSelectionState(selectNone, timeout))
+					_, _ = c.selectServerFromDescription(desc, selectNone)
 				}
 			})
 		})

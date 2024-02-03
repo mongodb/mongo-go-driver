@@ -508,26 +508,124 @@ func TestErrors(t *testing.T) {
 				err    error
 				result bool
 			}{
-				{"context timeout", mongo.CommandError{
-					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}, true},
-				{"deadline would be exceeded", mongo.CommandError{
-					100, "", []string{"other"}, "blah", driver.ErrDeadlineWouldBeExceeded, nil}, true},
-				{"server selection timeout", mongo.CommandError{
-					100, "", []string{"other"}, "blah", topology.ErrServerSelectionTimeout, nil}, true},
-				{"wait queue timeout", mongo.CommandError{
-					100, "", []string{"other"}, "blah", topology.WaitQueueTimeoutError{}, nil}, true},
-				{"ServerError NetworkTimeoutError", mongo.CommandError{
-					100, "", []string{"NetworkTimeoutError"}, "blah", nil, nil}, true},
-				{"ServerError ExceededTimeLimitError", mongo.CommandError{
-					100, "", []string{"ExceededTimeLimitError"}, "blah", nil, nil}, true},
-				{"ServerError false", mongo.CommandError{
-					100, "", []string{"other"}, "blah", nil, nil}, false},
-				{"net error true", mongo.CommandError{
-					100, "", []string{"other"}, "blah", netErr{true}, nil}, true},
-				{"net error false", netErr{false}, false},
-				{"wrapped error", fmt.Errorf("%w", mongo.CommandError{
-					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}), true},
-				{"other error", errors.New("foo"), false},
+				{
+					name: "context timeout",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: context.DeadlineExceeded,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "deadline would be exceeded",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: driver.ErrDeadlineWouldBeExceeded,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "server selection timeout",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: context.DeadlineExceeded,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "wait queue timeout",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: topology.WaitQueueTimeoutError{},
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "ServerError NetworkTimeoutError",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"NetworkTimeoutError"},
+						Name:    "blah",
+						Wrapped: nil,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "ServerError ExceededTimeLimitError",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"ExceededTimeLimitError"},
+						Name:    "blah",
+						Wrapped: nil,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "ServerError false",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: nil,
+						Raw:     nil,
+					},
+					result: false,
+				},
+				{
+					name: "net error true",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: netErr{true},
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name:   "net error false",
+					err:    netErr{false},
+					result: false,
+				},
+				{
+					name: "wrapped error",
+					err: fmt.Errorf("%w", mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: context.DeadlineExceeded,
+						Raw:     nil,
+					}),
+					result: true,
+				},
+				{
+					name:   "other error",
+					err:    errors.New("foo"),
+					result: false,
+				},
 			}
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
