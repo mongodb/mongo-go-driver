@@ -2153,9 +2153,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		kmsProvidersMap := map[string]map[string]interface{}{
 			"azure": {},
 		}
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		assert.Nil(mt, err, "error in NewBSONValueWriter: %v", err)
-		err = bson.NewEncoder(vw).Encode(kmsProvidersMap)
+		vw := bsonrw.NewValueWriter(buf)
+		err := bson.NewEncoder(vw).Encode(kmsProvidersMap)
 		assert.Nil(mt, err, "error in Encode: %v", err)
 
 		getClient := func(header http.Header) *http.Client {
@@ -2240,7 +2239,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
 			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
 			_, err = crypt.GetKmsProviders(context.Background())
-			assert.ErrorContains(mt, err, "Client.Timeout or context cancellation while reading body")
+
+			possibleErrors := []string{
+				"error reading response body: context deadline exceeded",    // <= 1.19 + RHEL & macOS
+				"Client.Timeout or context cancellation while reading body", // > 1.20 on all OS
+			}
+
+			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+				"expected possibleErrors=%v to contain %v, but it didn't",
+				possibleErrors, err.Error())
 		})
 	})
 

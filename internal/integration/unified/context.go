@@ -50,9 +50,6 @@ func newTestContext(
 
 func addFailPoint(ctx context.Context, failPoint string, client *mongo.Client) error {
 	failPoints := ctx.Value(failPointsKey).(map[string]*mongo.Client)
-	if _, ok := failPoints[failPoint]; ok {
-		return fmt.Errorf("fail point %q already exists in tracked fail points map", failPoint)
-	}
 
 	failPoints[failPoint] = client
 	return nil

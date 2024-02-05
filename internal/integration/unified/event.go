@@ -11,7 +11,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 type monitoringEventType string
@@ -124,21 +123,21 @@ type serverDescription struct {
 type serverDescriptionChangedEventInfo struct {
 	// NewDescription  corresponds to the server description as it was after
 	// the change that triggered this event.
-	NewDescription serverDescription
+	NewDescription *serverDescription
 
 	// PreviousDescription corresponds to the server description as it was
 	// before the change that triggered this event
-	PreviousDescription serverDescription
+	PreviousDescription *serverDescription
 }
 
 // newServerDescriptionChangedEventInfo returns a new serverDescriptionChangedEvent
 // instance for the given event.
 func newServerDescriptionChangedEventInfo(evt *event.ServerDescriptionChangedEvent) *serverDescriptionChangedEventInfo {
 	return &serverDescriptionChangedEventInfo{
-		NewDescription: serverDescription{
+		NewDescription: &serverDescription{
 			Type: evt.NewDescription.Kind.String(),
 		},
-		PreviousDescription: serverDescription{
+		PreviousDescription: &serverDescription{
 			Type: evt.PreviousDescription.Kind.String(),
 		},
 	}
@@ -156,21 +155,18 @@ func (evt *serverDescriptionChangedEventInfo) UnmarshalBSON(data []byte) error {
 		return err
 	}
 
-	// Set the default case to "Unknown" for the NewDescription.Type field.
-	evt.NewDescription.Type = description.TopologyKind(description.Unknown).String()
-
 	// Lookup the previous description, if any.
 	if newDescription, err := raw.LookupErr("newDescription"); err == nil {
-		evt.NewDescription.Type = newDescription.Document().Lookup("type").StringValue()
+		evt.NewDescription = &serverDescription{
+			Type: newDescription.Document().Lookup("type").StringValue(),
+		}
 	}
-
-	// Set the default case to "Unknown" for the PreviousDescription.Type
-	// field.
-	evt.PreviousDescription.Type = description.TopologyKind(description.Unknown).String()
 
 	// Lookup the previous description, if any.
 	if previousDescription, err := raw.LookupErr("previousDescription"); err == nil {
-		evt.PreviousDescription.Type = previousDescription.Document().Lookup("type").StringValue()
+		evt.PreviousDescription = &serverDescription{
+			Type: previousDescription.Document().Lookup("type").StringValue(),
+		}
 	}
 
 	return nil

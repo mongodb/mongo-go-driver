@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/israce"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -73,7 +72,7 @@ func TestGridFS(x *testing.T) {
 
 		for _, tc := range testcases {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				bucket, err := gridfs.NewBucket(mt.DB, options.GridFSBucket().SetChunkSizeBytes(chunkSize))
+				bucket, err := mt.DB.GridFSBucket(options.GridFSBucket().SetChunkSizeBytes(chunkSize))
 				assert.Nil(mt, err, "NewBucket error: %v", err)
 
 				ustream, err := bucket.OpenUploadStream(context.Background(), "foo")
@@ -108,7 +107,7 @@ func TestGridFS(x *testing.T) {
 
 	mt.Run("index creation", func(mt *mtest.T) {
 		// Unit tests showing that UploadFromStream creates indexes on the chunks and files collections.
-		bucket, err := gridfs.NewBucket(mt.DB)
+		bucket, err := mt.DB.GridFSBucket()
 		assert.Nil(mt, err, "NewBucket error: %v", err)
 
 		byteData := []byte("Hello, world!")
@@ -187,7 +186,7 @@ func TestGridFS(x *testing.T) {
 
 					mt.ClearEvents()
 
-					bucket, err := gridfs.NewBucket(mt.DB)
+					bucket, err := mt.DB.GridFSBucket()
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() {
 						_ = bucket.Drop(context.Background())
@@ -234,7 +233,7 @@ func TestGridFS(x *testing.T) {
 
 					mt.ClearEvents()
 					var fileContent []byte
-					bucket, err := gridfs.NewBucket(mt.DB)
+					bucket, err := mt.DB.GridFSBucket()
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() {
 						_ = bucket.Drop(context.Background())
@@ -282,7 +281,7 @@ func TestGridFS(x *testing.T) {
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {
 					// Create a new GridFS bucket.
-					bucket, err := gridfs.NewBucket(mt.DB)
+					bucket, err := mt.DB.GridFSBucket()
 					assert.Nil(mt, err, "NewBucket error: %v", err)
 					defer func() { _ = bucket.Drop(context.Background()) }()
 
@@ -303,10 +302,10 @@ func TestGridFS(x *testing.T) {
 					assert.Nil(mt, err, "FindOne error: %v", err)
 					uploadTime := uploadedFileDoc.Lookup("uploadDate").Time().UTC()
 
-					expectedFile := &gridfs.File{
+					expectedFile := &mongo.GridFSFile{
 						ID:         uploadedFileID,
 						Length:     int64(len(fileData)),
-						ChunkSize:  gridfs.DefaultChunkSize,
+						ChunkSize:  mongo.DefaultGridFSChunkSize,
 						UploadDate: uploadTime,
 						Name:       fileName,
 						Metadata:   rawMetadata,
@@ -332,7 +331,7 @@ func TestGridFS(x *testing.T) {
 			// Test that the chunk size for a file download is determined by the chunkSize field in the files
 			// collection document, not the bucket's chunk size.
 
-			bucket, err := gridfs.NewBucket(mt.DB)
+			bucket, err := mt.DB.GridFSBucket()
 			assert.Nil(mt, err, "NewBucket error: %v", err)
 			defer func() { _ = bucket.Drop(context.Background()) }()
 
@@ -363,12 +362,13 @@ func TestGridFS(x *testing.T) {
 			_, err := mt.DB.Collection("fs.files").InsertOne(context.Background(), filesDoc)
 			assert.Nil(mt, err, "InsertOne error for files collection: %v", err)
 
-			bucket, err := gridfs.NewBucket(mt.DB)
+			bucket, err := mt.DB.GridFSBucket()
 			assert.Nil(mt, err, "NewBucket error: %v", err)
 			defer func() { _ = bucket.Drop(context.Background()) }()
 
 			_, err = bucket.OpenDownloadStream(context.Background(), oid)
-			assert.Equal(mt, gridfs.ErrMissingChunkSize, err, "expected error %v, got %v", gridfs.ErrMissingChunkSize, err)
+			assert.Equal(mt, mongo.ErrMissingGridFSChunkSize, err,
+				"expected error %v, got %v", mongo.ErrMissingGridFSChunkSize, err)
 		})
 		mt.Run("cursor error during read after downloading", func(mt *mtest.T) {
 			// To simulate a cursor error we upload a file larger than the 16MB default batch size,
@@ -378,7 +378,7 @@ func TestGridFS(x *testing.T) {
 			fileName := "read-error-test"
 			fileData := make([]byte, 17000000)
 
-			bucket, err := gridfs.NewBucket(mt.DB)
+			bucket, err := mt.DB.GridFSBucket()
 			assert.Nil(mt, err, "NewBucket error: %v", err)
 			defer func() { _ = bucket.Drop(context.Background()) }()
 
@@ -406,7 +406,7 @@ func TestGridFS(x *testing.T) {
 			fileName := "skip-error-test"
 			fileData := make([]byte, 17000000)
 
-			bucket, err := gridfs.NewBucket(mt.DB)
+			bucket, err := mt.DB.GridFSBucket()
 			assert.Nil(mt, err, "NewBucket error: %v", err)
 			defer func() { _ = bucket.Drop(context.Background()) }()
 
@@ -446,7 +446,7 @@ func TestGridFS(x *testing.T) {
 				if tc.bucketName != "" {
 					bucketOpts.SetName(tc.bucketName)
 				}
-				bucket, err := gridfs.NewBucket(mt.DB, bucketOpts)
+				bucket, err := mt.DB.GridFSBucket(bucketOpts)
 				assert.Nil(mt, err, "NewBucket error: %v", err)
 				defer func() { _ = bucket.Drop(context.Background()) }()
 
@@ -491,7 +491,7 @@ func TestGridFS(x *testing.T) {
 					chunkSize = &temp
 				}
 
-				bucket, err := gridfs.NewBucket(mt.DB, &options.BucketOptions{
+				bucket, err := mt.DB.GridFSBucket(&options.BucketOptions{
 					ChunkSizeBytes: chunkSize,
 				})
 				assert.Nil(mt, err, "NewBucket error: %v", err)
@@ -531,7 +531,7 @@ func TestGridFS(x *testing.T) {
 
 	// Regression test for a bug introduced in GODRIVER-2346.
 	mt.Run("Find", func(mt *mtest.T) {
-		bucket, err := gridfs.NewBucket(mt.DB)
+		bucket, err := mt.DB.GridFSBucket()
 		assert.Nil(mt, err, "NewBucket error: %v", err)
 		// Find the file back.
 		cursor, err := bucket.Find(context.Background(), bson.D{{"foo", "bar"}})
