@@ -221,9 +221,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 				}
 			}),
 		)
-		go func() {
-			require.NoError(t, server.Connect(nil))
-		}()
+		require.NoError(t, server.Connect(nil))
 
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
