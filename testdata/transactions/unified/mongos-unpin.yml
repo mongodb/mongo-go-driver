@@ -38,6 +38,8 @@ tests:
         # serverless proxy doesn't append error labels to errors in transactions
         # caused by failpoints (CLOUDP-88216)
       - serverless: "forbid"
+        # Workaround for GODRIVER-3113
+        maxServerVersion: '7.99'
     operations:
       - &startTransaction
         name: startTransaction
