@@ -328,22 +328,6 @@ func (c *ClientOptions) validate() error {
 	return nil
 }
 
-// GetRawHosts returns the raw hosts. If ApplyURI was not called during construction, this returns a nil.
-func (c *ClientOptions) GetRawHosts() []string {
-	if c.cs == nil {
-		return nil
-	}
-	return c.cs.RawHosts
-}
-
-// GetScheme returns the scheme. If ApplyURI was not called during construction, this returns "".
-func (c *ClientOptions) GetScheme() string {
-	if c.cs == nil {
-		return ""
-	}
-	return c.cs.Scheme
-}
-
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
 // construction, this returns "".
 func (c *ClientOptions) GetURI() string {

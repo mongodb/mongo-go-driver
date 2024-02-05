@@ -87,6 +87,8 @@ type Topology struct {
 	rescanSRVInterval time.Duration
 	pollHeartbeatTime atomic.Value // holds a bool
 
+	hosts []string
+
 	updateCallback updateTopologyCallback
 	fsm            *fsm
 
@@ -152,7 +154,14 @@ func New(cfg *Config) (*Topology, error) {
 		return t.apply(context.Background(), desc)
 	}
 
-	t.pollingRequired = (t.cfg.Scheme == connstring.SchemeMongoDBSRV) && !t.cfg.LoadBalanced
+	if t.cfg.URI != "" {
+		connStr, err := connstring.Parse(t.cfg.URI)
+		if err != nil {
+			return nil, err
+		}
+		t.pollingRequired = (connStr.Scheme == connstring.SchemeMongoDBSRV) && !t.cfg.LoadBalanced
+		t.hosts = connStr.RawHosts
+	}
 
 	t.publishTopologyOpeningEvent()
 
@@ -346,20 +355,20 @@ func (t *Topology) Connect() error {
 
 	t.serversLock.Unlock()
 	if mustLogTopologyMessage(t, logger.LevelInfo) {
-		logTopologyThirdPartyUsage(t, t.cfg.Hosts)
+		logTopologyThirdPartyUsage(t, t.hosts)
 	}
 	if t.pollingRequired {
 		// sanity check before passing the hostname to resolver
-		if len(t.cfg.Hosts) != 1 {
+		if len(t.hosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
-		_, _, err = net.SplitHostPort(t.cfg.Hosts[0])
+		_, _, err = net.SplitHostPort(t.hosts[0])
 		if err == nil {
 			// we were able to successfully extract a port from the host,
 			// but should not be able to when using SRV
 			return fmt.Errorf("URI with srv must not include a port number")
 		}
-		go t.pollSRVRecords(t.cfg.Hosts[0])
+		go t.pollSRVRecords(t.hosts[0])
 		t.pollingwg.Add(1)
 	}
 
