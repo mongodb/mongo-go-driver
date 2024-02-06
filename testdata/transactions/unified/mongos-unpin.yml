@@ -4,8 +4,6 @@ schemaVersion: '1.4'
 
 runOnRequirements:
   - minServerVersion: '4.2'
-    # Workaround for GODRIVER-3113
-    maxServerVersion: '7.99'
     topologies: [ sharded-replicaset ]
 
 createEntities:

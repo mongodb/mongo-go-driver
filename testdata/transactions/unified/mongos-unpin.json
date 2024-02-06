@@ -52,7 +52,8 @@
       "description": "unpin after TransientTransactionError error on commit",
       "runOnRequirements": [
         {
-          "serverless": "forbid"
+          "serverless": "forbid",
+          "maxServerVersion": "7.99"
         }
       ],
       "operations": [
