@@ -54,6 +54,7 @@
       "runOnRequirements": [
         {
           "serverless": "forbid"
+        }
       ],
       "operations": [
         {
