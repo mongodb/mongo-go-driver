@@ -577,7 +577,6 @@ functions:
 
           # Per the LB testing spec, the URI of an LB fronting a single mongos should be used to configure internal
           # testing Client instances, so we set MONGODB_URI to SINGLE_MONGOS_LB_URI.
-          
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \

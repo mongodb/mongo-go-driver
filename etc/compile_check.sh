@@ -20,11 +20,11 @@ function compile_check {
 	# Change the directory to the compilecheck test directory.
 	cd ${COMPILE_CHECK_DIR}
 
-    # Test vendoring
-  	go mod vendor
+	# Test vendoring
+	go mod vendor
 	${GC} build -mod=vendor
 
-    rm -rf vendor
+	rm -rf vendor
 
 	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
 
