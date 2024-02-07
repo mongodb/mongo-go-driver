@@ -6,7 +6,6 @@ replace go.mongodb.org/mongo-driver => ../../../
 
 // Note that the Go driver version is replaced with the local Go driver code by
 // the replace directive above.
-//require go.mongodb.org/mongo-driver
 require go.mongodb.org/mongo-driver v1.11.7
 
 require (
