@@ -863,7 +863,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
         args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/await_servers.sh
 
   run-kms-tls-test:
     - command: shell.exec
