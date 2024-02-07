@@ -4,6 +4,7 @@
   "runOnRequirements": [
     {
       "minServerVersion": "4.2",
+      "maxServerVersion": "7.99",
       "topologies": [
         "sharded-replicaset"
       ]
@@ -52,9 +53,7 @@
       "description": "unpin after TransientTransactionError error on commit",
       "runOnRequirements": [
         {
-          "serverless": "forbid",
-          "maxServerVersion": "7.99"
-        }
+          "serverless": "forbid"
       ],
       "operations": [
         {
