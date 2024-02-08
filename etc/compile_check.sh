@@ -20,6 +20,12 @@ function compile_check {
 	# Change the directory to the compilecheck test directory.
 	cd ${COMPILE_CHECK_DIR}
 
+	# Test vendoring
+	go mod vendor
+	${GC} build -mod=vendor
+
+	rm -rf vendor
+
 	MACHINE_VERSION=`${GC} version | { read _ _ v _; echo ${v#go}; }`
 
 	# If the version is not 1.13, then run "go mod tidy"
@@ -34,7 +40,7 @@ function compile_check {
 	${GC} build -buildmode=plugin
 
 	# Check build with tags.
-	go build $BUILD_TAGS ./...
+	${GC} build $BUILD_TAGS ./...
 
 	# Check build with various architectures.
 	GOOS=linux GOARCH=386 ${GC} build ./...

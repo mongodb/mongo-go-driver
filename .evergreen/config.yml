@@ -27,7 +27,7 @@ timeout:
         ls -la
 functions:
   fetch-source:
-    # Executes git clone and applies the submitted patch, if any
+    # Executes clone and applies the submitted patch, if any
     - command: git.get_project
       type: system
       params:
@@ -123,7 +123,7 @@ functions:
              export UPLOAD_BUCKET="$UPLOAD_BUCKET"
              export PROJECT="$PROJECT"
              export TMPDIR="$MONGO_ORCHESTRATION_HOME/db"
-             export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig:$(pwd)/install/mongo-c-driver/lib/pkgconfig
+             export PKG_CONFIG_PATH=$(pwd)/install/libmongocrypt/lib64/pkgconfig
              export LD_LIBRARY_PATH=$(pwd)/install/libmongocrypt/lib64
              export PATH="$PATH"
           EOT
@@ -304,10 +304,18 @@ functions:
         shell: "bash"
         script: |
           ${PREPARE_SHELL}
+          # Clean up cse servers
+          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop_servers.sh
+    - command: shell.exec
+      params:
+        shell: "bash"
+        script: |
+          ${PREPARE_SHELL}
           # Stop orchestration and remove drivers tools.
           bash ${DRIVERS_TOOLS}/.evergreen/stop-orchestration.sh
           cd -
           rm -rf $DRIVERS_TOOLS || true
+
 
   fix-absolute-paths:
     - command: shell.exec
@@ -409,6 +417,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -439,6 +448,7 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           # DO NOT ECHO WITH XTRACE
@@ -503,30 +513,11 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-
-          # Set temp credentials for AWS.
-          export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
-          export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
-          export AWS_DEFAULT_REGION="us-east-1"
-
-          # Set client-side encryption credentials.
-          export CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/ca-ec.pem"
-          export CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/client-ec.pem"
-
-          ${PYTHON3_BINARY} -m venv ./venv
-          ./venv/${VENV_BIN_DIR|bin}/pip3 install boto3
-
-          # Set the PYTHON environment variable to point to the active python3 binary. This is used by the
-          # set-temp-creds.sh script.
-          if [ "Windows_NT" = "$OS" ]; then
-            export PYTHON="$(pwd)/venv/Scripts/python"
-          else
-            export PYTHON="$(pwd)/venv/bin/python"
-          fi
-          . ${DRIVERS_TOOLS}/.evergreen/csfle/set-temp-creds.sh
+          source ./secrets-export.sh
 
           if [ "${SKIP_CRYPT_SHARED_LIB}" = "true" ]; then
             CRYPT_SHARED_LIB_PATH=""
@@ -545,17 +536,6 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
-          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
-          AWS_DEFAULT_REGION="us-east-1" \
-          CSFLE_AWS_TEMP_ACCESS_KEY_ID="$CSFLE_AWS_TEMP_ACCESS_KEY_ID" \
-          CSFLE_AWS_TEMP_SECRET_ACCESS_KEY="$CSFLE_AWS_TEMP_SECRET_ACCESS_KEY" \
-          CSFLE_AWS_TEMP_SESSION_TOKEN="$CSFLE_AWS_TEMP_SESSION_TOKEN" \
-          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
-          AZURE_CLIENT_ID="${cse_azure_client_id}" \
-          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
-          GCP_EMAIL="${cse_gcp_email}" \
-          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
           REQUIRE_API_VERSION="${REQUIRE_API_VERSION}" \
           CRYPT_SHARED_LIB_PATH="$CRYPT_SHARED_LIB_PATH" \
           make evg-test-versioned-api \
@@ -597,7 +577,6 @@ functions:
 
           # Per the LB testing spec, the URI of an LB fronting a single mongos should be used to configure internal
           # testing Client instances, so we set MONGODB_URI to SINGLE_MONGOS_LB_URI.
-
           export GOFLAGS=-mod=vendor
           AUTH="${AUTH}" \
           SSL="${SSL}" \
@@ -623,7 +602,6 @@ functions:
           MONGODB_URI="${SERVERLESS_URI}" \
           SERVERLESS="serverless" \
           SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
-          SERVERLESS_ATLAS_PASSWORD="${SERVERLESS_ATLAS_PASSWORD}" \
           MAKEFILE_TARGET=evg-test-serverless \
             sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
@@ -867,100 +845,35 @@ functions:
           export AWS_ROLE_SESSION_NAME="test"
           ${PROJECT_DIRECTORY}/.evergreen/run-mongodb-aws-test.sh web-identity
 
-  start-kms-mock-server:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate-kmstlsvenv.sh
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT}
-
-  start-kms-mock-server-require-client-cert:
-    - command: shell.exec
-      params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate-kmstlsvenv.sh
-    - command: shell.exec
-      params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          ./kmstlsvenv/bin/python3 -u kms_http_server.py -v --ca_file ../x509gen/ca.pem --cert_file ../x509gen/${CERT_FILE} --port ${PORT} --require_client_cert
-
   start-cse-servers:
-    - command: shell.exec
+    - command: ec2.assume_role
       params:
-        shell: "bash"
-        script: |
-          ${PREPARE_SHELL}
-
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate-kmstlsvenv.sh
-
-    - command: shell.exec
+        role_arn: ${aws_test_secrets_role}
+    - command: subprocess.exec
       params:
-        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        binary: bash
         background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate-kmstlsvenv.sh
-          python -u kms_kmip_server.py \
-              --port 5698 \
-              --ca_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/ca-ec.pem" \
-              --cert_file "${PROJECT_DIRECTORY}/testdata/kmip-certs/server-ec.pem"
-
-    - command: shell.exec
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "DRIVERS_TOOLS"]
+        args:
+          - etc/setup-encryption.sh
+    - command: subprocess.exec
       params:
-        shell: "bash"
-        background: true
-        script: |
-          cd ${DRIVERS_TOOLS}/.evergreen/csfle
-          . ./activate-kmstlsvenv.sh
-          python bottle.py fake_azure:imds
-
-    - command: shell.exec
-      params:
-        script: |
-          # Ensure mock servers are running before starting tests.
-          await_server() {
-            for i in $(seq 300); do
-                # Exit code 7: "Failed to connect to host".
-                if curl -s "localhost:$2"; test $? -ne 7; then
-                  return 0
-                else
-                  sleep 1
-                fi
-            done
-            echo "could not detect '$1' server on port $2"
-          }
-          # * List servers to await here ...
-          await_server "KMS", 5698
-          await_server "Azure", 8080
-
-          echo "finished awaiting servers"
+        working_dir: src/go.mongodb.org/mongo-driver
+        binary: bash
+        args:
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/await_servers.sh
 
   run-kms-tls-test:
     - command: shell.exec
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          source ./secrets-export.sh
           export KMS_TLS_TESTCASE="${KMS_TLS_TESTCASE}"
 
           export GOFLAGS=-mod=vendor
@@ -970,13 +883,6 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
-          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
-          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
-          AZURE_CLIENT_ID="${cse_azure_client_id}" \
-          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
-          GCP_EMAIL="${cse_gcp_email}" \
-          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
           make evg-test-kms \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
@@ -986,9 +892,11 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          source ./secrets-export.sh
           export KMS_MOCK_SERVERS_RUNNING="true"
 
           export GOFLAGS=-mod=vendor
@@ -998,15 +906,6 @@ functions:
           TOPOLOGY="${TOPOLOGY}" \
           MONGO_GO_DRIVER_COMPRESSOR=${MONGO_GO_DRIVER_COMPRESSOR} \
           BUILD_TAGS="-tags=cse" \
-          AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}" \
-          AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}" \
-          AZURE_TENANT_ID="${cse_azure_tenant_id}" \
-          AZURE_CLIENT_ID="${cse_azure_client_id}" \
-          AZURE_CLIENT_SECRET="${cse_azure_client_secret}" \
-          GCP_EMAIL="${cse_gcp_email}" \
-          GCP_PRIVATE_KEY="${cse_gcp_private_key}" \
-          CSFLE_TLS_CA_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/ca-ec.pem"
-          CSFLE_TLS_CERTIFICATE_KEY_FILE="$PROJECT_DIRECTORY/testdata/kmip-certs/client-ec.pem"
           make evg-test-kmip \
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH
@@ -1526,8 +1425,8 @@ tasks:
       - func: run-atlas-data-lake-test
 
   - name: test-docker-runner
-    tags: ["pullrequest"]
     commands:
+      - func: bootstrap-mongo-orchestration
       - func: run-docker-test
 
   - name: test-load-balancer-noauth-nossl
@@ -1800,15 +1699,13 @@ tasks:
           MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
   # Build with the oldest supported version of Go.
-  - name: go1.13-build
+  - name: go1.18-build
     tags: ["compile-check"]
     commands:
       - func: run-make
         vars:
-          # We only test building the compilecheck submodule with Go 1.13 because the root module's
-          # go.mod file contains retract directives, which are not supported until Go 1.16.
           targets: "build-compile-check"
-          BUILD_ENV: "PATH=/opt/golang/go1.13/bin:$PATH GOROOT=/opt/golang/go1.13"
+          BUILD_ENV: "PATH=/opt/golang/go1.18/bin:$PATH GOROOT=/opt/golang/go1.18"
 
   # Build with the same Go version that we're using for tests.
   - name: build
@@ -1879,10 +1776,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: start-kms-mock-server
-        vars:
-          CERT_FILE: "expired.pem"
-          PORT: 8000
+      - func: start-cse-servers
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_CERT"
@@ -1898,10 +1792,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: start-kms-mock-server
-        vars:
-          CERT_FILE: "wrong-host.pem"
-          PORT: 8000
+      - func: start-cse-servers
       - func: run-kms-tls-test
         vars:
           KMS_TLS_TESTCASE: "INVALID_HOSTNAME"
@@ -1917,18 +1808,7 @@ tasks:
           TOPOLOGY: "server"
           AUTH: "noauth"
           SSL: "nossl"
-      - func: start-kms-mock-server
-        vars:
-          CERT_FILE: "expired.pem"
-          PORT: 8000
-      - func: start-kms-mock-server
-        vars:
-          CERT_FILE: "wrong-host.pem"
-          PORT: 8001
-      - func: start-kms-mock-server-require-client-cert
-        vars:
-          CERT_FILE: "server.pem"
-          PORT: 8002
+      - func: start-cse-servers
       - func: run-kmip-tests
         vars:
           TOPOLOGY: "server"
@@ -2012,6 +1892,7 @@ tasks:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -2289,6 +2170,16 @@ axes:
         variables:
           GO_DIST: "/opt/golang/go1.20"
 
+  - id: serverless-type
+    display_name: "Serverless Type"
+    values:
+      - id: "original"
+        display_name: "Serverless"
+      - id: "proxy"
+        display_name: "Serverless Proxy"
+        variables:
+          VAULT_NAME: "serverless_next"
+
 task_groups:
   - name: serverless_task_group
     setup_group_can_fail_task: true
@@ -2304,12 +2195,8 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-
-            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
-            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
-            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
-            LOADBALANCED=ON \
-              bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/setup-secrets.sh ${VAULT_NAME}
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/create-instance.sh
       - command: expansions.update
         params:
           file: serverless-expansion.yml
@@ -2318,30 +2205,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-
-            if [ -z "${SERVERLESS_MONGODB_VERSION}" ]; then
-              echo "expected SERVERLESS_MONGODB_VERSION to be set"
-              exit 1
-            fi
-
-            # Download the enterprise server download for current platform to $MONGODB_BINARIES.
-            # This is required for tests that need mongocryptd.
-            # $MONGODB_BINARIES is added to the $PATH in fetch-source.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-                --component archive \
-                --version ${SERVERLESS_MONGODB_VERSION} \
-                --edition enterprise \
-                --out $MONGODB_BINARIES \
-                --strip-path-components 2
-
-            # Download the crypt_shared dynamic library for the current platform.
-            ${PYTHON3_BINARY} $DRIVERS_TOOLS/.evergreen/mongodl.py \
-              --component crypt_shared \
-              --version ${SERVERLESS_MONGODB_VERSION} \
-              --edition enterprise \
-              --out . \
-              --only "**/mongo_crypt_v1.*" \
-              --strip-path-components 1
 
             # Find the crypt_shared library file in the current directory and set the CRYPT_SHARED_LIB_PATH to
             # the path of that file. Only look for .so, .dll, or .dylib files to prevent matching any other
@@ -2369,12 +2232,7 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-
-            SERVERLESS_DRIVERS_GROUP=${SERVERLESS_DRIVERS_GROUP} \
-            SERVERLESS_API_PUBLIC_KEY=${SERVERLESS_API_PUBLIC_KEY} \
-            SERVERLESS_API_PRIVATE_KEY=${SERVERLESS_API_PRIVATE_KEY} \
-            SERVERLESS_INSTANCE_NAME=${SERVERLESS_INSTANCE_NAME} \
-              bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh
+            bash ${DRIVERS_TOOLS}/.evergreen/serverless/delete-instance.sh ${VAULT_NAME}
       - func: handle-test-artifacts
       - func: cleanup
     tasks:
@@ -2585,6 +2443,7 @@ buildvariants:
       - name: "test-atlas-data-lake"
 
   - name: docker-runner-test
+    tags: ["pullrequest"]
     display_name: "Docker Runner Test"
     run_on:
       - ubuntu2204-large
@@ -2609,7 +2468,13 @@ buildvariants:
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    display_name: "${version} ${os-ssl-40}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy"
+
+  - matrix_name: "tests-latest-zlib-zstd-support"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2651,40 +2516,58 @@ buildvariants:
 
   - matrix_name: "race-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Race Detector Test"
     tasks:
       - name: ".race"
 
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    display_name: "API Version ${version} ${os-ssl-40}"
+    tasks:
+      - name: ".versioned-api"
+
+  - matrix_name: "versioned-api-latest-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
 
   - matrix_name: "kms-tls-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS TLS ${os-ssl-40}"
     tasks:
       - name: ".kms-tls"
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0", "latest", "rapid"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    display_name: "Load Balancer Support ${version} ${os-ssl-40}"
+    tasks:
+      - name: ".load-balancer"
+
+  - matrix_name: "load-balancer-latest-test"
+    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"
 
   - matrix_name: "serverless"
     tags: ["pullrequest"]
-    matrix_spec: { os-serverless: "*" }
-    display_name: "Serverless ${os-serverless}"
+    matrix_spec: { os-serverless: "*", serverless-type: "original" }
+    display_name: "${serverless-type} ${os-serverless}"
+    tasks:
+      - "serverless_task_group"
+
+  - matrix_name: "serverless-proxy"
+    matrix_spec: { os-serverless: "*", serverless-type: "proxy" }
+    display_name: "${serverless-type} ${os-serverless}"
     tasks:
       - "serverless_task_group"
 
   - matrix_name: "kms-kmip-test"
-    matrix_spec: { version: ["latest"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "KMS KMIP ${os-ssl-40}"
     tasks:
       - name: ".kms-kmip"
@@ -2697,7 +2580,7 @@ buildvariants:
         batchtime: 1440 # Run at most once per 24 hours.
 
   - matrix_name: "faas-test"
-    matrix_spec: { version: ["latest"], os-faas-80: ["rhel87-large-go-1-20"] }
+    matrix_spec: { version: ["7.0"], os-faas-80: ["rhel87-large-go-1-20"] }
     display_name: "FaaS ${version} ${os-faas-80}"
     tasks:
       - test-aws-lambda-task-group

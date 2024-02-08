@@ -17,7 +17,7 @@ Before starting to write code, look for existing [tickets](https://jira.mongodb.
 The Go Driver team uses GitHub to manage and review all code changes. Patches should generally be made against the master (default) branch and include relevant tests, if
 applicable.
 
-Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.13 and requires Go 1.20 for development. Please run the following Make targets to validate your changes:
+Code should compile and tests should pass under all Go versions which the driver currently supports. Currently the Go Driver supports a minimum version of Go 1.18 and requires Go 1.20 for development. Please run the following Make targets to validate your changes:
 
 - `make fmt`
 - `make lint` (requires [golangci-lint](https://github.com/golangci/golangci-lint) and [lll](https://github.com/walle/lll) to be installed and available in the `PATH`)
@@ -152,9 +152,57 @@ The usage of host.docker.internal comes from the [Docker networking documentatio
 
 There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
 
+### Encryption Tests
+
+Most of the tests requiring `libmongocrypt` can be run using the Docker workflow.
+
+However, some of the tests require secrets handling.  Please see the team [Wiki](https://wiki.corp.mongodb.com/pages/viewpage.action?spaceKey=DRIVERS&title=Testing+CSFLE) for more information.
+
+The test suite can be run with or without the secrets as follows:
+
+```bash
+MAKEFILE_TARGET=evg-test-versioned-api bash .evergreen/run-tests.sh
+```
+
+### Load Balancer
+
+To launch the load balancer on MacOS, run the following.
+
+- `brew install haproxy`
+- Clone drivers-evergreen-tools and save the path as `DRIVERS_TOOLS`.
+- Start the servers using (or use the docker-based method below):
+
+```bash
+LOAD_BALANCER=true TOPOLOGY=sharded_cluster AUTH=noauth SSL=nossl MONGODB_VERSION=6.0 DRIVERS_TOOLS=$PWD/drivers-evergreen-tools MONGO_ORCHESTRATION_HOME=$PWD/drivers-evergreen-tools/.evergreen/orchestration $PWD/drivers-evergreen-tools/.evergreen/run-orchestration.sh
+```
+
+- Start the load balancer using:
+
+```bash
+MONGODB_URI='mongodb://localhost:27017,localhost:27018/' $PWD/drivers-evergreen-tools/.evergreen/run-load-balancer.sh start
+```
+
+- Run the load balancer tests (or use the docker runner below with `evg-test-load-balancers`):
+
+```bash
+make evg-test-load-balancers
+```
+
 ### Testing in Docker
 
 We support local testing in Docker.  To test using docker, you will need to set the `DRIVERS_TOOLs` environment variable to point to a local clone of the drivers-evergreen-tools repository. This is essential for running the testing matrix in a container. You can set the `DRIVERS_TOOLS` variable in your shell profile or in your project-specific environment.
+
+1. First, start the drivers-tools server docker container, as:
+
+```bash
+bash $DRIVERS_TOOLS/.evergreen/docker/start-server.sh
+```
+
+See the readme in `$DRIVERS_TOOLS/.evergreen/docker` for more information on usage.
+
+2. Next, start any other required services in another terminal, like a load balancer.
+
+1. Finally, run the Go Driver tests using the following script in this repo:
 
 ```bash
 bash etc/run_docker.sh
@@ -162,9 +210,10 @@ bash etc/run_docker.sh
 
 The script takes an optional argument for the `MAKEFILE_TARGET` and allows for some environment variable overrides.
 The docker container has the required binaries, including libmongocrypt.
-The entry script starts a MongoDB topology, and then executes the desired `MAKEFILE_TARGET`.
+The entry script executes the desired `MAKEFILE_TARGET`.
 
-For example, to test against a sharded cluster, using enterprise auth, run:
+For example, to test against a sharded cluster (make sure you started the server with a sharded_cluster),
+using enterprise auth, run:
 
 ```bash
 TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
@@ -172,4 +221,4 @@ TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
 
 ## Talk To Us
 
-If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).
+If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).
