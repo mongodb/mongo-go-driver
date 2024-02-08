@@ -306,7 +306,12 @@ func executeRunCursorCommand(ctx context.Context, operation *operation) (*operat
 		case "comment":
 			comment = val.Document()
 		case "maxTimeMS":
-			return nil, newSkipTestError("GODRIVER-2348: maxTimeMS not supported")
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS database option is not supported")
 		case "cursorTimeout":
 			return nil, newSkipTestError("cursorTimeout not supported")
 		case "timeoutMode":

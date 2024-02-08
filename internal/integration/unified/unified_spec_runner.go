@@ -43,6 +43,13 @@ var (
 		"dropSearchIndex ignores read and write concern":       "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
+
+		// TODO(DRIVERS-2829): Create CSOT Legacy Timeout Analogues and Compatibility Field
+		"Reset server and pool after network timeout error during authentication": "Uses unsupported socketTimeoutMS",
+		"Ignore network timeout error on find":                                    "Uses unsupported socketTimeoutMS",
+		"A successful find with options":                                          "Uses unsupported maxTimeMS",
+		"estimatedDocumentCount with maxTimeMS":                                   "Uses unsupported maxTimeMS",
+		"supports configuring getMore maxTimeMS":                                  "Uses unsupported maxTimeMS",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

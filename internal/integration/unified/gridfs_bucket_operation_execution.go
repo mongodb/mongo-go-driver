@@ -39,7 +39,12 @@ func createBucketFindCursor(ctx context.Context, operation *operation) (*cursorR
 
 		switch key {
 		case "maxTimeMS":
-			return nil, newSkipTestError("the maxTimeMS collection option is not supported")
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS gridfs option is not supported")
 		case "filter":
 			filter = val.Document()
 		default:

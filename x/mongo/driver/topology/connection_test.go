@@ -117,7 +117,6 @@ func TestConnection(t *testing.T) {
 
 					err := conn.connect(context.Background())
 					assert.Nil(t, err, "error establishing connection: %v", err)
-					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
 				})
 				t.Run("connect cancelled", func(t *testing.T) {
 					// In the case where connection establishment is cancelled, the closeConnectContext function
@@ -148,7 +147,7 @@ func TestConnection(t *testing.T) {
 
 					// Simulate cancelling connection establishment and assert that this clears the CancelFunc.
 					conn.closeConnectContext()
-					assert.Nil(t, conn.cancelConnectContext, "cancellation function was not cleared")
+					assert.True(t, conn.connectionCanceled, "cancellation function was not cleared")
 					close(doneChan)
 					wg.Wait()
 				})

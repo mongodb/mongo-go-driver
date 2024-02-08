@@ -294,10 +294,14 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	var server driver.Server
 	var conn driver.Connection
 
-	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
+	connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
+	defer cancel()
+
+	if server, cs.err = cs.client.deployment.SelectServer(connCtx, cs.selector); cs.err != nil {
 		return cs.Err()
 	}
-	if conn, cs.err = server.Connection(ctx); cs.err != nil {
+
+	if conn, cs.err = server.Connection(connCtx); cs.err != nil {
 		return cs.Err()
 	}
 	defer conn.Close()
@@ -366,13 +370,14 @@ AggregateExecuteLoop:
 			// If error is retryable: subtract 1 from retries, redo server selection, checkout
 			// a connection, and restart loop.
 			retries--
-			server, err = cs.client.deployment.SelectServer(ctx, cs.selector)
+			server, err = cs.client.deployment.SelectServer(connCtx, cs.selector)
 			if err != nil {
 				break AggregateExecuteLoop
 			}
 
 			conn.Close()
-			conn, err = server.Connection(ctx)
+
+			conn, err = server.Connection(connCtx)
 			if err != nil {
 				break AggregateExecuteLoop
 			}

@@ -409,6 +409,9 @@ func (op Operation) getServerAndConnection(
 	requestID int32,
 	deprioritized []description.Server,
 ) (Server, Connection, error) {
+	ctx, cancel := csot.WithServerSelectionTimeout(ctx, op.Deployment.GetServerSelectionTimeout())
+	defer cancel()
+
 	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&

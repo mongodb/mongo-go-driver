@@ -487,47 +487,8 @@ func (t *Topology) RequestImmediateCheck() {
 	t.serversLock.Unlock()
 }
 
-// getServerSelectionTimeout will determine the value of the CSOT and return the
-// minimum of that value and serverSelectionTimeoutMS.
-func getServerSelectionTimeout(ctx context.Context, topo *Topology) time.Duration {
-	deadline, ok := ctx.Deadline()
-
-	// If there is no CSOT, then just return the serverSelectionTimeoutMS
-	if !ok && topo.cfg.Timeout == nil {
-		return topo.cfg.ServerSelectionTimeout
-	}
-
-	var csot time.Duration
-	if ok {
-		csot = time.Until(deadline) // op-level takes precedence
-	} else {
-		csot = *topo.cfg.Timeout
-	}
-
-	// Take the minimum of the two.
-	if csot > 0 && csot < topo.cfg.ServerSelectionTimeout {
-		return csot
-	}
-
-	return topo.cfg.ServerSelectionTimeout
-}
-
-// contextWithServerSelectionTimeout will apply the appropriate server selection
-// timeout to the parent context for selecting a server.
-func contextWithServerSelectionTimeout(parent context.Context, topo *Topology) (context.Context, context.CancelFunc) {
-	var cancel context.CancelFunc
-
-	timeout := getServerSelectionTimeout(parent, topo)
-	if timeout == 0 {
-		return parent, cancel
-	}
-
-	return context.WithTimeout(parent, timeout)
-}
-
-// SelectServer selects a server with given a selector. SelectServer complies with the
-// server selection spec, and will time out after serverSelectionTimeout or when the
-// parent context is done.
+// SelectServer selects a server with given a selector, returning the remaining
+// computedServerSelectionTimeout.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
 	if atomic.LoadInt64(&t.state) != topologyConnected {
 		if mustLogServerSelection(t, logger.LevelDebug) {
@@ -536,22 +497,9 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 		return nil, ErrTopologyClosed
 	}
-	//var ssTimeoutCh <-chan time.Time
-
-	//if t.cfg.ServerSelectionTimeout > 0 {
-	//	ssTimeout := time.NewTimer(t.cfg.ServerSelectionTimeout)
-	//	ssTimeoutCh = ssTimeout.C
-	//	defer ssTimeout.Stop()
-	//}
 
 	var doneOnce bool
 	var sub *driver.Subscription
-	//selectionState := newServerSelectionState(ss, ssTimeoutCh)
-
-	var cancel context.CancelFunc
-	ctx, cancel = contextWithServerSelectionTimeout(ctx, t)
-
-	defer cancel()
 
 	// Record the start time.
 	startTime := time.Now()
@@ -743,6 +691,7 @@ func (t *Topology) selectServerFromSubscription(
 		case <-ctx.Done():
 			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
 		case current = <-subscriptionCh:
+		default:
 		}
 
 		suitable, err := t.selectServerFromDescription(current, srvSelector)
@@ -1100,4 +1049,14 @@ func (t *Topology) publishTopologyClosedEvent() {
 	if mustLogTopologyMessage(t, logger.LevelDebug) {
 		logTopologyMessage(t, logger.LevelDebug, logger.TopologyClosed)
 	}
+}
+
+// GetServerSelectionTimeout returns the server selection timeout defined on
+// the client options.
+func (t *Topology) GetServerSelectionTimeout() time.Duration {
+	if t.cfg == nil {
+		return 0
+	}
+
+	return t.cfg.ServerSelectionTimeout
 }

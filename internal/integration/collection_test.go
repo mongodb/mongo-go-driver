@@ -863,7 +863,7 @@ func TestCollection(t *testing.T) {
 			count int64
 		}{
 			{"no options", nil, 5},
-			{"options", options.EstimatedDocumentCount().SetComment(1), 5},
+			{"options", options.EstimatedDocumentCount().SetComment("1"), 5},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -885,7 +885,7 @@ func TestCollection(t *testing.T) {
 		}{
 			{"no options", bson.D{}, nil, all},
 			{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, last3},
-			{"options", bson.D{}, options.Distinct().SetComment(1), all},
+			{"options", bson.D{}, options.Distinct().SetComment("1"), all},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {

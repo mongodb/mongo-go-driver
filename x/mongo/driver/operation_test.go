@@ -674,16 +674,22 @@ type mockDeployment struct {
 		selector description.ServerSelector
 	}
 	returns struct {
-		server Server
-		err    error
-		retry  bool
-		kind   description.TopologyKind
+		server                 Server
+		err                    error
+		retry                  bool
+		kind                   description.TopologyKind
+		serverSelectionTimeout time.Duration
 	}
 }
 
 func (m *mockDeployment) SelectServer(_ context.Context, desc description.ServerSelector) (Server, error) {
 	m.params.selector = desc
+
 	return m.returns.server, m.returns.err
+}
+
+func (m *mockDeployment) GetServerSelectionTimeout() time.Duration {
+	return m.returns.serverSelectionTimeout
 }
 
 func (m *mockDeployment) Kind() description.TopologyKind { return m.returns.kind }

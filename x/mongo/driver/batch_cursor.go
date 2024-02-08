@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -496,7 +497,7 @@ var _ Deployment = (*loadBalancedCursorDeployment)(nil)
 var _ Server = (*loadBalancedCursorDeployment)(nil)
 var _ ErrorProcessor = (*loadBalancedCursorDeployment)(nil)
 
-func (lbcd *loadBalancedCursorDeployment) SelectServer(_ context.Context, _ description.ServerSelector) (Server, error) {
+func (lbcd *loadBalancedCursorDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
 	return lbcd, nil
 }
 
@@ -515,4 +516,10 @@ func (lbcd *loadBalancedCursorDeployment) RTTMonitor() RTTMonitor {
 
 func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
 	return lbcd.errorProcessor.ProcessError(err, conn)
+}
+
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for load-balanced cursor deployments.
+func (*loadBalancedCursorDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
 }

@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -24,6 +25,7 @@ var _ driver.Server = (*changeStreamDeployment)(nil)
 var _ driver.ErrorProcessor = (*changeStreamDeployment)(nil)
 
 func (c *changeStreamDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
+
 	return c, nil
 }
 
@@ -46,4 +48,10 @@ func (c *changeStreamDeployment) ProcessError(err error, conn driver.Connection)
 	}
 
 	return ep.ProcessError(err, conn)
+}
+
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for change stream deployments.
+func (*changeStreamDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
 }

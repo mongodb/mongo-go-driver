@@ -9,6 +9,7 @@ package mtest
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
@@ -129,6 +130,12 @@ var _ driver.Subscriber = &mockDeployment{}
 // Connection method have a no-op Close method.
 func (md *mockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
 	return md, nil
+}
+
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for mock deployments.
+func (*mockDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
 }
 
 // Kind implements the Deployment interface. It always returns description.Single.

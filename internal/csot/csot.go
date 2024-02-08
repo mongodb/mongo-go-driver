@@ -49,6 +49,45 @@ func IsSkipMaxTimeContext(ctx context.Context) bool {
 	return ctx.Value(skipMaxTime{}) != nil
 }
 
+type Topology struct {
+	Timeout                *time.Duration
+	ServerSelectionTimeout time.Duration
+}
+
+// WithServerSelectionTimeout creates a context with a timeout that is the
+// minimum of serverSelectionTimeoutMS and context deadline. The usage of
+// non-positive values for serverSelectionTimeoutMS are an anti-pattern and are
+// not considered in this calculation.
+func WithServerSelectionTimeout(
+	parent context.Context,
+	serverSelectionTimeout time.Duration,
+) (context.Context, context.CancelFunc) {
+	var timeout time.Duration
+
+	deadline, ok := parent.Deadline()
+	if ok {
+		timeout = time.Until(deadline)
+	}
+
+	// If there is no deadline on the parent context and the server selection
+	// timeout DNE, then do nothing.
+	if !ok && serverSelectionTimeout <= 0 {
+		return parent, func() {}
+	}
+
+	// Otherwise, take the minimum of the two and return a new context with that
+	// value as the deadline.
+	if !ok {
+		timeout = serverSelectionTimeout
+	} else if timeout >= serverSelectionTimeout && serverSelectionTimeout > 0 {
+		// Only use the serverSelectionTimeout value if it is less than the existing
+		// timeout and is positive.
+		timeout = serverSelectionTimeout
+	}
+
+	return context.WithTimeout(parent, timeout)
+}
+
 // ZeroRTTMonitor implements the RTTMonitor interface and is used internally for testing. It returns 0 for all
 // RTT calculations and an empty string for RTT statistics.
 type ZeroRTTMonitor struct{}

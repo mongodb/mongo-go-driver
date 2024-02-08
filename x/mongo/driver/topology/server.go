@@ -122,11 +122,11 @@ type Server struct {
 	globalCtx       context.Context
 	globalCtxCancel context.CancelFunc
 
-	// cancelHeartbeat will wignal to cancel any blocking operations while
-	// checking the status of the server during heartbeat monitoring.
-	cancelHeartbeatCheck chan struct{}
-	cancelHeartbeatSetup chan struct{}
-	heartbeatCanceled    bool
+	// Data required to cancel blocking operations while checking the status of
+	// the server during heartbeat monitoring.
+	cancelHeartbeatCheck     chan struct{}
+	cancelHeartbeatCheckOnce *sync.Once
+	heartbeatCheckCanceled   bool
 
 	processErrorLock sync.Mutex
 	rttMonitor       *rttMonitor
@@ -170,11 +170,11 @@ func NewServer(
 		cfg:     cfg,
 		address: addr,
 
-		done:                 make(chan struct{}),
-		checkNow:             make(chan struct{}, 1),
-		disconnecting:        make(chan struct{}),
-		cancelHeartbeatCheck: make(chan struct{}, 1),
-		cancelHeartbeatSetup: make(chan struct{}, 1),
+		done:                     make(chan struct{}),
+		checkNow:                 make(chan struct{}, 1),
+		disconnecting:            make(chan struct{}),
+		cancelHeartbeatCheck:     make(chan struct{}, 1),
+		cancelHeartbeatCheckOnce: &sync.Once{},
 
 		topologyID: topologyID,
 
@@ -613,20 +613,16 @@ func (s *Server) update() {
 		// used in monitoring threads, so we rely on that to time out commands
 		// rather than adding complexity to the behavior of timeoutMS.
 		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel() // Release context resources for the check.
 
-		// There is a possibility that the topology is disconnected while the
-		// heartbeat monitor is mid-check. In this case, we need to cancel blocking
-		// operations immediately.
 		done := make(chan struct{})
 		defer close(done) // close the Go routine if check conmpletes w/o signal.
 
 		go func() {
+			defer cancel()
+
 			select {
 			case <-s.cancelHeartbeatCheck:
-				cancel()
 			case <-done:
-				// Do nothing, cancel will be handled when the function returns.
 			}
 		}()
 
@@ -816,20 +812,17 @@ func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 func (s *Server) cancelCheck() {
 	var conn *connection
 
+	s.cancelHeartbeatCheckOnce.Do(func() {
+		s.cancelHeartbeatCheck <- struct{}{}
+
+		s.heartbeatCheckCanceled = true
+	})
+
 	// Take heartbeatLock for mutual exclusion with the checks in the update
 	// function.
 	s.heartbeatLock.Lock()
-
-	// Only send the cancellation signal if the heartbeat has not been canceled.
-	// If it has already been canceled, then sending again could block
-	// indefinitely.
-	if !s.heartbeatCanceled {
-		s.cancelHeartbeatCheck <- struct{}{}
-
-		s.heartbeatCanceled = true
-	}
-
 	conn = s.conn
+
 	s.heartbeatLock.Unlock()
 
 	if conn == nil {
@@ -848,7 +841,7 @@ func (s *Server) checkWasCancelled() bool {
 	s.heartbeatLock.Lock()
 	defer s.heartbeatLock.Unlock()
 
-	return s.heartbeatCanceled
+	return s.heartbeatCheckCanceled
 }
 
 func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
@@ -933,6 +926,7 @@ func doHandshake(ctx context.Context, srv *Server) (description.Server, error) {
 	heartbeatConn := initConnection{srv.conn}
 	handshakeOp := srv.createBaseOperation(heartbeatConn)
 
+	// Apply monitoring timeout.
 	ctx, cancel := contextWithSocketTimeout(ctx, srv)
 	defer cancel()
 
