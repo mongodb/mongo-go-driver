@@ -49,11 +49,6 @@ func IsSkipMaxTimeContext(ctx context.Context) bool {
 	return ctx.Value(skipMaxTime{}) != nil
 }
 
-type Topology struct {
-	Timeout                *time.Duration
-	ServerSelectionTimeout time.Duration
-}
-
 // WithServerSelectionTimeout creates a context with a timeout that is the
 // minimum of serverSelectionTimeoutMS and context deadline. The usage of
 // non-positive values for serverSelectionTimeoutMS are an anti-pattern and are
