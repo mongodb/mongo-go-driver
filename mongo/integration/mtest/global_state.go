@@ -54,7 +54,7 @@ func MultiMongosLoadBalancerURI() string {
 }
 
 // ClusterConnString returns the parsed ConnString for the cluster.
-func ClusterConnString() connstring.ConnString {
+func ClusterConnString() *connstring.ConnString {
 	return testContext.connString
 }
 
