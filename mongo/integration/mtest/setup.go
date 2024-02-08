@@ -37,7 +37,7 @@ const (
 // once during the global setup in TestMain. These variables should only be accessed indirectly through MongoTest
 // instances.
 var testContext struct {
-	connString connstring.ConnString
+	connString *connstring.ConnString
 	topo       *topology.Topology
 	topoKind   TopologyKind
 	// shardedReplicaSet will be true if we're connected to a sharded cluster and each shard is backed by a replica set.
