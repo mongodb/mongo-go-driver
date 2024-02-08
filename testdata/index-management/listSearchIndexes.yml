@@ -28,8 +28,9 @@ tests:
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
           # that the driver constructs and sends the correct command.
+          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
           isError: true
-          errorContains: Search index commands are only supported with Atlas
+          errorContains: Atlas
     expectEvents:
       - client: *client0
         events:
@@ -48,8 +49,9 @@ tests:
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
           # that the driver constructs and sends the correct command.
+          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
           isError: true
-          errorContains: Search index commands are only supported with Atlas
+          errorContains: Atlas
     expectEvents:
       - client: *client0
         events:
@@ -71,8 +73,9 @@ tests:
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
           # that the driver constructs and sends the correct command.
+          # The expected error message was changed in SERVER-83003. Check for the substring "Atlas" shared by both error messages.
           isError: true
-          errorContains: Search index commands are only supported with Atlas
+          errorContains: Atlas
     expectEvents:
       - client: *client0
         events:
