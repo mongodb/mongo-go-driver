@@ -90,7 +90,7 @@ func runCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 	if err != nil {
 		return fmt.Errorf("error creating client to host %q: %w", host, err)
 	}
-	defer client.Disconnect(ctx)
+	defer func() { _ = client.Disconnect(ctx) }()
 
 	return commandFn(ctx, client)
 }
