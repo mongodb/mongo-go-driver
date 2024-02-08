@@ -59,7 +59,7 @@ func ExampleClientOptions_SetLoggerOptions_customLogger() {
 		log.Fatalf("error connecting to MongoDB: %v", err)
 	}
 
-	defer client.Disconnect(context.TODO())
+	defer func() { _ = client.Disconnect(context.TODO()) }()
 
 	// Make a database request to test our logging solution.
 	coll := client.Database("test").Collection("test")
