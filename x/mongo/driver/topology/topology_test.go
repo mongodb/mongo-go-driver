@@ -678,7 +678,11 @@ func TestTopologyConstruction(t *testing.T) {
 			uri             string
 			pollingRequired bool
 		}{
-			{"normal", "mongodb://localhost:27017", false},
+			{
+				name:            "normal",
+				uri:             "mongodb://localhost:27017",
+				pollingRequired: false,
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -880,6 +884,11 @@ func TestTopologyConstructionLogging(t *testing.T) {
 			{
 				name: "normal",
 				uri:  "mongodb://a.example.com:27017/",
+				msgs: []string{},
+			},
+			{
+				name: "socket",
+				uri:  "mongodb://%2Ftmp%2Fmongodb-27017.sock/",
 				msgs: []string{},
 			},
 			{
