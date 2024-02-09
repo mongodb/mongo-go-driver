@@ -617,7 +617,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 			// that we have removed as of v2), then a CSOT analogue exists. Once we
 			// have ensured an analogue exists, extend "skippedTestDescriptions" to
 			// avoid this error.
-			return fmt.Errorf("the socketTimeoutMS client option is not supported")
+			return newSkipTestError("the socketTimeoutMS client option is not supported")
 		case "w":
 			wc.W = value
 			wcSet = true
