@@ -2001,6 +2001,10 @@ tasks:
 
   - name: "test-aws-lambda-deployed"
     commands:
+      - command: ec2.assume_role
+        params:
+          role_arn: ${LAMBDA_AWS_ROLE_ARN}
+          duration_seconds: 3600
       - command: shell.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
