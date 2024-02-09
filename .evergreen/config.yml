@@ -393,23 +393,13 @@ functions:
       type: test
       params:
         shell: "bash"
+        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export MONGODB_URI="${MONGODB_URI}"
+          ${PREPARE_SHELL}
+          bash ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise-auth
+          export MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN
           export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
-
           make -s evg-test-enterprise-auth
 
   run-enterprise-gssapi-auth-tests:
@@ -420,56 +410,18 @@ functions:
         silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
-          # DO NOT ECHO WITH XTRACE
+          ${PREPARE_SHELL}
+          bash ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise-auth
           if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-            export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
+            export MONGODB_URI="mongodb://${${PRINCIPAL/@/%40}}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
           else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-            echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
+            echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
             base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
             mkdir -p ~/.krb5
             cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
-            export MONGODB_URI="${gssapi_auth_linux_mongodb_uri}"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
-
-          make -s evg-test-enterprise-auth
-
-  run-enterprise-gssapi-service-host-auth-tests:
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        silent: true
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-            export MONGODB_URI="${gssapi_service_host_auth_windows_mongodb_uri}"
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-            echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
-            base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
-            mkdir -p ~/.krb5
-            cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
-            export MONGODB_URI="${gssapi_service_host_auth_linux_mongodb_uri}"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
+            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${SASL_USER}"
+            export MONGODB_URI="mongodb://${${PRINCIPAL/@/%40}}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
+          fi
           export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
 
           make -s evg-test-enterprise-auth
@@ -1681,8 +1633,6 @@ tasks:
     tags: ["test", "enterprise-auth"]
     commands:
       - func: run-enterprise-auth-tests
-        vars:
-          MONGODB_URI: "${plain_auth_mongodb_uri}"
 
   - name: test-enterprise-auth-gssapi
     tags: ["test", "enterprise-auth"]
