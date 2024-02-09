@@ -44,13 +44,16 @@ type BatchCursor struct {
 	errorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
 	connection           PinnedConnection
 	batchSize            int32
-	maxTimeMS            int64
 	currentBatch         *bsoncore.Iterator
 	firstBatch           bool
 	cmdMonitor           *event.CommandMonitor
 	postBatchResumeToken bsoncore.Document
 	crypt                Crypt
 	serverAPI            *ServerAPIOptions
+
+	// maxAwaitTime is only valid for tailable awaitData cursors. If this option
+	// is set, it will be used as the "maxTimeMS" field on getMore commands.
+	maxAwaitTime *time.Duration
 
 	// legacy server (< 3.2) fields
 	limit       int32
@@ -155,12 +158,21 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 type CursorOptions struct {
 	BatchSize             int32
 	Comment               bsoncore.Value
-	MaxTimeMS             int64
 	Limit                 int32
 	CommandMonitor        *event.CommandMonitor
 	Crypt                 Crypt
 	ServerAPI             *ServerAPIOptions
 	MarshalValueEncoderFn func(io.Writer) (*bson.Encoder, error)
+
+	// MaxAwaitTime is only valid for tailable awaitData cursors. If this option
+	// is set, it will be used as the "maxTimeMS" field on getMore commands.
+	MaxAwaitTime *time.Duration
+}
+
+// SetMaxAwaitTime will set the maxTimeMS value on getMore commands for
+// tailable awaitData cursors.
+func (cursorOptions *CursorOptions) SetMaxAwaitTime(dur time.Duration) {
+	cursorOptions.MaxAwaitTime = &dur
 }
 
 // NewBatchCursor creates a new BatchCursor from the provided parameters.
@@ -183,7 +195,7 @@ func NewBatchCursor(
 		connection:           cr.Connection,
 		errorProcessor:       cr.ErrorProcessor,
 		batchSize:            opts.BatchSize,
-		maxTimeMS:            opts.MaxTimeMS,
+		maxAwaitTime:         opts.MaxAwaitTime,
 		cmdMonitor:           opts.CommandMonitor,
 		firstBatch:           true,
 		postBatchResumeToken: cr.postBatchResumeToken,
@@ -361,14 +373,15 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 	}
 
 	bc.err = Operation{
-		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+		CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 			dst = bsoncore.AppendInt64Element(dst, "getMore", bc.id)
 			dst = bsoncore.AppendStringElement(dst, "collection", bc.collection)
 			if numToReturn > 0 {
 				dst = bsoncore.AppendInt32Element(dst, "batchSize", numToReturn)
 			}
-			if bc.maxTimeMS > 0 {
-				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", bc.maxTimeMS)
+
+			if bc.maxAwaitTime != nil && *bc.maxAwaitTime > 0 {
+				dst = bsoncore.AppendInt64Element(dst, "maxTimeMS", int64(*bc.maxAwaitTime)/int64(time.Millisecond))
 			}
 
 			comment, err := codecutil.MarshalValue(bc.comment, bc.encoderFn)
@@ -468,6 +481,16 @@ func (bc *BatchCursor) PostBatchResumeToken() bsoncore.Document {
 // SetBatchSize sets the batchSize for future getMore operations.
 func (bc *BatchCursor) SetBatchSize(size int32) {
 	bc.batchSize = size
+}
+
+// SetMaxAwaitTime will set the maximum amount of time the server will allow the
+// operations to execute. The server will error if this field is set but the
+// cursor is not configured with awaitData=true.
+//
+// The time.Duration value passed by this setter will be converted and rounded
+// down to the nearest millisecond.
+func (bc *BatchCursor) SetMaxAwaitTime(dur time.Duration) {
+	bc.maxAwaitTime = &dur
 }
 
 // SetComment sets the comment for future getMore operations.

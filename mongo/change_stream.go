@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -205,7 +204,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
-		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
+		cs.cursorOptions.SetMaxAwaitTime(*cs.options.MaxAwaitTime)
 	}
 	if cs.options.Custom != nil {
 		// Marshal all custom options before passing to the initial aggregate. Return

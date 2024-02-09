@@ -1038,6 +1038,9 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 	if ao.Collation != nil {
 		op.Collation(bsoncore.Document(ao.Collation.ToDocument()))
 	}
+	if ao.MaxAwaitTime != nil {
+		cursorOpts.SetMaxAwaitTime(*ao.MaxAwaitTime)
+	}
 	if ao.Comment != nil {
 		comment, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
 		if err != nil {
@@ -1566,6 +1569,9 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 			return nil, err
 		}
 		op.Max(max)
+	}
+	if fo.MaxAwaitTime != nil {
+		cursorOpts.SetMaxAwaitTime(*fo.MaxAwaitTime)
 	}
 	if fo.Min != nil {
 		min, err := marshal(fo.Min, coll.bsonOpts, coll.registry)

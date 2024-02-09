@@ -96,9 +96,9 @@ func (tbc *testBatchCursor) Close(context.Context) error {
 	return nil
 }
 
-func (tbc *testBatchCursor) SetBatchSize(int32)       {}
-func (tbc *testBatchCursor) SetComment(interface{})   {}
-func (tbc *testBatchCursor) SetMaxTime(time.Duration) {}
+func (tbc *testBatchCursor) SetBatchSize(int32)            {}
+func (tbc *testBatchCursor) SetComment(interface{})        {}
+func (tbc *testBatchCursor) SetMaxAwaitTime(time.Duration) {}
 
 func TestCursor(t *testing.T) {
 	t.Run("loops until docs available", func(t *testing.T) {})
