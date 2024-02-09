@@ -19,7 +19,7 @@ Resources:
       BuildMethod: go1.x
     Properties:
       CodeUri: mongodb/
-      Handler: main
+      Handler: bootstrap
       Runtime: provided.al2
       Architectures: [arm64]
       Events:
