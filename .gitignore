@@ -21,12 +21,12 @@ venv
 test.suite
 
 # AWS SAM-generated files
-internal/test/faas/awslambda/.aws-sam
-internal/test/faas/awslambda/events/event.json
+internal/cmd/faas/awslambda/.aws-sam
+internal/cmd/faas/awslambda/events/event.json
 
 # Ignore compiled binaries from the compilecheck
-internal/test/compilecheck/compilecheck
-internal/test/compilecheck/compilecheck.so
+internal/cmd/compilecheck/compilecheck
+internal/cmd/compilecheck/compilecheck.so
 
 # Ignore api report files
 api-report.md
