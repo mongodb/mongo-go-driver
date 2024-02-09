@@ -187,7 +187,7 @@ func TestURIOptionsSpec(t *testing.T) {
 }
 
 // verifyConnStringOptions verifies the options on the connection string.
-func verifyConnStringOptions(t *testing.T, cs connstring.ConnString, options map[string]interface{}) {
+func verifyConnStringOptions(t *testing.T, cs *connstring.ConnString, options map[string]interface{}) {
 	// Check that all options are present.
 	for key, value := range options {
 
