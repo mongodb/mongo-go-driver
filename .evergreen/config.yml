@@ -2018,6 +2018,7 @@ tasks:
             AWS_REGION: us-east-1
           script: |
             ${PREPARE_SHELL}
+            ls $TEST_LAMBDA_DIRECTORY
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
   - name: "test-search-index"
