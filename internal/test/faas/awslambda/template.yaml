@@ -15,12 +15,13 @@ Globals:
 Resources:
   MongoDBFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
     Properties:
       CodeUri: mongodb/
       Handler: main
-      Runtime: provided.al2
-      Architectures:
-      - x86_64
+      Runtime: provided.al2023
+      Architectures: [arm64]
       Events:
         MongoDB:
           Type: Api
