@@ -18,7 +18,7 @@ Resources:
     Properties:
       CodeUri: mongodb/
       Handler: main
-      Runtime: provided.al2023
+      Runtime: provided.al2
       Architectures:
       - x86_64
       Events:
