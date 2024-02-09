@@ -1638,13 +1638,8 @@ tasks:
     tags: ["test", "enterprise-auth"]
     commands:
       - func: run-enterprise-gssapi-auth-tests
-
-  - name: test-enterprise-auth-gssapi-service-host
-    tags: ["test", "enterprise-auth"]
-    commands:
-      - func: run-enterprise-gssapi-service-host-auth-tests
         vars:
-          MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+            MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
   # Build with the oldest supported version of Go.
   - name: go1.18-build
