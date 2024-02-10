@@ -366,10 +366,9 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
-          sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+          bash ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   create-api-report:
     - command: shell.exec
@@ -656,16 +655,13 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          cd $DRIVERS_TOOLS/.evergreen/auth_aws
-          ./setup_secrets.sh drivers/aws_auth
+        binary: "bash"
+        args: 
+          ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
 
   run-aws-auth-test-with-regular-aws-credentials:
     - command: shell.exec
@@ -1767,7 +1763,7 @@ tasks:
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
-
+          source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
           echo "Copying files ... begin"
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
@@ -1788,6 +1784,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
           export GCPKMS_ZONE=${GCPKMS_ZONE}
@@ -1896,8 +1893,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          # Get azurekms credentials from the vault.
-          . ./etc/get_aws_secrets.sh drivers/azurekms
+          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
           export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
@@ -2180,10 +2176,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            echo '${testgcpkms_key_file}' > /tmp/testgcpkms_key_file.json
-            export GCPKMS_KEYFILE=/tmp/testgcpkms_key_file.json
-            export GCPKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            export GCPKMS_SERVICEACCOUNT="${testgcpkms_service_account}"
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
       # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
       - command: expansions.update
@@ -2195,10 +2187,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
-            export GCPKMS_PROJECT=${GCPKMS_PROJECT}
-            export GCPKMS_ZONE=${GCPKMS_ZONE}
-            export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
       - func: handle-test-artifacts
       - func: cleanup
@@ -2222,9 +2210,8 @@ task_groups:
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
             # Get azurekms credentials from the vault.
-            bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh drivers/azurekms
-            source ./secrets-export.sh
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+            ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
           file: testazurekms-expansions.yml
