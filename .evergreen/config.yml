@@ -535,13 +535,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          source ${DRIVERS_TOOLS}/.evergreen/serverless/secrets-export.sh
-          AUTH="auth" \
-          SSL="ssl" \
-          MONGODB_URI="${SERVERLESS_URI}" \
-          SERVERLESS="serverless" \
-          MAKEFILE_TARGET=evg-test-serverless \
-            sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+          bash etc/run-serverless-test.sh
 
   run-atlas-data-lake-test:
     - command: shell.exec
