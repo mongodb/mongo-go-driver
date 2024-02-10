@@ -411,20 +411,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise-auth
-          if [ "Windows_NT" = "$OS" ]; then
-            export MONGODB_URI="mongodb://${${PRINCIPAL/@/%40}}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
-          else
-            echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
-            base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
-            mkdir -p ~/.krb5
-            cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${SASL_USER}"
-            export MONGODB_URI="mongodb://${${PRINCIPAL/@/%40}}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
-          fi
-          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
-
-          make -s evg-test-enterprise-auth
+          bash etc/run-enterprise-gssapi-auth-test.sh
 
   run-atlas-test:
     - command: ec2.assume_role
@@ -2301,6 +2288,10 @@ task_groups:
           binary: bash
           env:
             MONGODB_VERSION: "7.0"
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+            task_id: ${task_id}
+            execution: ${execution}
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
       - command: expansions.update
