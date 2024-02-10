@@ -14,6 +14,6 @@ else
     kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${PRINCIPAL}"
     export MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
 fi
-export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
+export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR:-}"
 
 make -s evg-test-enterprise-auth
