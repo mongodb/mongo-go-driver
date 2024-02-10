@@ -14,17 +14,19 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
+func newTestContext(t *testing.T, timeout time.Duration) context.Context {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	t.Cleanup(cancel)
+
+	return ctx
+}
+
+func newDurPtr(dur time.Duration) *time.Duration {
+	return &dur
+}
+
 func TestWithServerSelectionTimeout(t *testing.T) {
 	t.Parallel()
-
-	newContext := func(t *testing.T, timeout time.Duration) context.Context {
-		t.Helper()
-
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		t.Cleanup(cancel)
-
-		return ctx
-	}
 
 	tests := []struct {
 		name                   string
@@ -56,70 +58,70 @@ func TestWithServerSelectionTimeout(t *testing.T) {
 		},
 		{
 			name:                   "context deadline is zero and ssto is positive",
-			parent:                 newContext(t, 0),
+			parent:                 newTestContext(t, 0),
 			serverSelectionTimeout: 1,
 			wantTimeout:            1,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is zero and ssto is negative",
-			parent:                 newContext(t, 0),
+			parent:                 newTestContext(t, 0),
 			serverSelectionTimeout: -1,
 			wantTimeout:            0,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is negative and ssto is zero",
-			parent:                 newContext(t, -1),
+			parent:                 newTestContext(t, -1),
 			serverSelectionTimeout: 0,
 			wantTimeout:            -1,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is negative and ssto is positive",
-			parent:                 newContext(t, -1),
+			parent:                 newTestContext(t, -1),
 			serverSelectionTimeout: 1,
 			wantTimeout:            1,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is negative and ssto is negative",
-			parent:                 newContext(t, -1),
+			parent:                 newTestContext(t, -1),
 			serverSelectionTimeout: -1,
 			wantTimeout:            -1,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is positive and ssto is zero",
-			parent:                 newContext(t, 1),
+			parent:                 newTestContext(t, 1),
 			serverSelectionTimeout: 0,
 			wantTimeout:            1,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is positive and equal to ssto",
-			parent:                 newContext(t, 1),
+			parent:                 newTestContext(t, 1),
 			serverSelectionTimeout: 1,
 			wantTimeout:            1,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is positive lt ssto",
-			parent:                 newContext(t, 1),
+			parent:                 newTestContext(t, 1),
 			serverSelectionTimeout: 2,
 			wantTimeout:            2,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is positive gt ssto",
-			parent:                 newContext(t, 2),
+			parent:                 newTestContext(t, 2),
 			serverSelectionTimeout: 1,
 			wantTimeout:            2,
 			wantOk:                 true,
 		},
 		{
 			name:                   "context deadline is positive and ssto is negative",
-			parent:                 newContext(t, -1),
+			parent:                 newTestContext(t, -1),
 			serverSelectionTimeout: -1,
 			wantTimeout:            1,
 			wantOk:                 true,
@@ -127,7 +129,7 @@ func TestWithServerSelectionTimeout(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
+		test := test // Capture the range variable
 
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
@@ -145,6 +147,173 @@ func TestWithServerSelectionTimeout(t *testing.T) {
 				assert.True(t, delta > -1*tolerance, "expected delta=%d > %d", delta, -1*tolerance)
 				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
 			}
+		})
+	}
+}
+
+func TestWithChangeStreamNextContext(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		parent      context.Context
+		timeout     *time.Duration
+		wantTimeout time.Duration
+		wantOk      bool
+	}{
+		{
+			name:        "no context deadline and nil timeout",
+			parent:      context.Background(),
+			timeout:     nil,
+			wantTimeout: 0,
+			wantOk:      false,
+		},
+		{
+			name:        "no context deadline and zero timeout",
+			parent:      context.Background(),
+			timeout:     newDurPtr(0),
+			wantTimeout: 0,
+			wantOk:      false,
+		},
+		{
+			name:        "no context deadline and positive timeout",
+			parent:      context.Background(),
+			timeout:     newDurPtr(1),
+			wantTimeout: 1,
+			wantOk:      true,
+		},
+		{
+			name:        "no context deadline and negative timeout",
+			parent:      context.Background(),
+			timeout:     newDurPtr(-1),
+			wantTimeout: 0,
+			wantOk:      false,
+		},
+		{
+			name:        "context deadline and nil timeout",
+			parent:      newTestContext(t, 1),
+			timeout:     nil,
+			wantTimeout: 1,
+			wantOk:      true,
+		},
+		{
+			name:        "context deadline and positive timeout",
+			parent:      newTestContext(t, 1),
+			timeout:     newDurPtr(2),
+			wantTimeout: 1,
+			wantOk:      true,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := WithChangeStreamNextContext(test.parent, test.timeout)
+			t.Cleanup(cancel)
+
+			deadline, gotOk := ctx.Deadline()
+			assert.Equal(t, test.wantOk, gotOk)
+
+			if gotOk {
+				delta := time.Until(deadline) - test.wantTimeout
+				tolerance := 5 * time.Millisecond
+
+				assert.True(t, delta > -1*tolerance, "expected delta=%d > %d", delta, -1*tolerance)
+				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
+			}
+
+			assert.True(t, IsSkipMaxTimeContext(ctx))
+		})
+	}
+}
+
+func TestValidChangeStreamTimeouts(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                     string
+		parent                   context.Context
+		maxAwaitTimeout, timeout *time.Duration
+		wantTimeout              time.Duration
+		want                     bool
+	}{
+		{
+			name:            "no context deadline and no timeouts",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTimeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime gt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(2),
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime lt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(2),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime eq timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime with negative timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(-1),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime with zero timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(-1),
+			wantTimeout:     0,
+			want:            true,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := ValidChangeStreamTimeouts(test.parent, test.maxAwaitTimeout, test.timeout)
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

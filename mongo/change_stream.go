@@ -159,12 +159,17 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
+	changeStreamOpts := mergeChangeStreamOptions(opts...)
+	if !csot.ValidChangeStreamTimeouts(ctx, changeStreamOpts.MaxAwaitTime, config.client.timeout) {
+		return nil, fmt.Errorf("maxAwaitTimeMS cannot be greater than or equal to timeoutMS")
+	}
+
 	cs := &ChangeStream{
 		client:     config.client,
 		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
-		options:    mergeChangeStreamOptions(opts...),
+		options:    changeStreamOpts,
 		selector: description.CompositeSelector([]description.ServerSelector{
 			description.ReadPrefSelector(config.readPreference),
 			description.LatencySelector(config.client.localThreshold),
@@ -641,26 +646,35 @@ func (cs *ChangeStream) ResumeToken() bson.Raw {
 	return cs.resumeToken
 }
 
-// Next gets the next event for this change stream. It returns true if there were no errors and the next event document
-// is available.
+// Next gets the next event for this change stream. It returns true if there
+// were no errors and the next event document is available.
 //
-// Next blocks until an event is available, an error occurs, or ctx expires. If ctx expires, the error
-// will be set to ctx.Err(). In an error case, Next will return false.
+// Next blocks until an event is available, an error occurs, or ctx expires.
+// If ctx expires, the error will be set to ctx.Err(). In an error case, Next
+// will return false.
 //
 // If Next returns false, subsequent calls will also return false.
 func (cs *ChangeStream) Next(ctx context.Context) bool {
 	return cs.next(ctx, false)
 }
 
-// TryNext attempts to get the next event for this change stream. It returns true if there were no errors and the next
-// event document is available.
+// TryNext attempts to get the next event for this change stream. It returns
+// true if there were no errors and the next event document is available.
 //
-// TryNext returns false if the change stream is closed by the server, an error occurs when getting changes from the
-// server, the next change is not yet available, or ctx expires. If ctx expires, the error will be set to ctx.Err().
+// TryNext returns false if the change stream is closed by the server, an error
+// occurs when getting changes from the server, the next change is not yet
+// available, or ctx expires.
 //
-// If TryNext returns false and an error occurred or the change stream was closed
-// (i.e. cs.Err() != nil || cs.ID() == 0), subsequent attempts will also return false. Otherwise, it is safe to call
-// TryNext again until a change is available.
+// If ctx expires, the error will be set to ctx.Err(). Users can either call
+// TryNext again or close the existing change stream and create a new one. It is
+// suggested to close and re-create the stream with ah higher timeout if the
+// timeout occurs before any events have been received, which is a signal that
+// the server is timing out before it can finish processing the existing oplog.
+//
+// If TryNext returns false and an error occurred or the change stream was
+// closed (i.e. cs.Err() != nil || cs.ID() == 0), subsequent attempts will also
+// return false. Otherwise, it is safe to call TryNext again until a change is
+// available.
 //
 // This method requires driver version >= 1.2.0.
 func (cs *ChangeStream) TryNext(ctx context.Context) bool {
@@ -676,6 +690,12 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
+	// Drivers MUST apply the origin timeoutMS value to each next call on the
+	// change stream but MUST NOT use it to derive a maxTimeMS field for getMore
+	// commands.
+	ctx, cancel := csot.WithChangeStreamNextContext(ctx, cs.client.timeout)
+	defer cancel()
 
 	if len(cs.batch) == 0 {
 		cs.loopNext(ctx, nonBlocking)

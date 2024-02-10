@@ -83,6 +83,42 @@ func WithServerSelectionTimeout(
 	return context.WithTimeout(parent, timeout)
 }
 
+// WithChangeStreamNextContext applies the timeout rules to the parent context
+// for calling "next" on a ChangeStream object. In particular, drivers MUST
+// apply the original timeoutMS value to each next call on the change stream
+// but MUST NOT use it to derive a maxTimeMS field for getMore commands.
+func WithChangeStreamNextContext(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
+	ctx := parent
+	cancel := func() {}
+
+	// If there is no parent deadline, then apply a non-zero timeout.
+	if _, ok := parent.Deadline(); !ok && timeout != nil && *timeout > 0 {
+		ctx, cancel = context.WithTimeout(parent, *timeout)
+	}
+
+	return NewSkipMaxTimeContext(ctx), cancel
+}
+
+// ValidChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
+// timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
+// equal to timeoutMS. Otherwise, the timeouts are valid.
+func ValidChangeStreamTimeouts(ctx context.Context, maxAwaitTime, timeout *time.Duration) bool {
+	if maxAwaitTime == nil {
+		return true
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxTimeout := time.Until(deadline)
+		timeout = &ctxTimeout
+	}
+
+	if timeout == nil {
+		return true
+	}
+
+	return *timeout <= 0 || *maxAwaitTime < *timeout
+}
+
 // ZeroRTTMonitor implements the RTTMonitor interface and is used internally for testing. It returns 0 for all
 // RTT calculations and an empty string for RTT statistics.
 type ZeroRTTMonitor struct{}
