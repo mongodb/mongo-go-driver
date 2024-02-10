@@ -392,7 +392,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -406,7 +405,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -451,7 +449,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -802,7 +799,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -825,7 +821,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1829,11 +1824,12 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
-          export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
-          export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
+          . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
+          export MONGODB_URI=${ATLAS_FREE}
+
+          . ${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh
 
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-          MONGODB_URI='${atlas_free_tier_uri}' \
           PROVIDER='aws' \
             ./testkms
 
@@ -1854,8 +1850,10 @@ tasks:
             make build-kms-test
           echo "Building build-kms-test ... end"
 
+          . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
+          export MONGODB_URI=${ATLAS_FREE}
+
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-          MONGODB_URI='${atlas_free_tier_uri}' \
           EXPECT_ERROR='status=400' \
           PROVIDER='aws' \
             ./testkms
@@ -1941,6 +1939,7 @@ tasks:
             TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
+          include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
           script: |
             ${PREPARE_SHELL}
             ./.evergreen/run-deployed-lambda-aws-tests.sh
