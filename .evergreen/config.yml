@@ -395,7 +395,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise-auth
+          bash ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
           export MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN
           export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
           make -s evg-test-enterprise-auth
@@ -408,7 +408,7 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          bash etc/run-enterprise-gssapi-auth-test.sh
+          bash ./etc/run-enterprise-gssapi-test.sh
 
   run-atlas-test:
     - command: ec2.assume_role
@@ -1814,7 +1814,6 @@ tasks:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -1826,6 +1825,7 @@ tasks:
 
           . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
           export MONGODB_URI=${ATLAS_FREE}
+          echo "MONGODB_URI=${MONGODB_URI}"
 
           . ${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh
 
