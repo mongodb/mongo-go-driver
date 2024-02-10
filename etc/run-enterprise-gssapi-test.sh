@@ -4,7 +4,7 @@
 set -eu
 
 . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
-if [ "Windows_NT" = "$OS" ]; then
+if [ "Windows_NT" = "${OS:-}" ]; then
     export MONGODB_URI="mongodb://${PRINCIPAL/@/%40}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
 else
     echo "${KEYTAB_BASE64}" > /tmp/drivers.keytab.base64
