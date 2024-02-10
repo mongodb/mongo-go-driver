@@ -19,6 +19,7 @@ install
 libmongocrypt
 venv
 test.suite
+go.work.sum
 
 # AWS SAM-generated files
 internal/test/faas/awslambda/.aws-sam

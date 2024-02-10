@@ -1,0 +1,10 @@
+go 1.21
+
+use (
+	.
+	./examples/_logger/logrus
+	./examples/_logger/zap
+	./examples/_logger/zerolog
+	./internal/test/compilecheck
+	./internal/test/faas/awslambda/mongodb
+)
