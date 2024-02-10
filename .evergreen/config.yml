@@ -305,7 +305,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           # Clean up cse servers
-          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop_servers.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop-servers.sh
     - command: shell.exec
       params:
         shell: "bash"
