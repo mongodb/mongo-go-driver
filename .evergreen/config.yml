@@ -658,7 +658,7 @@ functions:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         binary: "bash"
         args: 
-          ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
+          - ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
 
   run-aws-auth-test-with-regular-aws-credentials:
     - command: shell.exec
