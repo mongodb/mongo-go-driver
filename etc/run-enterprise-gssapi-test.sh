@@ -11,7 +11,7 @@ else
     base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
     mkdir -p ~/.krb5
     cat .evergreen/krb5.config | tee -a ~/.krb5/config
-    kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${SASL_USER}"
+    kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${PRINCIPAL}"
     export MONGODB_URI="mongodb://${PRINCIPAL/@/%40}@${SASL_HOST}:${SASL_PORT}/kerberos?authMechanism=GSSAPI"
 fi
 export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"

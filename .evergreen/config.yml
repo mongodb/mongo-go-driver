@@ -397,7 +397,7 @@ functions:
           ${PREPARE_SHELL}
           bash ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/enterprise_auth
           export MONGODB_URI="mongodb://${SASL_USER}:${SASL_PASS}@${SASL_HOST}:${SASL_PORT}/ldap?authMechanism=PLAIN"
-          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}""
+          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
           make -s evg-test-enterprise-auth
 
   run-enterprise-gssapi-auth-tests:
@@ -1824,9 +1824,7 @@ tasks:
           echo "Building build-kms-test ... end"
 
           . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
-          export MONGODB_URI=${ATLAS_FREE}
-          env | grep ATLAS
-          echo "MONGODB_URI=${MONGODB_URI}"
+          export MONGODB_URI="$ATLAS_FREE"
 
           . ${DRIVERS_TOOLS}/.evergreen/csfle/setup-secrets.sh
 
@@ -1852,7 +1850,7 @@ tasks:
           echo "Building build-kms-test ... end"
 
           . ${DRIVERS_TOOLS}/.evergreen/secrets_handling/setup-secrets.sh drivers/atlas_connect
-          export MONGODB_URI=${ATLAS_FREE}
+          export MONGODB_URI="$ATLAS_FREE"
 
           LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
           EXPECT_ERROR='status=400' \
