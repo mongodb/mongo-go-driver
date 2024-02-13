@@ -212,7 +212,7 @@ func TestSearchIndexProse(t *testing.T) {
 				if !cursor.Next(ctx) {
 					return nil
 				}
-				if cursor.Current.Lookup("queryable").Boolean() {
+				if cursor.Current.Lookup("queryable").Boolean() && cursor.Current.Lookup("status").StringValue() == "READY" {
 					return cursor.Current
 				}
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
