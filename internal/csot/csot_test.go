@@ -14,9 +14,13 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
-func newTestContext(t *testing.T, timeout time.Duration) context.Context {
+func newTestContext(t *testing.T, timeout time.Duration, values ...interface{}) context.Context {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
+
+	for _, value := range values {
+		ctx = context.WithValue(ctx, value, true)
+	}
 
 	return ctx
 }
@@ -298,7 +302,7 @@ func TestValidChangeStreamTimeouts(t *testing.T) {
 		},
 		{
 			name:            "no context deadline and maxAwaitTime with zero timeout",
-			parent:          context.Background(),
+			parent:          newTestContext(t, -1, withoutMaxTime{}),
 			maxAwaitTimeout: newDurPtr(1),
 			timeout:         newDurPtr(-1),
 			wantTimeout:     0,
@@ -316,4 +320,101 @@ func TestValidChangeStreamTimeouts(t *testing.T) {
 			assert.Equal(t, test.want, got)
 		})
 	}
+}
+
+func TestWithTimeout(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		parent       context.Context
+		timeout      *time.Duration
+		wantTimeout  time.Duration
+		wantDeadline bool
+		wantValues   []interface{}
+	}{
+		{
+			name:         "deadline set with non-zero timeout",
+			parent:       newTestContext(t, 1),
+			timeout:      newDurPtr(2),
+			wantTimeout:  1,
+			wantDeadline: true,
+			wantValues:   []interface{}{},
+		},
+		{
+			name:         "deadline set with zero timeout",
+			parent:       newTestContext(t, 1),
+			timeout:      newDurPtr(0),
+			wantTimeout:  1,
+			wantDeadline: true,
+			wantValues:   []interface{}{},
+		},
+		{
+			name:         "deadline set with nil timeout",
+			parent:       newTestContext(t, 1),
+			timeout:      nil,
+			wantTimeout:  1,
+			wantDeadline: true,
+			wantValues:   []interface{}{},
+		},
+		{
+			name:         "deadline unset with non-zero timeout",
+			parent:       context.Background(),
+			timeout:      newDurPtr(1),
+			wantTimeout:  1,
+			wantDeadline: true,
+			wantValues:   []interface{}{},
+		},
+		{
+			name:         "deadline unset with zero timeout",
+			parent:       context.Background(),
+			timeout:      newDurPtr(0),
+			wantTimeout:  0,
+			wantDeadline: false,
+			wantValues:   []interface{}{withoutMaxTime{}},
+		},
+		{
+			name:         "deadline unset with nil timeout",
+			parent:       context.Background(),
+			timeout:      nil,
+			wantTimeout:  0,
+			wantDeadline: false,
+			wantValues:   []interface{}{},
+		},
+		{
+			name:         "deadline unset with non-zero timeout with withoutMaxTime",
+			parent:       WithoutMaxTime(context.Background()),
+			timeout:      newDurPtr(1),
+			wantTimeout:  1,
+			wantDeadline: false,
+			wantValues:   []interface{}{withoutMaxTime{}},
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := WithTimeout(test.parent, test.timeout)
+			t.Cleanup(cancel)
+
+			deadline, gotDeadline := ctx.Deadline()
+			assert.Equal(t, test.wantDeadline, gotDeadline)
+
+			if gotDeadline {
+				delta := time.Until(deadline) - test.wantTimeout
+				tolerance := 5 * time.Millisecond
+
+				assert.True(t, delta > -1*tolerance, "expected delta=%d > %d", delta, -1*tolerance)
+				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
+			}
+
+			for _, wantValue := range test.wantValues {
+				assert.NotNil(t, ctx.Value(wantValue), "expected context to have value %v", wantValue)
+			}
+		})
+	}
+
 }

@@ -13,16 +13,17 @@ import (
 
 type withoutMaxTime struct{}
 
-// WithoutMaxTime returns a new context with a "skipMaxTime" value that
+// WithoutMaxTime returns a new context with a "withoutMaxTime" value that
 // is used to inform operation construction to not add a maxTimeMS to a wire
 // message, regardless of a context deadline. This is specifically used for
-// monitoring where non-awaitable hello commands are put on the wire.
+// monitoring where non-awaitable hello commands are put on the wire, or to
+// indicate that the user has set a "0" (i.e. infinite) CSOT.
 func WithoutMaxTime(ctx context.Context) context.Context {
 	return context.WithValue(ctx, withoutMaxTime{}, true)
 }
 
 // IsWithoutMaxTime checks if the provided context has been assigned the
-// "skipMaxTime" value.
+// "withoutMaxTime" value.
 func IsWithoutMaxTime(ctx context.Context) bool {
 	return ctx.Value(withoutMaxTime{}) != nil
 }
