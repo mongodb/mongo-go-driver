@@ -189,17 +189,17 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw bsonrw.ValueWriter, val 
 
 		encoder := desc.encoder
 
-		var zero bool
+		var empty bool
 		if cz, ok := encoder.(CodecZeroer); ok {
-			zero = cz.IsTypeZero(rv.Interface())
+			empty = cz.IsTypeZero(rv.Interface())
 		} else if rv.Kind() == reflect.Interface {
-			// isZero will not treat an interface rv as an interface, so we need to check for the
-			// zero interface separately.
-			zero = rv.IsNil()
+			// isEmpty will not treat an interface rv as an interface, so we need to check for the
+			// nil interface separately.
+			empty = rv.IsNil()
 		} else {
-			zero = isZero(rv, sc.EncodeOmitDefaultStruct || ec.omitZeroStruct)
+			empty = isEmpty(rv, sc.EncodeOmitDefaultStruct || ec.omitZeroStruct)
 		}
-		if desc.omitEmpty && zero {
+		if desc.omitEmpty && empty {
 			continue
 		}
 
@@ -391,12 +391,15 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val 
 	return nil
 }
 
-func isZero(v reflect.Value, omitZeroStruct bool) bool {
+func isEmpty(v reflect.Value, omitZeroStruct bool) bool {
 	kind := v.Kind()
 	if (kind != reflect.Ptr || !v.IsNil()) && v.Type().Implements(tZeroer) {
 		return v.Interface().(Zeroer).IsZero()
 	}
-	if kind == reflect.Struct {
+	switch kind {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Struct:
 		if !omitZeroStruct {
 			return false
 		}
@@ -410,7 +413,7 @@ func isZero(v reflect.Value, omitZeroStruct bool) bool {
 			if ff.PkgPath != "" && !ff.Anonymous {
 				continue // Private field
 			}
-			if !isZero(v.Field(i), omitZeroStruct) {
+			if !isEmpty(v.Field(i), omitZeroStruct) {
 				return false
 			}
 		}

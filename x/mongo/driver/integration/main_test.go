@@ -27,7 +27,7 @@ import (
 )
 
 var host *string
-var connectionString connstring.ConnString
+var connectionString *connstring.ConnString
 var dbName string
 
 func TestMain(m *testing.M) {

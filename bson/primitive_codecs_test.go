@@ -261,6 +261,36 @@ func TestDefaultValueEncoders(t *testing.T) {
 				nil,
 			},
 			{
+				"omitempty map",
+				struct {
+					T map[string]string `bson:",omitempty"`
+				}{
+					T: map[string]string{},
+				},
+				docToBytes(D{}),
+				nil,
+			},
+			{
+				"omitempty slice",
+				struct {
+					T []struct{} `bson:",omitempty"`
+				}{
+					T: []struct{}{},
+				},
+				docToBytes(D{}),
+				nil,
+			},
+			{
+				"omitempty string",
+				struct {
+					T string `bson:",omitempty"`
+				}{
+					T: "",
+				},
+				docToBytes(D{}),
+				nil,
+			},
+			{
 				"struct{}",
 				struct {
 					A bool
@@ -596,7 +626,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 						llvrw = rc.llvrw
 					}
 					llvrw.T = t
-					// var got interface{}
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
 						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
 						if !compareErrors(err, rc.err) {

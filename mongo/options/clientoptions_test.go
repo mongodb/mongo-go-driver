@@ -184,16 +184,6 @@ func TestClientOptions(t *testing.T) {
 				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
 			}
 		})
-
-		t.Run("MergeClientOptions/uri", func(t *testing.T) {
-			opt1, opt2 := Client(), Client()
-			opt1.uri = "Test URI"
-
-			got := MergeClientOptions(nil, opt1, opt2)
-			if got.uri != "Test URI" {
-				t.Errorf("Merged client options do not match. got %v; want %v", got.uri, opt1.uri)
-			}
-		})
 	})
 	t.Run("ApplyURI", func(t *testing.T) {
 		baseClient := func() *ClientOptions {
@@ -586,10 +576,9 @@ func TestClientOptions(t *testing.T) {
 
 				// Manually add the URI and ConnString to the test expectations to avoid adding them in each test
 				// definition. The ConnString should only be recorded if there was no error while parsing.
-				tc.result.uri = tc.uri
 				cs, err := connstring.ParseAndValidate(tc.uri)
 				if err == nil {
-					tc.result.cs = &cs
+					tc.result.cs = cs
 				}
 
 				// We have to sort string slices in comparison, as Hosts resolved from SRV URIs do not have a set order.

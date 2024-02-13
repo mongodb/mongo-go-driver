@@ -46,9 +46,7 @@ func TestBucket_openDownloadStream(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			bucket, err := db.GridFSBucket()
-			assert.NoError(t, err)
-
+			bucket := db.GridFSBucket()
 			_, err = bucket.openDownloadStream(context.Background(), test.filter)
 			assert.ErrorIs(t, err, test.err)
 		})
