@@ -212,7 +212,10 @@ func TestSearchIndexProse(t *testing.T) {
 				if !cursor.Next(ctx) {
 					return nil
 				}
-				if cursor.Current.Lookup("queryable").Boolean() && cursor.Current.Lookup("status").StringValue() == "READY" {
+				name := cursor.Current.Lookup("name").StringValue()
+				queryable := cursor.Current.Lookup("queryable").Boolean()
+				status := cursor.Current.Lookup("status").StringValue()
+				if name == searchName && queryable && status == "READY" {
 					return cursor.Current
 				}
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -229,8 +232,6 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to drop index")
 		doc = getDocument()
 		require.NotNil(mt, doc, "got empty document")
-		assert.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
-		assert.Equal(mt, "READY", doc.Lookup("status").StringValue(), "unexpected status")
 		expected, err := bson.Marshal(definition)
 		require.NoError(mt, err, "failed to marshal definition")
 		actual := doc.Lookup("latestDefinition").Value
