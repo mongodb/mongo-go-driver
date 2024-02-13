@@ -8,7 +8,6 @@ package csot
 
 import (
 	"context"
-	"runtime/debug"
 	"time"
 )
 
@@ -19,9 +18,6 @@ type withoutMaxTime struct{}
 // message, regardless of a context deadline. This is specifically used for
 // monitoring where non-awaitable hello commands are put on the wire.
 func WithoutMaxTime(ctx context.Context) context.Context {
-	if ctx.Value("meep") != nil {
-		debug.PrintStack()
-	}
 	return context.WithValue(ctx, withoutMaxTime{}, true)
 }
 
