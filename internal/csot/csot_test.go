@@ -225,7 +225,7 @@ func TestWithChangeStreamNextContext(t *testing.T) {
 				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
 			}
 
-			assert.True(t, IsSkipMaxTimeContext(ctx))
+			assert.True(t, IsWithoutMaxTime(ctx))
 		})
 	}
 }

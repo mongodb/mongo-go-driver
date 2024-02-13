@@ -8,45 +8,64 @@ package csot
 
 import (
 	"context"
+	"runtime/debug"
 	"time"
 )
 
-type timeoutKey struct{}
+type withoutMaxTime struct{}
 
-// MakeTimeoutContext returns a new context with Client-Side Operation Timeout (CSOT) feature-gated behavior
-// and a Timeout set to the passed in Duration. Setting a Timeout on a single operation is not supported in
-// public API.
-//
-// TODO(GODRIVER-2348) We may be able to remove this function once CSOT feature-gated behavior becomes the
-// TODO default behavior.
-func MakeTimeoutContext(ctx context.Context, to time.Duration) (context.Context, context.CancelFunc) {
-	// Only use the passed in Duration as a timeout on the Context if it
-	// is non-zero.
-	cancelFunc := func() {}
-	if to != 0 {
-		ctx, cancelFunc = context.WithTimeout(ctx, to)
-	}
-	return context.WithValue(ctx, timeoutKey{}, true), cancelFunc
-}
-
-func IsTimeoutContext(ctx context.Context) bool {
-	return ctx.Value(timeoutKey{}) != nil
-}
-
-type skipMaxTime struct{}
-
-// NewSkipMaxTimeContext returns a new context with a "skipMaxTime" value that
+// WithoutMaxTime returns a new context with a "skipMaxTime" value that
 // is used to inform operation construction to not add a maxTimeMS to a wire
 // message, regardless of a context deadline. This is specifically used for
 // monitoring where non-awaitable hello commands are put on the wire.
-func NewSkipMaxTimeContext(ctx context.Context) context.Context {
-	return context.WithValue(ctx, skipMaxTime{}, true)
+func WithoutMaxTime(ctx context.Context) context.Context {
+	if ctx.Value("meep") != nil {
+		debug.PrintStack()
+	}
+	return context.WithValue(ctx, withoutMaxTime{}, true)
 }
 
-// IsSkipMaxTimeContext checks if the provided context has been assigned the
+// IsWithoutMaxTime checks if the provided context has been assigned the
 // "skipMaxTime" value.
-func IsSkipMaxTimeContext(ctx context.Context) bool {
-	return ctx.Value(skipMaxTime{}) != nil
+func IsWithoutMaxTime(ctx context.Context) bool {
+	return ctx.Value(withoutMaxTime{}) != nil
+}
+
+// WithTimeout will apply the given timeout to the parent context, if there is
+// not already a deadline on the context. Per the CSOT specifications, if the
+// parent context already has a deadline it is an operation-level timeout which
+// takes precedence over the client-level timeout.
+//
+// This helper function is meant to be used to timeout functions that require
+// multiple trips to the server but must share one timeout. See gridfs methods
+// for specific use cases.
+func WithTimeout(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
+	cancel := func() {}
+
+	_, ok := parent.Deadline()
+
+	// If there already exists a deadline or, if not and the timeout is nil, then
+	// do nothing.
+	if ok || timeout == nil || IsWithoutMaxTime(parent) {
+		return parent, cancel
+	}
+
+	// If the timeout is zero, or zero has already been explicitly set as the
+	// deadline on the context, then signal to not use maxTimeMS on WMs.
+	if timeout != nil && *timeout == 0 {
+		parent = WithoutMaxTime(parent)
+
+		return parent, cancel
+	}
+
+	// If the timeout is set, then apply it to the parent.
+	return context.WithTimeout(parent, *timeout)
+}
+
+func IsTimeoutContext(ctx context.Context) bool {
+	_, ok := ctx.Deadline()
+
+	return ok || IsWithoutMaxTime(ctx)
 }
 
 // WithServerSelectionTimeout creates a context with a timeout that is the
@@ -96,7 +115,7 @@ func WithChangeStreamNextContext(parent context.Context, timeout *time.Duration)
 		ctx, cancel = context.WithTimeout(parent, *timeout)
 	}
 
-	return NewSkipMaxTimeContext(ctx), cancel
+	return WithoutMaxTime(ctx), cancel
 }
 
 // ValidChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,

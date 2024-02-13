@@ -909,7 +909,7 @@ func getSocketTimeout(srv *Server) time.Duration {
 func contextWithSocketTimeout(parent context.Context, srv *Server) (context.Context, context.CancelFunc) {
 	var cancel context.CancelFunc
 
-	parent = csot.NewSkipMaxTimeContext(parent)
+	parent = csot.WithoutMaxTime(parent)
 
 	timeout := getSocketTimeout(srv)
 	if timeout == 0 {

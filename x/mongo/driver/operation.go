@@ -489,15 +489,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
-	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *op.Timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, op.Timeout)
+	defer cancel()
 
 	if op.Client != nil {
 		if err := op.Client.StartCommand(); err != nil {
@@ -1605,7 +1598,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
-	if csot.IsSkipMaxTimeContext(ctx) {
+	if csot.IsWithoutMaxTime(ctx) {
 		return 0, nil
 	}
 

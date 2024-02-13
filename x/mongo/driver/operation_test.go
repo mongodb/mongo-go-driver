@@ -277,7 +277,7 @@ func TestOperation(t *testing.T) {
 			longRTT  = 10 * time.Second
 		)
 
-		timeoutCtx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		timeoutCtx, cancel := csot.WithTimeout(context.Background(), &timeout)
 		defer cancel()
 
 		testCases := []struct {

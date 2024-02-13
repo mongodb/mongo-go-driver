@@ -63,7 +63,8 @@ type upload struct {
 // filename.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenUploadStream(
 	ctx context.Context,
 	filename string,
@@ -76,13 +77,17 @@ func (b *GridFSBucket) OpenUploadStream(
 // ID and filename.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenUploadStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
 	opts ...*options.UploadOptions,
 ) (*GridFSUploadStream, error) {
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
+
 	if err := b.checkFirstWrite(ctx); err != nil {
 		return nil, err
 	}
@@ -102,7 +107,8 @@ func (b *GridFSBucket) OpenUploadStreamWithID(
 // bucket that also require a custom deadline.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) UploadFromStream(
 	ctx context.Context,
 	filename string,
@@ -121,7 +127,8 @@ func (b *GridFSBucket) UploadFromStream(
 // bucket that also require a custom deadline.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) UploadFromStreamWithID(
 	ctx context.Context,
 	fileID interface{},
@@ -159,8 +166,9 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 // OpenDownloadStream creates a stream from which the contents of the file can
 // be read.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*GridFSDownloadStream, error) {
 	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
@@ -173,8 +181,9 @@ func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{
 // cannot be done concurrently with other read operations operations on this
 // bucket that also require a custom deadline.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(ctx, fileID)
 	if err != nil {
@@ -187,8 +196,9 @@ func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{},
 // OpenDownloadStreamByName opens a download stream for the file with the given
 // filename.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenDownloadStreamByName(
 	ctx context.Context,
 	filename string,
@@ -229,8 +239,9 @@ func (b *GridFSBucket) OpenDownloadStreamByName(
 // cannot be done concurrently with other read operations operations on this
 // bucket that also require a custom deadline.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) DownloadToStreamByName(
 	ctx context.Context,
 	filename string,
@@ -245,23 +256,13 @@ func (b *GridFSBucket) DownloadToStreamByName(
 	return b.downloadToStream(ds, stream)
 }
 
-// Delete deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
-// delete operations with the provided context.
-//
-// Use the context parameter to time-out or cancel the delete operation. The deadline set by SetWriteDeadline is ignored.
+// Delete deletes all chunks and metadata associated with the file with the
+// given file ID and runs the underlying delete operations with the provided
+// context.
 func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
-	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
-	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
-	// be shared by both delete operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
 
-	// Delete document in files collection and then chunks to minimize race conditions.
 	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
@@ -274,11 +275,8 @@ func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
 	return b.deleteChunks(ctx, fileID)
 }
 
-// Find returns the files collection documents that match the given filter and runs the underlying
-// find query with the provided context.
-//
-// Use the context parameter to time-out or cancel the find operation. The deadline set by SetReadDeadline
-// is ignored.
+// Find returns the files collection documents that match the given filter and
+// runs the underlying find query with the provided context.
 func (b *GridFSBucket) Find(
 	ctx context.Context,
 	filter interface{},
@@ -332,11 +330,6 @@ func (b *GridFSBucket) Find(
 }
 
 // Rename renames the stored file with the specified file ID.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline
-//
-// Use SetWriteDeadline to set a deadline for the rename operation.
 func (b *GridFSBucket) Rename(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
@@ -353,21 +346,11 @@ func (b *GridFSBucket) Rename(ctx context.Context, fileID interface{}, newFilena
 	return nil
 }
 
-// Drop drops the files and chunks collections associated with this bucket and runs the drop operations with
-// the provided context.
-//
-// Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
+// Drop drops the files and chunks collections associated with this bucket and
+// runs the drop operations with the provided context.
 func (b *GridFSBucket) Drop(ctx context.Context) error {
-	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
-	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
-	// be shared by both drop operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
 
 	err := b.filesColl.Drop(ctx)
 	if err != nil {
@@ -392,6 +375,9 @@ func (b *GridFSBucket) openDownloadStream(
 	filter interface{},
 	opts ...*options.FindOneOptions,
 ) (*GridFSDownloadStream, error) {
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
+
 	result := b.filesColl.FindOne(ctx, filter, opts...)
 
 	// Unmarshal the data into a File instance, which can be passed to newGridFSDownloadStream. The _id value has to be
@@ -421,6 +407,7 @@ func (b *GridFSBucket) openDownloadStream(
 	if err != nil {
 		return nil, err
 	}
+
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
 	return newGridFSDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
