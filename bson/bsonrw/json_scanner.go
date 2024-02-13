@@ -325,17 +325,17 @@ func (js *jsonScanner) scanLiteral(first byte) (*jsonToken, error) {
 
 	c5, err := js.readNextByte()
 
-	if bytes.Equal([]byte("true"), lit) && (isValueTerminator(c5) || err == io.EOF) {
+	if bytes.Equal([]byte("true"), lit) && (isValueTerminator(c5) || errors.Is(err, io.EOF)) {
 		js.pos = int(math.Max(0, float64(js.pos-1)))
 		return &jsonToken{t: jttBool, v: true, p: p}, nil
-	} else if bytes.Equal([]byte("null"), lit) && (isValueTerminator(c5) || err == io.EOF) {
+	} else if bytes.Equal([]byte("null"), lit) && (isValueTerminator(c5) || errors.Is(err, io.EOF)) {
 		js.pos = int(math.Max(0, float64(js.pos-1)))
 		return &jsonToken{t: jttNull, v: nil, p: p}, nil
 	} else if bytes.Equal([]byte("fals"), lit) {
 		if c5 == 'e' {
 			c5, err = js.readNextByte()
 
-			if isValueTerminator(c5) || err == io.EOF {
+			if isValueTerminator(c5) || errors.Is(err, io.EOF) {
 				js.pos = int(math.Max(0, float64(js.pos-1)))
 				return &jsonToken{t: jttBool, v: false, p: p}, nil
 			}
@@ -413,7 +413,7 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 			case '}', ']', ',':
 				s = nssDone
 			default:
-				if isWhiteSpace(c) || err == io.EOF {
+				if isWhiteSpace(c) || errors.Is(err, io.EOF) {
 					s = nssDone
 				} else {
 					s = nssInvalid
@@ -430,7 +430,7 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 			case '}', ']', ',':
 				s = nssDone
 			default:
-				if isWhiteSpace(c) || err == io.EOF {
+				if isWhiteSpace(c) || errors.Is(err, io.EOF) {
 					s = nssDone
 				} else if isDigit(c) {
 					s = nssSawIntegerDigits
@@ -455,7 +455,7 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 			case '}', ']', ',':
 				s = nssDone
 			default:
-				if isWhiteSpace(c) || err == io.EOF {
+				if isWhiteSpace(c) || errors.Is(err, io.EOF) {
 					s = nssDone
 				} else if isDigit(c) {
 					s = nssSawFractionDigits
@@ -490,7 +490,7 @@ func (js *jsonScanner) scanNumber(first byte) (*jsonToken, error) {
 			case '}', ']', ',':
 				s = nssDone
 			default:
-				if isWhiteSpace(c) || err == io.EOF {
+				if isWhiteSpace(c) || errors.Is(err, io.EOF) {
 					s = nssDone
 				} else if isDigit(c) {
 					s = nssSawExponentDigits

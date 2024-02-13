@@ -127,12 +127,12 @@ func Setup(setupOpts ...*SetupOptions) error {
 	pingCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if err := testContext.client.Ping(pingCtx, readpref.Primary()); err != nil {
-		return fmt.Errorf("ping error: %v; make sure the deployment is running on URI %v", err,
+		return fmt.Errorf("ping error: %w; make sure the deployment is running on URI %v", err,
 			testContext.connString.Original)
 	}
 
 	if testContext.serverVersion, err = getServerVersion(); err != nil {
-		return fmt.Errorf("error getting server version: %v", err)
+		return fmt.Errorf("error getting server version: %w", err)
 	}
 
 	switch testContext.topo.Kind() {
@@ -153,7 +153,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		// Run a find against config.shards and get each document in the collection.
 		cursor, err := testContext.client.Database("config").Collection("shards").Find(context.Background(), bson.D{})
 		if err != nil {
-			return fmt.Errorf("error running find against config.shards: %v", err)
+			return fmt.Errorf("error running find against config.shards: %w", err)
 		}
 		defer cursor.Close(context.Background())
 
@@ -161,7 +161,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 			Host string `bson:"host"`
 		}
 		if err := cursor.All(context.Background(), &shards); err != nil {
-			return fmt.Errorf("error getting results find against config.shards: %v", err)
+			return fmt.Errorf("error getting results find against config.shards: %w", err)
 		}
 
 		// Each document's host field will contain a single hostname if the shard is a standalone. If it's a replica
@@ -189,7 +189,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		}
 		testContext.singleMongosLoadBalancerURI, err = addNecessaryParamsToURI(singleMongosURI)
 		if err != nil {
-			return fmt.Errorf("error getting single mongos load balancer uri: %v", err)
+			return fmt.Errorf("error getting single mongos load balancer uri: %w", err)
 		}
 
 		multiMongosURI := os.Getenv("MULTI_MONGOS_LB_URI")
@@ -198,7 +198,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		}
 		testContext.multiMongosLoadBalancerURI, err = addNecessaryParamsToURI(multiMongosURI)
 		if err != nil {
-			return fmt.Errorf("error getting multi mongos load balancer uri: %v", err)
+			return fmt.Errorf("error getting multi mongos load balancer uri: %w", err)
 		}
 	}
 
@@ -206,7 +206,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 	testContext.sslEnabled = os.Getenv("SSL") == "ssl"
 	biRes, err := testContext.client.Database("admin").RunCommand(context.Background(), bson.D{{"buildInfo", 1}}).Raw()
 	if err != nil {
-		return fmt.Errorf("buildInfo error: %v", err)
+		return fmt.Errorf("buildInfo error: %w", err)
 	}
 	modulesRaw, err := biRes.LookupErr("modules")
 	if err == nil {
@@ -225,7 +225,7 @@ func Setup(setupOpts ...*SetupOptions) error {
 		db := testContext.client.Database("admin")
 		testContext.serverParameters, err = db.RunCommand(context.Background(), bson.D{{"getParameter", "*"}}).Raw()
 		if err != nil {
-			return fmt.Errorf("error getting serverParameters: %v", err)
+			return fmt.Errorf("error getting serverParameters: %w", err)
 		}
 	}
 	return nil
@@ -237,14 +237,14 @@ func Teardown() error {
 	// Dropping the test database causes an error against Atlas Data Lake.
 	if !testContext.dataLake {
 		if err := testContext.client.Database(TestDb).Drop(context.Background()); err != nil {
-			return fmt.Errorf("error dropping test database: %v", err)
+			return fmt.Errorf("error dropping test database: %w", err)
 		}
 	}
 	if err := testContext.client.Disconnect(context.Background()); err != nil {
-		return fmt.Errorf("error disconnecting test client: %v", err)
+		return fmt.Errorf("error disconnecting test client: %w", err)
 	}
 	if err := testContext.topo.Disconnect(context.Background()); err != nil {
-		return fmt.Errorf("error disconnecting test topology: %v", err)
+		return fmt.Errorf("error disconnecting test topology: %w", err)
 	}
 	return nil
 }
