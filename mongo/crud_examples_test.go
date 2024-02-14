@@ -8,6 +8,7 @@ package mongo_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -390,7 +391,7 @@ func ExampleCollection_FindOne() {
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in
 		// the collection.
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
 		log.Fatal(err)
@@ -416,7 +417,7 @@ func ExampleCollection_FindOneAndDelete() {
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in
 		// the collection.
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
 		log.Fatal(err)
@@ -445,7 +446,7 @@ func ExampleCollection_FindOneAndReplace() {
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in
 		// the collection.
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
 		log.Fatal(err)
@@ -474,7 +475,7 @@ func ExampleCollection_FindOneAndUpdate() {
 	if err != nil {
 		// ErrNoDocuments means that the filter did not match any documents in
 		// the collection.
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			return
 		}
 		log.Fatal(err)

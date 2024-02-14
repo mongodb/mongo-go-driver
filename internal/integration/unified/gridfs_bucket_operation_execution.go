@@ -244,7 +244,7 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 		case "source":
 			fileBytes, err = hex.DecodeString(val.Document().Lookup("$$hexBytes").StringValue())
 			if err != nil {
-				return nil, fmt.Errorf("error converting source string to bytes: %v", err)
+				return nil, fmt.Errorf("error converting source string to bytes: %w", err)
 			}
 		case "contentType":
 			return nil, newSkipTestError("the deprecated contentType file option is not supported")
@@ -272,7 +272,7 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 			Value: fileID[:],
 		}
 		if err := entities(ctx).addBSONEntity(*operation.ResultEntityID, fileIDValue); err != nil {
-			return nil, fmt.Errorf("error storing result as BSON entity: %v", err)
+			return nil, fmt.Errorf("error storing result as BSON entity: %w", err)
 		}
 	}
 

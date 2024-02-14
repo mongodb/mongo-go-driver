@@ -431,8 +431,8 @@ func (s *Server) RequestImmediateCheck() {
 // (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
 // handling and (nil, false) otherwise.
 func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
-	writeCmdErr, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var writeCmdErr driver.WriteCommandError
+	if !errors.As(err, &writeCmdErr) {
 		return nil, false
 	}
 

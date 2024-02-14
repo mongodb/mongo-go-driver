@@ -8,6 +8,7 @@ package integration
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -505,12 +506,12 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 func verifyError(expected *operationError, actual error) error {
 	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledgedWrite as errors, so set actual to nil
 	// to indicate that no error occurred.
-	if actual == mongo.ErrNoDocuments || actual == mongo.ErrUnacknowledgedWrite {
+	if errors.Is(actual, mongo.ErrNoDocuments) || errors.Is(actual, mongo.ErrUnacknowledgedWrite) {
 		actual = nil
 	}
 
 	if expected == nil && actual != nil {
-		return fmt.Errorf("did not expect error but got %v", actual)
+		return fmt.Errorf("did not expect error but got %w", actual)
 	}
 	if expected != nil && actual == nil {
 		return fmt.Errorf("expected error but got nil")
@@ -545,12 +546,12 @@ func verifyError(expected *operationError, actual error) error {
 	}
 	for _, label := range expected.ErrorLabelsContain {
 		if !stringSliceContains(details.labels, label) {
-			return fmt.Errorf("expected error %v to contain label %q", actual, label)
+			return fmt.Errorf("expected error %w to contain label %q", actual, label)
 		}
 	}
 	for _, label := range expected.ErrorLabelsOmit {
 		if stringSliceContains(details.labels, label) {
-			return fmt.Errorf("expected error %v to not contain label %q", actual, label)
+			return fmt.Errorf("expected error %w to not contain label %q", actual, label)
 		}
 	}
 	return nil

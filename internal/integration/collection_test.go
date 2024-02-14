@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -1690,7 +1691,7 @@ func TestCollection(t *testing.T) {
 				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
 			}
 			_, err := mt.Coll.BulkWrite(context.Background(), models)
-			if err != mongo.ErrUnacknowledgedWrite {
+			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
 				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
 				// so the assertion would succeed even if the error had not been wrapped.
 				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)

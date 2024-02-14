@@ -219,7 +219,7 @@ func executeListCollectionNames(ctx context.Context, operation *operation) (*ope
 	}
 	_, data, err := bson.MarshalValue(names)
 	if err != nil {
-		return nil, fmt.Errorf("error converting collection names slice to BSON: %v", err)
+		return nil, fmt.Errorf("error converting collection names slice to BSON: %w", err)
 	}
 	return newValueResult(bsontype.Array, data, nil), nil
 }
@@ -250,12 +250,12 @@ func executeRunCommand(ctx context.Context, operation *operation) (*operationRes
 		case "readPreference":
 			var temp ReadPreference
 			if err := bson.Unmarshal(val.Document(), &temp); err != nil {
-				return nil, fmt.Errorf("error unmarshalling readPreference option: %v", err)
+				return nil, fmt.Errorf("error unmarshalling readPreference option: %w", err)
 			}
 
 			rp, err := temp.ToReadPrefOption()
 			if err != nil {
-				return nil, fmt.Errorf("error creating readpref.ReadPref object: %v", err)
+				return nil, fmt.Errorf("error creating readpref.ReadPref object: %w", err)
 			}
 			opts.SetReadPreference(rp)
 		case "writeConcern":
@@ -406,7 +406,7 @@ func executeCreateRunCursorCommand(ctx context.Context, operation *operation) (*
 	if cursorID := operation.ResultEntityID; cursorID != nil {
 		err := entities(ctx).addCursorEntity(*cursorID, cursor)
 		if err != nil {
-			return nil, fmt.Errorf("failed to store result as cursor entity: %v", err)
+			return nil, fmt.Errorf("failed to store result as cursor entity: %w", err)
 		}
 	}
 

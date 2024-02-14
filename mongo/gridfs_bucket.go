@@ -529,7 +529,7 @@ func (b *GridFSBucket) createIndexes(ctx context.Context) error {
 	docRes := cloned.FindOne(ctx, bson.D{}, options.FindOne().SetProjection(bson.D{{"_id", 1}}))
 
 	_, err = docRes.Raw()
-	if err != ErrNoDocuments {
+	if !errors.Is(err, ErrNoDocuments) {
 		// nil, or error that occurred during the FindOne operation
 		return err
 	}

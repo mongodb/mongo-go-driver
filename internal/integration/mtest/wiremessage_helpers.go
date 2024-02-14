@@ -65,7 +65,7 @@ func parseOpCompressed(wm []byte) (wiremessage.OpCode, []byte, error) {
 	}
 	decompressed, err := driver.DecompressPayload(compressedMsg, opts)
 	if err != nil {
-		return originalOpcode, nil, fmt.Errorf("error decompressing payload: %v", err)
+		return originalOpcode, nil, fmt.Errorf("error decompressing payload: %w", err)
 	}
 
 	return originalOpcode, decompressed, nil
