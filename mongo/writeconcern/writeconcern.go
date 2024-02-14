@@ -16,7 +16,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -75,19 +74,6 @@ type WriteConcern struct {
 	// For more information about the "j" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#j-option
 	Journal *bool
-
-	// SealedWTimeout sets a time limit for the write concern, configuring the
-	// "wtimeout" option in a MongoDB write concern under specific driver
-	// conditions. Particularly when the user or driver retries committing a
-	// transaction without a client or operation-level timeout. In such cases, the
-	// default value for WTimeout, as specified, is 10,000 milliseconds.
-	//
-	// This field serves as a driver convenience for maintaining state and is,
-	// therefore, not directly settable by users. To define a write concern
-	// timeout, please either set a client-level timeout (Client.SetTimeout) or
-	// set an operation-level timeout (i.e., set a deadline on the context passed
-	// to an operation).
-	SealedWTimeout driverutil.TimeDuration
 }
 
 // Unacknowledged returns a WriteConcern that requests no acknowledgment of

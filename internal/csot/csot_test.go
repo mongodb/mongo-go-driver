@@ -371,7 +371,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      newDurPtr(0),
 			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{withoutMaxTime{}},
+			wantValues:   []interface{}{withUnlimitedRetries{}},
 		},
 		{
 			name:         "deadline unset with nil timeout",
@@ -382,12 +382,12 @@ func TestWithTimeout(t *testing.T) {
 			wantValues:   []interface{}{},
 		},
 		{
-			name:         "deadline unset with non-zero timeout with withoutMaxTime",
-			parent:       WithoutMaxTime(context.Background()),
+			name:         "deadline unset with non-zero timeout with withUnlimitedRetries",
+			parent:       WithUnlimitedRetries(context.Background()),
 			timeout:      newDurPtr(1),
-			wantTimeout:  1,
+			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{withoutMaxTime{}},
+			wantValues:   []interface{}{withUnlimitedRetries{}},
 		},
 	}
 

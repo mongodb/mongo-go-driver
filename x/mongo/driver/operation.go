@@ -1460,7 +1460,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func getWriteConcernTimeout(ctx context.Context, op Operation, wc writeconcern.WriteConcern) time.Duration {
+func getWriteConcernTimeout(ctx context.Context, op Operation) time.Duration {
 	if contextDeadline, ok := ctx.Deadline(); ok {
 		return time.Until(contextDeadline)
 	}
@@ -1469,10 +1469,14 @@ func getWriteConcernTimeout(ctx context.Context, op Operation, wc writeconcern.W
 		return *op.Timeout
 	}
 
-	return time.Duration(wc.SealedWTimeout)
+	if op.Client == nil {
+		return 0
+	}
+
+	return op.Client.CurrentWTimeout
 }
 
-func marshalBSONWriteConcern(wc writeconcern.WriteConcern) (bsontype.Type, []byte, error) {
+func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duration) (bsontype.Type, []byte, error) {
 	var elems []byte
 	if wc.W != nil {
 		// Only support string or int values for W. That aligns with the
@@ -1503,8 +1507,8 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern) (bsontype.Type, []byt
 		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
 	}
 
-	if wc.SealedWTimeout != 0 {
-		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(time.Duration(wc.SealedWTimeout)/time.Millisecond))
+	if wtimeout != 0 {
+		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wtimeout/time.Millisecond))
 	}
 
 	if len(elems) == 0 {
@@ -1523,9 +1527,9 @@ func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc descri
 		return dst, nil
 	}
 
-	wc.SealedWTimeout = driverutil.TimeDuration(getWriteConcernTimeout(ctx, op, *wc))
+	wtimeout := getWriteConcernTimeout(ctx, op)
 
-	typ, wcBSON, err := marshalBSONWriteConcern(*wc)
+	typ, wcBSON, err := marshalBSONWriteConcern(*wc, wtimeout)
 	if errors.Is(err, errEmptyWriteConcern) {
 		return dst, nil
 	}

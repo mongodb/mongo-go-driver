@@ -812,15 +812,16 @@ func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 func (s *Server) cancelCheck() {
 	var conn *connection
 
+	// Take heartbeatLock for mutual exclusion with the checks in the update
+	// function.
+	s.heartbeatLock.Lock()
+
 	s.cancelHeartbeatCheckOnce.Do(func() {
 		s.cancelHeartbeatCheck <- struct{}{}
 
 		s.heartbeatCheckCanceled = true
 	})
 
-	// Take heartbeatLock for mutual exclusion with the checks in the update
-	// function.
-	s.heartbeatLock.Lock()
 	conn = s.conn
 
 	s.heartbeatLock.Unlock()

@@ -19,7 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/uuid"
@@ -952,6 +951,7 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 		name         string
 		writeConcern writeconcern.WriteConcern
 		wantBSONType bsontype.Type
+		wtimeout     time.Duration
 		want         bson.D
 		wantErr      string
 	}{
@@ -960,6 +960,7 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 			writeConcern: writeconcern.WriteConcern{},
 			wantBSONType: 0x0,
 			want:         nil,
+			wtimeout:     0,
 			wantErr:      "a write concern must have at least one field set",
 		},
 		{
@@ -967,18 +968,13 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 			writeConcern: *writeconcern.Journaled(),
 			wantBSONType: bson.TypeEmbeddedDocument,
 			want:         bson.D{{"j", true}},
+			wtimeout:     0,
 			wantErr:      "a write concern must have at least one field set",
 		},
 		{
-			name: "journal and wtimout",
-			writeConcern: writeconcern.WriteConcern{
-				Journal: func() *bool {
-					b := true
-
-					return &b
-				}(),
-				SealedWTimeout: driverutil.TimeDuration(10 * time.Millisecond),
-			},
+			name:         "journal and wtimout",
+			writeConcern: *writeconcern.Journaled(),
+			wtimeout:     10 * time.Millisecond,
 			wantBSONType: bson.TypeEmbeddedDocument,
 			want:         bson.D{{"j", true}, {"wtimeout", int64(10 * time.Millisecond / time.Millisecond)}},
 			wantErr:      "a write concern must have at least one field set",
@@ -991,7 +987,7 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern)
+			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern, test.wtimeout)
 			assert.Equal(t, test.wantBSONType, gotBSONType)
 
 			wantBSON := []byte(nil)

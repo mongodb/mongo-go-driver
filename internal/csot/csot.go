@@ -12,6 +12,7 @@ import (
 )
 
 type withoutMaxTime struct{}
+type withUnlimitedRetries struct{}
 
 // WithoutMaxTime returns a new context with a "withoutMaxTime" value that
 // is used to inform operation construction to not add a maxTimeMS to a wire
@@ -26,6 +27,14 @@ func WithoutMaxTime(ctx context.Context) context.Context {
 // "withoutMaxTime" value.
 func IsWithoutMaxTime(ctx context.Context) bool {
 	return ctx.Value(withoutMaxTime{}) != nil
+}
+
+func WithUnlimitedRetries(ctx context.Context) context.Context {
+	return context.WithValue(ctx, withUnlimitedRetries{}, true)
+}
+
+func IsWithUnlimitedRetries(ctx context.Context) bool {
+	return ctx.Value(withUnlimitedRetries{}) != nil
 }
 
 // WithTimeout will apply the given timeout to the parent context, if there is
@@ -43,14 +52,14 @@ func WithTimeout(parent context.Context, timeout *time.Duration) (context.Contex
 
 	// If there already exists a deadline or, if not and the timeout is nil, then
 	// do nothing.
-	if ok || timeout == nil || IsWithoutMaxTime(parent) {
+	if ok || timeout == nil || IsWithUnlimitedRetries(parent) {
 		return parent, cancel
 	}
 
 	// If the timeout is zero, or zero has already been explicitly set as the
 	// deadline on the context, then signal to not use maxTimeMS on WMs.
 	if timeout != nil && *timeout == 0 {
-		parent = WithoutMaxTime(parent)
+		parent = WithUnlimitedRetries(parent)
 
 		return parent, cancel
 	}
@@ -62,7 +71,7 @@ func WithTimeout(parent context.Context, timeout *time.Duration) (context.Contex
 func IsTimeoutContext(ctx context.Context) bool {
 	_, ok := ctx.Deadline()
 
-	return ok || IsWithoutMaxTime(ctx)
+	return ok || IsWithUnlimitedRetries(ctx)
 }
 
 // WithServerSelectionTimeout creates a context with a timeout that is the
