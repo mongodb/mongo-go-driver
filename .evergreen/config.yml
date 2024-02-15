@@ -366,7 +366,7 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER", "VERSION"]
+        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         script: |
           ${PREPARE_SHELL}
           bash ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
