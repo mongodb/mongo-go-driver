@@ -15,12 +15,13 @@ Globals:
 Resources:
   MongoDBFunction:
     Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
     Properties:
       CodeUri: mongodb/
-      Handler: main
-      Runtime: go1.x
-      Architectures:
-      - x86_64
+      Handler: bootstrap
+      Runtime: provided.al2
+      Architectures: [arm64]
       Events:
         MongoDB:
           Type: Api
@@ -55,4 +56,3 @@ Outputs:
   MongoDBFunctionIamRole:
     Description: "Implicit IAM Role created for MongoDB function"
     Value: !GetAtt MongoDBFunctionRole.Arn
-

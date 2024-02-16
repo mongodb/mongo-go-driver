@@ -37,7 +37,7 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 	db := mtest.GlobalClient().Database(c.DatabaseName, options.Database().SetWriteConcern(mtest.MajorityWc))
 	coll := db.Collection(c.CollectionName)
 	if err := coll.Drop(ctx); err != nil {
-		return fmt.Errorf("error dropping collection: %v", err)
+		return fmt.Errorf("error dropping collection: %w", err)
 	}
 
 	// Explicitly create collection if Options are specified.
@@ -51,7 +51,7 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 		}
 
 		if err := db.CreateCollection(ctx, c.CollectionName, createOpts); err != nil {
-			return fmt.Errorf("error creating collection: %v", err)
+			return fmt.Errorf("error creating collection: %w", err)
 		}
 	}
 
@@ -66,14 +66,14 @@ func (c *collectionData) createCollection(ctx context.Context) error {
 			}},
 		}
 		if err := db.RunCommand(ctx, create).Err(); err != nil {
-			return fmt.Errorf("error creating collection: %v", err)
+			return fmt.Errorf("error creating collection: %w", err)
 		}
 		return nil
 	}
 
 	docs := bsonutil.RawToInterfaces(c.Documents...)
 	if _, err := coll.InsertMany(ctx, docs); err != nil {
-		return fmt.Errorf("error inserting data: %v", err)
+		return fmt.Errorf("error inserting data: %w", err)
 	}
 	return nil
 }
@@ -88,13 +88,13 @@ func (c *collectionData) verifyContents(ctx context.Context) error {
 
 	cursor, err := coll.Find(ctx, bson.D{}, options.Find().SetSort(bson.M{"_id": 1}))
 	if err != nil {
-		return fmt.Errorf("Find error: %v", err)
+		return fmt.Errorf("Find error: %w", err)
 	}
 	defer cursor.Close(ctx)
 
 	var docs []bson.Raw
 	if err := cursor.All(ctx, &docs); err != nil {
-		return fmt.Errorf("cursor iteration error: %v", err)
+		return fmt.Errorf("cursor iteration error: %w", err)
 	}
 
 	// Verify the slice lengths are equal. This also covers the case of asserting that the collection is empty if

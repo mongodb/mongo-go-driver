@@ -352,8 +352,7 @@ func TestRegistryBuilder(t *testing.T) {
 					})
 					t.Run("Decoder", func(t *testing.T) {
 						wanterr := tc.wanterr
-						var ene ErrNoEncoder
-						if errors.As(tc.wanterr, &ene) {
+						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
 						}
 
@@ -424,7 +423,7 @@ func TestRegistryBuilder(t *testing.T) {
 		want = nil
 		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
 		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
-		if err != wanterr {
+		if !errors.Is(err, wanterr) {
 			t.Errorf("did not get expected error: got %#v, want %#v", err, wanterr)
 		}
 		if got != want {
@@ -777,8 +776,7 @@ func TestRegistry(t *testing.T) {
 						t.Parallel()
 
 						wanterr := tc.wanterr
-						var ene ErrNoEncoder
-						if errors.As(tc.wanterr, &ene) {
+						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
 							wanterr = ErrNoDecoder(ene)
 						}
 
@@ -884,7 +882,7 @@ func TestRegistry(t *testing.T) {
 		want = nil
 		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
 		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
-		if err != wanterr {
+		if !errors.Is(err, wanterr) {
 			t.Errorf("unexpected error: got %#v, want %#v", err, wanterr)
 		}
 		if got != want {
