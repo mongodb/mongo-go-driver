@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,11 +16,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -33,7 +28,7 @@ func bytesFromDoc(doc interface{}) []byte {
 	return b
 }
 
-func compareDecimal128(d1, d2 primitive.Decimal128) bool {
+func compareDecimal128(d1, d2 Decimal128) bool {
 	d1H, d1L := d1.GetBytes()
 	d2H, d2L := d2.GetBytes()
 
@@ -48,23 +43,7 @@ func compareDecimal128(d1, d2 primitive.Decimal128) bool {
 	return true
 }
 
-func compareErrors(err1, err2 error) bool {
-	if err1 == nil && err2 == nil {
-		return true
-	}
-
-	if err1 == nil || err2 == nil {
-		return false
-	}
-
-	if err1.Error() != err2.Error() {
-		return false
-	}
-
-	return true
-}
-
-func TestDefaultValueEncoders(t *testing.T) {
+func TestDefaultValueEncoders2(t *testing.T) {
 	t.Parallel()
 
 	var pc PrimitiveCodecs
@@ -74,28 +53,28 @@ func TestDefaultValueEncoders(t *testing.T) {
 	type subtest struct {
 		name   string
 		val    interface{}
-		ectx   *bsoncodec.EncodeContext
-		llvrw  *bsonrwtest.ValueReaderWriter
-		invoke bsonrwtest.Invoked
+		ectx   *EncodeContext
+		llvrw  *valueReaderWriter
+		invoke invoked
 		err    error
 	}
 
 	testCases := []struct {
 		name     string
-		ve       bsoncodec.ValueEncoder
+		ve       ValueEncoder
 		subtests []subtest
 	}{
 		{
 			"RawValueEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.RawValueEncodeValue),
+			ValueEncoderFunc(pc.RawValueEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
 					wrong,
 					nil,
 					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{
+					nothing,
+					ValueEncoderError{
 						Name:     "RawValueEncodeValue",
 						Types:    []reflect.Type{tRawValue},
 						Received: reflect.ValueOf(wrong),
@@ -106,7 +85,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
 					nil,
 					nil,
-					bsonrwtest.WriteDouble,
+					writeDouble,
 					nil,
 				},
 				{
@@ -117,7 +96,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					},
 					nil,
 					nil,
-					bsonrwtest.Nothing,
+					nothing,
 					fmt.Errorf("the RawValue Type specifies an invalid BSON type: 0x0"),
 				},
 				{
@@ -128,61 +107,61 @@ func TestDefaultValueEncoders(t *testing.T) {
 					},
 					nil,
 					nil,
-					bsonrwtest.Nothing,
+					nothing,
 					fmt.Errorf("the RawValue Type specifies an invalid BSON type: 0x8f"),
 				},
 			},
 		},
 		{
 			"RawEncodeValue",
-			bsoncodec.ValueEncoderFunc(pc.RawEncodeValue),
+			ValueEncoderFunc(pc.RawEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
 					wrong,
 					nil,
 					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueEncoderError{Name: "RawEncodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
+					nothing,
+					ValueEncoderError{Name: "RawEncodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"WriteDocument Error",
 					Raw{},
 					nil,
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("wd error"), ErrAfter: bsonrwtest.WriteDocument},
-					bsonrwtest.WriteDocument,
+					&valueReaderWriter{Err: errors.New("wd error"), ErrAfter: writeDocument},
+					writeDocument,
 					errors.New("wd error"),
 				},
 				{
 					"Raw.Elements Error",
 					Raw{0xFF, 0x00, 0x00, 0x00, 0x00},
 					nil,
-					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.WriteDocument,
+					&valueReaderWriter{},
+					writeDocument,
 					errors.New("length read exceeds number of bytes available. length=5 bytes=255"),
 				},
 				{
 					"WriteDocumentElement Error",
 					Raw(bytesFromDoc(D{{"foo", nil}})),
 					nil,
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("wde error"), ErrAfter: bsonrwtest.WriteDocumentElement},
-					bsonrwtest.WriteDocumentElement,
+					&valueReaderWriter{Err: errors.New("wde error"), ErrAfter: writeDocumentElement},
+					writeDocumentElement,
 					errors.New("wde error"),
 				},
 				{
 					"encodeValue error",
 					Raw(bytesFromDoc(D{{"foo", nil}})),
 					nil,
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("ev error"), ErrAfter: bsonrwtest.WriteNull},
-					bsonrwtest.WriteNull,
+					&valueReaderWriter{Err: errors.New("ev error"), ErrAfter: writeNull},
+					writeNull,
 					errors.New("ev error"),
 				},
 				{
 					"iterator error",
 					Raw{0x0C, 0x00, 0x00, 0x00, 0x01, 'f', 'o', 'o', 0x00, 0x01, 0x02, 0x03},
 					nil,
-					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.WriteDocumentElement,
+					&valueReaderWriter{},
+					writeDocumentElement,
 					errors.New("not enough bytes available to read type. bytes=3 type=double"),
 				},
 			},
@@ -201,11 +180,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 				t.Run(subtest.name, func(t *testing.T) {
 					t.Parallel()
 
-					var ec bsoncodec.EncodeContext
+					var ec EncodeContext
 					if subtest.ectx != nil {
 						ec = *subtest.ectx
 					}
-					llvrw := new(bsonrwtest.ValueReaderWriter)
+					llvrw := new(valueReaderWriter)
 					if subtest.llvrw != nil {
 						llvrw = subtest.llvrw
 					}
@@ -214,7 +193,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					if !compareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
-					invoked := llvrw.Invoked
+					invoked := llvrw.invoked
 					if !cmp.Equal(invoked, subtest.invoke) {
 						t.Errorf("Incorrect method invoked. got %v; want %v", invoked, subtest.invoke)
 					}
@@ -226,8 +205,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("success path", func(t *testing.T) {
 		t.Parallel()
 
-		oid := primitive.NewObjectID()
-		oids := []primitive.ObjectID{primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()}
+		oid := NewObjectID()
+		oids := []ObjectID{NewObjectID(), NewObjectID(), NewObjectID()}
 		var str = new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond)
@@ -236,7 +215,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 			t.Errorf("Error parsing URL: %v", err)
 			t.FailNow()
 		}
-		decimal128, err := primitive.ParseDecimal128("1.5e10")
+		decimal128, err := ParseDecimal128("1.5e10")
 		if err != nil {
 			t.Errorf("Error parsing decimal128: %v", err)
 			t.FailNow()
@@ -250,14 +229,14 @@ func TestDefaultValueEncoders(t *testing.T) {
 		}{
 			{
 				"D to JavaScript",
-				D{{"a", primitive.JavaScript(`function() { var hello = "world"; }`)}},
-				docToBytes(D{{"a", primitive.JavaScript(`function() { var hello = "world"; }`)}}),
+				D{{"a", JavaScript(`function() { var hello = "world"; }`)}},
+				docToBytes(D{{"a", JavaScript(`function() { var hello = "world"; }`)}}),
 				nil,
 			},
 			{
 				"D to Symbol",
-				D{{"a", primitive.Symbol("foobarbaz")}},
-				docToBytes(D{{"a", primitive.Symbol("foobarbaz")}}),
+				D{{"a", Symbol("foobarbaz")}},
+				docToBytes(D{{"a", Symbol("foobarbaz")}}),
 				nil,
 			},
 			{
@@ -277,13 +256,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 						M string
 					}
 					P  Raw
-					Q  primitive.ObjectID
+					Q  ObjectID
 					T  []struct{}
 					Y  json.Number
 					Z  time.Time
 					AA json.Number
 					AB *url.URL
-					AC primitive.Decimal128
+					AC Decimal128
 					AD *time.Time
 					AE testValueMarshaler
 					AF RawValue
@@ -332,18 +311,18 @@ func TestDefaultValueEncoders(t *testing.T) {
 					{"f", float64(3.14159)},
 					{"g", "Hello, world"},
 					{"h", D{{"foo", "bar"}}},
-					{"i", primitive.Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}},
+					{"i", Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}},
 					{"k", A{"baz", "qux"}},
 					{"l", D{{"m", "foobar"}}},
 					{"p", D{}},
 					{"q", oid},
 					{"t", nil},
 					{"y", int64(5)},
-					{"z", primitive.DateTime(now.UnixNano() / int64(time.Millisecond))},
+					{"z", DateTime(now.UnixNano() / int64(time.Millisecond))},
 					{"aa", float64(10.1)},
 					{"ab", murl.String()},
 					{"ac", decimal128},
-					{"ad", primitive.DateTime(now.UnixNano() / int64(time.Millisecond))},
+					{"ad", DateTime(now.UnixNano() / int64(time.Millisecond))},
 					{"ae", "hello, world"},
 					{"af", "hello, raw value"},
 					{"ag", 3.14159},
@@ -371,7 +350,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					}
 					N  [][]string
 					Q  []Raw
-					R  []primitive.ObjectID
+					R  []ObjectID
 					T  []struct{}
 					W  []map[string]struct{}
 					X  []map[string]struct{}
@@ -379,7 +358,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					Z  []time.Time
 					AA []json.Number
 					AB []*url.URL
-					AC []primitive.Decimal128
+					AC []Decimal128
 					AD []*time.Time
 					AE []testValueMarshaler
 					AF []D
@@ -412,7 +391,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					Z:  []time.Time{now, now},
 					AA: []json.Number{json.Number("5"), json.Number("10.1")},
 					AB: []*url.URL{murl},
-					AC: []primitive.Decimal128{decimal128},
+					AC: []Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []testValueMarshaler{
 						{t: TypeString, buf: bsoncore.AppendString(nil, "hello")},
@@ -430,7 +409,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					{"f", A{float64(3.14159)}},
 					{"g", A{"Hello, world"}},
 					{"h", A{D{{"foo", "bar"}}}},
-					{"i", A{primitive.Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}}},
+					{"i", A{Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}}},
 					{"k", A{A{"baz", "qux"}}},
 					{"l", A{D{{"m", "foobar"}}}},
 					{"n", A{A{"foo", "bar"}}},
@@ -441,15 +420,15 @@ func TestDefaultValueEncoders(t *testing.T) {
 					{"x", A{}},
 					{"y", A{D{}}},
 					{"z", A{
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
 					}},
 					{"aa", A{int64(5), float64(10.10)}},
 					{"ab", A{murl.String()}},
 					{"ac", A{decimal128}},
 					{"ad", A{
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
 					}},
 					{"ae", A{"hello", "world"}},
 					{"af", A{D{{"foo", "bar"}}, D{{"hello", "world"}, {"number", int32(12345)}}}},
@@ -465,8 +444,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				b := make(bsonrw.SliceWriter, 0, 512)
-				vw := bsonrw.NewValueWriter(&b)
+				b := make(SliceWriter, 0, 512)
+				vw := NewValueWriter(&b)
 				enc := NewEncoder(vw)
 				err := enc.Encode(tc.value)
 				if !errors.Is(err, tc.err) {
@@ -492,28 +471,28 @@ func TestDefaultValueDecoders(t *testing.T) {
 	type subtest struct {
 		name   string
 		val    interface{}
-		dctx   *bsoncodec.DecodeContext
-		llvrw  *bsonrwtest.ValueReaderWriter
-		invoke bsonrwtest.Invoked
+		dctx   *DecodeContext
+		llvrw  *valueReaderWriter
+		invoke invoked
 		err    error
 	}
 
 	testCases := []struct {
 		name     string
-		vd       bsoncodec.ValueDecoder
+		vd       ValueDecoder
 		subtests []subtest
 	}{
 		{
 			"RawValueDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.RawValueDecodeValue),
+			ValueDecoderFunc(pc.RawValueDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
 					wrong,
 					nil,
-					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{
+					&valueReaderWriter{},
+					nothing,
+					ValueDecoderError{
 						Name:     "RawValueDecodeValue",
 						Types:    []reflect.Type{tRawValue},
 						Received: reflect.ValueOf(wrong),
@@ -523,49 +502,49 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"ReadValue Error",
 					RawValue{},
 					nil,
-					&bsonrwtest.ValueReaderWriter{
+					&valueReaderWriter{
 						BSONType: bsontype.Binary,
 						Err:      errors.New("rb error"),
-						ErrAfter: bsonrwtest.ReadBinary,
+						ErrAfter: readBinary,
 					},
-					bsonrwtest.ReadBinary,
+					readBinary,
 					errors.New("rb error"),
 				},
 				{
 					"RawValue/success",
 					RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
 					nil,
-					&bsonrwtest.ValueReaderWriter{
+					&valueReaderWriter{
 						BSONType: bsontype.Binary,
 						Return: bsoncore.Value{
 							Type: bsontype.Binary,
 							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
 						},
 					},
-					bsonrwtest.ReadBinary,
+					readBinary,
 					nil,
 				},
 			},
 		},
 		{
 			"RawDecodeValue",
-			bsoncodec.ValueDecoderFunc(pc.RawDecodeValue),
+			ValueDecoderFunc(pc.RawDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
 					wrong,
 					nil,
-					&bsonrwtest.ValueReaderWriter{},
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
+					&valueReaderWriter{},
+					nothing,
+					ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"*Raw is nil",
 					(*Raw)(nil),
 					nil,
 					nil,
-					bsonrwtest.Nothing,
-					bsoncodec.ValueDecoderError{
+					nothing,
+					ValueDecoderError{
 						Name:     "RawDecodeValue",
 						Types:    []reflect.Type{tRaw},
 						Received: reflect.ValueOf((*Raw)(nil)),
@@ -575,8 +554,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"Copy error",
 					Raw{},
 					nil,
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("copy error"), ErrAfter: bsonrwtest.ReadDocument},
-					bsonrwtest.ReadDocument,
+					&valueReaderWriter{Err: errors.New("copy error"), ErrAfter: readDocument},
+					readDocument,
 					errors.New("copy error"),
 				},
 			},
@@ -587,11 +566,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, rc := range tc.subtests {
 				t.Run(rc.name, func(t *testing.T) {
-					var dc bsoncodec.DecodeContext
+					var dc DecodeContext
 					if rc.dctx != nil {
 						dc = *rc.dctx
 					}
-					llvrw := new(bsonrwtest.ValueReaderWriter)
+					llvrw := new(valueReaderWriter)
 					if rc.llvrw != nil {
 						llvrw = rc.llvrw
 					}
@@ -625,7 +604,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					if !compareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 					}
-					invoked := llvrw.Invoked
+					invoked := llvrw.invoked
 					if !cmp.Equal(invoked, rc.invoke) {
 						t.Errorf("Incorrect method invoked. got %v; want %v", invoked, rc.invoke)
 					}
@@ -642,8 +621,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 	}
 
 	t.Run("success path", func(t *testing.T) {
-		oid := primitive.NewObjectID()
-		oids := []primitive.ObjectID{primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()}
+		oid := NewObjectID()
+		oids := []ObjectID{NewObjectID(), NewObjectID(), NewObjectID()}
 		var str = new(string)
 		*str = "bar"
 		now := time.Now().Truncate(time.Millisecond)
@@ -652,7 +631,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			t.Errorf("Error parsing URL: %v", err)
 			t.FailNow()
 		}
-		decimal128, err := primitive.ParseDecimal128("1.5e10")
+		decimal128, err := ParseDecimal128("1.5e10")
 		if err != nil {
 			t.Errorf("Error parsing decimal128: %v", err)
 			t.FailNow()
@@ -676,8 +655,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[string]primitive.ObjectID",
-				map[string]primitive.ObjectID{"foo": oid},
+				"map[string]ObjectID",
+				map[string]ObjectID{"foo": oid},
 				docToBytes(D{{"foo", oid}}),
 				nil,
 			},
@@ -694,8 +673,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[string][]primitive.ObjectID",
-				map[string][]primitive.ObjectID{"Z": oids},
+				"map[string][]ObjectID",
+				map[string][]ObjectID{"Z": oids},
 				docToBytes(D{{"Z", A{oids[0], oids[1], oids[2]}}}),
 				nil,
 			},
@@ -718,8 +697,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 				nil,
 			},
 			{
-				"map[string][]primitive.Decimal128",
-				map[string][]primitive.Decimal128{"Z": {decimal128}},
+				"map[string][]Decimal128",
+				map[string][]Decimal128{"Z": {decimal128}},
 				docToBytes(D{{"Z", A{decimal128}}}),
 				nil,
 			},
@@ -829,14 +808,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 			},
 			{
 				"JavaScript to D",
-				D{{"a", primitive.JavaScript(`function() { var hello = "world"; }`)}},
-				docToBytes(D{{"a", primitive.JavaScript(`function() { var hello = "world"; }`)}}),
+				D{{"a", JavaScript(`function() { var hello = "world"; }`)}},
+				docToBytes(D{{"a", JavaScript(`function() { var hello = "world"; }`)}}),
 				nil,
 			},
 			{
 				"Symbol to D",
-				D{{"a", primitive.Symbol("foobarbaz")}},
-				docToBytes(D{{"a", primitive.Symbol("foobarbaz")}}),
+				D{{"a", Symbol("foobarbaz")}},
+				docToBytes(D{{"a", Symbol("foobarbaz")}}),
 				nil,
 			},
 			{
@@ -856,13 +835,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 						M string
 					}
 					P  Raw
-					Q  primitive.ObjectID
+					Q  ObjectID
 					T  []struct{}
 					Y  json.Number
 					Z  time.Time
 					AA json.Number
 					AB *url.URL
-					AC primitive.Decimal128
+					AC Decimal128
 					AD *time.Time
 					AE *testValueUnmarshaler
 					AF RawValue
@@ -911,21 +890,21 @@ func TestDefaultValueDecoders(t *testing.T) {
 					{"f", float64(3.14159)},
 					{"g", "Hello, world"},
 					{"h", D{{"foo", "bar"}}},
-					{"i", primitive.Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}},
+					{"i", Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}},
 					{"k", A{"baz", "qux"}},
 					{"l", D{{"m", "foobar"}}},
 					{"p", D{}},
 					{"q", oid},
 					{"t", nil},
 					{"y", int64(5)},
-					{"z", primitive.DateTime(now.UnixNano() / int64(time.Millisecond))},
+					{"z", DateTime(now.UnixNano() / int64(time.Millisecond))},
 					{"aa", float64(10.1)},
 					{"ab", murl.String()},
 					{"ac", decimal128},
-					{"ad", primitive.DateTime(now.UnixNano() / int64(time.Millisecond))},
+					{"ad", DateTime(now.UnixNano() / int64(time.Millisecond))},
 					{"ae", "hello, world!"},
 					{"af", float64(3.14159)},
-					{"ag", primitive.Binary{Subtype: 0xFF, Data: []byte{0x01, 0x02, 0x03}}},
+					{"ag", Binary{Subtype: 0xFF, Data: []byte{0x01, 0x02, 0x03}}},
 					{"ah", D{{"foo", "bar"}}},
 					{"ai", D{{"pi", float64(3.14159)}}},
 					{"aj", nil},
@@ -950,7 +929,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					}
 					N  [][]string
 					Q  []Raw
-					R  []primitive.ObjectID
+					R  []ObjectID
 					T  []struct{}
 					W  []map[string]struct{}
 					X  []map[string]struct{}
@@ -958,7 +937,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					Z  []time.Time
 					AA []json.Number
 					AB []*url.URL
-					AC []primitive.Decimal128
+					AC []Decimal128
 					AD []*time.Time
 					AE []*testValueUnmarshaler
 					AF []D
@@ -991,7 +970,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					Z:  []time.Time{now, now},
 					AA: []json.Number{json.Number("5"), json.Number("10.1")},
 					AB: []*url.URL{murl},
-					AC: []primitive.Decimal128{decimal128},
+					AC: []Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []*testValueUnmarshaler{
 						{t: bsontype.String, val: bsoncore.AppendString(nil, "hello")},
@@ -1009,7 +988,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					{"f", A{float64(3.14159)}},
 					{"g", A{"Hello, world"}},
 					{"h", A{D{{"foo", "bar"}}}},
-					{"i", A{primitive.Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}}},
+					{"i", A{Binary{Subtype: 0x00, Data: []byte{0x01, 0x02, 0x03}}}},
 					{"k", A{A{"baz", "qux"}}},
 					{"l", A{D{{"m", "foobar"}}}},
 					{"n", A{A{"foo", "bar"}}},
@@ -1020,15 +999,15 @@ func TestDefaultValueDecoders(t *testing.T) {
 					{"x", A{}},
 					{"y", A{D{}}},
 					{"z", A{
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
 					}},
 					{"aa", A{int64(5), float64(10.10)}},
 					{"ab", A{murl.String()}},
 					{"ac", A{decimal128}},
 					{"ad", A{
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
-						primitive.DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
+						DateTime(now.UnixNano() / int64(time.Millisecond)),
 					}},
 					{"ae", A{"hello", "world"}},
 					{"af", A{
@@ -1044,7 +1023,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("Decode", func(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := bsonrw.NewValueReader(tc.b)
+					vr := NewValueReader(tc.b)
 					dec := NewDecoder(vr)
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
 					err := dec.Decode(gotVal.Interface())
@@ -1064,30 +1043,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 		})
 	})
-}
-
-type testValueMarshaler struct {
-	t   bsontype.Type
-	buf []byte
-	err error
-}
-
-func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
-}
-
-type testValueUnmarshaler struct {
-	t   bsontype.Type
-	val []byte
-	err error
-}
-
-func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t bsontype.Type, val []byte) error {
-	tvu.t, tvu.val = t, val
-	return tvu.err
-}
-func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {
-	return tvu.t == tvu2.t && bytes.Equal(tvu.val, tvu2.val)
 }
 
 type noPrivateFields struct {

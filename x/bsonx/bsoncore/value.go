@@ -9,6 +9,7 @@ package bsoncore
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"sort"
@@ -208,6 +209,12 @@ func (v Value) Equal(v2 Value) bool {
 	return bytes.Equal(v.Data, v2.Data)
 }
 
+func idHex(id [12]byte) string {
+	var buf [24]byte
+	hex.Encode(buf[:], id[:])
+	return string(buf[:])
+}
+
 // String implements the fmt.String interface. This method will return values in extended JSON
 // format. If the value is not valid, this returns an empty string
 func (v Value) String() string {
@@ -249,7 +256,7 @@ func (v Value) String() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$oid":"%s"}`, oid.Hex())
+		return fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid))
 	case bsontype.Boolean:
 		b, ok := v.BooleanOK()
 		if !ok {
@@ -278,7 +285,7 @@ func (v Value) String() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), pointer.Hex())
+		return fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer))
 	case bsontype.JavaScript:
 		js, ok := v.JavaScriptOK()
 		if !ok {
@@ -316,11 +323,11 @@ func (v Value) String() string {
 		}
 		return fmt.Sprintf(`{"$numberLong":"%d"}`, i64)
 	case bsontype.Decimal128:
-		d128, ok := v.Decimal128OK()
+		h, l, ok := v.Decimal128OK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, d128.String())
+		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, primitive.Decimal128String(h, l))
 	case bsontype.MinKey:
 		return `{"$minKey":1}`
 	case bsontype.MaxKey:
@@ -501,7 +508,7 @@ func (v Value) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (v Value) ObjectID() primitive.ObjectID {
+func (v Value) ObjectID() [idLen]byte {
 	if v.Type != bsontype.ObjectID {
 		panic(ElementTypeError{"bsoncore.Value.ObjectID", v.Type})
 	}
@@ -514,13 +521,13 @@ func (v Value) ObjectID() primitive.ObjectID {
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (v Value) ObjectIDOK() (primitive.ObjectID, bool) {
+func (v Value) ObjectIDOK() ([idLen]byte, bool) {
 	if v.Type != bsontype.ObjectID {
-		return primitive.ObjectID{}, false
+		return [idLen]byte{}, false
 	}
 	oid, _, ok := ReadObjectID(v.Data)
 	if !ok {
-		return primitive.ObjectID{}, false
+		return [idLen]byte{}, false
 	}
 	return oid, true
 }
@@ -631,7 +638,7 @@ func (v Value) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (v Value) DBPointer() (string, primitive.ObjectID) {
+func (v Value) DBPointer() (string, [idLen]byte) {
 	if v.Type != bsontype.DBPointer {
 		panic(ElementTypeError{"bsoncore.Value.DBPointer", v.Type})
 	}
@@ -644,13 +651,13 @@ func (v Value) DBPointer() (string, primitive.ObjectID) {
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (v Value) DBPointerOK() (string, primitive.ObjectID, bool) {
+func (v Value) DBPointerOK() (string, [idLen]byte, bool) {
 	if v.Type != bsontype.DBPointer {
-		return "", primitive.ObjectID{}, false
+		return "", [idLen]byte{}, false
 	}
 	ns, pointer, _, ok := ReadDBPointer(v.Data)
 	if !ok {
-		return "", primitive.ObjectID{}, false
+		return "", [idLen]byte{}, false
 	}
 	return ns, pointer, true
 }
@@ -813,28 +820,28 @@ func (v Value) Int64OK() (int64, bool) {
 
 // Decimal128 returns the decimal the Value represents. It panics if the value is a BSON type other than
 // decimal.
-func (v Value) Decimal128() primitive.Decimal128 {
+func (v Value) Decimal128() (uint64, uint64) {
 	if v.Type != bsontype.Decimal128 {
 		panic(ElementTypeError{"bsoncore.Value.Decimal128", v.Type})
 	}
-	d128, _, ok := ReadDecimal128(v.Data)
+	h, l, _, ok := ReadDecimal128(v.Data)
 	if !ok {
 		panic(NewInsufficientBytesError(v.Data, v.Data))
 	}
-	return d128
+	return h, l
 }
 
 // Decimal128OK is the same as Decimal128, except that it returns a boolean
 // instead of panicking.
-func (v Value) Decimal128OK() (primitive.Decimal128, bool) {
+func (v Value) Decimal128OK() (uint64, uint64, bool) {
 	if v.Type != bsontype.Decimal128 {
-		return primitive.Decimal128{}, false
+		return 0, 0, false
 	}
-	d128, _, ok := ReadDecimal128(v.Data)
+	h, l, _, ok := ReadDecimal128(v.Data)
 	if !ok {
-		return primitive.Decimal128{}, false
+		return 0, 0, false
 	}
-	return d128, true
+	return h, l, true
 }
 
 var hexChars = "0123456789abcdef"

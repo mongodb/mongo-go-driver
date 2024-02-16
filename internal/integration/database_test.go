@@ -14,9 +14,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -32,7 +30,7 @@ const (
 )
 
 var (
-	interfaceAsMapRegistry = func() *bsoncodec.Registry {
+	interfaceAsMapRegistry = func() *bson.Registry {
 		reg := bson.NewRegistry()
 		reg.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.M{}))
 		return reg
@@ -309,7 +307,7 @@ func TestDatabase(t *testing.T) {
 			}
 			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.6") >= 0 {
 				uuidSubtype, uuidData := cursor.Current.Lookup("info", "uuid").Binary()
-				expectedSpec.UUID = &primitive.Binary{Subtype: uuidSubtype, Data: uuidData}
+				expectedSpec.UUID = &bson.Binary{Subtype: uuidSubtype, Data: uuidData}
 			}
 			if mtest.CompareServerVersions(mtest.ServerVersion(), "3.4") >= 0 {
 				keysDoc := bsoncore.NewDocumentBuilder().

@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -41,7 +40,7 @@ func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptions, error) {
 			}
 			dko.SetKeyAltNames(keyAltNames)
 		case "keyMaterial":
-			bin := primitive.Binary{}
+			bin := bson.Binary{}
 			if err := val.Unmarshal(&bin); err != nil {
 				return nil, fmt.Errorf("error unmarshaling 'keyMaterial': %v", err)
 			}
@@ -61,7 +60,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 	var keyAltName string
 
 	elems, err := operation.Arguments.Elements()
@@ -75,7 +74,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		case "keyAltName":
 			keyAltName = val.StringValue()
 		default:
@@ -145,7 +144,7 @@ func executeDeleteKey(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -158,7 +157,7 @@ func executeDeleteKey(ctx context.Context, operation *operation) (*operationResu
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		default:
 			return nil, fmt.Errorf("unrecognized DeleteKey arg: %q", key)
 		}
@@ -216,7 +215,7 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -229,7 +228,7 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		default:
 			return nil, fmt.Errorf("unrecognized GetKey arg: %q", key)
 		}
@@ -269,7 +268,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 	var keyAltName string
 
 	elems, err := operation.Arguments.Elements()
@@ -283,7 +282,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		case "keyAltName":
 			keyAltName = val.StringValue()
 		default:

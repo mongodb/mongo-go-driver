@@ -9,7 +9,6 @@ package bson
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
@@ -203,7 +202,7 @@ func (mi *myInt64) UnmarshalBSON(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
-	i, err := bsonrw.NewBSONValueReader(bsontype.Int64, bytes).ReadInt64()
+	i, err := NewBSONValueReader(bsontype.Int64, bytes).ReadInt64()
 	if err != nil {
 		return err
 	}
@@ -229,7 +228,7 @@ func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
-	b, _, err := bsonrw.NewBSONValueReader(bsontype.Binary, bytes).ReadBinary()
+	b, _, err := NewBSONValueReader(bsontype.Binary, bytes).ReadBinary()
 	if err != nil {
 		return err
 	}
@@ -243,7 +242,7 @@ func (ms *myString) UnmarshalBSON(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
-	s, err := bsonrw.NewBSONValueReader(bsontype.String, bytes).ReadString()
+	s, err := NewBSONValueReader(bsontype.String, bytes).ReadString()
 	if err != nil {
 		return err
 	}

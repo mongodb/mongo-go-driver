@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -90,7 +90,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 			opts.SetStartAfter(val.Document())
 		case "startAtOperationTime":
 			t, i := val.Timestamp()
-			opts.SetStartAtOperationTime(&primitive.Timestamp{T: t, I: i})
+			opts.SetStartAtOperationTime(&bson.Timestamp{T: t, I: i})
 		default:
 			return nil, fmt.Errorf("unrecognized createChangeStream option %q", key)
 		}

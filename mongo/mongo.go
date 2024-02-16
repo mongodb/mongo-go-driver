@@ -22,10 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Dialer is used to make network connections.
@@ -57,14 +54,14 @@ func (me MarshalError) Error() string {
 type Pipeline []bson.D
 
 // bvwPool is a pool of BSON value writers. BSON value writers
-var bvwPool = bsonrw.NewBSONValueWriterPool()
+var bvwPool = bson.NewBSONValueWriterPool()
 
 // getEncoder takes a writer, BSON options, and a BSON registry and returns a properly configured
 // bson.Encoder that writes to the given writer.
 func getEncoder(
 	w io.Writer,
 	opts *options.BSONOptions,
-	reg *bsoncodec.Registry,
+	reg *bson.Registry,
 ) (*bson.Encoder, error) {
 	vw := bvwPool.Get(w)
 	enc := bson.NewEncoder(vw)
@@ -105,7 +102,7 @@ func getEncoder(
 
 // newEncoderFn will return a function for constructing an encoder based on the
 // provided codec options.
-func newEncoderFn(opts *options.BSONOptions, registry *bsoncodec.Registry) codecutil.EncoderFn {
+func newEncoderFn(opts *options.BSONOptions, registry *bson.Registry) codecutil.EncoderFn {
 	return func(w io.Writer) (*bson.Encoder, error) {
 		return getEncoder(w, opts, registry)
 	}
@@ -119,7 +116,7 @@ func newEncoderFn(opts *options.BSONOptions, registry *bsoncodec.Registry) codec
 func marshal(
 	val interface{},
 	bsonOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 ) (bsoncore.Document, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
@@ -148,16 +145,16 @@ func marshal(
 
 // ensureID inserts the given ObjectID as an element named "_id" at the
 // beginning of the given BSON document if there is not an "_id" already.
-// If the given ObjectID is primitive.NilObjectID, a new object ID will be
+// If the given ObjectID is bson.NilObjectID, a new object ID will be
 // generated with time.Now().
 //
 // If there is already an element named "_id", the document is not modified. It
 // returns the resulting document and the decoded Go value of the "_id" element.
 func ensureID(
 	doc bsoncore.Document,
-	oid primitive.ObjectID,
+	oid bson.ObjectID,
 	bsonOpts *options.BSONOptions,
-	reg *bsoncodec.Registry,
+	reg *bson.Registry,
 ) (bsoncore.Document, interface{}, error) {
 	if reg == nil {
 		reg = bson.DefaultRegistry
@@ -190,7 +187,7 @@ func ensureID(
 	doc = make(bsoncore.Document, 0, len(olddoc)+extraSpace)
 	_, doc = bsoncore.ReserveLength(doc)
 	if oid.IsZero() {
-		oid = primitive.NewObjectID()
+		oid = bson.NewObjectID()
 	}
 	doc = bsoncore.AppendObjectIDElement(doc, "_id", oid)
 
@@ -225,7 +222,7 @@ func ensureNoDollarKey(doc bsoncore.Document) error {
 func marshalAggregatePipeline(
 	pipeline interface{},
 	bsonOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 ) (bsoncore.Document, bool, error) {
 	switch t := pipeline.(type) {
 	case bson.ValueMarshaler:
@@ -313,7 +310,7 @@ func marshalAggregatePipeline(
 func marshalUpdateValue(
 	update interface{},
 	bsonOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 	dollarKeysAllowed bool,
 ) (bsoncore.Value, error) {
 	documentCheckerFunc := ensureDollarKey
@@ -326,7 +323,7 @@ func marshalUpdateValue(
 	switch t := update.(type) {
 	case nil:
 		return u, ErrNilDocument
-	case primitive.D:
+	case bson.D:
 		u.Type = bsontype.EmbeddedDocument
 		u.Data, err = marshal(update, bsonOpts, registry)
 		if err != nil {
@@ -401,7 +398,7 @@ func marshalUpdateValue(
 func marshalValue(
 	val interface{},
 	bsonOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 ) (bsoncore.Value, error) {
 	return codecutil.MarshalValue(val, newEncoderFn(bsonOpts, registry))
 }
@@ -410,7 +407,7 @@ func marshalValue(
 func countDocumentsAggregatePipeline(
 	filter interface{},
 	encOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 	opts *options.CountOptions,
 ) (bsoncore.Document, error) {
 	filterDoc, err := marshal(filter, encOpts, registry)

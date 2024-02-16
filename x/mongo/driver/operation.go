@@ -19,7 +19,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
@@ -99,7 +98,7 @@ type startedInformation struct {
 	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
-	serviceID                *primitive.ObjectID
+	serviceID                *bson.ObjectID
 	serverAddress            address.Address
 }
 
@@ -113,7 +112,7 @@ type finishedInformation struct {
 	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
-	serviceID          *primitive.ObjectID
+	serviceID          *bson.ObjectID
 	serverAddress      address.Address
 	duration           time.Duration
 }
@@ -1610,7 +1609,7 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 	}
 
 	t, i := opTimeElem.Timestamp()
-	_ = sess.AdvanceOperationTime(&primitive.Timestamp{
+	_ = sess.AdvanceOperationTime(&bson.Timestamp{
 		T: t,
 		I: i,
 	})

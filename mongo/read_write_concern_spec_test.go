@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -32,7 +31,7 @@ const (
 
 var (
 	serverDefaultConcern = []byte{5, 0, 0, 0, 0} // server default read concern and write concern is empty document
-	specTestRegistry     = func() *bsoncodec.Registry {
+	specTestRegistry     = func() *bson.Registry {
 		reg := bson.NewRegistry()
 		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 		return reg

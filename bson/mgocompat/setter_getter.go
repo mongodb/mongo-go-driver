@@ -11,8 +11,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 // Setter interface: a value implementing the bson.Setter interface will receive the BSON
@@ -50,33 +48,33 @@ type Getter interface {
 }
 
 // SetterDecodeValue is the ValueDecoderFunc for Setter types.
-func SetterDecodeValue(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func SetterDecodeValue(_ bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tSetter) && !reflect.PtrTo(val.Type()).Implements(tSetter)) {
-		return bsoncodec.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
+		return bson.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 	}
 
 	if val.Kind() == reflect.Ptr && val.IsNil() {
 		if !val.CanSet() {
-			return bsoncodec.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
+			return bson.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 		}
 		val.Set(reflect.New(val.Type().Elem()))
 	}
 
 	if !val.Type().Implements(tSetter) {
 		if !val.CanAddr() {
-			return bsoncodec.ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
+			return bson.ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 		}
 		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
-	t, src, err := bsonrw.Copier{}.CopyValueToBytes(vr)
+	t, src, err := bson.Copier{}.CopyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
 
 	m, ok := val.Interface().(Setter)
 	if !ok {
-		return bsoncodec.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
+		return bson.ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 	}
 	if err := m.SetBSON(bson.RawValue{Type: t, Value: src}); err != nil {
 		if !errors.Is(err, ErrSetZero) {
@@ -88,11 +86,11 @@ func SetterDecodeValue(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val ref
 }
 
 // GetterEncodeValue is the ValueEncoderFunc for Getter types.
-func GetterEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func GetterEncodeValue(ec bson.EncodeContext, vw bson.ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Getter
 	switch {
 	case !val.IsValid():
-		return bsoncodec.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
+		return bson.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
 	case val.Type().Implements(tGetter):
 		// If Getter is implemented on a concrete type, make sure that val isn't a nil pointer
 		if isImplementationNil(val, tGetter) {
@@ -101,7 +99,7 @@ func GetterEncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val re
 	case reflect.PtrTo(val.Type()).Implements(tGetter) && val.CanAddr():
 		val = val.Addr()
 	default:
-		return bsoncodec.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
+		return bson.ValueEncoderError{Name: "GetterEncodeValue", Types: []reflect.Type{tGetter}, Received: val}
 	}
 
 	m, ok := val.Interface().(Getter)

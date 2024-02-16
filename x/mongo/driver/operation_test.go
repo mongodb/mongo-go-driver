@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/handshake"
@@ -385,7 +385,7 @@ func TestOperation(t *testing.T) {
 		Operation{}.updateClusterTimes(bsoncore.BuildDocumentFromElements(nil)) // should do nothing
 	})
 	t.Run("updateOperationTime", func(t *testing.T) {
-		want := primitive.Timestamp{T: 1234, I: 4567}
+		want := bson.Timestamp{T: 1234, I: 4567}
 
 		sessPool := session.NewPool(nil)
 		id, err := uuid.New()

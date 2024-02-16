@@ -14,7 +14,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 )
 
@@ -391,7 +390,7 @@ func getNextPoolEvent(events []*event.PoolEvent, expectedType string) (*event.Po
 	return evt, events[1:], nil
 }
 
-func verifyServiceID(expectServiceID bool, serviceID *primitive.ObjectID) error {
+func verifyServiceID(expectServiceID bool, serviceID *bson.ObjectID) error {
 	if eventHasID := serviceID != nil; expectServiceID != eventHasID {
 		return fmt.Errorf("expected event to have server ID: %v, event has server ID %v", expectServiceID, serviceID)
 	}

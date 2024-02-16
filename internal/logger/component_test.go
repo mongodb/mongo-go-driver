@@ -9,7 +9,7 @@ package logger
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -26,7 +26,7 @@ func TestSerializeCommand(t *testing.T) {
 	t.Parallel()
 
 	serverConnectionID := int64(100)
-	serviceID := primitive.NewObjectID()
+	serviceID := bson.NewObjectID()
 
 	tests := []struct {
 		name               string
@@ -133,7 +133,7 @@ func TestSerializeConnection(t *testing.T) {
 func TestSerializeServer(t *testing.T) {
 	t.Parallel()
 
-	topologyID := primitive.NewObjectID()
+	topologyID := bson.NewObjectID()
 	serverConnectionID := int64(100)
 
 	tests := []struct {
@@ -148,7 +148,7 @@ func TestSerializeServer(t *testing.T) {
 				KeyDriverConnectionID, int64(0),
 				KeyMessage, "",
 				KeyServerHost, "",
-				KeyTopologyID, primitive.ObjectID{}.Hex(),
+				KeyTopologyID, bson.ObjectID{}.Hex(),
 			},
 		},
 		{
@@ -188,7 +188,7 @@ func TestSerializeServer(t *testing.T) {
 func TestSerializeTopology(t *testing.T) {
 	t.Parallel()
 
-	topologyID := primitive.NewObjectID()
+	topologyID := bson.NewObjectID()
 
 	tests := []struct {
 		name               string
@@ -199,7 +199,7 @@ func TestSerializeTopology(t *testing.T) {
 		{
 			name: "empty",
 			want: KeyValues{
-				KeyTopologyID, primitive.ObjectID{}.Hex(),
+				KeyTopologyID, bson.ObjectID{}.Hex(),
 			},
 		},
 		{

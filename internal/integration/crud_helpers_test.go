@@ -17,7 +17,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -1218,7 +1217,7 @@ func executeEstimatedDocumentCount(mt *mtest.T, sess mongo.Session, args bson.Ra
 func executeGridFSDownload(mt *mtest.T, bucket *mongo.GridFSBucket, args bson.Raw) (int64, error) {
 	mt.Helper()
 
-	var fileID primitive.ObjectID
+	var fileID bson.ObjectID
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()

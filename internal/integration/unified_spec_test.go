@@ -20,8 +20,6 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -80,7 +78,7 @@ type testData struct {
 }
 
 // custom decoder for testData type
-func decodeTestData(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
 	switch vr.Type() {
 	case bsontype.Array:
 		docsVal := val.FieldByName("Documents")
@@ -184,10 +182,10 @@ var directories = []string{
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
-var specTestRegistry = func() *bsoncodec.Registry {
+var specTestRegistry = func() *bson.Registry {
 	reg := bson.NewRegistry()
 	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-	reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData))
+	reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bson.ValueDecoderFunc(decodeTestData))
 	return reg
 }()
 

@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -81,11 +79,11 @@ type ChangeStream struct {
 	sess            *session.Client
 	client          *Client
 	bsonOpts        *options.BSONOptions
-	registry        *bsoncodec.Registry
+	registry        *bson.Registry
 	streamType      StreamType
 	options         *options.ChangeStreamOptions
 	selector        description.ServerSelector
-	operationTime   *primitive.Timestamp
+	operationTime   *bson.Timestamp
 	wireVersion     *description.VersionRange
 }
 
@@ -94,7 +92,7 @@ type changeStreamConfig struct {
 	readPreference *readpref.ReadPref
 	client         *Client
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 	streamType     StreamType
 	collectionName string
 	databaseName   string

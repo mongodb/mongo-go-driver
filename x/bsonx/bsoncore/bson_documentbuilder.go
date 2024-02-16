@@ -8,7 +8,6 @@ package bsoncore
 
 import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // DocumentBuilder builds a bson document
@@ -72,7 +71,7 @@ func (db *DocumentBuilder) AppendString(key string, str string) *DocumentBuilder
 }
 
 // AppendObjectID will append oid to DocumentBuilder.doc with the given key
-func (db *DocumentBuilder) AppendObjectID(key string, oid primitive.ObjectID) *DocumentBuilder {
+func (db *DocumentBuilder) AppendObjectID(key string, oid [idLen]byte) *DocumentBuilder {
 	db.doc = AppendObjectIDElement(db.doc, key, oid)
 	return db
 }
@@ -115,7 +114,7 @@ func (db *DocumentBuilder) AppendRegex(key, pattern, options string) *DocumentBu
 }
 
 // AppendDBPointer will append ns and oid to using key to db.doc
-func (db *DocumentBuilder) AppendDBPointer(key string, ns string, oid primitive.ObjectID) *DocumentBuilder {
+func (db *DocumentBuilder) AppendDBPointer(key string, ns string, oid [idLen]byte) *DocumentBuilder {
 	db.doc = AppendDBPointerElement(db.doc, key, ns, oid)
 	return db
 }
@@ -151,8 +150,8 @@ func (db *DocumentBuilder) AppendInt64(key string, i64 int64) *DocumentBuilder {
 }
 
 // AppendDecimal128 will append d128 to db.doc using provided key
-func (db *DocumentBuilder) AppendDecimal128(key string, d128 primitive.Decimal128) *DocumentBuilder {
-	db.doc = AppendDecimal128Element(db.doc, key, d128)
+func (db *DocumentBuilder) AppendDecimal128(key string, high, low uint64) *DocumentBuilder {
+	db.doc = AppendDecimal128Element(db.doc, key, high, low)
 	return db
 }
 

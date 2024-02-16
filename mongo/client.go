@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -62,7 +61,7 @@ type Client struct {
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 	monitor        *event.CommandMonitor
 	serverAPI      *driver.ServerAPIOptions
 	serverMonitor  *event.ServerMonitor

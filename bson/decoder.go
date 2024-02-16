@@ -11,9 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 // ErrDecodeToNil is the error returned when trying to decode to a nil value
@@ -28,11 +25,11 @@ var decPool = sync.Pool{
 	},
 }
 
-// A Decoder reads and decodes BSON documents from a stream. It reads from a bsonrw.ValueReader as
+// A Decoder reads and decodes BSON documents from a stream. It reads from a ValueReader as
 // the source of BSON data.
 type Decoder struct {
-	dc bsoncodec.DecodeContext
-	vr bsonrw.ValueReader
+	dc DecodeContext
+	vr ValueReader
 
 	// We persist defaultDocumentM and defaultDocumentD on the Decoder to prevent overwriting from
 	// (*Decoder).SetContext.
@@ -47,9 +44,9 @@ type Decoder struct {
 }
 
 // NewDecoder returns a new decoder that uses the DefaultRegistry to read from vr.
-func NewDecoder(vr bsonrw.ValueReader) *Decoder {
+func NewDecoder(vr ValueReader) *Decoder {
 	return &Decoder{
-		dc: bsoncodec.DecodeContext{Registry: DefaultRegistry},
+		dc: DecodeContext{Registry: DefaultRegistry},
 		vr: vr,
 	}
 }
@@ -61,7 +58,7 @@ func NewDecoder(vr bsonrw.ValueReader) *Decoder {
 func (d *Decoder) Decode(val interface{}) error {
 	if unmarshaler, ok := val.(Unmarshaler); ok {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
-		buf, err := bsonrw.Copier{}.CopyDocumentToBytes(d.vr)
+		buf, err := Copier{}.CopyDocumentToBytes(d.vr)
 		if err != nil {
 			return err
 		}
@@ -114,12 +111,12 @@ func (d *Decoder) Decode(val interface{}) error {
 
 // Reset will reset the state of the decoder, using the same *DecodeContext used in
 // the original construction but using vr for reading.
-func (d *Decoder) Reset(vr bsonrw.ValueReader) {
+func (d *Decoder) Reset(vr ValueReader) {
 	d.vr = vr
 }
 
 // SetRegistry replaces the current registry of the decoder with r.
-func (d *Decoder) SetRegistry(r *bsoncodec.Registry) {
+func (d *Decoder) SetRegistry(r *Registry) {
 	d.dc.Registry = r
 }
 
