@@ -56,16 +56,6 @@ const (
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
 
-func containsSubstring(possibleSubstrings []string, str string) bool {
-	for _, possibleSubstring := range possibleSubstrings {
-		if strings.Contains(str, possibleSubstring) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func TestClientSideEncryptionProse(t *testing.T) {
 	t.Parallel()
 

@@ -12,13 +12,11 @@ import (
 )
 
 type withoutMaxTime struct{}
-type withUnlimitedRetries struct{}
 
 // WithoutMaxTime returns a new context with a "withoutMaxTime" value that
-// is used to inform operation construction to not add a maxTimeMS to a wire
+// is used to inform operation construction to not include "maxTimeMS" in a wire
 // message, regardless of a context deadline. This is specifically used for
-// monitoring where non-awaitable hello commands are put on the wire, or to
-// indicate that the user has set a "0" (i.e. infinite) CSOT.
+// non-awaitable hello commands.
 func WithoutMaxTime(ctx context.Context) context.Context {
 	return context.WithValue(ctx, withoutMaxTime{}, true)
 }
@@ -29,49 +27,61 @@ func IsWithoutMaxTime(ctx context.Context) bool {
 	return ctx.Value(withoutMaxTime{}) != nil
 }
 
-func WithUnlimitedRetries(ctx context.Context) context.Context {
-	return context.WithValue(ctx, withUnlimitedRetries{}, true)
+type clientLevel struct{}
+
+func AsClientLevel(parent context.Context) context.Context {
+	return context.WithValue(parent, clientLevel{}, true)
 }
 
-func IsWithUnlimitedRetries(ctx context.Context) bool {
-	return ctx.Value(withUnlimitedRetries{}) != nil
-}
-
-// WithTimeout will apply the given timeout to the parent context, if there is
-// not already a deadline on the context. Per the CSOT specifications, if the
-// parent context already has a deadline it is an operation-level timeout which
-// takes precedence over the client-level timeout.
-//
-// This helper function is meant to be used to timeout functions that require
-// multiple trips to the server but must share one timeout. See gridfs methods
-// for specific use cases.
-func WithTimeout(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
-	cancel := func() {}
-
-	_, ok := parent.Deadline()
-
-	// If there already exists a deadline or, if not and the timeout is nil, then
-	// do nothing.
-	if ok || timeout == nil || IsWithUnlimitedRetries(parent) {
-		return parent, cancel
+func IsClientLevel(ctx context.Context) bool {
+	val := ctx.Value(clientLevel{})
+	if val == nil {
+		return false
 	}
 
-	// If the timeout is zero, or zero has already been explicitly set as the
-	// deadline on the context, then signal to not use maxTimeMS on WMs.
-	if timeout != nil && *timeout == 0 {
-		parent = WithUnlimitedRetries(parent)
-
-		return parent, cancel
-	}
-
-	// If the timeout is set, then apply it to the parent.
-	return context.WithTimeout(parent, *timeout)
+	return val.(bool)
 }
 
+// IsTimeoutContext checks if the provided context has been assigned a deadline
+// or has unlimited retries.
 func IsTimeoutContext(ctx context.Context) bool {
 	_, ok := ctx.Deadline()
 
-	return ok || IsWithUnlimitedRetries(ctx)
+	return ok || IsClientLevel(ctx)
+}
+
+// WithTimeout will set the given timeout on the context, if no deadline has
+// already been set.
+//
+// This function assumes that the timeout field is static, given that the
+// timeout should be sourced from the client. Therefore, once a timeout function
+// parameter has  been applied to the context, it will remain for the lifetime
+// of the context.
+func WithTimeout(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
+	cancel := func() {}
+
+	// In the following conditions, do nothing:
+	//	1. The parent already has a deadline
+	//	2. The parent does not have a deadline, but a client-level timeout has
+	//		 been applied.
+	//	3. The parent does not have a deadline, there is not client-level timeout,
+	//     and the timeout parameter DNE.
+	if IsTimeoutContext(parent) || timeout == nil {
+		return parent, cancel
+	}
+
+	// If a client-level timeout has not been applied, then apply it.
+	parent = AsClientLevel(parent)
+
+	// If the parent does not have a deadline and the timeout is zero, then
+	// set the zero value.
+	if timeout != nil && *timeout == 0 {
+		return parent, cancel
+	}
+
+	// If the parent does not have a dealine and the timeout is non-zero, then
+	// apply the timeout.
+	return context.WithTimeout(parent, *timeout)
 }
 
 // WithServerSelectionTimeout creates a context with a timeout that is the

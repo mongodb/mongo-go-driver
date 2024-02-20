@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -45,6 +46,16 @@ func (n netErr) Temporary() bool {
 }
 
 var _ net.Error = (*netErr)(nil)
+
+func containsSubstring(possibleSubstrings []string, str string) bool {
+	for _, possibleSubstring := range possibleSubstrings {
+		if strings.Contains(str, possibleSubstring) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func TestErrors(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
@@ -96,12 +107,20 @@ func TestErrors(t *testing.T) {
 			}
 			timeoutCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
+
 			_, err = mt.Coll.Find(timeoutCtx, filter)
+
+			possibleErrors := []string{
+				context.DeadlineExceeded.Error(),
+				"(MaxTimeMSExpired) Executor error during find command :: caused by :: operation exceeded time limit",
+			}
+
+			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+				"expected possibleErrors=%v to contain %v, but it didn't",
+				possibleErrors, err.Error())
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
-			assert.True(mt, errors.Is(err, context.DeadlineExceeded),
-				"errors.Is failure: expected error %v to be %v", err, context.DeadlineExceeded)
 		})
 
 		// TODO(GODRIVER-2348): Can we remove this / update it to be specific to

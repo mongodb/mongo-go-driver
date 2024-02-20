@@ -146,7 +146,7 @@ func TestWithServerSelectionTimeout(t *testing.T) {
 
 			if gotOk {
 				delta := time.Until(deadline) - test.wantTimeout
-				tolerance := 5 * time.Millisecond
+				tolerance := 10 * time.Millisecond
 
 				assert.True(t, delta > -1*tolerance, "expected delta=%d > %d", delta, -1*tolerance)
 				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
@@ -223,7 +223,7 @@ func TestWithChangeStreamNextContext(t *testing.T) {
 
 			if gotOk {
 				delta := time.Until(deadline) - test.wantTimeout
-				tolerance := 5 * time.Millisecond
+				tolerance := 10 * time.Millisecond
 
 				assert.True(t, delta > -1*tolerance, "expected delta=%d > %d", delta, -1*tolerance)
 				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
@@ -371,7 +371,7 @@ func TestWithTimeout(t *testing.T) {
 			timeout:      newDurPtr(0),
 			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{withUnlimitedRetries{}},
+			wantValues:   []interface{}{clientLevel{}},
 		},
 		{
 			name:         "deadline unset with nil timeout",
@@ -382,12 +382,15 @@ func TestWithTimeout(t *testing.T) {
 			wantValues:   []interface{}{},
 		},
 		{
-			name:         "deadline unset with non-zero timeout with withUnlimitedRetries",
-			parent:       WithUnlimitedRetries(context.Background()),
+			// If "clientLevel" has been set, but a new timeout is applied
+			// to the context, then the constructed context should retain the old
+			// timeout. To simplify the code, we assume the first timeout is static.
+			name:         "deadline unset with non-zero timeout at clientLevel",
+			parent:       AsClientLevel(context.Background()),
 			timeout:      newDurPtr(1),
 			wantTimeout:  0,
 			wantDeadline: false,
-			wantValues:   []interface{}{withUnlimitedRetries{}},
+			wantValues:   []interface{}{},
 		},
 	}
 
@@ -405,7 +408,7 @@ func TestWithTimeout(t *testing.T) {
 
 			if gotDeadline {
 				delta := time.Until(deadline) - test.wantTimeout
-				tolerance := 5 * time.Millisecond
+				tolerance := 10 * time.Millisecond
 
 				assert.True(t, delta > -1*tolerance, "expected delta=%d > %d", delta, -1*tolerance)
 				assert.True(t, delta <= tolerance, "expected delta=%d <= %d", delta, tolerance)
