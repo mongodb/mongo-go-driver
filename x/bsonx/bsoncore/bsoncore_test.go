@@ -805,13 +805,13 @@ func TestRead(t *testing.T) {
 			"ReadDecimal128/not enough bytes (low)",
 			ReadDecimal128,
 			[]byte{},
-			[]interface{}{0, 0, []byte{}, false},
+			[]interface{}{uint64(0), uint64(0), []byte{}, false},
 		},
 		{
 			"ReadDecimal128/not enough bytes (high)",
 			ReadDecimal128,
 			[]byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00},
-			[]interface{}{0, 0, []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}, false},
+			[]interface{}{uint64(0), uint64(0), []byte{0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00}, false},
 		},
 		{
 			"ReadDecimal128/success",
@@ -840,7 +840,7 @@ func TestRead(t *testing.T) {
 			for idx := range results {
 				got := results[idx].Interface()
 				want := tc.expected[idx]
-				if !cmp.Equal(got, want, cmp.Comparer(compareDecimal128)) {
+				if !cmp.Equal(got, want) {
 					t.Errorf("Result %d does not match. got %v; want %v", idx, got, want)
 				}
 			}
@@ -953,16 +953,4 @@ func TestInvalidBytes(t *testing.T) {
 		assert.False(t, ok, "expected not ok response for invalid length read")
 		assert.Equal(t, 4, len(src), "expected src to contain the size parameter still")
 	})
-}
-
-func compareDecimal128(d1H, d1L, d2H, d2L uint64) bool {
-	if d1H != d2H {
-		return false
-	}
-
-	if d1L != d2L {
-		return false
-	}
-
-	return true
 }

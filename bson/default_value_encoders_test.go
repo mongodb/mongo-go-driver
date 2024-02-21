@@ -235,7 +235,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					map[string]int{"foo": 1},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{},
 					writeDocument,
 					fmt.Errorf("no encoder found for int"),
@@ -259,7 +259,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty map/success",
 					map[string]interface{}{},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{},
 					writeDocumentEnd,
 					nil,
@@ -315,7 +315,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[1]int{1},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -393,7 +393,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[]int{1},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -433,7 +433,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty slice/success",
 					[]interface{}{},
-					&EncodeContext{Registry: NewRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{},
 					writeArrayEnd,
 					nil,
@@ -1832,7 +1832,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("EmptyInterfaceEncodeValue/nil", func(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		llvrw := new(valueReaderWriter)
-		err := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: NewRegistryBuilder().Build()}, llvrw, val)
+		err := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
 		noerr(t, err)
 		if llvrw.invoked != writeNull {
 			t.Errorf("Incorrect method called. got %v; want %v", llvrw.invoked, writeNull)
@@ -1843,7 +1843,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		val.Set(reflect.ValueOf(int64(1234567890)))
 		llvrw := new(valueReaderWriter)
-		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: NewRegistryBuilder().Build()}, llvrw, val)
+		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
 		want := ErrNoEncoder{Type: tInt64}
 		if !compareErrors(got, want) {
 			t.Errorf("Did not receive expected error. got %v; want %v", got, want)

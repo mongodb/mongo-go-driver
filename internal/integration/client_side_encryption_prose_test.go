@@ -25,9 +25,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
@@ -166,7 +164,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			`UpAuNnkUhnIXM3PjrA==`
 
 		empty = [16]byte{}
-		keyid := primitive.Binary{Subtype: 0x04, Data: empty[:]}
+		keyid := bson.Binary{Subtype: 0x04, Data: empty[:]}
 
 		encOpts := options.Encrypt().SetAlgorithm(deterministicAlgorithm).SetKeyID(keyid)
 		testVal := bson.RawValue{
@@ -176,7 +174,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		actual, err := cse.clientEnc.Encrypt(context.Background(), testVal, encOpts)
 		assert.Nil(mt, err, "error encrypting data: %v", err)
 
-		expected := primitive.Binary{Subtype: 0x06}
+		expected := bson.Binary{Subtype: 0x06}
 		expected.Data, _ = base64.StdEncoding.DecodeString(b642)
 
 		assert.Equal(t, actual, expected, "expected: %v, got: %v", actual, expected)
@@ -367,7 +365,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				_, err := cpt.keyVaultColl.InsertOne(context.Background(), key)
 				assert.Nil(mt, err, "InsertOne error for data key: %v", err)
 				subtype, data := key.Lookup("_id").Binary()
-				dataKeyID := primitive.Binary{Subtype: subtype, Data: data}
+				dataKeyID := bson.Binary{Subtype: subtype, Data: data}
 
 				doc := bson.D{{"encrypted", "test"}}
 				_, insertErr := cpt.cseClient.Database("db").Collection("coll").InsertOne(context.Background(), doc)
@@ -656,7 +654,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 						keyIDBytes, err := base64.StdEncoding.DecodeString(keyID)
 						assert.Nil(mt, err, "base64 DecodeString error: %v", err)
-						eo.SetKeyID(primitive.Binary{Subtype: 4, Data: keyIDBytes})
+						eo.SetKeyID(bson.Binary{Subtype: 4, Data: keyIDBytes})
 					case "altname":
 						eo.SetKeyAltName(kms) // alt name for a key is the same as the KMS name
 					default:
@@ -739,10 +737,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					// if allowed is true, decrypt both values with clientEnc and validate equality
 					if allowed {
 						sub, data := expectedVal.Binary()
-						expectedDecrypted, err := cpt.clientEnc.Decrypt(context.Background(), primitive.Binary{Subtype: sub, Data: data})
+						expectedDecrypted, err := cpt.clientEnc.Decrypt(context.Background(), bson.Binary{Subtype: sub, Data: data})
 						assert.Nil(mt, err, "Decrypt error: %v", err)
 						sub, data = foundVal.Binary()
-						actualDecrypted, err := cpt.clientEnc.Decrypt(context.Background(), primitive.Binary{Subtype: sub, Data: data})
+						actualDecrypted, err := cpt.clientEnc.Decrypt(context.Background(), bson.Binary{Subtype: sub, Data: data})
 						assert.Nil(mt, err, "Decrypt error: %v", err)
 
 						assert.True(mt, expectedDecrypted.Equal(actualDecrypted),
@@ -1671,10 +1669,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		// Test Setup ... begin
 		encryptedFields := readJSONFile(mt, "encrypted-fields.json")
 		key1Document := readJSONFile(mt, "key1-document.json")
-		var key1ID primitive.Binary
+		var key1ID bson.Binary
 		{
 			subtype, data := key1Document.Lookup("_id").Binary()
-			key1ID = primitive.Binary{Subtype: subtype, Data: data}
+			key1ID = bson.Binary{Subtype: subtype, Data: data}
 		}
 
 		testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
@@ -1862,7 +1860,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		var cse *cseProseTest
 
-		var initialize = func() primitive.Binary {
+		var initialize = func() bson.Binary {
 			// Create a ClientEncryption object (referred to as client_encryption) with client set as the keyVaultClient.
 			// Using client, drop the collection keyvault.datakeys.
 			cse = setup(mt, nil, defaultKvClientOptions, options.ClientEncryption().
@@ -1957,7 +1955,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		mt.Run("case 2: addKeyAltName()", func(t *mtest.T) {
 			defKeyID := initialize()
 
-			var someNewKeyID primitive.Binary
+			var someNewKeyID bson.Binary
 			// Use client_encryption to create a new local data key and assert the operation does not fail.
 			var err error
 			someNewKeyID, err = cse.clientEnc.CreateDataKey(context.Background(), "local")
@@ -2053,7 +2051,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						}
 
 						// Call ``clientEncryption1.createDataKey``.
-						var keyID primitive.Binary
+						var keyID bson.Binary
 						{
 							dkOpts := options.DataKey()
 							if val, ok := dataKeyMap[srcProvider]; ok {
@@ -2064,7 +2062,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						}
 
 						// Call ``clientEncryption1.encrypt`` with the value "test".
-						var ciphertext primitive.Binary
+						var ciphertext bson.Binary
 						{
 							t, value, err := bson.MarshalValue("test")
 							assert.Nil(mt, err, "error in MarshalValue: %v", err)
@@ -2153,7 +2151,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		kmsProvidersMap := map[string]map[string]interface{}{
 			"azure": {},
 		}
-		vw := bsonrw.NewValueWriter(buf)
+		vw := bson.NewValueWriter(buf)
 		err := bson.NewEncoder(vw).Encode(kmsProvidersMap)
 		assert.Nil(mt, err, "error in Encode: %v", err)
 
@@ -2430,7 +2428,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					)
 					assert.Nil(mt, err, "CreateCollection error: %v", err)
 
-					keyid := ef["fields"].(bson.A)[0].(bson.M)["keyId"].(primitive.Binary)
+					keyid := ef["fields"].(bson.A)[0].(bson.M)["keyId"].(bson.Binary)
 					rawValueType, rawValueData, err := bson.MarshalValue("123-45-6789")
 					assert.Nil(mt, err, "MarshalValue error: %v", err)
 					rawValue := bson.RawValue{Type: rawValueType, Value: rawValueData}
@@ -2467,16 +2465,25 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		precision := int32(2)
 
-		d128_0, err := primitive.ParseDecimal128("0")
+		d128_0, err := bson.ParseDecimal128("0")
 		assert.Nil(mt, err)
-		d128_6, err := primitive.ParseDecimal128("6")
+		d128_0h, d128_0l := d128_0.GetBytes()
+
+		d128_6, err := bson.ParseDecimal128("6")
 		assert.Nil(mt, err)
-		d128_30, err := primitive.ParseDecimal128("30")
+		d128_6h, d128_6l := d128_6.GetBytes()
+
+		d128_30, err := bson.ParseDecimal128("30")
 		assert.Nil(mt, err)
-		d128_200, err := primitive.ParseDecimal128("200")
+		d128_30h, d128_30l := d128_30.GetBytes()
+
+		d128_200, err := bson.ParseDecimal128("200")
 		assert.Nil(mt, err)
-		d128_201, err := primitive.ParseDecimal128("201")
+		d128_200h, d128_200l := d128_200.GetBytes()
+
+		d128_201, err := bson.ParseDecimal128("201")
 		assert.Nil(mt, err)
+		d128_201h, d128_201l := d128_201.GetBytes()
 
 		tests := []testcase{
 			{
@@ -2486,27 +2493,27 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				rangeOpts: options.RangeOptions{
 					Sparsity: 1,
 				},
-				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
-				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
-				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30)},
-				twoHundred:    bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
-				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201)},
+				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
+				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
+				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
+				twoHundred:    bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200h, d128_200l)},
+				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201h, d128_201l)},
 			},
 			{
 				typeStr:  "DecimalPrecision",
 				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
 				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
-					Max:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
+					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
+					Max:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200h, d128_200l)},
 					Sparsity:  1,
 					Precision: &precision,
 				},
-				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
-				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
-				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30)},
-				twoHundred:    bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
-				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201)},
+				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
+				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
+				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
+				twoHundred:    bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200h, d128_200l)},
+				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201h, d128_201l)},
 			},
 			{
 				typeStr:  "DoubleNoPrecision",
@@ -2593,10 +2600,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				// Test Setup ... begin
 				encryptedFields := readJSONFile(mt, fmt.Sprintf("range-encryptedFields-%v.json", test.typeStr))
 				key1Document := readJSONFile(mt, "key1-document.json")
-				var key1ID primitive.Binary
+				var key1ID bson.Binary
 				{
 					subtype, data := key1Document.Lookup("_id").Binary()
-					key1ID = primitive.Binary{Subtype: subtype, Data: data}
+					key1ID = bson.Binary{Subtype: subtype, Data: data}
 				}
 
 				testSetup := func() (*mongo.Client, *mongo.ClientEncryption) {
@@ -3016,7 +3023,7 @@ type deadlockTest struct {
 	clientKeyVaultOpts   *options.ClientOptions
 	clientKeyVaultEvents []startedEvent
 	clientEncryption     *mongo.ClientEncryption
-	ciphertext           primitive.Binary
+	ciphertext           bson.Binary
 }
 
 type startedEvent struct {

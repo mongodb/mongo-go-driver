@@ -25,7 +25,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Uses registry attached to value", func(t *testing.T) {
 			t.Parallel()
 
-			reg := NewRegistry()
+			reg := newTestRegistryBuilder().Build()
 			val := RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "foobar"), r: reg}
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
@@ -63,7 +63,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			reg := NewRegistry()
+			reg := newTestRegistryBuilder().Build()
 			var val RawValue
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
@@ -114,7 +114,7 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			dc := DecodeContext{Registry: NewRegistry()}
+			dc := DecodeContext{Registry: newTestRegistryBuilder().Build()}
 			var val RawValue
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}

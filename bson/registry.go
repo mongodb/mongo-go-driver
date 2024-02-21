@@ -82,9 +82,18 @@ type RegistryBuilder struct {
 //
 // Deprecated: Use NewRegistry instead.
 func NewRegistryBuilder() *RegistryBuilder {
-	return &RegistryBuilder{
-		registry: NewRegistry(),
+	rb := &RegistryBuilder{
+		registry: &Registry{
+			typeEncoders: new(typeEncoderCache),
+			typeDecoders: new(typeDecoderCache),
+			kindEncoders: new(kindEncoderCache),
+			kindDecoders: new(kindDecoderCache),
+		},
 	}
+	DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
+	DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
+	PrimitiveCodecs{}.RegisterPrimitiveCodecs(rb)
+	return rb
 }
 
 // RegisterCodec will register the provided ValueCodec for the provided type.
@@ -251,12 +260,7 @@ type Registry struct {
 
 // NewRegistry creates a new empty Registry.
 func NewRegistry() *Registry {
-	return &Registry{
-		typeEncoders: new(typeEncoderCache),
-		typeDecoders: new(typeDecoderCache),
-		kindEncoders: new(kindEncoderCache),
-		kindDecoders: new(kindDecoderCache),
-	}
+	return NewRegistryBuilder().Build()
 }
 
 // RegisterTypeEncoder registers the provided ValueEncoder for the provided type.

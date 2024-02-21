@@ -822,7 +822,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				{
 					"Lookup Error",
 					map[string]string{},
-					&DecodeContext{Registry: NewRegistryBuilder().Build()},
+					&DecodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{},
 					readDocument,
 					ErrNoDecoder{Type: reflect.TypeOf("")},
@@ -908,7 +908,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				{
 					"Lookup Error",
 					[1]string{},
-					&DecodeContext{Registry: NewRegistryBuilder().Build()},
+					&DecodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{BSONType: bsontype.Array},
 					readArray,
 					ErrNoDecoder{Type: reflect.TypeOf("")},
@@ -1002,7 +1002,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				{
 					"Lookup Error",
 					[]string{},
-					&DecodeContext{Registry: NewRegistryBuilder().Build()},
+					&DecodeContext{Registry: newTestRegistryBuilder().Build()},
 					&valueReaderWriter{BSONType: bsontype.Array},
 					readArray,
 					ErrNoDecoder{Type: reflect.TypeOf("")},
@@ -3308,7 +3308,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 							t.Skip()
 						}
 						val := reflect.New(tEmpty).Elem()
-						dc := DecodeContext{Registry: NewRegistryBuilder().Build()}
+						dc := DecodeContext{Registry: newTestRegistryBuilder().Build()}
 						want := ErrNoTypeMapEntry{Type: tc.bsontype}
 						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
 						if !compareErrors(got, want) {
@@ -3322,7 +3322,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 						}
 						val := reflect.New(tEmpty).Elem()
 						dc := DecodeContext{
-							Registry: NewRegistryBuilder().
+							Registry: newTestRegistryBuilder().
 								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
 								Build(),
 						}
@@ -3340,7 +3340,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 						want := errors.New("DecodeValue failure error")
 						llc := &llCodec{t: t, err: want}
 						dc := DecodeContext{
-							Registry: NewRegistryBuilder().
+							Registry: newTestRegistryBuilder().
 								RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
 								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
 								Build(),
@@ -3355,7 +3355,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 						want := tc.val
 						llc := &llCodec{t: t, decodeval: tc.val}
 						dc := DecodeContext{
-							Registry: NewRegistryBuilder().
+							Registry: newTestRegistryBuilder().
 								RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
 								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
 								Build(),
@@ -3393,7 +3393,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 			llvr := &valueReaderWriter{BSONType: bsontype.Double}
 			want := ErrNoTypeMapEntry{Type: bsontype.Double}
 			val := reflect.New(tEmpty).Elem()
-			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: NewRegistryBuilder().Build()}, llvr, val)
+			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: newTestRegistryBuilder().Build()}, llvr, val)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
@@ -3414,12 +3414,12 @@ func TestDefaultValueDecoders2(t *testing.T) {
 			// registering a custom type map entry for both bsontype.Type(0) anad bsontype.EmbeddedDocument should cause
 			// both top-level and embedded documents to decode to registered type when unmarshalling to interface{}
 
-			topLevelRb := NewRegistryBuilder()
+			topLevelRb := newTestRegistryBuilder()
 			defaultValueEncoders.RegisterDefaultEncoders(topLevelRb)
 			defaultValueDecoders.RegisterDefaultDecoders(topLevelRb)
 			topLevelRb.RegisterTypeMapEntry(bsontype.Type(0), reflect.TypeOf(M{}))
 
-			embeddedRb := NewRegistryBuilder()
+			embeddedRb := newTestRegistryBuilder()
 			defaultValueEncoders.RegisterDefaultEncoders(embeddedRb)
 			defaultValueDecoders.RegisterDefaultDecoders(embeddedRb)
 			embeddedRb.RegisterTypeMapEntry(bsontype.Type(0), reflect.TypeOf(M{}))
@@ -3462,7 +3462,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 			// If a type map entry is registered for bsontype.EmbeddedDocument, the decoder should use ancestor
 			// information if available instead of the registered entry.
 
-			rb := NewRegistryBuilder()
+			rb := newTestRegistryBuilder()
 			defaultValueEncoders.RegisterDefaultEncoders(rb)
 			defaultValueDecoders.RegisterDefaultDecoders(rb)
 			rb.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(M{}))
@@ -3499,7 +3499,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 		emptyInterfaceErrorDecode := func(DecodeContext, ValueReader, reflect.Value) error {
 			return decodeValueError
 		}
-		emptyInterfaceErrorRegistry := NewRegistryBuilder().
+		emptyInterfaceErrorRegistry := newTestRegistryBuilder().
 			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).Build()
 
 		// Set up a document {foo: 10} and an error that would happen if the value were decoded into interface{}
@@ -3552,7 +3552,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 		outerDoc := buildDocument(bsoncore.AppendDocumentElement(nil, "first", inner1Doc))
 
 		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
-		nestedRegistryBuilder := NewRegistryBuilder()
+		nestedRegistryBuilder := newTestRegistryBuilder()
 		defaultValueDecoders.RegisterDefaultDecoders(nestedRegistryBuilder)
 		nestedRegistry := nestedRegistryBuilder.
 			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).
@@ -3641,7 +3641,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				"struct - no decoder found",
 				stringStruct{},
 				NewValueReader(docBytes),
-				NewRegistryBuilder().Build(),
+				newTestRegistryBuilder().Build(),
 				defaultTestStructCodec,
 				stringStructErr,
 			},
@@ -3706,7 +3706,7 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				bsoncore.BuildArrayElement(nil, "boolArray", trueValue),
 			)
 
-			rb := NewRegistryBuilder()
+			rb := newTestRegistryBuilder()
 			defaultValueDecoders.RegisterDefaultDecoders(rb)
 			reg := rb.RegisterTypeMapEntry(bsontype.Boolean, reflect.TypeOf(mybool(true))).Build()
 
@@ -3800,7 +3800,7 @@ func buildDocument(elems []byte) []byte {
 }
 
 func buildDefaultRegistry() *Registry {
-	rb := NewRegistryBuilder()
+	rb := newTestRegistryBuilder()
 	defaultValueEncoders.RegisterDefaultEncoders(rb)
 	defaultValueDecoders.RegisterDefaultDecoders(rb)
 	return rb.Build()

@@ -15,7 +15,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -29,7 +28,7 @@ import (
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
 // Returns a ciphertext encrypted with the data key as test data.
-func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
+func createDataKeyAndEncrypt(mt *mtest.T, keyName string) bson.Binary {
 	mt.Helper()
 
 	kvClientOpts := options.Client().
@@ -499,8 +498,8 @@ func TestFLE2DocsExample(t *testing.T) {
 			"local": {"key": localMasterKey},
 		}
 
-		var key1ID primitive.Binary
-		var key2ID primitive.Binary
+		var key1ID bson.Binary
+		var key2ID bson.Binary
 
 		// Create two data keys.
 		{

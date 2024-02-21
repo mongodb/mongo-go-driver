@@ -16,6 +16,18 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
+// newTestRegistryBuilder creates a new empty Registry.
+func newTestRegistryBuilder() *RegistryBuilder {
+	return &RegistryBuilder{
+		registry: &Registry{
+			typeEncoders: new(typeEncoderCache),
+			typeDecoders: new(typeDecoderCache),
+			kindEncoders: new(kindEncoderCache),
+			kindDecoders: new(kindDecoderCache),
+		},
+	}
+}
+
 func TestRegistryBuilder(t *testing.T) {
 	t.Run("Register", func(t *testing.T) {
 		fc1, fc2, fc3, fc4 := new(fakeCodec), new(fakeCodec), new(fakeCodec), new(fakeCodec)
@@ -34,7 +46,7 @@ func TestRegistryBuilder(t *testing.T) {
 				{i: reflect.TypeOf(t2f).Elem(), ve: fc2},
 				{i: reflect.TypeOf(t4f).Elem(), ve: fc4},
 			}
-			rb := NewRegistryBuilder()
+			rb := newTestRegistryBuilder()
 			for _, ip := range ips {
 				rb.RegisterHookEncoder(ip.i, ip.ve)
 			}
@@ -47,7 +59,7 @@ func TestRegistryBuilder(t *testing.T) {
 		})
 		t.Run("type", func(t *testing.T) {
 			ft1, ft2, ft4 := fakeType1{}, fakeType2{}, fakeType4{}
-			rb := NewRegistryBuilder().
+			rb := newTestRegistryBuilder().
 				RegisterTypeEncoder(reflect.TypeOf(ft1), fc1).
 				RegisterTypeEncoder(reflect.TypeOf(ft2), fc2).
 				RegisterTypeEncoder(reflect.TypeOf(ft1), fc3).
@@ -76,7 +88,7 @@ func TestRegistryBuilder(t *testing.T) {
 		})
 		t.Run("kind", func(t *testing.T) {
 			k1, k2, k4 := reflect.Struct, reflect.Slice, reflect.Map
-			rb := NewRegistryBuilder().
+			rb := newTestRegistryBuilder().
 				RegisterDefaultEncoder(k1, fc1).
 				RegisterDefaultEncoder(k2, fc2).
 				RegisterDefaultEncoder(k1, fc3).
@@ -107,7 +119,7 @@ func TestRegistryBuilder(t *testing.T) {
 			t.Run("MapCodec", func(t *testing.T) {
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := newTestRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Map, codec)
 				reg := rb.Build()
@@ -124,7 +136,7 @@ func TestRegistryBuilder(t *testing.T) {
 			t.Run("StructCodec", func(t *testing.T) {
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := newTestRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Struct, codec)
 				reg := rb.Build()
@@ -141,7 +153,7 @@ func TestRegistryBuilder(t *testing.T) {
 			t.Run("SliceCodec", func(t *testing.T) {
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := newTestRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Slice, codec)
 				reg := rb.Build()
@@ -158,7 +170,7 @@ func TestRegistryBuilder(t *testing.T) {
 			t.Run("ArrayCodec", func(t *testing.T) {
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				rb := NewRegistryBuilder()
+				rb := newTestRegistryBuilder()
 
 				rb.RegisterDefaultEncoder(reflect.Array, codec)
 				reg := rb.Build()
@@ -200,7 +212,7 @@ func TestRegistryBuilder(t *testing.T) {
 				pc              = NewPointerCodec()
 			)
 
-			reg := NewRegistryBuilder().
+			reg := newTestRegistryBuilder().
 				RegisterTypeEncoder(ft1, fc1).
 				RegisterTypeEncoder(ft2, fc2).
 				RegisterTypeEncoder(ti1, fc1).
@@ -399,7 +411,7 @@ func TestRegistryBuilder(t *testing.T) {
 		})
 	})
 	t.Run("Type Map", func(t *testing.T) {
-		reg := NewRegistryBuilder().
+		reg := newTestRegistryBuilder().
 			RegisterTypeMapEntry(bsontype.String, reflect.TypeOf("")).
 			RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0))).
 			Build()
@@ -456,7 +468,7 @@ func TestRegistry(t *testing.T) {
 				{i: reflect.TypeOf(t2f).Elem(), ve: fc2},
 				{i: reflect.TypeOf(t4f).Elem(), ve: fc4},
 			}
-			reg := NewRegistry()
+			reg := newTestRegistryBuilder().Build()
 			for _, ip := range ips {
 				reg.RegisterInterfaceEncoder(ip.i, ip.ve)
 			}
@@ -469,7 +481,7 @@ func TestRegistry(t *testing.T) {
 			t.Parallel()
 
 			ft1, ft2, ft4 := fakeType1{}, fakeType2{}, fakeType4{}
-			reg := NewRegistry()
+			reg := newTestRegistryBuilder().Build()
 			reg.RegisterTypeEncoder(reflect.TypeOf(ft1), fc1)
 			reg.RegisterTypeEncoder(reflect.TypeOf(ft2), fc2)
 			reg.RegisterTypeEncoder(reflect.TypeOf(ft1), fc3)
@@ -499,7 +511,7 @@ func TestRegistry(t *testing.T) {
 			t.Parallel()
 
 			k1, k2, k4 := reflect.Struct, reflect.Slice, reflect.Map
-			reg := NewRegistry()
+			reg := newTestRegistryBuilder().Build()
 			reg.RegisterKindEncoder(k1, fc1)
 			reg.RegisterKindEncoder(k2, fc2)
 			reg.RegisterKindEncoder(k1, fc3)
@@ -533,7 +545,7 @@ func TestRegistry(t *testing.T) {
 
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				reg := NewRegistry()
+				reg := newTestRegistryBuilder().Build()
 				reg.RegisterKindEncoder(reflect.Map, codec)
 				if reg.kindEncoders.get(reflect.Map) != codec {
 					t.Errorf("map codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Map), codec)
@@ -548,7 +560,7 @@ func TestRegistry(t *testing.T) {
 
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				reg := NewRegistry()
+				reg := newTestRegistryBuilder().Build()
 				reg.RegisterKindEncoder(reflect.Struct, codec)
 				if reg.kindEncoders.get(reflect.Struct) != codec {
 					t.Errorf("struct codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Struct), codec)
@@ -563,7 +575,7 @@ func TestRegistry(t *testing.T) {
 
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				reg := NewRegistry()
+				reg := newTestRegistryBuilder().Build()
 				reg.RegisterKindEncoder(reflect.Slice, codec)
 				if reg.kindEncoders.get(reflect.Slice) != codec {
 					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Slice), codec)
@@ -578,7 +590,7 @@ func TestRegistry(t *testing.T) {
 
 				codec := &fakeCodec{num: 1}
 				codec2 := &fakeCodec{num: 2}
-				reg := NewRegistry()
+				reg := newTestRegistryBuilder().Build()
 				reg.RegisterKindEncoder(reflect.Array, codec)
 				if reg.kindEncoders.get(reflect.Array) != codec {
 					t.Errorf("slice codec not properly set: got %#v, want %#v", reg.kindEncoders.get(reflect.Array), codec)
@@ -618,7 +630,7 @@ func TestRegistry(t *testing.T) {
 				pc              = NewPointerCodec()
 			)
 
-			reg := NewRegistry()
+			reg := newTestRegistryBuilder().Build()
 			reg.RegisterTypeEncoder(ft1, fc1)
 			reg.RegisterTypeEncoder(ft2, fc2)
 			reg.RegisterTypeEncoder(ti1, fc1)
@@ -860,7 +872,7 @@ func TestRegistry(t *testing.T) {
 	})
 	t.Run("Type Map", func(t *testing.T) {
 		t.Parallel()
-		reg := NewRegistry()
+		reg := newTestRegistryBuilder().Build()
 		reg.RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(""))
 		reg.RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0)))
 

@@ -616,22 +616,22 @@ func TestValue(t *testing.T) {
 		{
 			"Decimal128/Success", Value.Decimal128, Value{Type: bsontype.Decimal128, Data: AppendDecimal128(nil, 12345, 67890)},
 			nil,
-			[]interface{}{12345, 67890},
+			[]interface{}{uint64(12345), uint64(67890)},
 		},
 		{
 			"Decimal128OK/Not Decimal128", Value.Decimal128OK, Value{Type: bsontype.String},
 			nil,
-			[]interface{}{0, 0, false},
+			[]interface{}{uint64(0), uint64(0), false},
 		},
 		{
 			"Decimal128OK/Insufficient Bytes", Value.Decimal128OK, Value{Type: bsontype.Decimal128, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{0, 0, false},
+			[]interface{}{uint64(0), uint64(0), false},
 		},
 		{
 			"Decimal128OK/Success", Value.Decimal128OK, Value{Type: bsontype.Decimal128, Data: AppendDecimal128(nil, 12345, 67890)},
 			nil,
-			[]interface{}{12345, 67890, true},
+			[]interface{}{uint64(12345), uint64(67890), true},
 		},
 		{
 			"Timestamp.String/Success", Value.String, Value{Type: bsontype.Timestamp, Data: AppendTimestamp(nil, 12345, 67890)},
@@ -668,7 +668,7 @@ func TestValue(t *testing.T) {
 
 			for idx := range got {
 				gotv, wantv := got[idx].Interface(), want[idx].Interface()
-				if !cmp.Equal(gotv, wantv, cmp.Comparer(compareDecimal128)) {
+				if !cmp.Equal(gotv, wantv) {
 					t.Errorf("return values at index %d are not equal. got %v; want %v", idx, gotv, wantv)
 				}
 			}

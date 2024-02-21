@@ -14,12 +14,12 @@ type marshalingTestCase struct {
 }
 
 var marshalingTestCases = []marshalingTestCase{
-	// {
-	// 	"small struct",
-	// 	nil,
-	// 	struct {
-	// 		Foo bool
-	// 	}{Foo: true},
-	// 	docToBytes(D{{"foo", true}}),
-	// },
+	{
+		"small struct",
+		nil,
+		struct {
+			Foo bool
+		}{Foo: true},
+		docToBytes(D{{"foo", true}}),
+	},
 }
