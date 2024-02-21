@@ -2427,7 +2427,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				buildDocument(bsoncore.AppendNullElement(nil, "bar")),
 			),
 		)
-		dvr := bsonrw.NewBSONDocumentReader(b)
+		dvr := bsonrw.NewValueReader(b)
 		dr, err := dvr.ReadDocument()
 		noerr(t, err)
 		_, vr, err := dr.ReadElement()
@@ -2488,7 +2488,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		noerr(t, err)
 		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		noerr(t, err)
-		dvr := bsonrw.NewBSONDocumentReader(doc)
+		dvr := bsonrw.NewValueReader(doc)
 		noerr(t, err)
 		dr, err := dvr.ReadDocument()
 		noerr(t, err)
@@ -3132,7 +3132,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("Decode", func(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := bsonrw.NewBSONDocumentReader(tc.b)
+					vr := bsonrw.NewValueReader(tc.b)
 					reg := buildDefaultRegistry()
 					vtype := reflect.TypeOf(tc.value)
 					dec, err := reg.LookupDecoder(vtype)
@@ -3181,7 +3181,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := bsonrw.NewBSONDocumentReader(tc.b)
+				vr := bsonrw.NewValueReader(tc.b)
 				reg := buildDefaultRegistry()
 				vtype := reflect.TypeOf(tc.value)
 				dec, err := reg.LookupDecoder(vtype)
@@ -3403,7 +3403,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 		t.Run("top level document", func(t *testing.T) {
 			data := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
-			vr := bsonrw.NewBSONDocumentReader(data)
+			vr := bsonrw.NewValueReader(data)
 			want := primitive.D{{"pi", 3.14159}}
 			var got interface{}
 			val := reflect.ValueOf(&got).Elem()
@@ -3451,7 +3451,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 			for _, tc := range testCases {
 				var got interface{}
-				vr := bsonrw.NewBSONDocumentReader(doc)
+				vr := bsonrw.NewValueReader(doc)
 				val := reflect.ValueOf(&got).Elem()
 
 				err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: tc.registry}, vr, val)
@@ -3487,7 +3487,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 
 			var got primitive.D
-			vr := bsonrw.NewBSONDocumentReader(doc)
+			vr := bsonrw.NewValueReader(doc)
 			val := reflect.ValueOf(&got).Elem()
 			err := defaultSliceCodec.DecodeValue(DecodeContext{Registry: reg}, vr, val)
 			noerr(t, err)
@@ -3577,7 +3577,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// DecodeValue error when decoding into a primitive.D.
 				"primitive.D slice",
 				primitive.D{},
-				bsonrw.NewBSONDocumentReader(docBytes),
+				bsonrw.NewValueReader(docBytes),
 				emptyInterfaceErrorRegistry,
 				defaultSliceCodec,
 				docEmptyInterfaceErr,
@@ -3600,7 +3600,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// the decodeD helper function.
 				"primitive.D array",
 				[1]primitive.E{},
-				bsonrw.NewBSONDocumentReader(docBytes),
+				bsonrw.NewValueReader(docBytes),
 				emptyInterfaceErrorRegistry,
 				ValueDecoderFunc(dvd.ArrayDecodeValue),
 				docEmptyInterfaceErr,
@@ -3623,7 +3623,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// DecodeValue error when decoding into a map.
 				"map",
 				map[string]interface{}{},
-				bsonrw.NewBSONDocumentReader(docBytes),
+				bsonrw.NewValueReader(docBytes),
 				emptyInterfaceErrorRegistry,
 				defaultMapCodec,
 				docEmptyInterfaceErr,
@@ -3632,7 +3632,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// DecodeValue error when decoding into a struct.
 				"struct - DecodeValue error",
 				emptyInterfaceStruct{},
-				bsonrw.NewBSONDocumentReader(docBytes),
+				bsonrw.NewValueReader(docBytes),
 				emptyInterfaceErrorRegistry,
 				defaultTestStructCodec,
 				emptyInterfaceStructErr,
@@ -3643,7 +3643,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// no decoder for strings.
 				"struct - no decoder found",
 				stringStruct{},
-				bsonrw.NewBSONDocumentReader(docBytes),
+				bsonrw.NewValueReader(docBytes),
 				NewRegistryBuilder().Build(),
 				defaultTestStructCodec,
 				stringStructErr,
@@ -3651,7 +3651,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			{
 				"deeply nested struct",
 				outer{},
-				bsonrw.NewBSONDocumentReader(outerDoc),
+				bsonrw.NewValueReader(outerDoc),
 				nestedRegistry,
 				defaultTestStructCodec,
 				nestedErr,
@@ -3681,7 +3681,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			type outer struct{ Foo inner }
 
 			dc := DecodeContext{Registry: buildDefaultRegistry()}
-			vr := bsonrw.NewBSONDocumentReader(outerBytes)
+			vr := bsonrw.NewValueReader(outerBytes)
 			val := reflect.New(reflect.TypeOf(outer{})).Elem()
 			err := defaultTestStructCodec.DecodeValue(dc, vr, val)
 
@@ -3714,7 +3714,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			reg := rb.RegisterTypeMapEntry(bsontype.Boolean, reflect.TypeOf(mybool(true))).Build()
 
 			dc := DecodeContext{Registry: reg}
-			vr := bsonrw.NewBSONDocumentReader(docBytes)
+			vr := bsonrw.NewValueReader(docBytes)
 			val := reflect.New(tD).Elem()
 			err := defaultValueDecoders.DDecodeValue(dc, vr, val)
 			assert.Nil(t, err, "DDecodeValue error: %v", err)
@@ -3733,7 +3733,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			type myMap map[string]mybool
 			dc := DecodeContext{Registry: buildDefaultRegistry()}
-			vr := bsonrw.NewBSONDocumentReader(docBytes)
+			vr := bsonrw.NewValueReader(docBytes)
 			val := reflect.New(reflect.TypeOf(myMap{})).Elem()
 			err := defaultMapCodec.DecodeValue(dc, vr, val)
 			assert.Nil(t, err, "DecodeValue error: %v", err)

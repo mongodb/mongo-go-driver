@@ -126,8 +126,7 @@ type finishedInformation struct {
 // write errors are included since the actual command did succeed, only writes
 // failed.
 func (info finishedInformation) success() bool {
-	var writeCmdErr WriteCommandError
-	if errors.As(info.cmdErr, &writeCmdErr) {
+	if _, ok := info.cmdErr.(WriteCommandError); ok {
 		return true
 	}
 
@@ -443,7 +442,7 @@ func (op Operation) getServerAndConnection(
 		if err := conn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
-			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %v", err)
+			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %w", err)
 		}
 		op.Client.PinnedConnection = conn
 	}
@@ -669,7 +668,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90(), srvr.RTTMonitor().Stats())
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), srvr.RTTMonitor().Stats())
 		if err != nil {
 			return err
 		}
@@ -760,14 +759,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		if ctx.Err() != nil {
 			err = ctx.Err()
 		} else if deadline, ok := ctx.Deadline(); ok {
-			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
-				err = fmt.Errorf(
-					"remaining time %v until context deadline is less than 90th percentile RTT: %w\n%v",
-					time.Until(deadline),
-					ErrDeadlineWouldBeExceeded,
-					srvr.RTTMonitor().Stats())
-			} else if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
-				err = context.DeadlineExceeded
+			if time.Now().Add(srvr.RTTMonitor().Min()).After(deadline) {
+				err = fmt.Errorf("%w: %v", ErrDeadlineWouldBeExceeded, srvr.RTTMonitor().Stats())
 			}
 		}
 
@@ -1547,22 +1540,22 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration, rttStats string) (uint64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
-			maxTime := remainingTimeout - rtt90
 
 			// Always round up to the next millisecond value so we never truncate the calculated
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
+			maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
-					"remaining time %v until context deadline is less than or equal to 90th percentile RTT: %w\n%v",
+					"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
 					remainingTimeout,
 					ErrDeadlineWouldBeExceeded,
 					rttStats)
 			}
+
 			return uint64(maxTimeMS), nil
 		}
 	} else if op.MaxTime != nil {
@@ -1733,7 +1726,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc = bsoncore.AppendBooleanElement(doc, "enabled", *hedgeEnabled)
 		doc, err = bsoncore.AppendDocumentEnd(doc, hedgeIdx)
 		if err != nil {
-			return nil, fmt.Errorf("error creating hedge document: %v", err)
+			return nil, fmt.Errorf("error creating hedge document: %w", err)
 		}
 	}
 

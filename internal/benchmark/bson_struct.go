@@ -77,10 +77,7 @@ func BSONFlatStructTagsEncoding(_ context.Context, tm TimerManager, iters int) e
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
 		buf.Reset()
-		vw, err := bsonrw.NewBSONValueWriter(buf)
-		if err != nil {
-			return err
-		}
+		vw := bsonrw.NewValueWriter(buf)
 		err = bson.NewEncoder(vw).Encode(doc)
 		if err != nil {
 			return err

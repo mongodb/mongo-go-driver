@@ -114,7 +114,7 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 		Extra             map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %w", err)
 	}
 	if len(temp.Extra) > 0 {
 		return fmt.Errorf("unrecognized fields for expectedEvents: %v", temp.Extra)
@@ -138,7 +138,7 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	}
 
 	if err := temp.Events.Unmarshal(target); err != nil {
-		return fmt.Errorf("error unmarshalling events array: %v", err)
+		return fmt.Errorf("error unmarshalling events array: %w", err)
 	}
 
 	if temp.IgnoreExtraEvents != nil {

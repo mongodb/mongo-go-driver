@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"path"
 	"reflect"
@@ -179,7 +180,7 @@ func runDocumentTest(t *testing.T, test documentTest) {
 		}
 
 		expected := *test.WriteConcernDocument
-		if err == writeconcern.ErrEmptyWriteConcern {
+		if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
 			elems, _ := expected.Elements()
 			if len(elems) == 0 {
 				assert.NotNil(t, test.IsServerDefault, "expected write concern %s, got empty", expected)

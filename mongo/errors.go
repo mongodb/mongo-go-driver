@@ -55,7 +55,7 @@ func replaceErrors(err error) error {
 		return nil
 	}
 
-	if err == topology.ErrTopologyClosed {
+	if errors.Is(err, topology.ErrTopologyClosed) {
 		return ErrClientDisconnected
 	}
 	if de, ok := err.(driver.Error); ok {
@@ -628,7 +628,7 @@ const (
 // WriteConcernError will be returned over WriteErrors if both are present.
 func processWriteError(err error) (returnResult, error) {
 	switch {
-	case err == driver.ErrUnacknowledgedWrite:
+	case errors.Is(err, driver.ErrUnacknowledgedWrite):
 		return rrAll, ErrUnacknowledgedWrite
 	case err != nil:
 		switch tt := err.(type) {

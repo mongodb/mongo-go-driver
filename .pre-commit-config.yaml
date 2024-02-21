@@ -44,6 +44,12 @@ repos:
     exclude: ^(vendor/|internal/benchmark/operation_test.go)
     exclude_types: [json,yaml,pem]
 
+- repo: https://github.com/tcort/markdown-link-check
+  rev: v3.11.2
+  hooks:
+    - id: markdown-link-check
+      exclude: ^(vendor)
+
 - repo: https://github.com/golangci/golangci-lint
   rev: v1.55.1
   hooks:

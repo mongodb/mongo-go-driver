@@ -172,7 +172,7 @@ func buildSet(list []string) map[string]struct{} {
 	return set
 }
 
-func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs connstring.ConnString) {
+func verifyConnstringOptions(mt *mtest.T, expected bson.Raw, cs *connstring.ConnString) {
 	mt.Helper()
 
 	elems, _ := expected.Elements()
