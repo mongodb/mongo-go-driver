@@ -122,36 +122,6 @@ func TestErrors(t *testing.T) {
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
 		})
-
-		// TODO(GODRIVER-2348): Can we remove this / update it to be specific to
-		// timeoutMS instead of socketTimeoutMS?
-		//mt.Run("socketTimeoutMS timeouts return network errors", func(mt *mtest.T) {
-		//	_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
-		//	assert.Nil(mt, err, "InsertOne error: %v", err)
-
-		//	// Reset the test client to have a 100ms timeout. We do this here rather than passing it in as a
-		//	// test option using mt.RunOpts because that could cause the collection creation or InsertOne to fail.
-		//	resetClientOpts := options.Client().SetTimeout(100 * time.Millisecond)
-		//	mt.ResetClient(resetClientOpts)
-
-		//	mt.ClearEvents()
-		//	filter := bson.M{
-		//		"$where": "function() { sleep(1000); return false; }",
-		//	}
-		//	_, err = mt.Coll.Find(context.Background(), filter)
-
-		//	fmt.Println("err: ", err)
-
-		//	evt := mt.GetStartedEvent()
-		//	assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
-
-		//	assert.False(mt, errors.Is(err, context.DeadlineExceeded),
-		//		"errors.Is failure: expected error %v to not be %v", err, context.DeadlineExceeded)
-		//	var netErr net.Error
-		//	ok := errors.As(err, &netErr)
-		//	assert.True(mt, ok, "errors.As failure: expected error %v to be a net.Error", err)
-		//	assert.True(mt, netErr.Timeout(), "expected error %v to be a network timeout", err)
-		//})
 	})
 	mt.Run("ServerError", func(mt *mtest.T) {
 		matchWrapped := errors.New("wrapped err")

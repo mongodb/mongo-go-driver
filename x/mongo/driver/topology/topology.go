@@ -112,18 +112,6 @@ var (
 	_ driver.Subscriber = &Topology{}
 )
 
-//type serverSelectionState struct {
-//	selector    description.ServerSelector
-//	timeoutChan <-chan time.Time
-//}
-//
-//func newServerSelectionState(selector description.ServerSelector, timeoutChan <-chan time.Time) serverSelectionState {
-//	return serverSelectionState{
-//		selector:    selector,
-//		timeoutChan: timeoutChan,
-//	}
-//}
-
 // New creates a new topology. A "nil" config is interpreted as the default configuration.
 func New(cfg *Config) (*Topology, error) {
 	if cfg == nil {
