@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -149,6 +150,26 @@ func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.Cha
 	return csOpts
 }
 
+// validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
+// timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
+// equal to timeoutMS. Otherwise, the timeouts are valid.
+func validChangeStreamTimeouts(ctx context.Context, maxAwaitTime, timeout *time.Duration) bool {
+	if maxAwaitTime == nil {
+		return true
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxTimeout := time.Until(deadline)
+		timeout = &ctxTimeout
+	}
+
+	if timeout == nil {
+		return true
+	}
+
+	return *timeout <= 0 || *maxAwaitTime < *timeout
+}
+
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 	if ctx == nil {
@@ -160,7 +181,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
 	changeStreamOpts := mergeChangeStreamOptions(opts...)
-	if !csot.ValidChangeStreamTimeouts(ctx, changeStreamOpts.MaxAwaitTime, config.client.timeout) {
+	if !validChangeStreamTimeouts(ctx, changeStreamOpts.MaxAwaitTime, config.client.timeout) {
 		return nil, fmt.Errorf("maxAwaitTimeMS cannot be greater than or equal to timeoutMS")
 	}
 
@@ -689,7 +710,7 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	// Drivers MUST apply the origin timeoutMS value to each next call on the
 	// change stream but MUST NOT use it to derive a maxTimeMS field for getMore
 	// commands.
-	ctx, cancel := csot.WithChangeStreamNextContext(ctx, cs.client.timeout)
+	ctx, cancel := csot.WithTimeout(csot.WithoutMaxTime(ctx), cs.client.timeout)
 	defer cancel()
 
 	if len(cs.batch) == 0 {
