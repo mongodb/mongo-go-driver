@@ -2372,7 +2372,7 @@ task_groups:
       - command: expansions.update
         params:
           file: testgcpkms-expansions.yml
-    teardown_group:
+    teardown_task:
       - command: shell.exec
         params:
           shell: "bash"
@@ -2441,7 +2441,7 @@ task_groups:
       - command: expansions.update
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
-    teardown_group:
+    teardown_task:
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
@@ -2482,7 +2482,7 @@ task_groups:
       - command: expansions.update
         params:
           file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
-    teardown_group:
+    teardown_task:
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
