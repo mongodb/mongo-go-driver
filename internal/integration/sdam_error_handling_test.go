@@ -77,7 +77,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					SetPoolMonitor(tpm.PoolMonitor).
 					// Set a 100ms socket timeout so that the saslContinue delay of 150ms causes a
 					// timeout during socket read (i.e. a timeout not caused by the InsertOne context).
-					SetTimeout(100 * time.Millisecond))
+					SetConnectTimeout(100 * time.Millisecond))
 
 				// Use context.Background() so that the new connection will not time out due to an
 				// operation-scoped timeout.
@@ -85,6 +85,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
+
 				// Assert that the pool is cleared within 2 seconds.
 				assert.Soon(mt, func(ctx context.Context) {
 					ticker := time.NewTicker(100 * time.Millisecond)
