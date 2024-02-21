@@ -14,23 +14,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
-// WireMessageReader represents a Connection where server operations can be
-// read from.
-type WireMessageReader interface {
-	Read(ctx context.Context) ([]byte, error)
-}
-
-// WireMessageWriter represents a Connection where server operations can be
-// written to.
-type WireMessageWriter interface {
-	Write(ctx context.Context, wm []byte) error
-}
-
-// WireMessageReadWriteCloser represents a Connection where server operations
+// ReadWriteCloser represents a Connection where server operations
 // can read from, written to, and closed.
-type WireMessageReadWriteCloser interface {
-	WireMessageReader
-	WireMessageWriter
+type ReadWriteCloser interface {
+	Read(ctx context.Context) ([]byte, error)
+	Write(ctx context.Context, wm []byte) error
 	io.Closer
 }
 
@@ -88,7 +76,7 @@ type Pinner interface {
 
 // Connection represents a connection to a MongoDB server.
 type Connection struct {
-	WireMessageReadWriteCloser
+	ReadWriteCloser
 	Describer
 	Streamer
 	Compressor
@@ -98,13 +86,16 @@ type Connection struct {
 // NewConnection creates a new Connection with the provided component. This
 // constructor returns a component that is already a Connection to avoid
 // mis-asserting the composite interfaces.
-func NewConnection(component WireMessageReadWriteCloser) *Connection {
+func NewConnection(component interface {
+	ReadWriteCloser
+	Describer
+}) *Connection {
 	if _, ok := component.(*Connection); ok {
 		return component.(*Connection)
 	}
 
 	conn := &Connection{
-		WireMessageReadWriteCloser: component,
+		ReadWriteCloser: component,
 	}
 
 	if describer, ok := component.(Describer); ok {

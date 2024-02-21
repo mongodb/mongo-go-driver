@@ -51,7 +51,7 @@ type connection struct {
 	responses []bson.D // responses to send when ReadWireMessage is called
 }
 
-var _ mnet.WireMessageReadWriteCloser = &connection{}
+var _ mnet.ReadWriteCloser = &connection{}
 var _ mnet.Describer = &connection{}
 
 // Write is a no-op.

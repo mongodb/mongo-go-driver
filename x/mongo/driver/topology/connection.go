@@ -552,7 +552,7 @@ func (c *connection) ServerConnectionID() *int64 {
 // *connection to a Handshaker.
 type initConnection struct{ *connection }
 
-var _ mnet.WireMessageReadWriteCloser = initConnection{}
+var _ mnet.ReadWriteCloser = initConnection{}
 var _ mnet.Describer = initConnection{}
 var _ mnet.Streamer = initConnection{}
 
@@ -603,7 +603,7 @@ type Connection struct {
 	mu sync.RWMutex
 }
 
-var _ mnet.WireMessageReadWriteCloser = (*Connection)(nil)
+var _ mnet.ReadWriteCloser = (*Connection)(nil)
 var _ mnet.Describer = (*Connection)(nil)
 var _ mnet.Compressor = (*Connection)(nil)
 var _ mnet.Pinner = (*Connection)(nil)

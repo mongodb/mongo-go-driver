@@ -81,7 +81,7 @@ var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
 // and exists to be able to pin transactions to a connection without causing an import cycle.
 type LoadBalancedTransactionConnection interface {
-	mnet.WireMessageReadWriteCloser
+	mnet.ReadWriteCloser
 	mnet.Describer
 	mnet.Pinner
 }
