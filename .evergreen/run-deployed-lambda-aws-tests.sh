@@ -2,6 +2,8 @@
 #
 set -o errexit  # Exit the script with error if any of the commands fail.
 
+source ${DRIVERS_TOOLS}/.evergreen/atlas/secrets-export.sh
+
 VARLIST=(
 	AWS_REGION
 	DRIVERS_TOOLS
