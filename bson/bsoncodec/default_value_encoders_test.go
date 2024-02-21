@@ -1770,13 +1770,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				b := make(bsonrw.SliceWriter, 0, 512)
-				vw, err := bsonrw.NewBSONValueWriter(&b)
-				noerr(t, err)
+				vw := bsonrw.NewValueWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
 				err = enc.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.value))
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
 				if diff := cmp.Diff([]byte(b), tc.b); diff != "" {
@@ -1821,8 +1820,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				b := make(bsonrw.SliceWriter, 0, 512)
-				vw, err := bsonrw.NewBSONValueWriter(&b)
-				noerr(t, err)
+				vw := bsonrw.NewValueWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)

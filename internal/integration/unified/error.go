@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -35,13 +36,13 @@ type expectedError struct {
 func verifyOperationError(ctx context.Context, expected *expectedError, result *operationResult) error {
 	// The unified spec test format doesn't treat ErrUnacknowledgedWrite as an error, so set result.Err to nil
 	// to indicate that no error occurred.
-	if result.Err == mongo.ErrUnacknowledgedWrite {
+	if errors.Is(result.Err, mongo.ErrUnacknowledgedWrite) {
 		result.Err = nil
 	}
 
 	if expected == nil {
 		if result.Err != nil {
-			return fmt.Errorf("expected no error, but got %v", result.Err)
+			return fmt.Errorf("expected no error, but got %w", result.Err)
 		}
 		return nil
 	}
@@ -57,7 +58,7 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 		expectedErrMsg := strings.ToLower(*expected.ErrorSubstring)
 		actualErrMsg := strings.ToLower(result.Err.Error())
 		if !strings.Contains(actualErrMsg, expectedErrMsg) {
-			return fmt.Errorf("expected error %v to contain substring %s", result.Err, *expected.ErrorSubstring)
+			return fmt.Errorf("expected error %w to contain substring %s", result.Err, *expected.ErrorSubstring)
 		}
 	}
 
@@ -68,14 +69,14 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 		// The unified test format spec considers network errors to be client-side errors.
 		isClientError := !serverError || mongo.IsNetworkError(result.Err)
 		if *expected.IsClientError != isClientError {
-			return fmt.Errorf("expected error %v to be a client error: %v, is client error: %v", result.Err,
+			return fmt.Errorf("expected error %w to be a client error: %v, is client error: %v", result.Err,
 				*expected.IsClientError, isClientError)
 		}
 	}
 	if expected.IsTimeoutError != nil {
 		isTimeoutError := mongo.IsTimeout(result.Err)
 		if *expected.IsTimeoutError != isTimeoutError {
-			return fmt.Errorf("expected error %v to be a timeout error: %v, is timeout error: %v", result.Err,
+			return fmt.Errorf("expected error %w to be a timeout error: %v, is timeout error: %v", result.Err,
 				*expected.IsTimeoutError, isTimeoutError)
 		}
 	}
@@ -95,7 +96,7 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 			}
 		}
 		if !found {
-			return fmt.Errorf("expected error %v to have code %d", result.Err, *expected.Code)
+			return fmt.Errorf("expected error %w to have code %d", result.Err, *expected.Code)
 		}
 	}
 	if expected.CodeName != nil {
@@ -107,23 +108,23 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 			}
 		}
 		if !found {
-			return fmt.Errorf("expected error %v to have code name %q", result.Err, *expected.CodeName)
+			return fmt.Errorf("expected error %w to have code name %q", result.Err, *expected.CodeName)
 		}
 	}
 	for _, label := range expected.IncludedLabels {
 		if !stringSliceContains(details.labels, label) {
-			return fmt.Errorf("expected error %v to contain label %q", result.Err, label)
+			return fmt.Errorf("expected error %w to contain label %q", result.Err, label)
 		}
 	}
 	for _, label := range expected.OmittedLabels {
 		if stringSliceContains(details.labels, label) {
-			return fmt.Errorf("expected error %v to not contain label %q", result.Err, label)
+			return fmt.Errorf("expected error %w to not contain label %q", result.Err, label)
 		}
 	}
 
 	if expected.ExpectedResult != nil {
 		if err := verifyOperationResult(ctx, *expected.ExpectedResult, result); err != nil {
-			return fmt.Errorf("result comparison error: %v", err)
+			return fmt.Errorf("result comparison error: %w", err)
 		}
 	}
 
@@ -136,7 +137,7 @@ func verifyOperationError(ctx context.Context, expected *expectedError, result *
 		gotValue := documentToRawValue(details.raw)
 		expectedValue := documentToRawValue(*expected.ErrorResponse)
 		if err := verifyValuesMatch(ctx, expectedValue, gotValue, true); err != nil {
-			return fmt.Errorf("error response comparison error: %v", err)
+			return fmt.Errorf("error response comparison error: %w", err)
 		}
 	}
 	return nil

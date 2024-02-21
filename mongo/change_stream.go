@@ -598,10 +598,7 @@ func (cs *ChangeStream) Decode(val interface{}) error {
 		return ErrNilCursor
 	}
 
-	dec, err := getDecoder(cs.Current, cs.bsonOpts, cs.registry)
-	if err != nil {
-		return fmt.Errorf("error configuring BSON decoder: %w", err)
-	}
+	dec := getDecoder(cs.Current, cs.bsonOpts, cs.registry)
 	return dec.Decode(val)
 }
 

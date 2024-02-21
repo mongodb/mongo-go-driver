@@ -47,15 +47,11 @@ type Decoder struct {
 }
 
 // NewDecoder returns a new decoder that uses the DefaultRegistry to read from vr.
-func NewDecoder(vr bsonrw.ValueReader) (*Decoder, error) {
-	if vr == nil {
-		return nil, errors.New("cannot create a new Decoder with a nil ValueReader")
-	}
-
+func NewDecoder(vr bsonrw.ValueReader) *Decoder {
 	return &Decoder{
 		dc: bsoncodec.DecodeContext{Registry: DefaultRegistry},
 		vr: vr,
-	}, nil
+	}
 }
 
 // Decode reads the next BSON document from the stream and decodes it into the

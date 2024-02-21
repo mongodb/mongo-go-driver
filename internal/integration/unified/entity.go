@@ -19,7 +19,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -31,7 +30,7 @@ var (
 
 var (
 	tlsCAFile                   = os.Getenv("CSFLE_TLS_CA_FILE")
-	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
+	tlsClientCertificateKeyFile = os.Getenv("CSFLE_TLS_CLIENT_CERT_FILE")
 )
 
 type storeEventsAsEntitiesConfig struct {
@@ -193,7 +192,7 @@ type EntityMap struct {
 	dbEntites                map[string]*mongo.Database
 	collEntities             map[string]*mongo.Collection
 	sessions                 map[string]mongo.Session
-	gridfsBuckets            map[string]*gridfs.Bucket
+	gridfsBuckets            map[string]*mongo.GridFSBucket
 	bsonValues               map[string]bson.RawValue
 	eventListEntities        map[string][]bson.Raw
 	bsonArrayEntities        map[string][]bson.Raw // for storing errors and failures from a loop operation
@@ -220,7 +219,7 @@ func (em *EntityMap) setClosed(val bool) {
 func newEntityMap() *EntityMap {
 	em := &EntityMap{
 		allEntities:              make(map[string]struct{}),
-		gridfsBuckets:            make(map[string]*gridfs.Bucket),
+		gridfsBuckets:            make(map[string]*mongo.GridFSBucket),
 		bsonValues:               make(map[string]bson.RawValue),
 		cursorEntities:           make(map[string]cursor),
 		clientEntities:           make(map[string]*clientEntity),
@@ -361,13 +360,13 @@ func (em *EntityMap) addEntity(ctx context.Context, entityType string, entityOpt
 	}
 
 	if err != nil {
-		return fmt.Errorf("error constructing entity of type %q: %v", entityType, err)
+		return fmt.Errorf("error constructing entity of type %q: %w", entityType, err)
 	}
 	em.allEntities[entityOptions.ID] = struct{}{}
 	return nil
 }
 
-func (em *EntityMap) gridFSBucket(id string) (*gridfs.Bucket, error) {
+func (em *EntityMap) gridFSBucket(id string) (*mongo.GridFSBucket, error) {
 	bucket, ok := em.gridfsBuckets[id]
 	if !ok {
 		return nil, newEntityNotFoundError("gridfs bucket", id)
@@ -493,7 +492,7 @@ func (em *EntityMap) close(ctx context.Context) []error {
 	var errs []error
 	for id, cursor := range em.cursorEntities {
 		if err := cursor.Close(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("error closing cursor with ID %q: %v", id, err))
+			errs = append(errs, fmt.Errorf("error closing cursor with ID %q: %w", id, err))
 		}
 	}
 
@@ -504,13 +503,13 @@ func (em *EntityMap) close(ctx context.Context) []error {
 		}
 
 		if err := client.disconnect(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("error closing client with ID %q: %v", id, err))
+			errs = append(errs, fmt.Errorf("error closing client with ID %q: %w", id, err))
 		}
 	}
 
 	for id, clientEncryption := range em.clientEncryptionEntities {
 		if err := clientEncryption.Close(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("error closing clientEncryption with ID: %q: %v", id, err))
+			errs = append(errs, fmt.Errorf("error closing clientEncryption with ID: %q: %w", id, err))
 		}
 	}
 
@@ -532,7 +531,7 @@ func (em *EntityMap) addClientEntity(ctx context.Context, entityOptions *entityO
 
 	client, err := newClientEntity(ctx, em, entityOptions)
 	if err != nil {
-		return fmt.Errorf("error creating client entity: %v", err)
+		return fmt.Errorf("error creating client entity: %w", err)
 	}
 
 	em.clientEntities[entityOptions.ID] = client
@@ -559,7 +558,7 @@ func (em *EntityMap) addDatabaseEntity(entityOptions *entityOptions) error {
 // A string is returned as-is.
 func getKmsCredential(kmsDocument bson.Raw, credentialName string, envVar string, defaultValue string) (string, error) {
 	credentialVal, err := kmsDocument.LookupErr(credentialName)
-	if err == bsoncore.ErrElementNotFound {
+	if errors.Is(err, bsoncore.ErrElementNotFound) {
 		return "", nil
 	}
 	if err != nil {
@@ -626,7 +625,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				kmsProviders["aws"]["secretAccessKey"] = awsSecretAccessKey
 			}
 		} else {
-			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", "AWS_ACCESS_KEY_ID", "")
+			awsAccessKeyID, err := getKmsCredential(aws, "accessKeyId", "FLE_AWS_KEY", "")
 			if err != nil {
 				return err
 			}
@@ -634,7 +633,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				kmsProviders["aws"]["accessKeyId"] = awsAccessKeyID
 			}
 
-			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", "AWS_SECRET_ACCESS_KEY", "")
+			awsSecretAccessKey, err := getKmsCredential(aws, "secretAccessKey", "FLE_AWS_SECRET", "")
 			if err != nil {
 				return err
 			}
@@ -648,7 +647,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	if azure, ok := ceo.KmsProviders["azure"]; ok {
 		kmsProviders["azure"] = make(map[string]interface{})
 
-		azureTenantID, err := getKmsCredential(azure, "tenantId", "AZURE_TENANT_ID", "")
+		azureTenantID, err := getKmsCredential(azure, "tenantId", "FLE_AZURE_TENANTID", "")
 		if err != nil {
 			return err
 		}
@@ -656,7 +655,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["azure"]["tenantId"] = azureTenantID
 		}
 
-		azureClientID, err := getKmsCredential(azure, "clientId", "AZURE_CLIENT_ID", "")
+		azureClientID, err := getKmsCredential(azure, "clientId", "FLE_AZURE_CLIENTID", "")
 		if err != nil {
 			return err
 		}
@@ -664,7 +663,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["azure"]["clientId"] = azureClientID
 		}
 
-		azureClientSecret, err := getKmsCredential(azure, "clientSecret", "AZURE_CLIENT_SECRET", "")
+		azureClientSecret, err := getKmsCredential(azure, "clientSecret", "FLE_AZURE_CLIENTSECRET", "")
 		if err != nil {
 			return err
 		}
@@ -676,7 +675,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 	if gcp, ok := ceo.KmsProviders["gcp"]; ok {
 		kmsProviders["gcp"] = make(map[string]interface{})
 
-		gcpEmail, err := getKmsCredential(gcp, "email", "GCP_EMAIL", "")
+		gcpEmail, err := getKmsCredential(gcp, "email", "FLE_GCP_EMAIL", "")
 		if err != nil {
 			return err
 		}
@@ -684,7 +683,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 			kmsProviders["gcp"]["email"] = gcpEmail
 		}
 
-		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", "GCP_PRIVATE_KEY", "")
+		gcpPrivateKey, err := getKmsCredential(gcp, "privateKey", "FLE_GCP_PRIVATEKEY", "")
 		if err != nil {
 			return err
 		}
@@ -707,7 +706,7 @@ func (em *EntityMap) addClientEncryptionEntity(entityOptions *entityOptions) err
 				"tlsCAFile":             tlsCAFile,
 			})
 			if err != nil {
-				return fmt.Errorf("error constructing tls config: %v", err)
+				return fmt.Errorf("error constructing tls config: %w", err)
 			}
 			tlsconf["kmip"] = cfg
 		}
@@ -779,7 +778,7 @@ func (em *EntityMap) addSessionEntity(entityOptions *entityOptions) error {
 
 	sess, err := client.StartSession(sessionOpts)
 	if err != nil {
-		return fmt.Errorf("error starting session: %v", err)
+		return fmt.Errorf("error starting session: %w", err)
 	}
 
 	em.sessions[entityOptions.ID] = sess
@@ -797,12 +796,7 @@ func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
 	}
 
-	bucket, err := gridfs.NewBucket(db, bucketOpts)
-	if err != nil {
-		return fmt.Errorf("error creating GridFS bucket: %v", err)
-	}
-
-	em.gridfsBuckets[entityOptions.ID] = bucket
+	em.gridfsBuckets[entityOptions.ID] = db.GridFSBucket(bucketOpts)
 	return nil
 }
 

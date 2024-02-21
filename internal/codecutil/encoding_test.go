@@ -14,16 +14,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
 )
 
 func testEncFn(t *testing.T) EncoderFn {
 	t.Helper()
 
 	return func(w io.Writer) (*bson.Encoder, error) {
-		rw, err := bsonrw.NewBSONValueWriter(w)
-		require.NoError(t, err, "failed to construct BSONValue writer")
-
+		rw := bsonrw.NewValueWriter(w)
 		enc := bson.NewEncoder(rw)
 
 		return enc, nil

@@ -154,6 +154,18 @@ The usage of host.docker.internal comes from the [Docker networking documentatio
 
 There is currently no arm64 support for the go1.x runtime, see [here](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html). Known issues running on linux/arm64 include the inability to network with the localhost from the public.ecr.aws/lambda/go Docker image.
 
+### Encryption Tests
+
+Most of the tests requiring `libmongocrypt` can be run using the Docker workflow.
+
+However, some of the tests require secrets handling.  Please see the team [Wiki](https://wiki.corp.mongodb.com/pages/viewpage.action?spaceKey=DRIVERS&title=Testing+CSFLE) for more information.
+
+The test suite can be run with or without the secrets as follows:
+
+```bash
+MAKEFILE_TARGET=evg-test-versioned-api bash .evergreen/run-tests.sh
+```
+
 ### Load Balancer
 
 To launch the load balancer on MacOS, run the following.
@@ -211,4 +223,4 @@ TOPOLOGY=sharded_cluster bash etc/run_docker.sh evg-test-enterprise-auth
 
 ## Talk To Us
 
-If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://community.mongodb.com/tags/c/drivers-odms-connectors/7/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).
+If you want to work on the driver, write documentation, or have questions/complaints, please reach out to us either via [MongoDB Community Forums](https://www.mongodb.com/community/forums/tag/go-driver) or by creating a Question issue in [Jira](https://jira.mongodb.org/secure/CreateIssue!default.jspa).

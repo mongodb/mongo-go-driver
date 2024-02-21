@@ -171,7 +171,7 @@ func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) erro
 		)
 		_, err := runCommand(s, db, newUserCmd)
 		if err != nil {
-			return fmt.Errorf("Couldn't create user '%s' on db '%s': %v", c.username, integtest.DBName(t), err)
+			return fmt.Errorf("Couldn't create user '%s' on db '%s': %w", c.username, integtest.DBName(t), err)
 		}
 	}
 	return nil
