@@ -13,7 +13,6 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
@@ -43,8 +42,7 @@ func TestGSSAPIAuthenticator(t *testing.T) {
 			Desc: desc,
 		}
 
-		mnetconn, err := mnet.NewConnection(channcon)
-		require.NoError(t, err)
+		mnetconn := mnet.NewConnection(chanconn)
 
 		err := authenticator.Auth(context.Background(), &Config{Connection: mnetconn})
 		if err == nil {
