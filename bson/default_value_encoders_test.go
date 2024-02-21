@@ -1851,16 +1851,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 	})
 }
 
-type testValueMarshaler struct {
-	t   bsontype.Type
-	buf []byte
-	err error
-}
-
-func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
-}
-
 type testValueMarshalPtr struct {
 	t   bsontype.Type
 	buf []byte

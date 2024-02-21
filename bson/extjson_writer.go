@@ -329,26 +329,6 @@ func (ejvw *extJSONValueWriter) WriteDocument() (DocumentWriter, error) {
 	return ejvw, nil
 }
 
-func formatDouble(f float64) string {
-	var s string
-	if math.IsInf(f, 1) {
-		s = "Infinity"
-	} else if math.IsInf(f, -1) {
-		s = "-Infinity"
-	} else if math.IsNaN(f) {
-		s = "NaN"
-	} else {
-		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
-		// perfectly represent it.
-		s = strconv.FormatFloat(f, 'G', -1, 64)
-		if !strings.ContainsRune(s, 'E') && !strings.ContainsRune(s, '.') {
-			s += ".0"
-		}
-	}
-
-	return s
-}
-
 func (ejvw *extJSONValueWriter) WriteDouble(f float64) error {
 	if err := ejvw.ensureElementValue(mode(0), "WriteDouble"); err != nil {
 		return err
@@ -638,6 +618,26 @@ func (ejvw *extJSONValueWriter) WriteArrayEnd() error {
 	}
 
 	return nil
+}
+
+func formatDouble(f float64) string {
+	var s string
+	if math.IsInf(f, 1) {
+		s = "Infinity"
+	} else if math.IsInf(f, -1) {
+		s = "-Infinity"
+	} else if math.IsNaN(f) {
+		s = "NaN"
+	} else {
+		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
+		// perfectly represent it.
+		s = strconv.FormatFloat(f, 'G', -1, 64)
+		if !strings.ContainsRune(s, 'E') && !strings.ContainsRune(s, '.') {
+			s += ".0"
+		}
+	}
+
+	return s
 }
 
 var hexChars = "0123456789abcdef"

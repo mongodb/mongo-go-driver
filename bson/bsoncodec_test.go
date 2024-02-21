@@ -51,22 +51,6 @@ func compareTime(t1, t2 time.Time) bool {
 	return t1.Equal(t2)
 }
 
-func compareErrors(err1, err2 error) bool {
-	if err1 == nil && err2 == nil {
-		return true
-	}
-
-	if err1 == nil || err2 == nil {
-		return false
-	}
-
-	if err1.Error() != err2.Error() {
-		return false
-	}
-
-	return true
-}
-
 type llCodec struct {
 	t         *testing.T
 	decodeval interface{}

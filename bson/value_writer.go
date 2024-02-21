@@ -41,10 +41,10 @@ type ValueWriterPool struct {
 	pool sync.Pool
 }
 
-// NewBSONValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
+// NewValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
 //
 // Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func NewBSONValueWriterPool() *ValueWriterPool {
+func NewValueWriterPool() *ValueWriterPool {
 	return &ValueWriterPool{
 		pool: sync.Pool{
 			New: func() interface{} {

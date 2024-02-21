@@ -19,7 +19,7 @@ import (
 	"unicode/utf8"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/util"
 )
 
 // ElementTypeError specifies that a method to obtain a BSON value an incorrect type was called on a bson.Value.
@@ -327,7 +327,7 @@ func (v Value) String() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, primitive.Decimal128String(h, l))
+		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, util.Decimal128String(h, l))
 	case bsontype.MinKey:
 		return `{"$minKey":1}`
 	case bsontype.MaxKey:

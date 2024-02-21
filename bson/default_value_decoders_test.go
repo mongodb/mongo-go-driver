@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,7 +27,7 @@ var (
 	defaultTestStructCodec = newDefaultStructCodec()
 )
 
-func TestDefaultValueDecoders2(t *testing.T) {
+func TestDefaultValueDecoders(t *testing.T) {
 	var dvd DefaultValueDecoders
 	var wrong = func(string, string) string { return "wrong" }
 
@@ -1529,7 +1528,10 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				{
 					// Only the pointer form of testUnmarshaler implements Unmarshaler
 					"value does not implement Unmarshaler",
-					testUnmarshaler2{Val: bsoncore.AppendDouble(nil, 3.14159)},
+					&testUnmarshaler{
+						Invoked: true,
+						Val:     bsoncore.AppendDouble(nil, 3.14159),
+					},
 					nil,
 					&valueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)},
 					readDouble,
@@ -1537,7 +1539,10 @@ func TestDefaultValueDecoders2(t *testing.T) {
 				},
 				{
 					"Unmarshaler",
-					&testUnmarshaler2{Val: bsoncore.AppendDouble(nil, 3.14159)},
+					&testUnmarshaler{
+						Invoked: true,
+						Val:     bsoncore.AppendDouble(nil, 3.14159),
+					},
 					nil,
 					&valueReaderWriter{BSONType: bsontype.Double, Return: float64(3.14159)},
 					readDouble,
@@ -3742,31 +3747,6 @@ func TestDefaultValueDecoders2(t *testing.T) {
 			assert.Equal(t, want, got, "expected map %v, got %v", want, got)
 		})
 	})
-}
-
-type testValueUnmarshaler struct {
-	t   bsontype.Type
-	val []byte
-	err error
-}
-
-func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t bsontype.Type, val []byte) error {
-	tvu.t, tvu.val = t, val
-	return tvu.err
-}
-
-type testUnmarshaler2 struct {
-	Val []byte
-	Err error
-}
-
-func (tvu *testUnmarshaler2) UnmarshalBSON(val []byte) error {
-	tvu.Val = val
-	return tvu.Err
-}
-
-func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {
-	return tvu.t == tvu2.t && bytes.Equal(tvu.val, tvu2.val)
 }
 
 // buildDocumentArray inserts vals inside of an array inside of a document.

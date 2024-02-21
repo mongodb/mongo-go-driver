@@ -22,7 +22,7 @@ import (
 
 var defaultValueEncoders DefaultValueEncoders
 
-var bvwPool = NewBSONValueWriterPool()
+var bvwPool = NewValueWriterPool()
 
 var errInvalidValue = errors.New("cannot encode invalid element")
 

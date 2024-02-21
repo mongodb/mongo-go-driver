@@ -4,9 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package primitive contains types similar to Go primitives for BSON types that do not have direct
-// Go primitive representations.
-package primitive
+// Package util provides bson utilities.
+package util
 
 import (
 	"strconv"

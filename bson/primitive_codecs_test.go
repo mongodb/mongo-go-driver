@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -43,7 +44,23 @@ func compareDecimal128(d1, d2 Decimal128) bool {
 	return true
 }
 
-func TestDefaultValueEncoders2(t *testing.T) {
+func compareErrors(err1, err2 error) bool {
+	if err1 == nil && err2 == nil {
+		return true
+	}
+
+	if err1 == nil || err2 == nil {
+		return false
+	}
+
+	if err1.Error() != err2.Error() {
+		return false
+	}
+
+	return true
+}
+
+func TestPrimitiveValueEncoders(t *testing.T) {
 	t.Parallel()
 
 	var pc PrimitiveCodecs
@@ -461,7 +478,7 @@ func TestDefaultValueEncoders2(t *testing.T) {
 	})
 }
 
-func TestDefaultValueDecoders(t *testing.T) {
+func TestPrimitiveValueDecoders(t *testing.T) {
 	var pc PrimitiveCodecs
 
 	var wrong = func(string, string) string { return "wrong" }
@@ -1043,6 +1060,30 @@ func TestDefaultValueDecoders(t *testing.T) {
 			}
 		})
 	})
+}
+
+type testValueMarshaler struct {
+	t   bsontype.Type
+	buf []byte
+	err error
+}
+
+func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	return tvm.t, tvm.buf, tvm.err
+}
+
+type testValueUnmarshaler struct {
+	t   bsontype.Type
+	val []byte
+	err error
+}
+
+func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t bsontype.Type, val []byte) error {
+	tvu.t, tvu.val = t, val
+	return tvu.err
+}
+func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {
+	return tvu.t == tvu2.t && bytes.Equal(tvu.val, tvu2.val)
 }
 
 type noPrivateFields struct {

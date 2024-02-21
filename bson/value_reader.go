@@ -33,10 +33,10 @@ type ValueReaderPool struct {
 	pool sync.Pool
 }
 
-// NewBSONValueReaderPool instantiates a new ValueReaderPool.
+// NewValueReaderPool instantiates a new ValueReaderPool.
 //
 // Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func NewBSONValueReaderPool() *ValueReaderPool {
+func NewValueReaderPool() *ValueReaderPool {
 	return &ValueReaderPool{
 		pool: sync.Pool{
 			New: func() interface{} {

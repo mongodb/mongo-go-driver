@@ -108,14 +108,14 @@ func TestDecoderv2(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
 
-					unmarshaler := &testUnmarshaler{err: tc.err}
+					unmarshaler := &testUnmarshaler{Err: tc.err}
 					dec := NewDecoder(tc.vr)
 					got := dec.Decode(unmarshaler)
 					want := tc.err
 					if !compareErrors(got, want) {
 						t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 					}
-					if unmarshaler.invoked != tc.invoked {
+					if unmarshaler.Invoked != tc.invoked {
 						if tc.invoked {
 							t.Error("Expected to have UnmarshalBSON invoked, but it wasn't.")
 						} else {
@@ -134,7 +134,7 @@ func TestDecoderv2(t *testing.T) {
 				dec := NewDecoder(vr)
 				err := dec.Decode(unmarshaler)
 				noerr(t, err)
-				got := unmarshaler.data
+				got := unmarshaler.Val
 				if !bytes.Equal(got, want) {
 					t.Errorf("Did not unmarshal properly. got %v; want %v", got, want)
 				}
@@ -228,15 +228,15 @@ func TestDecoderv2(t *testing.T) {
 }
 
 type testUnmarshaler struct {
-	invoked bool
-	err     error
-	data    []byte
+	Invoked bool
+	Val     []byte
+	Err     error
 }
 
 func (tu *testUnmarshaler) UnmarshalBSON(d []byte) error {
-	tu.invoked = true
-	tu.data = d
-	return tu.err
+	tu.Invoked = true
+	tu.Val = d
+	return tu.Err
 }
 
 func TestDecoderConfiguration(t *testing.T) {
