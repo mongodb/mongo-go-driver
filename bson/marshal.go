@@ -74,6 +74,7 @@ func Marshal(val interface{}) ([]byte, error) {
 			bufPool.Put(sw)
 		}
 	}()
+	sw.Reset()
 	vw := bsonrw.NewValueWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
