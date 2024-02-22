@@ -128,7 +128,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val refl
 		}
 
 		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.MapIndex(key))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 

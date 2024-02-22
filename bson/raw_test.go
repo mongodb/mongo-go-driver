@@ -118,7 +118,7 @@ func TestRaw(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				err := tc.r.Validate()
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Returned error does not match. got %v; want %v", err, tc.err)
 				}
 			})
@@ -128,7 +128,7 @@ func TestRaw(t *testing.T) {
 		t.Run("empty-key", func(t *testing.T) {
 			rdr := Raw{'\x05', '\x00', '\x00', '\x00', '\x00'}
 			_, err := rdr.LookupErr()
-			if err != bsoncore.ErrEmptyKey {
+			if !errors.Is(err, bsoncore.ErrEmptyKey) {
 				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, bsoncore.ErrEmptyKey)
 			}
 		})
@@ -211,7 +211,7 @@ func TestRaw(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				got, err := tc.r.LookupErr(tc.key...)
-				if err != tc.err {
+				if !errors.Is(err, tc.err) {
 					t.Errorf("Returned error does not match. got %v; want %v", err, tc.err)
 				}
 				if !cmp.Equal(got, tc.want) {
@@ -224,7 +224,7 @@ func TestRaw(t *testing.T) {
 		t.Run("Out of bounds", func(t *testing.T) {
 			rdr := Raw{0xe, 0x0, 0x0, 0x0, 0xa, 0x78, 0x0, 0xa, 0x79, 0x0, 0xa, 0x7a, 0x0, 0x0}
 			_, err := rdr.IndexErr(3)
-			if err != bsoncore.ErrOutOfBounds {
+			if !errors.Is(err, bsoncore.ErrOutOfBounds) {
 				t.Errorf("Out of bounds should be returned when accessing element beyond end of document. got %v; want %v", err, bsoncore.ErrOutOfBounds)
 			}
 		})

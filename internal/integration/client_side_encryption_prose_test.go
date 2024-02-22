@@ -1393,7 +1393,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// These tests only run when a KMS mock server is running on localhost:8000.
+	// These tests only run when 3 KMS HTTP servers and 1 KMS KMIP server are running. See specification for port numbers and necessary arguments:
+	// https://github.com/mongodb/specifications/blob/master/source/client-side-encryption/tests/README.rst#kms-tls-options-tests
 	mt.RunOpts("10. kms tls tests", noClientOpts, func(mt *mtest.T) {
 		kmsTlsTestcase := os.Getenv("KMS_TLS_TESTCASE")
 		if kmsTlsTestcase == "" {
@@ -1402,16 +1403,19 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		testcases := []struct {
 			name       string
+			port       int
 			envValue   string
 			errMessage string
 		}{
 			{
 				"invalid certificate",
+				9000,
 				"INVALID_CERT",
 				"expired",
 			},
 			{
 				"invalid hostname",
+				9001,
 				"INVALID_HOSTNAME",
 				"SANs",
 			},
@@ -1434,7 +1438,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					bson.D{
 						{"region", "us-east-1"},
 						{"key", "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0"},
-						{"endpoint", "127.0.0.1:8000"},
+						{"endpoint", fmt.Sprintf("127.0.0.1:%d", tc.port)},
 					},
 				))
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
@@ -1459,12 +1463,12 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "127.0.0.1:8002",
+				"identityPlatformEndpoint": "127.0.0.1:9002",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "127.0.0.1:8002",
+				"endpoint":   "127.0.0.1:9002",
 			},
 			"kmip": {
 				"endpoint": "127.0.0.1:5698",
@@ -1480,15 +1484,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "127.0.0.1:8000",
+				"identityPlatformEndpoint": "127.0.0.1:9000",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "127.0.0.1:8000",
+				"endpoint":   "127.0.0.1:9000",
 			},
 			"kmip": {
-				"endpoint": "127.0.0.1:8000",
+				"endpoint": "127.0.0.1:9000",
 			},
 		}
 
@@ -1501,15 +1505,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"tenantId":                 azureTenantID,
 				"clientId":                 azureClientID,
 				"clientSecret":             azureClientSecret,
-				"identityPlatformEndpoint": "127.0.0.1:8001",
+				"identityPlatformEndpoint": "127.0.0.1:9001",
 			},
 			"gcp": {
 				"email":      gcpEmail,
 				"privateKey": gcpPrivateKey,
-				"endpoint":   "127.0.0.1:8001",
+				"endpoint":   "127.0.0.1:9001",
 			},
 			"kmip": {
-				"endpoint": "127.0.0.1:8001",
+				"endpoint": "127.0.0.1:9001",
 			},
 		}
 
@@ -1567,22 +1571,22 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		awsMasterKeyNoClientCert := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8002",
+			"endpoint": "127.0.0.1:9002",
 		}
 		awsMasterKeyWithTLS := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8002",
+			"endpoint": "127.0.0.1:9002",
 		}
 		awsMasterKeyExpired := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8000",
+			"endpoint": "127.0.0.1:9000",
 		}
 		awsMasterKeyInvalidHostname := map[string]interface{}{
 			"region":   "us-east-1",
 			"key":      "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",
-			"endpoint": "127.0.0.1:8001",
+			"endpoint": "127.0.0.1:9001",
 		}
 		azureMasterKey := map[string]interface{}{
 			"keyVaultEndpoint": "doesnotexist.local",
@@ -2237,7 +2241,15 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			crypt, err := mongocrypt.NewMongoCrypt(opts)
 			assert.Nil(mt, err, "error in NewMongoCrypt: %v", err)
 			_, err = crypt.GetKmsProviders(context.Background())
-			assert.ErrorContains(mt, err, "Client.Timeout or context cancellation while reading body")
+
+			possibleErrors := []string{
+				"error reading response body: context deadline exceeded",    // <= 1.19 + RHEL & macOS
+				"Client.Timeout or context cancellation while reading body", // > 1.20 on all OS
+			}
+
+			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+				"expected possibleErrors=%v to contain %v, but it didn't",
+				possibleErrors, err.Error())
 		})
 	})
 

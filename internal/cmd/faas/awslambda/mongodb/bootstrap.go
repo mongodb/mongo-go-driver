@@ -16,8 +16,8 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -41,12 +41,12 @@ type eventListener struct {
 func (listener *eventListener) commandMonitor() *event.CommandMonitor {
 	succeeded := func(_ context.Context, e *event.CommandSucceededEvent) {
 		listener.commandCount++
-		listener.commandDuration += e.DurationNanos
+		listener.commandDuration += e.Duration.Nanoseconds()
 	}
 
 	failed := func(_ context.Context, e *event.CommandFailedEvent) {
 		listener.commandCount++
-		listener.commandDuration += e.DurationNanos
+		listener.commandDuration += e.Duration.Nanoseconds()
 	}
 
 	return &event.CommandMonitor{
@@ -61,7 +61,7 @@ func (listener *eventListener) commandMonitor() *event.CommandMonitor {
 func (listener *eventListener) serverMonitor() *event.ServerMonitor {
 	succeeded := func(e *event.ServerHeartbeatSucceededEvent) {
 		listener.heartbeatCount++
-		listener.heartbeatDuration += e.DurationNanos
+		listener.heartbeatDuration += e.Duration.Nanoseconds()
 
 		if e.Awaited {
 			listener.heartbeatAwaitedCount++
@@ -70,7 +70,7 @@ func (listener *eventListener) serverMonitor() *event.ServerMonitor {
 
 	failed := func(e *event.ServerHeartbeatFailedEvent) {
 		listener.heartbeatCount++
-		listener.heartbeatDuration += e.DurationNanos
+		listener.heartbeatDuration += e.Duration.Nanoseconds()
 
 		if e.Awaited {
 			listener.heartbeatAwaitedCount++
@@ -130,14 +130,9 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	// Create a MongoClient that points to MONGODB_URI and listens to the
 	// ComandMonitor, ServerMonitor, and PoolMonitor events.
-	client, err := mongo.NewClient(clientOptions)
+	client, err := mongo.Connect(clientOptions)
 	if err != nil {
 		return gateway500(), fmt.Errorf("failed to create client: %w", err)
-	}
-
-	// Attempt to connect to the client with a timeout.
-	if err = client.Connect(ctx); err != nil {
-		return gateway500(), fmt.Errorf("failed to connect: %w", err)
 	}
 
 	defer client.Disconnect(ctx)

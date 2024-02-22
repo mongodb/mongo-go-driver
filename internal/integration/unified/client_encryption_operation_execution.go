@@ -8,6 +8,7 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,19 +31,19 @@ func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptions, error) {
 		case "masterKey":
 			masterKey := make(map[string]interface{})
 			if err := val.Unmarshal(&masterKey); err != nil {
-				return nil, fmt.Errorf("error unmarshaling 'masterKey': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'masterKey': %w", err)
 			}
 			dko.SetMasterKey(masterKey)
 		case "keyAltNames":
 			keyAltNames := []string{}
 			if err := val.Unmarshal(&keyAltNames); err != nil {
-				return nil, fmt.Errorf("error unmarshaling 'keyAltNames': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'keyAltNames': %w", err)
 			}
 			dko.SetKeyAltNames(keyAltNames)
 		case "keyMaterial":
 			bin := bson.Binary{}
 			if err := val.Unmarshal(&bin); err != nil {
-				return nil, fmt.Errorf("error unmarshaling 'keyMaterial': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'keyMaterial': %w", err)
 			}
 			dko.SetKeyMaterial(bin.Data)
 		default:
@@ -85,7 +86,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 	res, err := cee.AddKeyAltName(ctx, id, keyAltName).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -201,7 +202,7 @@ func executeGetKeyByAltName(ctx context.Context, operation *operation) (*operati
 	res, err := cee.GetKeyByAltName(ctx, keyAltName).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -237,7 +238,7 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 	res, err := cee.GetKey(ctx, id).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -293,7 +294,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 	res, err := cee.RemoveKeyAltName(ctx, id, keyAltName).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -332,7 +333,7 @@ func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*o
 		if res.UpsertedIDs != nil {
 			rawUpsertedIDs, marshalErr = bson.Marshal(res.UpsertedIDs)
 			if marshalErr != nil {
-				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", marshalErr)
+				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %w", marshalErr)
 			}
 		}
 		bulkWriteResult := bsoncore.NewDocumentBuilder()

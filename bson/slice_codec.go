@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -91,7 +92,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 
 	for idx := 0; idx < val.Len(); idx++ {
 		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.Index(idx))
-		if lookupErr != nil && lookupErr != errInvalidValue {
+		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
 
@@ -100,7 +101,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 			return err
 		}
 
-		if lookupErr == errInvalidValue {
+		if errors.Is(lookupErr, errInvalidValue) {
 			err = vw.WriteNull()
 			if err != nil {
 				return err

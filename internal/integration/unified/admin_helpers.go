@@ -70,7 +70,7 @@ func performDistinctWorkaround(ctx context.Context) error {
 			_, err := newColl.Distinct(ctx, "x", bson.D{})
 			if err != nil {
 				ns := fmt.Sprintf("%s.%s", coll.Database().Name(), coll.Name())
-				return fmt.Errorf("error running distinct for collection %q: %v", ns, err)
+				return fmt.Errorf("error running distinct for collection %q: %w", ns, err)
 			}
 		}
 
@@ -88,7 +88,7 @@ func runCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 
 	client, err := mongo.Connect(clientOpts)
 	if err != nil {
-		return fmt.Errorf("error creating client to host %q: %v", host, err)
+		return fmt.Errorf("error creating client to host %q: %w", host, err)
 	}
 	defer func() { _ = client.Disconnect(ctx) }()
 
@@ -98,7 +98,7 @@ func runCommandOnHost(ctx context.Context, host string, commandFn func(context.C
 func runAgainstAllMongoses(ctx context.Context, commandFn func(context.Context, *mongo.Client) error) error {
 	for _, host := range mtest.ClusterConnString().Hosts {
 		if err := runCommandOnHost(ctx, host, commandFn); err != nil {
-			return fmt.Errorf("error executing callback against host %q: %v", host, err)
+			return fmt.Errorf("error executing callback against host %q: %w", host, err)
 		}
 	}
 	return nil

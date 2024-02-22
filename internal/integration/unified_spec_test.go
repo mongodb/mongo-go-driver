@@ -361,9 +361,7 @@ func createBucket(mt *mtest.T, testFile testFile, testCase *testCase) {
 	}
 	bucketOpts.SetChunkSizeBytes(chunkSize)
 
-	var err error
-	testCase.bucket, err = mt.DB.GridFSBucket(bucketOpts)
-	assert.Nil(mt, err, "NewBucket error: %v", err)
+	testCase.bucket = mt.DB.GridFSBucket(bucketOpts)
 }
 
 func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 mongo.Session) error {
