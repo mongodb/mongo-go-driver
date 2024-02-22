@@ -52,8 +52,8 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 		UpsertedIDs: make(map[int64]interface{}),
 	}
 
-	bwErr := BulkWriteException{
-		WriteErrors: make([]BulkWriteError, 0),
+	bwErr := BulkWriteError{
+		WriteErrors: make([]BulkWriteOpError, 0),
 	}
 
 	var lastErr error
@@ -98,11 +98,11 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 	return nil
 }
 
-func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWriteResult, BulkWriteException, error) {
+func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWriteResult, BulkWriteError, error) {
 	batchRes := BulkWriteResult{
 		UpsertedIDs: make(map[int64]interface{}),
 	}
-	batchErr := BulkWriteException{}
+	batchErr := BulkWriteError{}
 
 	var writeErrors []driver.WriteError
 	switch batch.models[0].(type) {
@@ -149,14 +149,14 @@ func (bw *bulkWrite) runBatch(ctx context.Context, batch bulkWriteBatch) (BulkWr
 		}
 	}
 
-	batchErr.WriteErrors = make([]BulkWriteError, 0, len(writeErrors))
+	batchErr.WriteErrors = make([]BulkWriteOpError, 0, len(writeErrors))
 	convWriteErrors := writeErrorsFromDriverWriteErrors(writeErrors)
 	for _, we := range convWriteErrors {
 		request := batch.models[we.Index]
 		we.Index = batch.indexes[we.Index]
-		batchErr.WriteErrors = append(batchErr.WriteErrors, BulkWriteError{
-			WriteError: we,
-			Request:    request,
+		batchErr.WriteErrors = append(batchErr.WriteErrors, BulkWriteOpError{
+			WriteOpError: we,
+			Request:      request,
 		})
 	}
 	return batchRes, batchErr, nil

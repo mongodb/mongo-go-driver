@@ -17,7 +17,7 @@ createEntities:
 
 tests:
   # Some drivers may still need to skip this test because the CRUD spec does not
-  # prescribe how drivers should formulate a WriteException beyond collecting a
+  # prescribe how drivers should formulate a WriteError beyond collecting a
   # write or write concern error.
   - description: "update operations support errorResponse assertions"
     runOnRequirements:

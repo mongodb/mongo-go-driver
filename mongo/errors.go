@@ -105,7 +105,7 @@ func replaceErrors(err error) error {
 	return err
 }
 
-// IsDuplicateKeyError returns true if err is a duplicate key error. For BulkWriteExceptions,
+// IsDuplicateKeyError returns true if err is a duplicate key error. For BulkWriteErrors,
 // IsDuplicateKeyError returns true if at least one of the errors is a duplicate key error.
 func IsDuplicateKeyError(err error) bool {
 	if se := ServerError(nil); errors.As(err, &se) {
@@ -145,7 +145,7 @@ func IsTimeout(err error) bool {
 	if ce := (CommandError{}); errors.As(err, &ce) && ce.IsMaxTimeMSExpiredError() {
 		return true
 	}
-	if we := (WriteException{}); errors.As(err, &we) && we.WriteConcernError != nil && we.WriteConcernError.IsMaxTimeMSExpiredError() {
+	if we := (WriteError{}); errors.As(err, &we) && we.WriteConcernError != nil && we.WriteConcernError.IsMaxTimeMSExpiredError() {
 		return true
 	}
 	if ne := net.Error(nil); errors.As(err, &ne) {
@@ -251,9 +251,9 @@ type ServerError interface {
 }
 
 var _ ServerError = CommandError{}
+var _ ServerError = WriteOpError{}
 var _ ServerError = WriteError{}
-var _ ServerError = WriteException{}
-var _ ServerError = BulkWriteException{}
+var _ ServerError = BulkWriteError{}
 
 // CommandError represents a server error during execution of a command. This can be returned by any operation.
 type CommandError struct {
@@ -311,10 +311,12 @@ func (e CommandError) IsMaxTimeMSExpiredError() bool {
 // serverError implements the ServerError interface.
 func (e CommandError) serverError() {}
 
-// WriteError is an error that occurred during execution of a write operation. This error type is only returned as part
-// of a WriteException or BulkWriteException.
-type WriteError struct {
-	// The index of the write in the slice passed to an InsertMany or BulkWrite operation that caused this error.
+// WriteOpError is an error that occurred during execution of a write operation.
+// This error type is only returned as part of a WriteError or
+// BulkWriteError.
+type WriteOpError struct {
+	// The index of the write in the slice passed to an InsertMany or BulkWrite
+	// operation that caused this error.
 	Index int
 
 	Code    int
@@ -325,7 +327,7 @@ type WriteError struct {
 	Raw bson.Raw
 }
 
-func (we WriteError) Error() string {
+func (we WriteOpError) Error() string {
 	msg := we.Message
 	if len(we.Details) > 0 {
 		msg = fmt.Sprintf("%s: %s", msg, we.Details.String())
@@ -334,34 +336,34 @@ func (we WriteError) Error() string {
 }
 
 // HasErrorCode returns true if the error has the specified code.
-func (we WriteError) HasErrorCode(code int) bool {
+func (we WriteOpError) HasErrorCode(code int) bool {
 	return we.Code == code
 }
 
 // HasErrorLabel returns true if the error contains the specified label. WriteErrors do not contain labels,
 // so we always return false.
-func (we WriteError) HasErrorLabel(string) bool {
+func (we WriteOpError) HasErrorLabel(string) bool {
 	return false
 }
 
 // HasErrorMessage returns true if the error contains the specified message.
-func (we WriteError) HasErrorMessage(message string) bool {
+func (we WriteOpError) HasErrorMessage(message string) bool {
 	return strings.Contains(we.Message, message)
 }
 
 // HasErrorCodeWithMessage returns true if the error has the specified code and Message contains the specified message.
-func (we WriteError) HasErrorCodeWithMessage(code int, message string) bool {
+func (we WriteOpError) HasErrorCodeWithMessage(code int, message string) bool {
 	return we.Code == code && strings.Contains(we.Message, message)
 }
 
 // serverError implements the ServerError interface.
-func (we WriteError) serverError() {}
+func (we WriteOpError) serverError() {}
 
-// WriteErrors is a group of write errors that occurred during execution of a write operation.
-type WriteErrors []WriteError
+// WriteOpErrors is a group of write errors that occurred during execution of a write operation.
+type WriteOpErrors []WriteOpError
 
 // Error implements the error interface.
-func (we WriteErrors) Error() string {
+func (we WriteOpErrors) Error() string {
 	errs := make([]error, len(we))
 	for i := 0; i < len(we); i++ {
 		errs[i] = we[i]
@@ -370,10 +372,10 @@ func (we WriteErrors) Error() string {
 	return "write errors: " + joinBatchErrors(errs)
 }
 
-func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
-	wes := make(WriteErrors, 0, len(errs))
+func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteOpErrors {
+	wes := make(WriteOpErrors, 0, len(errs))
 	for _, err := range errs {
-		wes = append(wes, WriteError{
+		wes = append(wes, WriteOpError{
 			Index:   int(err.Index),
 			Code:    int(err.Code),
 			Message: err.Message,
@@ -385,7 +387,7 @@ func writeErrorsFromDriverWriteErrors(errs driver.WriteErrors) WriteErrors {
 }
 
 // WriteConcernError represents a write concern failure during execution of a write operation. This error type is only
-// returned as part of a WriteException or a BulkWriteException.
+// returned as part of a WriteError or a BulkWriteError.
 type WriteConcernError struct {
 	Name    string
 	Code    int
@@ -407,14 +409,14 @@ func (wce WriteConcernError) IsMaxTimeMSExpiredError() bool {
 	return wce.Code == 50
 }
 
-// WriteException is the error type returned by the InsertOne, DeleteOne, DeleteMany, UpdateOne, UpdateMany, and
-// ReplaceOne operations.
-type WriteException struct {
+// WriteError is the error type returned by the InsertOne, DeleteOne,
+// DeleteMany, UpdateOne, UpdateMany, andReplaceOne operations.
+type WriteError struct {
 	// The write concern error that occurred, or nil if there was none.
 	WriteConcernError *WriteConcernError
 
 	// The write errors that occurred during operation execution.
-	WriteErrors WriteErrors
+	WriteErrors WriteOpErrors
 
 	// The categories to which the exception belongs.
 	Labels []string
@@ -424,7 +426,7 @@ type WriteException struct {
 }
 
 // Error implements the error interface.
-func (mwe WriteException) Error() string {
+func (mwe WriteError) Error() string {
 	causes := make([]string, 0, 2)
 	if mwe.WriteConcernError != nil {
 		causes = append(causes, "write concern error: "+mwe.WriteConcernError.Error())
@@ -443,7 +445,7 @@ func (mwe WriteException) Error() string {
 }
 
 // HasErrorCode returns true if the error has the specified code.
-func (mwe WriteException) HasErrorCode(code int) bool {
+func (mwe WriteError) HasErrorCode(code int) bool {
 	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
 		return true
 	}
@@ -456,7 +458,7 @@ func (mwe WriteException) HasErrorCode(code int) bool {
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
-func (mwe WriteException) HasErrorLabel(label string) bool {
+func (mwe WriteError) HasErrorLabel(label string) bool {
 	for _, l := range mwe.Labels {
 		if l == label {
 			return true
@@ -466,7 +468,7 @@ func (mwe WriteException) HasErrorLabel(label string) bool {
 }
 
 // HasErrorMessage returns true if the error contains the specified message.
-func (mwe WriteException) HasErrorMessage(message string) bool {
+func (mwe WriteError) HasErrorMessage(message string) bool {
 	if mwe.WriteConcernError != nil && strings.Contains(mwe.WriteConcernError.Message, message) {
 		return true
 	}
@@ -479,7 +481,7 @@ func (mwe WriteException) HasErrorMessage(message string) bool {
 }
 
 // HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
-func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool {
+func (mwe WriteError) HasErrorCodeWithMessage(code int, message string) bool {
 	if mwe.WriteConcernError != nil &&
 		mwe.WriteConcernError.Code == code && strings.Contains(mwe.WriteConcernError.Message, message) {
 		return true
@@ -493,7 +495,7 @@ func (mwe WriteException) HasErrorCodeWithMessage(code int, message string) bool
 }
 
 // serverError implements the ServerError interface.
-func (mwe WriteException) serverError() {}
+func (mwe WriteError) serverError() {}
 
 func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcernError {
 	if wce == nil {
@@ -509,32 +511,33 @@ func convertDriverWriteConcernError(wce *driver.WriteConcernError) *WriteConcern
 	}
 }
 
-// BulkWriteError is an error that occurred during execution of one operation in a BulkWrite. This error type is only
-// returned as part of a BulkWriteException.
-type BulkWriteError struct {
-	WriteError            // The WriteError that occurred.
-	Request    WriteModel // The WriteModel that caused this error.
+// BulkWriteOpError is an error that occurred during execution of one operation
+// in a BulkWrite. This error type is only returned as part of a
+// BulkWriteError.
+type BulkWriteOpError struct {
+	WriteOpError            // The WriteError that occurred.
+	Request      WriteModel // The WriteModel that caused this error.
 }
 
 // Error implements the error interface.
-func (bwe BulkWriteError) Error() string {
-	return bwe.WriteError.Error()
+func (bwe BulkWriteOpError) Error() string {
+	return bwe.WriteOpError.Error()
 }
 
-// BulkWriteException is the error type returned by BulkWrite and InsertMany operations.
-type BulkWriteException struct {
+// BulkWriteError is the error type returned by BulkWrite and InsertMany operations.
+type BulkWriteError struct {
 	// The write concern error that occurred, or nil if there was none.
 	WriteConcernError *WriteConcernError
 
 	// The write errors that occurred during operation execution.
-	WriteErrors []BulkWriteError
+	WriteErrors []BulkWriteOpError
 
 	// The categories to which the exception belongs.
 	Labels []string
 }
 
 // Error implements the error interface.
-func (bwe BulkWriteException) Error() string {
+func (bwe BulkWriteError) Error() string {
 	causes := make([]string, 0, 2)
 	if bwe.WriteConcernError != nil {
 		causes = append(causes, "write concern error: "+bwe.WriteConcernError.Error())
@@ -555,7 +558,7 @@ func (bwe BulkWriteException) Error() string {
 }
 
 // HasErrorCode returns true if any of the errors have the specified code.
-func (bwe BulkWriteException) HasErrorCode(code int) bool {
+func (bwe BulkWriteError) HasErrorCode(code int) bool {
 	if bwe.WriteConcernError != nil && bwe.WriteConcernError.Code == code {
 		return true
 	}
@@ -568,7 +571,7 @@ func (bwe BulkWriteException) HasErrorCode(code int) bool {
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
-func (bwe BulkWriteException) HasErrorLabel(label string) bool {
+func (bwe BulkWriteError) HasErrorLabel(label string) bool {
 	for _, l := range bwe.Labels {
 		if l == label {
 			return true
@@ -578,7 +581,7 @@ func (bwe BulkWriteException) HasErrorLabel(label string) bool {
 }
 
 // HasErrorMessage returns true if the error contains the specified message.
-func (bwe BulkWriteException) HasErrorMessage(message string) bool {
+func (bwe BulkWriteError) HasErrorMessage(message string) bool {
 	if bwe.WriteConcernError != nil && strings.Contains(bwe.WriteConcernError.Message, message) {
 		return true
 	}
@@ -591,7 +594,7 @@ func (bwe BulkWriteException) HasErrorMessage(message string) bool {
 }
 
 // HasErrorCodeWithMessage returns true if any of the contained errors have the specified code and message.
-func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) bool {
+func (bwe BulkWriteError) HasErrorCodeWithMessage(code int, message string) bool {
 	if bwe.WriteConcernError != nil &&
 		bwe.WriteConcernError.Code == code && strings.Contains(bwe.WriteConcernError.Message, message) {
 		return true
@@ -605,7 +608,7 @@ func (bwe BulkWriteException) HasErrorCodeWithMessage(code int, message string) 
 }
 
 // serverError implements the ServerError interface.
-func (bwe BulkWriteException) serverError() {}
+func (bwe BulkWriteError) serverError() {}
 
 // returnResult is used to determine if a function calling processWriteError should return
 // the result or return nil. Since the processWriteError function is used by many different
@@ -633,7 +636,7 @@ func processWriteError(err error) (returnResult, error) {
 	case err != nil:
 		switch tt := err.(type) {
 		case driver.WriteCommandError:
-			return rrMany, WriteException{
+			return rrMany, WriteError{
 				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
 				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
 				Labels:            tt.Labels,

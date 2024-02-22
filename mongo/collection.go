@@ -432,7 +432,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 }
 
 // InsertMany executes an insert command to insert multiple documents into the collection. If write errors occur
-// during the operation (e.g. duplicate key error), this method returns a BulkWriteException error.
+// during the operation (e.g. duplicate key error), this method returns a BulkWriteError error.
 //
 // The documents parameter must be a slice of documents to insert. The slice cannot be nil or empty. The elements must
 // all be non-nil. For any document that does not have an _id field when transformed into BSON, one will be added
@@ -465,21 +465,21 @@ func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	}
 
 	imResult := &InsertManyResult{InsertedIDs: result}
-	var writeException WriteException
+	var writeException WriteError
 	if !errors.As(err, &writeException) {
 		return imResult, err
 	}
 
-	// create and return a BulkWriteException
-	bwErrors := make([]BulkWriteError, 0, len(writeException.WriteErrors))
+	// create and return a BulkWriteError
+	bwErrors := make([]BulkWriteOpError, 0, len(writeException.WriteErrors))
 	for _, we := range writeException.WriteErrors {
-		bwErrors = append(bwErrors, BulkWriteError{
-			WriteError: we,
-			Request:    nil,
+		bwErrors = append(bwErrors, BulkWriteOpError{
+			WriteOpError: we,
+			Request:      nil,
 		})
 	}
 
-	return imResult, BulkWriteException{
+	return imResult, BulkWriteError{
 		WriteErrors:       bwErrors,
 		WriteConcernError: writeException.WriteConcernError,
 		Labels:            writeException.Labels,

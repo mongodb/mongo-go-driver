@@ -19,7 +19,7 @@ tests:
   # This test intentionally executes only a single insert operation in the bulk
   # write to make the error code and response assertions less ambiguous. That
   # said, some drivers may still need to skip this test because the CRUD spec
-  # does not prescribe how drivers should formulate a BulkWriteException beyond
+  # does not prescribe how drivers should formulate a BulkWriteError beyond
   # collecting write and write concern errors.
   - description: "bulkWrite operations support errorResponse assertions"
     runOnRequirements:

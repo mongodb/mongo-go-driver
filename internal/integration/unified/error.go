@@ -162,7 +162,7 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		details.codeNames = []string{converted.Name}
 		details.labels = converted.Labels
 		details.raw = converted.Raw
-	case mongo.WriteException:
+	case mongo.WriteError:
 		if converted.WriteConcernError != nil {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
@@ -172,7 +172,7 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 		}
 		details.labels = converted.Labels
 		details.raw = converted.Raw
-	case mongo.BulkWriteException:
+	case mongo.BulkWriteError:
 		if converted.WriteConcernError != nil {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)

@@ -174,8 +174,8 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"WriteException all in writeConcernError",
-				mongo.WriteException{
+				"WriteError all in writeConcernError",
+				mongo.WriteError{
 					&mongo.WriteConcernError{"name", matchCode, "foo", nil, nil},
 					nil,
 					[]string{label},
@@ -188,12 +188,12 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"WriteException all in writeError",
-				mongo.WriteException{
+				"WriteError all in writeError",
+				mongo.WriteError{
 					nil,
-					mongo.WriteErrors{
-						mongo.WriteError{0, otherCode, "bar", nil, nil},
-						mongo.WriteError{0, matchCode, "foo", nil, nil},
+					mongo.WriteOpErrors{
+						mongo.WriteOpError{0, otherCode, "bar", nil, nil},
+						mongo.WriteOpError{0, matchCode, "foo", nil, nil},
 					},
 					[]string{"otherError"},
 					nil,
@@ -205,11 +205,11 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"WriteException all false",
-				mongo.WriteException{
+				"WriteError all false",
+				mongo.WriteError{
 					&mongo.WriteConcernError{"name", otherCode, "bar", nil, nil},
-					mongo.WriteErrors{
-						mongo.WriteError{0, otherCode, "baz", nil, nil},
+					mongo.WriteOpErrors{
+						mongo.WriteOpError{0, otherCode, "baz", nil, nil},
 					},
 					[]string{"otherError"},
 					nil,
@@ -221,11 +221,11 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"WriteException HasErrorCodeAndMessage false",
-				mongo.WriteException{
+				"WriteError HasErrorCodeAndMessage false",
+				mongo.WriteError{
 					&mongo.WriteConcernError{"name", matchCode, "bar", nil, nil},
-					mongo.WriteErrors{
-						mongo.WriteError{0, otherCode, "foo", nil, nil},
+					mongo.WriteOpErrors{
+						mongo.WriteOpError{0, otherCode, "foo", nil, nil},
 					},
 					[]string{"otherError"},
 					nil,
@@ -237,8 +237,8 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"BulkWriteException all in writeConcernError",
-				mongo.BulkWriteException{
+				"BulkWriteError all in writeConcernError",
+				mongo.BulkWriteError{
 					&mongo.WriteConcernError{"name", matchCode, "foo", nil, nil},
 					nil,
 					[]string{label},
@@ -250,12 +250,12 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"BulkWriteException all in writeError",
-				mongo.BulkWriteException{
+				"BulkWriteError all in writeError",
+				mongo.BulkWriteError{
 					nil,
-					[]mongo.BulkWriteError{
-						{mongo.WriteError{0, matchCode, "foo", nil, nil}, &mongo.InsertOneModel{}},
-						{mongo.WriteError{0, otherCode, "bar", nil, nil}, &mongo.InsertOneModel{}},
+					[]mongo.BulkWriteOpError{
+						{mongo.WriteOpError{0, matchCode, "foo", nil, nil}, &mongo.InsertOneModel{}},
+						{mongo.WriteOpError{0, otherCode, "bar", nil, nil}, &mongo.InsertOneModel{}},
 					},
 					[]string{"otherError"},
 				},
@@ -266,11 +266,11 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"BulkWriteException all false",
-				mongo.BulkWriteException{
+				"BulkWriteError all false",
+				mongo.BulkWriteError{
 					&mongo.WriteConcernError{"name", otherCode, "bar", nil, nil},
-					[]mongo.BulkWriteError{
-						{mongo.WriteError{0, otherCode, "baz", nil, nil}, &mongo.InsertOneModel{}},
+					[]mongo.BulkWriteOpError{
+						{mongo.WriteOpError{0, otherCode, "baz", nil, nil}, &mongo.InsertOneModel{}},
 					},
 					[]string{"otherError"},
 				},
@@ -281,11 +281,11 @@ func TestErrors(t *testing.T) {
 				false,
 			},
 			{
-				"BulkWriteException HasErrorCodeAndMessage false",
-				mongo.BulkWriteException{
+				"BulkWriteError HasErrorCodeAndMessage false",
+				mongo.BulkWriteError{
 					&mongo.WriteConcernError{"name", matchCode, "bar", nil, nil},
-					[]mongo.BulkWriteError{
-						{mongo.WriteError{0, otherCode, "foo", nil, nil}, &mongo.InsertOneModel{}},
+					[]mongo.BulkWriteOpError{
+						{mongo.WriteOpError{0, otherCode, "foo", nil, nil}, &mongo.InsertOneModel{}},
 					},
 					[]string{"otherError"},
 				},
@@ -352,8 +352,8 @@ func TestErrors(t *testing.T) {
 
 				_, err = mt.Coll.InsertOne(context.Background(), bson.D{{"_id", 1}})
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
-				we, ok := err.(mongo.WriteException)
-				assert.True(mt, ok, "expected InsertOne error to be WriteException, got %T", err)
+				we, ok := err.(mongo.WriteError)
+				assert.True(mt, ok, "expected InsertOne error to be WriteError, got %T", err)
 
 				assert.NotNil(mt, we.WriteErrors, "expected we.WriteErrors, got nil")
 				assert.NotNil(mt, we.WriteErrors[0], "expected at least one WriteError")
@@ -367,8 +367,8 @@ func TestErrors(t *testing.T) {
 				assert.True(mt, ok, "expected 'code' to be int64, got %v", val)
 				assert.Equal(mt, code, int64(11000), "expected 'code' 11000, got %d", code)
 			})
-			mt.Run("WriteException", func(mt *mtest.T) {
-				// Mock a WriteException via failpoint with an arbitrary WriteConcernError.
+			mt.Run("WriteError", func(mt *mtest.T) {
+				// Mock a WriteError via failpoint with an arbitrary WriteConcernError.
 				mt.SetFailPoint(mtest.FailPoint{
 					ConfigureFailPoint: "failCommand",
 					Mode: mtest.FailPointMode{
@@ -384,8 +384,8 @@ func TestErrors(t *testing.T) {
 
 				_, err := mt.Coll.DeleteMany(context.Background(), bson.D{})
 				assert.NotNil(mt, err, "expected DeleteMany error, got nil")
-				we, ok := err.(mongo.WriteException)
-				assert.True(mt, ok, "expected DeleteMany error to be WriteException, got %T", err)
+				we, ok := err.(mongo.WriteError)
+				assert.True(mt, ok, "expected DeleteMany error to be WriteError, got %T", err)
 
 				// Assert that raw response exists and contains error code 123.
 				assert.NotNil(mt, we.Raw, "expected RawResponse, got nil")
@@ -407,14 +407,14 @@ func TestErrors(t *testing.T) {
 			}{
 				{"CommandError true", mongo.CommandError{11000, "", nil, "blah", nil, nil}, true},
 				{"CommandError false", mongo.CommandError{100, "", nil, "blah", nil, nil}, false},
-				{"WriteError true", mongo.WriteError{0, 11000, "", nil, nil}, true},
-				{"WriteError false", mongo.WriteError{0, 100, "", nil, nil}, false},
+				{"WriteError true", mongo.WriteOpError{0, 11000, "", nil, nil}, true},
+				{"WriteError false", mongo.WriteOpError{0, 100, "", nil, nil}, false},
 				{
-					"WriteException true in writeConcernError",
-					mongo.WriteException{
+					"WriteError true in writeConcernError",
+					mongo.WriteError{
 						&mongo.WriteConcernError{"name", 11001, "bar", nil, nil},
-						mongo.WriteErrors{
-							mongo.WriteError{0, 100, "baz", nil, nil},
+						mongo.WriteOpErrors{
+							mongo.WriteOpError{0, 100, "baz", nil, nil},
 						},
 						nil,
 						nil,
@@ -422,11 +422,11 @@ func TestErrors(t *testing.T) {
 					true,
 				},
 				{
-					"WriteException true in writeErrors",
-					mongo.WriteException{
+					"WriteError true in writeErrors",
+					mongo.WriteError{
 						&mongo.WriteConcernError{"name", 100, "bar", nil, nil},
-						mongo.WriteErrors{
-							mongo.WriteError{0, 12582, "baz", nil, nil},
+						mongo.WriteOpErrors{
+							mongo.WriteOpError{0, 12582, "baz", nil, nil},
 						},
 						nil,
 						nil,
@@ -434,11 +434,11 @@ func TestErrors(t *testing.T) {
 					true,
 				},
 				{
-					"WriteException false",
-					mongo.WriteException{
+					"WriteError false",
+					mongo.WriteError{
 						&mongo.WriteConcernError{"name", 16460, "bar", nil, nil},
-						mongo.WriteErrors{
-							mongo.WriteError{0, 100, "blah E11000 blah", nil, nil},
+						mongo.WriteOpErrors{
+							mongo.WriteOpError{0, 100, "blah E11000 blah", nil, nil},
 						},
 						nil,
 						nil,
@@ -446,22 +446,22 @@ func TestErrors(t *testing.T) {
 					false,
 				},
 				{
-					"BulkWriteException true",
-					mongo.BulkWriteException{
+					"BulkWriteError true",
+					mongo.BulkWriteError{
 						&mongo.WriteConcernError{"name", 100, "bar", nil, nil},
-						[]mongo.BulkWriteError{
-							{mongo.WriteError{0, 16460, "blah E11000 blah", nil, nil}, &mongo.InsertOneModel{}},
+						[]mongo.BulkWriteOpError{
+							{mongo.WriteOpError{0, 16460, "blah E11000 blah", nil, nil}, &mongo.InsertOneModel{}},
 						},
 						[]string{"otherError"},
 					},
 					true,
 				},
 				{
-					"BulkWriteException false",
-					mongo.BulkWriteException{
+					"BulkWriteError false",
+					mongo.BulkWriteError{
 						&mongo.WriteConcernError{"name", 100, "bar", nil, nil},
-						[]mongo.BulkWriteError{
-							{mongo.WriteError{0, 110, "blah", nil, nil}, &mongo.InsertOneModel{}},
+						[]mongo.BulkWriteOpError{
+							{mongo.WriteOpError{0, 110, "blah", nil, nil}, &mongo.InsertOneModel{}},
 						},
 						[]string{"otherError"},
 					},

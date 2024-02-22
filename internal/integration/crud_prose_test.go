@@ -54,12 +54,12 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 			})
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
-		we, ok := err.(mongo.BulkWriteException)
-		assert.True(mt, ok, "expected mongo.BulkWriteException, got %T", err)
+		we, ok := err.(mongo.BulkWriteError)
+		assert.True(mt, ok, "expected mongo.BulkWriteError, got %T", err)
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
-	mt.Run("WriteException with label", func(mt *mtest.T) {
+	mt.Run("WriteError with label", func(mt *mtest.T) {
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -77,12 +77,12 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		_, err := mt.Coll.DeleteMany(context.Background(), bson.D{{"a", 1}})
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
-		we, ok := err.(mongo.WriteException)
-		assert.True(mt, ok, "expected mongo.WriteException, got %T", err)
+		we, ok := err.(mongo.WriteError)
+		assert.True(mt, ok, "expected mongo.WriteError, got %T", err)
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
-	mt.Run("BulkWriteException with label", func(mt *mtest.T) {
+	mt.Run("BulkWriteError with label", func(mt *mtest.T) {
 		mt.SetFailPoint(mtest.FailPoint{
 			ConfigureFailPoint: "failCommand",
 			Mode: mtest.FailPointMode{
@@ -104,8 +104,8 @@ func TestWriteErrorsWithLabels(t *testing.T) {
 		_, err := mt.Coll.BulkWrite(context.Background(), models)
 		assert.NotNil(mt, err, "expected non-nil error, got nil")
 
-		we, ok := err.(mongo.BulkWriteException)
-		assert.True(mt, ok, "expected mongo.BulkWriteException, got %T", err)
+		we, ok := err.(mongo.BulkWriteError)
+		assert.True(mt, ok, "expected mongo.BulkWriteError, got %T", err)
 		assert.True(mt, we.HasErrorLabel(label), "expected error to have label: %v", label)
 	})
 
@@ -220,11 +220,11 @@ func TestWriteErrorsDetails(t *testing.T) {
 
 				var details bson.Raw
 				if tc.expectBulkError {
-					bwe, ok := err.(mongo.BulkWriteException)
+					bwe, ok := err.(mongo.BulkWriteError)
 					assert.True(
 						mt,
 						ok,
-						"expected error to be type mongo.BulkWriteException, got type %T (error %q)",
+						"expected error to be type mongo.BulkWriteError, got type %T (error %q)",
 						err,
 						err)
 					// Assert that there is one WriteError and that the Details field is populated.
@@ -237,11 +237,11 @@ func TestWriteErrorsDetails(t *testing.T) {
 						err)
 					details = bwe.WriteErrors[0].Details
 				} else {
-					we, ok := err.(mongo.WriteException)
+					we, ok := err.(mongo.WriteError)
 					assert.True(
 						mt,
 						ok,
-						"expected error to be type mongo.WriteException, got type %T (error %q)",
+						"expected error to be type mongo.WriteError, got type %T (error %q)",
 						err,
 						err)
 					// Assert that there is one WriteError and that the Details field is populated.
@@ -262,7 +262,7 @@ func TestWriteErrorsDetails(t *testing.T) {
 
 				// Assert that the most recent CommandSucceededEvent was triggered by the expected
 				// operation and contains the resulting write errors and that
-				// "writeErrors[0].errInfo" is the same as "WriteException.WriteErrors[0].Details".
+				// "writeErrors[0].errInfo" is the same as "WriteError.WriteErrors[0].Details".
 				evts := mt.GetAllSucceededEvents()
 				assert.True(
 					mt,
@@ -352,8 +352,8 @@ func TestWriteConcernError(t *testing.T) {
 
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
 		assert.NotNil(mt, err, "expected InsertOne error, got nil")
-		writeException, ok := err.(mongo.WriteException)
-		assert.True(mt, ok, "expected WriteException, got error %v of type %T", err, err)
+		writeException, ok := err.(mongo.WriteError)
+		assert.True(mt, ok, "expected WriteError, got error %v of type %T", err, err)
 		wcError := writeException.WriteConcernError
 		assert.NotNil(mt, wcError, "expected write-concern error, got %v", err)
 		assert.True(mt, bytes.Equal(wcError.Details, errInfoDoc), "expected errInfo document %v, got %v",
@@ -395,8 +395,8 @@ func TestErrorsCodeNamePropagated(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		assert.NotNil(mt, err, "expected InsertOne error, got nil")
 
-		we, ok := err.(mongo.WriteException)
-		assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.WriteException{}, err, err)
+		we, ok := err.(mongo.WriteError)
+		assert.True(mt, ok, "expected error of type %T, got %v of type %T", mongo.WriteError{}, err, err)
 		wce := we.WriteConcernError
 		assert.NotNil(mt, wce, "expected write concern error, got %v", we)
 

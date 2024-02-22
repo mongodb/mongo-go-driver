@@ -495,12 +495,12 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 	case mongo.CommandError:
 		details.name = converted.Name
 		details.labels = converted.Labels
-	case mongo.WriteException:
+	case mongo.WriteError:
 		if converted.WriteConcernError != nil {
 			details.name = converted.WriteConcernError.Name
 		}
 		details.labels = converted.Labels
-	case mongo.BulkWriteException:
+	case mongo.BulkWriteError:
 		if converted.WriteConcernError != nil {
 			details.name = converted.WriteConcernError.Name
 		}

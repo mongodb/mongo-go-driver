@@ -101,7 +101,7 @@ tests:
           ordered: false
         expectError:
           expectResult:
-            # insertMany throws BulkWriteException, which may optionally include
+            # insertMany throws BulkWriteError, which may optionally include
             # an intermediary BulkWriteResult
             $$unsetOrMatches:
               deletedCount: 0

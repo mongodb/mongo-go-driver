@@ -114,7 +114,7 @@ func TestDatabase(t *testing.T) {
 			assert.True(mt, ok, "expected n in response")
 			assert.Equal(mt, int32(1), n, "expected n value 1, got %v", n)
 
-			writeExcept, ok := gotErr.(mongo.WriteException)
+			writeExcept, ok := gotErr.(mongo.WriteError)
 			assert.True(mt, ok, "expected WriteCommandError, got %T", gotErr)
 			assert.NotNil(mt, writeExcept.WriteConcernError, "expected WriteConcernError to be non-nil")
 			assert.Equal(mt, writeExcept.WriteConcernError.Code, 100, "expected error code 100, got %v", writeExcept.WriteConcernError.Code)

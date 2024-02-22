@@ -24,9 +24,9 @@ func TestErrorMessages(t *testing.T) {
 		expected string
 	}{
 		{
-			desc: "WriteException error message should contain the WriteError Message and Details",
-			err: WriteException{
-				WriteErrors: WriteErrors{
+			desc: "WriteError error message should contain the WriteError Message and Details",
+			err: WriteError{
+				WriteErrors: WriteOpErrors{
 					{
 						Message: "test message 1",
 						Details: details,
@@ -40,17 +40,17 @@ func TestErrorMessages(t *testing.T) {
 			expected: `write exception: write errors: [test message 1: {"details": {"operatorName": "$jsonSchema"}}, test message 2: {"details": {"operatorName": "$jsonSchema"}}]`,
 		},
 		{
-			desc: "BulkWriteException error message should contain the WriteError Message and Details",
-			err: BulkWriteException{
-				WriteErrors: []BulkWriteError{
+			desc: "BulkWriteError error message should contain the WriteError Message and Details",
+			err: BulkWriteError{
+				WriteErrors: []BulkWriteOpError{
 					{
-						WriteError: WriteError{
+						WriteOpError: WriteOpError{
 							Message: "test message 1",
 							Details: details,
 						},
 					},
 					{
-						WriteError: WriteError{
+						WriteOpError: WriteOpError{
 							Message: "test message 2",
 							Details: details,
 						},

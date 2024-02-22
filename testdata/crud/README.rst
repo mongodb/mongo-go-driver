@@ -135,7 +135,7 @@ For each test file:
     - Given the ``name`` and ``arguments``, execute the operation on the object
       under test. Capture the result of the operation, if any, and observe
       whether an error occurred. If an error is encountered that includes a
-      result (e.g. BulkWriteException), extract the result object.
+      result (e.g. BulkWriteError), extract the result object.
 
     - If ``error`` is present and true, assert that the operation encountered an
       error. Otherwise, assert that no error was encountered.

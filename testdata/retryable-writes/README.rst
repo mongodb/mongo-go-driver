@@ -202,7 +202,7 @@ Each YAML file has the following keys:
       and ``error`` is ``true`` (generally for multi-statement tests), the
       result reports information about operations that succeeded before an
       unrecoverable failure. In that case, drivers may choose to check the
-      result object if their BulkWriteException (or equivalent) provides access
+      result object if their BulkWriteError (or equivalent) provides access
       to a write result object.
 
       - ``errorLabelsContain``: A list of error label strings that the
