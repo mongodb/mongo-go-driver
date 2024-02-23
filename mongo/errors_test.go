@@ -26,7 +26,7 @@ func TestErrorMessages(t *testing.T) {
 		{
 			desc: "WriteError error message should contain the WriteError Message and Details",
 			err: WriteError{
-				WriteErrors: WriteOpErrors{
+				WriteOpErrors: WriteOpErrors{
 					{
 						Message: "test message 1",
 						Details: details,

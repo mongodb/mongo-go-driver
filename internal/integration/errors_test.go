@@ -355,11 +355,11 @@ func TestErrors(t *testing.T) {
 				we, ok := err.(mongo.WriteError)
 				assert.True(mt, ok, "expected InsertOne error to be WriteError, got %T", err)
 
-				assert.NotNil(mt, we.WriteErrors, "expected we.WriteErrors, got nil")
-				assert.NotNil(mt, we.WriteErrors[0], "expected at least one WriteError")
+				assert.NotNil(mt, we.WriteOpErrors, "expected we.WriteErrors, got nil")
+				assert.NotNil(mt, we.WriteOpErrors[0], "expected at least one WriteError")
 
 				// Assert that raw response exists for the WriteError and contains error code 11000.
-				raw := we.WriteErrors[0].Raw
+				raw := we.WriteOpErrors[0].Raw
 				assert.NotNil(mt, raw, "Raw of WriteError is nil")
 				val, err := raw.LookupErr("code")
 				assert.Nil(mt, err, "expected 'code' field in Raw field, got %v", raw)

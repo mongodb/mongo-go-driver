@@ -248,11 +248,11 @@ func TestWriteErrorsDetails(t *testing.T) {
 					assert.Equal(
 						mt,
 						1,
-						len(we.WriteErrors),
+						len(we.WriteOpErrors),
 						"expected exactly 1 write error, but got %d write errors (error %q)",
-						len(we.WriteErrors),
+						len(we.WriteOpErrors),
 						err)
-					details = we.WriteErrors[0].Details
+					details = we.WriteOpErrors[0].Details
 				}
 
 				assert.True(

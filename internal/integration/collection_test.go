@@ -61,8 +61,8 @@ func TestCollection(t *testing.T) {
 			_, err = mt.Coll.InsertOne(context.Background(), doc)
 			we, ok := err.(mongo.WriteError)
 			assert.True(mt, ok, "expected error type %T, got %T", mongo.WriteError{}, err)
-			assert.Equal(mt, 1, len(we.WriteErrors), "expected 1 write error, got %v", len(we.WriteErrors))
-			writeErr := we.WriteErrors[0]
+			assert.Equal(mt, 1, len(we.WriteOpErrors), "expected 1 write error, got %v", len(we.WriteOpErrors))
+			writeErr := we.WriteOpErrors[0]
 			assert.Equal(mt, errorDuplicateKey, writeErr.Code, "expected code %v, got %v", errorDuplicateKey, writeErr.Code)
 		})
 
@@ -317,9 +317,9 @@ func TestCollection(t *testing.T) {
 
 			we, ok := err.(mongo.WriteError)
 			assert.True(mt, ok, "expected error type %T, got %T", mongo.WriteError{}, err)
-			numWriteErrors := len(we.WriteErrors)
+			numWriteErrors := len(we.WriteOpErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
-			gotCode := we.WriteErrors[0].Code
+			gotCode := we.WriteOpErrors[0].Code
 			assert.True(mt, gotCode == errorCappedCollDeleteLegacy || gotCode == errorCappedCollDelete,
 				"expected error code %v or %v, got %v", errorCappedCollDeleteLegacy, errorCappedCollDelete, gotCode)
 		})
@@ -386,9 +386,9 @@ func TestCollection(t *testing.T) {
 
 			we, ok := err.(mongo.WriteError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteError{}, err)
-			numWriteErrors := len(we.WriteErrors)
-			assert.Equal(mt, 1, len(we.WriteErrors), "expected 1 write error, got %v", numWriteErrors)
-			gotCode := we.WriteErrors[0].Code
+			numWriteErrors := len(we.WriteOpErrors)
+			assert.Equal(mt, 1, len(we.WriteOpErrors), "expected 1 write error, got %v", numWriteErrors)
+			gotCode := we.WriteOpErrors[0].Code
 			assert.True(mt, gotCode == errorCappedCollDeleteLegacy || gotCode == errorCappedCollDelete,
 				"expected error code %v or %v, got %v", errorCappedCollDeleteLegacy, errorCappedCollDelete, gotCode)
 		})
@@ -470,9 +470,9 @@ func TestCollection(t *testing.T) {
 			_, err = mt.Coll.UpdateOne(context.Background(), filter, update)
 			we, ok := err.(mongo.WriteError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteError{}, err)
-			numWriteErrors := len(we.WriteErrors)
+			numWriteErrors := len(we.WriteOpErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
-			gotCode := we.WriteErrors[0].Code
+			gotCode := we.WriteOpErrors[0].Code
 			assert.Equal(mt, errorModifiedID, gotCode, "expected error code %v, got %v", errorModifiedID, gotCode)
 		})
 		mt.RunOpts("write concern error", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
@@ -652,9 +652,9 @@ func TestCollection(t *testing.T) {
 			_, err = mt.Coll.UpdateMany(context.Background(), filter, update)
 			we, ok := err.(mongo.WriteError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteError{}, err)
-			numWriteErrors := len(we.WriteErrors)
+			numWriteErrors := len(we.WriteOpErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
-			gotCode := we.WriteErrors[0].Code
+			gotCode := we.WriteOpErrors[0].Code
 			assert.Equal(mt, errorModifiedID, gotCode, "expected error code %v, got %v", errorModifiedID, gotCode)
 		})
 		mt.RunOpts("write concern error", mtest.NewOptions().Topologies(mtest.ReplicaSet), func(mt *mtest.T) {
@@ -714,9 +714,9 @@ func TestCollection(t *testing.T) {
 			_, err = mt.Coll.ReplaceOne(context.Background(), filter, replacement)
 			we, ok := err.(mongo.WriteError)
 			assert.True(mt, ok, "expected error type %v, got %v", mongo.WriteError{}, err)
-			numWriteErrors := len(we.WriteErrors)
+			numWriteErrors := len(we.WriteOpErrors)
 			assert.Equal(mt, 1, numWriteErrors, "expected 1 write error, got %v", numWriteErrors)
-			gotCode := we.WriteErrors[0].Code
+			gotCode := we.WriteOpErrors[0].Code
 			assert.True(mt, gotCode == errorModifiedID || gotCode == errorModifiedIDLegacy,
 				"expected error code %v or %v, got %v", errorModifiedID, errorModifiedIDLegacy, gotCode)
 		})

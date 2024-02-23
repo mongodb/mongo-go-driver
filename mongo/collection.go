@@ -471,8 +471,8 @@ func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 	}
 
 	// create and return a BulkWriteError
-	bwErrors := make([]BulkWriteOpError, 0, len(writeException.WriteErrors))
-	for _, we := range writeException.WriteErrors {
+	bwErrors := make([]BulkWriteOpError, 0, len(writeException.WriteOpErrors))
+	for _, we := range writeException.WriteOpErrors {
 		bwErrors = append(bwErrors, BulkWriteOpError{
 			WriteOpError: we,
 			Request:      nil,

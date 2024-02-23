@@ -167,7 +167,7 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 			details.codes = append(details.codes, int32(converted.WriteConcernError.Code))
 			details.codeNames = append(details.codeNames, converted.WriteConcernError.Name)
 		}
-		for _, we := range converted.WriteErrors {
+		for _, we := range converted.WriteOpErrors {
 			details.codes = append(details.codes, int32(we.Code))
 		}
 		details.labels = converted.Labels

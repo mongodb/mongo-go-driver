@@ -312,8 +312,7 @@ func (e CommandError) IsMaxTimeMSExpiredError() bool {
 func (e CommandError) serverError() {}
 
 // WriteOpError is an error that occurred during execution of a write operation.
-// This error type is only returned as part of a WriteError or
-// BulkWriteError.
+// This error type is only returned as part of a WriteError or BulkWriteError.
 type WriteOpError struct {
 	// The index of the write in the slice passed to an InsertMany or BulkWrite
 	// operation that caused this error.
@@ -359,7 +358,8 @@ func (we WriteOpError) HasErrorCodeWithMessage(code int, message string) bool {
 // serverError implements the ServerError interface.
 func (we WriteOpError) serverError() {}
 
-// WriteOpErrors is a group of write errors that occurred during execution of a write operation.
+// WriteOpErrors is a group of write errors that occurred during execution of a
+// write operation.
 type WriteOpErrors []WriteOpError
 
 // Error implements the error interface.
@@ -416,7 +416,7 @@ type WriteError struct {
 	WriteConcernError *WriteConcernError
 
 	// The write errors that occurred during operation execution.
-	WriteErrors WriteOpErrors
+	WriteOpErrors WriteOpErrors
 
 	// The categories to which the exception belongs.
 	Labels []string
@@ -431,10 +431,10 @@ func (mwe WriteError) Error() string {
 	if mwe.WriteConcernError != nil {
 		causes = append(causes, "write concern error: "+mwe.WriteConcernError.Error())
 	}
-	if len(mwe.WriteErrors) > 0 {
+	if len(mwe.WriteOpErrors) > 0 {
 		// The WriteErrors error message already starts with "write errors:", so don't add it to the
 		// error message again.
-		causes = append(causes, mwe.WriteErrors.Error())
+		causes = append(causes, mwe.WriteOpErrors.Error())
 	}
 
 	message := "write exception: "
@@ -449,7 +449,7 @@ func (mwe WriteError) HasErrorCode(code int) bool {
 	if mwe.WriteConcernError != nil && mwe.WriteConcernError.Code == code {
 		return true
 	}
-	for _, we := range mwe.WriteErrors {
+	for _, we := range mwe.WriteOpErrors {
 		if we.Code == code {
 			return true
 		}
@@ -472,7 +472,7 @@ func (mwe WriteError) HasErrorMessage(message string) bool {
 	if mwe.WriteConcernError != nil && strings.Contains(mwe.WriteConcernError.Message, message) {
 		return true
 	}
-	for _, we := range mwe.WriteErrors {
+	for _, we := range mwe.WriteOpErrors {
 		if strings.Contains(we.Message, message) {
 			return true
 		}
@@ -486,7 +486,7 @@ func (mwe WriteError) HasErrorCodeWithMessage(code int, message string) bool {
 		mwe.WriteConcernError.Code == code && strings.Contains(mwe.WriteConcernError.Message, message) {
 		return true
 	}
-	for _, we := range mwe.WriteErrors {
+	for _, we := range mwe.WriteOpErrors {
 		if we.Code == code && strings.Contains(we.Message, message) {
 			return true
 		}
@@ -638,7 +638,7 @@ func processWriteError(err error) (returnResult, error) {
 		case driver.WriteCommandError:
 			return rrMany, WriteError{
 				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
-				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
+				WriteOpErrors:     writeErrorsFromDriverWriteErrors(tt.WriteErrors),
 				Labels:            tt.Labels,
 				Raw:               bson.Raw(tt.Raw),
 			}
