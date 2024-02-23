@@ -211,11 +211,11 @@ var lock sync.Mutex
 func (r *response) UnmarshalBSON(buf []byte) error {
 	doc := bson.Raw(buf)
 	if err := doc.Index(0).Value().Unmarshal(&r.Host); err != nil {
-		return fmt.Errorf("error unmarshalling Host: %v", err)
+		return fmt.Errorf("error unmarshalling Host: %w", err)
 	}
 
 	if err := doc.Index(1).Value().Unmarshal(&r.Hello); err != nil {
-		return fmt.Errorf("error unmarshalling Hello: %v", err)
+		return fmt.Errorf("error unmarshalling Hello: %w", err)
 	}
 
 	return nil

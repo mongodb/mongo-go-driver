@@ -92,15 +92,11 @@ type extJSONValueWriter struct {
 }
 
 // NewExtJSONValueWriter creates a ValueWriter that writes Extended JSON to w.
-func NewExtJSONValueWriter(w io.Writer, canonical, escapeHTML bool) (ValueWriter, error) {
-	if w == nil {
-		return nil, errNilWriter
-	}
-
+func NewExtJSONValueWriter(w io.Writer, canonical, escapeHTML bool) ValueWriter {
 	// Enable newlines for all Extended JSON value writers created by NewExtJSONValueWriter. We
 	// expect these value writers to be used with an Encoder, which should add newlines after
 	// encoded Extended JSON documents.
-	return newExtJSONWriter(w, canonical, escapeHTML, true), nil
+	return newExtJSONWriter(w, canonical, escapeHTML, true)
 }
 
 func newExtJSONWriter(w io.Writer, canonical, escapeHTML, newlines bool) *extJSONValueWriter {

@@ -95,8 +95,6 @@ func (bvwp *BSONValueWriterPool) Put(vw ValueWriter) (ok bool) {
 // allocating a 4GB slice.
 var maxSize = math.MaxInt32
 
-var errNilWriter = errors.New("cannot create a ValueWriter from a nil io.Writer")
-
 type errMaxDocumentSizeExceeded struct {
 	size int64
 }
@@ -188,15 +186,12 @@ func (vw *valueWriter) pop() {
 	}
 }
 
-// NewBSONValueWriter creates a ValueWriter that writes BSON to w.
+// NewValueWriter creates a ValueWriter that writes BSON to w.
 //
 // This ValueWriter will only write entire documents to the io.Writer and it
 // will buffer the document as it is built.
-func NewBSONValueWriter(w io.Writer) (ValueWriter, error) {
-	if w == nil {
-		return nil, errNilWriter
-	}
-	return newValueWriter(w), nil
+func NewValueWriter(w io.Writer) ValueWriter {
+	return newValueWriter(w)
 }
 
 func newValueWriter(w io.Writer) *valueWriter {

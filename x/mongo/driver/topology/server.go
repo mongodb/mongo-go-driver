@@ -416,8 +416,8 @@ func (s *Server) RequestImmediateCheck() {
 // (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
 // handling and (nil, false) otherwise.
 func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
-	writeCmdErr, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var writeCmdErr driver.WriteCommandError
+	if !errors.As(err, &writeCmdErr) {
 		return nil, false
 	}
 
@@ -604,7 +604,7 @@ func (s *Server) update() {
 
 		// Perform the next check.
 		desc, err := s.check()
-		if err == errCheckCancelled {
+		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
 			}
@@ -659,6 +659,7 @@ func (s *Server) update() {
 		// If the server supports streaming or we're already streaming, we want to move to streaming the next response
 		// without waiting. If the server has transitioned to Unknown from a network error, we want to do another
 		// check without waiting in case it was a transient error and the server isn't actually down.
+		serverSupportsStreaming := desc.Kind != description.Unknown && desc.TopologyVersion != nil
 		connectionIsStreaming := s.conn != nil && s.conn.getCurrentlyStreaming()
 		transitionedFromNetworkError := desc.LastError != nil && unwrapConnectionError(desc.LastError) != nil &&
 			previousDescription.Kind != description.Unknown
@@ -667,7 +668,7 @@ func (s *Server) update() {
 			s.rttMonitor.connect()
 		}
 
-		if isStreamable(s) || connectionIsStreaming || transitionedFromNetworkError {
+		if isStreamable(s) && (serverSupportsStreaming || connectionIsStreaming) || transitionedFromNetworkError {
 			continue
 		}
 
