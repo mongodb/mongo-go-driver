@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -104,7 +103,7 @@ type Server struct {
 	// description related fields
 	desc                   atomic.Value // holds a description.Server
 	updateTopologyCallback atomic.Value
-	topologyID             primitive.ObjectID
+	topologyID             bson.ObjectID
 
 	// subscriber related fields
 	subLock             sync.Mutex
@@ -137,7 +136,7 @@ type updateTopologyCallback func(description.Server) description.Server
 func ConnectServer(
 	addr address.Address,
 	updateCallback updateTopologyCallback,
-	topologyID primitive.ObjectID,
+	topologyID bson.ObjectID,
 	opts ...ServerOption,
 ) (*Server, error) {
 	srvr := NewServer(addr, topologyID, opts...)
@@ -150,7 +149,7 @@ func ConnectServer(
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...ServerOption) *Server {
+func NewServer(addr address.Address, topologyID bson.ObjectID, opts ...ServerOption) *Server {
 	cfg := newServerConfig(opts...)
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
@@ -326,7 +325,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
 // finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *bson.ObjectID) {
 	// Ignore the error if the server is behind a load balancer but the service ID is unknown. This indicates that the
 	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the service ID to
 	// use for clearing the pool.

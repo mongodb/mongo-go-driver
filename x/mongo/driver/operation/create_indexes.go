@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -125,7 +124,7 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 
 func (ci *CreateIndexes) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "createIndexes", ci.collection)
-	if ci.commitQuorum.Type != bsontype.Type(0) {
+	if ci.commitQuorum.Type != bsoncore.Type(0) {
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(9) {
 			return nil, errors.New("the 'commitQuorum' command parameter requires a minimum server wire version of 9")
 		}

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -26,7 +25,7 @@ func TestWriteConcern_MarshalBSONValue(t *testing.T) {
 	testCases := []struct {
 		name      string
 		wc        *writeconcern.WriteConcern
-		wantType  bsontype.Type
+		wantType  bson.Type
 		wantValue bson.D
 		wantError error
 	}{

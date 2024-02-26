@@ -13,7 +13,6 @@ import (
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 func ExampleDecoder() {
@@ -31,7 +30,7 @@ func ExampleDecoder() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder := bson.NewDecoder(bsonrw.NewValueReader(data))
+	decoder := bson.NewDecoder(bson.NewValueReader(data))
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -67,17 +66,17 @@ func ExampleDecoder_DefaultDocumentM() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
 	// into a City struct.
-	decoder := bson.NewDecoder(bsonrw.NewValueReader(data))
+	decoder := bson.NewDecoder(bson.NewValueReader(data))
 
 	type City struct {
 		Name       string      `bson:"name"`
 		Properties interface{} `bson:"properties"`
 	}
 
-	// Configure the Decoder to default to decoding BSON documents as the bson.M
+	// Configure the Decoder to default to decoding BSON documents as the M
 	// type if the decode destination has no type information. The Properties
-	// field in the City struct will be decoded as a "bson.M" (i.e. map) instead
-	// of the default "bson.D".
+	// field in the City struct will be decoded as a "M" (i.e. map) instead
+	// of the default "D".
 	decoder.DefaultDocumentM()
 
 	var res City
@@ -105,7 +104,7 @@ func ExampleDecoder_UseJSONStructTags() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder := bson.NewDecoder(bsonrw.NewValueReader(data))
+	decoder := bson.NewDecoder(bson.NewValueReader(data))
 
 	type Product struct {
 		Name  string `json:"name"`
@@ -134,7 +133,7 @@ func ExampleDecoder_extendedJSON() {
 
 	// Create a Decoder that reads the Extended JSON document and use it to
 	// unmarshal the document into a Product struct.
-	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(data), true)
 	if err != nil {
 		panic(err)
 	}
@@ -169,7 +168,7 @@ func ExampleDecoder_multipleExtendedJSONDocuments() {
 
 	// Create a Decoder that reads the Extended JSON documents and use it to
 	// unmarshal the documents Coordinate structs.
-	vr, err := bsonrw.NewExtJSONValueReader(bytes.NewReader(data), true)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(data), true)
 	if err != nil {
 		panic(err)
 	}

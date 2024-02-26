@@ -7,7 +7,7 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -33,7 +33,7 @@ type CollectionOptions struct {
 
 	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Collection. The default value
 	// is nil, which means that the registry of the Database used to configure the Collection will be used.
-	Registry *bsoncodec.Registry
+	Registry *bson.Registry
 }
 
 // Collection creates a new CollectionOptions instance.
@@ -66,7 +66,7 @@ func (c *CollectionOptions) SetBSONOptions(opts *BSONOptions) *CollectionOptions
 }
 
 // SetRegistry sets the value for the Registry field.
-func (c *CollectionOptions) SetRegistry(r *bsoncodec.Registry) *CollectionOptions {
+func (c *CollectionOptions) SetRegistry(r *bson.Registry) *CollectionOptions {
 	c.Registry = r
 	return c
 }

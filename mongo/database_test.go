@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -54,7 +53,7 @@ func TestDatabase(t *testing.T) {
 			wc2 := &writeconcern.WriteConcern{W: 10}
 			rcLocal := readconcern.Local()
 			rcMajority := readconcern.Majority()
-			reg := bsoncodec.NewRegistry()
+			reg := bson.NewRegistry()
 
 			opts := options.Database().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetWriteConcern(wc1).
 				SetReadPreference(rpSecondary).SetReadConcern(rcMajority).SetWriteConcern(wc2).SetRegistry(reg)
@@ -71,7 +70,7 @@ func TestDatabase(t *testing.T) {
 			rpPrimary := readpref.Primary()
 			rcLocal := readconcern.Local()
 			wc1 := &writeconcern.WriteConcern{W: 10}
-			reg := bsoncodec.NewRegistry()
+			reg := bson.NewRegistry()
 
 			client := setupClient(options.Client().SetReadPreference(rpPrimary).SetReadConcern(rcLocal).SetRegistry(reg))
 			got := client.Database("foo", options.Database().SetWriteConcern(wc1))

@@ -15,7 +15,6 @@ import (
 	"math"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // uploadBufferSize is the size in bytes of one stream batch. Chunks will be written to the db after the sum of chunk
@@ -150,10 +149,10 @@ func (us *GridFSUploadStream) uploadChunks(ctx context.Context, uploadPartial bo
 		}
 		chunkData := us.buffer[i:endIndex]
 		docs[us.chunkIndex-begChunkIndex] = bson.D{
-			{"_id", primitive.NewObjectID()},
+			{"_id", bson.NewObjectID()},
 			{"files_id", us.FileID},
 			{"n", int32(us.chunkIndex)},
-			{"data", primitive.Binary{Subtype: 0x00, Data: chunkData}},
+			{"data", bson.Binary{Subtype: 0x00, Data: chunkData}},
 		}
 		us.chunkIndex++
 		us.fileLen += int64(len(chunkData))
@@ -178,7 +177,7 @@ func (us *GridFSUploadStream) createFilesCollDoc(ctx context.Context) error {
 		{"_id", us.FileID},
 		{"length", us.fileLen},
 		{"chunkSize", us.chunkSize},
-		{"uploadDate", primitive.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
+		{"uploadDate", bson.DateTime(time.Now().UnixNano() / int64(time.Millisecond))},
 		{"filename", us.filename},
 	}
 

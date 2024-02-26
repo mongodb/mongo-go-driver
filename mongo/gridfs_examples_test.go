@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -71,7 +70,7 @@ func ExampleGridFSBucket_UploadFromStream() {
 
 func ExampleGridFSBucket_OpenDownloadStream() {
 	var bucket *mongo.GridFSBucket
-	var fileID primitive.ObjectID
+	var fileID bson.ObjectID
 
 	// Use WithContext to force a timeout if the download does not succeed in
 	// 2 seconds.
@@ -96,7 +95,7 @@ func ExampleGridFSBucket_OpenDownloadStream() {
 
 func ExampleGridFSBucket_DownloadToStream() {
 	var bucket *mongo.GridFSBucket
-	var fileID primitive.ObjectID
+	var fileID bson.ObjectID
 
 	ctx := context.Background()
 
@@ -108,7 +107,7 @@ func ExampleGridFSBucket_DownloadToStream() {
 
 func ExampleGridFSBucket_Delete() {
 	var bucket *mongo.GridFSBucket
-	var fileID primitive.ObjectID
+	var fileID bson.ObjectID
 
 	if err := bucket.Delete(context.Background(), fileID); err != nil {
 		log.Fatal(err)
@@ -148,7 +147,7 @@ func ExampleGridFSBucket_Find() {
 
 func ExampleGridFSBucket_Rename() {
 	var bucket *mongo.GridFSBucket
-	var fileID primitive.ObjectID
+	var fileID bson.ObjectID
 
 	ctx := context.Background()
 

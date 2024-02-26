@@ -13,7 +13,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 func bsonMapDecoding(tm TimerManager, iters int, dataSet string) error {
@@ -53,7 +52,7 @@ func bsonMapEncoding(tm TimerManager, iters int, dataSet string) error {
 	buf := new(bytes.Buffer)
 	for i := 0; i < iters; i++ {
 		buf.Reset()
-		vw := bsonrw.NewValueWriter(buf)
+		vw := bson.NewValueWriter(buf)
 		err = bson.NewEncoder(vw).Encode(doc)
 		if err != nil {
 			return err

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func TestElement(t *testing.T) {
@@ -23,7 +22,7 @@ func TestElement(t *testing.T) {
 		}{
 			{"No Type", Element{}, "", ErrElementMissingType},
 			{"No Key", Element{0x01, 'f', 'o', 'o'}, "", ErrElementMissingKey},
-			{"Success", AppendHeader(nil, bsontype.Double, "foo"), "foo", nil},
+			{"Success", AppendHeader(nil, TypeDouble, "foo"), "foo", nil},
 		}
 
 		for _, tc := range testCases {
@@ -54,7 +53,7 @@ func TestElement(t *testing.T) {
 		}{
 			{"No Type", Element{}, ErrElementMissingType},
 			{"No Key", Element{0x01, 'f', 'o', 'o'}, ErrElementMissingKey},
-			{"Insufficient Bytes", AppendHeader(nil, bsontype.Double, "foo"), NewInsufficientBytesError(nil, nil)},
+			{"Insufficient Bytes", AppendHeader(nil, TypeDouble, "foo"), NewInsufficientBytesError(nil, nil)},
 			{"Success", AppendDoubleElement(nil, "foo", 3.14159), nil},
 		}
 
@@ -76,10 +75,10 @@ func TestElement(t *testing.T) {
 		}{
 			{"Element Too Short", Element{0x02}, nil, false},
 			{"Element Invalid Key", Element{0x02, 'f', 'o', 'o'}, nil, false},
-			{"Key With Null Byte", AppendHeader(nil, bsontype.Double, "foo"), []byte{'f', 'o', 'o', 0x00}, true},
-			{"Key Without Null Byte", AppendHeader(nil, bsontype.Double, "pi"), []byte{'p', 'i'}, true},
-			{"Key With Null Byte With Extra", AppendHeader(nil, bsontype.Double, "foo"), []byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r'}, true},
-			{"Prefix Key No Match", AppendHeader(nil, bsontype.Double, "foo"), []byte{'f', 'o', 'o', 'b', 'a', 'r'}, false},
+			{"Key With Null Byte", AppendHeader(nil, TypeDouble, "foo"), []byte{'f', 'o', 'o', 0x00}, true},
+			{"Key Without Null Byte", AppendHeader(nil, TypeDouble, "pi"), []byte{'p', 'i'}, true},
+			{"Key With Null Byte With Extra", AppendHeader(nil, TypeDouble, "foo"), []byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r'}, true},
+			{"Prefix Key No Match", AppendHeader(nil, TypeDouble, "foo"), []byte{'f', 'o', 'o', 'b', 'a', 'r'}, false},
 		}
 
 		for _, tc := range testCases {
@@ -100,8 +99,8 @@ func TestElement(t *testing.T) {
 		}{
 			{"No Type", Element{}, Value{}, ErrElementMissingType},
 			{"No Key", Element{0x01, 'f', 'o', 'o'}, Value{}, ErrElementMissingKey},
-			{"Insufficient Bytes", AppendHeader(nil, bsontype.Double, "foo"), Value{}, NewInsufficientBytesError(nil, nil)},
-			{"Success", AppendDoubleElement(nil, "foo", 3.14159), Value{Type: bsontype.Double, Data: AppendDouble(nil, 3.14159)}, nil},
+			{"Insufficient Bytes", AppendHeader(nil, TypeDouble, "foo"), Value{}, NewInsufficientBytesError(nil, nil)},
+			{"Success", AppendDoubleElement(nil, "foo", 3.14159), Value{Type: TypeDouble, Data: AppendDouble(nil, 3.14159)}, nil},
 		}
 
 		for _, tc := range testCases {

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -28,7 +27,7 @@ type finder interface {
 type mockFinder struct {
 	docs     []interface{}
 	err      error
-	registry *bsoncodec.Registry
+	registry *bson.Registry
 }
 
 // FindOne mocks a findOne operation using NewSingleResultFromDocument.

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ChangeStreamOptions represents options that can be used to configure a Watch operation.
@@ -52,7 +51,7 @@ type ChangeStreamOptions struct {
 	// If specified, the change stream will only return changes that occurred at or after the given timestamp. This
 	// option is only valid for MongoDB versions >= 4.0. If this is specified, ResumeAfter and StartAfter must not be
 	// set.
-	StartAtOperationTime *primitive.Timestamp
+	StartAtOperationTime *bson.Timestamp
 
 	// A document specifying the logical starting point for the change stream. This is similar to the ResumeAfter
 	// option, but allows a resume token from an "invalidate" notification to be used. This allows a change stream on a
@@ -127,7 +126,7 @@ func (cso *ChangeStreamOptions) SetShowExpandedEvents(see bool) *ChangeStreamOpt
 }
 
 // SetStartAtOperationTime sets the value for the StartAtOperationTime field.
-func (cso *ChangeStreamOptions) SetStartAtOperationTime(t *primitive.Timestamp) *ChangeStreamOptions {
+func (cso *ChangeStreamOptions) SetStartAtOperationTime(t *bson.Timestamp) *ChangeStreamOptions {
 	cso.StartAtOperationTime = t
 	return cso
 }

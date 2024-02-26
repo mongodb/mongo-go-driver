@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // operationResult holds the result and/or error returned by an op.
@@ -35,13 +34,13 @@ func newEmptyResult() *operationResult {
 
 // newDocumentResult is a helper to create a value result where the value is a BSON document.
 func newDocumentResult(result []byte, err error) *operationResult {
-	return newValueResult(bsontype.EmbeddedDocument, result, err)
+	return newValueResult(bson.TypeEmbeddedDocument, result, err)
 }
 
 // newValueResult creates an operationResult where the result is a BSON value of an arbitrary type. Because some
 // operations can return both a result and an error (e.g. bulkWrite), the err parameter should be the error returned
 // by the op, if any.
-func newValueResult(valueType bsontype.Type, data []byte, err error) *operationResult {
+func newValueResult(valueType bson.Type, data []byte, err error) *operationResult {
 	return &operationResult{
 		Result: bson.RawValue{Type: valueType, Value: data},
 		Err:    err,
@@ -80,7 +79,7 @@ func verifyOperationResult(ctx context.Context, expected bson.RawValue, actual *
 		}
 
 		actualVal = bson.RawValue{
-			Type:  bsontype.Array,
+			Type:  bson.TypeArray,
 			Value: data,
 		}
 	}
@@ -88,6 +87,6 @@ func verifyOperationResult(ctx context.Context, expected bson.RawValue, actual *
 	// For document results and arrays of root documents (i.e. cursor results), the actual value can have additional
 	// top-level keys. Single-value array results (e.g. from distinct) must match exactly, so we set extraKeysAllowed to
 	// false only for that case.
-	extraKeysAllowed := actual.Result.Type != bsontype.Array
+	extraKeysAllowed := actual.Result.Type != bson.TypeArray
 	return verifyValuesMatch(ctx, expected, actualVal, extraKeysAllowed)
 }

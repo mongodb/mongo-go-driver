@@ -11,8 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -61,24 +59,24 @@ func TestUnmarshalValue(t *testing.T) {
 		testCases := []struct {
 			name     string
 			val      interface{}
-			bsontype bsontype.Type
+			bsontype Type
 			bytes    []byte
 		}{
 			{
 				name:     "SliceCodec binary",
 				val:      []byte("hello world"),
-				bsontype: bsontype.Binary,
-				bytes:    bsoncore.AppendBinary(nil, bsontype.BinaryGeneric, []byte("hello world")),
+				bsontype: TypeBinary,
+				bytes:    bsoncore.AppendBinary(nil, TypeBinaryGeneric, []byte("hello world")),
 			},
 			{
 				name:     "SliceCodec string",
 				val:      []byte("hello world"),
-				bsontype: bsontype.String,
+				bsontype: TypeString,
 				bytes:    bsoncore.AppendString(nil, "hello world"),
 			},
 		}
 		reg := NewRegistry()
-		reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec())
+		reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), NewSliceCodec())
 		for _, tc := range testCases {
 			tc := tc
 
@@ -98,22 +96,22 @@ func TestUnmarshalValue(t *testing.T) {
 func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 	benchmarks := []struct {
 		name     string
-		bsontype bsontype.Type
+		bsontype Type
 		bytes    []byte
 	}{
 		{
 			name:     "SliceCodec binary",
-			bsontype: bsontype.Binary,
-			bytes:    bsoncore.AppendBinary(nil, bsontype.BinaryGeneric, []byte(strings.Repeat("t", 4096))),
+			bsontype: TypeBinary,
+			bytes:    bsoncore.AppendBinary(nil, TypeBinaryGeneric, []byte(strings.Repeat("t", 4096))),
 		},
 		{
 			name:     "SliceCodec string",
-			bsontype: bsontype.String,
+			bsontype: TypeString,
 			bytes:    bsoncore.AppendString(nil, strings.Repeat("t", 4096)),
 		},
 	}
 	reg := NewRegistry()
-	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), bsoncodec.NewSliceCodec())
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), NewSliceCodec())
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {

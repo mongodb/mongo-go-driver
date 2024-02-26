@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -66,7 +65,7 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		evt := mt.GetSucceededEvent()
 		assert.Equal(mt, "find", evt.CommandName, "expected 'find' event, got '%v'", evt.CommandName)
 		serverT, serverI := evt.Reply.Lookup("operationTime").Timestamp()
-		serverTs := &primitive.Timestamp{serverT, serverI}
+		serverTs := &bson.Timestamp{serverT, serverI}
 		sessionTs := sess.OperationTime()
 		assert.NotNil(mt, sessionTs, "expected session operation time, got nil")
 		assert.True(mt, serverTs.Equal(*sessionTs), "expected operation time %v, got %v", serverTs, sessionTs)
@@ -247,7 +246,7 @@ func checkOperationTime(mt *mtest.T, cmd bson.Raw, shouldInclude bool) {
 	assert.Nil(mt, optime, "did not expect operation time, got %v", optime)
 }
 
-func getReadConcernFields(mt *mtest.T, cmd bson.Raw) (string, *primitive.Timestamp) {
+func getReadConcernFields(mt *mtest.T, cmd bson.Raw) (string, *bson.Timestamp) {
 	mt.Helper()
 
 	rc, err := cmd.LookupErr("readConcern")
@@ -257,14 +256,14 @@ func getReadConcernFields(mt *mtest.T, cmd bson.Raw) (string, *primitive.Timesta
 	rcDoc := rc.Document()
 
 	var level string
-	var clusterTime *primitive.Timestamp
+	var clusterTime *bson.Timestamp
 
 	if levelVal, err := rcDoc.LookupErr("level"); err == nil {
 		level = levelVal.StringValue()
 	}
 	if ctVal, err := rcDoc.LookupErr("afterClusterTime"); err == nil {
 		t, i := ctVal.Timestamp()
-		clusterTime = &primitive.Timestamp{t, i}
+		clusterTime = &bson.Timestamp{t, i}
 	}
 	return level, clusterTime
 }

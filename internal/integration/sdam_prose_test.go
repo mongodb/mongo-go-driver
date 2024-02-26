@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
@@ -209,7 +209,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 
 		server := topology.NewServer(
 			address,
-			primitive.NewObjectID(),
+			bson.NewObjectID(),
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
 					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {

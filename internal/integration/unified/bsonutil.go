@@ -10,7 +10,6 @@ import (
 	"sort"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -22,7 +21,7 @@ var (
 
 func documentToRawValue(doc bson.Raw) bson.RawValue {
 	return bson.RawValue{
-		Type:  bsontype.EmbeddedDocument,
+		Type:  bson.TypeEmbeddedDocument,
 		Value: doc,
 	}
 }
@@ -42,7 +41,7 @@ func removeFieldsFromDocument(doc bson.Raw, keys ...string) bson.Raw {
 		}
 
 		val := elem.Value()
-		newDoc.AppendValue(elem.Key(), bsoncore.Value{Type: val.Type, Data: val.Value})
+		newDoc.AppendValue(elem.Key(), bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value})
 	}
 	return bson.Raw(newDoc.Build())
 }
@@ -61,7 +60,7 @@ func sortDocument(doc bson.Raw) bson.Raw {
 	sorted := bsoncore.NewDocumentBuilder()
 	for _, key := range keys {
 		val := valuesMap[key]
-		sorted.AppendValue(key, bsoncore.Value{Type: val.Type, Data: val.Value})
+		sorted.AppendValue(key, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value})
 	}
 	return bson.Raw(sorted.Build())
 }

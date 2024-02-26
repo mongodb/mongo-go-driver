@@ -7,7 +7,7 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -51,7 +51,7 @@ const (
 
 // ExplicitEncryptionOptions specifies options for configuring an explicit encryption context.
 type ExplicitEncryptionOptions struct {
-	KeyID            *primitive.Binary
+	KeyID            *bson.Binary
 	KeyAltName       *string
 	Algorithm        string
 	QueryType        string
@@ -73,7 +73,7 @@ func ExplicitEncryption() *ExplicitEncryptionOptions {
 }
 
 // SetKeyID sets the key identifier.
-func (eeo *ExplicitEncryptionOptions) SetKeyID(keyID primitive.Binary) *ExplicitEncryptionOptions {
+func (eeo *ExplicitEncryptionOptions) SetKeyID(keyID bson.Binary) *ExplicitEncryptionOptions {
 	eeo.KeyID = &keyID
 	return eeo
 }

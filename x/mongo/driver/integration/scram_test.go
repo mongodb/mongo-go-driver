@@ -12,7 +12,6 @@ import (
 	"os"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -156,13 +155,13 @@ func createScramUsers(t *testing.T, s driver.Server, cases []scramTestCase) erro
 	for _, c := range cases {
 		var values []bsoncore.Value
 		for _, v := range c.mechanisms {
-			values = append(values, bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, v)})
+			values = append(values, bsoncore.Value{Type: bsoncore.TypeString, Data: bsoncore.AppendString(nil, v)})
 		}
 		newUserCmd := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "createUser", c.username),
 			bsoncore.AppendStringElement(nil, "pwd", c.password),
 			bsoncore.AppendArrayElement(nil, "roles", bsoncore.BuildArray(nil,
-				bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: bsoncore.BuildDocumentFromElements(nil,
+				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: bsoncore.BuildDocumentFromElements(nil,
 					bsoncore.AppendStringElement(nil, "role", "readWrite"),
 					bsoncore.AppendStringElement(nil, "db", db),
 				)},

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -42,7 +41,7 @@ func newTestBatchCursor(numBatches, batchSize int) *testBatchCursor {
 			var doc []byte
 			doc = bsoncore.BuildDocumentFromElements(doc, elem)
 			val := bsoncore.Value{
-				Type: bsontype.EmbeddedDocument,
+				Type: bsoncore.TypeEmbeddedDocument,
 				Data: doc,
 			}
 

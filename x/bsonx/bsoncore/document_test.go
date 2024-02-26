@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func ExampleDocument_Validate() {
@@ -151,7 +150,7 @@ func TestDocument(t *testing.T) {
 		t.Run("invalid-traversal", func(t *testing.T) {
 			rdr := Document{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}
 			_, got := rdr.LookupErr("x", "y")
-			want := InvalidDepthTraversalError{Key: "x", Type: bsontype.Null}
+			want := InvalidDepthTraversalError{Key: "x", Type: TypeNull}
 			if !compareErrors(got, want) {
 				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", got, want)
 			}
@@ -168,7 +167,7 @@ func TestDocument(t *testing.T) {
 					'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00',
 				},
 				[]string{"x"},
-				Value{Type: bsontype.Null, Data: []byte{}},
+				Value{Type: TypeNull, Data: []byte{}},
 				nil,
 			},
 			{"first-second",
@@ -180,7 +179,7 @@ func TestDocument(t *testing.T) {
 					'\x0A', 'b', '\x00', '\x00', '\x00',
 				},
 				[]string{"foo", "b"},
-				Value{Type: bsontype.Null, Data: []byte{}},
+				Value{Type: TypeNull, Data: []byte{}},
 				nil,
 			},
 			{"first-second-array",
@@ -192,7 +191,7 @@ func TestDocument(t *testing.T) {
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
 				[]string{"foo", "2"},
-				Value{Type: bsontype.Null, Data: []byte{}},
+				Value{Type: TypeNull, Data: []byte{}},
 				nil,
 			},
 		}
@@ -364,11 +363,11 @@ func TestDocument(t *testing.T) {
 		}
 	})
 	t.Run("Elements", func(t *testing.T) {
-		invalidElem := BuildDocument(nil, AppendHeader(nil, bsontype.Double, "foo"))
+		invalidElem := BuildDocument(nil, AppendHeader(nil, TypeDouble, "foo"))
 		invalidTwoElem := BuildDocument(nil,
 			AppendHeader(
 				AppendDoubleElement(nil, "pi", 3.14159),
-				bsontype.Double, "foo",
+				TypeDouble, "foo",
 			),
 		)
 		oneElem := BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159))

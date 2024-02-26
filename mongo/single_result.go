@@ -11,7 +11,6 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -28,7 +27,7 @@ type SingleResult struct {
 	cur      *Cursor
 	rdr      bson.Raw
 	bsonOpts *options.BSONOptions
-	reg      *bsoncodec.Registry
+	reg      *bson.Registry
 }
 
 // NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
@@ -36,7 +35,7 @@ type SingleResult struct {
 // from the one provided occurs during creation of the SingleResult, that error will be stored on the returned SingleResult.
 //
 // The document parameter must be a non-nil document.
-func NewSingleResultFromDocument(document interface{}, err error, registry *bsoncodec.Registry) *SingleResult {
+func NewSingleResultFromDocument(document interface{}, err error, registry *bson.Registry) *SingleResult {
 	if document == nil {
 		return &SingleResult{err: ErrNilDocument}
 	}

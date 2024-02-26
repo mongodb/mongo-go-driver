@@ -10,12 +10,11 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // TopologyVersion represents a software version.
 type TopologyVersion struct {
-	ProcessID primitive.ObjectID
+	ProcessID bson.ObjectID
 	Counter   int64
 }
 

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
@@ -836,7 +835,7 @@ func killChangeStreamCursor(mt *mtest.T, cs *mongo.ChangeStream) {
 }
 
 // returns pbrt, operationTime from aggregate command response
-func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
+func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, bson.Timestamp) {
 	mt.Helper()
 
 	succeeded := mt.GetSucceededEvent()
@@ -845,7 +844,7 @@ func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
 
 	pbrt := succeeded.Reply.Lookup("cursor", "postBatchResumeToken").Document()
 	optimeT, optimeI := succeeded.Reply.Lookup("operationTime").Timestamp()
-	return pbrt, primitive.Timestamp{T: optimeT, I: optimeI}
+	return pbrt, bson.Timestamp{T: optimeT, I: optimeI}
 }
 
 func compareResumeTokens(mt *mtest.T, cs *mongo.ChangeStream, expected bson.Raw) {

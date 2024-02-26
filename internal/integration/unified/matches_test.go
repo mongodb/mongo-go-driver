@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -139,7 +138,7 @@ func TestMatches(t *testing.T) {
 			hexBytes, err := hex.DecodeString(str)
 			assert.Nil(t, err, "hex.DecodeString error: %v", err)
 			return bson.RawValue{
-				Type:  bsontype.Binary,
+				Type:  bson.TypeBinary,
 				Value: bsoncore.AppendBinary(nil, 0, hexBytes),
 			}
 		}

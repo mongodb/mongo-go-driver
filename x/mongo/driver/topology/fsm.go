@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -27,7 +27,7 @@ var (
 
 type fsm struct {
 	description.Topology
-	maxElectionID    primitive.ObjectID
+	maxElectionID    bson.ObjectID
 	maxSetVersion    uint32
 	compatible       atomic.Value
 	compatibilityErr error

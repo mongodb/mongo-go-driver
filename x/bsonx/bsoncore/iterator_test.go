@@ -10,7 +10,6 @@ import (
 	"io"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 )
@@ -26,11 +25,11 @@ func TestIterator_Reset(t *testing.T) {
 			name: "documents",
 			values: []Value{
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 				},
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "grav", 9.8)),
 				},
 			},
@@ -39,11 +38,11 @@ func TestIterator_Reset(t *testing.T) {
 			name: "strings",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "bar"),
 				},
 			},
@@ -52,15 +51,15 @@ func TestIterator_Reset(t *testing.T) {
 			name: "type mixing",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 				{
-					Type: bsontype.Boolean,
+					Type: TypeBoolean,
 					Data: AppendBoolean(nil, true),
 				},
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 				},
 			},
@@ -116,7 +115,7 @@ func TestIterator_Count(t *testing.T) {
 			name: "singleton",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 			},
@@ -126,11 +125,11 @@ func TestIterator_Count(t *testing.T) {
 			name: "non singleton",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "bar"),
 				},
 			},
@@ -140,7 +139,7 @@ func TestIterator_Count(t *testing.T) {
 			name: "document bearing",
 			values: []Value{
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 				},
 			},
@@ -150,15 +149,15 @@ func TestIterator_Count(t *testing.T) {
 			name: "type mixing",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 				{
-					Type: bsontype.Boolean,
+					Type: TypeBoolean,
 					Data: AppendBoolean(nil, true),
 				},
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 				},
 			},
@@ -205,7 +204,7 @@ func TestIterator_Next(t *testing.T) {
 			name: "singleton",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 			},
@@ -214,7 +213,7 @@ func TestIterator_Next(t *testing.T) {
 			name: "document bearing",
 			values: []Value{
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 				},
 			},
@@ -223,15 +222,15 @@ func TestIterator_Next(t *testing.T) {
 			name: "type mixing",
 			values: []Value{
 				{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: AppendString(nil, "foo"),
 				},
 				{
-					Type: bsontype.Boolean,
+					Type: TypeBoolean,
 					Data: AppendBoolean(nil, true),
 				},
 				{
-					Type: bsontype.EmbeddedDocument,
+					Type: TypeEmbeddedDocument,
 					Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 				},
 			},
@@ -271,19 +270,19 @@ func TestIterator_Next(t *testing.T) {
 func BenchmarkIterator_Next(b *testing.B) {
 	values := []Value{
 		{
-			Type: bsontype.Double,
+			Type: TypeDouble,
 			Data: AppendDouble(nil, 3.14159),
 		},
 		{
-			Type: bsontype.String,
+			Type: TypeString,
 			Data: AppendString(nil, "foo"),
 		},
 		{
-			Type: bsontype.EmbeddedDocument,
+			Type: TypeEmbeddedDocument,
 			Data: BuildDocument(nil, AppendDoubleElement(nil, "pi", 3.14159)),
 		},
 		{
-			Type: bsontype.Boolean,
+			Type: TypeBoolean,
 			Data: AppendBoolean(nil, true),
 		},
 	}

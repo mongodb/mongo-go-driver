@@ -17,7 +17,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -56,7 +55,7 @@ type crudOutcome struct {
 	Collection *outcomeCollection `bson:"collection"`
 }
 
-var crudRegistry = func() *bsoncodec.Registry {
+var crudRegistry = func() *bson.Registry {
 	reg := bson.NewRegistry()
 	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 	return reg

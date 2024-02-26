@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
@@ -981,7 +981,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	for _, testDesc := range test.TopologyDescription.Servers {
 		server := NewServer(
 			address.Address(testDesc.Address),
-			primitive.NilObjectID,
+			bson.NilObjectID,
 			withMonitoringDisabled(func(bool) bool { return true }))
 		servers[testDesc.Address] = server
 

@@ -18,8 +18,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
@@ -99,7 +97,7 @@ type startedInformation struct {
 	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
-	serviceID                *primitive.ObjectID
+	serviceID                *bson.ObjectID
 	serverAddress            address.Address
 }
 
@@ -113,7 +111,7 @@ type finishedInformation struct {
 	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
-	serviceID          *primitive.ObjectID
+	serviceID          *bson.ObjectID
 	serverAddress      address.Address
 	duration           time.Duration
 }
@@ -1195,7 +1193,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	}
 	if len(rp) > 0 {
 		wrapper, dst = bsoncore.AppendDocumentStart(dst)
-		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
+		dst = bsoncore.AppendHeader(dst, bsoncore.TypeEmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 	dst, err = op.CommandFn(dst, desc)
@@ -1476,7 +1474,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 		return dst, err
 	}
 
-	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(t), "writeConcern"), data...), nil
 }
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -1530,7 +1528,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	if err != nil {
 		return dst
 	}
-	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...)
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
 	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
@@ -1609,7 +1607,7 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 	}
 
 	t, i := opTimeElem.Timestamp()
-	_ = sess.AdvanceOperationTime(&primitive.Timestamp{
+	_ = sess.AdvanceOperationTime(&bson.Timestamp{
 		T: t,
 		I: i,
 	})

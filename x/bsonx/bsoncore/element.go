@@ -9,8 +9,6 @@ package bsoncore
 import (
 	"bytes"
 	"fmt"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // MalformedElementError represents a class of errors that RawElement methods return.
@@ -70,7 +68,7 @@ func (e Element) Validate() error {
 	if idx == -1 {
 		return ErrElementMissingKey
 	}
-	return Value{Type: bsontype.Type(e[0]), Data: e[idx+2:]}.Validate()
+	return Value{Type: Type(e[0]), Data: e[idx+2:]}.Validate()
 }
 
 // CompareKey will compare this element's key to key. This method makes it easy to compare keys
@@ -107,7 +105,7 @@ func (e Element) ValueErr() (Value, error) {
 		return Value{}, ErrElementMissingKey
 	}
 
-	val, rem, exists := ReadValue(e[idx+2:], bsontype.Type(e[0]))
+	val, rem, exists := ReadValue(e[idx+2:], Type(e[0]))
 	if !exists {
 		return Value{}, NewInsufficientBytesError(e, rem)
 	}
@@ -119,7 +117,7 @@ func (e Element) String() string {
 	if len(e) <= 0 {
 		return ""
 	}
-	t := bsontype.Type(e[0])
+	t := Type(e[0])
 	idx := bytes.IndexByte(e[1:], 0x00)
 	if idx == -1 {
 		return ""
@@ -138,7 +136,7 @@ func (e Element) DebugString() string {
 	if len(e) <= 0 {
 		return "<malformed>"
 	}
-	t := bsontype.Type(e[0])
+	t := Type(e[0])
 	idx := bytes.IndexByte(e[1:], 0x00)
 	if idx == -1 {
 		return fmt.Sprintf(`bson.Element{[%s]<malformed>}`, t)

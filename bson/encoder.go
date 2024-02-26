@@ -9,9 +9,6 @@ package bson
 import (
 	"reflect"
 	"sync"
-
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 )
 
 // This pool is used to keep the allocations of Encoders down. This is only used for the Marshal*
@@ -23,11 +20,11 @@ var encPool = sync.Pool{
 	},
 }
 
-// An Encoder writes a serialization format to an output stream. It writes to a bsonrw.ValueWriter
+// An Encoder writes a serialization format to an output stream. It writes to a ValueWriter
 // as the destination of BSON data.
 type Encoder struct {
-	ec bsoncodec.EncodeContext
-	vw bsonrw.ValueWriter
+	ec EncodeContext
+	vw ValueWriter
 
 	errorOnInlineDuplicates bool
 	intMinSize              bool
@@ -40,9 +37,9 @@ type Encoder struct {
 }
 
 // NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
-func NewEncoder(vw bsonrw.ValueWriter) *Encoder {
+func NewEncoder(vw ValueWriter) *Encoder {
 	return &Encoder{
-		ec: bsoncodec.EncodeContext{Registry: DefaultRegistry},
+		ec: EncodeContext{Registry: DefaultRegistry},
 		vw: vw,
 	}
 }
@@ -57,7 +54,7 @@ func (e *Encoder) Encode(val interface{}) error {
 		if err != nil {
 			return err
 		}
-		return bsonrw.Copier{}.CopyDocumentFromBytes(e.vw, buf)
+		return copyDocumentFromBytes(e.vw, buf)
 	}
 
 	encoder, err := e.ec.LookupEncoder(reflect.TypeOf(val))
@@ -97,12 +94,12 @@ func (e *Encoder) Encode(val interface{}) error {
 
 // Reset will reset the state of the Encoder, using the same *EncodeContext used in
 // the original construction but using vw.
-func (e *Encoder) Reset(vw bsonrw.ValueWriter) {
+func (e *Encoder) Reset(vw ValueWriter) {
 	e.vw = vw
 }
 
 // SetRegistry replaces the current registry of the Encoder with r.
-func (e *Encoder) SetRegistry(r *bsoncodec.Registry) {
+func (e *Encoder) SetRegistry(r *Registry) {
 	e.ec.Registry = r
 }
 

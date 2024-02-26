@@ -13,7 +13,7 @@ package readconcern
 import (
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -74,7 +74,7 @@ func Snapshot() *ReadConcern {
 // MarshalBSONValue implements the bson.ValueMarshaler interface.
 //
 // Deprecated: Marshaling a ReadConcern to BSON will not be supported in Go Driver 2.0.
-func (rc *ReadConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (rc *ReadConcern) MarshalBSONValue() (bson.Type, []byte, error) {
 	if rc == nil {
 		return 0, nil, errors.New("cannot marshal nil ReadConcern")
 	}
@@ -85,5 +85,5 @@ func (rc *ReadConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
 		elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
 	}
 
-	return bsontype.EmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
 }

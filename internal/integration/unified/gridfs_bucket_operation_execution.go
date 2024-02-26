@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -125,7 +124,7 @@ func executeBucketDownload(ctx context.Context, operation *operation) (*operatio
 		return newErrorResult(err), nil
 	}
 
-	return newValueResult(bsontype.Binary, bsoncore.AppendBinary(nil, 0, buffer.Bytes()), nil), nil
+	return newValueResult(bson.TypeBinary, bsoncore.AppendBinary(nil, 0, buffer.Bytes()), nil), nil
 }
 
 func executeBucketDownloadByName(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -168,7 +167,7 @@ func executeBucketDownloadByName(ctx context.Context, operation *operation) (*op
 		return newErrorResult(err), nil
 	}
 
-	return newValueResult(bsontype.Binary, bsoncore.AppendBinary(nil, 0, buf.Bytes()), nil), nil
+	return newValueResult(bson.TypeBinary, bsoncore.AppendBinary(nil, 0, buf.Bytes()), nil), nil
 }
 
 func executeBucketDrop(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -264,7 +263,7 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 
 	if operation.ResultEntityID != nil {
 		fileIDValue := bson.RawValue{
-			Type:  bsontype.ObjectID,
+			Type:  bson.TypeObjectID,
 			Value: fileID[:],
 		}
 		if err := entities(ctx).addBSONEntity(*operation.ResultEntityID, fileIDValue); err != nil {
@@ -272,5 +271,5 @@ func executeBucketUpload(ctx context.Context, operation *operation) (*operationR
 		}
 	}
 
-	return newValueResult(bsontype.ObjectID, fileID[:], nil), nil
+	return newValueResult(bson.TypeObjectID, fileID[:], nil), nil
 }

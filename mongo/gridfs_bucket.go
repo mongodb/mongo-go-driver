@@ -14,8 +14,6 @@ import (
 	"io"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -69,7 +67,7 @@ func (b *GridFSBucket) OpenUploadStream(
 	filename string,
 	opts ...*options.UploadOptions,
 ) (*GridFSUploadStream, error) {
-	return b.OpenUploadStreamWithID(ctx, primitive.NewObjectID(), filename, opts...)
+	return b.OpenUploadStreamWithID(ctx, bson.NewObjectID(), filename, opts...)
 }
 
 // OpenUploadStreamWithID creates a new upload stream for a file given the file
@@ -108,8 +106,8 @@ func (b *GridFSBucket) UploadFromStream(
 	filename string,
 	source io.Reader,
 	opts ...*options.UploadOptions,
-) (primitive.ObjectID, error) {
-	fileID := primitive.NewObjectID()
+) (bson.ObjectID, error) {
+	fileID := bson.NewObjectID()
 	err := b.UploadFromStreamWithID(ctx, fileID, filename, source, opts...)
 	return fileID, err
 }
@@ -621,7 +619,7 @@ func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*uplo
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
 		// TODO gridfs package is merged into the mongo package.
 		buf := new(bytes.Buffer)
-		vw := bsonrw.NewValueWriter(buf)
+		vw := bson.NewValueWriter(buf)
 		enc := bson.NewEncoder(vw)
 		enc.SetRegistry(uo.Registry)
 		err := enc.Encode(uo.Metadata)

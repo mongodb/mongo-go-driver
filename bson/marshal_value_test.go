@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -36,7 +35,7 @@ func TestMarshalValue(t *testing.T) {
 	})
 }
 
-func compareMarshalValueResults(t *testing.T, tc marshalValueTestCase, gotType bsontype.Type, gotBytes []byte) {
+func compareMarshalValueResults(t *testing.T, tc marshalValueTestCase, gotType Type, gotBytes []byte) {
 	t.Helper()
 	expectedValue := RawValue{Type: tc.bsontype, Value: tc.bytes}
 	gotValue := RawValue{Type: gotType, Value: gotBytes}

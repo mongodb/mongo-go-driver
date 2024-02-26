@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -36,7 +34,7 @@ type Cursor struct {
 	batch         *bsoncore.Iterator
 	batchLength   int
 	bsonOpts      *options.BSONOptions
-	registry      *bsoncodec.Registry
+	registry      *bson.Registry
 	clientSession *session.Client
 
 	err error
@@ -45,7 +43,7 @@ type Cursor struct {
 func newCursor(
 	bc batchCursor,
 	bsonOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 ) (*Cursor, error) {
 	return newCursorWithSession(bc, bsonOpts, registry, nil)
 }
@@ -53,7 +51,7 @@ func newCursor(
 func newCursorWithSession(
 	bc batchCursor,
 	bsonOpts *options.BSONOptions,
-	registry *bsoncodec.Registry,
+	registry *bson.Registry,
 	clientSession *session.Client,
 ) (*Cursor, error) {
 	if registry == nil {
@@ -87,7 +85,7 @@ func newEmptyCursor() *Cursor {
 // bson.DefaultRegistry will be used.
 //
 // The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
-func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bsoncodec.Registry) (*Cursor, error) {
+func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
 	if registry == nil {
 		registry = bson.DefaultRegistry
 	}
@@ -105,7 +103,7 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 			doc = bson.Raw(t)
 		}
 
-		vw := bsonrw.NewValueWriter(buf)
+		vw := bson.NewValueWriter(buf)
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
 
@@ -117,7 +115,7 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 		copy(dup, buf.Bytes())
 
 		values[i] = bsoncore.Value{
-			Type: bson.TypeEmbeddedDocument,
+			Type: bsoncore.TypeEmbeddedDocument,
 			Data: dup,
 		}
 
@@ -238,9 +236,9 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 func getDecoder(
 	data []byte,
 	opts *options.BSONOptions,
-	reg *bsoncodec.Registry,
+	reg *bson.Registry,
 ) *bson.Decoder {
-	dec := bson.NewDecoder(bsonrw.NewValueReader(data))
+	dec := bson.NewDecoder(bson.NewValueReader(data))
 
 	if opts != nil {
 		if opts.AllowTruncatingDoubles {

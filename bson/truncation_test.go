@@ -10,8 +10,6 @@ import (
 	"bytes"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -33,7 +31,7 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := bsonrw.NewValueWriter(buf)
+		vw := NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(DefaultRegistry)
@@ -41,7 +39,7 @@ func TestTruncation(t *testing.T) {
 		assert.Nil(t, err)
 
 		var output outputArgs
-		dc := bsoncodec.DecodeContext{
+		dc := DecodeContext{
 			Registry: DefaultRegistry,
 			Truncate: true,
 		}
@@ -59,7 +57,7 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := bsonrw.NewValueWriter(buf)
+		vw := NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(DefaultRegistry)
@@ -67,7 +65,7 @@ func TestTruncation(t *testing.T) {
 		assert.Nil(t, err)
 
 		var output outputArgs
-		dc := bsoncodec.DecodeContext{
+		dc := DecodeContext{
 			Registry: DefaultRegistry,
 			Truncate: false,
 		}

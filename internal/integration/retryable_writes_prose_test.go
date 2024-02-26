@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
@@ -245,7 +244,7 @@ func TestRetryableWritesProse(t *testing.T) {
 			//Set a command monitor on the client that configures a failpoint with a "NoWritesPerformed"
 			monitor.Succeeded = func(_ context.Context, evt *event.CommandSucceededEvent) {
 				var errorCode int32
-				if wce := evt.Reply.Lookup("writeConcernError"); wce.Type == bsontype.EmbeddedDocument {
+				if wce := evt.Reply.Lookup("writeConcernError"); wce.Type == bson.TypeEmbeddedDocument {
 					var ok bool
 					errorCode, ok = wce.Document().Lookup("code").Int32OK()
 					if !ok {

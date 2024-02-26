@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/youmark/pkcs8"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -221,7 +221,7 @@ type ClientOptions struct {
 	ReadConcern              *readconcern.ReadConcern
 	ReadPreference           *readpref.ReadPref
 	BSONOptions              *BSONOptions
-	Registry                 *bsoncodec.Registry
+	Registry                 *bson.Registry
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
@@ -778,7 +778,7 @@ func (c *ClientOptions) SetBSONOptions(opts *BSONOptions) *ClientOptions {
 
 // SetRegistry specifies the BSON registry to use for BSON marshalling/unmarshalling operations. The default is
 // bson.DefaultRegistry.
-func (c *ClientOptions) SetRegistry(registry *bsoncodec.Registry) *ClientOptions {
+func (c *ClientOptions) SetRegistry(registry *bson.Registry) *ClientOptions {
 	c.Registry = registry
 	return c
 }
