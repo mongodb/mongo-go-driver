@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
@@ -252,15 +251,15 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 	}
 
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
-	case bsontype.Null:
+	case Type(0), TypeEmbeddedDocument:
+	case TypeNull:
 		if err := vr.ReadNull(); err != nil {
 			return err
 		}
 
 		val.Set(reflect.Zero(val.Type()))
 		return nil
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err := vr.ReadUndefined(); err != nil {
 			return err
 		}

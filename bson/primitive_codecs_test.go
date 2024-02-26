@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -99,7 +98,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				},
 				{
 					"RawValue/success",
-					RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
+					RawValue{Type: TypeDouble, Value: bsoncore.AppendDouble(nil, 3.14159)},
 					nil,
 					nil,
 					writeDouble,
@@ -343,8 +342,8 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 					AC: decimal128,
 					AD: &now,
 					AE: testValueMarshaler{t: TypeString, buf: bsoncore.AppendString(nil, "hello, world")},
-					AF: RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "hello, raw value")},
-					AG: &RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
+					AF: RawValue{Type: TypeString, Value: bsoncore.AppendString(nil, "hello, raw value")},
+					AG: &RawValue{Type: TypeDouble, Value: bsoncore.AppendDouble(nil, 3.14159)},
 					AH: D{{"foo", "bar"}},
 					AI: &D{{"pi", 3.14159}},
 					AJ: nil,
@@ -550,7 +549,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					RawValue{},
 					nil,
 					&valueReaderWriter{
-						BSONType: bsontype.Binary,
+						BSONType: TypeBinary,
 						Err:      errors.New("rb error"),
 						ErrAfter: readBinary,
 					},
@@ -559,12 +558,12 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 				},
 				{
 					"RawValue/success",
-					RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
+					RawValue{Type: TypeBinary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
 					nil,
 					&valueReaderWriter{
-						BSONType: bsontype.Binary,
+						BSONType: TypeBinary,
 						Return: bsoncore.Value{
-							Type: bsontype.Binary,
+							Type: bsoncore.TypeBinary,
 							Data: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03}),
 						},
 					},
@@ -920,9 +919,9 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					AB: murl,
 					AC: decimal128,
 					AD: &now,
-					AE: &testValueUnmarshaler{t: bsontype.String, val: bsoncore.AppendString(nil, "hello, world!")},
-					AF: RawValue{Type: bsontype.Double, Value: bsoncore.AppendDouble(nil, 3.14159)},
-					AG: &RawValue{Type: bsontype.Binary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
+					AE: &testValueUnmarshaler{t: TypeString, val: bsoncore.AppendString(nil, "hello, world!")},
+					AF: RawValue{Type: TypeDouble, Value: bsoncore.AppendDouble(nil, 3.14159)},
+					AG: &RawValue{Type: TypeBinary, Value: bsoncore.AppendBinary(nil, 0xFF, []byte{0x01, 0x02, 0x03})},
 					AH: D{{"foo", "bar"}},
 					AI: &D{{"pi", 3.14159}},
 					AJ: nil,
@@ -1019,8 +1018,8 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					AC: []Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []*testValueUnmarshaler{
-						{t: bsontype.String, val: bsoncore.AppendString(nil, "hello")},
-						{t: bsontype.String, val: bsoncore.AppendString(nil, "world")},
+						{t: TypeString, val: bsoncore.AppendString(nil, "hello")},
+						{t: TypeString, val: bsoncore.AppendString(nil, "world")},
 					},
 					AF: []D{{{"foo", "bar"}}, {{"hello", "world"}, {"number", int64(12345)}}},
 					AG: []*D{{{"pi", 3.14159}}, nil},
@@ -1092,22 +1091,22 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 }
 
 type testValueMarshaler struct {
-	t   bsontype.Type
+	t   Type
 	buf []byte
 	err error
 }
 
-func (tvm testValueMarshaler) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (tvm testValueMarshaler) MarshalBSONValue() (Type, []byte, error) {
 	return tvm.t, tvm.buf, tvm.err
 }
 
 type testValueUnmarshaler struct {
-	t   bsontype.Type
+	t   Type
 	val []byte
 	err error
 }
 
-func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t bsontype.Type, val []byte) error {
+func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t Type, val []byte) error {
 	tvu.t, tvu.val = t, val
 	return tvu.err
 }

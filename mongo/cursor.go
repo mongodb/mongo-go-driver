@@ -115,7 +115,7 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 		copy(dup, buf.Bytes())
 
 		values[i] = bsoncore.Value{
-			Type: bson.TypeEmbeddedDocument,
+			Type: bsoncore.TypeEmbeddedDocument,
 			Data: dup,
 		}
 

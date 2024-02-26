@@ -58,7 +58,7 @@ func NewDecoder(vr ValueReader) *Decoder {
 func (d *Decoder) Decode(val interface{}) error {
 	if unmarshaler, ok := val.(Unmarshaler); ok {
 		// TODO(skriptble): Reuse a []byte here and use the AppendDocumentBytes method.
-		buf, err := Copier{}.CopyDocumentToBytes(d.vr)
+		buf, err := copyDocumentToBytes(d.vr)
 		if err != nil {
 			return err
 		}

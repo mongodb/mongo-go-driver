@@ -8,8 +8,6 @@ package bson
 
 import (
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 var _ ValueEncoder = &PointerCodec{}
@@ -70,11 +68,11 @@ func (pc *PointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflec
 	}
 
 	typ := val.Type()
-	if vr.Type() == bsontype.Null {
+	if vr.Type() == TypeNull {
 		val.Set(reflect.Zero(typ))
 		return vr.ReadNull()
 	}
-	if vr.Type() == bsontype.Undefined {
+	if vr.Type() == TypeUndefined {
 		val.Set(reflect.Zero(typ))
 		return vr.ReadUndefined()
 	}

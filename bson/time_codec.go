@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 const (
@@ -63,13 +62,13 @@ func (tc *TimeCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type
 
 	var timeVal time.Time
 	switch vrType := vr.Type(); vrType {
-	case bsontype.DateTime:
+	case TypeDateTime:
 		dt, err := vr.ReadDateTime()
 		if err != nil {
 			return emptyValue, err
 		}
 		timeVal = time.Unix(dt/1000, dt%1000*1000000)
-	case bsontype.String:
+	case TypeString:
 		// assume strings are in the isoTimeFormat
 		timeStr, err := vr.ReadString()
 		if err != nil {
@@ -79,23 +78,23 @@ func (tc *TimeCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return emptyValue, err
 		}
 		timeVal = time.Unix(i64/1000, i64%1000*1000000)
-	case bsontype.Timestamp:
+	case TypeTimestamp:
 		t, _, err := vr.ReadTimestamp()
 		if err != nil {
 			return emptyValue, err
 		}
 		timeVal = time.Unix(int64(t), 0)
-	case bsontype.Null:
+	case TypeNull:
 		if err := vr.ReadNull(); err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err := vr.ReadUndefined(); err != nil {
 			return emptyValue, err
 		}

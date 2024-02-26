@@ -14,7 +14,6 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 var defaultMapCodec = NewMapCodec()
@@ -161,11 +160,11 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 	}
 
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
-	case bsontype.Null:
+	case Type(0), TypeEmbeddedDocument:
+	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadUndefined()
 	default:

@@ -61,7 +61,7 @@ func (PrimitiveCodecs) RawValueEncodeValue(_ EncodeContext, vw ValueWriter, val 
 		return fmt.Errorf("the RawValue Type specifies an invalid BSON type: %#x", byte(rawvalue.Type))
 	}
 
-	return Copier{}.CopyValueFromBytes(vw, rawvalue.Type, rawvalue.Value)
+	return copyValueFromBytes(vw, rawvalue.Type, rawvalue.Value)
 }
 
 // RawValueDecodeValue is the ValueDecoderFunc for RawValue.
@@ -73,7 +73,7 @@ func (PrimitiveCodecs) RawValueDecodeValue(_ DecodeContext, vr ValueReader, val 
 		return ValueDecoderError{Name: "RawValueDecodeValue", Types: []reflect.Type{tRawValue}, Received: val}
 	}
 
-	t, value, err := Copier{}.CopyValueToBytes(vr)
+	t, value, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (PrimitiveCodecs) RawEncodeValue(_ EncodeContext, vw ValueWriter, val refle
 
 	rdr := val.Interface().(Raw)
 
-	return Copier{}.CopyDocumentFromBytes(vw, rdr)
+	return copyDocumentFromBytes(vw, rdr)
 }
 
 // RawDecodeValue is the ValueDecoderFunc for Reader.
@@ -111,7 +111,7 @@ func (PrimitiveCodecs) RawDecodeValue(_ DecodeContext, vr ValueReader, val refle
 
 	val.SetLen(0)
 
-	rdr, err := Copier{}.AppendDocumentBytes(val.Interface().(Raw), vr)
+	rdr, err := appendDocumentBytes(val.Interface().(Raw), vr)
 	val.Set(reflect.ValueOf(rdr))
 	return err
 }

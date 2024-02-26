@@ -12,7 +12,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // UIntCodec is the Codec used for uint values.
@@ -80,18 +79,18 @@ func (uic *UIntCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Typ
 	var i64 int64
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Int32:
+	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return emptyValue, err
 		}
 		i64 = int64(i32)
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err = vr.ReadInt64()
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Double:
+	case TypeDouble:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return emptyValue, err
@@ -103,7 +102,7 @@ func (uic *UIntCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Typ
 			return emptyValue, fmt.Errorf("%g overflows int64", f64)
 		}
 		i64 = int64(f64)
-	case bsontype.Boolean:
+	case TypeBoolean:
 		b, err := vr.ReadBoolean()
 		if err != nil {
 			return emptyValue, err
@@ -111,11 +110,11 @@ func (uic *UIntCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Typ
 		if b {
 			i64 = 1
 		}
-	case bsontype.Null:
+	case TypeNull:
 		if err = vr.ReadNull(); err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err = vr.ReadUndefined(); err != nil {
 			return emptyValue, err
 		}

@@ -6,10 +6,6 @@
 
 package bsoncore
 
-import (
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-)
-
 // DocumentBuilder builds a bson document
 type DocumentBuilder struct {
 	doc     []byte
@@ -53,7 +49,7 @@ func (db *DocumentBuilder) AppendDocument(key string, doc []byte) *DocumentBuild
 
 // AppendArray will append a bson array using key and arr to DocumentBuilder.doc
 func (db *DocumentBuilder) AppendArray(key string, arr []byte) *DocumentBuilder {
-	db.doc = AppendHeader(db.doc, bsontype.Array, key)
+	db.doc = AppendHeader(db.doc, TypeArray, key)
 	db.doc = AppendArray(db.doc, arr)
 	return db
 }
@@ -176,7 +172,7 @@ func (db *DocumentBuilder) AppendValue(key string, val Value) *DocumentBuilder {
 // StartDocument starts building an inline document element with the provided key
 // After this document is completed, the user must call finishDocument
 func (db *DocumentBuilder) StartDocument(key string) *DocumentBuilder {
-	db.doc = AppendHeader(db.doc, bsontype.EmbeddedDocument, key)
+	db.doc = AppendHeader(db.doc, TypeEmbeddedDocument, key)
 	db = db.startDocument()
 	return db
 }

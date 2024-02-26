@@ -8,8 +8,6 @@ package bson
 
 import (
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 type unmarshalingTestCase struct {
@@ -202,7 +200,7 @@ func (mi *myInt64) UnmarshalBSON(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
-	i, err := NewBSONValueReader(bsontype.Int64, bytes).ReadInt64()
+	i, err := NewBSONValueReader(TypeInt64, bytes).ReadInt64()
 	if err != nil {
 		return err
 	}
@@ -228,7 +226,7 @@ func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
-	b, _, err := NewBSONValueReader(bsontype.Binary, bytes).ReadBinary()
+	b, _, err := NewBSONValueReader(TypeBinary, bytes).ReadBinary()
 	if err != nil {
 		return err
 	}
@@ -242,7 +240,7 @@ func (ms *myString) UnmarshalBSON(bytes []byte) error {
 	if len(bytes) == 0 {
 		return nil
 	}
-	s, err := NewBSONValueReader(bsontype.String, bytes).ReadString()
+	s, err := NewBSONValueReader(TypeString, bytes).ReadString()
 	if err != nil {
 		return err
 	}

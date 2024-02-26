@@ -13,7 +13,6 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -28,7 +27,7 @@ var ErrNilRegistry = errors.New("Registry cannot be nil")
 //
 // A RawValue must be an individual BSON value. Use the Raw type for full BSON documents.
 type RawValue struct {
-	Type  bsontype.Type
+	Type  Type
 	Value []byte
 
 	r *Registry
@@ -105,9 +104,11 @@ func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) erro
 	return dec.DecodeValue(*dc, vr, rval)
 }
 
-func convertFromCoreValue(v bsoncore.Value) RawValue { return RawValue{Type: v.Type, Value: v.Data} }
+func convertFromCoreValue(v bsoncore.Value) RawValue {
+	return RawValue{Type: Type(v.Type), Value: v.Data}
+}
 func convertToCoreValue(v RawValue) bsoncore.Value {
-	return bsoncore.Value{Type: v.Type, Data: v.Value}
+	return bsoncore.Value{Type: bsoncore.Type(v.Type), Data: v.Value}
 }
 
 // Validate ensures the value is a valid BSON value.
@@ -125,14 +126,14 @@ func (rv RawValue) String() string { return convertToCoreValue(rv).String() }
 func (rv RawValue) DebugString() string { return convertToCoreValue(rv).DebugString() }
 
 // Double returns the float64 value for this element.
-// It panics if e's BSON type is not bsontype.Double.
+// It panics if e's BSON type is not bson.TypeDouble.
 func (rv RawValue) Double() float64 { return convertToCoreValue(rv).Double() }
 
 // DoubleOK is the same as Double, but returns a boolean instead of panicking.
 func (rv RawValue) DoubleOK() (float64, bool) { return convertToCoreValue(rv).DoubleOK() }
 
 // StringValue returns the string value for this element.
-// It panics if e's BSON type is not bsontype.String.
+// It panics if e's BSON type is not bson.TypeString.
 //
 // NOTE: This method is called StringValue to avoid a collision with the String method which
 // implements the fmt.Stringer interface.

@@ -6,10 +6,6 @@
 
 package bson
 
-import (
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-)
-
 // ArrayReader is implemented by types that allow reading values from a BSON
 // array.
 type ArrayReader interface {
@@ -26,7 +22,7 @@ type DocumentReader interface {
 // is implemented by several types with different underlying representations of
 // BSON, such as a bson.Document, raw BSON bytes, or extended JSON.
 type ValueReader interface {
-	Type() bsontype.Type
+	Type() Type
 	Skip() error
 
 	ReadArray() (ArrayReader, error)
@@ -60,5 +56,5 @@ type ValueReader interface {
 //
 // Deprecated: BytesReader will not be supported in Go Driver 2.0.
 type BytesReader interface {
-	ReadValueBytes(dst []byte) (bsontype.Type, []byte, error)
+	ReadValueBytes(dst []byte) (Type, []byte, error)
 }

@@ -13,8 +13,6 @@ import (
 	"fmt"
 	"io"
 	"strings"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 const maxNestingDepth = 200
@@ -47,7 +45,7 @@ const (
 )
 
 type extJSONValue struct {
-	t bsontype.Type
+	t Type
 	v interface{}
 }
 
@@ -87,8 +85,8 @@ func newExtJSONParser(r io.Reader, canonical bool) *extJSONParser {
 }
 
 // peekType examines the next value and returns its BSON Type
-func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
-	var t bsontype.Type
+func (ejp *extJSONParser) peekType() (Type, error) {
+	var t Type
 	var err error
 	initialState := ejp.s
 
@@ -97,7 +95,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 	case jpsSawValue:
 		t = ejp.v.t
 	case jpsSawBeginArray:
-		t = bsontype.Array
+		t = TypeArray
 	case jpsInvalidState:
 		err = ejp.err
 	case jpsSawComma:
@@ -113,26 +111,26 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 		ejp.advanceState()
 		switch ejp.s {
 		case jpsSawEndObject: // empty embedded document
-			t = bsontype.EmbeddedDocument
+			t = TypeEmbeddedDocument
 			ejp.emptyObject = true
 		case jpsInvalidState:
 			err = ejp.err
 		case jpsSawKey:
 			if initialState == jpsStartState {
-				return bsontype.EmbeddedDocument, nil
+				return TypeEmbeddedDocument, nil
 			}
 			t = wrapperKeyBSONType(ejp.k)
 
 			// if $uuid is encountered, parse as binary subtype 4
 			if ejp.k == "$uuid" {
 				ejp.relaxedUUID = true
-				t = bsontype.Binary
+				t = TypeBinary
 			}
 
 			switch t {
-			case bsontype.JavaScript:
+			case TypeJavaScript:
 				// just saw $code, need to check for $scope at same level
-				_, err = ejp.readValue(bsontype.JavaScript)
+				_, err = ejp.readValue(TypeJavaScript)
 				if err != nil {
 					break
 				}
@@ -143,7 +141,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 					ejp.advanceState()
 
 					if ejp.s == jpsSawKey && ejp.k == "$scope" {
-						t = bsontype.CodeWithScope
+						t = TypeCodeWithScope
 					} else {
 						err = fmt.Errorf("invalid extended JSON: unexpected key %s in CodeWithScope object", ejp.k)
 					}
@@ -152,7 +150,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 				default:
 					err = ErrInvalidJSON
 				}
-			case bsontype.CodeWithScope:
+			case TypeCodeWithScope:
 				err = errors.New("invalid extended JSON: code with $scope must contain $code before $scope")
 			}
 		}
@@ -162,7 +160,7 @@ func (ejp *extJSONParser) peekType() (bsontype.Type, error) {
 }
 
 // readKey parses the next key and its type and returns them
-func (ejp *extJSONParser) readKey() (string, bsontype.Type, error) {
+func (ejp *extJSONParser) readKey() (string, Type, error) {
 	if ejp.emptyObject {
 		ejp.emptyObject = false
 		return "", 0, ErrEOD
@@ -226,7 +224,7 @@ func (ejp *extJSONParser) readKey() (string, bsontype.Type, error) {
 }
 
 // readValue returns the value corresponding to the Type returned by peekType
-func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
+func (ejp *extJSONParser) readValue(t Type) (*extJSONValue, error) {
 	if ejp.s == jpsInvalidState {
 		return nil, ejp.err
 	}
@@ -234,19 +232,19 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 	var v *extJSONValue
 
 	switch t {
-	case bsontype.Null, bsontype.Boolean, bsontype.String:
+	case TypeNull, TypeBoolean, TypeString:
 		if ejp.s != jpsSawValue {
 			return nil, invalidRequestError(t.String())
 		}
 		v = ejp.v
-	case bsontype.Int32, bsontype.Int64, bsontype.Double:
+	case TypeInt32, TypeInt64, TypeDouble:
 		// relaxed version allows these to be literal number values
 		if ejp.s == jpsSawValue {
 			v = ejp.v
 			break
 		}
 		fallthrough
-	case bsontype.Decimal128, bsontype.Symbol, bsontype.ObjectID, bsontype.MinKey, bsontype.MaxKey, bsontype.Undefined:
+	case TypeDecimal128, TypeSymbol, TypeObjectID, TypeMinKey, TypeMaxKey, TypeUndefined:
 		switch ejp.s {
 		case jpsSawKey:
 			// read colon
@@ -271,7 +269,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		default:
 			return nil, invalidRequestError(t.String())
 		}
-	case bsontype.Binary, bsontype.Regex, bsontype.Timestamp, bsontype.DBPointer:
+	case TypeBinary, TypeRegex, TypeTimestamp, TypeDBPointer:
 		if ejp.s != jpsSawKey {
 			return nil, invalidRequestError(t.String())
 		}
@@ -282,7 +280,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		}
 
 		ejp.advanceState()
-		if t == bsontype.Binary && ejp.s == jpsSawValue {
+		if t == TypeBinary && ejp.s == jpsSawValue {
 			// convert relaxed $uuid format
 			if ejp.relaxedUUID {
 				defer func() { ejp.relaxedUUID = false }()
@@ -318,20 +316,20 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 
 				ejp.advanceState()
 				if ejp.s != jpsSawEndObject {
-					return nil, invalidJSONErrorForType("$uuid and value and then }", bsontype.Binary)
+					return nil, invalidJSONErrorForType("$uuid and value and then }", TypeBinary)
 				}
 
 				base64 := &extJSONValue{
-					t: bsontype.String,
+					t: TypeString,
 					v: base64.StdEncoding.EncodeToString(bytes),
 				}
 				subType := &extJSONValue{
-					t: bsontype.String,
+					t: TypeString,
 					v: "04",
 				}
 
 				v = &extJSONValue{
-					t: bsontype.EmbeddedDocument,
+					t: TypeEmbeddedDocument,
 					v: &extJSONObject{
 						keys:   []string{"base64", "subType"},
 						values: []*extJSONValue{base64, subType},
@@ -346,7 +344,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 
 			ejp.advanceState()
 			if ejp.s != jpsSawComma {
-				return nil, invalidJSONErrorForType(",", bsontype.Binary)
+				return nil, invalidJSONErrorForType(",", TypeBinary)
 			}
 
 			ejp.advanceState()
@@ -355,7 +353,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 				return nil, err
 			}
 			if key != "$type" {
-				return nil, invalidJSONErrorForType("$type", bsontype.Binary)
+				return nil, invalidJSONErrorForType("$type", TypeBinary)
 			}
 
 			subType, err := ejp.readValue(t)
@@ -365,11 +363,11 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 
 			ejp.advanceState()
 			if ejp.s != jpsSawEndObject {
-				return nil, invalidJSONErrorForType("2 key-value pairs and then }", bsontype.Binary)
+				return nil, invalidJSONErrorForType("2 key-value pairs and then }", TypeBinary)
 			}
 
 			v = &extJSONValue{
-				t: bsontype.EmbeddedDocument,
+				t: TypeEmbeddedDocument,
 				v: &extJSONObject{
 					keys:   []string{"base64", "subType"},
 					values: []*extJSONValue{base64, subType},
@@ -393,9 +391,9 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 			return nil, invalidJSONErrorForType("2 key-value pairs and then }", t)
 		}
 
-		v = &extJSONValue{t: bsontype.EmbeddedDocument, v: &extJSONObject{keys: keys, values: vals}}
+		v = &extJSONValue{t: TypeEmbeddedDocument, v: &extJSONObject{keys: keys, values: vals}}
 
-	case bsontype.DateTime:
+	case TypeDateTime:
 		switch ejp.s {
 		case jpsSawValue:
 			v = ejp.v
@@ -413,7 +411,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 				if err != nil {
 					return nil, err
 				}
-				v = &extJSONValue{t: bsontype.EmbeddedDocument, v: &extJSONObject{keys: keys, values: vals}}
+				v = &extJSONValue{t: TypeEmbeddedDocument, v: &extJSONObject{keys: keys, values: vals}}
 			case jpsSawValue:
 				if ejp.canonical {
 					return nil, invalidJSONError("{")
@@ -433,7 +431,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		default:
 			return nil, invalidRequestError(t.String())
 		}
-	case bsontype.JavaScript:
+	case TypeJavaScript:
 		switch ejp.s {
 		case jpsSawKey:
 			// read colon
@@ -456,7 +454,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		default:
 			return nil, invalidRequestError(t.String())
 		}
-	case bsontype.CodeWithScope:
+	case TypeCodeWithScope:
 		if ejp.s == jpsSawKey && ejp.k == "$scope" {
 			v = ejp.v // this is the $code string from earlier
 
@@ -474,7 +472,7 @@ func (ejp *extJSONParser) readValue(t bsontype.Type) (*extJSONValue, error) {
 		} else {
 			return nil, invalidRequestError(t.String())
 		}
-	case bsontype.EmbeddedDocument, bsontype.Array:
+	case TypeEmbeddedDocument, TypeArray:
 		return nil, invalidRequestError(t.String())
 	}
 
@@ -703,14 +701,14 @@ func (ejp *extJSONParser) validateToken(jtt jsonTokenType) bool {
 // ensureExtValueType returns true if the current value has the expected
 // value type for single-key extended JSON types. For example,
 // {"$numberInt": v} v must be TypeString
-func (ejp *extJSONParser) ensureExtValueType(t bsontype.Type) bool {
+func (ejp *extJSONParser) ensureExtValueType(t Type) bool {
 	switch t {
-	case bsontype.MinKey, bsontype.MaxKey:
-		return ejp.v.t == bsontype.Int32
-	case bsontype.Undefined:
-		return ejp.v.t == bsontype.Boolean
-	case bsontype.Int32, bsontype.Int64, bsontype.Double, bsontype.Decimal128, bsontype.Symbol, bsontype.ObjectID:
-		return ejp.v.t == bsontype.String
+	case TypeMinKey, TypeMaxKey:
+		return ejp.v.t == TypeInt32
+	case TypeUndefined:
+		return ejp.v.t == TypeBoolean
+	case TypeInt32, TypeInt64, TypeDouble, TypeDecimal128, TypeSymbol, TypeObjectID:
+		return ejp.v.t == TypeString
 	default:
 		return false
 	}
@@ -742,21 +740,21 @@ func (ejp *extJSONParser) peekMode() jsonParseMode {
 }
 
 func extendJSONToken(jt *jsonToken) *extJSONValue {
-	var t bsontype.Type
+	var t Type
 
 	switch jt.t {
 	case jttInt32:
-		t = bsontype.Int32
+		t = TypeInt32
 	case jttInt64:
-		t = bsontype.Int64
+		t = TypeInt64
 	case jttDouble:
-		t = bsontype.Double
+		t = TypeDouble
 	case jttString:
-		t = bsontype.String
+		t = TypeString
 	case jttBool:
-		t = bsontype.Boolean
+		t = TypeBoolean
 	case jttNull:
-		t = bsontype.Null
+		t = TypeNull
 	default:
 		return nil
 	}
@@ -780,7 +778,7 @@ func invalidJSONError(expected string) error {
 	return fmt.Errorf("invalid JSON input; expected %s", expected)
 }
 
-func invalidJSONErrorForType(expected string, t bsontype.Type) error {
+func invalidJSONErrorForType(expected string, t Type) error {
 	return fmt.Errorf("invalid JSON input; expected %s for %s", expected, t)
 }
 

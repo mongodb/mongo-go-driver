@@ -6,10 +6,6 @@
 
 package bson
 
-import (
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-)
-
 // ArrayWriter is the interface used to create a BSON or BSON adjacent array.
 // Callers must ensure they call WriteArrayEnd when they have finished creating
 // the array.
@@ -68,7 +64,7 @@ type ValueWriterFlusher interface {
 //
 // Deprecated: BytesWriter will not be supported in Go Driver 2.0.
 type BytesWriter interface {
-	WriteValueBytes(t bsontype.Type, b []byte) error
+	WriteValueBytes(t Type, b []byte) error
 }
 
 // SliceWriter allows a pointer to a slice of bytes to be used as an io.Writer.

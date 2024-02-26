@@ -248,10 +248,10 @@ func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts
 	if eo.RangeOptions != nil {
 		var transformedRange mcopts.ExplicitRangeOptions
 		if eo.RangeOptions.Min != nil {
-			transformedRange.Min = &bsoncore.Value{Type: eo.RangeOptions.Min.Type, Data: eo.RangeOptions.Min.Value}
+			transformedRange.Min = &bsoncore.Value{Type: bsoncore.Type(eo.RangeOptions.Min.Type), Data: eo.RangeOptions.Min.Value}
 		}
 		if eo.RangeOptions.Max != nil {
-			transformedRange.Max = &bsoncore.Value{Type: eo.RangeOptions.Max.Type, Data: eo.RangeOptions.Max.Value}
+			transformedRange.Max = &bsoncore.Value{Type: bsoncore.Type(eo.RangeOptions.Max.Type), Data: eo.RangeOptions.Max.Value}
 		}
 		if eo.RangeOptions.Precision != nil {
 			transformedRange.Precision = eo.RangeOptions.Precision
@@ -267,7 +267,7 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 	opts ...*options.EncryptOptions) (bson.Binary, error) {
 
 	transformed := transformExplicitEncryptionOptions(opts...)
-	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
+	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value}, transformed)
 	if err != nil {
 		return bson.Binary{}, err
 	}
@@ -315,7 +315,7 @@ func (ce *ClientEncryption) Decrypt(ctx context.Context, val bson.Binary) (bson.
 		return bson.RawValue{}, err
 	}
 
-	return bson.RawValue{Type: decrypted.Type, Value: decrypted.Data}, nil
+	return bson.RawValue{Type: bson.Type(decrypted.Type), Value: decrypted.Data}, nil
 }
 
 // Close cleans up any resources associated with the ClientEncryption instance. This includes disconnecting the

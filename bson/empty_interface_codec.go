@@ -10,7 +10,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // EmptyInterfaceCodec is the Codec used for interface{} values.
@@ -65,8 +64,8 @@ func (eic EmptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val
 	return encoder.EncodeValue(ec, vw, val.Elem())
 }
 
-func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType bsontype.Type) (reflect.Type, error) {
-	isDocument := valueType == bsontype.Type(0) || valueType == bsontype.EmbeddedDocument
+func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType Type) (reflect.Type, error) {
+	isDocument := valueType == Type(0) || valueType == TypeEmbeddedDocument
 	if isDocument {
 		if dc.defaultDocumentType != nil {
 			// If the bsontype is an embedded document and the DocumentType is set on the DecodeContext, then return
@@ -87,14 +86,14 @@ func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 	}
 
 	if isDocument {
-		// For documents, fallback to looking up a type map entry for bsontype.Type(0) or bsontype.EmbeddedDocument,
+		// For documents, fallback to looking up a type map entry for Type(0) or TypeEmbeddedDocument,
 		// depending on the original valueType.
-		var lookupType bsontype.Type
+		var lookupType Type
 		switch valueType {
-		case bsontype.Type(0):
-			lookupType = bsontype.EmbeddedDocument
-		case bsontype.EmbeddedDocument:
-			lookupType = bsontype.Type(0)
+		case Type(0):
+			lookupType = TypeEmbeddedDocument
+		case TypeEmbeddedDocument:
+			lookupType = Type(0)
 		}
 
 		rtype, err = dc.LookupTypeMapEntry(lookupType)
@@ -114,7 +113,7 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t re
 	rtype, err := eic.getEmptyInterfaceDecodeType(dc, vr.Type())
 	if err != nil {
 		switch vr.Type() {
-		case bsontype.Null:
+		case TypeNull:
 			return reflect.Zero(t), vr.ReadNull()
 		default:
 			return emptyValue, err
@@ -133,7 +132,7 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t re
 
 	if (eic.DecodeBinaryAsSlice || dc.binaryAsSlice) && rtype == tBinary {
 		binElem := elem.Interface().(Binary)
-		if binElem.Subtype == bsontype.BinaryGeneric || binElem.Subtype == bsontype.BinaryBinaryOld {
+		if binElem.Subtype == TypeBinaryGeneric || binElem.Subtype == TypeBinaryBinaryOld {
 			elem = reflect.ValueOf(binElem.Data)
 		}
 	}

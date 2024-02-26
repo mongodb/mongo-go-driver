@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -110,27 +109,27 @@ func (dvd DefaultValueDecoders) RegisterDefaultDecoders(rb *RegistryBuilder) {
 		RegisterDefaultDecoder(reflect.String, defaultStringCodec).
 		RegisterDefaultDecoder(reflect.Struct, newDefaultStructCodec()).
 		RegisterDefaultDecoder(reflect.Ptr, NewPointerCodec()).
-		RegisterTypeMapEntry(bsontype.Double, tFloat64).
-		RegisterTypeMapEntry(bsontype.String, tString).
-		RegisterTypeMapEntry(bsontype.Array, tA).
-		RegisterTypeMapEntry(bsontype.Binary, tBinary).
-		RegisterTypeMapEntry(bsontype.Undefined, tUndefined).
-		RegisterTypeMapEntry(bsontype.ObjectID, tOID).
-		RegisterTypeMapEntry(bsontype.Boolean, tBool).
-		RegisterTypeMapEntry(bsontype.DateTime, tDateTime).
-		RegisterTypeMapEntry(bsontype.Regex, tRegex).
-		RegisterTypeMapEntry(bsontype.DBPointer, tDBPointer).
-		RegisterTypeMapEntry(bsontype.JavaScript, tJavaScript).
-		RegisterTypeMapEntry(bsontype.Symbol, tSymbol).
-		RegisterTypeMapEntry(bsontype.CodeWithScope, tCodeWithScope).
-		RegisterTypeMapEntry(bsontype.Int32, tInt32).
-		RegisterTypeMapEntry(bsontype.Int64, tInt64).
-		RegisterTypeMapEntry(bsontype.Timestamp, tTimestamp).
-		RegisterTypeMapEntry(bsontype.Decimal128, tDecimal).
-		RegisterTypeMapEntry(bsontype.MinKey, tMinKey).
-		RegisterTypeMapEntry(bsontype.MaxKey, tMaxKey).
-		RegisterTypeMapEntry(bsontype.Type(0), tD).
-		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tD).
+		RegisterTypeMapEntry(TypeDouble, tFloat64).
+		RegisterTypeMapEntry(TypeString, tString).
+		RegisterTypeMapEntry(TypeArray, tA).
+		RegisterTypeMapEntry(TypeBinary, tBinary).
+		RegisterTypeMapEntry(TypeUndefined, tUndefined).
+		RegisterTypeMapEntry(TypeObjectID, tOID).
+		RegisterTypeMapEntry(TypeBoolean, tBool).
+		RegisterTypeMapEntry(TypeDateTime, tDateTime).
+		RegisterTypeMapEntry(TypeRegex, tRegex).
+		RegisterTypeMapEntry(TypeDBPointer, tDBPointer).
+		RegisterTypeMapEntry(TypeJavaScript, tJavaScript).
+		RegisterTypeMapEntry(TypeSymbol, tSymbol).
+		RegisterTypeMapEntry(TypeCodeWithScope, tCodeWithScope).
+		RegisterTypeMapEntry(TypeInt32, tInt32).
+		RegisterTypeMapEntry(TypeInt64, tInt64).
+		RegisterTypeMapEntry(TypeTimestamp, tTimestamp).
+		RegisterTypeMapEntry(TypeDecimal128, tDecimal).
+		RegisterTypeMapEntry(TypeMinKey, tMinKey).
+		RegisterTypeMapEntry(TypeMaxKey, tMaxKey).
+		RegisterTypeMapEntry(Type(0), tD).
+		RegisterTypeMapEntry(TypeEmbeddedDocument, tD).
 		RegisterHookDecoder(tValueUnmarshaler, ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue)).
 		RegisterHookDecoder(tUnmarshaler, ValueDecoderFunc(dvd.UnmarshalerDecodeValue))
 }
@@ -145,9 +144,9 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr ValueReader, v
 	}
 
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
+	case Type(0), TypeEmbeddedDocument:
 		dc.Ancestor = tD
-	case bsontype.Null:
+	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	default:
@@ -207,29 +206,29 @@ func (dvd DefaultValueDecoders) booleanDecodeType(_ DecodeContext, vr ValueReade
 	var b bool
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Int32:
+	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return emptyValue, err
 		}
 		b = (i32 != 0)
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return emptyValue, err
 		}
 		b = (i64 != 0)
-	case bsontype.Double:
+	case TypeDouble:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return emptyValue, err
 		}
 		b = (f64 != 0)
-	case bsontype.Boolean:
+	case TypeBoolean:
 		b, err = vr.ReadBoolean()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a boolean", vrType)
@@ -263,18 +262,18 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr ValueReader, t re
 	var i64 int64
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Int32:
+	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return emptyValue, err
 		}
 		i64 = int64(i32)
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err = vr.ReadInt64()
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Double:
+	case TypeDouble:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return emptyValue, err
@@ -286,7 +285,7 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr ValueReader, t re
 			return emptyValue, fmt.Errorf("%g overflows int64", f64)
 		}
 		i64 = int64(f64)
-	case bsontype.Boolean:
+	case TypeBoolean:
 		b, err := vr.ReadBoolean()
 		if err != nil {
 			return emptyValue, err
@@ -294,11 +293,11 @@ func (DefaultValueDecoders) intDecodeType(dc DecodeContext, vr ValueReader, t re
 		if b {
 			i64 = 1
 		}
-	case bsontype.Null:
+	case TypeNull:
 		if err = vr.ReadNull(); err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err = vr.ReadUndefined(); err != nil {
 			return emptyValue, err
 		}
@@ -371,18 +370,18 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr ValueReader
 	var i64 int64
 	var err error
 	switch vr.Type() {
-	case bsontype.Int32:
+	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
 		}
 		i64 = int64(i32)
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err = vr.ReadInt64()
 		if err != nil {
 			return err
 		}
-	case bsontype.Double:
+	case TypeDouble:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return err
@@ -394,7 +393,7 @@ func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr ValueReader
 			return fmt.Errorf("%g overflows int64", f64)
 		}
 		i64 = int64(f64)
-	case bsontype.Boolean:
+	case TypeBoolean:
 		b, err := vr.ReadBoolean()
 		if err != nil {
 			return err
@@ -451,24 +450,24 @@ func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr ValueReader
 	var f float64
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Int32:
+	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return emptyValue, err
 		}
 		f = float64(i32)
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return emptyValue, err
 		}
 		f = float64(i64)
-	case bsontype.Double:
+	case TypeDouble:
 		f, err = vr.ReadDouble()
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Boolean:
+	case TypeBoolean:
 		b, err := vr.ReadBoolean()
 		if err != nil {
 			return emptyValue, err
@@ -476,11 +475,11 @@ func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr ValueReader
 		if b {
 			f = 1
 		}
-	case bsontype.Null:
+	case TypeNull:
 		if err = vr.ReadNull(); err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err = vr.ReadUndefined(); err != nil {
 			return emptyValue, err
 		}
@@ -536,7 +535,7 @@ func (dvd DefaultValueDecoders) StringDecodeValue(_ DecodeContext, vr ValueReade
 	var err error
 	switch vr.Type() {
 	// TODO(GODRIVER-577): Handle JavaScript and Symbol BSON types when allowed.
-	case bsontype.String:
+	case TypeString:
 		str, err = vr.ReadString()
 		if err != nil {
 			return err
@@ -564,11 +563,11 @@ func (DefaultValueDecoders) javaScriptDecodeType(_ DecodeContext, vr ValueReader
 	var js string
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.JavaScript:
+	case TypeJavaScript:
 		js, err = vr.ReadJavascript()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a JavaScript", vrType)
@@ -610,23 +609,23 @@ func (DefaultValueDecoders) symbolDecodeType(_ DecodeContext, vr ValueReader, t 
 	var symbol string
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.String:
+	case TypeString:
 		symbol, err = vr.ReadString()
-	case bsontype.Symbol:
+	case TypeSymbol:
 		symbol, err = vr.ReadSymbol()
-	case bsontype.Binary:
+	case TypeBinary:
 		data, subtype, err := vr.ReadBinary()
 		if err != nil {
 			return emptyValue, err
 		}
 
-		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
+		if subtype != TypeBinaryGeneric && subtype != TypeBinaryBinaryOld {
 			return emptyValue, decodeBinaryError{subtype: subtype, typeName: "Symbol"}
 		}
 		symbol = string(data)
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a Symbol", vrType)
@@ -669,11 +668,11 @@ func (DefaultValueDecoders) binaryDecodeType(_ DecodeContext, vr ValueReader, t 
 	var subtype byte
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Binary:
+	case TypeBinary:
 		data, subtype, err = vr.ReadBinary()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a Binary", vrType)
@@ -714,9 +713,9 @@ func (DefaultValueDecoders) undefinedDecodeType(_ DecodeContext, vr ValueReader,
 
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into an Undefined", vr.Type())
@@ -759,12 +758,12 @@ func (dvd DefaultValueDecoders) objectIDDecodeType(_ DecodeContext, vr ValueRead
 	var oid ObjectID
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.ObjectID:
+	case TypeObjectID:
 		oid, err = vr.ReadObjectID()
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.String:
+	case TypeString:
 		str, err := vr.ReadString()
 		if err != nil {
 			return emptyValue, err
@@ -777,11 +776,11 @@ func (dvd DefaultValueDecoders) objectIDDecodeType(_ DecodeContext, vr ValueRead
 		}
 		byteArr := []byte(str)
 		copy(oid[:], byteArr)
-	case bsontype.Null:
+	case TypeNull:
 		if err = vr.ReadNull(); err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err = vr.ReadUndefined(); err != nil {
 			return emptyValue, err
 		}
@@ -822,11 +821,11 @@ func (DefaultValueDecoders) dateTimeDecodeType(_ DecodeContext, vr ValueReader, 
 	var dt int64
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.DateTime:
+	case TypeDateTime:
 		dt, err = vr.ReadDateTime()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a DateTime", vrType)
@@ -867,9 +866,9 @@ func (DefaultValueDecoders) nullDecodeType(_ DecodeContext, vr ValueReader, t re
 
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a Null", vr.Type())
@@ -911,11 +910,11 @@ func (DefaultValueDecoders) regexDecodeType(_ DecodeContext, vr ValueReader, t r
 	var pattern, options string
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Regex:
+	case TypeRegex:
 		pattern, options, err = vr.ReadRegex()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a Regex", vrType)
@@ -958,11 +957,11 @@ func (DefaultValueDecoders) dBPointerDecodeType(_ DecodeContext, vr ValueReader,
 	var pointer ObjectID
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.DBPointer:
+	case TypeDBPointer:
 		ns, pointer, err = vr.ReadDBPointer()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a DBPointer", vrType)
@@ -1004,11 +1003,11 @@ func (DefaultValueDecoders) timestampDecodeType(_ DecodeContext, vr ValueReader,
 	var t, incr uint32
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Timestamp:
+	case TypeTimestamp:
 		t, incr, err = vr.ReadTimestamp()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a Timestamp", vrType)
@@ -1049,11 +1048,11 @@ func (DefaultValueDecoders) minKeyDecodeType(_ DecodeContext, vr ValueReader, t 
 
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.MinKey:
+	case TypeMinKey:
 		err = vr.ReadMinKey()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a MinKey", vr.Type())
@@ -1094,11 +1093,11 @@ func (DefaultValueDecoders) maxKeyDecodeType(_ DecodeContext, vr ValueReader, t 
 
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.MaxKey:
+	case TypeMaxKey:
 		err = vr.ReadMaxKey()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a MaxKey", vr.Type())
@@ -1140,11 +1139,11 @@ func (dvd DefaultValueDecoders) decimal128DecodeType(_ DecodeContext, vr ValueRe
 	var d128 Decimal128
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Decimal128:
+	case TypeDecimal128:
 		d128, err = vr.ReadDecimal128()
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a Decimal128", vr.Type())
@@ -1186,27 +1185,27 @@ func (dvd DefaultValueDecoders) jsonNumberDecodeType(_ DecodeContext, vr ValueRe
 	var jsonNum json.Number
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Double:
+	case TypeDouble:
 		f64, err := vr.ReadDouble()
 		if err != nil {
 			return emptyValue, err
 		}
 		jsonNum = json.Number(strconv.FormatFloat(f64, 'f', -1, 64))
-	case bsontype.Int32:
+	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return emptyValue, err
 		}
 		jsonNum = json.Number(strconv.FormatInt(int64(i32), 10))
-	case bsontype.Int64:
+	case TypeInt64:
 		i64, err := vr.ReadInt64()
 		if err != nil {
 			return emptyValue, err
 		}
 		jsonNum = json.Number(strconv.FormatInt(i64, 10))
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a json.Number", vrType)
@@ -1248,7 +1247,7 @@ func (dvd DefaultValueDecoders) urlDecodeType(_ DecodeContext, vr ValueReader, t
 	urlPtr := &url.URL{}
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.String:
+	case TypeString:
 		var str string // Declare str here to avoid shadowing err during the ReadString call.
 		str, err = vr.ReadString()
 		if err != nil {
@@ -1256,9 +1255,9 @@ func (dvd DefaultValueDecoders) urlDecodeType(_ DecodeContext, vr ValueReader, t
 		}
 
 		urlPtr, err = url.Parse(str)
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a *url.URL", vrType)
@@ -1292,7 +1291,7 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr ValueReader,
 //
 // Deprecated: TimeDecodeValue is not registered by default. Use TimeCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) TimeDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
-	if vr.Type() != bsontype.DateTime {
+	if vr.Type() != TypeDateTime {
 		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
 	}
 
@@ -1313,7 +1312,7 @@ func (dvd DefaultValueDecoders) TimeDecodeValue(_ DecodeContext, vr ValueReader,
 //
 // Deprecated: ByteSliceDecodeValue is not registered by default. Use ByteSliceCodec.DecodeValue instead.
 func (dvd DefaultValueDecoders) ByteSliceDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
-	if vr.Type() != bsontype.Binary && vr.Type() != bsontype.Null {
+	if vr.Type() != TypeBinary && vr.Type() != TypeNull {
 		return fmt.Errorf("cannot decode %v into a []byte", vr.Type())
 	}
 
@@ -1321,7 +1320,7 @@ func (dvd DefaultValueDecoders) ByteSliceDecodeValue(_ DecodeContext, vr ValueRe
 		return ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
 
-	if vr.Type() == bsontype.Null {
+	if vr.Type() == TypeNull {
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	}
@@ -1331,7 +1330,7 @@ func (dvd DefaultValueDecoders) ByteSliceDecodeValue(_ DecodeContext, vr ValueRe
 		return err
 	}
 	if subtype != 0x00 {
-		return fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", bsontype.Binary, subtype)
+		return fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", TypeBinary, subtype)
 	}
 
 	val.Set(reflect.ValueOf(data))
@@ -1347,8 +1346,8 @@ func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr ValueReader,
 	}
 
 	switch vr.Type() {
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
-	case bsontype.Null:
+	case Type(0), TypeEmbeddedDocument:
+	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
 	default:
@@ -1406,12 +1405,12 @@ func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr ValueReade
 	}
 
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Array:
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
+	case TypeArray:
+	case Type(0), TypeEmbeddedDocument:
 		if val.Type().Elem() != tE {
 			return fmt.Errorf("cannot decode document into %s", val.Type())
 		}
-	case bsontype.Binary:
+	case TypeBinary:
 		if val.Type().Elem() != tByte {
 			return fmt.Errorf("ArrayDecodeValue can only be used to decode binary into a byte array, got %v", vrType)
 		}
@@ -1419,8 +1418,8 @@ func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr ValueReade
 		if err != nil {
 			return err
 		}
-		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
-			return fmt.Errorf("ArrayDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", bsontype.Binary, subtype)
+		if subtype != TypeBinaryGeneric && subtype != TypeBinaryBinaryOld {
+			return fmt.Errorf("ArrayDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", TypeBinary, subtype)
 		}
 
 		if len(data) > val.Len() {
@@ -1431,10 +1430,10 @@ func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr ValueReade
 			val.Index(idx).Set(reflect.ValueOf(elem))
 		}
 		return nil
-	case bsontype.Null:
+	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadUndefined()
 	default:
@@ -1474,11 +1473,11 @@ func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr ValueReade
 	}
 
 	switch vr.Type() {
-	case bsontype.Array:
-	case bsontype.Null:
+	case TypeArray:
+	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
+	case Type(0), TypeEmbeddedDocument:
 		if val.Type().Elem() != tE {
 			return fmt.Errorf("cannot decode document into %s", val.Type())
 		}
@@ -1533,7 +1532,7 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(_ DecodeContext, vr 
 		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
-	t, src, err := Copier{}.CopyValueToBytes(vr)
+	t, src, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
@@ -1562,7 +1561,7 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr Value
 		val.Set(reflect.New(val.Type().Elem()))
 	}
 
-	_, src, err := Copier{}.CopyValueToBytes(vr)
+	_, src, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
@@ -1605,13 +1604,13 @@ func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr V
 	rtype, err := dc.LookupTypeMapEntry(vr.Type())
 	if err != nil {
 		switch vr.Type() {
-		case bsontype.EmbeddedDocument:
+		case TypeEmbeddedDocument:
 			if dc.Ancestor != nil {
 				rtype = dc.Ancestor
 				break
 			}
 			rtype = tD
-		case bsontype.Null:
+		case TypeNull:
 			val.Set(reflect.Zero(val.Type()))
 			return vr.ReadNull()
 		default:
@@ -1649,7 +1648,7 @@ func (DefaultValueDecoders) CoreDocumentDecodeValue(_ DecodeContext, vr ValueRea
 
 	val.SetLen(0)
 
-	cdoc, err := Copier{}.AppendDocumentBytes(val.Interface().(bsoncore.Document), vr)
+	cdoc, err := appendDocumentBytes(val.Interface().(bsoncore.Document), vr)
 	val.Set(reflect.ValueOf(cdoc))
 	return err
 }
@@ -1727,11 +1726,11 @@ func (dvd DefaultValueDecoders) codeWithScopeDecodeType(dc DecodeContext, vr Val
 	var cws CodeWithScope
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.CodeWithScope:
+	case TypeCodeWithScope:
 		cws, err = dvd.readCodeWithScope(dc, vr)
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a CodeWithScope", vrType)
@@ -1763,7 +1762,7 @@ func (dvd DefaultValueDecoders) CodeWithScopeDecodeValue(dc DecodeContext, vr Va
 
 func (dvd DefaultValueDecoders) decodeD(dc DecodeContext, vr ValueReader, _ reflect.Value) ([]reflect.Value, error) {
 	switch vr.Type() {
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
+	case Type(0), TypeEmbeddedDocument:
 	default:
 		return nil, fmt.Errorf("cannot decode %v into a D", vr.Type())
 	}

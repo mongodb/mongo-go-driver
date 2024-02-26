@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -21,7 +20,7 @@ func TestCopier(t *testing.T) {
 		t.Run("ReadDocument Error", func(t *testing.T) {
 			want := errors.New("ReadDocumentError")
 			src := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwReadDocument}
-			got := Copier{}.CopyDocument(nil, src)
+			got := copyDocument(nil, src)
 			if !compareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
@@ -30,7 +29,7 @@ func TestCopier(t *testing.T) {
 			want := errors.New("WriteDocumentError")
 			src := &TestValueReaderWriter{}
 			dst := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwWriteDocument}
-			got := Copier{}.CopyDocument(dst, src)
+			got := copyDocument(dst, src)
 			if !compareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
@@ -43,7 +42,7 @@ func TestCopier(t *testing.T) {
 			src := newValueReader(doc)
 			dst := newValueWriterFromSlice(make([]byte, 0))
 			want := doc
-			err = Copier{}.CopyDocument(dst, src)
+			err = copyDocument(dst, src)
 			noerr(t, err)
 			got := dst.buf
 			if !bytes.Equal(got, want) {
@@ -55,7 +54,7 @@ func TestCopier(t *testing.T) {
 		t.Run("ReadArray Error", func(t *testing.T) {
 			want := errors.New("ReadArrayError")
 			src := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwReadArray}
-			got := Copier{}.copyArray(nil, src)
+			got := copyArray(nil, src)
 			if !compareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
@@ -64,7 +63,7 @@ func TestCopier(t *testing.T) {
 			want := errors.New("WriteArrayError")
 			src := &TestValueReaderWriter{}
 			dst := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwWriteArray}
-			got := Copier{}.copyArray(dst, src)
+			got := copyArray(dst, src)
 			if !compareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
@@ -91,7 +90,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			want := doc
 
-			err = Copier{}.copyArray(dst, src)
+			err = copyArray(dst, src)
 			noerr(t, err)
 
 			err = dst.WriteDocumentEnd()
@@ -113,52 +112,52 @@ func TestCopier(t *testing.T) {
 			{
 				"Double/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Double, err: errors.New("1"), errAfter: llvrwReadDouble},
+				&TestValueReaderWriter{bsontype: TypeDouble, err: errors.New("1"), errAfter: llvrwReadDouble},
 				errors.New("1"),
 			},
 			{
 				"Double/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Double, err: errors.New("2"), errAfter: llvrwWriteDouble},
-				&TestValueReaderWriter{bsontype: bsontype.Double, readval: float64(3.14159)},
+				&TestValueReaderWriter{bsontype: TypeDouble, err: errors.New("2"), errAfter: llvrwWriteDouble},
+				&TestValueReaderWriter{bsontype: TypeDouble, readval: float64(3.14159)},
 				errors.New("2"),
 			},
 			{
 				"String/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.String, err: errors.New("1"), errAfter: llvrwReadString},
+				&TestValueReaderWriter{bsontype: TypeString, err: errors.New("1"), errAfter: llvrwReadString},
 				errors.New("1"),
 			},
 			{
 				"String/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.String, err: errors.New("2"), errAfter: llvrwWriteString},
-				&TestValueReaderWriter{bsontype: bsontype.String, readval: "hello, world"},
+				&TestValueReaderWriter{bsontype: TypeString, err: errors.New("2"), errAfter: llvrwWriteString},
+				&TestValueReaderWriter{bsontype: TypeString, readval: "hello, world"},
 				errors.New("2"),
 			},
 			{
 				"Document/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.EmbeddedDocument, err: errors.New("1"), errAfter: llvrwReadDocument},
+				&TestValueReaderWriter{bsontype: TypeEmbeddedDocument, err: errors.New("1"), errAfter: llvrwReadDocument},
 				errors.New("1"),
 			},
 			{
 				"Array/dst/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Array, err: errors.New("2"), errAfter: llvrwReadArray},
+				&TestValueReaderWriter{bsontype: TypeArray, err: errors.New("2"), errAfter: llvrwReadArray},
 				errors.New("2"),
 			},
 			{
 				"Binary/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Binary, err: errors.New("1"), errAfter: llvrwReadBinary},
+				&TestValueReaderWriter{bsontype: TypeBinary, err: errors.New("1"), errAfter: llvrwReadBinary},
 				errors.New("1"),
 			},
 			{
 				"Binary/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Binary, err: errors.New("2"), errAfter: llvrwWriteBinaryWithSubtype},
+				&TestValueReaderWriter{bsontype: TypeBinary, err: errors.New("2"), errAfter: llvrwWriteBinaryWithSubtype},
 				&TestValueReaderWriter{
-					bsontype: bsontype.Binary,
+					bsontype: TypeBinary,
 					readval: bsoncore.Value{
-						Type: bsontype.Binary,
+						Type: bsoncore.TypeBinary,
 						Data: []byte{0x03, 0x00, 0x00, 0x00, 0xFF, 0x01, 0x02, 0x03},
 					},
 				},
@@ -167,76 +166,76 @@ func TestCopier(t *testing.T) {
 			{
 				"Undefined/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Undefined, err: errors.New("1"), errAfter: llvrwReadUndefined},
+				&TestValueReaderWriter{bsontype: TypeUndefined, err: errors.New("1"), errAfter: llvrwReadUndefined},
 				errors.New("1"),
 			},
 			{
 				"Undefined/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Undefined, err: errors.New("2"), errAfter: llvrwWriteUndefined},
-				&TestValueReaderWriter{bsontype: bsontype.Undefined},
+				&TestValueReaderWriter{bsontype: TypeUndefined, err: errors.New("2"), errAfter: llvrwWriteUndefined},
+				&TestValueReaderWriter{bsontype: TypeUndefined},
 				errors.New("2"),
 			},
 			{
 				"ObjectID/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.ObjectID, err: errors.New("1"), errAfter: llvrwReadObjectID},
+				&TestValueReaderWriter{bsontype: TypeObjectID, err: errors.New("1"), errAfter: llvrwReadObjectID},
 				errors.New("1"),
 			},
 			{
 				"ObjectID/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.ObjectID, err: errors.New("2"), errAfter: llvrwWriteObjectID},
-				&TestValueReaderWriter{bsontype: bsontype.ObjectID, readval: ObjectID{0x01, 0x02, 0x03}},
+				&TestValueReaderWriter{bsontype: TypeObjectID, err: errors.New("2"), errAfter: llvrwWriteObjectID},
+				&TestValueReaderWriter{bsontype: TypeObjectID, readval: ObjectID{0x01, 0x02, 0x03}},
 				errors.New("2"),
 			},
 			{
 				"Boolean/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Boolean, err: errors.New("1"), errAfter: llvrwReadBoolean},
+				&TestValueReaderWriter{bsontype: TypeBoolean, err: errors.New("1"), errAfter: llvrwReadBoolean},
 				errors.New("1"),
 			},
 			{
 				"Boolean/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Boolean, err: errors.New("2"), errAfter: llvrwWriteBoolean},
-				&TestValueReaderWriter{bsontype: bsontype.Boolean, readval: bool(true)},
+				&TestValueReaderWriter{bsontype: TypeBoolean, err: errors.New("2"), errAfter: llvrwWriteBoolean},
+				&TestValueReaderWriter{bsontype: TypeBoolean, readval: bool(true)},
 				errors.New("2"),
 			},
 			{
 				"DateTime/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.DateTime, err: errors.New("1"), errAfter: llvrwReadDateTime},
+				&TestValueReaderWriter{bsontype: TypeDateTime, err: errors.New("1"), errAfter: llvrwReadDateTime},
 				errors.New("1"),
 			},
 			{
 				"DateTime/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.DateTime, err: errors.New("2"), errAfter: llvrwWriteDateTime},
-				&TestValueReaderWriter{bsontype: bsontype.DateTime, readval: int64(1234567890)},
+				&TestValueReaderWriter{bsontype: TypeDateTime, err: errors.New("2"), errAfter: llvrwWriteDateTime},
+				&TestValueReaderWriter{bsontype: TypeDateTime, readval: int64(1234567890)},
 				errors.New("2"),
 			},
 			{
 				"Null/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Null, err: errors.New("1"), errAfter: llvrwReadNull},
+				&TestValueReaderWriter{bsontype: TypeNull, err: errors.New("1"), errAfter: llvrwReadNull},
 				errors.New("1"),
 			},
 			{
 				"Null/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Null, err: errors.New("2"), errAfter: llvrwWriteNull},
-				&TestValueReaderWriter{bsontype: bsontype.Null},
+				&TestValueReaderWriter{bsontype: TypeNull, err: errors.New("2"), errAfter: llvrwWriteNull},
+				&TestValueReaderWriter{bsontype: TypeNull},
 				errors.New("2"),
 			},
 			{
 				"Regex/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Regex, err: errors.New("1"), errAfter: llvrwReadRegex},
+				&TestValueReaderWriter{bsontype: TypeRegex, err: errors.New("1"), errAfter: llvrwReadRegex},
 				errors.New("1"),
 			},
 			{
 				"Regex/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Regex, err: errors.New("2"), errAfter: llvrwWriteRegex},
+				&TestValueReaderWriter{bsontype: TypeRegex, err: errors.New("2"), errAfter: llvrwWriteRegex},
 				&TestValueReaderWriter{
-					bsontype: bsontype.Regex,
+					bsontype: TypeRegex,
 					readval: bsoncore.Value{
-						Type: bsontype.Regex,
+						Type: bsoncore.TypeRegex,
 						Data: bsoncore.AppendRegex(nil, "hello", "world"),
 					},
 				},
@@ -245,16 +244,16 @@ func TestCopier(t *testing.T) {
 			{
 				"DBPointer/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.DBPointer, err: errors.New("1"), errAfter: llvrwReadDBPointer},
+				&TestValueReaderWriter{bsontype: TypeDBPointer, err: errors.New("1"), errAfter: llvrwReadDBPointer},
 				errors.New("1"),
 			},
 			{
 				"DBPointer/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.DBPointer, err: errors.New("2"), errAfter: llvrwWriteDBPointer},
+				&TestValueReaderWriter{bsontype: TypeDBPointer, err: errors.New("2"), errAfter: llvrwWriteDBPointer},
 				&TestValueReaderWriter{
-					bsontype: bsontype.DBPointer,
+					bsontype: TypeDBPointer,
 					readval: bsoncore.Value{
-						Type: bsontype.DBPointer,
+						Type: bsoncore.TypeDBPointer,
 						Data: bsoncore.AppendDBPointer(nil, "foo", ObjectID{0x01, 0x02, 0x03}),
 					},
 				},
@@ -263,28 +262,28 @@ func TestCopier(t *testing.T) {
 			{
 				"Javascript/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.JavaScript, err: errors.New("1"), errAfter: llvrwReadJavascript},
+				&TestValueReaderWriter{bsontype: TypeJavaScript, err: errors.New("1"), errAfter: llvrwReadJavascript},
 				errors.New("1"),
 			},
 			{
 				"Javascript/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.JavaScript, err: errors.New("2"), errAfter: llvrwWriteJavascript},
-				&TestValueReaderWriter{bsontype: bsontype.JavaScript, readval: "hello, world"},
+				&TestValueReaderWriter{bsontype: TypeJavaScript, err: errors.New("2"), errAfter: llvrwWriteJavascript},
+				&TestValueReaderWriter{bsontype: TypeJavaScript, readval: "hello, world"},
 				errors.New("2"),
 			},
 			{
 				"Symbol/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Symbol, err: errors.New("1"), errAfter: llvrwReadSymbol},
+				&TestValueReaderWriter{bsontype: TypeSymbol, err: errors.New("1"), errAfter: llvrwReadSymbol},
 				errors.New("1"),
 			},
 			{
 				"Symbol/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Symbol, err: errors.New("2"), errAfter: llvrwWriteSymbol},
+				&TestValueReaderWriter{bsontype: TypeSymbol, err: errors.New("2"), errAfter: llvrwWriteSymbol},
 				&TestValueReaderWriter{
-					bsontype: bsontype.Symbol,
+					bsontype: TypeSymbol,
 					readval: bsoncore.Value{
-						Type: bsontype.Symbol,
+						Type: bsoncore.TypeSymbol,
 						Data: bsoncore.AppendSymbol(nil, "hello, world"),
 					},
 				},
@@ -293,46 +292,46 @@ func TestCopier(t *testing.T) {
 			{
 				"CodeWithScope/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.CodeWithScope, err: errors.New("1"), errAfter: llvrwReadCodeWithScope},
+				&TestValueReaderWriter{bsontype: TypeCodeWithScope, err: errors.New("1"), errAfter: llvrwReadCodeWithScope},
 				errors.New("1"),
 			},
 			{
 				"CodeWithScope/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.CodeWithScope, err: errors.New("2"), errAfter: llvrwWriteCodeWithScope},
-				&TestValueReaderWriter{bsontype: bsontype.CodeWithScope},
+				&TestValueReaderWriter{bsontype: TypeCodeWithScope, err: errors.New("2"), errAfter: llvrwWriteCodeWithScope},
+				&TestValueReaderWriter{bsontype: TypeCodeWithScope},
 				errors.New("2"),
 			},
 			{
 				"CodeWithScope/dst/copyDocumentCore error",
 				&TestValueReaderWriter{err: errors.New("3"), errAfter: llvrwWriteDocumentElement},
-				&TestValueReaderWriter{bsontype: bsontype.CodeWithScope},
+				&TestValueReaderWriter{bsontype: TypeCodeWithScope},
 				errors.New("3"),
 			},
 			{
 				"Int32/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Int32, err: errors.New("1"), errAfter: llvrwReadInt32},
+				&TestValueReaderWriter{bsontype: TypeInt32, err: errors.New("1"), errAfter: llvrwReadInt32},
 				errors.New("1"),
 			},
 			{
 				"Int32/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Int32, err: errors.New("2"), errAfter: llvrwWriteInt32},
-				&TestValueReaderWriter{bsontype: bsontype.Int32, readval: int32(12345)},
+				&TestValueReaderWriter{bsontype: TypeInt32, err: errors.New("2"), errAfter: llvrwWriteInt32},
+				&TestValueReaderWriter{bsontype: TypeInt32, readval: int32(12345)},
 				errors.New("2"),
 			},
 			{
 				"Timestamp/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Timestamp, err: errors.New("1"), errAfter: llvrwReadTimestamp},
+				&TestValueReaderWriter{bsontype: TypeTimestamp, err: errors.New("1"), errAfter: llvrwReadTimestamp},
 				errors.New("1"),
 			},
 			{
 				"Timestamp/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Timestamp, err: errors.New("2"), errAfter: llvrwWriteTimestamp},
+				&TestValueReaderWriter{bsontype: TypeTimestamp, err: errors.New("2"), errAfter: llvrwWriteTimestamp},
 				&TestValueReaderWriter{
-					bsontype: bsontype.Timestamp,
+					bsontype: TypeTimestamp,
 					readval: bsoncore.Value{
-						Type: bsontype.Timestamp,
+						Type: bsoncore.TypeTimestamp,
 						Data: bsoncore.AppendTimestamp(nil, 12345, 67890),
 					},
 				},
@@ -341,63 +340,63 @@ func TestCopier(t *testing.T) {
 			{
 				"Int64/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Int64, err: errors.New("1"), errAfter: llvrwReadInt64},
+				&TestValueReaderWriter{bsontype: TypeInt64, err: errors.New("1"), errAfter: llvrwReadInt64},
 				errors.New("1"),
 			},
 			{
 				"Int64/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Int64, err: errors.New("2"), errAfter: llvrwWriteInt64},
-				&TestValueReaderWriter{bsontype: bsontype.Int64, readval: int64(1234567890)},
+				&TestValueReaderWriter{bsontype: TypeInt64, err: errors.New("2"), errAfter: llvrwWriteInt64},
+				&TestValueReaderWriter{bsontype: TypeInt64, readval: int64(1234567890)},
 				errors.New("2"),
 			},
 			{
 				"Decimal128/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.Decimal128, err: errors.New("1"), errAfter: llvrwReadDecimal128},
+				&TestValueReaderWriter{bsontype: TypeDecimal128, err: errors.New("1"), errAfter: llvrwReadDecimal128},
 				errors.New("1"),
 			},
 			{
 				"Decimal128/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.Decimal128, err: errors.New("2"), errAfter: llvrwWriteDecimal128},
-				&TestValueReaderWriter{bsontype: bsontype.Decimal128, readval: NewDecimal128(12345, 67890)},
+				&TestValueReaderWriter{bsontype: TypeDecimal128, err: errors.New("2"), errAfter: llvrwWriteDecimal128},
+				&TestValueReaderWriter{bsontype: TypeDecimal128, readval: NewDecimal128(12345, 67890)},
 				errors.New("2"),
 			},
 			{
 				"MinKey/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.MinKey, err: errors.New("1"), errAfter: llvrwReadMinKey},
+				&TestValueReaderWriter{bsontype: TypeMinKey, err: errors.New("1"), errAfter: llvrwReadMinKey},
 				errors.New("1"),
 			},
 			{
 				"MinKey/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.MinKey, err: errors.New("2"), errAfter: llvrwWriteMinKey},
-				&TestValueReaderWriter{bsontype: bsontype.MinKey},
+				&TestValueReaderWriter{bsontype: TypeMinKey, err: errors.New("2"), errAfter: llvrwWriteMinKey},
+				&TestValueReaderWriter{bsontype: TypeMinKey},
 				errors.New("2"),
 			},
 			{
 				"MaxKey/src/error",
 				&TestValueReaderWriter{},
-				&TestValueReaderWriter{bsontype: bsontype.MaxKey, err: errors.New("1"), errAfter: llvrwReadMaxKey},
+				&TestValueReaderWriter{bsontype: TypeMaxKey, err: errors.New("1"), errAfter: llvrwReadMaxKey},
 				errors.New("1"),
 			},
 			{
 				"MaxKey/dst/error",
-				&TestValueReaderWriter{bsontype: bsontype.MaxKey, err: errors.New("2"), errAfter: llvrwWriteMaxKey},
-				&TestValueReaderWriter{bsontype: bsontype.MaxKey},
+				&TestValueReaderWriter{bsontype: TypeMaxKey, err: errors.New("2"), errAfter: llvrwWriteMaxKey},
+				&TestValueReaderWriter{bsontype: TypeMaxKey},
 				errors.New("2"),
 			},
 			{
 				"Unknown BSON type error",
 				&TestValueReaderWriter{},
 				&TestValueReaderWriter{},
-				fmt.Errorf("Cannot copy unknown BSON type %s", bsontype.Type(0)),
+				fmt.Errorf("cannot copy unknown BSON type %s", Type(0)),
 			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				tc.dst.t, tc.src.t = t, t
-				err := Copier{}.CopyValue(tc.dst, tc.src)
+				err := copyValue(tc.dst, tc.src)
 				if !compareErrors(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
@@ -411,7 +410,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			_, err = vw.WriteDocumentElement("foo")
 			noerr(t, err)
-			err = Copier{}.CopyValueFromBytes(vw, bsontype.String, bsoncore.AppendString(nil, "bar"))
+			err = copyValueFromBytes(vw, TypeString, bsoncore.AppendString(nil, "bar"))
 			noerr(t, err)
 			err = vw.WriteDocumentEnd()
 			noerr(t, err)
@@ -431,7 +430,7 @@ func TestCopier(t *testing.T) {
 		})
 		t.Run("Non BytesWriter", func(t *testing.T) {
 			llvrw := &TestValueReaderWriter{t: t}
-			err := Copier{}.CopyValueFromBytes(llvrw, bsontype.String, bsoncore.AppendString(nil, "bar"))
+			err := copyValueFromBytes(llvrw, TypeString, bsoncore.AppendString(nil, "bar"))
 			noerr(t, err)
 			got, want := llvrw.invoked, llvrwWriteString
 			if got != want {
@@ -455,23 +454,23 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			_, _, err = vr.ReadElement()
 			noerr(t, err)
-			btype, got, err := Copier{}.CopyValueToBytes(vr)
+			btype, got, err := copyValueToBytes(vr)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "world")
-			if btype != bsontype.String {
-				t.Errorf("Incorrect type returned. got %v; want %v", btype, bsontype.String)
+			if btype != TypeString {
+				t.Errorf("Incorrect type returned. got %v; want %v", btype, TypeString)
 			}
 			if !bytes.Equal(got, want) {
 				t.Errorf("Bytes do not match. got %v; want %v", got, want)
 			}
 		})
 		t.Run("Non BytesReader", func(t *testing.T) {
-			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, readval: "Hello, world!"}
-			btype, got, err := Copier{}.CopyValueToBytes(llvrw)
+			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, readval: "Hello, world!"}
+			btype, got, err := copyValueToBytes(llvrw)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "Hello, world!")
-			if btype != bsontype.String {
-				t.Errorf("Incorrect type returned. got %v; want %v", btype, bsontype.String)
+			if btype != TypeString {
+				t.Errorf("Incorrect type returned. got %v; want %v", btype, TypeString)
 			}
 			if !bytes.Equal(got, want) {
 				t.Errorf("Bytes do not match. got %v; want %v", got, want)
@@ -494,23 +493,23 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			_, _, err = vr.ReadElement()
 			noerr(t, err)
-			btype, got, err := Copier{}.AppendValueBytes(nil, vr)
+			btype, got, err := appendValueBytes(nil, vr)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "world")
-			if btype != bsontype.String {
-				t.Errorf("Incorrect type returned. got %v; want %v", btype, bsontype.String)
+			if btype != TypeString {
+				t.Errorf("Incorrect type returned. got %v; want %v", btype, TypeString)
 			}
 			if !bytes.Equal(got, want) {
 				t.Errorf("Bytes do not match. got %v; want %v", got, want)
 			}
 		})
 		t.Run("Non BytesReader", func(t *testing.T) {
-			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, readval: "Hello, world!"}
-			btype, got, err := Copier{}.AppendValueBytes(nil, llvrw)
+			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, readval: "Hello, world!"}
+			btype, got, err := appendValueBytes(nil, llvrw)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "Hello, world!")
-			if btype != bsontype.String {
-				t.Errorf("Incorrect type returned. got %v; want %v", btype, bsontype.String)
+			if btype != TypeString {
+				t.Errorf("Incorrect type returned. got %v; want %v", btype, TypeString)
 			}
 			if !bytes.Equal(got, want) {
 				t.Errorf("Bytes do not match. got %v; want %v", got, want)
@@ -518,8 +517,8 @@ func TestCopier(t *testing.T) {
 		})
 		t.Run("CopyValue error", func(t *testing.T) {
 			want := errors.New("CopyValue error")
-			llvrw := &TestValueReaderWriter{t: t, bsontype: bsontype.String, err: want, errAfter: llvrwReadString}
-			_, _, got := Copier{}.AppendValueBytes(make([]byte, 0), llvrw)
+			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, err: want, errAfter: llvrwReadString}
+			_, _, got := appendValueBytes(make([]byte, 0), llvrw)
 			if !compareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}

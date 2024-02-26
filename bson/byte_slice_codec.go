@@ -11,7 +11,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // ByteSliceCodec is the Codec used for []byte values.
@@ -71,30 +70,30 @@ func (bsc *ByteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect
 	var data []byte
 	var err error
 	switch vrType := vr.Type(); vrType {
-	case bsontype.String:
+	case TypeString:
 		str, err := vr.ReadString()
 		if err != nil {
 			return emptyValue, err
 		}
 		data = []byte(str)
-	case bsontype.Symbol:
+	case TypeSymbol:
 		sym, err := vr.ReadSymbol()
 		if err != nil {
 			return emptyValue, err
 		}
 		data = []byte(sym)
-	case bsontype.Binary:
+	case TypeBinary:
 		var subtype byte
 		data, subtype, err = vr.ReadBinary()
 		if err != nil {
 			return emptyValue, err
 		}
-		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
+		if subtype != TypeBinaryGeneric && subtype != TypeBinaryBinaryOld {
 			return emptyValue, decodeBinaryError{subtype: subtype, typeName: "[]byte"}
 		}
-	case bsontype.Null:
+	case TypeNull:
 		err = vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = vr.ReadUndefined()
 	default:
 		return emptyValue, fmt.Errorf("cannot decode %v into a []byte", vrType)

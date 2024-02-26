@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -221,7 +220,7 @@ func executeListCollectionNames(ctx context.Context, operation *operation) (*ope
 	if err != nil {
 		return nil, fmt.Errorf("error converting collection names slice to BSON: %w", err)
 	}
-	return newValueResult(bsontype.Array, data, nil), nil
+	return newValueResult(bson.TypeArray, data, nil), nil
 }
 
 func executeRunCommand(ctx context.Context, operation *operation) (*operationResult, error) {

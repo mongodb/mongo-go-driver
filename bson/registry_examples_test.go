@@ -13,7 +13,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func ExampleRegistry_customEncoder() {
@@ -102,19 +101,19 @@ func ExampleRegistry_customDecoder() {
 
 		var result bool
 		switch vr.Type() {
-		case bsontype.Boolean:
+		case bson.TypeBoolean:
 			b, err := vr.ReadBoolean()
 			if err != nil {
 				return err
 			}
 			result = b
-		case bsontype.Int32:
+		case bson.TypeInt32:
 			i32, err := vr.ReadInt32()
 			if err != nil {
 				return err
 			}
 			result = i32 != 0
-		case bsontype.Int64:
+		case bson.TypeInt64:
 			i64, err := vr.ReadInt64()
 			if err != nil {
 				return err
@@ -238,19 +237,19 @@ func ExampleRegistry_RegisterKindDecoder() {
 
 		var result int64
 		switch vr.Type() {
-		case bsontype.Int64:
+		case bson.TypeInt64:
 			i64, err := vr.ReadInt64()
 			if err != nil {
 				return err
 			}
 			result = i64
-		case bsontype.Int32:
+		case bson.TypeInt32:
 			i32, err := vr.ReadInt32()
 			if err != nil {
 				return err
 			}
 			result = int64(i32)
-		case bsontype.Double:
+		case bson.TypeDouble:
 			d, err := vr.ReadDouble()
 			if err != nil {
 				return err

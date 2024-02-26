@@ -9,7 +9,6 @@ package bson
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -186,7 +185,7 @@ type valueReaderWriter struct {
 	T        *testing.T
 	invoked  invoked
 	Return   interface{} // Can be a primitive or a bsoncore.Value
-	BSONType bsontype.Type
+	BSONType Type
 	Err      error
 	ErrAfter invoked // error after this method is called
 	depth    uint64
@@ -201,7 +200,7 @@ func (llvrw *valueReaderWriter) checkdepth() {
 }
 
 // Type implements the ValueReader interface.
-func (llvrw *valueReaderWriter) Type() bsontype.Type {
+func (llvrw *valueReaderWriter) Type() Type {
 	llvrw.checkdepth()
 	return llvrw.BSONType
 }

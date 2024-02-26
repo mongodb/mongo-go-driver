@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -411,29 +410,29 @@ func TestRegistryBuilder(t *testing.T) {
 	})
 	t.Run("Type Map", func(t *testing.T) {
 		reg := newTestRegistryBuilder().
-			RegisterTypeMapEntry(bsontype.String, reflect.TypeOf("")).
-			RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0))).
+			RegisterTypeMapEntry(TypeString, reflect.TypeOf("")).
+			RegisterTypeMapEntry(TypeInt32, reflect.TypeOf(int(0))).
 			Build()
 
 		var got, want reflect.Type
 
 		want = reflect.TypeOf("")
-		got, err := reg.LookupTypeMapEntry(bsontype.String)
+		got, err := reg.LookupTypeMapEntry(TypeString)
 		noerr(t, err)
 		if got != want {
 			t.Errorf("unexpected type: got %#v, want %#v", got, want)
 		}
 
 		want = reflect.TypeOf(int(0))
-		got, err = reg.LookupTypeMapEntry(bsontype.Int32)
+		got, err = reg.LookupTypeMapEntry(TypeInt32)
 		noerr(t, err)
 		if got != want {
 			t.Errorf("unexpected type: got %#v, want %#v", got, want)
 		}
 
 		want = nil
-		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
-		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
+		wanterr := ErrNoTypeMapEntry{Type: TypeObjectID}
+		got, err = reg.LookupTypeMapEntry(TypeObjectID)
 		if !errors.Is(err, wanterr) {
 			t.Errorf("did not get expected error: got %#v, want %#v", err, wanterr)
 		}
@@ -871,28 +870,28 @@ func TestRegistry(t *testing.T) {
 	t.Run("Type Map", func(t *testing.T) {
 		t.Parallel()
 		reg := newTestRegistryBuilder().Build()
-		reg.RegisterTypeMapEntry(bsontype.String, reflect.TypeOf(""))
-		reg.RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int(0)))
+		reg.RegisterTypeMapEntry(TypeString, reflect.TypeOf(""))
+		reg.RegisterTypeMapEntry(TypeInt32, reflect.TypeOf(int(0)))
 
 		var got, want reflect.Type
 
 		want = reflect.TypeOf("")
-		got, err := reg.LookupTypeMapEntry(bsontype.String)
+		got, err := reg.LookupTypeMapEntry(TypeString)
 		noerr(t, err)
 		if got != want {
 			t.Errorf("unexpected type: got %#v, want %#v", got, want)
 		}
 
 		want = reflect.TypeOf(int(0))
-		got, err = reg.LookupTypeMapEntry(bsontype.Int32)
+		got, err = reg.LookupTypeMapEntry(TypeInt32)
 		noerr(t, err)
 		if got != want {
 			t.Errorf("unexpected type: got %#v, want %#v", got, want)
 		}
 
 		want = nil
-		wanterr := ErrNoTypeMapEntry{Type: bsontype.ObjectID}
-		got, err = reg.LookupTypeMapEntry(bsontype.ObjectID)
+		wanterr := ErrNoTypeMapEntry{Type: TypeObjectID}
+		got, err = reg.LookupTypeMapEntry(TypeObjectID)
 		if !errors.Is(err, wanterr) {
 			t.Errorf("unexpected error: got %#v, want %#v", err, wanterr)
 		}

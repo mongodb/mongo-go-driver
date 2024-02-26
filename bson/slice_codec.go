@@ -12,7 +12,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 var defaultSliceCodec = NewSliceCodec()
@@ -124,18 +123,18 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 	}
 
 	switch vrType := vr.Type(); vrType {
-	case bsontype.Array:
-	case bsontype.Null:
+	case TypeArray:
+	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
-	case bsontype.Undefined:
+	case TypeUndefined:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadUndefined()
-	case bsontype.Type(0), bsontype.EmbeddedDocument:
+	case Type(0), TypeEmbeddedDocument:
 		if val.Type().Elem() != tE {
 			return fmt.Errorf("cannot decode document into %s", val.Type())
 		}
-	case bsontype.Binary:
+	case TypeBinary:
 		if val.Type().Elem() != tByte {
 			return fmt.Errorf("SliceDecodeValue can only decode a binary into a byte array, got %v", vrType)
 		}
@@ -143,8 +142,8 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 		if err != nil {
 			return err
 		}
-		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
-			return fmt.Errorf("SliceDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", bsontype.Binary, subtype)
+		if subtype != TypeBinaryGeneric && subtype != TypeBinaryBinaryOld {
+			return fmt.Errorf("SliceDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", TypeBinary, subtype)
 		}
 
 		if val.IsNil() {
@@ -153,7 +152,7 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 		val.SetLen(0)
 		val.Set(reflect.AppendSlice(val, reflect.ValueOf(data)))
 		return nil
-	case bsontype.String:
+	case TypeString:
 		if sliceType := val.Type().Elem(); sliceType != tByte {
 			return fmt.Errorf("SliceDecodeValue can only decode a string into a byte array, got %v", sliceType)
 		}

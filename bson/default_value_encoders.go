@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -570,7 +569,7 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(_ EncodeContext, vw Va
 	if err != nil {
 		return err
 	}
-	return Copier{}.CopyValueFromBytes(vw, t, data)
+	return copyValueFromBytes(vw, t, data)
 }
 
 // MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
@@ -601,7 +600,7 @@ func (dve DefaultValueEncoders) MarshalerEncodeValue(_ EncodeContext, vw ValueWr
 	if err != nil {
 		return err
 	}
-	return Copier{}.CopyValueFromBytes(vw, bsontype.EmbeddedDocument, data)
+	return copyValueFromBytes(vw, TypeEmbeddedDocument, data)
 }
 
 // ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
@@ -801,7 +800,7 @@ func (DefaultValueEncoders) CoreDocumentEncodeValue(_ EncodeContext, vw ValueWri
 
 	cdoc := val.Interface().(bsoncore.Document)
 
-	return Copier{}.CopyDocumentFromBytes(vw, cdoc)
+	return copyDocumentFromBytes(vw, cdoc)
 }
 
 // CodeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
@@ -837,7 +836,7 @@ func (dve DefaultValueEncoders) CodeWithScopeEncodeValue(ec EncodeContext, vw Va
 		return err
 	}
 
-	err = Copier{}.CopyBytesToDocumentWriter(dw, *sw)
+	err = copyBytesToDocumentWriter(dw, *sw)
 	if err != nil {
 		return err
 	}

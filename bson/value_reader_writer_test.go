@@ -9,7 +9,6 @@ package bson
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -72,12 +71,12 @@ type TestValueReaderWriter struct {
 	t        *testing.T
 	invoked  VRWInvoked
 	readval  interface{}
-	bsontype bsontype.Type
+	bsontype Type
 	err      error
 	errAfter VRWInvoked // error after this method is called
 }
 
-func (llvrw *TestValueReaderWriter) Type() bsontype.Type {
+func (llvrw *TestValueReaderWriter) Type() Type {
 	return llvrw.bsontype
 }
 

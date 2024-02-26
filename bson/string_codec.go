@@ -11,7 +11,6 @@ import (
 	"reflect"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // StringCodec is the Codec used for string values.
@@ -69,12 +68,12 @@ func (sc *StringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Typ
 	var str string
 	var err error
 	switch vr.Type() {
-	case bsontype.String:
+	case TypeString:
 		str, err = vr.ReadString()
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.ObjectID:
+	case TypeObjectID:
 		oid, err := vr.ReadObjectID()
 		if err != nil {
 			return emptyValue, err
@@ -86,25 +85,25 @@ func (sc *StringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Typ
 			byteArray := [12]byte(oid)
 			str = string(byteArray[:])
 		}
-	case bsontype.Symbol:
+	case TypeSymbol:
 		str, err = vr.ReadSymbol()
 		if err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Binary:
+	case TypeBinary:
 		data, subtype, err := vr.ReadBinary()
 		if err != nil {
 			return emptyValue, err
 		}
-		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
+		if subtype != TypeBinaryGeneric && subtype != TypeBinaryBinaryOld {
 			return emptyValue, decodeBinaryError{subtype: subtype, typeName: "string"}
 		}
 		str = string(data)
-	case bsontype.Null:
+	case TypeNull:
 		if err = vr.ReadNull(); err != nil {
 			return emptyValue, err
 		}
-	case bsontype.Undefined:
+	case TypeUndefined:
 		if err = vr.ReadUndefined(); err != nil {
 			return emptyValue, err
 		}

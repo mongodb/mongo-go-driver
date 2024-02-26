@@ -8,8 +8,6 @@ package bson
 
 import (
 	"bytes"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // Unmarshaler is the interface implemented by types that can unmarshal a BSON
@@ -33,7 +31,7 @@ type Unmarshaler interface {
 // document. To create custom BSON unmarshaling behavior for an entire BSON
 // document, implement the Unmarshaler interface instead.
 type ValueUnmarshaler interface {
-	UnmarshalBSONValue(bsontype.Type, []byte) error
+	UnmarshalBSONValue(Type, []byte) error
 }
 
 // Unmarshal parses the BSON-encoded data and stores the result in the value
@@ -83,7 +81,7 @@ func UnmarshalWithContext(dc DecodeContext, data []byte, val interface{}) error 
 // UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
-func UnmarshalValue(t bsontype.Type, data []byte, val interface{}) error {
+func UnmarshalValue(t Type, data []byte, val interface{}) error {
 	return UnmarshalValueWithRegistry(DefaultRegistry, t, data, val)
 }
 
@@ -93,7 +91,7 @@ func UnmarshalValue(t bsontype.Type, data []byte, val interface{}) error {
 //
 // Deprecated: Using a custom registry to unmarshal individual BSON values will not be supported in
 // Go Driver 2.0.
-func UnmarshalValueWithRegistry(r *Registry, t bsontype.Type, data []byte, val interface{}) error {
+func UnmarshalValueWithRegistry(r *Registry, t Type, data []byte, val interface{}) error {
 	vr := NewBSONValueReader(t, data)
 	return unmarshalFromReader(DecodeContext{Registry: r}, vr, val)
 }

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -21,7 +20,7 @@ func TestTimeCodec(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
 
 	t.Run("UseLocalTimeZone", func(t *testing.T) {
-		reader := &valueReaderWriter{BSONType: bsontype.DateTime, Return: now.UnixNano() / int64(time.Millisecond)}
+		reader := &valueReaderWriter{BSONType: TypeDateTime, Return: now.UnixNano() / int64(time.Millisecond)}
 		testCases := []struct {
 			name string
 			opts *bsonoptions.TimeCodecOptions
@@ -58,11 +57,11 @@ func TestTimeCodec(t *testing.T) {
 			name   string
 			reader *valueReaderWriter
 		}{
-			{"string", &valueReaderWriter{BSONType: bsontype.String, Return: now.Format(timeFormatString)}},
-			{"int64", &valueReaderWriter{BSONType: bsontype.Int64, Return: now.Unix()*1000 + int64(now.Nanosecond()/1e6)}},
-			{"timestamp", &valueReaderWriter{BSONType: bsontype.Timestamp,
+			{"string", &valueReaderWriter{BSONType: TypeString, Return: now.Format(timeFormatString)}},
+			{"int64", &valueReaderWriter{BSONType: TypeInt64, Return: now.Unix()*1000 + int64(now.Nanosecond()/1e6)}},
+			{"timestamp", &valueReaderWriter{BSONType: TypeTimestamp,
 				Return: bsoncore.Value{
-					Type: bsontype.Timestamp,
+					Type: bsoncore.TypeTimestamp,
 					Data: bsoncore.AppendTimestamp(nil, uint32(now.Unix()), 0),
 				}},
 			},

@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -19,7 +18,7 @@ func TestStringCodec(t *testing.T) {
 	t.Run("ObjectIDAsHex", func(t *testing.T) {
 		oid := NewObjectID()
 		byteArray := [12]byte(oid)
-		reader := &valueReaderWriter{BSONType: bsontype.ObjectID, Return: oid}
+		reader := &valueReaderWriter{BSONType: TypeObjectID, Return: oid}
 		testCases := []struct {
 			name   string
 			opts   *bsonoptions.StringCodecOptions

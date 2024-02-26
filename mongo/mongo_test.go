@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/internal/require"
@@ -297,10 +296,10 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"bson.ValueMarshaler/not array",
-			bvMarsh{t: bsontype.String},
+			bvMarsh{t: bson.TypeString},
 			nil,
 			false,
-			fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", bsontype.String, bsontype.Array),
+			fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", bson.TypeString, bson.TypeArray),
 		},
 		{
 			"bson.ValueMarshaler/UnmarshalBSONValue error",
@@ -311,7 +310,7 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"bson.ValueMarshaler/success",
-			bvMarsh{t: bsontype.Array, data: arr},
+			bvMarsh{t: bson.TypeArray, data: arr},
 			bson.A{
 				bson.D{{"$limit", int32(12345)}},
 			},
@@ -320,7 +319,7 @@ func TestMarshalAggregatePipeline(t *testing.T) {
 		},
 		{
 			"bson.ValueMarshaler/success nil",
-			bvMarsh{t: bsontype.Array},
+			bvMarsh{t: bson.TypeArray},
 			nil,
 			false,
 			nil,
@@ -541,7 +540,7 @@ func TestMarshalValue(t *testing.T) {
 			name:  "value marshaler",
 			value: valueMarshaler,
 			want: bsoncore.Value{
-				Type: valueMarshaler.t,
+				Type: bsoncore.Type(valueMarshaler.t),
 				Data: valueMarshaler.data,
 			},
 		},
@@ -549,7 +548,7 @@ func TestMarshalValue(t *testing.T) {
 			name:  "document",
 			value: bson.D{{Key: "x", Value: int64(1)}},
 			want: bsoncore.Value{
-				Type: bson.TypeEmbeddedDocument,
+				Type: bsoncore.TypeEmbeddedDocument,
 				Data: bsoncore.NewDocumentBuilder().
 					AppendInt64("x", 1).
 					Build(),
@@ -582,7 +581,7 @@ func TestMarshalValue(t *testing.T) {
 				UseJSONStructTags:       true,
 			},
 			want: bsoncore.Value{
-				Type: bson.TypeEmbeddedDocument,
+				Type: bsoncore.TypeEmbeddedDocument,
 				Data: bsoncore.NewDocumentBuilder().
 					AppendInt32("int", 1).
 					AppendBinary("nilbytes", 0, []byte{}).
@@ -612,11 +611,11 @@ func TestMarshalValue(t *testing.T) {
 var _ bson.ValueMarshaler = bvMarsh{}
 
 type bvMarsh struct {
-	t    bsontype.Type
+	t    bson.Type
 	data []byte
 	err  error
 }
 
-func (b bvMarsh) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (b bvMarsh) MarshalBSONValue() (bson.Type, []byte, error) {
 	return b.t, b.data, b.err
 }

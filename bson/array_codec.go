@@ -35,7 +35,7 @@ func (ac *ArrayCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.V
 	}
 
 	arr := val.Interface().(bsoncore.Array)
-	return Copier{}.CopyArrayFromBytes(vw, arr)
+	return copyArrayFromBytes(vw, arr)
 }
 
 // DecodeValue is the ValueDecoder for bsoncore.Array values.
@@ -49,7 +49,7 @@ func (ac *ArrayCodec) DecodeValue(_ DecodeContext, vr ValueReader, val reflect.V
 	}
 
 	val.SetLen(0)
-	arr, err := Copier{}.AppendArrayBytes(val.Interface().(bsoncore.Array), vr)
+	arr, err := appendArrayBytes(val.Interface().(bsoncore.Array), vr)
 	val.Set(reflect.ValueOf(arr))
 	return err
 }

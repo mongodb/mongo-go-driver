@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 const (
@@ -30,14 +28,14 @@ const (
 )
 
 // AppendType will append t to dst and return the extended buffer.
-func AppendType(dst []byte, t bsontype.Type) []byte { return append(dst, byte(t)) }
+func AppendType(dst []byte, t Type) []byte { return append(dst, byte(t)) }
 
 // AppendKey will append key to dst and return the extended buffer.
 func AppendKey(dst []byte, key string) []byte { return append(dst, key+nullTerminator...) }
 
 // AppendHeader will append Type t and key to dst and return the extended
 // buffer.
-func AppendHeader(dst []byte, t bsontype.Type, key string) []byte {
+func AppendHeader(dst []byte, t Type, key string) []byte {
 	if !isValidCString(key) {
 		panic(invalidKeyPanicMsg)
 	}
@@ -52,11 +50,11 @@ func AppendHeader(dst []byte, t bsontype.Type, key string) []byte {
 
 // ReadType will return the first byte of the provided []byte as a type. If
 // there is no available byte, false is returned.
-func ReadType(src []byte) (bsontype.Type, []byte, bool) {
+func ReadType(src []byte) (Type, []byte, bool) {
 	if len(src) < 1 {
 		return 0, src, false
 	}
-	return bsontype.Type(src[0]), src[1:], true
+	return Type(src[0]), src[1:], true
 }
 
 // ReadKey will read a key from src. The 0x00 byte will not be present
@@ -71,7 +69,7 @@ func ReadKeyBytes(src []byte) ([]byte, []byte, bool) { return readcstringbytes(s
 
 // ReadHeader will read a type byte and a key from src. If both of these
 // values cannot be read, false is returned.
-func ReadHeader(src []byte) (t bsontype.Type, key string, rem []byte, ok bool) {
+func ReadHeader(src []byte) (t Type, key string, rem []byte, ok bool) {
 	t, rem, ok = ReadType(src)
 	if !ok {
 		return 0, "", src, false
@@ -103,7 +101,7 @@ func ReadElement(src []byte) (Element, []byte, bool) {
 	if len(src) < 1 {
 		return nil, src, false
 	}
-	t := bsontype.Type(src[0])
+	t := Type(src[0])
 	idx := bytes.IndexByte(src[1:], 0x00)
 	if idx == -1 {
 		return nil, src, false
@@ -131,7 +129,7 @@ func AppendValueElement(dst []byte, key string, value Value) []byte {
 
 // ReadValue reads the next value as the provided types and returns a Value, the remaining bytes,
 // and a boolean indicating if the read was successful.
-func ReadValue(src []byte, t bsontype.Type) (Value, []byte, bool) {
+func ReadValue(src []byte, t Type) (Value, []byte, bool) {
 	data, rem, ok := readValue(src, t)
 	if !ok {
 		return Value{}, src, false
@@ -147,7 +145,7 @@ func AppendDouble(dst []byte, f float64) []byte {
 // AppendDoubleElement will append a BSON double element using key and f to dst
 // and return the extended buffer.
 func AppendDoubleElement(dst []byte, key string, f float64) []byte {
-	return AppendDouble(AppendHeader(dst, bsontype.Double, key), f)
+	return AppendDouble(AppendHeader(dst, TypeDouble, key), f)
 }
 
 // ReadDouble will read a float64 from src. If there are not enough bytes it
@@ -168,7 +166,7 @@ func AppendString(dst []byte, s string) []byte {
 // AppendStringElement will append a BSON string element using key and val to dst
 // and return the extended buffer.
 func AppendStringElement(dst []byte, key, val string) []byte {
-	return AppendString(AppendHeader(dst, bsontype.String, key), val)
+	return AppendString(AppendHeader(dst, TypeString, key), val)
 }
 
 // ReadString will read a string from src. If there are not enough bytes it
@@ -197,7 +195,7 @@ func AppendDocumentStartInline(dst []byte, index *int32) []byte {
 
 // AppendDocumentElementStart writes a document element header and then reserves the length bytes.
 func AppendDocumentElementStart(dst []byte, key string) (index int32, b []byte) {
-	return AppendDocumentStart(AppendHeader(dst, bsontype.EmbeddedDocument, key))
+	return AppendDocumentStart(AppendHeader(dst, TypeEmbeddedDocument, key))
 }
 
 // AppendDocumentEnd writes the null byte for a document and updates the length of the document.
@@ -217,7 +215,7 @@ func AppendDocument(dst []byte, doc []byte) []byte { return append(dst, doc...) 
 // AppendDocumentElement will append a BSON embedded document element using key
 // and doc to dst and return the extended buffer.
 func AppendDocumentElement(dst []byte, key string, doc []byte) []byte {
-	return AppendDocument(AppendHeader(dst, bsontype.EmbeddedDocument, key), doc)
+	return AppendDocument(AppendHeader(dst, TypeEmbeddedDocument, key), doc)
 }
 
 // BuildDocument will create a document with the given slice of elements and will append
@@ -234,13 +232,13 @@ func BuildDocument(dst []byte, elems ...[]byte) []byte {
 
 // BuildDocumentValue creates an Embedded Document value from the given elements.
 func BuildDocumentValue(elems ...[]byte) Value {
-	return Value{Type: bsontype.EmbeddedDocument, Data: BuildDocument(nil, elems...)}
+	return Value{Type: TypeEmbeddedDocument, Data: BuildDocument(nil, elems...)}
 }
 
 // BuildDocumentElement will append a BSON embedded document element using key and the provided
 // elements and return the extended buffer.
 func BuildDocumentElement(dst []byte, key string, elems ...[]byte) []byte {
-	return BuildDocument(AppendHeader(dst, bsontype.EmbeddedDocument, key), elems...)
+	return BuildDocument(AppendHeader(dst, TypeEmbeddedDocument, key), elems...)
 }
 
 // BuildDocumentFromElements is an alaias for the BuildDocument function.
@@ -257,7 +255,7 @@ func AppendArrayStart(dst []byte) (index int32, b []byte) { return ReserveLength
 // AppendArrayElementStart appends an array element header and then the length bytes for an array,
 // returning the index where the length starts.
 func AppendArrayElementStart(dst []byte, key string) (index int32, b []byte) {
-	return AppendArrayStart(AppendHeader(dst, bsontype.Array, key))
+	return AppendArrayStart(AppendHeader(dst, TypeArray, key))
 }
 
 // AppendArrayEnd appends the null byte to an array and calculates the length, inserting that
@@ -270,7 +268,7 @@ func AppendArray(dst []byte, arr []byte) []byte { return append(dst, arr...) }
 // AppendArrayElement will append a BSON array element using key and arr to dst
 // and return the extended buffer.
 func AppendArrayElement(dst []byte, key string, arr []byte) []byte {
-	return AppendArray(AppendHeader(dst, bsontype.Array, key), arr)
+	return AppendArray(AppendHeader(dst, TypeArray, key), arr)
 }
 
 // BuildArray will append a BSON array to dst built from values.
@@ -286,7 +284,7 @@ func BuildArray(dst []byte, values ...Value) []byte {
 
 // BuildArrayElement will create an array element using the provided values.
 func BuildArrayElement(dst []byte, key string, values ...Value) []byte {
-	return BuildArray(AppendHeader(dst, bsontype.Array, key), values...)
+	return BuildArray(AppendHeader(dst, TypeArray, key), values...)
 }
 
 // ReadArray will read an array from src. If there are not enough bytes it
@@ -305,7 +303,7 @@ func AppendBinary(dst []byte, subtype byte, b []byte) []byte {
 // AppendBinaryElement will append a BSON binary element using key, subtype, and
 // b to dst and return the extended buffer.
 func AppendBinaryElement(dst []byte, key string, subtype byte, b []byte) []byte {
-	return AppendBinary(AppendHeader(dst, bsontype.Binary, key), subtype, b)
+	return AppendBinary(AppendHeader(dst, TypeBinary, key), subtype, b)
 }
 
 // ReadBinary will read a subtype and bin from src. If there are not enough bytes it
@@ -337,7 +335,7 @@ func ReadBinary(src []byte) (subtype byte, bin []byte, rem []byte, ok bool) {
 // AppendUndefinedElement will append a BSON undefined element using key to dst
 // and return the extended buffer.
 func AppendUndefinedElement(dst []byte, key string) []byte {
-	return AppendHeader(dst, bsontype.Undefined, key)
+	return AppendHeader(dst, TypeUndefined, key)
 }
 
 // AppendObjectID will append oid to dst and return the extended buffer.
@@ -346,7 +344,7 @@ func AppendObjectID(dst []byte, oid [idLen]byte) []byte { return append(dst, oid
 // AppendObjectIDElement will append a BSON ObjectID element using key and oid to dst
 // and return the extended buffer.
 func AppendObjectIDElement(dst []byte, key string, oid [idLen]byte) []byte {
-	return AppendObjectID(AppendHeader(dst, bsontype.ObjectID, key), oid)
+	return AppendObjectID(AppendHeader(dst, TypeObjectID, key), oid)
 }
 
 // ReadObjectID will read an ObjectID from src. If there are not enough bytes it
@@ -371,7 +369,7 @@ func AppendBoolean(dst []byte, b bool) []byte {
 // AppendBooleanElement will append a BSON boolean element using key and b to dst
 // and return the extended buffer.
 func AppendBooleanElement(dst []byte, key string, b bool) []byte {
-	return AppendBoolean(AppendHeader(dst, bsontype.Boolean, key), b)
+	return AppendBoolean(AppendHeader(dst, TypeBoolean, key), b)
 }
 
 // ReadBoolean will read a bool from src. If there are not enough bytes it
@@ -390,7 +388,7 @@ func AppendDateTime(dst []byte, dt int64) []byte { return appendi64(dst, dt) }
 // AppendDateTimeElement will append a BSON datetime element using key and dt to dst
 // and return the extended buffer.
 func AppendDateTimeElement(dst []byte, key string, dt int64) []byte {
-	return AppendDateTime(AppendHeader(dst, bsontype.DateTime, key), dt)
+	return AppendDateTime(AppendHeader(dst, TypeDateTime, key), dt)
 }
 
 // ReadDateTime will read an int64 datetime from src. If there are not enough bytes it
@@ -405,7 +403,7 @@ func AppendTime(dst []byte, t time.Time) []byte {
 // AppendTimeElement will append a BSON datetime element using key and dt to dst
 // and return the extended buffer.
 func AppendTimeElement(dst []byte, key string, t time.Time) []byte {
-	return AppendTime(AppendHeader(dst, bsontype.DateTime, key), t)
+	return AppendTime(AppendHeader(dst, TypeDateTime, key), t)
 }
 
 // ReadTime will read an time.Time datetime from src. If there are not enough bytes it
@@ -417,7 +415,7 @@ func ReadTime(src []byte) (time.Time, []byte, bool) {
 
 // AppendNullElement will append a BSON null element using key to dst
 // and return the extended buffer.
-func AppendNullElement(dst []byte, key string) []byte { return AppendHeader(dst, bsontype.Null, key) }
+func AppendNullElement(dst []byte, key string) []byte { return AppendHeader(dst, TypeNull, key) }
 
 // AppendRegex will append pattern and options to dst and return the extended buffer.
 func AppendRegex(dst []byte, pattern, options string) []byte {
@@ -431,7 +429,7 @@ func AppendRegex(dst []byte, pattern, options string) []byte {
 // AppendRegexElement will append a BSON regex element using key, pattern, and
 // options to dst and return the extended buffer.
 func AppendRegexElement(dst []byte, key, pattern, options string) []byte {
-	return AppendRegex(AppendHeader(dst, bsontype.Regex, key), pattern, options)
+	return AppendRegex(AppendHeader(dst, TypeRegex, key), pattern, options)
 }
 
 // ReadRegex will read a pattern and options from src. If there are not enough bytes it
@@ -456,7 +454,7 @@ func AppendDBPointer(dst []byte, ns string, oid [idLen]byte) []byte {
 // AppendDBPointerElement will append a BSON DBPointer element using key, ns,
 // and oid to dst and return the extended buffer.
 func AppendDBPointerElement(dst []byte, key, ns string, oid [idLen]byte) []byte {
-	return AppendDBPointer(AppendHeader(dst, bsontype.DBPointer, key), ns, oid)
+	return AppendDBPointer(AppendHeader(dst, TypeDBPointer, key), ns, oid)
 }
 
 // ReadDBPointer will read a ns and oid from src. If there are not enough bytes it
@@ -479,7 +477,7 @@ func AppendJavaScript(dst []byte, js string) []byte { return appendstring(dst, j
 // AppendJavaScriptElement will append a BSON JavaScript element using key and
 // js to dst and return the extended buffer.
 func AppendJavaScriptElement(dst []byte, key, js string) []byte {
-	return AppendJavaScript(AppendHeader(dst, bsontype.JavaScript, key), js)
+	return AppendJavaScript(AppendHeader(dst, TypeJavaScript, key), js)
 }
 
 // ReadJavaScript will read a js string from src. If there are not enough bytes it
@@ -492,7 +490,7 @@ func AppendSymbol(dst []byte, symbol string) []byte { return appendstring(dst, s
 // AppendSymbolElement will append a BSON symbol element using key and symbol to dst
 // and return the extended buffer.
 func AppendSymbolElement(dst []byte, key, symbol string) []byte {
-	return AppendSymbol(AppendHeader(dst, bsontype.Symbol, key), symbol)
+	return AppendSymbol(AppendHeader(dst, TypeSymbol, key), symbol)
 }
 
 // ReadSymbol will read a symbol string from src. If there are not enough bytes it
@@ -511,7 +509,7 @@ func AppendCodeWithScope(dst []byte, code string, scope []byte) []byte {
 // key, code, and scope to dst
 // and return the extended buffer.
 func AppendCodeWithScopeElement(dst []byte, key, code string, scope []byte) []byte {
-	return AppendCodeWithScope(AppendHeader(dst, bsontype.CodeWithScope, key), code, scope)
+	return AppendCodeWithScope(AppendHeader(dst, TypeCodeWithScope, key), code, scope)
 }
 
 // ReadCodeWithScope will read code and scope from src. If there are not enough bytes it
@@ -540,7 +538,7 @@ func AppendInt32(dst []byte, i32 int32) []byte { return appendi32(dst, i32) }
 // AppendInt32Element will append a BSON int32 element using key and i32 to dst
 // and return the extended buffer.
 func AppendInt32Element(dst []byte, key string, i32 int32) []byte {
-	return AppendInt32(AppendHeader(dst, bsontype.Int32, key), i32)
+	return AppendInt32(AppendHeader(dst, TypeInt32, key), i32)
 }
 
 // ReadInt32 will read an int32 from src. If there are not enough bytes it
@@ -555,7 +553,7 @@ func AppendTimestamp(dst []byte, t, i uint32) []byte {
 // AppendTimestampElement will append a BSON timestamp element using key, t, and
 // i to dst and return the extended buffer.
 func AppendTimestampElement(dst []byte, key string, t, i uint32) []byte {
-	return AppendTimestamp(AppendHeader(dst, bsontype.Timestamp, key), t, i)
+	return AppendTimestamp(AppendHeader(dst, TypeTimestamp, key), t, i)
 }
 
 // ReadTimestamp will read t and i from src. If there are not enough bytes it
@@ -578,7 +576,7 @@ func AppendInt64(dst []byte, i64 int64) []byte { return appendi64(dst, i64) }
 // AppendInt64Element will append a BSON int64 element using key and i64 to dst
 // and return the extended buffer.
 func AppendInt64Element(dst []byte, key string, i64 int64) []byte {
-	return AppendInt64(AppendHeader(dst, bsontype.Int64, key), i64)
+	return AppendInt64(AppendHeader(dst, TypeInt64, key), i64)
 }
 
 // ReadInt64 will read an int64 from src. If there are not enough bytes it
@@ -593,7 +591,7 @@ func AppendDecimal128(dst []byte, high, low uint64) []byte {
 // AppendDecimal128Element will append high and low parts of a BSON bson.Decimal128 element using key and
 // d128 to dst and return the extended buffer.
 func AppendDecimal128Element(dst []byte, key string, high, low uint64) []byte {
-	return AppendDecimal128(AppendHeader(dst, bsontype.Decimal128, key), high, low)
+	return AppendDecimal128(AppendHeader(dst, TypeDecimal128, key), high, low)
 }
 
 // ReadDecimal128 will read high and low parts of a bson.Decimal128 from src. If there are not enough bytes it
@@ -615,17 +613,17 @@ func ReadDecimal128(src []byte) (uint64, uint64, []byte, bool) {
 // AppendMaxKeyElement will append a BSON max key element using key to dst
 // and return the extended buffer.
 func AppendMaxKeyElement(dst []byte, key string) []byte {
-	return AppendHeader(dst, bsontype.MaxKey, key)
+	return AppendHeader(dst, TypeMaxKey, key)
 }
 
 // AppendMinKeyElement will append a BSON min key element using key to dst
 // and return the extended buffer.
 func AppendMinKeyElement(dst []byte, key string) []byte {
-	return AppendHeader(dst, bsontype.MinKey, key)
+	return AppendHeader(dst, TypeMinKey, key)
 }
 
 // EqualValue will return true if the two values are equal.
-func EqualValue(t1, t2 bsontype.Type, v1, v2 []byte) bool {
+func EqualValue(t1, t2 Type, v1, v2 []byte) bool {
 	if t1 != t2 {
 		return false
 	}
@@ -643,34 +641,34 @@ func EqualValue(t1, t2 bsontype.Type, v1, v2 []byte) bool {
 // valueLength will determine the length of the next value contained in src as if it
 // is type t. The returned bool will be false if there are not enough bytes in src for
 // a value of type t.
-func valueLength(src []byte, t bsontype.Type) (int32, bool) {
+func valueLength(src []byte, t Type) (int32, bool) {
 	var length int32
 	ok := true
 	switch t {
-	case bsontype.Array, bsontype.EmbeddedDocument, bsontype.CodeWithScope:
+	case TypeArray, TypeEmbeddedDocument, TypeCodeWithScope:
 		length, _, ok = ReadLength(src)
-	case bsontype.Binary:
+	case TypeBinary:
 		length, _, ok = ReadLength(src)
 		length += 4 + 1 // binary length + subtype byte
-	case bsontype.Boolean:
+	case TypeBoolean:
 		length = 1
-	case bsontype.DBPointer:
+	case TypeDBPointer:
 		length, _, ok = ReadLength(src)
 		length += 4 + 12 // string length + ObjectID length
-	case bsontype.DateTime, bsontype.Double, bsontype.Int64, bsontype.Timestamp:
+	case TypeDateTime, TypeDouble, TypeInt64, TypeTimestamp:
 		length = 8
-	case bsontype.Decimal128:
+	case TypeDecimal128:
 		length = 16
-	case bsontype.Int32:
+	case TypeInt32:
 		length = 4
-	case bsontype.JavaScript, bsontype.String, bsontype.Symbol:
+	case TypeJavaScript, TypeString, TypeSymbol:
 		length, _, ok = ReadLength(src)
 		length += 4
-	case bsontype.MaxKey, bsontype.MinKey, bsontype.Null, bsontype.Undefined:
+	case TypeMaxKey, TypeMinKey, TypeNull, TypeUndefined:
 		length = 0
-	case bsontype.ObjectID:
+	case TypeObjectID:
 		length = 12
-	case bsontype.Regex:
+	case TypeRegex:
 		regex := bytes.IndexByte(src, 0x00)
 		if regex < 0 {
 			ok = false
@@ -689,7 +687,7 @@ func valueLength(src []byte, t bsontype.Type) (int32, bool) {
 	return length, ok
 }
 
-func readValue(src []byte, t bsontype.Type) ([]byte, []byte, bool) {
+func readValue(src []byte, t Type) ([]byte, []byte, bool) {
 	length, ok := valueLength(src, t)
 	if !ok || int(length) > len(src) {
 		return nil, src, false

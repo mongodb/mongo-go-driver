@@ -12,47 +12,67 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// Type represents a BSON type.
+type Type bsoncore.Type
+
+// String returns the string representation of the BSON type's name.
+func (bt Type) String() string {
+	return bsoncore.Type(bt).String()
+}
+
+// IsValid will return true if the Type is valid.
+func (bt Type) IsValid() bool {
+	switch bt {
+	case TypeDouble, TypeString, TypeEmbeddedDocument, TypeArray, TypeBinary,
+		TypeUndefined, TypeObjectID, TypeBoolean, TypeDateTime, TypeNull, TypeRegex,
+		TypeDBPointer, TypeJavaScript, TypeSymbol, TypeCodeWithScope, TypeInt32,
+		TypeTimestamp, TypeInt64, TypeDecimal128, TypeMinKey, TypeMaxKey:
+		return true
+	default:
+		return false
+	}
+}
+
 // BSON element types as described in https://bsonspec.org/spec.html.
 const (
-	TypeDouble           = bsontype.Double
-	TypeString           = bsontype.String
-	TypeEmbeddedDocument = bsontype.EmbeddedDocument
-	TypeArray            = bsontype.Array
-	TypeBinary           = bsontype.Binary
-	TypeUndefined        = bsontype.Undefined
-	TypeObjectID         = bsontype.ObjectID
-	TypeBoolean          = bsontype.Boolean
-	TypeDateTime         = bsontype.DateTime
-	TypeNull             = bsontype.Null
-	TypeRegex            = bsontype.Regex
-	TypeDBPointer        = bsontype.DBPointer
-	TypeJavaScript       = bsontype.JavaScript
-	TypeSymbol           = bsontype.Symbol
-	TypeCodeWithScope    = bsontype.CodeWithScope
-	TypeInt32            = bsontype.Int32
-	TypeTimestamp        = bsontype.Timestamp
-	TypeInt64            = bsontype.Int64
-	TypeDecimal128       = bsontype.Decimal128
-	TypeMinKey           = bsontype.MinKey
-	TypeMaxKey           = bsontype.MaxKey
+	TypeDouble           = Type(bsoncore.TypeDouble)
+	TypeString           = Type(bsoncore.TypeString)
+	TypeEmbeddedDocument = Type(bsoncore.TypeEmbeddedDocument)
+	TypeArray            = Type(bsoncore.TypeArray)
+	TypeBinary           = Type(bsoncore.TypeBinary)
+	TypeUndefined        = Type(bsoncore.TypeUndefined)
+	TypeObjectID         = Type(bsoncore.TypeObjectID)
+	TypeBoolean          = Type(bsoncore.TypeBoolean)
+	TypeDateTime         = Type(bsoncore.TypeDateTime)
+	TypeNull             = Type(bsoncore.TypeNull)
+	TypeRegex            = Type(bsoncore.TypeRegex)
+	TypeDBPointer        = Type(bsoncore.TypeDBPointer)
+	TypeJavaScript       = Type(bsoncore.TypeJavaScript)
+	TypeSymbol           = Type(bsoncore.TypeSymbol)
+	TypeCodeWithScope    = Type(bsoncore.TypeCodeWithScope)
+	TypeInt32            = Type(bsoncore.TypeInt32)
+	TypeTimestamp        = Type(bsoncore.TypeTimestamp)
+	TypeInt64            = Type(bsoncore.TypeInt64)
+	TypeDecimal128       = Type(bsoncore.TypeDecimal128)
+	TypeMaxKey           = Type(bsoncore.TypeMaxKey)
+	TypeMinKey           = Type(bsoncore.TypeMinKey)
 )
 
 // BSON binary element subtypes as described in https://bsonspec.org/spec.html.
 const (
-	TypeBinaryGeneric     = bsontype.BinaryGeneric
-	TypeBinaryFunction    = bsontype.BinaryFunction
-	TypeBinaryBinaryOld   = bsontype.BinaryBinaryOld
-	TypeBinaryUUIDOld     = bsontype.BinaryUUIDOld
-	TypeBinaryUUID        = bsontype.BinaryUUID
-	TypeBinaryMD5         = bsontype.BinaryMD5
-	TypeBinaryEncrypted   = bsontype.BinaryEncrypted
-	TypeBinaryColumn      = bsontype.BinaryColumn
-	TypeBinarySensitive   = bsontype.BinarySensitive
-	TypeBinaryUserDefined = bsontype.BinaryUserDefined
+	TypeBinaryGeneric     byte = 0x00
+	TypeBinaryFunction    byte = 0x01
+	TypeBinaryBinaryOld   byte = 0x02
+	TypeBinaryUUIDOld     byte = 0x03
+	TypeBinaryUUID        byte = 0x04
+	TypeBinaryMD5         byte = 0x05
+	TypeBinaryEncrypted   byte = 0x06
+	TypeBinaryColumn      byte = 0x07
+	TypeBinarySensitive   byte = 0x08
+	TypeBinaryUserDefined byte = 0x80
 )
 
 var tBool = reflect.TypeOf(false)

@@ -22,7 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // Dialer is used to make network connections.
@@ -230,8 +229,8 @@ func marshalAggregatePipeline(
 		if err != nil {
 			return nil, false, err
 		}
-		if btype != bsontype.Array {
-			return nil, false, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bsontype.Array)
+		if btype != bson.TypeArray {
+			return nil, false, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bson.TypeArray)
 		}
 
 		var hasOutputStage bool
@@ -324,7 +323,7 @@ func marshalUpdateValue(
 	case nil:
 		return u, ErrNilDocument
 	case bson.D:
-		u.Type = bsontype.EmbeddedDocument
+		u.Type = bsoncore.TypeEmbeddedDocument
 		u.Data, err = marshal(update, bsonOpts, registry)
 		if err != nil {
 			return u, err
@@ -332,19 +331,19 @@ func marshalUpdateValue(
 
 		return u, documentCheckerFunc(u.Data)
 	case bson.Raw:
-		u.Type = bsontype.EmbeddedDocument
+		u.Type = bsoncore.TypeEmbeddedDocument
 		u.Data = t
 		return u, documentCheckerFunc(u.Data)
 	case bsoncore.Document:
-		u.Type = bsontype.EmbeddedDocument
+		u.Type = bsoncore.TypeEmbeddedDocument
 		u.Data = t
 		return u, documentCheckerFunc(u.Data)
 	case []byte:
-		u.Type = bsontype.EmbeddedDocument
+		u.Type = bsoncore.TypeEmbeddedDocument
 		u.Data = t
 		return u, documentCheckerFunc(u.Data)
 	case bson.Marshaler:
-		u.Type = bsontype.EmbeddedDocument
+		u.Type = bsoncore.TypeEmbeddedDocument
 		u.Data, err = t.MarshalBSON()
 		if err != nil {
 			return u, err
@@ -352,12 +351,14 @@ func marshalUpdateValue(
 
 		return u, documentCheckerFunc(u.Data)
 	case bson.ValueMarshaler:
-		u.Type, u.Data, err = t.MarshalBSONValue()
+		tt, data, err := t.MarshalBSONValue()
+		u.Type = bsoncore.Type(tt)
+		u.Data = data
 		if err != nil {
 			return u, err
 		}
-		if u.Type != bsontype.Array && u.Type != bsontype.EmbeddedDocument {
-			return u, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v or %v", u.Type, bsontype.Array, bsontype.EmbeddedDocument)
+		if u.Type != bsoncore.TypeArray && u.Type != bsoncore.TypeEmbeddedDocument {
+			return u, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v or %v", u.Type, bsoncore.TypeArray, bsoncore.TypeEmbeddedDocument)
 		}
 		return u, err
 	default:
@@ -366,7 +367,7 @@ func marshalUpdateValue(
 			return u, fmt.Errorf("can only marshal slices and arrays into update pipelines, but got %v", val.Kind())
 		}
 		if val.Kind() != reflect.Slice && val.Kind() != reflect.Array {
-			u.Type = bsontype.EmbeddedDocument
+			u.Type = bsoncore.TypeEmbeddedDocument
 			u.Data, err = marshal(update, bsonOpts, registry)
 			if err != nil {
 				return u, err
@@ -375,7 +376,7 @@ func marshalUpdateValue(
 			return u, documentCheckerFunc(u.Data)
 		}
 
-		u.Type = bsontype.Array
+		u.Type = bsoncore.TypeArray
 		aidx, arr := bsoncore.AppendArrayStart(nil)
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {

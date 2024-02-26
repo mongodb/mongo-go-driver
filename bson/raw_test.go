@@ -16,7 +16,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -165,7 +164,7 @@ func TestRaw(t *testing.T) {
 		t.Run("invalid-traversal", func(t *testing.T) {
 			rdr := Raw{'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00'}
 			_, err := rdr.LookupErr("x", "y")
-			want := bsoncore.InvalidDepthTraversalError{Key: "x", Type: bsontype.Null}
+			want := bsoncore.InvalidDepthTraversalError{Key: "x", Type: bsoncore.TypeNull}
 			if !compareErrors(err, want) {
 				t.Errorf("Empty key lookup did not return expected result. got %v; want %v", err, want)
 			}
@@ -182,7 +181,7 @@ func TestRaw(t *testing.T) {
 					'\x08', '\x00', '\x00', '\x00', '\x0A', 'x', '\x00', '\x00',
 				},
 				[]string{"x"},
-				RawValue{Type: bsontype.Null}, nil,
+				RawValue{Type: TypeNull}, nil,
 			},
 			{"first-second",
 				Raw{
@@ -193,7 +192,7 @@ func TestRaw(t *testing.T) {
 					'\x0A', 'b', '\x00', '\x00', '\x00',
 				},
 				[]string{"foo", "b"},
-				RawValue{Type: bsontype.Null}, nil,
+				RawValue{Type: TypeNull}, nil,
 			},
 			{"first-second-array",
 				Raw{
@@ -204,7 +203,7 @@ func TestRaw(t *testing.T) {
 					'\x0A', '2', '\x00', '\x00', '\x00',
 				},
 				[]string{"foo", "2"},
-				RawValue{Type: bsontype.Null}, nil,
+				RawValue{Type: TypeNull}, nil,
 			},
 		}
 

@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -239,7 +238,7 @@ func (vw *valueWriter) invalidTransitionError(destination mode, name string, mod
 	return te
 }
 
-func (vw *valueWriter) writeElementHeader(t bsontype.Type, destination mode, callerName string, addmodes ...mode) error {
+func (vw *valueWriter) writeElementHeader(t Type, destination mode, callerName string, addmodes ...mode) error {
 	frame := &vw.stack[vw.frame]
 	switch frame.mode {
 	case mElement:
@@ -261,7 +260,7 @@ func (vw *valueWriter) writeElementHeader(t bsontype.Type, destination mode, cal
 	return nil
 }
 
-func (vw *valueWriter) WriteValueBytes(t bsontype.Type, b []byte) error {
+func (vw *valueWriter) WriteValueBytes(t Type, b []byte) error {
 	if err := vw.writeElementHeader(t, mode(0), "WriteValueBytes"); err != nil {
 		return err
 	}
@@ -271,7 +270,7 @@ func (vw *valueWriter) WriteValueBytes(t bsontype.Type, b []byte) error {
 }
 
 func (vw *valueWriter) WriteArray() (ArrayWriter, error) {
-	if err := vw.writeElementHeader(bsontype.Array, mArray, "WriteArray"); err != nil {
+	if err := vw.writeElementHeader(TypeArray, mArray, "WriteArray"); err != nil {
 		return nil, err
 	}
 
@@ -285,7 +284,7 @@ func (vw *valueWriter) WriteBinary(b []byte) error {
 }
 
 func (vw *valueWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
-	if err := vw.writeElementHeader(bsontype.Binary, mode(0), "WriteBinaryWithSubtype"); err != nil {
+	if err := vw.writeElementHeader(TypeBinary, mode(0), "WriteBinaryWithSubtype"); err != nil {
 		return err
 	}
 
@@ -295,7 +294,7 @@ func (vw *valueWriter) WriteBinaryWithSubtype(b []byte, btype byte) error {
 }
 
 func (vw *valueWriter) WriteBoolean(b bool) error {
-	if err := vw.writeElementHeader(bsontype.Boolean, mode(0), "WriteBoolean"); err != nil {
+	if err := vw.writeElementHeader(TypeBoolean, mode(0), "WriteBoolean"); err != nil {
 		return err
 	}
 
@@ -305,7 +304,7 @@ func (vw *valueWriter) WriteBoolean(b bool) error {
 }
 
 func (vw *valueWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
-	if err := vw.writeElementHeader(bsontype.CodeWithScope, mCodeWithScope, "WriteCodeWithScope"); err != nil {
+	if err := vw.writeElementHeader(TypeCodeWithScope, mCodeWithScope, "WriteCodeWithScope"); err != nil {
 		return nil, err
 	}
 
@@ -322,7 +321,7 @@ func (vw *valueWriter) WriteCodeWithScope(code string) (DocumentWriter, error) {
 }
 
 func (vw *valueWriter) WriteDBPointer(ns string, oid ObjectID) error {
-	if err := vw.writeElementHeader(bsontype.DBPointer, mode(0), "WriteDBPointer"); err != nil {
+	if err := vw.writeElementHeader(TypeDBPointer, mode(0), "WriteDBPointer"); err != nil {
 		return err
 	}
 
@@ -332,7 +331,7 @@ func (vw *valueWriter) WriteDBPointer(ns string, oid ObjectID) error {
 }
 
 func (vw *valueWriter) WriteDateTime(dt int64) error {
-	if err := vw.writeElementHeader(bsontype.DateTime, mode(0), "WriteDateTime"); err != nil {
+	if err := vw.writeElementHeader(TypeDateTime, mode(0), "WriteDateTime"); err != nil {
 		return err
 	}
 
@@ -342,7 +341,7 @@ func (vw *valueWriter) WriteDateTime(dt int64) error {
 }
 
 func (vw *valueWriter) WriteDecimal128(d128 Decimal128) error {
-	if err := vw.writeElementHeader(bsontype.Decimal128, mode(0), "WriteDecimal128"); err != nil {
+	if err := vw.writeElementHeader(TypeDecimal128, mode(0), "WriteDecimal128"); err != nil {
 		return err
 	}
 
@@ -353,7 +352,7 @@ func (vw *valueWriter) WriteDecimal128(d128 Decimal128) error {
 }
 
 func (vw *valueWriter) WriteDouble(f float64) error {
-	if err := vw.writeElementHeader(bsontype.Double, mode(0), "WriteDouble"); err != nil {
+	if err := vw.writeElementHeader(TypeDouble, mode(0), "WriteDouble"); err != nil {
 		return err
 	}
 
@@ -363,7 +362,7 @@ func (vw *valueWriter) WriteDouble(f float64) error {
 }
 
 func (vw *valueWriter) WriteInt32(i32 int32) error {
-	if err := vw.writeElementHeader(bsontype.Int32, mode(0), "WriteInt32"); err != nil {
+	if err := vw.writeElementHeader(TypeInt32, mode(0), "WriteInt32"); err != nil {
 		return err
 	}
 
@@ -373,7 +372,7 @@ func (vw *valueWriter) WriteInt32(i32 int32) error {
 }
 
 func (vw *valueWriter) WriteInt64(i64 int64) error {
-	if err := vw.writeElementHeader(bsontype.Int64, mode(0), "WriteInt64"); err != nil {
+	if err := vw.writeElementHeader(TypeInt64, mode(0), "WriteInt64"); err != nil {
 		return err
 	}
 
@@ -383,7 +382,7 @@ func (vw *valueWriter) WriteInt64(i64 int64) error {
 }
 
 func (vw *valueWriter) WriteJavascript(code string) error {
-	if err := vw.writeElementHeader(bsontype.JavaScript, mode(0), "WriteJavascript"); err != nil {
+	if err := vw.writeElementHeader(TypeJavaScript, mode(0), "WriteJavascript"); err != nil {
 		return err
 	}
 
@@ -393,7 +392,7 @@ func (vw *valueWriter) WriteJavascript(code string) error {
 }
 
 func (vw *valueWriter) WriteMaxKey() error {
-	if err := vw.writeElementHeader(bsontype.MaxKey, mode(0), "WriteMaxKey"); err != nil {
+	if err := vw.writeElementHeader(TypeMaxKey, mode(0), "WriteMaxKey"); err != nil {
 		return err
 	}
 
@@ -402,7 +401,7 @@ func (vw *valueWriter) WriteMaxKey() error {
 }
 
 func (vw *valueWriter) WriteMinKey() error {
-	if err := vw.writeElementHeader(bsontype.MinKey, mode(0), "WriteMinKey"); err != nil {
+	if err := vw.writeElementHeader(TypeMinKey, mode(0), "WriteMinKey"); err != nil {
 		return err
 	}
 
@@ -411,7 +410,7 @@ func (vw *valueWriter) WriteMinKey() error {
 }
 
 func (vw *valueWriter) WriteNull() error {
-	if err := vw.writeElementHeader(bsontype.Null, mode(0), "WriteNull"); err != nil {
+	if err := vw.writeElementHeader(TypeNull, mode(0), "WriteNull"); err != nil {
 		return err
 	}
 
@@ -420,7 +419,7 @@ func (vw *valueWriter) WriteNull() error {
 }
 
 func (vw *valueWriter) WriteObjectID(oid ObjectID) error {
-	if err := vw.writeElementHeader(bsontype.ObjectID, mode(0), "WriteObjectID"); err != nil {
+	if err := vw.writeElementHeader(TypeObjectID, mode(0), "WriteObjectID"); err != nil {
 		return err
 	}
 
@@ -433,7 +432,7 @@ func (vw *valueWriter) WriteRegex(pattern string, options string) error {
 	if !isValidCString(pattern) || !isValidCString(options) {
 		return errors.New("BSON regex values cannot contain null bytes")
 	}
-	if err := vw.writeElementHeader(bsontype.Regex, mode(0), "WriteRegex"); err != nil {
+	if err := vw.writeElementHeader(TypeRegex, mode(0), "WriteRegex"); err != nil {
 		return err
 	}
 
@@ -443,7 +442,7 @@ func (vw *valueWriter) WriteRegex(pattern string, options string) error {
 }
 
 func (vw *valueWriter) WriteString(s string) error {
-	if err := vw.writeElementHeader(bsontype.String, mode(0), "WriteString"); err != nil {
+	if err := vw.writeElementHeader(TypeString, mode(0), "WriteString"); err != nil {
 		return err
 	}
 
@@ -457,7 +456,7 @@ func (vw *valueWriter) WriteDocument() (DocumentWriter, error) {
 		vw.reserveLength()
 		return vw, nil
 	}
-	if err := vw.writeElementHeader(bsontype.EmbeddedDocument, mDocument, "WriteDocument", mTopLevel); err != nil {
+	if err := vw.writeElementHeader(TypeEmbeddedDocument, mDocument, "WriteDocument", mTopLevel); err != nil {
 		return nil, err
 	}
 
@@ -466,7 +465,7 @@ func (vw *valueWriter) WriteDocument() (DocumentWriter, error) {
 }
 
 func (vw *valueWriter) WriteSymbol(symbol string) error {
-	if err := vw.writeElementHeader(bsontype.Symbol, mode(0), "WriteSymbol"); err != nil {
+	if err := vw.writeElementHeader(TypeSymbol, mode(0), "WriteSymbol"); err != nil {
 		return err
 	}
 
@@ -476,7 +475,7 @@ func (vw *valueWriter) WriteSymbol(symbol string) error {
 }
 
 func (vw *valueWriter) WriteTimestamp(t uint32, i uint32) error {
-	if err := vw.writeElementHeader(bsontype.Timestamp, mode(0), "WriteTimestamp"); err != nil {
+	if err := vw.writeElementHeader(TypeTimestamp, mode(0), "WriteTimestamp"); err != nil {
 		return err
 	}
 
@@ -486,7 +485,7 @@ func (vw *valueWriter) WriteTimestamp(t uint32, i uint32) error {
 }
 
 func (vw *valueWriter) WriteUndefined() error {
-	if err := vw.writeElementHeader(bsontype.Undefined, mode(0), "WriteUndefined"); err != nil {
+	if err := vw.writeElementHeader(TypeUndefined, mode(0), "WriteUndefined"); err != nil {
 		return err
 	}
 
@@ -622,14 +621,14 @@ func isValidCString(cs string) bool {
 // key is a valid C string since the caller has already checked for that.
 //
 // The caller of this function must check if key is a valid C string.
-func (vw *valueWriter) appendHeader(t bsontype.Type, key string) {
-	vw.buf = bsoncore.AppendType(vw.buf, t)
+func (vw *valueWriter) appendHeader(t Type, key string) {
+	vw.buf = bsoncore.AppendType(vw.buf, bsoncore.Type(t))
 	vw.buf = append(vw.buf, key...)
 	vw.buf = append(vw.buf, 0x00)
 }
 
-func (vw *valueWriter) appendIntHeader(t bsontype.Type, key int) {
-	vw.buf = bsoncore.AppendType(vw.buf, t)
+func (vw *valueWriter) appendIntHeader(t Type, key int) {
+	vw.buf = bsoncore.AppendType(vw.buf, bsoncore.Type(t))
 	vw.buf = strconv.AppendInt(vw.buf, int64(key), 10)
 	vw.buf = append(vw.buf, 0x00)
 }

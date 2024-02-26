@@ -12,8 +12,6 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func TestExtJSONValueWriter(t *testing.T) {
@@ -242,7 +240,7 @@ func TestExtJSONValueWriter(t *testing.T) {
 			ejvw := newExtJSONWriterFromSlice(nil, true, true)
 			want := TransitionError{current: mTopLevel, destination: mode(0),
 				name: "WriteBinaryWithSubtype", modes: []mode{mElement, mValue}, action: "write"}
-			got := ejvw.WriteBinaryWithSubtype(nil, (byte)(bsontype.EmbeddedDocument))
+			got := ejvw.WriteBinaryWithSubtype(nil, (byte)(TypeEmbeddedDocument))
 			if !compareErrors(got, want) {
 				t.Errorf("Did not received expected error. got %v; want %v", got, want)
 			}

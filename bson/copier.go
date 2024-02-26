@@ -11,39 +11,14 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// Copier is a type that allows copying between ValueReaders, ValueWriters, and
-// []byte values.
+// copyDocument handles copying one document from the src to the dst.
 //
 // Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-type Copier struct{}
-
-// NewCopier creates a new copier with the given registry. If a nil registry is provided
-// a default registry is used.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
-func NewCopier() Copier {
-	return Copier{}
-}
-
-// CopyDocument handles copying a document from src to dst.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
-func CopyDocument(dst ValueWriter, src ValueReader) error {
-	return Copier{}.CopyDocument(dst, src)
-}
-
-// CopyDocument handles copying one document from the src to the dst.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
-func (c Copier) CopyDocument(dst ValueWriter, src ValueReader) error {
+func copyDocument(dst ValueWriter, src ValueReader) error {
 	dr, err := src.ReadDocument()
 	if err != nil {
 		return err
@@ -54,21 +29,21 @@ func (c Copier) CopyDocument(dst ValueWriter, src ValueReader) error {
 		return err
 	}
 
-	return c.copyDocumentCore(dw, dr)
+	return copyDocumentCore(dw, dr)
 }
 
-// CopyArrayFromBytes copies the values from a BSON array represented as a
+// copyArrayFromBytes copies the values from a BSON array represented as a
 // []byte to a ValueWriter.
 //
 // Deprecated: Copying BSON arrays using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) CopyArrayFromBytes(dst ValueWriter, src []byte) error {
+func copyArrayFromBytes(dst ValueWriter, src []byte) error {
 	aw, err := dst.WriteArray()
 	if err != nil {
 		return err
 	}
 
-	err = c.CopyBytesToArrayWriter(aw, src)
+	err = copyBytesToArrayWriter(aw, src)
 	if err != nil {
 		return err
 	}
@@ -76,18 +51,18 @@ func (c Copier) CopyArrayFromBytes(dst ValueWriter, src []byte) error {
 	return aw.WriteArrayEnd()
 }
 
-// CopyDocumentFromBytes copies the values from a BSON document represented as a
+// copyDocumentFromBytes copies the values from a BSON document represented as a
 // []byte to a ValueWriter.
 //
 // Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
+func copyDocumentFromBytes(dst ValueWriter, src []byte) error {
 	dw, err := dst.WriteDocument()
 	if err != nil {
 		return err
 	}
 
-	err = c.CopyBytesToDocumentWriter(dw, src)
+	err = copyBytesToDocumentWriter(dw, src)
 	if err != nil {
 		return err
 	}
@@ -97,33 +72,33 @@ func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
 
 type writeElementFn func(key string) (ValueWriter, error)
 
-// CopyBytesToArrayWriter copies the values from a BSON Array represented as a []byte to an
+// copyBytesToArrayWriter copies the values from a BSON Array represented as a []byte to an
 // ArrayWriter.
 //
 // Deprecated: Copying BSON arrays using the ArrayWriter interface will not be supported in Go
 // Driver 2.0.
-func (c Copier) CopyBytesToArrayWriter(dst ArrayWriter, src []byte) error {
+func copyBytesToArrayWriter(dst ArrayWriter, src []byte) error {
 	wef := func(_ string) (ValueWriter, error) {
 		return dst.WriteArrayElement()
 	}
 
-	return c.copyBytesToValueWriter(src, wef)
+	return copyBytesToValueWriter(src, wef)
 }
 
-// CopyBytesToDocumentWriter copies the values from a BSON document represented as a []byte to a
+// copyBytesToDocumentWriter copies the values from a BSON document represented as a []byte to a
 // DocumentWriter.
 //
 // Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) CopyBytesToDocumentWriter(dst DocumentWriter, src []byte) error {
+func copyBytesToDocumentWriter(dst DocumentWriter, src []byte) error {
 	wef := func(key string) (ValueWriter, error) {
 		return dst.WriteDocumentElement(key)
 	}
 
-	return c.copyBytesToValueWriter(src, wef)
+	return copyBytesToValueWriter(src, wef)
 }
 
-func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
+func copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	// TODO(skriptble): Create errors types here. Anything that is a tag should be a property.
 	length, rem, ok := bsoncore.ReadLength(src)
 	if !ok {
@@ -134,7 +109,7 @@ func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	}
 	rem = rem[:length-4]
 
-	var t bsontype.Type
+	var t bsoncore.Type
 	var key string
 	var val bsoncore.Value
 	for {
@@ -142,7 +117,7 @@ func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 		if !ok {
 			return io.EOF
 		}
-		if t == bsontype.Type(0) {
+		if t == bsoncore.Type(0) {
 			if len(rem) != 0 {
 				return fmt.Errorf("document end byte found before end of document. remaining bytes=%v", rem)
 			}
@@ -164,7 +139,7 @@ func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 		if !ok {
 			return fmt.Errorf("not enough bytes available to read type. bytes=%d type=%s", len(rem), t)
 		}
-		err = c.CopyValueFromBytes(vw, t, val.Data)
+		err = copyValueFromBytes(vw, Type(t), val.Data)
 		if err != nil {
 			return err
 		}
@@ -172,21 +147,21 @@ func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	return nil
 }
 
-// CopyDocumentToBytes copies an entire document from the ValueReader and
+// copyDocumentToBytes copies an entire document from the ValueReader and
 // returns it as bytes.
 //
 // Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) CopyDocumentToBytes(src ValueReader) ([]byte, error) {
-	return c.AppendDocumentBytes(nil, src)
+func copyDocumentToBytes(src ValueReader) ([]byte, error) {
+	return appendDocumentBytes(nil, src)
 }
 
-// AppendDocumentBytes functions the same as CopyDocumentToBytes, but will
+// appendDocumentBytes functions the same as CopyDocumentToBytes, but will
 // append the result to dst.
 //
 // Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) AppendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
+func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
 	if br, ok := src.(BytesReader); ok {
 		_, dst, err := br.ReadValueBytes(dst)
 		return dst, err
@@ -197,16 +172,16 @@ func (c Copier) AppendDocumentBytes(dst []byte, src ValueReader) ([]byte, error)
 
 	vw.reset(dst)
 
-	err := c.CopyDocument(vw, src)
+	err := copyDocument(vw, src)
 	dst = vw.buf
 	return dst, err
 }
 
-// AppendArrayBytes copies an array from the ValueReader to dst.
+// appendArrayBytes copies an array from the ValueReader to dst.
 //
 // Deprecated: Copying BSON arrays using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) AppendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
+func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 	if br, ok := src.(BytesReader); ok {
 		_, dst, err := br.ReadValueBytes(dst)
 		return dst, err
@@ -217,15 +192,15 @@ func (c Copier) AppendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 
 	vw.reset(dst)
 
-	err := c.copyArray(vw, src)
+	err := copyArray(vw, src)
 	dst = vw.buf
 	return dst, err
 }
 
-// CopyValueFromBytes will write the value represtend by t and src to dst.
+// copyValueFromBytes will write the value represtend by t and src to dst.
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.UnmarshalValue] instead.
-func (c Copier) CopyValueFromBytes(dst ValueWriter, t bsontype.Type, src []byte) error {
+func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 	if wvb, ok := dst.(BytesWriter); ok {
 		return wvb.WriteValueBytes(t, src)
 	}
@@ -236,23 +211,23 @@ func (c Copier) CopyValueFromBytes(dst ValueWriter, t bsontype.Type, src []byte)
 	vr.reset(src)
 	vr.pushElement(t)
 
-	return c.CopyValue(dst, vr)
+	return copyValue(dst, vr)
 }
 
-// CopyValueToBytes copies a value from src and returns it as a bsontype.Type and a
+// copyValueToBytes copies a value from src and returns it as a Type and a
 // []byte.
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.MarshalValue] instead.
-func (c Copier) CopyValueToBytes(src ValueReader) (bsontype.Type, []byte, error) {
-	return c.AppendValueBytes(nil, src)
+func copyValueToBytes(src ValueReader) (Type, []byte, error) {
+	return appendValueBytes(nil, src)
 }
 
-// AppendValueBytes functions the same as CopyValueToBytes, but will append the
+// appendValueBytes functions the same as CopyValueToBytes, but will append the
 // result to dst.
 //
 // Deprecated: Appending individual BSON elements to an existing slice will not be supported in Go
 // Driver 2.0.
-func (c Copier) AppendValueBytes(dst []byte, src ValueReader) (bsontype.Type, []byte, error) {
+func appendValueBytes(dst []byte, src ValueReader) (Type, []byte, error) {
 	if br, ok := src.(BytesReader); ok {
 		return br.ReadValueBytes(dst)
 	}
@@ -265,40 +240,40 @@ func (c Copier) AppendValueBytes(dst []byte, src ValueReader) (bsontype.Type, []
 	vw.reset(dst)
 	vw.push(mElement)
 
-	err := c.CopyValue(vw, src)
+	err := copyValue(vw, src)
 	if err != nil {
 		return 0, dst, err
 	}
 
-	return bsontype.Type(vw.buf[start]), vw.buf[start+2:], nil
+	return Type(vw.buf[start]), vw.buf[start+2:], nil
 }
 
-// CopyValue will copy a single value from src to dst.
+// copyValue will copy a single value from src to dst.
 //
 // Deprecated: Copying BSON values using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
-func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
+func copyValue(dst ValueWriter, src ValueReader) error {
 	var err error
 	switch src.Type() {
-	case bsontype.Double:
+	case TypeDouble:
 		var f64 float64
 		f64, err = src.ReadDouble()
 		if err != nil {
 			break
 		}
 		err = dst.WriteDouble(f64)
-	case bsontype.String:
+	case TypeString:
 		var str string
 		str, err = src.ReadString()
 		if err != nil {
 			return err
 		}
 		err = dst.WriteString(str)
-	case bsontype.EmbeddedDocument:
-		err = c.CopyDocument(dst, src)
-	case bsontype.Array:
-		err = c.copyArray(dst, src)
-	case bsontype.Binary:
+	case TypeEmbeddedDocument:
+		err = copyDocument(dst, src)
+	case TypeArray:
+		err = copyArray(dst, src)
+	case TypeBinary:
 		var data []byte
 		var subtype byte
 		data, subtype, err = src.ReadBinary()
@@ -306,47 +281,47 @@ func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
 			break
 		}
 		err = dst.WriteBinaryWithSubtype(data, subtype)
-	case bsontype.Undefined:
+	case TypeUndefined:
 		err = src.ReadUndefined()
 		if err != nil {
 			break
 		}
 		err = dst.WriteUndefined()
-	case bsontype.ObjectID:
+	case TypeObjectID:
 		var oid ObjectID
 		oid, err = src.ReadObjectID()
 		if err != nil {
 			break
 		}
 		err = dst.WriteObjectID(oid)
-	case bsontype.Boolean:
+	case TypeBoolean:
 		var b bool
 		b, err = src.ReadBoolean()
 		if err != nil {
 			break
 		}
 		err = dst.WriteBoolean(b)
-	case bsontype.DateTime:
+	case TypeDateTime:
 		var dt int64
 		dt, err = src.ReadDateTime()
 		if err != nil {
 			break
 		}
 		err = dst.WriteDateTime(dt)
-	case bsontype.Null:
+	case TypeNull:
 		err = src.ReadNull()
 		if err != nil {
 			break
 		}
 		err = dst.WriteNull()
-	case bsontype.Regex:
+	case TypeRegex:
 		var pattern, options string
 		pattern, options, err = src.ReadRegex()
 		if err != nil {
 			break
 		}
 		err = dst.WriteRegex(pattern, options)
-	case bsontype.DBPointer:
+	case TypeDBPointer:
 		var ns string
 		var pointer ObjectID
 		ns, pointer, err = src.ReadDBPointer()
@@ -354,21 +329,21 @@ func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
 			break
 		}
 		err = dst.WriteDBPointer(ns, pointer)
-	case bsontype.JavaScript:
+	case TypeJavaScript:
 		var js string
 		js, err = src.ReadJavascript()
 		if err != nil {
 			break
 		}
 		err = dst.WriteJavascript(js)
-	case bsontype.Symbol:
+	case TypeSymbol:
 		var symbol string
 		symbol, err = src.ReadSymbol()
 		if err != nil {
 			break
 		}
 		err = dst.WriteSymbol(symbol)
-	case bsontype.CodeWithScope:
+	case TypeCodeWithScope:
 		var code string
 		var srcScope DocumentReader
 		code, srcScope, err = src.ReadCodeWithScope()
@@ -381,55 +356,55 @@ func (c Copier) CopyValue(dst ValueWriter, src ValueReader) error {
 		if err != nil {
 			break
 		}
-		err = c.copyDocumentCore(dstScope, srcScope)
-	case bsontype.Int32:
+		err = copyDocumentCore(dstScope, srcScope)
+	case TypeInt32:
 		var i32 int32
 		i32, err = src.ReadInt32()
 		if err != nil {
 			break
 		}
 		err = dst.WriteInt32(i32)
-	case bsontype.Timestamp:
+	case TypeTimestamp:
 		var t, i uint32
 		t, i, err = src.ReadTimestamp()
 		if err != nil {
 			break
 		}
 		err = dst.WriteTimestamp(t, i)
-	case bsontype.Int64:
+	case TypeInt64:
 		var i64 int64
 		i64, err = src.ReadInt64()
 		if err != nil {
 			break
 		}
 		err = dst.WriteInt64(i64)
-	case bsontype.Decimal128:
+	case TypeDecimal128:
 		var d128 Decimal128
 		d128, err = src.ReadDecimal128()
 		if err != nil {
 			break
 		}
 		err = dst.WriteDecimal128(d128)
-	case bsontype.MinKey:
+	case TypeMinKey:
 		err = src.ReadMinKey()
 		if err != nil {
 			break
 		}
 		err = dst.WriteMinKey()
-	case bsontype.MaxKey:
+	case TypeMaxKey:
 		err = src.ReadMaxKey()
 		if err != nil {
 			break
 		}
 		err = dst.WriteMaxKey()
 	default:
-		err = fmt.Errorf("Cannot copy unknown BSON type %s", src.Type())
+		err = fmt.Errorf("cannot copy unknown BSON type %s", src.Type())
 	}
 
 	return err
 }
 
-func (c Copier) copyArray(dst ValueWriter, src ValueReader) error {
+func copyArray(dst ValueWriter, src ValueReader) error {
 	ar, err := src.ReadArray()
 	if err != nil {
 		return err
@@ -454,7 +429,7 @@ func (c Copier) copyArray(dst ValueWriter, src ValueReader) error {
 			return err
 		}
 
-		err = c.CopyValue(vw, vr)
+		err = copyValue(vw, vr)
 		if err != nil {
 			return err
 		}
@@ -463,7 +438,7 @@ func (c Copier) copyArray(dst ValueWriter, src ValueReader) error {
 	return aw.WriteArrayEnd()
 }
 
-func (c Copier) copyDocumentCore(dw DocumentWriter, dr DocumentReader) error {
+func copyDocumentCore(dw DocumentWriter, dr DocumentReader) error {
 	for {
 		key, vr, err := dr.ReadElement()
 		if errors.Is(err, ErrEOD) {
@@ -478,7 +453,7 @@ func (c Copier) copyDocumentCore(dw DocumentWriter, dr DocumentReader) error {
 			return err
 		}
 
-		err = c.CopyValue(vw, vr)
+		err = copyValue(vw, vr)
 		if err != nil {
 			return err
 		}

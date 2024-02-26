@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -1078,7 +1077,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 			if err != nil {
 				return nil, err
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		op.CustomOptions(customOptions)
@@ -1386,7 +1385,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	retArray := make([]interface{}, len(values))
 
 	for i, val := range values {
-		raw := bson.RawValue{Type: val.Type, Value: val.Data}
+		raw := bson.RawValue{Type: bson.Type(val.Type), Value: val.Data}
 		err = raw.Unmarshal(&retArray[i])
 		if err != nil {
 			return nil, err
@@ -1928,7 +1927,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 
 	fo := mergeFindOneAndReplaceOptions(opts...)
-	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r}).
+	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).MaxTime(fo.MaxTime)
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)

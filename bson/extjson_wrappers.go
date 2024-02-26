@@ -13,51 +13,49 @@ import (
 	"math"
 	"strconv"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-func wrapperKeyBSONType(key string) bsontype.Type {
+func wrapperKeyBSONType(key string) Type {
 	switch key {
 	case "$numberInt":
-		return bsontype.Int32
+		return TypeInt32
 	case "$numberLong":
-		return bsontype.Int64
+		return TypeInt64
 	case "$oid":
-		return bsontype.ObjectID
+		return TypeObjectID
 	case "$symbol":
-		return bsontype.Symbol
+		return TypeSymbol
 	case "$numberDouble":
-		return bsontype.Double
+		return TypeDouble
 	case "$numberDecimal":
-		return bsontype.Decimal128
+		return TypeDecimal128
 	case "$binary":
-		return bsontype.Binary
+		return TypeBinary
 	case "$code":
-		return bsontype.JavaScript
+		return TypeJavaScript
 	case "$scope":
-		return bsontype.CodeWithScope
+		return TypeCodeWithScope
 	case "$timestamp":
-		return bsontype.Timestamp
+		return TypeTimestamp
 	case "$regularExpression":
-		return bsontype.Regex
+		return TypeRegex
 	case "$dbPointer":
-		return bsontype.DBPointer
+		return TypeDBPointer
 	case "$date":
-		return bsontype.DateTime
+		return TypeDateTime
 	case "$minKey":
-		return bsontype.MinKey
+		return TypeMinKey
 	case "$maxKey":
-		return bsontype.MaxKey
+		return TypeMaxKey
 	case "$undefined":
-		return bsontype.Undefined
+		return TypeUndefined
 	}
 
-	return bsontype.EmbeddedDocument
+	return TypeEmbeddedDocument
 }
 
 func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
-	if ejv.t != bsontype.EmbeddedDocument {
+	if ejv.t != TypeEmbeddedDocument {
 		return nil, 0, fmt.Errorf("$binary value should be object, but instead is %s", ejv.t)
 	}
 
@@ -74,7 +72,7 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 				return nil, 0, errors.New("duplicate base64 key in $binary")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return nil, 0, fmt.Errorf("$binary base64 value should be string, but instead is %s", val.t)
 			}
 
@@ -90,7 +88,7 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 				return nil, 0, errors.New("duplicate subType key in $binary")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return nil, 0, fmt.Errorf("$binary subType value should be string, but instead is %s", val.t)
 			}
 
@@ -119,7 +117,7 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 }
 
 func (ejv *extJSONValue) parseDBPointer() (ns string, oid ObjectID, err error) {
-	if ejv.t != bsontype.EmbeddedDocument {
+	if ejv.t != TypeEmbeddedDocument {
 		return "", NilObjectID, fmt.Errorf("$dbPointer value should be object, but instead is %s", ejv.t)
 	}
 
@@ -136,7 +134,7 @@ func (ejv *extJSONValue) parseDBPointer() (ns string, oid ObjectID, err error) {
 				return "", NilObjectID, errors.New("duplicate $ref key in $dbPointer")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return "", NilObjectID, fmt.Errorf("$dbPointer $ref value should be string, but instead is %s", val.t)
 			}
 
@@ -147,7 +145,7 @@ func (ejv *extJSONValue) parseDBPointer() (ns string, oid ObjectID, err error) {
 				return "", NilObjectID, errors.New("duplicate $id key in $dbPointer")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return "", NilObjectID, fmt.Errorf("$dbPointer $id value should be string, but instead is %s", val.t)
 			}
 
@@ -183,13 +181,13 @@ var (
 
 func (ejv *extJSONValue) parseDateTime() (int64, error) {
 	switch ejv.t {
-	case bsontype.Int32:
+	case TypeInt32:
 		return int64(ejv.v.(int32)), nil
-	case bsontype.Int64:
+	case TypeInt64:
 		return ejv.v.(int64), nil
-	case bsontype.String:
+	case TypeString:
 		return parseDatetimeString(ejv.v.(string))
-	case bsontype.EmbeddedDocument:
+	case TypeEmbeddedDocument:
 		return parseDatetimeObject(ejv.v.(*extJSONObject))
 	default:
 		return 0, fmt.Errorf("$date value should be string or object, but instead is %s", ejv.t)
@@ -225,7 +223,7 @@ func parseDatetimeObject(data *extJSONObject) (d int64, err error) {
 				return 0, errors.New("duplicate $numberLong key in $date")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return 0, fmt.Errorf("$date $numberLong field should be string, but instead is %s", val.t)
 			}
 
@@ -247,7 +245,7 @@ func parseDatetimeObject(data *extJSONObject) (d int64, err error) {
 }
 
 func (ejv *extJSONValue) parseDecimal128() (Decimal128, error) {
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return Decimal128{}, fmt.Errorf("$numberDecimal value should be string, but instead is %s", ejv.t)
 	}
 
@@ -260,11 +258,11 @@ func (ejv *extJSONValue) parseDecimal128() (Decimal128, error) {
 }
 
 func (ejv *extJSONValue) parseDouble() (float64, error) {
-	if ejv.t == bsontype.Double {
+	if ejv.t == TypeDouble {
 		return ejv.v.(float64), nil
 	}
 
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return 0, fmt.Errorf("$numberDouble value should be string, but instead is %s", ejv.t)
 	}
 
@@ -286,11 +284,11 @@ func (ejv *extJSONValue) parseDouble() (float64, error) {
 }
 
 func (ejv *extJSONValue) parseInt32() (int32, error) {
-	if ejv.t == bsontype.Int32 {
+	if ejv.t == TypeInt32 {
 		return ejv.v.(int32), nil
 	}
 
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return 0, fmt.Errorf("$numberInt value should be string, but instead is %s", ejv.t)
 	}
 
@@ -307,11 +305,11 @@ func (ejv *extJSONValue) parseInt32() (int32, error) {
 }
 
 func (ejv *extJSONValue) parseInt64() (int64, error) {
-	if ejv.t == bsontype.Int64 {
+	if ejv.t == TypeInt64 {
 		return ejv.v.(int64), nil
 	}
 
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return 0, fmt.Errorf("$numberLong value should be string, but instead is %s", ejv.t)
 	}
 
@@ -324,7 +322,7 @@ func (ejv *extJSONValue) parseInt64() (int64, error) {
 }
 
 func (ejv *extJSONValue) parseJavascript() (code string, err error) {
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return "", fmt.Errorf("$code value should be string, but instead is %s", ejv.t)
 	}
 
@@ -332,7 +330,7 @@ func (ejv *extJSONValue) parseJavascript() (code string, err error) {
 }
 
 func (ejv *extJSONValue) parseMinMaxKey(minmax string) error {
-	if ejv.t != bsontype.Int32 {
+	if ejv.t != TypeInt32 {
 		return fmt.Errorf("$%sKey value should be int32, but instead is %s", minmax, ejv.t)
 	}
 
@@ -344,7 +342,7 @@ func (ejv *extJSONValue) parseMinMaxKey(minmax string) error {
 }
 
 func (ejv *extJSONValue) parseObjectID() (ObjectID, error) {
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return NilObjectID, fmt.Errorf("$oid value should be string, but instead is %s", ejv.t)
 	}
 
@@ -352,7 +350,7 @@ func (ejv *extJSONValue) parseObjectID() (ObjectID, error) {
 }
 
 func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {
-	if ejv.t != bsontype.EmbeddedDocument {
+	if ejv.t != TypeEmbeddedDocument {
 		return "", "", fmt.Errorf("$regularExpression value should be object, but instead is %s", ejv.t)
 	}
 
@@ -369,7 +367,7 @@ func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {
 				return "", "", errors.New("duplicate pattern key in $regularExpression")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return "", "", fmt.Errorf("$regularExpression pattern value should be string, but instead is %s", val.t)
 			}
 
@@ -380,7 +378,7 @@ func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {
 				return "", "", errors.New("duplicate options key in $regularExpression")
 			}
 
-			if val.t != bsontype.String {
+			if val.t != TypeString {
 				return "", "", fmt.Errorf("$regularExpression options value should be string, but instead is %s", val.t)
 			}
 
@@ -404,7 +402,7 @@ func (ejv *extJSONValue) parseRegex() (pattern, options string, err error) {
 }
 
 func (ejv *extJSONValue) parseSymbol() (string, error) {
-	if ejv.t != bsontype.String {
+	if ejv.t != TypeString {
 		return "", fmt.Errorf("$symbol value should be string, but instead is %s", ejv.t)
 	}
 
@@ -412,7 +410,7 @@ func (ejv *extJSONValue) parseSymbol() (string, error) {
 }
 
 func (ejv *extJSONValue) parseTimestamp() (t, i uint32, err error) {
-	if ejv.t != bsontype.EmbeddedDocument {
+	if ejv.t != TypeEmbeddedDocument {
 		return 0, 0, fmt.Errorf("$timestamp value should be object, but instead is %s", ejv.t)
 	}
 
@@ -422,7 +420,7 @@ func (ejv *extJSONValue) parseTimestamp() (t, i uint32, err error) {
 		}
 
 		switch val.t {
-		case bsontype.Int32:
+		case TypeInt32:
 			value := val.v.(int32)
 
 			if value < 0 {
@@ -430,7 +428,7 @@ func (ejv *extJSONValue) parseTimestamp() (t, i uint32, err error) {
 			}
 
 			return uint32(value), nil
-		case bsontype.Int64:
+		case TypeInt64:
 			value := val.v.(int64)
 			if value < 0 || value > int64(math.MaxUint32) {
 				return 0, fmt.Errorf("$timestamp %s number should be uint32: %d", key, value)
@@ -479,7 +477,7 @@ func (ejv *extJSONValue) parseTimestamp() (t, i uint32, err error) {
 }
 
 func (ejv *extJSONValue) parseUndefined() error {
-	if ejv.t != bsontype.Boolean {
+	if ejv.t != TypeBoolean {
 		return fmt.Errorf("undefined value should be boolean, but instead is %s", ejv.t)
 	}
 

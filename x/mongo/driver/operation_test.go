@@ -15,7 +15,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/handshake"
@@ -416,7 +415,7 @@ func TestOperation(t *testing.T) {
 		rpWithTags := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
 			bsoncore.BuildArrayElement(nil, "tags",
-				bsoncore.Value{Type: bsontype.EmbeddedDocument,
+				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument,
 					Data: bsoncore.BuildDocumentFromElements(nil,
 						bsoncore.AppendStringElement(nil, "disk", "ssd"),
 						bsoncore.AppendStringElement(nil, "use", "reporting"),
@@ -438,7 +437,7 @@ func TestOperation(t *testing.T) {
 		rpWithAllOptions := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
 			bsoncore.BuildArrayElement(nil, "tags",
-				bsoncore.Value{Type: bsontype.EmbeddedDocument,
+				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument,
 					Data: bsoncore.BuildDocumentFromElements(nil,
 						bsoncore.AppendStringElement(nil, "disk", "ssd"),
 						bsoncore.AppendStringElement(nil, "use", "reporting"),

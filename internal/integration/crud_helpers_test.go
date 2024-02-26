@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -68,9 +67,9 @@ func createHint(mt *mtest.T, val bson.RawValue) interface{} {
 
 	var hint interface{}
 	switch val.Type {
-	case bsontype.String:
+	case bson.TypeString:
 		hint = val.StringValue()
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		hint = val.Document()
 	default:
 		mt.Fatalf("unrecognized hint value type: %s\n", val.Type)

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/internal/csot"
@@ -308,7 +307,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	return Operation{
 		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 			dst = bsoncore.AppendStringElement(dst, "killCursors", bc.collection)
-			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsontype.Int64, Data: bsoncore.AppendInt64(nil, bc.id)})
+			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsoncore.TypeInt64, Data: bsoncore.AppendInt64(nil, bc.id)})
 			return dst, nil
 		},
 		Database:       bc.database,
@@ -377,7 +376,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			}
 
 			// The getMore command does not support commenting pre-4.4.
-			if comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
+			if comment.Type != bsoncore.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
 				dst = bsoncore.AppendValueElement(dst, "comment", comment)
 			}
 

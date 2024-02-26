@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -60,7 +59,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	var nilMarshaler *testMarshaler
 	var nilProxy *testProxy
 
-	vmStruct := struct{ V testValueMarshalPtr }{testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}}}
+	vmStruct := struct{ V testValueMarshalPtr }{testValueMarshalPtr{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}}}
 	mStruct := struct{ V testMarshalPtr }{testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))}}
 	pStruct := struct{ V testProxyPtr }{testProxyPtr{ret: int64(1234567890)}}
 
@@ -594,11 +593,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					nothing,
-					fmt.Errorf("Cannot copy unknown BSON type %s", bsontype.Type(0)),
+					fmt.Errorf("cannot copy unknown BSON type %s", Type(0)),
 				},
 				{
 					"success struct implementation",
-					testValueMarshaler{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					testValueMarshaler{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
 					writeString,
@@ -606,7 +605,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"success ptr to struct implementation",
-					&testValueMarshaler{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					&testValueMarshaler{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
 					writeString,
@@ -622,7 +621,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"success ptr to ptr implementation",
-					&testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					&testValueMarshalPtr{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
 					writeString,
@@ -630,7 +629,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				},
 				{
 					"unaddressable ptr implementation",
-					testValueMarshalPtr{t: bsontype.String, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
+					testValueMarshalPtr{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}},
 					nil,
 					nil,
 					nothing,
@@ -1583,7 +1582,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AB: murl,
 					AC: decimal128,
 					AD: &now,
-					AE: testValueMarshaler{t: bsontype.String, buf: bsoncore.AppendString(nil, "hello, world")},
+					AE: testValueMarshaler{t: TypeString, buf: bsoncore.AppendString(nil, "hello, world")},
 					AF: testProxy{ret: struct{ Hello string }{Hello: "world!"}},
 					AG: testProxy{ret: struct{ Pi float64 }{Pi: 3.14159}},
 					AH: nil,
@@ -1682,8 +1681,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC: []Decimal128{decimal128},
 					AD: []*time.Time{&now, &now},
 					AE: []testValueMarshaler{
-						{t: bsontype.String, buf: bsoncore.AppendString(nil, "hello")},
-						{t: bsontype.String, buf: bsoncore.AppendString(nil, "world")},
+						{t: TypeString, buf: bsoncore.AppendString(nil, "hello")},
+						{t: TypeString, buf: bsoncore.AppendString(nil, "world")},
 					},
 					AF: []Proxy{
 						testProxy{ret: struct{ Hello string }{Hello: "world!"}},
@@ -1852,12 +1851,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 }
 
 type testValueMarshalPtr struct {
-	t   bsontype.Type
+	t   Type
 	buf []byte
 	err error
 }
 
-func (tvm *testValueMarshalPtr) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (tvm *testValueMarshalPtr) MarshalBSONValue() (Type, []byte, error) {
 	return tvm.t, tvm.buf, tvm.err
 }
 

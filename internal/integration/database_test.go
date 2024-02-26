@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -32,7 +31,7 @@ const (
 var (
 	interfaceAsMapRegistry = func() *bson.Registry {
 		reg := bson.NewRegistry()
-		reg.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.M{}))
+		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{}))
 		return reg
 	}()
 )

@@ -11,8 +11,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func ExampleValueEncoder() {
@@ -31,7 +29,7 @@ func ExampleValueDecoder() {
 			return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 		}
 
-		if vr.Type() != bsontype.String {
+		if vr.Type() != TypeString {
 			return fmt.Errorf("cannot decode %v into a string type", vr.Type())
 		}
 

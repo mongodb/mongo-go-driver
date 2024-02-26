@@ -12,7 +12,6 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -234,7 +233,7 @@ func TestEncoderConfiguration(t *testing.T) {
 			},
 			input: D{{Key: "myBytes", Value: []byte(nil)}},
 			want: bsoncore.NewDocumentBuilder().
-				AppendBinary("myBytes", bsontype.BinaryGeneric, []byte{}).
+				AppendBinary("myBytes", TypeBinaryGeneric, []byte{}).
 				Build(),
 		},
 		// Test that OmitZeroStruct omits empty structs from the marshaled document if the

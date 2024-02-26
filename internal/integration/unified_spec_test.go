@@ -20,7 +20,6 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
@@ -80,7 +79,7 @@ type testData struct {
 // custom decoder for testData type
 func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
 	switch vr.Type() {
-	case bsontype.Array:
+	case bson.TypeArray:
 		docsVal := val.FieldByName("Documents")
 		decoder, err := dc.Registry.LookupDecoder(docsVal.Type())
 		if err != nil {
@@ -88,7 +87,7 @@ func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Valu
 		}
 
 		return decoder.DecodeValue(dc, vr, docsVal)
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		gridfsDataVal := val.FieldByName("GridFSData")
 		decoder, err := dc.Registry.LookupDecoder(gridfsDataVal.Type())
 		if err != nil {

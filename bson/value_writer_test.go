@@ -16,7 +16,6 @@ import (
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -317,7 +316,7 @@ func TestValueWriter(t *testing.T) {
 			vw := newValueWriterFromSlice(nil)
 			want := TransitionError{current: mTopLevel, destination: mode(0),
 				name: "WriteValueBytes", modes: []mode{mElement, mValue}, action: "write"}
-			got := vw.WriteValueBytes(bsontype.EmbeddedDocument, nil)
+			got := vw.WriteValueBytes(TypeEmbeddedDocument, nil)
 			if !compareErrors(got, want) {
 				t.Errorf("Did not received expected error. got %v; want %v", got, want)
 			}
@@ -338,7 +337,7 @@ func TestValueWriter(t *testing.T) {
 			noerr(t, err)
 			_, err = vw.WriteDocumentElement("foo")
 			noerr(t, err)
-			err = vw.WriteValueBytes(bsontype.EmbeddedDocument, doc)
+			err = vw.WriteValueBytes(TypeEmbeddedDocument, doc)
 			noerr(t, err)
 			err = vw.WriteDocumentEnd()
 			noerr(t, err)

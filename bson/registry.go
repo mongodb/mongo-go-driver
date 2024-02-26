@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // DefaultRegistry is the default Registry. It contains the default codecs and the
@@ -58,7 +56,7 @@ func (end ErrNoDecoder) Error() string {
 //
 // Deprecated: ErrNoTypeMapEntry will not be supported in Go Driver 2.0.
 type ErrNoTypeMapEntry struct {
-	Type bsontype.Type
+	Type Type
 }
 
 func (entme ErrNoTypeMapEntry) Error() string {
@@ -214,13 +212,13 @@ func (rb *RegistryBuilder) RegisterDefaultDecoder(kind reflect.Kind, dec ValueDe
 // created and decoded into.
 //
 // By default, BSON documents will decode into interface{} values as bson.D. To change the default type for BSON
-// documents, a type map entry for bsontype.EmbeddedDocument should be registered. For example, to force BSON documents
+// documents, a type map entry for TypeEmbeddedDocument should be registered. For example, to force BSON documents
 // to decode to bson.Raw, use the following code:
 //
-//	rb.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.Raw{}))
+//	rb.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 //
 // Deprecated: Use Registry.RegisterTypeMapEntry instead.
-func (rb *RegistryBuilder) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) *RegistryBuilder {
+func (rb *RegistryBuilder) RegisterTypeMapEntry(bt Type, rt reflect.Type) *RegistryBuilder {
 	rb.registry.RegisterTypeMapEntry(bt, rt)
 	return rb
 }
@@ -255,7 +253,7 @@ type Registry struct {
 	typeDecoders      *typeDecoderCache
 	kindEncoders      *kindEncoderCache
 	kindDecoders      *kindDecoderCache
-	typeMap           sync.Map // map[bsontype.Type]reflect.Type
+	typeMap           sync.Map // map[Type]reflect.Type
 }
 
 // NewRegistry creates a new empty Registry.
@@ -374,11 +372,11 @@ func (r *Registry) RegisterInterfaceDecoder(iface reflect.Type, dec ValueDecoder
 // created and decoded into.
 //
 // By default, BSON documents will decode into interface{} values as bson.D. To change the default type for BSON
-// documents, a type map entry for bsontype.EmbeddedDocument should be registered. For example, to force BSON documents
+// documents, a type map entry for TypeEmbeddedDocument should be registered. For example, to force BSON documents
 // to decode to bson.Raw, use the following code:
 //
-//	reg.RegisterTypeMapEntry(bsontype.EmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-func (r *Registry) RegisterTypeMapEntry(bt bsontype.Type, rt reflect.Type) {
+//	reg.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
+func (r *Registry) RegisterTypeMapEntry(bt Type, rt reflect.Type) {
 	r.typeMap.Store(bt, rt)
 }
 
@@ -513,7 +511,7 @@ func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool
 // type. If no type is found, ErrNoTypeMapEntry is returned.
 //
 // LookupTypeMapEntry should not be called concurrently with any other Registry method.
-func (r *Registry) LookupTypeMapEntry(bt bsontype.Type) (reflect.Type, error) {
+func (r *Registry) LookupTypeMapEntry(bt Type) (reflect.Type, error) {
 	v, ok := r.typeMap.Load(bt)
 	if v == nil || !ok {
 		return nil, ErrNoTypeMapEntry{Type: bt}

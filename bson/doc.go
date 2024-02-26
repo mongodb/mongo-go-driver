@@ -190,7 +190,7 @@
 // values decode as Go int instances instead:
 //
 //	intType := reflect.TypeOf(int(0))
-//	registry.RegisterTypeMapEntry(bsontype.Int32, intType).RegisterTypeMapEntry(bsontype.Int64, intType)
+//	registry.RegisterTypeMapEntry(bson.TypeInt32, intType).RegisterTypeMapEntry(bson.TypeInt64, intType)
 //
 // 4. Kind encoder/decoders - These can be registered using the RegisterDefaultEncoder and
 // RegisterDefaultDecoder methods. The registered codec will be invoked when encoding or decoding

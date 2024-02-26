@@ -216,7 +216,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		cs.aggregate.CustomOptions(customOptions)
@@ -232,7 +232,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			cs.pipelineOptions[optionName] = optionValueBSON
 		}
 	}

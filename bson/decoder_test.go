@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -85,7 +84,7 @@ func TestDecoderv2(t *testing.T) {
 				{
 					"error",
 					errors.New("Unmarshaler error"),
-					&valueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
+					&valueReaderWriter{BSONType: TypeEmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
 					true,
 				},
 				{
@@ -97,7 +96,7 @@ func TestDecoderv2(t *testing.T) {
 				{
 					"success",
 					nil,
-					&valueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
+					&valueReaderWriter{BSONType: TypeEmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
 					true,
 				},
 			}
@@ -318,7 +317,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				dec.BinaryAsSlice()
 			},
 			input: bsoncore.NewDocumentBuilder().
-				AppendBinary("myBinary", bsontype.BinaryGeneric, []byte{}).
+				AppendBinary("myBinary", TypeBinaryGeneric, []byte{}).
 				Build(),
 			decodeInto: func() interface{} { return &D{} },
 			want:       &D{{Key: "myBinary", Value: []byte{}}},

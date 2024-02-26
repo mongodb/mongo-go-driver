@@ -18,7 +18,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -462,5 +461,5 @@ func TestBsoncoreArray(t *testing.T) {
 
 	doc := bsoncore.Document(actualBSON)
 	v := doc.Lookup("array")
-	assert.Equal(t, bsontype.Array, v.Type, "expected type array, got %v", v.Type)
+	assert.Equal(t, bsoncore.TypeArray, v.Type, "expected type array, got %v", v.Type)
 }

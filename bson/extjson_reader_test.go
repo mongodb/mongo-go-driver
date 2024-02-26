@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func TestExtJSONReader(t *testing.T) {
@@ -23,7 +22,7 @@ func TestExtJSONReader(t *testing.T) {
 			ejvr := &extJSONValueReader{
 				stack: []ejvrState{
 					{mode: mTopLevel},
-					{mode: mElement, vType: bsontype.Boolean},
+					{mode: mElement, vType: TypeBoolean},
 				},
 				frame: 1,
 			}
@@ -124,13 +123,12 @@ func TestReadMultipleTopLevelDocuments(t *testing.T) {
 }
 
 func readAllDocuments(vr ValueReader) ([][]byte, error) {
-	c := NewCopier()
 	var actual [][]byte
 
 	switch vr.Type() {
-	case bsontype.EmbeddedDocument:
+	case TypeEmbeddedDocument:
 		for {
-			result, err := c.CopyDocumentToBytes(vr)
+			result, err := copyDocumentToBytes(vr)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -140,7 +138,7 @@ func readAllDocuments(vr ValueReader) ([][]byte, error) {
 
 			actual = append(actual, result)
 		}
-	case bsontype.Array:
+	case TypeArray:
 		ar, err := vr.ReadArray()
 		if err != nil {
 			return nil, err
@@ -154,7 +152,7 @@ func readAllDocuments(vr ValueReader) ([][]byte, error) {
 				return nil, err
 			}
 
-			result, err := c.CopyDocumentToBytes(evr)
+			result, err := copyDocumentToBytes(evr)
 			if err != nil {
 				return nil, err
 			}

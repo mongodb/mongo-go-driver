@@ -8,8 +8,6 @@ package bsoncore
 
 import (
 	"strconv"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // ArrayBuilder builds a bson array
@@ -188,7 +186,7 @@ func (a *ArrayBuilder) AppendValue(val Value) *ArrayBuilder {
 // StartArray starts building an inline Array. After this document is completed,
 // the user must call a.FinishArray
 func (a *ArrayBuilder) StartArray() *ArrayBuilder {
-	a.arr = AppendHeader(a.arr, bsontype.Array, a.incrementKey())
+	a.arr = AppendHeader(a.arr, TypeArray, a.incrementKey())
 	a.startArray()
 	return a
 }

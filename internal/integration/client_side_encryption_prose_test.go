@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
@@ -1908,7 +1907,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			resbytes, err := res.Raw()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
-			idsubtype, iddata := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: resbytes}.
+			idsubtype, iddata := bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: resbytes}.
 				Document().Lookup("_id").Binary()
 			filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", idsubtype, iddata).Build()
 
@@ -1916,7 +1915,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			updatedData, err := cse.keyVaultColl.FindOne(ctx, filter).Raw()
 			assert.Nil(mt, err, "error decoding result bytes: %v", err)
 
-			updated := bson.RawValue{Type: bsontype.EmbeddedDocument, Value: updatedData}
+			updated := bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: updatedData}
 			updatedKeyAltNames, err := updated.Document().Lookup("keyAltNames").Array().Values()
 			assert.Nil(mt, err, "error looking up raw keyAltNames: %v", err)
 			assert.Equal(mt, len(updatedKeyAltNames), len(expected), "expected raw keyAltNames length to be 1")
@@ -2466,7 +2465,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		type testcase struct {
 			typeStr       string
 			field         string
-			typeBson      bsontype.Type
+			typeBson      bson.Type
 			rangeOpts     options.RangeOptions
 			zero          bson.RawValue
 			six           bson.RawValue
@@ -3027,7 +3026,7 @@ func decodeJSONFile(mt *mtest.T, file string, val interface{}) bson.Raw {
 }
 
 func rawValueToCoreValue(rv bson.RawValue) bsoncore.Value {
-	return bsoncore.Value{Type: rv.Type, Data: rv.Value}
+	return bsoncore.Value{Type: bsoncore.Type(rv.Type), Data: rv.Value}
 }
 
 type deadlockTest struct {

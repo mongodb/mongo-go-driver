@@ -54,7 +54,7 @@ func (e *Encoder) Encode(val interface{}) error {
 		if err != nil {
 			return err
 		}
-		return Copier{}.CopyDocumentFromBytes(e.vw, buf)
+		return copyDocumentFromBytes(e.vw, buf)
 	}
 
 	encoder, err := e.ec.LookupEncoder(reflect.TypeOf(val))

@@ -13,7 +13,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 )
 
@@ -120,7 +119,7 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	}
 
 	e.ClientID = temp.ClientID
-	if temp.Events.Type != bsontype.Array {
+	if temp.Events.Type != bson.TypeArray {
 		return fmt.Errorf("expected 'events' to be an array but got a %q", temp.Events.Type)
 	}
 
@@ -202,7 +201,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				// In the case of an empty Command, hardcode an empty bson.RawValue document.
 				if len(actual.Command) == 0 {
 					emptyDoc := []byte{5, 0, 0, 0, 0}
-					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: emptyDoc}
+					actualDoc = bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: emptyDoc}
 				}
 
 				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
@@ -246,7 +245,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				// In the case of an empty Reply, hardcode an empty bson.RawValue document.
 				if len(actual.Reply) == 0 {
 					emptyDoc := []byte{5, 0, 0, 0, 0}
-					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: emptyDoc}
+					actualDoc = bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: emptyDoc}
 				}
 
 				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
