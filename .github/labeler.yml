@@ -8,3 +8,8 @@ documentation:
   - any-glob-to-any-file: 
     - docs/**
     - examples/**
+
+dependencies:
+- changed-files:
+  - any-glob-to-any-file: 
+    - go.mod
