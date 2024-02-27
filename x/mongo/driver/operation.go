@@ -296,6 +296,10 @@ type Operation struct {
 	// OP_MSG as well as for logging server selection data.
 	Name string
 
+	// OmitMaxTimeMS will ensure that wire messages sent to the server in service
+	// of the operation do not contain a maxTimeMS field.
+	OmitMaxTimeMS bool
+
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
 	// where a default read preference is used when the operation
@@ -1601,7 +1605,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
-	if csot.IsWithoutMaxTime(ctx) {
+	if op.OmitMaxTimeMS {
 		return 0, nil
 	}
 

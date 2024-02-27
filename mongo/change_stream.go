@@ -710,7 +710,7 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 	// Drivers MUST apply the origin timeoutMS value to each next call on the
 	// change stream but MUST NOT use it to derive a maxTimeMS field for getMore
 	// commands.
-	ctx, cancel := csot.WithTimeout(csot.WithoutMaxTime(ctx), cs.client.timeout)
+	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
 	defer cancel()
 
 	if len(cs.batch) == 0 {

@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -896,21 +895,8 @@ func getSocketTimeout(srv *Server) time.Duration {
 
 // contextWithSocketTimeout will apply the appropriate socket timeout to the
 // parent context for server monitoring.
-//
-// This function creates a context with a deadline that will be not be applied
-// to theh wire message as "maxTimeMS". Using timeoutMS in the monitoring and
-// RTT calculation threads would require another special case in the code that
-// derives maxTimeMS from timeoutMS because the awaitable hello requests sent to
-// 4.4+ servers already have a maxAwaitTimeMS field. Adding maxTimeMS also does
-// not help for non-awaitable hello commands because we expect them to execute
-// quickly on the server. The Server Monitoring spec already mandates that
-// drivers set and dynamically update the read/write timeout of the dedicated
-// connections used in monitoring threads, so we rely on that to time out
-// commands rather than adding complexity to the behavior of timeoutMS.
 func contextWithSocketTimeout(parent context.Context, srv *Server) (context.Context, context.CancelFunc) {
 	var cancel context.CancelFunc
-
-	parent = csot.WithoutMaxTime(parent)
 
 	timeout := getSocketTimeout(srv)
 	if timeout == 0 {
@@ -926,6 +912,17 @@ func contextWithSocketTimeout(parent context.Context, srv *Server) (context.Cont
 func doHandshake(ctx context.Context, srv *Server) (description.Server, error) {
 	heartbeatConn := initConnection{srv.conn}
 	handshakeOp := srv.createBaseOperation(heartbeatConn)
+
+	// Using timeoutMS in the monitoring and RTT calculation threads would require
+	// another special case in the code that derives maxTimeMS from timeoutMS
+	// because the awaitable hello requests sent to 4.4+ servers already have a
+	// maxAwaitTimeMS field. Adding maxTimeMS also does not help for non-awaitable
+	// hello commands because we expect them to execute quickly on the server. The
+	// Server Monitoring spec already mandates that drivers set and dynamically
+	// update the read/write timeout of the dedicated connections used in
+	// monitoring threads, so we rely on that to time out commands rather than
+	// adding complexity to the behavior of timeoutMS.
+	handshakeOp = handshakeOp.OmitMaxTimeMS(true)
 
 	// Apply monitoring timeout.
 	ctx, cancel := contextWithSocketTimeout(ctx, srv)

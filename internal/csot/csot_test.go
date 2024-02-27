@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 )
 
 func newTestContext(t *testing.T, timeout time.Duration) context.Context {
@@ -19,10 +20,6 @@ func newTestContext(t *testing.T, timeout time.Duration) context.Context {
 	t.Cleanup(cancel)
 
 	return ctx
-}
-
-func newDurPtr(dur time.Duration) *time.Duration {
-	return &dur
 }
 
 func TestWithServerSelectionTimeout(t *testing.T) {
@@ -165,7 +162,7 @@ func TestWithTimeout(t *testing.T) {
 		{
 			name:         "deadline set with non-zero timeout",
 			parent:       newTestContext(t, 1),
-			timeout:      newDurPtr(2),
+			timeout:      ptrutil.Ptr(time.Duration(2)),
 			wantTimeout:  1,
 			wantDeadline: true,
 			wantValues:   []interface{}{},
@@ -173,7 +170,7 @@ func TestWithTimeout(t *testing.T) {
 		{
 			name:         "deadline set with zero timeout",
 			parent:       newTestContext(t, 1),
-			timeout:      newDurPtr(0),
+			timeout:      ptrutil.Ptr(time.Duration(0)),
 			wantTimeout:  1,
 			wantDeadline: true,
 			wantValues:   []interface{}{},
@@ -189,7 +186,7 @@ func TestWithTimeout(t *testing.T) {
 		{
 			name:         "deadline unset with non-zero timeout",
 			parent:       context.Background(),
-			timeout:      newDurPtr(1),
+			timeout:      ptrutil.Ptr(time.Duration(1)),
 			wantTimeout:  1,
 			wantDeadline: true,
 			wantValues:   []interface{}{},
@@ -197,7 +194,7 @@ func TestWithTimeout(t *testing.T) {
 		{
 			name:         "deadline unset with zero timeout",
 			parent:       context.Background(),
-			timeout:      newDurPtr(0),
+			timeout:      ptrutil.Ptr(time.Duration(0)),
 			wantTimeout:  0,
 			wantDeadline: false,
 			wantValues:   []interface{}{clientLevel{}},
@@ -215,8 +212,8 @@ func TestWithTimeout(t *testing.T) {
 			// to the context, then the constructed context should retain the old
 			// timeout. To simplify the code, we assume the first timeout is static.
 			name:         "deadline unset with non-zero timeout at clientLevel",
-			parent:       AsClientLevel(context.Background()),
-			timeout:      newDurPtr(1),
+			parent:       context.WithValue(context.Background(), clientLevel{}, true),
+			timeout:      ptrutil.Ptr(time.Duration(1)),
 			wantTimeout:  0,
 			wantDeadline: false,
 			wantValues:   []interface{}{},
