@@ -1,0 +1,10 @@
+
+priority-3-low:
+- changed-files:
+  - any-glob-to-any-file: '*'
+
+documentation:
+- changed-files:
+  - any-glob-to-any-file: 
+    - docs/**
+    - examples/**
