@@ -383,6 +383,18 @@ functions:
           export HEAD_SHA=${github_commit}
           bash etc/api_report.sh
 
+  "add PR labels":
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
+          SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/apply-labels.sh"
+          bash $SCRIPT -l $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
+
   send-perf-data:
     - command: perf.send
       params:
@@ -867,6 +879,7 @@ tasks:
         vars:
           targets: "check-fmt check-license check-modules lint"
       - func: "create-api-report"
+      - func: "add PR labels"
 
   - name: perf
     tags: ["performance"]
