@@ -59,7 +59,6 @@ type aggregateParams struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	readPreference *readpref.ReadPref
-	opts           []*options.AggregateOptions
 }
 
 func closeImplicitSession(sess *session.Client) {
@@ -211,7 +210,7 @@ func (coll *Collection) Database() *Database {
 //
 // The opts parameter can be used to specify options for the operation (see the options.BulkWriteOptions documentation.)
 func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
-	opts ...*options.BulkWriteOptions) (*BulkWriteResult, error) {
+	opts ...Options[options.BulkWriteArgs]) (*BulkWriteResult, error) {
 
 	if len(models) == 0 {
 		return nil, ErrEmptySlice
@@ -248,35 +247,23 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 		}
 	}
 
-	bwo := options.BulkWrite()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Comment != nil {
-			bwo.Comment = opt.Comment
-		}
-		if opt.Ordered != nil {
-			bwo.Ordered = opt.Ordered
-		}
-		if opt.BypassDocumentValidation != nil {
-			bwo.BypassDocumentValidation = opt.BypassDocumentValidation
-		}
-		if opt.Let != nil {
-			bwo.Let = opt.Let
-		}
+	// Ensure opts have the default case at the front.
+	opts = append([]Options[options.BulkWriteArgs]{options.BulkWrite()}, opts...)
+	args, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	op := bulkWrite{
-		comment:                  bwo.Comment,
-		ordered:                  bwo.Ordered,
-		bypassDocumentValidation: bwo.BypassDocumentValidation,
+		comment:                  args.Comment,
+		ordered:                  args.Ordered,
+		bypassDocumentValidation: args.BypassDocumentValidation,
 		models:                   models,
 		session:                  sess,
 		collection:               coll,
 		selector:                 selector,
 		writeConcern:             wc,
-		let:                      bwo.Let,
+		let:                      args.Let,
 	}
 
 	err = op.execute(ctx)
@@ -889,8 +876,11 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 // The opts parameter can be used to specify options for the operation (see the options.AggregateOptions documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
-func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) (*Cursor, error) {
+func (coll *Collection) Aggregate(
+	ctx context.Context,
+	pipeline interface{},
+	opts ...Options[options.AggregateArgs],
+) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
 		pipeline:       pipeline,
@@ -905,56 +895,13 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   coll.readSelector,
 		writeSelector:  coll.writeSelector,
 		readPreference: coll.readPreference,
-		opts:           opts,
-	}
-	return aggregate(a)
-}
-
-// mergeAggregateOptions combines the given AggregateOptions instances into a single AggregateOptions in a last-property-wins
-// fashion.
-func mergeAggregateOptions(opts ...*options.AggregateOptions) *options.AggregateOptions {
-	aggOpts := options.Aggregate()
-	for _, ao := range opts {
-		if ao == nil {
-			continue
-		}
-		if ao.AllowDiskUse != nil {
-			aggOpts.AllowDiskUse = ao.AllowDiskUse
-		}
-		if ao.BatchSize != nil {
-			aggOpts.BatchSize = ao.BatchSize
-		}
-		if ao.BypassDocumentValidation != nil {
-			aggOpts.BypassDocumentValidation = ao.BypassDocumentValidation
-		}
-		if ao.Collation != nil {
-			aggOpts.Collation = ao.Collation
-		}
-		if ao.MaxTime != nil {
-			aggOpts.MaxTime = ao.MaxTime
-		}
-		if ao.MaxAwaitTime != nil {
-			aggOpts.MaxAwaitTime = ao.MaxAwaitTime
-		}
-		if ao.Comment != nil {
-			aggOpts.Comment = ao.Comment
-		}
-		if ao.Hint != nil {
-			aggOpts.Hint = ao.Hint
-		}
-		if ao.Let != nil {
-			aggOpts.Let = ao.Let
-		}
-		if ao.Custom != nil {
-			aggOpts.Custom = ao.Custom
-		}
 	}
 
-	return aggOpts
+	return aggregate(a, opts...)
 }
 
 // aggregate is the helper method for Aggregate
-func aggregate(a aggregateParams) (cur *Cursor, err error) {
+func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *Cursor, err error) {
 	if a.ctx == nil {
 		a.ctx = context.Background()
 	}
@@ -997,7 +944,10 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
-	ao := mergeAggregateOptions(a.opts...)
+	args, err := NewArgsFromOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	cursorOpts := a.client.createBaseCursorOptions()
 
@@ -1018,27 +968,27 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
 		Timeout(a.client.timeout).
-		MaxTime(ao.MaxTime)
+		MaxTime(args.MaxTime)
 
-	if ao.AllowDiskUse != nil {
-		op.AllowDiskUse(*ao.AllowDiskUse)
+	if args.AllowDiskUse != nil {
+		op.AllowDiskUse(*args.AllowDiskUse)
 	}
 	// ignore batchSize of 0 with $out
-	if ao.BatchSize != nil && !(*ao.BatchSize == 0 && hasOutputStage) {
-		op.BatchSize(*ao.BatchSize)
-		cursorOpts.BatchSize = *ao.BatchSize
+	if args.BatchSize != nil && !(*args.BatchSize == 0 && hasOutputStage) {
+		op.BatchSize(*args.BatchSize)
+		cursorOpts.BatchSize = *args.BatchSize
 	}
-	if ao.BypassDocumentValidation != nil && *ao.BypassDocumentValidation {
-		op.BypassDocumentValidation(*ao.BypassDocumentValidation)
+	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
+		op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
-	if ao.Collation != nil {
-		op.Collation(bsoncore.Document(ao.Collation.ToDocument()))
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
-	if ao.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
+	if args.MaxAwaitTime != nil {
+		cursorOpts.MaxTimeMS = int64(*args.MaxAwaitTime / time.Millisecond)
 	}
-	if ao.Comment != nil {
-		comment, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
+	if args.Comment != nil {
+		comment, err := marshalValue(args.Comment, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -1046,28 +996,28 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		op.Comment(comment)
 		cursorOpts.Comment = comment
 	}
-	if ao.Hint != nil {
-		if isUnorderedMap(ao.Hint) {
+	if args.Hint != nil {
+		if isUnorderedMap(args.Hint) {
 			return nil, ErrMapForOrderedArgument{"hint"}
 		}
-		hintVal, err := marshalValue(ao.Hint, a.bsonOpts, a.registry)
+		hintVal, err := marshalValue(args.Hint, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Hint(hintVal)
 	}
-	if ao.Let != nil {
-		let, err := marshal(ao.Let, a.bsonOpts, a.registry)
+	if args.Let != nil {
+		let, err := marshal(args.Let, a.bsonOpts, a.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Let(let)
 	}
-	if ao.Custom != nil {
+	if args.Custom != nil {
 		// Marshal all custom options before passing to the aggregate operation. Return
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
-		for optionName, optionValue := range ao.Custom {
+		for optionName, optionValue := range args.Custom {
 			bsonType, bsonData, err := bson.MarshalValueWithRegistry(a.registry, optionValue)
 			if err != nil {
 				return nil, err

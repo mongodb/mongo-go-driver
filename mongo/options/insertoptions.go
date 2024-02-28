@@ -6,7 +6,8 @@
 
 package options
 
-// InsertOneArgs represents arguments that can be used to configure an InsertOne operation.
+// InsertOneArgs represents arguments that can be used to configure an InsertOne
+// operation.
 type InsertOneArgs struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is

@@ -139,8 +139,11 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 // The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
-func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) (*Cursor, error) {
+func (db *Database) Aggregate(
+	ctx context.Context,
+	pipeline interface{},
+	opts ...Options[options.AggregateArgs],
+) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
 		pipeline:       pipeline,
@@ -153,9 +156,9 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
 		readPreference: db.readPreference,
-		opts:           opts,
 	}
-	return aggregate(a)
+
+	return aggregate(a, opts...)
 }
 
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},

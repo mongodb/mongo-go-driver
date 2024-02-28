@@ -6,13 +6,18 @@
 
 package mongo
 
-import "go.mongodb.org/mongo-driver/mongo/options"
+import (
+	"reflect"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
 
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
 	options.ChangeStreamArgs | options.ClientEncryptionArgs |
 		options.FindArgs | options.FindOneArgs | options.InsertOneArgs |
-		options.ListDatabasesArgs | options.SessionArgs
+		options.ListDatabasesArgs | options.SessionArgs | options.BulkWriteArgs |
+		options.AggregateArgs | options.ListSearchIndexesArgs
 }
 
 // Options is an interface that wraps a method to return a list of setter
@@ -21,44 +26,20 @@ type Options[T Args] interface {
 	ArgsSetters() []func(*T) error
 }
 
-var _ Options[options.ChangeStreamArgs] = (*options.ChangeStreamOptions)(nil)
-var _ Options[options.ClientEncryptionArgs] = (*options.ClientEncryptionOptions)(nil)
-var _ Options[options.FindArgs] = (*options.FindOptions)(nil)
-var _ Options[options.FindOneArgs] = (*options.FindOneOptions)(nil)
-var _ Options[options.InsertOneArgs] = (*options.InsertOneOptions)(nil)
-var _ Options[options.ListDatabasesArgs] = (*options.ListDatabasesOptions)(nil)
-var _ Options[options.SessionArgs] = (*options.SessionOptions)(nil)
-
-func isNil[T Args](opt Options[T]) bool {
-	if opt == nil {
-		return true
-	}
-	switch any(opt).(type) {
-	case *options.ChangeStreamOptions:
-		return any(opt).(*options.ChangeStreamOptions) == nil
-	case *options.ClientEncryptionOptions:
-		return any(opt).(*options.ClientEncryptionOptions) == nil
-	case *options.FindOptions:
-		return any(opt).(*options.FindOptions) == nil
-	case *options.FindOneOptions:
-		return any(opt).(*options.FindOneOptions) == nil
-	case *options.InsertOneOptions:
-		return any(opt).(*options.InsertOneOptions) == nil
-	case *options.ListDatabasesOptions:
-		return any(opt).(*options.ListDatabasesOptions) == nil
-	case *options.SessionOptions:
-		return any(opt).(*options.SessionOptions) == nil
-	}
-	return false
-}
-
 // NewArgsFromOptions will functionally merge a slice of mongo.Options in a "last-one-wins" manner.
 func NewArgsFromOptions[T Args](opts ...Options[T]) (*T, error) {
 	args := new(T)
 	for _, opt := range opts {
-		if isNil(opt) {
+		if opt == nil || reflect.ValueOf(opt).IsNil() {
+			// Do nothing if the option is nil or if opt is nil but implicitly cast as
+			// an Options interface by the NewArgsFromOptions function. The latter
+			// case would look something like this:
+			//
+			// var opt *SomeOptions
+			// NewArgsFromOptions(opt)
 			continue
 		}
+
 		for _, setArgs := range opt.ArgsSetters() {
 			if setArgs == nil {
 				continue

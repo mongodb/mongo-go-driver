@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -44,7 +45,7 @@ type SearchIndexModel struct {
 func (siv SearchIndexView) List(
 	ctx context.Context,
 	searchIdxOpts *options.SearchIndexesOptions,
-	opts ...*options.ListSearchIndexesOptions,
+	opts ...Options[options.ListSearchIndexesArgs],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -55,12 +56,14 @@ func (siv SearchIndexView) List(
 		index = bson.D{{"name", *searchIdxOpts.Name}}
 	}
 
-	aggregateOpts := make([]*options.AggregateOptions, len(opts))
-	for i, opt := range opts {
-		aggregateOpts[i] = opt.AggregateOpts
+	args, err := NewArgsFromOptions[options.ListSearchIndexesArgs](opts...)
+	if err != nil {
+		return nil, err
 	}
 
-	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts...)
+	aggregateOpts := &mongoutil.Options[options.AggregateArgs]{Args: args.AggregateArgs}
+
+	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts)
 }
 
 // CreateOne executes a createSearchIndexes command to create a search index on the collection and returns the name of the new

@@ -97,3 +97,26 @@ func TestNewArgsFromOptions(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkNewArgsFromOptions(b *testing.B) {
+	mockOptions := make([]Options[options.BulkWriteArgs], b.N)
+	for i := 0; i < b.N; i = i + 2 {
+		// Specifically benchmark the case where a nil value is assigned to the
+		// Options interface.
+		var bwo *options.BulkWriteOptions
+
+		mockOptions[i] = bwo
+
+		if i+1 < b.N {
+			mockOptions[i+1] = options.BulkWrite()
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	// Run the benchmark
+	for i := 0; i < b.N; i++ {
+		_, _ = NewArgsFromOptions(mockOptions[i])
+	}
+}

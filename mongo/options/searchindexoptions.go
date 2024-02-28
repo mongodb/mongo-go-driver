@@ -27,9 +27,21 @@ func (sio *SearchIndexesOptions) SetName(name string) *SearchIndexesOptions {
 type CreateSearchIndexesOptions struct {
 }
 
-// ListSearchIndexesOptions represents options that can be used to configure a SearchIndexView.List operation.
+// ListSearchIndexesArgs represents arguments that can be used to configure a
+// SearchIndexView.List operation.
+type ListSearchIndexesArgs struct {
+	AggregateArgs *AggregateArgs
+}
+
+// ListSearchIndexesOptions represents options that can be used to configure a
+// SearchIndexView.List operation.
 type ListSearchIndexesOptions struct {
-	AggregateOpts *AggregateOptions
+	Opts []func(*ListSearchIndexesArgs) error
+}
+
+// ArgsSetters returns a list of ListSearchIndexesArgs setter functions.
+func (lsi *ListSearchIndexesOptions) ArgsSetters() []func(*ListSearchIndexesArgs) error {
+	return lsi.Opts
 }
 
 // DropSearchIndexOptions represents options that can be used to configure a SearchIndexView.DropOne operation.
