@@ -887,12 +887,16 @@ tasks:
   - name: static-analysis
     tags: ["static-analysis"]
     commands:
-      - func: "add PR reviewer"  
-      - func: "add PR labels"
-      - func: "create-api-report"
       - func: run-make
         vars:
           targets: "check-fmt check-license check-modules lint"
+
+  - name: pull-request-helpers
+    allowed_requesters: ["patch", "github_pr"]
+    commands:
+      - func: "add PR reviewer"  
+      - func: "add PR labels"
+      - func: "create-api-report"
 
   - name: perf
     tags: ["performance"]
@@ -2317,6 +2321,16 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".static-analysis"
+
+  - name: pull-request-helpers
+    tags: ["pullrequest"]
+    display_name: "Pull Request Helpers"
+    run_on:
+      - rhel8.7-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: "pull-request-helpers"
 
   - name: perf
     display_name: "Performance"
