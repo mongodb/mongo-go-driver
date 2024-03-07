@@ -454,7 +454,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			_, _, err = vr.ReadElement()
 			noerr(t, err)
-			btype, got, err := copyValueToBytes(vr)
+			btype, got, err := CopyValueToBytes(vr)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "world")
 			if btype != TypeString {
@@ -466,7 +466,7 @@ func TestCopier(t *testing.T) {
 		})
 		t.Run("Non BytesReader", func(t *testing.T) {
 			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, readval: "Hello, world!"}
-			btype, got, err := copyValueToBytes(llvrw)
+			btype, got, err := CopyValueToBytes(llvrw)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "Hello, world!")
 			if btype != TypeString {

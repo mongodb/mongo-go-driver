@@ -73,7 +73,7 @@ func (PrimitiveCodecs) RawValueDecodeValue(_ DecodeContext, vr ValueReader, val 
 		return ValueDecoderError{Name: "RawValueDecodeValue", Types: []reflect.Type{tRawValue}, Received: val}
 	}
 
-	t, value, err := copyValueToBytes(vr)
+	t, value, err := CopyValueToBytes(vr)
 	if err != nil {
 		return err
 	}

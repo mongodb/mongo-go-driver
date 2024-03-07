@@ -343,7 +343,7 @@ func TestRaw(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				reader, err := ReadRawDocument(tc.ioReader)
+				reader, err := ReadDocument(tc.ioReader)
 				require.Equal(t, err, tc.err)
 				require.True(t, bytes.Equal(tc.bsonReader, reader))
 			})

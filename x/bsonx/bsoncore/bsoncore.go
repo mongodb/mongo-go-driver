@@ -596,18 +596,18 @@ func AppendDecimal128Element(dst []byte, key string, high, low uint64) []byte {
 
 // ReadDecimal128 will read high and low parts of a bson.Decimal128 from src. If there are not enough bytes it
 // will return false.
-func ReadDecimal128(src []byte) (uint64, uint64, []byte, bool) {
-	l, rem, ok := readu64(src)
+func ReadDecimal128(src []byte) (high uint64, low uint64, rem []byte, ok bool) {
+	low, rem, ok = readu64(src)
 	if !ok {
 		return 0, 0, src, false
 	}
 
-	h, rem, ok := readu64(rem)
+	high, rem, ok = readu64(rem)
 	if !ok {
 		return 0, 0, src, false
 	}
 
-	return h, l, rem, true
+	return high, low, rem, true
 }
 
 // AppendMaxKeyElement will append a BSON max key element using key to dst

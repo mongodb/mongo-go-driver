@@ -1532,7 +1532,7 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(_ DecodeContext, vr 
 		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
-	t, src, err := copyValueToBytes(vr)
+	t, src, err := CopyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
@@ -1561,7 +1561,7 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr Value
 		val.Set(reflect.New(val.Type().Elem()))
 	}
 
-	_, src, err := copyValueToBytes(vr)
+	_, src, err := CopyValueToBytes(vr)
 	if err != nil {
 		return err
 	}

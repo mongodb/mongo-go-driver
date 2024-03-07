@@ -16,7 +16,7 @@ import (
 )
 
 // Type represents a BSON type.
-type Type bsoncore.Type
+type Type byte
 
 // String returns the string representation of the BSON type's name.
 func (bt Type) String() string {
@@ -38,27 +38,27 @@ func (bt Type) IsValid() bool {
 
 // BSON element types as described in https://bsonspec.org/spec.html.
 const (
-	TypeDouble           = Type(bsoncore.TypeDouble)
-	TypeString           = Type(bsoncore.TypeString)
-	TypeEmbeddedDocument = Type(bsoncore.TypeEmbeddedDocument)
-	TypeArray            = Type(bsoncore.TypeArray)
-	TypeBinary           = Type(bsoncore.TypeBinary)
-	TypeUndefined        = Type(bsoncore.TypeUndefined)
-	TypeObjectID         = Type(bsoncore.TypeObjectID)
-	TypeBoolean          = Type(bsoncore.TypeBoolean)
-	TypeDateTime         = Type(bsoncore.TypeDateTime)
-	TypeNull             = Type(bsoncore.TypeNull)
-	TypeRegex            = Type(bsoncore.TypeRegex)
-	TypeDBPointer        = Type(bsoncore.TypeDBPointer)
-	TypeJavaScript       = Type(bsoncore.TypeJavaScript)
-	TypeSymbol           = Type(bsoncore.TypeSymbol)
-	TypeCodeWithScope    = Type(bsoncore.TypeCodeWithScope)
-	TypeInt32            = Type(bsoncore.TypeInt32)
-	TypeTimestamp        = Type(bsoncore.TypeTimestamp)
-	TypeInt64            = Type(bsoncore.TypeInt64)
-	TypeDecimal128       = Type(bsoncore.TypeDecimal128)
-	TypeMaxKey           = Type(bsoncore.TypeMaxKey)
-	TypeMinKey           = Type(bsoncore.TypeMinKey)
+	TypeDouble           Type = 0x01
+	TypeString           Type = 0x02
+	TypeEmbeddedDocument Type = 0x03
+	TypeArray            Type = 0x04
+	TypeBinary           Type = 0x05
+	TypeUndefined        Type = 0x06
+	TypeObjectID         Type = 0x07
+	TypeBoolean          Type = 0x08
+	TypeDateTime         Type = 0x09
+	TypeNull             Type = 0x0A
+	TypeRegex            Type = 0x0B
+	TypeDBPointer        Type = 0x0C
+	TypeJavaScript       Type = 0x0D
+	TypeSymbol           Type = 0x0E
+	TypeCodeWithScope    Type = 0x0F
+	TypeInt32            Type = 0x10
+	TypeTimestamp        Type = 0x11
+	TypeInt64            Type = 0x12
+	TypeDecimal128       Type = 0x13
+	TypeMaxKey           Type = 0x7F
+	TypeMinKey           Type = 0xFF
 )
 
 // BSON binary element subtypes as described in https://bsonspec.org/spec.html.

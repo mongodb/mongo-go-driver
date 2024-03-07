@@ -214,11 +214,11 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 	return copyValue(dst, vr)
 }
 
-// copyValueToBytes copies a value from src and returns it as a Type and a
+// CopyValueToBytes copies a value from src and returns it as a Type and a
 // []byte.
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.MarshalValue] instead.
-func copyValueToBytes(src ValueReader) (Type, []byte, error) {
+func CopyValueToBytes(src ValueReader) (Type, []byte, error) {
 	return appendValueBytes(nil, src)
 }
 

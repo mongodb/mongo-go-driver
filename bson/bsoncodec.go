@@ -4,6 +4,29 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// # ValueEncoders and ValueDecoders
+//
+// The ValueEncoder interface is implemented by types that can encode a provided Go type to BSON.
+// The value to encode is provided as a reflect.Value and a bsonrw.ValueWriter is used within the
+// EncodeValue method to actually create the BSON representation. For convenience, ValueEncoderFunc
+// is provided to allow use of a function with the correct signature as a ValueEncoder. An
+// EncodeContext instance is provided to allow implementations to lookup further ValueEncoders and
+// to provide configuration information.
+//
+// The ValueDecoder interface is the inverse of the ValueEncoder. Implementations should ensure that
+// the value they receive is settable. Similar to ValueEncoderFunc, ValueDecoderFunc is provided to
+// allow the use of a function with the correct signature as a ValueDecoder. A DecodeContext
+// instance is provided and serves similar functionality to the EncodeContext.
+//
+// # DefaultValueEncoders and DefaultValueDecoders
+//
+// The DefaultValueEncoders and DefaultValueDecoders types provide a full set of ValueEncoders and
+// ValueDecoders for handling a wide range of Go types, including all of the types within the
+// primitive package. To make registering these codecs easier, a helper method on each type is
+// provided. For the DefaultValueEncoders type the method is called RegisterDefaultEncoders and for
+// the DefaultValueDecoders type the method is called RegisterDefaultDecoders, this method also
+// handles registering type map entries for each BSON type.
+
 package bson
 
 import (

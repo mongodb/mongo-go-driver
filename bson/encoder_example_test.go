@@ -137,7 +137,7 @@ func ExampleEncoder_multipleBSONDocuments() {
 	// Read each marshaled BSON document from the buffer and print them as
 	// Extended JSON by converting them to bson.Raw.
 	for {
-		doc, err := bson.ReadRawDocument(buf)
+		doc, err := bson.ReadDocument(buf)
 		if errors.Is(err, io.EOF) {
 			return
 		}
