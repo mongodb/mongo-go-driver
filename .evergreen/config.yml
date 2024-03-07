@@ -391,9 +391,21 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
-          SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/apply-labels.sh"
+          export CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
+          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/apply-labels.sh"
           bash $SCRIPT -l $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
+
+  "add PR reviewer":
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export CONFIG=$PROJECT_DIRECTORY/.github/reviewers.txt
+          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/assign-reviewer.sh"
+          bash $SCRIPT -p $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
 
   send-perf-data:
     - command: perf.send
@@ -875,8 +887,13 @@ tasks:
       - func: run-make
         vars:
           targets: "check-fmt check-license check-modules lint"
-      - func: "create-api-report"
+
+  - name: pull-request-helpers
+    allowed_requesters: ["patch", "github_pr"]
+    commands:
+      - func: "add PR reviewer"  
       - func: "add PR labels"
+      - func: "create-api-report"
 
   - name: perf
     tags: ["performance"]
@@ -2301,6 +2318,16 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".static-analysis"
+
+  - name: pull-request-helpers
+    tags: ["pullrequest"]
+    display_name: "Pull Request Helpers"
+    run_on:
+      - rhel8.7-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: "pull-request-helpers"
 
   - name: perf
     display_name: "Performance"
