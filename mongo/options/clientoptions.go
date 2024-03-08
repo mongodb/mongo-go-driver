@@ -579,7 +579,7 @@ func setURIArgs(uri string, args *ClientArgs) error {
 func (c *ClientOptions) GetURI() string {
 	args, _ := getClientArgs(c)
 
-	if args.connString != nil {
+	if args != nil && args.connString != nil {
 		return args.connString.Original
 	}
 
