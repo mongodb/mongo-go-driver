@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -317,7 +318,9 @@ func TestRetryableWritesProse(t *testing.T) {
 
 		for _, tc := range tests {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+				hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+
+				require.NoError(mt, err)
 				require.GreaterOrEqualf(mt, len(hosts), tc.hostCount,
 					"test cluster must have at least %v mongos hosts", tc.hostCount)
 

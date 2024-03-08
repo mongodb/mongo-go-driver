@@ -358,7 +358,11 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)
 		cc := &customCrypt{}
-		clientOpts.Crypt = cc
+		clientOpts.Opts = append(clientOpts.Opts, func(args *options.ClientArgs) error {
+			args.Crypt = cc
+
+			return nil
+		})
 		integtest.AddTestServerAPIVersion(clientOpts)
 
 		client, err := mongo.Connect(clientOpts)

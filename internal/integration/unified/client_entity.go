@@ -121,13 +121,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		entity.logQueue = clientLogger.logQueue
 
 		// Update the client options to add the clientLogger.
-		clientOpts.LoggerOptions = options.Logger().
+		loggerOptions := options.Logger().
 			SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
 			SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
 			SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
 			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 			SetMaxDocumentLength(defaultMaxDocumentLen).
 			SetSink(clientLogger)
+
+		clientOpts.SetLoggerOptions(loggerOptions)
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are

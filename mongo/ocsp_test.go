@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
@@ -71,10 +72,15 @@ func createOCSPClientOptions(uri string) *options.ClientOptions {
 func createInsecureOCSPClientOptions(uri string) *options.ClientOptions {
 	opts := createOCSPClientOptions(uri)
 
-	if opts.TLSConfig != nil {
-		opts.TLSConfig.InsecureSkipVerify = true
+	args, _ := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+
+	if args.TLSConfig != nil {
+		args.TLSConfig.InsecureSkipVerify = true
+		opts.SetTLSConfig(args.TLSConfig)
+
 		return opts
 	}
+
 	return opts.SetTLSConfig(&tls.Config{
 		InsecureSkipVerify: true,
 	})

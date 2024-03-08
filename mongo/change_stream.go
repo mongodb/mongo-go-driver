@@ -111,7 +111,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
-	args, err := NewArgsFromOptions(opts...)
+	args, err := newArgsFromOptions[options.ChangeStreamArgs](opts...)
 	if err != nil {
 		return nil, err
 	}

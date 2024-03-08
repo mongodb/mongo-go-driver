@@ -56,7 +56,7 @@ func (siv SearchIndexView) List(
 		index = bson.D{{"name", *searchIdxOpts.Name}}
 	}
 
-	args, err := NewArgsFromOptions[options.ListSearchIndexesArgs](opts...)
+	args, err := newArgsFromOptions[options.ListSearchIndexesArgs](opts...)
 	if err != nil {
 		return nil, err
 	}

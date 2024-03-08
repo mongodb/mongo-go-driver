@@ -18,6 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -102,7 +104,7 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(opts ...*options.ClientOptions) (*Client, error) {
+func Connect(opts ...Options[options.ClientArgs]) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
 		return nil, err
@@ -127,8 +129,11 @@ func Connect(opts ...*options.ClientOptions) (*Client, error) {
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func newClient(opts ...*options.ClientOptions) (*Client, error) {
-	clientOpt := options.MergeClientOptions(opts...)
+func newClient(opts ...Options[options.ClientArgs]) (*Client, error) {
+	args, err := newArgsFromOptions[options.ClientArgs](opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	id, err := uuid.New()
 	if err != nil {
@@ -141,76 +146,77 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 
 	// LocalThreshold
 	client.localThreshold = defaultLocalThreshold
-	if clientOpt.LocalThreshold != nil {
-		client.localThreshold = *clientOpt.LocalThreshold
+	if args.LocalThreshold != nil {
+		client.localThreshold = *args.LocalThreshold
 	}
 	// Monitor
-	if clientOpt.Monitor != nil {
-		client.monitor = clientOpt.Monitor
+	if args.Monitor != nil {
+		client.monitor = args.Monitor
 	}
 	// ServerMonitor
-	if clientOpt.ServerMonitor != nil {
-		client.serverMonitor = clientOpt.ServerMonitor
+	if args.ServerMonitor != nil {
+		client.serverMonitor = args.ServerMonitor
 	}
 	// ReadConcern
 	client.readConcern = &readconcern.ReadConcern{}
-	if clientOpt.ReadConcern != nil {
-		client.readConcern = clientOpt.ReadConcern
+	if args.ReadConcern != nil {
+		client.readConcern = args.ReadConcern
 	}
 	// ReadPreference
 	client.readPreference = readpref.Primary()
-	if clientOpt.ReadPreference != nil {
-		client.readPreference = clientOpt.ReadPreference
+	if args.ReadPreference != nil {
+		client.readPreference = args.ReadPreference
 	}
 	// BSONOptions
-	if clientOpt.BSONOptions != nil {
-		client.bsonOpts = clientOpt.BSONOptions
+	if args.BSONOptions != nil {
+		client.bsonOpts = args.BSONOptions
 	}
 	// Registry
 	client.registry = bson.DefaultRegistry
-	if clientOpt.Registry != nil {
-		client.registry = clientOpt.Registry
+	if args.Registry != nil {
+		client.registry = args.Registry
 	}
 	// RetryWrites
 	client.retryWrites = true // retry writes on by default
-	if clientOpt.RetryWrites != nil {
-		client.retryWrites = *clientOpt.RetryWrites
+	if args.RetryWrites != nil {
+		client.retryWrites = *args.RetryWrites
 	}
 	client.retryReads = true
-	if clientOpt.RetryReads != nil {
-		client.retryReads = *clientOpt.RetryReads
+	if args.RetryReads != nil {
+		client.retryReads = *args.RetryReads
 	}
 	// Timeout
-	client.timeout = clientOpt.Timeout
-	client.httpClient = clientOpt.HTTPClient
+	client.timeout = args.Timeout
+	client.httpClient = args.HTTPClient
 	// WriteConcern
-	if clientOpt.WriteConcern != nil {
-		client.writeConcern = clientOpt.WriteConcern
+	if args.WriteConcern != nil {
+		client.writeConcern = args.WriteConcern
 	}
 	// AutoEncryptionOptions
-	if clientOpt.AutoEncryptionOptions != nil {
-		if err := client.configureAutoEncryption(clientOpt); err != nil {
+	if args.AutoEncryptionOptions != nil {
+		if err := client.configureAutoEncryption(args); err != nil {
 			return nil, err
 		}
 	} else {
-		client.cryptFLE = clientOpt.Crypt
+		client.cryptFLE = args.Crypt
 	}
 
 	// Deployment
-	if clientOpt.Deployment != nil {
-		client.deployment = clientOpt.Deployment
+	if args.Deployment != nil {
+		client.deployment = args.Deployment
 	}
 
 	// Set default options
-	if clientOpt.MaxPoolSize == nil {
-		clientOpt.SetMaxPoolSize(defaultMaxPoolSize)
+	if args.MaxPoolSize == nil {
+		defaultMaxPoolSize := uint64(defaultMaxPoolSize)
+		args.MaxPoolSize = &defaultMaxPoolSize
 	}
 
 	if err != nil {
 		return nil, err
 	}
 
-	cfg, err := topology.NewConfig(clientOpt, client.clock)
+	cfg, err := topology.NewConfigFromArgs(args, client.clock)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +230,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	// Create a logger for the client.
-	client.logger, err = newLogger(clientOpt.LoggerOptions)
+	client.logger, err = newLogger(args.LoggerOptions)
 	if err != nil {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
@@ -379,7 +385,7 @@ func (c *Client) StartSession(opts ...Options[options.SessionArgs]) (Session, er
 		return nil, ErrClientDisconnected
 	}
 
-	sessArgs, err := NewArgsFromOptions(opts...)
+	sessArgs, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -454,57 +460,62 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 }
 
-func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) error {
-	c.encryptedFieldsMap = clientOpts.AutoEncryptionOptions.EncryptedFieldsMap
-	if err := c.configureKeyVaultClientFLE(clientOpts); err != nil {
+func (c *Client) configureAutoEncryption(args *options.ClientArgs) error {
+	c.encryptedFieldsMap = args.AutoEncryptionOptions.EncryptedFieldsMap
+	if err := c.configureKeyVaultClientFLE(args); err != nil {
 		return err
 	}
-	if err := c.configureMetadataClientFLE(clientOpts); err != nil {
+	if err := c.configureMetadataClientFLE(args); err != nil {
 		return err
 	}
 
-	mc, err := c.newMongoCrypt(clientOpts.AutoEncryptionOptions)
+	mc, err := c.newMongoCrypt(args.AutoEncryptionOptions)
 	if err != nil {
 		return err
 	}
 
 	// If the crypt_shared library was not loaded, try to spawn and connect to mongocryptd.
 	if mc.CryptSharedLibVersionString() == "" {
-		mongocryptdFLE, err := newMongocryptdClient(clientOpts.AutoEncryptionOptions)
+		mongocryptdFLE, err := newMongocryptdClient(args.AutoEncryptionOptions)
 		if err != nil {
 			return err
 		}
 		c.mongocryptdFLE = mongocryptdFLE
 	}
 
-	c.configureCryptFLE(mc, clientOpts.AutoEncryptionOptions)
+	c.configureCryptFLE(mc, args.AutoEncryptionOptions)
 	return nil
 }
 
-func (c *Client) getOrCreateInternalClient(clientOpts *options.ClientOptions) (*Client, error) {
+func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, error) {
 	if c.internalClientFLE != nil {
 		return c.internalClientFLE, nil
 	}
 
-	internalClientOpts := options.MergeClientOptions(clientOpts)
-	internalClientOpts.AutoEncryptionOptions = nil
-	internalClientOpts.SetMinPoolSize(0)
+	argsCopy := *args
+
+	argsCopy.AutoEncryptionOptions = nil
+	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
+
+	opts := &mongoutil.Options[options.ClientArgs]{Args: &argsCopy}
+
 	var err error
-	c.internalClientFLE, err = newClient(internalClientOpts)
+	c.internalClientFLE, err = newClient(opts)
+
 	return c.internalClientFLE, err
 }
 
-func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) error {
+func (c *Client) configureKeyVaultClientFLE(args *options.ClientArgs) error {
 	// parse key vault options and create new key vault client
 	var err error
-	aeOpts := clientOpts.AutoEncryptionOptions
+	aeOpts := args.AutoEncryptionOptions
 	switch {
 	case aeOpts.KeyVaultClientOptions != nil:
 		c.keyVaultClientFLE, err = newClient(aeOpts.KeyVaultClientOptions)
-	case clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0:
+	case args.MaxPoolSize != nil && *args.MaxPoolSize == 0:
 		c.keyVaultClientFLE = c
 	default:
-		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientOpts)
+		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(args)
 	}
 
 	if err != nil {
@@ -516,20 +527,20 @@ func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) e
 	return nil
 }
 
-func (c *Client) configureMetadataClientFLE(clientOpts *options.ClientOptions) error {
+func (c *Client) configureMetadataClientFLE(args *options.ClientArgs) error {
 	// parse key vault options and create new key vault client
-	aeOpts := clientOpts.AutoEncryptionOptions
+	aeOpts := args.AutoEncryptionOptions
 	if aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption {
 		// no need for a metadata client.
 		return nil
 	}
-	if clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0 {
+	if args.MaxPoolSize != nil && *args.MaxPoolSize == 0 {
 		c.metadataClientFLE = c
 		return nil
 	}
 
 	var err error
-	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientOpts)
+	c.metadataClientFLE, err = c.getOrCreateInternalClient(args)
 	return err
 }
 
@@ -691,7 +702,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	})
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
-	lda, err := NewArgsFromOptions(opts...)
+	lda, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}

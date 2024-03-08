@@ -38,7 +38,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...Options[options.ClientE
 	ce := &ClientEncryption{
 		keyVaultClient: keyVaultClient,
 	}
-	cea, err := NewArgsFromOptions(opts...)
+	cea, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}

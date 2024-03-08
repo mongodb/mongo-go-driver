@@ -249,7 +249,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	// Ensure opts have the default case at the front.
 	opts = append([]Options[options.BulkWriteArgs]{options.BulkWrite()}, opts...)
-	args, err := NewArgsFromOptions(opts...)
+	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +389,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	opts ...Options[options.InsertOneArgs]) (*InsertOneResult, error) {
 
-	args, err := NewArgsFromOptions(opts...)
+	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -944,7 +944,7 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *
 		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
-	args, err := NewArgsFromOptions(opts...)
+	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1350,7 +1350,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	opts ...Options[options.FindArgs]) (*Cursor, error) {
-	args, err := NewArgsFromOptions(opts...)
+	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1558,7 +1558,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	args, err := NewArgsFromOptions(opts...)
+	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil
 	}

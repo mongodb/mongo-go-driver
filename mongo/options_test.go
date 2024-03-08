@@ -91,7 +91,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewArgsFromOptions(test.opts...)
+			got, err := newArgsFromOptions(test.opts...)
 			assert.NoError(t, err, "unexpected merging error")
 			assert.Equal(t, test.want, got)
 		})
@@ -117,6 +117,6 @@ func BenchmarkNewArgsFromOptions(b *testing.B) {
 
 	// Run the benchmark
 	for i := 0; i < b.N; i++ {
-		_, _ = NewArgsFromOptions(mockOptions[i])
+		_, _ = newArgsFromOptions(mockOptions[i])
 	}
 }

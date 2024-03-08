@@ -40,10 +40,10 @@ type BulkWriteOptions struct {
 
 // BulkWrite creates a new *BulkWriteOptions instance.
 func BulkWrite() *BulkWriteOptions {
-	bwo := &BulkWriteOptions{}
-	bwo.SetOrdered(DefaultOrdered)
+	opts := &BulkWriteOptions{}
+	opts = opts.SetOrdered(DefaultOrdered)
 
-	return bwo
+	return opts
 }
 
 // ArgsSetters returns a list of BulkWriteArgs setter functions.

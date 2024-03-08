@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -70,12 +71,24 @@ func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 	return log, nil
 }
 
-// NewConfig will translate data from client options into a topology config for building non-default deployments.
-// Server and topology options are not honored if a custom deployment is used.
-func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
+// NewConfig behaves like NewConfigFromArgs by extracting arguments from the
+// ClientOptions setters.
+func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
+	args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
+	return NewConfigFromArgs(args, clock)
+}
+
+// NewConfigFromArgs will translate data from client arguments into a topology
+// config for building non-default deployments. Server and topology options are
+// not honored if a custom deployment is used.
+func NewConfigFromArgs(args *options.ClientArgs, clock *session.ClusterClock) (*Config, error) {
 	var serverAPI *driver.ServerAPIOptions
 
-	if err := co.Validate(); err != nil {
+	if err := options.ValidateClientArgs(args); err != nil {
 		return nil, err
 	}
 
@@ -94,27 +107,27 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 
 	// ServerAPIOptions need to be handled early as other client and server options below reference
 	// c.serverAPI and serverOpts.serverAPI.
-	if co.ServerAPIOptions != nil {
-		serverAPI = ConvertToDriverAPIOptions(co.ServerAPIOptions)
+	if args.ServerAPIOptions != nil {
+		serverAPI = ConvertToDriverAPIOptions(args.ServerAPIOptions)
 		serverOpts = append(serverOpts, WithServerAPI(func(*driver.ServerAPIOptions) *driver.ServerAPIOptions {
 			return serverAPI
 		}))
 	}
 
-	cfgp.URI = co.GetURI()
+	cfgp.URI = args.GetURI()
 
-	if co.SRVServiceName != nil {
-		cfgp.SRVServiceName = *co.SRVServiceName
+	if args.SRVServiceName != nil {
+		cfgp.SRVServiceName = *args.SRVServiceName
 	}
 
-	if co.SRVMaxHosts != nil {
-		cfgp.SRVMaxHosts = *co.SRVMaxHosts
+	if args.SRVMaxHosts != nil {
+		cfgp.SRVMaxHosts = *args.SRVMaxHosts
 	}
 
 	// AppName
 	var appName string
-	if co.AppName != nil {
-		appName = *co.AppName
+	if args.AppName != nil {
+		appName = *args.AppName
 
 		serverOpts = append(serverOpts, WithServerAppName(func(string) string {
 			return appName
@@ -122,8 +135,8 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 	// Compressors & ZlibLevel
 	var comps []string
-	if len(co.Compressors) > 0 {
-		comps = co.Compressors
+	if len(args.Compressors) > 0 {
+		comps = args.Compressors
 
 		connOpts = append(connOpts, WithCompressors(
 			func(compressors []string) []string {
@@ -135,11 +148,11 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			switch comp {
 			case "zlib":
 				connOpts = append(connOpts, WithZlibLevel(func(level *int) *int {
-					return co.ZlibLevel
+					return args.ZlibLevel
 				}))
 			case "zstd":
 				connOpts = append(connOpts, WithZstdLevel(func(level *int) *int {
-					return co.ZstdLevel
+					return args.ZstdLevel
 				}))
 			}
 		}
@@ -150,8 +163,8 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 
 	var loadBalanced bool
-	if co.LoadBalanced != nil {
-		loadBalanced = *co.LoadBalanced
+	if args.LoadBalanced != nil {
+		loadBalanced = *args.LoadBalanced
 	}
 
 	// Handshaker
@@ -160,15 +173,15 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			ServerAPI(serverAPI).LoadBalanced(loadBalanced)
 	}
 	// Auth & Database & Password & Username
-	if co.Auth != nil {
+	if args.Auth != nil {
 		cred := &auth.Cred{
-			Username:    co.Auth.Username,
-			Password:    co.Auth.Password,
-			PasswordSet: co.Auth.PasswordSet,
-			Props:       co.Auth.AuthMechanismProperties,
-			Source:      co.Auth.AuthSource,
+			Username:    args.Auth.Username,
+			Password:    args.Auth.Password,
+			PasswordSet: args.Auth.PasswordSet,
+			Props:       args.Auth.AuthMechanismProperties,
+			Source:      args.Auth.AuthSource,
 		}
-		mechanism := co.Auth.AuthMechanism
+		mechanism := args.Auth.AuthMechanism
 
 		if len(cred.Source) == 0 {
 			switch strings.ToUpper(mechanism) {
@@ -191,7 +204,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			ServerAPI:     serverAPI,
 			LoadBalanced:  loadBalanced,
 			ClusterClock:  clock,
-			HTTPClient:    co.HTTPClient,
+			HTTPClient:    args.HTTPClient,
 		}
 
 		if mechanism == "" {
@@ -205,115 +218,115 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	}
 	connOpts = append(connOpts, WithHandshaker(handshaker))
 	// ConnectTimeout
-	if co.ConnectTimeout != nil {
+	if args.ConnectTimeout != nil {
 		serverOpts = append(serverOpts, WithHeartbeatTimeout(
-			func(time.Duration) time.Duration { return *co.ConnectTimeout },
+			func(time.Duration) time.Duration { return *args.ConnectTimeout },
 		))
 		connOpts = append(connOpts, WithConnectTimeout(
-			func(time.Duration) time.Duration { return *co.ConnectTimeout },
+			func(time.Duration) time.Duration { return *args.ConnectTimeout },
 		))
 	}
 	// Dialer
-	if co.Dialer != nil {
+	if args.Dialer != nil {
 		connOpts = append(connOpts, WithDialer(
-			func(Dialer) Dialer { return co.Dialer },
+			func(Dialer) Dialer { return args.Dialer },
 		))
 	}
 	// Direct
-	if co.Direct != nil && *co.Direct {
+	if args.Direct != nil && *args.Direct {
 		cfgp.Mode = SingleMode
 	}
 
 	// HeartbeatInterval
-	if co.HeartbeatInterval != nil {
+	if args.HeartbeatInterval != nil {
 		serverOpts = append(serverOpts, WithHeartbeatInterval(
-			func(time.Duration) time.Duration { return *co.HeartbeatInterval },
+			func(time.Duration) time.Duration { return *args.HeartbeatInterval },
 		))
 	}
 	// Hosts
 	cfgp.SeedList = []string{"localhost:27017"} // default host
-	if len(co.Hosts) > 0 {
-		cfgp.SeedList = co.Hosts
+	if len(args.Hosts) > 0 {
+		cfgp.SeedList = args.Hosts
 	}
 
 	// MaxConIdleTime
-	if co.MaxConnIdleTime != nil {
+	if args.MaxConnIdleTime != nil {
 		serverOpts = append(serverOpts, WithConnectionPoolMaxIdleTime(
-			func(time.Duration) time.Duration { return *co.MaxConnIdleTime },
+			func(time.Duration) time.Duration { return *args.MaxConnIdleTime },
 		))
 	}
 	// MaxPoolSize
-	if co.MaxPoolSize != nil {
+	if args.MaxPoolSize != nil {
 		serverOpts = append(
 			serverOpts,
-			WithMaxConnections(func(uint64) uint64 { return *co.MaxPoolSize }),
+			WithMaxConnections(func(uint64) uint64 { return *args.MaxPoolSize }),
 		)
 	}
 	// MinPoolSize
-	if co.MinPoolSize != nil {
+	if args.MinPoolSize != nil {
 		serverOpts = append(
 			serverOpts,
-			WithMinConnections(func(uint64) uint64 { return *co.MinPoolSize }),
+			WithMinConnections(func(uint64) uint64 { return *args.MinPoolSize }),
 		)
 	}
 	// MaxConnecting
-	if co.MaxConnecting != nil {
+	if args.MaxConnecting != nil {
 		serverOpts = append(
 			serverOpts,
-			WithMaxConnecting(func(uint64) uint64 { return *co.MaxConnecting }),
+			WithMaxConnecting(func(uint64) uint64 { return *args.MaxConnecting }),
 		)
 	}
 	// PoolMonitor
-	if co.PoolMonitor != nil {
+	if args.PoolMonitor != nil {
 		serverOpts = append(
 			serverOpts,
-			WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return co.PoolMonitor }),
+			WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return args.PoolMonitor }),
 		)
 	}
 	// Monitor
-	if co.Monitor != nil {
+	if args.Monitor != nil {
 		connOpts = append(connOpts, WithMonitor(
-			func(*event.CommandMonitor) *event.CommandMonitor { return co.Monitor },
+			func(*event.CommandMonitor) *event.CommandMonitor { return args.Monitor },
 		))
 	}
 	// ServerMonitor
-	if co.ServerMonitor != nil {
+	if args.ServerMonitor != nil {
 		serverOpts = append(
 			serverOpts,
-			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return co.ServerMonitor }),
+			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return args.ServerMonitor }),
 		)
-		cfgp.ServerMonitor = co.ServerMonitor
+		cfgp.ServerMonitor = args.ServerMonitor
 	}
 	// ReplicaSet
-	if co.ReplicaSet != nil {
-		cfgp.ReplicaSetName = *co.ReplicaSet
+	if args.ReplicaSet != nil {
+		cfgp.ReplicaSetName = *args.ReplicaSet
 	}
 	// ServerSelectionTimeout
-	if co.ServerSelectionTimeout != nil {
-		cfgp.ServerSelectionTimeout = *co.ServerSelectionTimeout
+	if args.ServerSelectionTimeout != nil {
+		cfgp.ServerSelectionTimeout = *args.ServerSelectionTimeout
 	}
 	// SocketTimeout
-	if co.SocketTimeout != nil {
+	if args.SocketTimeout != nil {
 		connOpts = append(
 			connOpts,
-			WithReadTimeout(func(time.Duration) time.Duration { return *co.SocketTimeout }),
-			WithWriteTimeout(func(time.Duration) time.Duration { return *co.SocketTimeout }),
+			WithReadTimeout(func(time.Duration) time.Duration { return *args.SocketTimeout }),
+			WithWriteTimeout(func(time.Duration) time.Duration { return *args.SocketTimeout }),
 		)
 	}
 	// TLSConfig
-	if co.TLSConfig != nil {
+	if args.TLSConfig != nil {
 		connOpts = append(connOpts, WithTLSConfig(
 			func(*tls.Config) *tls.Config {
-				return co.TLSConfig
+				return args.TLSConfig
 			},
 		))
 	}
 
 	// HTTP Client
-	if co.HTTPClient != nil {
+	if args.HTTPClient != nil {
 		connOpts = append(connOpts, WithHTTPClient(
 			func(*http.Client) *http.Client {
-				return co.HTTPClient
+				return args.HTTPClient
 			},
 		))
 	}
@@ -326,28 +339,28 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	)
 
 	// Disable communication with external OCSP responders.
-	if co.DisableOCSPEndpointCheck != nil {
+	if args.DisableOCSPEndpointCheck != nil {
 		connOpts = append(
 			connOpts,
-			WithDisableOCSPEndpointCheck(func(bool) bool { return *co.DisableOCSPEndpointCheck }),
+			WithDisableOCSPEndpointCheck(func(bool) bool { return *args.DisableOCSPEndpointCheck }),
 		)
 	}
 
 	// LoadBalanced
-	if co.LoadBalanced != nil {
-		cfgp.LoadBalanced = *co.LoadBalanced
+	if args.LoadBalanced != nil {
+		cfgp.LoadBalanced = *args.LoadBalanced
 
 		serverOpts = append(
 			serverOpts,
-			WithServerLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
+			WithServerLoadBalanced(func(bool) bool { return *args.LoadBalanced }),
 		)
 		connOpts = append(
 			connOpts,
-			WithConnectionLoadBalanced(func(bool) bool { return *co.LoadBalanced }),
+			WithConnectionLoadBalanced(func(bool) bool { return *args.LoadBalanced }),
 		)
 	}
 
-	lgr, err := newLogger(co.LoggerOptions)
+	lgr, err := newLogger(args.LoggerOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +368,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	serverOpts = append(
 		serverOpts,
 		withLogger(func() *logger.Logger { return lgr }),
-		withServerMonitoringMode(co.ServerMonitoringMode),
+		withServerMonitoringMode(args.ServerMonitoringMode),
 	)
 
 	cfgp.logger = lgr

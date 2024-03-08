@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -162,7 +163,8 @@ func TestSessionsProse(t *testing.T) {
 
 	mt := mtest.New(t, mtOpts)
 
-	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	require.NoError(t, err)
 
 	mt.Run("1 setting both snapshot and causalConsistency to true is not allowed", func(mt *mtest.T) {
 		// causalConsistency and snapshot are mutually exclusive

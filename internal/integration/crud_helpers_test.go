@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/integration/unified"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -132,7 +133,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 		return commandFn(client)
 	}
 
-	for _, host := range opts.Hosts {
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %v", err)
+	}
+
+	for _, host := range hosts {
 		shardClient, err := mongo.Connect(opts.SetHosts([]string{host}))
 		if err != nil {
 			return fmt.Errorf("error creating client for mongos %v: %w", host, err)

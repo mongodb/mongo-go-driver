@@ -6,9 +6,57 @@
 
 package mongoutil
 
+import (
+	"reflect"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// Args defines arguments types that can be merged using the functional setters.
+type Args interface {
+	options.ChangeStreamArgs | options.ClientArgs | options.ClientEncryptionArgs |
+		options.FindArgs | options.FindOneArgs | options.InsertOneArgs |
+		options.ListDatabasesArgs | options.SessionArgs | options.BulkWriteArgs |
+		options.AggregateArgs | options.ListSearchIndexesArgs
+}
+
+// MongoOptions is an interface that wraps a method to return a list of setter
+// functions that can set a generic arguments type.
+type MongoOptions[T Args] interface {
+	ArgsSetters() []func(*T) error
+}
+
+// NewArgsFromOptions will functionally merge a slice of mongo.Options in a
+// "last-one-wins" manner.
+func NewArgsFromOptions[T Args](opts ...MongoOptions[T]) (*T, error) {
+	args := new(T)
+	for _, opt := range opts {
+		if opt == nil || reflect.ValueOf(opt).IsNil() {
+			// Do nothing if the option is nil or if opt is nil but implicitly cast as
+			// an Options interface by the NewArgsFromOptions function. The latter
+			// case would look something like this:
+			//
+			// var opt *SomeOptions
+			// NewArgsFromOptions(opt)
+			continue
+		}
+
+		for _, setArgs := range opt.ArgsSetters() {
+			if setArgs == nil {
+				continue
+			}
+
+			if err := setArgs(args); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return args, nil
+}
+
 // Options implements a mongo.Options object for an arbitrary arguments type.
 // The intended use case is to create options from arguments.
-type Options[T any] struct {
+type Options[T Args] struct {
 	Args *T             // Arguments to set on the option type
 	Clbk func(*T) error // A callback for further modification
 }
@@ -30,4 +78,26 @@ func (opts *Options[T]) ArgsSetters() []func(*T) error {
 			return nil
 		},
 	}
+}
+
+func NewOptionsFromArgs[T Args](args *T, clbk func(*T) error) *Options[T] {
+	return &Options[T]{Args: args, Clbk: clbk}
+}
+
+func AuthFromURI(uri string) (*options.Credential, error) {
+	args, err := NewArgsFromOptions[options.ClientArgs](options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, err
+	}
+
+	return args.Auth, nil
+}
+
+func HostsFromURI(uri string) ([]string, error) {
+	args, err := NewArgsFromOptions[options.ClientArgs](options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, err
+	}
+
+	return args.Hosts, nil
 }

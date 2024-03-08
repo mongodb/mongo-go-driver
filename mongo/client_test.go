@@ -30,7 +30,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...*options.ClientOptions) *Client {
+func setupClient(opts ...Options[options.ClientArgs]) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)
@@ -307,13 +307,17 @@ func TestClient(t *testing.T) {
 		})
 		t.Run("ApplyURI called with empty string", func(t *testing.T) {
 			opts := options.Client().ApplyURI("")
+
 			uri := opts.GetURI()
 			assert.Equal(t, "", uri, "expected GetURI to return empty string, got %v", uri)
 		})
 		t.Run("ApplyURI called with non-empty string", func(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
-			got := opts.GetURI()
+
+			args, _ := newArgsFromOptions[options.ClientArgs](opts)
+			got := args.GetURI()
+
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
 		})
 	})

@@ -28,6 +28,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -282,21 +284,24 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
+		args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](testClientOpts)
+		require.NoError(mt, err, "failed to construct arguments from options")
+
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
-		if testClientOpts.AutoEncryptionOptions != nil {
-			bypassAutoEncryption := testClientOpts.AutoEncryptionOptions.BypassAutoEncryption != nil &&
-				*testClientOpts.AutoEncryptionOptions.BypassAutoEncryption
-			bypassQueryAnalysis := testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
-				*testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis
+		if args.AutoEncryptionOptions != nil {
+			bypassAutoEncryption := args.AutoEncryptionOptions.BypassAutoEncryption != nil &&
+				*args.AutoEncryptionOptions.BypassAutoEncryption
+			bypassQueryAnalysis := args.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
+				*args.AutoEncryptionOptions.BypassQueryAnalysis
 			if !bypassAutoEncryption && !bypassQueryAnalysis {
-				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
-					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
+				if args.AutoEncryptionOptions.ExtraOptions == nil {
+					args.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
 				}
 
 				for k, v := range getCryptSharedLibExtraOptions() {
-					testClientOpts.AutoEncryptionOptions.ExtraOptions[k] = v
+					args.AutoEncryptionOptions.ExtraOptions[k] = v
 				}
 			}
 		}
@@ -306,11 +311,13 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 			Event: test.monitor.handlePoolEvent,
 		})
 		testClientOpts.SetServerMonitor(test.monitor.sdamMonitor)
-		if testClientOpts.HeartbeatInterval == nil {
+		if args.HeartbeatInterval == nil {
 			// If one isn't specified in the test, use a low heartbeat frequency so the Client will quickly recover when
 			// using failpoints that cause SDAM state changes.
 			testClientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
 		}
+
+		//newOpts := mongoutil.NewOptionsFromArgs[options.ClientArgs](args, nil)
 		mt.ResetClient(testClientOpts)
 
 		// Record the underlying topology for the test's Client.

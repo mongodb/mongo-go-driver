@@ -7,47 +7,22 @@
 package mongo
 
 import (
-	"reflect"
-
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 )
-
-// Args defines arguments types that can be merged using the functional setters.
-type Args interface {
-	options.ChangeStreamArgs | options.ClientEncryptionArgs |
-		options.FindArgs | options.FindOneArgs | options.InsertOneArgs |
-		options.ListDatabasesArgs | options.SessionArgs | options.BulkWriteArgs |
-		options.AggregateArgs | options.ListSearchIndexesArgs
-}
 
 // Options is an interface that wraps a method to return a list of setter
 // functions that can set a generic arguments type.
-type Options[T Args] interface {
+type Options[T mongoutil.Args] interface {
 	ArgsSetters() []func(*T) error
 }
 
-// NewArgsFromOptions will functionally merge a slice of mongo.Options in a "last-one-wins" manner.
-func NewArgsFromOptions[T Args](opts ...Options[T]) (*T, error) {
-	args := new(T)
-	for _, opt := range opts {
-		if opt == nil || reflect.ValueOf(opt).IsNil() {
-			// Do nothing if the option is nil or if opt is nil but implicitly cast as
-			// an Options interface by the NewArgsFromOptions function. The latter
-			// case would look something like this:
-			//
-			// var opt *SomeOptions
-			// NewArgsFromOptions(opt)
-			continue
-		}
-
-		for _, setArgs := range opt.ArgsSetters() {
-			if setArgs == nil {
-				continue
-			}
-			if err := setArgs(args); err != nil {
-				return nil, err
-			}
-		}
+// newArgsFromOptions wraps the given mongo-level options in the internal
+// mongoutil options, merging a slice of options in a last-one-wins algorithm.
+func newArgsFromOptions[T mongoutil.Args](opts ...Options[T]) (*T, error) {
+	mongoOpts := make([]mongoutil.MongoOptions[T], len(opts))
+	for idx, opt := range opts {
+		mongoOpts[idx] = opt
 	}
-	return args, nil
+
+	return mongoutil.NewArgsFromOptions[T](mongoOpts...)
 }
