@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -79,12 +80,19 @@ func NewClientEncryption(keyVaultClient *Client, opts ...Options[options.ClientE
 // CreateEncryptedCollection creates a new collection for Queryable Encryption with the help of automatic generation of new encryption data keys for null keyIds.
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
-	db *Database, coll string, createOpts *options.CreateCollectionOptions,
+	db *Database, coll string, createOpts Options[options.CreateCollectionArgs],
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
 	if createOpts == nil {
 		return nil, nil, errors.New("nil CreateCollectionOptions")
 	}
-	ef := createOpts.EncryptedFields
+
+	createArgs, err := newArgsFromOptions[options.CreateCollectionArgs](createOpts)
+	if err != nil {
+		fmt.Println("err: ", err)
+		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
+	ef := createArgs.EncryptedFields
 	if ef == nil {
 		return nil, nil, errors.New("no EncryptedFields defined for the collection")
 	}
@@ -113,16 +121,18 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 					}
 					keyid, err := ce.CreateDataKey(ctx, kmsProvider, dkOpts)
 					if err != nil {
-						createOpts.EncryptedFields = m
+						createArgs.EncryptedFields = m
 						return nil, m, err
 					}
 					f["keyId"] = keyid
 				}
 			}
-			createOpts.EncryptedFields = m
+			createArgs.EncryptedFields = m
 		}
 	}
-	err = db.CreateCollection(ctx, coll, createOpts)
+
+	updatedCreateOpts := mongoutil.NewOptionsFromArgs[options.CreateCollectionArgs](createArgs, nil)
+	err = db.CreateCollection(ctx, coll, updatedCreateOpts)
 	if err != nil {
 		return nil, m, err
 	}

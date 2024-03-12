@@ -21,6 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -450,11 +451,14 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 	db := coll.Client.Database(coll.DB)
 
-	if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
+	args, err := mongoutil.NewArgsFromOptions[options.CreateCollectionArgs](coll.CreateOpts)
+	require.NoError(t, err, "failed to construct arguments from options")
+
+	if coll.CreateOpts != nil && args.EncryptedFields != nil {
 		// An encrypted collection consists of a data collection and three state collections.
 		// Aborted test runs may leave these collections.
 		// Drop all four collections to avoid a quiet failure to create all collections.
-		DropEncryptedCollection(t, db.Collection(coll.Name), coll.CreateOpts.EncryptedFields)
+		DropEncryptedCollection(t, db.Collection(coll.Name), args.EncryptedFields)
 	}
 
 	if createOnServer && t.clientType != Mock {
@@ -513,11 +517,14 @@ func (t *T) ClearCollections() {
 	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
-			if coll.CreateOpts != nil && coll.CreateOpts.EncryptedFields != nil {
-				DropEncryptedCollection(t, coll.created, coll.CreateOpts.EncryptedFields)
+			args, err := mongoutil.NewArgsFromOptions[options.CreateCollectionArgs](coll.CreateOpts)
+			require.NoError(t, err, "failed to construct arguments from options")
+
+			if coll.CreateOpts != nil && args.EncryptedFields != nil {
+				DropEncryptedCollection(t, coll.created, args.EncryptedFields)
 			}
 
-			err := coll.created.Drop(context.Background())
+			err = coll.created.Drop(context.Background())
 			if errors.Is(err, mongo.ErrUnacknowledgedWrite) || errors.Is(err, driver.ErrUnacknowledgedWrite) {
 				// It's possible that a collection could have an unacknowledged write concern, which
 				// could prevent it from being dropped for sharded clusters. We can resolve this by

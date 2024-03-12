@@ -13,8 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// CollectionOptions represents options that can be used to configure a Collection.
-type CollectionOptions struct {
+// CollectionArgs represents arguments that can be used to configure a
+// Collection.
+type CollectionArgs struct {
 	// ReadConcern is the read concern to use for operations executed on the Collection. The default value is nil, which means that
 	// the read concern of the Database used to configure the Collection will be used.
 	ReadConcern *readconcern.ReadConcern
@@ -36,37 +37,74 @@ type CollectionOptions struct {
 	Registry *bsoncodec.Registry
 }
 
+// CollectionOptions contains options to configure a Collection instance. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type CollectionOptions struct {
+	Opts []func(*CollectionArgs) error
+}
+
 // Collection creates a new CollectionOptions instance.
 func Collection() *CollectionOptions {
 	return &CollectionOptions{}
 }
 
+// ArgsSetters returns a list of CollectionArgs setter functions.
+func (c *CollectionOptions) ArgsSetters() []func(*CollectionArgs) error {
+	return c.Opts
+}
+
 // SetReadConcern sets the value for the ReadConcern field.
 func (c *CollectionOptions) SetReadConcern(rc *readconcern.ReadConcern) *CollectionOptions {
-	c.ReadConcern = rc
+	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+		args.ReadConcern = rc
+
+		return nil
+	})
+
 	return c
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
 func (c *CollectionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *CollectionOptions {
-	c.WriteConcern = wc
+	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+		args.WriteConcern = wc
+
+		return nil
+	})
+
 	return c
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
 func (c *CollectionOptions) SetReadPreference(rp *readpref.ReadPref) *CollectionOptions {
-	c.ReadPreference = rp
+	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+		args.ReadPreference = rp
+
+		return nil
+	})
+
 	return c
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
 func (c *CollectionOptions) SetBSONOptions(opts *BSONOptions) *CollectionOptions {
-	c.BSONOptions = opts
+	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+		args.BSONOptions = opts
+
+		return nil
+	})
+
 	return c
 }
 
 // SetRegistry sets the value for the Registry field.
 func (c *CollectionOptions) SetRegistry(r *bsoncodec.Registry) *CollectionOptions {
-	c.Registry = r
+	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+		args.Registry = r
+
+		return nil
+	})
+
 	return c
 }

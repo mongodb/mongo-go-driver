@@ -15,9 +15,12 @@ import (
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
 	options.ChangeStreamArgs | options.ClientArgs | options.ClientEncryptionArgs |
-		options.FindArgs | options.FindOneArgs | options.InsertOneArgs |
-		options.ListDatabasesArgs | options.SessionArgs | options.BulkWriteArgs |
-		options.AggregateArgs | options.ListSearchIndexesArgs
+		options.CollectionArgs | options.CountArgs | options.CreateCollectionArgs |
+		options.DefaultIndexArgs | options.FindArgs | options.FindOneArgs |
+		options.InsertOneArgs | options.ListDatabasesArgs | options.SessionArgs |
+		options.BulkWriteArgs | options.AggregateArgs |
+		options.ListSearchIndexesArgs | options.TimeSeriesArgs |
+		options.CreateViewArgs
 }
 
 // MongoOptions is an interface that wraps a method to return a list of setter

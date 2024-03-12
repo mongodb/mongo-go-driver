@@ -22,7 +22,7 @@ const (
 	testDbName = "unitTestDb"
 )
 
-func setupColl(name string, opts ...*options.CollectionOptions) *Collection {
+func setupColl(name string, opts ...Options[options.CollectionArgs]) *Collection {
 	db := setupDb(testDbName)
 	return db.Collection(name, opts...)
 }

@@ -67,58 +67,32 @@ func closeImplicitSession(sess *session.Client) {
 	}
 }
 
-// mergeCollectionOptions combines the given CollectionOptions instances into a single *CollectionOptions in a
-// last-property-wins fashion.
-func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.CollectionOptions {
-	c := options.Collection()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			c.ReadConcern = opt.ReadConcern
-		}
-		if opt.WriteConcern != nil {
-			c.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadPreference != nil {
-			c.ReadPreference = opt.ReadPreference
-		}
-		if opt.Registry != nil {
-			c.Registry = opt.Registry
-		}
-	}
-
-	return c
-}
-
-func newCollection(db *Database, name string, opts ...*options.CollectionOptions) *Collection {
-	collOpt := mergeCollectionOptions(opts...)
+func newCollection(db *Database, name string, opts ...Options[options.CollectionArgs]) *Collection {
+	args, _ := newArgsFromOptions[options.CollectionArgs](opts...)
 
 	rc := db.readConcern
-	if collOpt.ReadConcern != nil {
-		rc = collOpt.ReadConcern
+	if args.ReadConcern != nil {
+		rc = args.ReadConcern
 	}
 
 	wc := db.writeConcern
-	if collOpt.WriteConcern != nil {
-		wc = collOpt.WriteConcern
+	if args.WriteConcern != nil {
+		wc = args.WriteConcern
 	}
 
 	rp := db.readPreference
-	if collOpt.ReadPreference != nil {
-		rp = collOpt.ReadPreference
+	if args.ReadPreference != nil {
+		rp = args.ReadPreference
 	}
 
 	bsonOpts := db.bsonOpts
-	if collOpt.BSONOptions != nil {
-		bsonOpts = collOpt.BSONOptions
+	if args.BSONOptions != nil {
+		bsonOpts = args.BSONOptions
 	}
 
 	reg := db.registry
-	if collOpt.Registry != nil {
-		reg = collOpt.Registry
+	if args.Registry != nil {
+		reg = args.Registry
 	}
 
 	readSelector := description.CompositeSelector([]description.ServerSelector{
@@ -164,24 +138,28 @@ func (coll *Collection) copy() *Collection {
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
-func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, error) {
+func (coll *Collection) Clone(opts ...Options[options.CollectionArgs]) (*Collection, error) {
 	copyColl := coll.copy()
-	optsColl := mergeCollectionOptions(opts...)
 
-	if optsColl.ReadConcern != nil {
-		copyColl.readConcern = optsColl.ReadConcern
+	args, err := newArgsFromOptions[options.CollectionArgs](opts...)
+	if err != nil {
+		return nil, err
 	}
 
-	if optsColl.WriteConcern != nil {
-		copyColl.writeConcern = optsColl.WriteConcern
+	if args.ReadConcern != nil {
+		copyColl.readConcern = args.ReadConcern
 	}
 
-	if optsColl.ReadPreference != nil {
-		copyColl.readPreference = optsColl.ReadPreference
+	if args.WriteConcern != nil {
+		copyColl.writeConcern = args.WriteConcern
 	}
 
-	if optsColl.Registry != nil {
-		copyColl.registry = optsColl.Registry
+	if args.ReadPreference != nil {
+		copyColl.readPreference = args.ReadPreference
+	}
+
+	if args.Registry != nil {
+		copyColl.registry = args.Registry
 	}
 
 	copyColl.readSelector = description.CompositeSelector([]description.ServerSelector{
@@ -1059,38 +1037,17 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
-	opts ...*options.CountOptions) (int64, error) {
-
+	opts ...Options[options.CountArgs]) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	countOpts := options.Count()
-	for _, co := range opts {
-		if co == nil {
-			continue
-		}
-		if co.Collation != nil {
-			countOpts.Collation = co.Collation
-		}
-		if co.Comment != nil {
-			countOpts.Comment = co.Comment
-		}
-		if co.Hint != nil {
-			countOpts.Hint = co.Hint
-		}
-		if co.Limit != nil {
-			countOpts.Limit = co.Limit
-		}
-		if co.MaxTime != nil {
-			countOpts.MaxTime = co.MaxTime
-		}
-		if co.Skip != nil {
-			countOpts.Skip = co.Skip
-		}
+	args, err := newArgsFromOptions[options.CountArgs](opts...)
+	if err != nil {
+		return 0, err
 	}
 
-	pipelineArr, err := countDocumentsAggregatePipeline(filter, coll.bsonOpts, coll.registry, countOpts)
+	pipelineArr, err := countDocumentsAggregatePipeline(filter, coll.bsonOpts, coll.registry, args)
 	if err != nil {
 		return 0, err
 	}
@@ -1113,23 +1070,23 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(countOpts.MaxTime)
-	if countOpts.Collation != nil {
-		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
+		Timeout(coll.client.timeout).MaxTime(args.MaxTime)
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
-	if countOpts.Comment != nil {
-		comment, err := marshalValue(countOpts.Comment, coll.bsonOpts, coll.registry)
+	if args.Comment != nil {
+		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return 0, err
 		}
 
 		op.Comment(comment)
 	}
-	if countOpts.Hint != nil {
-		if isUnorderedMap(countOpts.Hint) {
+	if args.Hint != nil {
+		if isUnorderedMap(args.Hint) {
 			return 0, ErrMapForOrderedArgument{"hint"}
 		}
-		hintVal, err := marshalValue(countOpts.Hint, coll.bsonOpts, coll.registry)
+		hintVal, err := marshalValue(args.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return 0, err
 		}
