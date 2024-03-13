@@ -259,7 +259,7 @@ functions:
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
           REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
           LOAD_BALANCER=${LOAD_BALANCER} \
-          sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
         file: mo-expansion.yml
@@ -276,7 +276,7 @@ functions:
           AUTH=${AUTH} \
           SSL=${SSL} \
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
-          sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
         file: mo-expansion.yml
