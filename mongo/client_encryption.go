@@ -150,30 +150,20 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Bina
 
 // CreateDataKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
 // document as a UUID (BSON binary subtype 0x04).
-func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
-	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
-
-	// translate opts to mcopts.DataKeyOptions
-	dko := options.DataKey()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.MasterKey != nil {
-			dko.MasterKey = opt.MasterKey
-		}
-		if opt.KeyAltNames != nil {
-			dko.KeyAltNames = opt.KeyAltNames
-		}
-		if opt.KeyMaterial != nil {
-			dko.KeyMaterial = opt.KeyMaterial
-		}
+func (ce *ClientEncryption) CreateDataKey(
+	ctx context.Context,
+	kmsProvider string,
+	opts ...Options[options.DataKeyArgs],
+) (primitive.Binary, error) {
+	args, err := newArgsFromOptions[options.DataKeyArgs](opts...)
+	if err != nil {
+		return primitive.Binary{}, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
-	co := mcopts.DataKey().SetKeyAltNames(dko.KeyAltNames)
-	if dko.MasterKey != nil {
+
+	co := mcopts.DataKey().SetKeyAltNames(args.KeyAltNames)
+	if args.MasterKey != nil {
 		keyDoc, err := marshal(
-			dko.MasterKey,
+			args.MasterKey,
 			ce.keyVaultClient.bsonOpts,
 			ce.keyVaultClient.registry)
 		if err != nil {
@@ -181,8 +171,8 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 		}
 		co.SetMasterKey(keyDoc)
 	}
-	if dko.KeyMaterial != nil {
-		co.SetKeyMaterial(dko.KeyMaterial)
+	if args.KeyMaterial != nil {
+		co.SetKeyMaterial(args.KeyMaterial)
 	}
 
 	// create data key document
@@ -202,66 +192,48 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 }
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
-func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts.ExplicitEncryptionOptions {
-	eo := options.Encrypt()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
+func transformExplicitEncryptionOptions(opts ...Options[options.EncryptArgs]) *mcopts.ExplicitEncryptionOptions {
+	args, _ := newArgsFromOptions[options.EncryptArgs](opts...)
 
-		if opt.KeyID != nil {
-			eo.KeyID = opt.KeyID
-		}
-		if opt.KeyAltName != nil {
-			eo.KeyAltName = opt.KeyAltName
-		}
-		if opt.Algorithm != "" {
-			eo.Algorithm = opt.Algorithm
-		}
-		if opt.QueryType != "" {
-			eo.QueryType = opt.QueryType
-		}
-		if opt.ContentionFactor != nil {
-			eo.ContentionFactor = opt.ContentionFactor
-		}
-		if opt.RangeOptions != nil {
-			eo.RangeOptions = opt.RangeOptions
-		}
-	}
 	transformed := mcopts.ExplicitEncryption()
-	if eo.KeyID != nil {
-		transformed.SetKeyID(*eo.KeyID)
+	if args.KeyID != nil {
+		transformed.SetKeyID(*args.KeyID)
 	}
-	if eo.KeyAltName != nil {
-		transformed.SetKeyAltName(*eo.KeyAltName)
+	if args.KeyAltName != nil {
+		transformed.SetKeyAltName(*args.KeyAltName)
 	}
-	transformed.SetAlgorithm(eo.Algorithm)
-	transformed.SetQueryType(eo.QueryType)
+	transformed.SetAlgorithm(args.Algorithm)
+	transformed.SetQueryType(args.QueryType)
 
-	if eo.ContentionFactor != nil {
-		transformed.SetContentionFactor(*eo.ContentionFactor)
+	if args.ContentionFactor != nil {
+		transformed.SetContentionFactor(*args.ContentionFactor)
 	}
 
-	if eo.RangeOptions != nil {
+	if args.RangeOptions != nil {
+		rangeArgs, _ := newArgsFromOptions[options.RangeArgs](args.RangeOptions)
+
 		var transformedRange mcopts.ExplicitRangeOptions
-		if eo.RangeOptions.Min != nil {
-			transformedRange.Min = &bsoncore.Value{Type: eo.RangeOptions.Min.Type, Data: eo.RangeOptions.Min.Value}
+		if rangeArgs.Min != nil {
+			transformedRange.Min = &bsoncore.Value{Type: rangeArgs.Min.Type, Data: rangeArgs.Min.Value}
 		}
-		if eo.RangeOptions.Max != nil {
-			transformedRange.Max = &bsoncore.Value{Type: eo.RangeOptions.Max.Type, Data: eo.RangeOptions.Max.Value}
+		if rangeArgs.Max != nil {
+			transformedRange.Max = &bsoncore.Value{Type: rangeArgs.Max.Type, Data: rangeArgs.Max.Value}
 		}
-		if eo.RangeOptions.Precision != nil {
-			transformedRange.Precision = eo.RangeOptions.Precision
+		if rangeArgs.Precision != nil {
+			transformedRange.Precision = rangeArgs.Precision
 		}
-		transformedRange.Sparsity = eo.RangeOptions.Sparsity
+		transformedRange.Sparsity = rangeArgs.Sparsity
 		transformed.SetRangeOptions(transformedRange)
 	}
 	return transformed
 }
 
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
-func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
-	opts ...*options.EncryptOptions) (primitive.Binary, error) {
+func (ce *ClientEncryption) Encrypt(
+	ctx context.Context,
+	val bson.RawValue,
+	opts ...Options[options.EncryptArgs],
+) (primitive.Binary, error) {
 
 	transformed := transformExplicitEncryptionOptions(opts...)
 	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
@@ -281,7 +253,12 @@ func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
 // $gt may also be $gte. $lt may also be $lte.
 // Only supported for queryType "rangePreview"
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interface{}, result interface{}, opts ...*options.EncryptOptions) error {
+func (ce *ClientEncryption) EncryptExpression(
+	ctx context.Context,
+	expr interface{},
+	result interface{},
+	opts ...Options[options.EncryptArgs],
+) error {
 	transformed := transformExplicitEncryptionOptions(opts...)
 
 	exprDoc, err := marshal(expr, nil, nil)

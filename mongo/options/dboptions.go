@@ -13,8 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// DatabaseOptions represents options that can be used to configure a Database.
-type DatabaseOptions struct {
+// DatabaseArgs represents arguments that can be used to configure a Database.
+type DatabaseArgs struct {
 	// ReadConcern is the read concern to use for operations executed on the Database. The default value is nil, which means that
 	// the read concern of the Client used to configure the Database will be used.
 	ReadConcern *readconcern.ReadConcern
@@ -36,37 +36,74 @@ type DatabaseOptions struct {
 	Registry *bsoncodec.Registry
 }
 
+// DatabaseOptions contains options to configure a database object. Each option
+// can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DatabaseOptions struct {
+	Opts []func(*DatabaseArgs) error
+}
+
 // Database creates a new DatabaseOptions instance.
 func Database() *DatabaseOptions {
 	return &DatabaseOptions{}
 }
 
+// ArgsSetters returns a list of DatabaseArgs setter functions.
+func (d *DatabaseOptions) ArgsSetters() []func(*DatabaseArgs) error {
+	return d.Opts
+}
+
 // SetReadConcern sets the value for the ReadConcern field.
 func (d *DatabaseOptions) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptions {
-	d.ReadConcern = rc
+	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+		args.ReadConcern = rc
+
+		return nil
+	})
+
 	return d
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
 func (d *DatabaseOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptions {
-	d.WriteConcern = wc
+	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+		args.WriteConcern = wc
+
+		return nil
+	})
+
 	return d
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
 func (d *DatabaseOptions) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptions {
-	d.ReadPreference = rp
+	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+		args.ReadPreference = rp
+
+		return nil
+	})
+
 	return d
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
 func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
-	d.BSONOptions = opts
+	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+		args.BSONOptions = opts
+
+		return nil
+	})
+
 	return d
 }
 
 // SetRegistry sets the value for the Registry field.
 func (d *DatabaseOptions) SetRegistry(r *bsoncodec.Registry) *DatabaseOptions {
-	d.Registry = r
+	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+		args.Registry = r
+
+		return nil
+	})
+
 	return d
 }

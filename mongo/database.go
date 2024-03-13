@@ -44,49 +44,32 @@ type Database struct {
 	registry       *bsoncodec.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
-	dbOpt := options.Database()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			dbOpt.ReadConcern = opt.ReadConcern
-		}
-		if opt.WriteConcern != nil {
-			dbOpt.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadPreference != nil {
-			dbOpt.ReadPreference = opt.ReadPreference
-		}
-		if opt.Registry != nil {
-			dbOpt.Registry = opt.Registry
-		}
-	}
+func newDatabase(client *Client, name string, opts ...Options[options.DatabaseArgs]) *Database {
+	args, _ := newArgsFromOptions[options.DatabaseArgs](opts...)
 
 	rc := client.readConcern
-	if dbOpt.ReadConcern != nil {
-		rc = dbOpt.ReadConcern
+	if args.ReadConcern != nil {
+		rc = args.ReadConcern
 	}
 
 	rp := client.readPreference
-	if dbOpt.ReadPreference != nil {
-		rp = dbOpt.ReadPreference
+	if args.ReadPreference != nil {
+		rp = args.ReadPreference
 	}
 
 	wc := client.writeConcern
-	if dbOpt.WriteConcern != nil {
-		wc = dbOpt.WriteConcern
+	if args.WriteConcern != nil {
+		wc = args.WriteConcern
 	}
 
 	bsonOpts := client.bsonOpts
-	if dbOpt.BSONOptions != nil {
-		bsonOpts = dbOpt.BSONOptions
+	if args.BSONOptions != nil {
+		bsonOpts = args.BSONOptions
 	}
 
 	reg := client.registry
-	if dbOpt.Registry != nil {
-		reg = dbOpt.Registry
+	if args.Registry != nil {
+		reg = args.Registry
 	}
 
 	db := &Database{
@@ -933,34 +916,14 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
 // container for files.
-func (db *Database) GridFSBucket(opts ...*options.BucketOptions) *GridFSBucket {
+func (db *Database) GridFSBucket(opts ...Options[options.BucketArgs]) *GridFSBucket {
 	b := &GridFSBucket{
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
 		db:        db,
 	}
 
-	bo := options.GridFSBucket()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Name != nil {
-			bo.Name = opt.Name
-		}
-		if opt.ChunkSizeBytes != nil {
-			bo.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.WriteConcern != nil {
-			bo.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadConcern != nil {
-			bo.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			bo.ReadPreference = opt.ReadPreference
-		}
-	}
+	bo, _ := newArgsFromOptions[options.BucketArgs](opts...)
 	if bo.Name != nil {
 		b.name = *bo.Name
 	}

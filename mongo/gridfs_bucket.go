@@ -67,7 +67,7 @@ type upload struct {
 func (b *GridFSBucket) OpenUploadStream(
 	ctx context.Context,
 	filename string,
-	opts ...*options.UploadOptions,
+	opts ...Options[options.GridFSUploadArgs],
 ) (*GridFSUploadStream, error) {
 	return b.OpenUploadStreamWithID(ctx, primitive.NewObjectID(), filename, opts...)
 }
@@ -81,13 +81,13 @@ func (b *GridFSBucket) OpenUploadStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
-	opts ...*options.UploadOptions,
+	opts ...Options[options.GridFSUploadArgs],
 ) (*GridFSUploadStream, error) {
 	if err := b.checkFirstWrite(ctx); err != nil {
 		return nil, err
 	}
 
-	upload, err := b.parseUploadOptions(opts...)
+	upload, err := b.parseGridFSUploadOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (b *GridFSBucket) UploadFromStream(
 	ctx context.Context,
 	filename string,
 	source io.Reader,
-	opts ...*options.UploadOptions,
+	opts ...Options[options.GridFSUploadArgs],
 ) (primitive.ObjectID, error) {
 	fileID := primitive.NewObjectID()
 	err := b.UploadFromStreamWithID(ctx, fileID, filename, source, opts...)
@@ -127,7 +127,7 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 	fileID interface{},
 	filename string,
 	source io.Reader,
-	opts ...*options.UploadOptions,
+	opts ...Options[options.GridFSUploadArgs],
 ) error {
 	us, err := b.OpenUploadStreamWithID(ctx, fileID, filename, opts...)
 	if err != nil {
@@ -192,25 +192,22 @@ func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{},
 func (b *GridFSBucket) OpenDownloadStreamByName(
 	ctx context.Context,
 	filename string,
-	opts ...*options.NameOptions,
+	opts ...Options[options.GridFSNameArgs],
 ) (*GridFSDownloadStream, error) {
+	args, err := newArgsFromOptions[options.GridFSNameArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	var numSkip int32 = -1
+
+	if args.Revision == nil {
+		args.Revision = &options.DefaultRevision
+	} else {
+		numSkip = *args.Revision
+	}
+
 	var sortOrder int32 = 1
-
-	nameOpts := options.GridFSName()
-	nameOpts.Revision = &options.DefaultRevision
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Revision != nil {
-			nameOpts.Revision = opt.Revision
-		}
-	}
-	if nameOpts.Revision != nil {
-		numSkip = *nameOpts.Revision
-	}
 
 	if numSkip < 0 {
 		sortOrder = -1
@@ -235,7 +232,7 @@ func (b *GridFSBucket) DownloadToStreamByName(
 	ctx context.Context,
 	filename string,
 	stream io.Writer,
-	opts ...*options.NameOptions,
+	opts ...Options[options.GridFSNameArgs],
 ) (int64, error) {
 	ds, err := b.OpenDownloadStreamByName(ctx, filename, opts...)
 	if err != nil {
@@ -282,56 +279,34 @@ func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
 func (b *GridFSBucket) Find(
 	ctx context.Context,
 	filter interface{},
-	opts ...*options.GridFSFindOptions,
+	opts ...Options[options.GridFSFindArgs],
 ) (*Cursor, error) {
-	gfsOpts := options.GridFSFind()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.AllowDiskUse != nil {
-			gfsOpts.AllowDiskUse = opt.AllowDiskUse
-		}
-		if opt.BatchSize != nil {
-			gfsOpts.BatchSize = opt.BatchSize
-		}
-		if opt.Limit != nil {
-			gfsOpts.Limit = opt.Limit
-		}
-		if opt.MaxTime != nil {
-			gfsOpts.MaxTime = opt.MaxTime
-		}
-		if opt.NoCursorTimeout != nil {
-			gfsOpts.NoCursorTimeout = opt.NoCursorTimeout
-		}
-		if opt.Skip != nil {
-			gfsOpts.Skip = opt.Skip
-		}
-		if opt.Sort != nil {
-			gfsOpts.Sort = opt.Sort
-		}
+	args, err := newArgsFromOptions[options.GridFSFindArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
+
 	find := options.Find()
-	if gfsOpts.AllowDiskUse != nil {
-		find.SetAllowDiskUse(*gfsOpts.AllowDiskUse)
+	if args.AllowDiskUse != nil {
+		find.SetAllowDiskUse(*args.AllowDiskUse)
 	}
-	if gfsOpts.BatchSize != nil {
-		find.SetBatchSize(*gfsOpts.BatchSize)
+	if args.BatchSize != nil {
+		find.SetBatchSize(*args.BatchSize)
 	}
-	if gfsOpts.Limit != nil {
-		find.SetLimit(int64(*gfsOpts.Limit))
+	if args.Limit != nil {
+		find.SetLimit(int64(*args.Limit))
 	}
-	if gfsOpts.MaxTime != nil {
-		find.SetMaxTime(*gfsOpts.MaxTime)
+	if args.MaxTime != nil {
+		find.SetMaxTime(*args.MaxTime)
 	}
-	if gfsOpts.NoCursorTimeout != nil {
-		find.SetNoCursorTimeout(*gfsOpts.NoCursorTimeout)
+	if args.NoCursorTimeout != nil {
+		find.SetNoCursorTimeout(*args.NoCursorTimeout)
 	}
-	if gfsOpts.Skip != nil {
-		find.SetSkip(int64(*gfsOpts.Skip))
+	if args.Skip != nil {
+		find.SetSkip(int64(*args.Skip))
 	}
-	if gfsOpts.Sort != nil {
-		find.SetSort(gfsOpts.Sort)
+	if args.Sort != nil {
+		find.SetSort(args.Sort)
 	}
 
 	return b.filesColl.Find(ctx, filter, find)
@@ -591,45 +566,35 @@ func (b *GridFSBucket) checkFirstWrite(ctx context.Context) error {
 	return nil
 }
 
-func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*upload, error) {
+func (b *GridFSBucket) parseGridFSUploadOptions(opts ...Options[options.GridFSUploadArgs]) (*upload, error) {
 	upload := &upload{
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 
-	uo := options.GridFSUpload()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ChunkSizeBytes != nil {
-			uo.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.Metadata != nil {
-			uo.Metadata = opt.Metadata
-		}
-		if opt.Registry != nil {
-			uo.Registry = opt.Registry
-		}
+	args, err := newArgsFromOptions[options.GridFSUploadArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
-	if uo.ChunkSizeBytes != nil {
-		upload.chunkSize = *uo.ChunkSizeBytes
+
+	if args.ChunkSizeBytes != nil {
+		upload.chunkSize = *args.ChunkSizeBytes
 	}
-	if uo.Registry == nil {
-		uo.Registry = bson.DefaultRegistry
+	if args.Registry == nil {
+		args.Registry = bson.DefaultRegistry
 	}
-	if uo.Metadata != nil {
+	if args.Metadata != nil {
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
 		// TODO gridfs package is merged into the mongo package.
 		buf := new(bytes.Buffer)
 		vw := bsonrw.NewValueWriter(buf)
 		enc := bson.NewEncoder(vw)
-		enc.SetRegistry(uo.Registry)
-		err := enc.Encode(uo.Metadata)
+		enc.SetRegistry(args.Registry)
+		err := enc.Encode(args.Metadata)
 		if err != nil {
 			return nil, err
 		}
 		var doc bson.D
-		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, buf.Bytes(), &doc)
+		unMarErr := bson.UnmarshalWithRegistry(args.Registry, buf.Bytes(), &doc)
 		if unMarErr != nil {
 			return nil, unMarErr
 		}

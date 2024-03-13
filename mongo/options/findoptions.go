@@ -476,8 +476,9 @@ func (f *FindOneOptions) SetSort(sort interface{}) *FindOneOptions {
 	return f
 }
 
-// FindOneAndReplaceOptions represents options that can be used to configure a FindOneAndReplace instance.
-type FindOneAndReplaceOptions struct {
+// FindOneAndReplaceArgs represents arguments that can be used to configure a
+// FindOneAndReplace instance.
+type FindOneAndReplaceArgs struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -533,26 +534,53 @@ type FindOneAndReplaceOptions struct {
 	Let interface{}
 }
 
+// FindOneAndReplaceOptions contains options to perform a findAndModify
+// operation. Each option can be set through setter functions. See documentation
+// for each setter function for an explanation of the option.
+type FindOneAndReplaceOptions struct {
+	Opts []func(*FindOneAndReplaceArgs) error
+}
+
 // FindOneAndReplace creates a new FindOneAndReplaceOptions instance.
 func FindOneAndReplace() *FindOneAndReplaceOptions {
 	return &FindOneAndReplaceOptions{}
 }
 
+// ArgsSetters returns a list of FindOneAndReplaceArgs setter functions.
+func (f *FindOneAndReplaceOptions) ArgsSetters() []func(*FindOneAndReplaceArgs) error {
+	return f.Opts
+}
+
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (f *FindOneAndReplaceOptions) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptions {
-	f.BypassDocumentValidation = &b
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.BypassDocumentValidation = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAndReplaceOptions {
-	f.Collation = collation
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Collation = collation
+
+		return nil
+	})
+
 	return f
 }
 
 // SetComment sets the value for the Comment field.
 func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndReplaceOptions {
-	f.Comment = comment
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Comment = comment
+
+		return nil
+	})
+
 	return f
 }
 
@@ -562,48 +590,84 @@ func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndRe
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneAndReplaceOptions) SetMaxTime(d time.Duration) *FindOneAndReplaceOptions {
-	f.MaxTime = &d
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.MaxTime = &d
+
+		return nil
+	})
+
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
 func (f *FindOneAndReplaceOptions) SetProjection(projection interface{}) *FindOneAndReplaceOptions {
-	f.Projection = projection
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Projection = projection
+
+		return nil
+	})
+
 	return f
 }
 
 // SetReturnDocument sets the value for the ReturnDocument field.
 func (f *FindOneAndReplaceOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptions {
-	f.ReturnDocument = &rd
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.ReturnDocument = &rd
+
+		return nil
+	})
+
 	return f
 }
 
 // SetSort sets the value for the Sort field.
 func (f *FindOneAndReplaceOptions) SetSort(sort interface{}) *FindOneAndReplaceOptions {
-	f.Sort = sort
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Sort = sort
+
+		return nil
+	})
+
 	return f
 }
 
 // SetUpsert sets the value for the Upsert field.
 func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
-	f.Upsert = &b
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Upsert = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetHint sets the value for the Hint field.
 func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceOptions {
-	f.Hint = hint
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Hint = hint
+
+		return nil
+	})
+
 	return f
 }
 
 // SetLet sets the value for the Let field.
 func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOptions {
-	f.Let = let
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+		args.Let = let
+
+		return nil
+	})
+
 	return f
 }
 
-// FindOneAndUpdateOptions represents options that can be used to configure a FindOneAndUpdate options.
-type FindOneAndUpdateOptions struct {
+// FindOneAndUpdateArgs represents arguments that can be used to configure a
+// FindOneAndUpdate options.
+type FindOneAndUpdateArgs struct {
 	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
 	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the update will apply to all array elements.
@@ -664,32 +728,64 @@ type FindOneAndUpdateOptions struct {
 	Let interface{}
 }
 
+// FindOneAndUpdateOptions contains options to configure a findOneAndUpdate
+// operation. Each option can be set through setter functions. See documentation
+// for each setter function for an explanation of the option.
+type FindOneAndUpdateOptions struct {
+	Opts []func(*FindOneAndUpdateArgs) error
+}
+
 // FindOneAndUpdate creates a new FindOneAndUpdateOptions instance.
 func FindOneAndUpdate() *FindOneAndUpdateOptions {
 	return &FindOneAndUpdateOptions{}
 }
 
+// ArgsSetters returns a list of FindOneAndUpdateArgs setter functions.
+func (f *FindOneAndUpdateOptions) ArgsSetters() []func(*FindOneAndUpdateArgs) error {
+	return f.Opts
+}
+
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (f *FindOneAndUpdateOptions) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptions {
-	f.BypassDocumentValidation = &b
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.BypassDocumentValidation = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetArrayFilters sets the value for the ArrayFilters field.
 func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOneAndUpdateOptions {
-	f.ArrayFilters = &filters
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.ArrayFilters = &filters
+
+		return nil
+	})
+
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAndUpdateOptions {
-	f.Collation = collation
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Collation = collation
+
+		return nil
+	})
+
 	return f
 }
 
 // SetComment sets the value for the Comment field.
 func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpdateOptions {
-	f.Comment = comment
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Comment = comment
+
+		return nil
+	})
+
 	return f
 }
 
@@ -699,48 +795,84 @@ func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpd
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneAndUpdateOptions) SetMaxTime(d time.Duration) *FindOneAndUpdateOptions {
-	f.MaxTime = &d
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.MaxTime = &d
+
+		return nil
+	})
+
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
 func (f *FindOneAndUpdateOptions) SetProjection(projection interface{}) *FindOneAndUpdateOptions {
-	f.Projection = projection
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Projection = projection
+
+		return nil
+	})
+
 	return f
 }
 
 // SetReturnDocument sets the value for the ReturnDocument field.
 func (f *FindOneAndUpdateOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptions {
-	f.ReturnDocument = &rd
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.ReturnDocument = &rd
+
+		return nil
+	})
+
 	return f
 }
 
 // SetSort sets the value for the Sort field.
 func (f *FindOneAndUpdateOptions) SetSort(sort interface{}) *FindOneAndUpdateOptions {
-	f.Sort = sort
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Sort = sort
+
+		return nil
+	})
+
 	return f
 }
 
 // SetUpsert sets the value for the Upsert field.
 func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
-	f.Upsert = &b
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Upsert = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetHint sets the value for the Hint field.
 func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOptions {
-	f.Hint = hint
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Hint = hint
+
+		return nil
+	})
+
 	return f
 }
 
 // SetLet sets the value for the Let field.
 func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptions {
-	f.Let = let
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+		args.Let = let
+
+		return nil
+	})
+
 	return f
 }
 
-// FindOneAndDeleteOptions represents options that can be used to configure a FindOneAndDelete operation.
-type FindOneAndDeleteOptions struct {
+// FindOneAndDeleteArgs represents arguments that can be used to configure a
+// FindOneAndDelete operation.
+type FindOneAndDeleteArgs struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
@@ -782,20 +914,42 @@ type FindOneAndDeleteOptions struct {
 	Let interface{}
 }
 
+// FindOneAndDeleteOptions contains options to configure delete operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type FindOneAndDeleteOptions struct {
+	Opts []func(*FindOneAndDeleteArgs) error
+}
+
 // FindOneAndDelete creates a new FindOneAndDeleteOptions instance.
 func FindOneAndDelete() *FindOneAndDeleteOptions {
 	return &FindOneAndDeleteOptions{}
 }
 
+// ArgsSetters returns a list of FindOneAndDeleteArgs setter functions.
+func (f *FindOneAndDeleteOptions) ArgsSetters() []func(*FindOneAndDeleteArgs) error {
+	return f.Opts
+}
+
 // SetCollation sets the value for the Collation field.
 func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAndDeleteOptions {
-	f.Collation = collation
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.Collation = collation
+
+		return nil
+	})
+
 	return f
 }
 
 // SetComment sets the value for the Comment field.
 func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDeleteOptions {
-	f.Comment = comment
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.Comment = comment
+
+		return nil
+	})
+
 	return f
 }
 
@@ -805,30 +959,55 @@ func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDel
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (f *FindOneAndDeleteOptions) SetMaxTime(d time.Duration) *FindOneAndDeleteOptions {
-	f.MaxTime = &d
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.MaxTime = &d
+
+		return nil
+	})
+
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
 func (f *FindOneAndDeleteOptions) SetProjection(projection interface{}) *FindOneAndDeleteOptions {
-	f.Projection = projection
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.Projection = projection
+
+		return nil
+	})
+
 	return f
 }
 
 // SetSort sets the value for the Sort field.
 func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOptions {
-	f.Sort = sort
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.Sort = sort
+
+		return nil
+	})
+
 	return f
 }
 
 // SetHint sets the value for the Hint field.
 func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOptions {
-	f.Hint = hint
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.Hint = hint
+
+		return nil
+	})
+
 	return f
 }
 
 // SetLet sets the value for the Let field.
 func (f *FindOneAndDeleteOptions) SetLet(let interface{}) *FindOneAndDeleteOptions {
-	f.Let = let
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+		args.Let = let
+
+		return nil
+	})
+
 	return f
 }

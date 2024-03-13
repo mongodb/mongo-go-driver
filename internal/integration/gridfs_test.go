@@ -475,16 +475,12 @@ func TestGridFS(x *testing.T) {
 
 		for _, test := range tests {
 			mt.Run(test.name, func(mt *mtest.T) {
-				var chunkSize *int32
-				var temp int32
+				var chunkSize int32
 				if test.chunkSize != -1 {
-					temp = int32(test.chunkSize)
-					chunkSize = &temp
+					chunkSize = int32(test.chunkSize)
 				}
 
-				bucket := mt.DB.GridFSBucket(&options.BucketOptions{
-					ChunkSizeBytes: chunkSize,
-				})
+				bucket := mt.DB.GridFSBucket(options.GridFSBucket().SetChunkSizeBytes(chunkSize))
 
 				timeout := 5 * time.Second
 				if israce.Enabled {

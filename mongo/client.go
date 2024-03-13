@@ -657,7 +657,7 @@ func (c *Client) validSession(sess *session.Client) error {
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
-func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
+func (c *Client) Database(name string, opts ...Options[options.DatabaseArgs]) *Database {
 	return newDatabase(c, name, opts...)
 }
 
