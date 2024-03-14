@@ -16,5 +16,5 @@ export CSFLE_TLS_CA_FILE="${PARENT_DIR}/testdata/kmip-certs/ca-ec.pem"
 export CSFLE_TLS_CERT_FILE="${PARENT_DIR}/testdata/kmip-certs/server-ec.pem"
 export CSFLE_TLS_CLIENT_CERT_FILE="${PARENT_DIR}/testdata/kmip-certs/client-ec.pem"
 
-bash $DRIVERS_TOOLS/.evergreen/csfle/setup_secrets.sh
-bash $DRIVERS_TOOLS/.evergreen/csfle/start_servers.sh
+bash $DRIVERS_TOOLS/.evergreen/csfle/setup-secrets.sh
+bash $DRIVERS_TOOLS/.evergreen/csfle/start-servers.sh
