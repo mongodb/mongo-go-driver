@@ -320,7 +320,9 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 			}
 			model.Definition = m.Definition
 			model.Options = options.SearchIndexes()
-			model.Options.Name = m.Name
+			if m.Name != nil {
+				model.Options.SetName(*m.Name)
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized createSearchIndex option %q", key)
 		}
@@ -365,7 +367,9 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 					Definition: m.Definition,
 					Options:    options.SearchIndexes(),
 				}
-				model.Options.Name = m.Name
+				if m.Name != nil {
+					model.Options.SetName(*m.Name)
+				}
 				models = append(models, model)
 			}
 		default:

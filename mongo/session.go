@@ -9,6 +9,7 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -87,7 +88,7 @@ type Session interface {
 	// StartTransaction starts a new transaction, configured with the given options, on this
 	// session. This method returns an error if there is already a transaction in-progress for this
 	// session.
-	StartTransaction(...*options.TransactionOptions) error
+	StartTransaction(...Options[options.TransactionArgs]) error
 
 	// AbortTransaction aborts the active transaction for this session. This method returns an error
 	// if there is no active transaction for this session or if the transaction has been committed
@@ -111,7 +112,7 @@ type Session interface {
 	// properly cleaned up, context deadlines and cancellations will not be respected during this
 	// call. For a usage example, see the Client.StartSession method documentation.
 	WithTransaction(ctx context.Context, fn func(ctx SessionContext) (interface{}, error),
-		opts ...*options.TransactionOptions) (interface{}, error)
+		opts ...Options[options.TransactionArgs]) (interface{}, error)
 
 	// EndSession aborts any existing transactions and close the session.
 	EndSession(context.Context)
@@ -179,8 +180,11 @@ func (s *sessionImpl) EndSession(ctx context.Context) {
 }
 
 // WithTransaction implements the Session interface.
-func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(ctx SessionContext) (interface{}, error),
-	opts ...*options.TransactionOptions) (interface{}, error) {
+func (s *sessionImpl) WithTransaction(
+	ctx context.Context,
+	fn func(ctx SessionContext) (interface{}, error),
+	opts ...Options[options.TransactionArgs],
+) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
 	var err error
@@ -259,7 +263,7 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(ctx SessionCo
 }
 
 // StartTransaction implements the Session interface.
-func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) error {
+func (s *sessionImpl) StartTransaction(opts ...Options[options.TransactionArgs]) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -267,29 +271,16 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 
 	s.didCommitAfterStart = false
 
-	topts := options.Transaction()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			topts.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			topts.ReadPreference = opt.ReadPreference
-		}
-		if opt.WriteConcern != nil {
-			topts.WriteConcern = opt.WriteConcern
-		}
-		if opt.MaxCommitTime != nil {
-			topts.MaxCommitTime = opt.MaxCommitTime
-		}
+	args, err := newArgsFromOptions[options.TransactionArgs](opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
+
 	coreOpts := &session.TransactionOptions{
-		ReadConcern:    topts.ReadConcern,
-		ReadPreference: topts.ReadPreference,
-		WriteConcern:   topts.WriteConcern,
-		MaxCommitTime:  topts.MaxCommitTime,
+		ReadConcern:    args.ReadConcern,
+		ReadPreference: args.ReadPreference,
+		WriteConcern:   args.WriteConcern,
+		MaxCommitTime:  args.MaxCommitTime,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)

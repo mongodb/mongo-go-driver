@@ -6,9 +6,9 @@
 
 package options
 
-// RewrapManyDataKeyOptions represents all possible options used to decrypt and encrypt all matching data keys with a
-// possibly new masterKey.
-type RewrapManyDataKeyOptions struct {
+// RewrapManyDataKeyArgs represents all possible options used to decrypt and
+// encrypt all matching data keys with a possibly new masterKey.
+type RewrapManyDataKeyArgs struct {
 	// Provider identifies the new KMS provider. If omitted, encrypting uses the current KMS provider.
 	Provider *string
 
@@ -16,19 +16,41 @@ type RewrapManyDataKeyOptions struct {
 	MasterKey interface{}
 }
 
+// RewrapManyDataKeyOptions contains options to configure rewraping a data key.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type RewrapManyDataKeyOptions struct {
+	Opts []func(*RewrapManyDataKeyArgs) error
+}
+
 // RewrapManyDataKey creates a new RewrapManyDataKeyOptions instance.
 func RewrapManyDataKey() *RewrapManyDataKeyOptions {
 	return new(RewrapManyDataKeyOptions)
 }
 
+// ArgsSetters returns a list of CountArgs setter functions.
+func (rmdko *RewrapManyDataKeyOptions) ArgsSetters() []func(*RewrapManyDataKeyArgs) error {
+	return rmdko.Opts
+}
+
 // SetProvider sets the value for the Provider field.
 func (rmdko *RewrapManyDataKeyOptions) SetProvider(provider string) *RewrapManyDataKeyOptions {
-	rmdko.Provider = &provider
+	rmdko.Opts = append(rmdko.Opts, func(args *RewrapManyDataKeyArgs) error {
+		args.Provider = &provider
+
+		return nil
+	})
+
 	return rmdko
 }
 
 // SetMasterKey sets the value for the MasterKey field.
 func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptions {
-	rmdko.MasterKey = masterKey
+	rmdko.Opts = append(rmdko.Opts, func(args *RewrapManyDataKeyArgs) error {
+		args.MasterKey = masterKey
+
+		return nil
+	})
+
 	return rmdko
 }

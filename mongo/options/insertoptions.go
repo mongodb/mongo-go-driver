@@ -53,8 +53,9 @@ func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
 	return ioo
 }
 
-// InsertManyOptions represents options that can be used to configure an InsertMany operation.
-type InsertManyOptions struct {
+// InsertManyArgs represents arguments that can be used to configure an
+// InsertMany operation.
+type InsertManyArgs struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -69,27 +70,55 @@ type InsertManyOptions struct {
 	Ordered *bool
 }
 
+// InsertManyOptions contains options to configure insert operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type InsertManyOptions struct {
+	Opts []func(*InsertManyArgs) error
+}
+
 // InsertMany creates a new InsertManyOptions instance.
 func InsertMany() *InsertManyOptions {
-	return &InsertManyOptions{
-		Ordered: &DefaultOrdered,
-	}
+	opts := &InsertManyOptions{}
+	opts.SetOrdered(DefaultOrdered)
+
+	return opts
+}
+
+// ArgsSetters returns a list of InsertManyArgs setter functions.
+func (imo *InsertManyOptions) ArgsSetters() []func(*InsertManyArgs) error {
+	return imo.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (imo *InsertManyOptions) SetBypassDocumentValidation(b bool) *InsertManyOptions {
-	imo.BypassDocumentValidation = &b
+	imo.Opts = append(imo.Opts, func(args *InsertManyArgs) error {
+		args.BypassDocumentValidation = &b
+
+		return nil
+	})
+
 	return imo
 }
 
 // SetComment sets the value for the Comment field.
 func (imo *InsertManyOptions) SetComment(comment interface{}) *InsertManyOptions {
-	imo.Comment = comment
+	imo.Opts = append(imo.Opts, func(args *InsertManyArgs) error {
+		args.Comment = comment
+
+		return nil
+	})
+
 	return imo
 }
 
 // SetOrdered sets the value for the Ordered field.
 func (imo *InsertManyOptions) SetOrdered(b bool) *InsertManyOptions {
-	imo.Ordered = &b
+	imo.Opts = append(imo.Opts, func(args *InsertManyArgs) error {
+		args.Ordered = &b
+
+		return nil
+	})
+
 	return imo
 }

@@ -14,8 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// TransactionOptions represents options that can be used to configure a transaction.
-type TransactionOptions struct {
+// TransactionArgs represents arguments that can be used to configure a
+// transaction.
+type TransactionArgs struct {
 	// The read concern for operations in the transaction. The default value is nil, which means that the default
 	// read concern of the session used to start the transaction will be used.
 	ReadConcern *readconcern.ReadConcern
@@ -41,26 +42,53 @@ type TransactionOptions struct {
 	MaxCommitTime *time.Duration
 }
 
+// TransactionOptions contains arguments to configure count operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type TransactionOptions struct {
+	Opts []func(*TransactionArgs) error
+}
+
 // Transaction creates a new TransactionOptions instance.
 func Transaction() *TransactionOptions {
 	return &TransactionOptions{}
 }
 
+// ArgsSetters returns a list of TransactionArgs setter functions.
+func (t *TransactionOptions) ArgsSetters() []func(*TransactionArgs) error {
+	return t.Opts
+}
+
 // SetReadConcern sets the value for the ReadConcern field.
 func (t *TransactionOptions) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptions {
-	t.ReadConcern = rc
+	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+		args.ReadConcern = rc
+
+		return nil
+	})
+
 	return t
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
 func (t *TransactionOptions) SetReadPreference(rp *readpref.ReadPref) *TransactionOptions {
-	t.ReadPreference = rp
+	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+		args.ReadPreference = rp
+
+		return nil
+	})
+
 	return t
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
 func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptions {
-	t.WriteConcern = wc
+	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+		args.WriteConcern = wc
+
+		return nil
+	})
+
 	return t
 }
 
@@ -70,6 +98,11 @@ func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *Tra
 // option may be used in its place to control the amount of time that a single operation can run before
 // returning an error. MaxCommitTime is ignored if Timeout is set on the client.
 func (t *TransactionOptions) SetMaxCommitTime(mct *time.Duration) *TransactionOptions {
-	t.MaxCommitTime = mct
+	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+		args.MaxCommitTime = mct
+
+		return nil
+	})
+
 	return t
 }

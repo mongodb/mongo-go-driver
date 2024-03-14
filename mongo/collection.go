@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csfle"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -249,8 +250,11 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	return &op.result, replaceErrors(err)
 }
 
-func (coll *Collection) insert(ctx context.Context, documents []interface{},
-	opts ...*options.InsertManyOptions) ([]interface{}, error) {
+func (coll *Collection) insert(
+	ctx context.Context,
+	documents []interface{},
+	opts ...Options[options.InsertManyArgs],
+) ([]interface{}, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -300,33 +304,24 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
-	imo := options.InsertMany()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.BypassDocumentValidation != nil {
-			imo.BypassDocumentValidation = opt.BypassDocumentValidation
-		}
-		if opt.Comment != nil {
-			imo.Comment = opt.Comment
-		}
-		if opt.Ordered != nil {
-			imo.Ordered = opt.Ordered
-		}
+
+	args, err := newArgsFromOptions[options.InsertManyArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
-	if imo.BypassDocumentValidation != nil && *imo.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*imo.BypassDocumentValidation)
+
+	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
+		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
-	if imo.Comment != nil {
-		comment, err := marshalValue(imo.Comment, coll.bsonOpts, coll.registry)
+	if args.Comment != nil {
+		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op = op.Comment(comment)
 	}
-	if imo.Ordered != nil {
-		op = op.Ordered(*imo.Ordered)
+	if args.Ordered != nil {
+		op = op.Ordered(*args.Ordered)
 	}
 	retry := driver.RetryNone
 	if coll.client.retryWrites {
@@ -345,7 +340,7 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		// i indexes have been removed before the current error, so the index is we.Index-i
 		idIndex := int(we.Index) - i
 		// if the insert is ordered, nothing after the error was inserted
-		if imo.Ordered == nil || *imo.Ordered {
+		if args.Ordered == nil || *args.Ordered {
 			result = result[:idIndex]
 			break
 		}
@@ -399,8 +394,11 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 // The opts parameter can be used to specify options for the operation (see the options.InsertManyOptions documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
-func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
-	opts ...*options.InsertManyOptions) (*InsertManyResult, error) {
+func (coll *Collection) InsertMany(
+	ctx context.Context,
+	documents interface{},
+	opts ...Options[options.InsertManyArgs],
+) (*InsertManyResult, error) {
 
 	dv := reflect.ValueOf(documents)
 	if dv.Kind() != reflect.Slice {
@@ -583,39 +581,23 @@ func (coll *Collection) DeleteMany(
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
-func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool,
-	expectedRr returnResult, checkDollarKey bool, opts ...*options.UpdateOptions) (*UpdateResult, error) {
+func (coll *Collection) updateOrReplace(
+	ctx context.Context,
+	filter bsoncore.Document,
+	update interface{},
+	multi bool,
+	expectedRr returnResult,
+	checkDollarKey bool,
+	opts ...Options[options.UpdateArgs],
+) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	uo := options.Update()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ArrayFilters != nil {
-			uo.ArrayFilters = opt.ArrayFilters
-		}
-		if opt.BypassDocumentValidation != nil {
-			uo.BypassDocumentValidation = opt.BypassDocumentValidation
-		}
-		if opt.Collation != nil {
-			uo.Collation = opt.Collation
-		}
-		if opt.Comment != nil {
-			uo.Comment = opt.Comment
-		}
-		if opt.Hint != nil {
-			uo.Hint = opt.Hint
-		}
-		if opt.Upsert != nil {
-			uo.Upsert = opt.Upsert
-		}
-		if opt.Let != nil {
-			uo.Let = opt.Let
-		}
+	args, err := newArgsFromOptions[options.UpdateArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
@@ -623,10 +605,10 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	updateDoc, err := createUpdateDoc(
 		filter,
 		update,
-		uo.Hint,
-		uo.ArrayFilters,
-		uo.Collation,
-		uo.Upsert,
+		args.Hint,
+		args.ArrayFilters,
+		args.Collation,
+		args.Upsert,
 		multi,
 		checkDollarKey,
 		coll.bsonOpts,
@@ -660,22 +642,22 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Session(sess).WriteConcern(wc).CommandMonitor(coll.client.monitor).
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
-		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
-		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
+		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(args.Hint != nil).
+		ArrayFilters(args.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Logger(coll.client.logger)
-	if uo.Let != nil {
-		let, err := marshal(uo.Let, coll.bsonOpts, coll.registry)
+	if args.Let != nil {
+		let, err := marshal(args.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
 		op = op.Let(let)
 	}
 
-	if uo.BypassDocumentValidation != nil && *uo.BypassDocumentValidation {
-		op = op.BypassDocumentValidation(*uo.BypassDocumentValidation)
+	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
+		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
-	if uo.Comment != nil {
-		comment, err := marshalValue(uo.Comment, coll.bsonOpts, coll.registry)
+	if args.Comment != nil {
+		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -721,8 +703,12 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 // The opts parameter can be used to specify options for the operation (see the options.UpdateOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
-func (coll *Collection) UpdateByID(ctx context.Context, id interface{}, update interface{},
-	opts ...*options.UpdateOptions) (*UpdateResult, error) {
+func (coll *Collection) UpdateByID(
+	ctx context.Context,
+	id interface{},
+	update interface{},
+	opts ...Options[options.UpdateArgs],
+) (*UpdateResult, error) {
 	if id == nil {
 		return nil, ErrNilValue
 	}
@@ -743,9 +729,12 @@ func (coll *Collection) UpdateByID(ctx context.Context, id interface{}, update i
 // The opts parameter can be used to specify options for the operation (see the options.UpdateOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
-func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions) (*UpdateResult, error) {
-
+func (coll *Collection) UpdateOne(
+	ctx context.Context,
+	filter interface{},
+	update interface{},
+	opts ...Options[options.UpdateArgs],
+) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -771,9 +760,12 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 // The opts parameter can be used to specify options for the operation (see the options.UpdateOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
-func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, update interface{},
-	opts ...*options.UpdateOptions) (*UpdateResult, error) {
-
+func (coll *Collection) UpdateMany(
+	ctx context.Context,
+	filter interface{},
+	update interface{},
+	opts ...Options[options.UpdateArgs],
+) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -799,11 +791,19 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 // The opts parameter can be used to specify options for the operation (see the options.ReplaceOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/update/.
-func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.ReplaceOptions) (*UpdateResult, error) {
-
+func (coll *Collection) ReplaceOne(
+	ctx context.Context,
+	filter interface{},
+	replacement interface{},
+	opts ...Options[options.ReplaceArgs],
+) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	args, err := newArgsFromOptions[options.ReplaceArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
@@ -820,22 +820,18 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		return nil, err
 	}
 
-	updateOptions := make([]*options.UpdateOptions, 0, len(opts))
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		uOpts := options.Update()
-		uOpts.BypassDocumentValidation = opt.BypassDocumentValidation
-		uOpts.Collation = opt.Collation
-		uOpts.Upsert = opt.Upsert
-		uOpts.Hint = opt.Hint
-		uOpts.Let = opt.Let
-		uOpts.Comment = opt.Comment
-		updateOptions = append(updateOptions, uOpts)
+	updateArgs := &options.UpdateArgs{
+		BypassDocumentValidation: args.BypassDocumentValidation,
+		Collation:                args.Collation,
+		Upsert:                   args.Upsert,
+		Hint:                     args.Hint,
+		Let:                      args.Let,
+		Comment:                  args.Comment,
 	}
 
-	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions...)
+	updateOptions := mongoutil.NewOptionsFromArgs[options.UpdateArgs](updateArgs, nil)
+
+	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions)
 }
 
 // Aggregate executes an aggregate command against the collection and returns a cursor over the resulting documents.

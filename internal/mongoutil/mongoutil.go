@@ -26,7 +26,14 @@ type Args interface {
 		options.EstimatedDocumentCountArgs | options.FindOneAndReplaceArgs |
 		options.FindOneAndUpdateArgs | options.FindOneAndDeleteArgs |
 		options.BucketArgs | options.GridFSUploadArgs | options.GridFSNameArgs |
-		options.GridFSFindArgs
+		options.GridFSFindArgs | options.CreateIndexesArgs |
+		options.DropIndexesArgs | options.ListIndexesArgs | options.IndexArgs |
+		options.InsertManyArgs | options.ListCollectionsArgs | options.LoggerArgs |
+		options.ReplaceArgs | options.UpdateArgs | options.RewrapManyDataKeyArgs |
+		options.RunCmdArgs | options.SearchIndexesArgs |
+		options.CreateSearchIndexesArgs | options.DropSearchIndexArgs |
+		options.UpdateSearchIndexArgs | options.ServerAPIArgs |
+		options.TransactionArgs
 }
 
 // MongoOptions is an interface that wraps a method to return a list of setter

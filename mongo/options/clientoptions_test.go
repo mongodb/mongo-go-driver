@@ -197,7 +197,7 @@ func TestClientOptions(t *testing.T) {
 			// Use a non-SRV URI and manually set the scheme because using an SRV URI would force an SRV lookup.
 			opts := Client().ApplyURI("mongodb://localhost:27017")
 
-			args, err := getClientArgs(opts)
+			args, err := getArgs[ClientArgs](opts)
 			assert.NoError(t, err)
 
 			args.connString.Scheme = connstring.SchemeMongoDBSRV

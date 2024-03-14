@@ -42,28 +42,35 @@ type Config struct {
 }
 
 // ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func ConvertToDriverAPIOptions(s *options.ServerAPIOptions) *driver.ServerAPIOptions {
-	driverOpts := driver.NewServerAPIOptions(string(s.ServerAPIVersion))
-	if s.Strict != nil {
-		driverOpts.SetStrict(*s.Strict)
+func ConvertToDriverAPIOptions(opts mongoutil.MongoOptions[options.ServerAPIArgs]) *driver.ServerAPIOptions {
+	args, _ := mongoutil.NewArgsFromOptions[options.ServerAPIArgs](opts)
+
+	driverOpts := driver.NewServerAPIOptions(string(args.ServerAPIVersion))
+	if args.Strict != nil {
+		driverOpts.SetStrict(*args.Strict)
 	}
-	if s.DeprecationErrors != nil {
-		driverOpts.SetDeprecationErrors(*s.DeprecationErrors)
+	if args.DeprecationErrors != nil {
+		driverOpts.SetDeprecationErrors(*args.DeprecationErrors)
 	}
 	return driverOpts
 }
 
-func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
+func newLogger(opts mongoutil.MongoOptions[options.LoggerArgs]) (*logger.Logger, error) {
 	if opts == nil {
 		opts = options.Logger()
 	}
 
+	args, err := mongoutil.NewArgsFromOptions[options.LoggerArgs](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	componentLevels := make(map[logger.Component]logger.Level)
-	for component, level := range opts.ComponentLevels {
+	for component, level := range args.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
 	}
 
-	log, err := logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
+	log, err := logger.New(args.Sink, args.MaxDocumentLength, componentLevels)
 	if err != nil {
 		return nil, fmt.Errorf("error creating logger: %w", err)
 	}

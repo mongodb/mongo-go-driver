@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/unified"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -900,7 +901,11 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 			mt.Fatalf("unrecognized updateOne option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewArgsFromOptions[options.UpdateArgs](opts)
+	require.NoError(mt, err, "failed to construct arguments from options")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -948,7 +953,11 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			mt.Fatalf("unrecognized updateMany option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewArgsFromOptions[options.UpdateArgs](opts)
+	require.NoError(mt, err, "failed to construct arguments from options")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -992,7 +1001,11 @@ func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			mt.Fatalf("unrecognized replaceOne option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewArgsFromOptions[options.ReplaceArgs](opts)
+	require.NoError(mt, err, "failed to construct arguments from options")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -1422,7 +1435,12 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 
-func executeAdminCommandWithRetry(mt *mtest.T, client *mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
+func executeAdminCommandWithRetry(
+	mt *mtest.T,
+	client *mongo.Client,
+	cmd interface{},
+	opts ...mongo.Options[options.RunCmdArgs],
+) {
 	mt.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

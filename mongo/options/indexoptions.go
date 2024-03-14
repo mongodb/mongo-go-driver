@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// CreateIndexesOptions represents options that can be used to configure IndexView.CreateOne and IndexView.CreateMany
-// operations.
-type CreateIndexesOptions struct {
+// CreateIndexesArgs represents arguments that can be used to configure
+// IndexView.CreateOne and IndexView.CreateMany operations.
+type CreateIndexesArgs struct {
 	// The number of data-bearing members of a replica set, including the primary, that must complete the index builds
 	// successfully before the primary marks the indexes as ready. This should either be a string or int32 value. The
 	// semantics of the values are as follows:
@@ -36,9 +36,21 @@ type CreateIndexesOptions struct {
 	MaxTime *time.Duration
 }
 
+// CreateIndexesOptions contains options to create indexes. Each option can be
+// set through setter functions. See documentation for each setter function for
+// an explanation of the option.
+type CreateIndexesOptions struct {
+	Opts []func(*CreateIndexesArgs) error
+}
+
 // CreateIndexes creates a new CreateIndexesOptions instance.
 func CreateIndexes() *CreateIndexesOptions {
 	return &CreateIndexesOptions{}
+}
+
+// ArgsSetters returns a list of CreateIndexesArgs setter functions.
+func (c *CreateIndexesOptions) ArgsSetters() []func(*CreateIndexesArgs) error {
+	return c.Opts
 }
 
 // SetMaxTime sets the value for the MaxTime field.
@@ -47,37 +59,62 @@ func CreateIndexes() *CreateIndexesOptions {
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (c *CreateIndexesOptions) SetMaxTime(d time.Duration) *CreateIndexesOptions {
-	c.MaxTime = &d
+	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+		args.MaxTime = &d
+
+		return nil
+	})
+
 	return c
 }
 
 // SetCommitQuorumInt sets the value for the CommitQuorum field as an int32.
 func (c *CreateIndexesOptions) SetCommitQuorumInt(quorum int32) *CreateIndexesOptions {
-	c.CommitQuorum = quorum
+	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+		args.CommitQuorum = quorum
+
+		return nil
+	})
+
 	return c
 }
 
 // SetCommitQuorumString sets the value for the CommitQuorum field as a string.
 func (c *CreateIndexesOptions) SetCommitQuorumString(quorum string) *CreateIndexesOptions {
-	c.CommitQuorum = quorum
+	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+		args.CommitQuorum = quorum
+
+		return nil
+	})
+
 	return c
 }
 
 // SetCommitQuorumMajority sets the value for the CommitQuorum to special "majority" value.
 func (c *CreateIndexesOptions) SetCommitQuorumMajority() *CreateIndexesOptions {
-	c.CommitQuorum = "majority"
+	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+		args.CommitQuorum = "majority"
+
+		return nil
+	})
+
 	return c
 }
 
 // SetCommitQuorumVotingMembers sets the value for the CommitQuorum to special "votingMembers" value.
 func (c *CreateIndexesOptions) SetCommitQuorumVotingMembers() *CreateIndexesOptions {
-	c.CommitQuorum = "votingMembers"
+	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+		args.CommitQuorum = "votingMembers"
+
+		return nil
+	})
+
 	return c
 }
 
-// DropIndexesOptions represents options that can be used to configure IndexView.DropOne and IndexView.DropAll
-// operations.
-type DropIndexesOptions struct {
+// DropIndexesArgs represents arguments that can be used to configure
+// IndexView.DropOne and IndexView.DropAll operations.
+type DropIndexesArgs struct {
 	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
 	// is no time limit for query execution.
 	//
@@ -87,9 +124,21 @@ type DropIndexesOptions struct {
 	MaxTime *time.Duration
 }
 
+// DropIndexesOptions contains options to configure dropping indexes. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DropIndexesOptions struct {
+	Opts []func(*DropIndexesArgs) error
+}
+
 // DropIndexes creates a new DropIndexesOptions instance.
 func DropIndexes() *DropIndexesOptions {
 	return &DropIndexesOptions{}
+}
+
+// ArgsSetters returns a list of DropIndexesArgs setter functions.
+func (d *DropIndexesOptions) ArgsSetters() []func(*DropIndexesArgs) error {
+	return d.Opts
 }
 
 // SetMaxTime sets the value for the MaxTime field.
@@ -98,12 +147,18 @@ func DropIndexes() *DropIndexesOptions {
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (d *DropIndexesOptions) SetMaxTime(duration time.Duration) *DropIndexesOptions {
-	d.MaxTime = &duration
+	d.Opts = append(d.Opts, func(args *DropIndexesArgs) error {
+		args.MaxTime = &duration
+
+		return nil
+	})
+
 	return d
 }
 
-// ListIndexesOptions represents options that can be used to configure an IndexView.List operation.
-type ListIndexesOptions struct {
+// ListIndexesArgs represents arguments that can be used to configure an
+// IndexView.List operation.
+type ListIndexesArgs struct {
 	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
 
@@ -116,14 +171,31 @@ type ListIndexesOptions struct {
 	MaxTime *time.Duration
 }
 
+// ListIndexesOptions contains options to configure count operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type ListIndexesOptions struct {
+	Opts []func(*ListIndexesArgs) error
+}
+
 // ListIndexes creates a new ListIndexesOptions instance.
 func ListIndexes() *ListIndexesOptions {
 	return &ListIndexesOptions{}
 }
 
+// ArgsSetters returns a list of CountArgs setter functions.
+func (l *ListIndexesOptions) ArgsSetters() []func(*ListIndexesArgs) error {
+	return l.Opts
+}
+
 // SetBatchSize sets the value for the BatchSize field.
 func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
-	l.BatchSize = &i
+	l.Opts = append(l.Opts, func(args *ListIndexesArgs) error {
+		args.BatchSize = &i
+
+		return nil
+	})
+
 	return l
 }
 
@@ -133,13 +205,18 @@ func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (l *ListIndexesOptions) SetMaxTime(d time.Duration) *ListIndexesOptions {
-	l.MaxTime = &d
+	l.Opts = append(l.Opts, func(args *ListIndexesArgs) error {
+		args.MaxTime = &d
+
+		return nil
+	})
+
 	return l
 }
 
-// IndexOptions represents options that can be used to configure a new index created through the IndexView.CreateOne
-// or IndexView.CreateMany operations.
-type IndexOptions struct {
+// IndexArgs represents arguments that can be used to configure a new index
+// created through the IndexView.CreateOne or IndexView.CreateMany operations.
+type IndexArgs struct {
 	// The length of time, in seconds, for documents to remain in the collection. The default value is 0, which means
 	// that documents will remain in the collection until they're explicitly deleted or the collection is dropped.
 	ExpireAfterSeconds *int32
@@ -221,121 +298,228 @@ type IndexOptions struct {
 	Hidden *bool
 }
 
+// IndexOptions contains options to configure index operations. Each option
+// can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type IndexOptions struct {
+	Opts []func(*IndexArgs) error
+}
+
 // Index creates a new IndexOptions instance.
 func Index() *IndexOptions {
 	return &IndexOptions{}
 }
 
+// ArgsSetters returns a list of IndexArgs setter functions.
+func (i *IndexOptions) ArgsSetters() []func(*IndexArgs) error {
+	return i.Opts
+}
+
 // SetExpireAfterSeconds sets value for the ExpireAfterSeconds field.
 func (i *IndexOptions) SetExpireAfterSeconds(seconds int32) *IndexOptions {
-	i.ExpireAfterSeconds = &seconds
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.ExpireAfterSeconds = &seconds
+
+		return nil
+	})
+
 	return i
 }
 
 // SetName sets the value for the Name field.
 func (i *IndexOptions) SetName(name string) *IndexOptions {
-	i.Name = &name
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Name = &name
+
+		return nil
+	})
+
 	return i
 }
 
 // SetSparse sets the value of the Sparse field.
 func (i *IndexOptions) SetSparse(sparse bool) *IndexOptions {
-	i.Sparse = &sparse
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Sparse = &sparse
+
+		return nil
+	})
+
 	return i
 }
 
 // SetStorageEngine sets the value for the StorageEngine field.
 func (i *IndexOptions) SetStorageEngine(engine interface{}) *IndexOptions {
-	i.StorageEngine = engine
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.StorageEngine = engine
+
+		return nil
+	})
+
 	return i
 }
 
 // SetUnique sets the value for the Unique field.
 func (i *IndexOptions) SetUnique(unique bool) *IndexOptions {
-	i.Unique = &unique
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Unique = &unique
+
+		return nil
+	})
+
 	return i
 }
 
 // SetVersion sets the value for the Version field.
 func (i *IndexOptions) SetVersion(version int32) *IndexOptions {
-	i.Version = &version
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Version = &version
+
+		return nil
+	})
+
 	return i
 }
 
 // SetDefaultLanguage sets the value for the DefaultLanguage field.
 func (i *IndexOptions) SetDefaultLanguage(language string) *IndexOptions {
-	i.DefaultLanguage = &language
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.DefaultLanguage = &language
+
+		return nil
+	})
+
 	return i
 }
 
 // SetLanguageOverride sets the value of the LanguageOverride field.
 func (i *IndexOptions) SetLanguageOverride(override string) *IndexOptions {
-	i.LanguageOverride = &override
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.LanguageOverride = &override
+
+		return nil
+	})
+
 	return i
 }
 
 // SetTextVersion sets the value for the TextVersion field.
 func (i *IndexOptions) SetTextVersion(version int32) *IndexOptions {
-	i.TextVersion = &version
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.TextVersion = &version
+
+		return nil
+	})
+
 	return i
 }
 
 // SetWeights sets the value for the Weights field.
 func (i *IndexOptions) SetWeights(weights interface{}) *IndexOptions {
-	i.Weights = weights
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Weights = weights
+
+		return nil
+	})
+
 	return i
 }
 
 // SetSphereVersion sets the value for the SphereVersion field.
 func (i *IndexOptions) SetSphereVersion(version int32) *IndexOptions {
-	i.SphereVersion = &version
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.SphereVersion = &version
+
+		return nil
+	})
+
 	return i
 }
 
 // SetBits sets the value for the Bits field.
 func (i *IndexOptions) SetBits(bits int32) *IndexOptions {
-	i.Bits = &bits
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Bits = &bits
+
+		return nil
+	})
+
 	return i
 }
 
 // SetMax sets the value for the Max field.
 func (i *IndexOptions) SetMax(max float64) *IndexOptions {
-	i.Max = &max
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Max = &max
+
+		return nil
+	})
+
 	return i
 }
 
 // SetMin sets the value for the Min field.
 func (i *IndexOptions) SetMin(min float64) *IndexOptions {
-	i.Min = &min
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Min = &min
+
+		return nil
+	})
+
 	return i
 }
 
 // SetBucketSize sets the value for the BucketSize field
 func (i *IndexOptions) SetBucketSize(bucketSize int32) *IndexOptions {
-	i.BucketSize = &bucketSize
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.BucketSize = &bucketSize
+
+		return nil
+	})
+
 	return i
 }
 
 // SetPartialFilterExpression sets the value for the PartialFilterExpression field.
 func (i *IndexOptions) SetPartialFilterExpression(expression interface{}) *IndexOptions {
-	i.PartialFilterExpression = expression
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.PartialFilterExpression = expression
+
+		return nil
+	})
+
 	return i
 }
 
 // SetCollation sets the value for the Collation field.
 func (i *IndexOptions) SetCollation(collation *Collation) *IndexOptions {
-	i.Collation = collation
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Collation = collation
+
+		return nil
+	})
+
 	return i
 }
 
 // SetWildcardProjection sets the value for the WildcardProjection field.
 func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *IndexOptions {
-	i.WildcardProjection = wildcardProjection
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.WildcardProjection = wildcardProjection
+
+		return nil
+	})
+
 	return i
 }
 
 // SetHidden sets the value for the Hidden field.
 func (i *IndexOptions) SetHidden(hidden bool) *IndexOptions {
-	i.Hidden = &hidden
+	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+		args.Hidden = &hidden
+
+		return nil
+	})
+
 	return i
 }

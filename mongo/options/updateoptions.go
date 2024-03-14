@@ -6,8 +6,9 @@
 
 package options
 
-// UpdateOptions represents options that can be used to configure UpdateOne and UpdateMany operations.
-type UpdateOptions struct {
+// UpdateArgs represents arguments that can be used to configure UpdateOne and
+// UpdateMany operations.
+type UpdateArgs struct {
 	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
 	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the update will apply to all array elements.
@@ -47,49 +48,96 @@ type UpdateOptions struct {
 	Let interface{}
 }
 
+// UpdateOptions contains options to configure update operations. Each option
+// can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type UpdateOptions struct {
+	Opts []func(*UpdateArgs) error
+}
+
 // Update creates a new UpdateOptions instance.
 func Update() *UpdateOptions {
 	return &UpdateOptions{}
 }
 
+// ArgsSetters returns a list of UpdateArgs setter functions.
+func (uo *UpdateOptions) ArgsSetters() []func(*UpdateArgs) error {
+	return uo.Opts
+}
+
 // SetArrayFilters sets the value for the ArrayFilters field.
 func (uo *UpdateOptions) SetArrayFilters(af ArrayFilters) *UpdateOptions {
-	uo.ArrayFilters = &af
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.ArrayFilters = &af
+
+		return nil
+	})
+
 	return uo
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (uo *UpdateOptions) SetBypassDocumentValidation(b bool) *UpdateOptions {
-	uo.BypassDocumentValidation = &b
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.BypassDocumentValidation = &b
+
+		return nil
+	})
+
 	return uo
 }
 
 // SetCollation sets the value for the Collation field.
 func (uo *UpdateOptions) SetCollation(c *Collation) *UpdateOptions {
-	uo.Collation = c
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.Collation = c
+
+		return nil
+	})
+
 	return uo
 }
 
 // SetComment sets the value for the Comment field.
 func (uo *UpdateOptions) SetComment(comment interface{}) *UpdateOptions {
-	uo.Comment = comment
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.Comment = comment
+
+		return nil
+	})
+
 	return uo
 }
 
 // SetHint sets the value for the Hint field.
 func (uo *UpdateOptions) SetHint(h interface{}) *UpdateOptions {
-	uo.Hint = h
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.Hint = h
+
+		return nil
+	})
+
 	return uo
 }
 
 // SetUpsert sets the value for the Upsert field.
 func (uo *UpdateOptions) SetUpsert(b bool) *UpdateOptions {
-	uo.Upsert = &b
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.Upsert = &b
+
+		return nil
+	})
+
 	return uo
 }
 
 // SetLet sets the value for the Let field.
 func (uo *UpdateOptions) SetLet(l interface{}) *UpdateOptions {
-	uo.Let = l
+	uo.Opts = append(uo.Opts, func(args *UpdateArgs) error {
+		args.Let = l
+
+		return nil
+	})
+
 	return uo
 }

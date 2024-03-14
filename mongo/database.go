@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	defaultRunCmdOpts = []*options.RunCmdOptions{options.RunCmd().SetReadPreference(readpref.Primary())}
+	defaultRunCmdOpts = []Options[options.RunCmdArgs]{options.RunCmd().SetReadPreference(readpref.Primary())}
 )
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
@@ -144,28 +144,27 @@ func (db *Database) Aggregate(
 	return aggregate(a, opts...)
 }
 
-func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
-	cursorCommand bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
+func (db *Database) processRunCommand(
+	ctx context.Context,
+	cmd interface{},
+	cursorCommand bool,
+	opts ...Options[options.RunCmdArgs],
+) (*operation.Command, *session.Client, error) {
+	args, err := newArgsFromOptions[options.RunCmdArgs](append(defaultRunCmdOpts, opts...)...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 	}
 
-	err := db.client.validSession(sess)
-	if err != nil {
+	if err := db.client.validSession(sess); err != nil {
 		return nil, sess, err
 	}
 
-	ro := options.RunCmd()
-	for _, opt := range append(defaultRunCmdOpts, opts...) {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadPreference != nil {
-			ro.ReadPreference = opt.ReadPreference
-		}
-	}
-	if sess != nil && sess.TransactionRunning() && ro.ReadPreference != nil && ro.ReadPreference.Mode() != readpref.PrimaryMode {
+	if sess != nil && sess.TransactionRunning() && args.ReadPreference != nil && args.ReadPreference.Mode() != readpref.PrimaryMode {
 		return nil, sess, errors.New("read preference in a transaction must be primary")
 	}
 
@@ -178,7 +177,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		return nil, sess, err
 	}
 	readSelect := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(ro.ReadPreference),
+		description.ReadPrefSelector(args.ReadPreference),
 		description.LatencySelector(db.client.localThreshold),
 	})
 	if sess != nil && sess.PinnedServer != nil {
@@ -200,7 +199,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
+		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
 		Timeout(db.client.timeout).Logger(db.client.logger), sess, nil
 }
 
@@ -222,7 +221,11 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
+func (db *Database) RunCommand(
+	ctx context.Context,
+	runCommand interface{},
+	opts ...Options[options.RunCmdArgs],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -259,7 +262,11 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (*Cursor, error) {
+func (db *Database) RunCommandCursor(
+	ctx context.Context,
+	runCommand interface{},
+	opts ...Options[options.RunCmdArgs],
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -342,9 +349,11 @@ func (db *Database) Drop(ctx context.Context) error {
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
-func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
-	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
-
+func (db *Database) ListCollectionSpecifications(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.ListCollectionsArgs],
+) ([]*CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -403,9 +412,18 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 //
 // BUG(benjirewis): ListCollections prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
-func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
+func (db *Database) ListCollections(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.ListCollectionsArgs],
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	args, err := newArgsFromOptions[options.ListCollectionsArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 
 	filterDoc, err := marshal(filter, db.bsonOpts, db.registry)
@@ -430,21 +448,6 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	})
 	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
 
-	lco := options.ListCollections()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.NameOnly != nil {
-			lco.NameOnly = opt.NameOnly
-		}
-		if opt.BatchSize != nil {
-			lco.BatchSize = opt.BatchSize
-		}
-		if opt.AuthorizedCollections != nil {
-			lco.AuthorizedCollections = opt.AuthorizedCollections
-		}
-	}
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
@@ -455,15 +458,15 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
-	if lco.NameOnly != nil {
-		op = op.NameOnly(*lco.NameOnly)
+	if args.NameOnly != nil {
+		op = op.NameOnly(*args.NameOnly)
 	}
-	if lco.BatchSize != nil {
-		cursorOpts.BatchSize = *lco.BatchSize
-		op = op.BatchSize(*lco.BatchSize)
+	if args.BatchSize != nil {
+		cursorOpts.BatchSize = *args.BatchSize
+		op = op.BatchSize(*args.BatchSize)
 	}
-	if lco.AuthorizedCollections != nil {
-		op = op.AuthorizedCollections(*lco.AuthorizedCollections)
+	if args.AuthorizedCollections != nil {
+		op = op.AuthorizedCollections(*args.AuthorizedCollections)
 	}
 
 	retry := driver.RetryNone
@@ -501,7 +504,11 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 //
 // BUG(benjirewis): ListCollectionNames prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
-func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
+func (db *Database) ListCollectionNames(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.ListCollectionsArgs],
+) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
 	res, err := db.ListCollections(ctx, filter, opts...)

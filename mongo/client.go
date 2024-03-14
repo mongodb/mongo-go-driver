@@ -853,15 +853,20 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
 // messages using a LogSink.
-func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
+func newLogger(opts Options[options.LoggerArgs]) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {
 		opts = options.Logger()
 	}
 
+	args, err := newArgsFromOptions[options.LoggerArgs](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	// If there are no component-level options and the environment does not
 	// contain component variables, then do nothing.
-	if (opts.ComponentLevels == nil || len(opts.ComponentLevels) == 0) &&
+	if (args.ComponentLevels == nil || len(args.ComponentLevels) == 0) &&
 		!logger.EnvHasComponentVariables() {
 
 		return nil, nil
@@ -869,9 +874,9 @@ func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 
 	// Otherwise, collect the component-level options and create a logger.
 	componentLevels := make(map[logger.Component]logger.Level)
-	for component, level := range opts.ComponentLevels {
+	for component, level := range args.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
 	}
 
-	return logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
+	return logger.New(args.Sink, args.MaxDocumentLength, componentLevels)
 }

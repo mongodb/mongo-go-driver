@@ -69,8 +69,8 @@ type LogSink interface {
 	Error(err error, message string, keysAndValues ...interface{})
 }
 
-// LoggerOptions represent options used to configure Logging in the Go Driver.
-type LoggerOptions struct {
+// LoggerArgs represent arguments used to configure Logging in the Go Driver.
+type LoggerArgs struct {
 	// ComponentLevels is a map of LogComponent to LogLevel. The LogLevel
 	// for a given LogComponent will be used to determine if a log message
 	// should be logged.
@@ -86,30 +86,56 @@ type LoggerOptions struct {
 	MaxDocumentLength uint
 }
 
+// LoggerOptions contains options to configure a logger. Each option can be set
+// through setter functions. See documentation for each setter function for an
+// explanation of the option.
+type LoggerOptions struct {
+	Opts []func(*LoggerArgs) error
+}
+
 // Logger creates a new LoggerOptions instance.
 func Logger() *LoggerOptions {
-	return &LoggerOptions{
-		ComponentLevels: map[LogComponent]LogLevel{},
-	}
+	return &LoggerOptions{}
+}
+
+// ArgsSetters returns a list of LoggerArgs setter functions.
+func (opts *LoggerOptions) ArgsSetters() []func(*LoggerArgs) error {
+	return opts.Opts
 }
 
 // SetComponentLevel sets the LogLevel value for a LogComponent.
 func (opts *LoggerOptions) SetComponentLevel(component LogComponent, level LogLevel) *LoggerOptions {
-	opts.ComponentLevels[component] = level
+	opts.Opts = append(opts.Opts, func(args *LoggerArgs) error {
+		if args.ComponentLevels == nil {
+			args.ComponentLevels = map[LogComponent]LogLevel{}
+		}
+
+		args.ComponentLevels[component] = level
+
+		return nil
+	})
 
 	return opts
 }
 
 // SetMaxDocumentLength sets the maximum length of a document to be logged.
 func (opts *LoggerOptions) SetMaxDocumentLength(maxDocumentLength uint) *LoggerOptions {
-	opts.MaxDocumentLength = maxDocumentLength
+	opts.Opts = append(opts.Opts, func(args *LoggerArgs) error {
+		args.MaxDocumentLength = maxDocumentLength
+
+		return nil
+	})
 
 	return opts
 }
 
 // SetSink sets the LogSink to use for logging.
 func (opts *LoggerOptions) SetSink(sink LogSink) *LoggerOptions {
-	opts.Sink = sink
+	opts.Opts = append(opts.Opts, func(args *LoggerArgs) error {
+		args.Sink = sink
+
+		return nil
+	})
 
 	return opts
 }

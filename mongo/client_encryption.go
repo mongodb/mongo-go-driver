@@ -391,9 +391,11 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 // matching documents, this method will overwrite the "masterKey", "updateDate", and "keyMaterial". On error, some
 // matching data keys may have been rewrapped.
 // libmongocrypt 1.5.2 is required. An error is returned if the detected version of libmongocrypt is less than 1.5.2.
-func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interface{},
-	opts ...*options.RewrapManyDataKeyOptions) (*RewrapManyDataKeyResult, error) {
-
+func (ce *ClientEncryption) RewrapManyDataKey(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.RewrapManyDataKeyArgs],
+) (*RewrapManyDataKeyResult, error) {
 	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.
 	// Check if the version string starts with 1.5.0 or 1.5.1. This accounts for pre-release versions, like 1.5.0-rc0.
 	libmongocryptVersion := mongocrypt.Version()
@@ -401,27 +403,20 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		return nil, fmt.Errorf("RewrapManyDataKey requires libmongocrypt 1.5.2 or newer. Detected version: %v", libmongocryptVersion)
 	}
 
-	rmdko := options.RewrapManyDataKey()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if provider := opt.Provider; provider != nil {
-			rmdko.Provider = provider
-		}
-		if masterKey := opt.MasterKey; masterKey != nil {
-			rmdko.MasterKey = masterKey
-		}
-	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	args, err := newArgsFromOptions[options.RewrapManyDataKeyArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	// Transfer rmdko options to /x/ package options to publish the mongocrypt feed.
 	co := mcopts.RewrapManyDataKey()
-	if rmdko.MasterKey != nil {
+	if args.MasterKey != nil {
 		keyDoc, err := marshal(
-			rmdko.MasterKey,
+			args.MasterKey,
 			ce.keyVaultClient.bsonOpts,
 			ce.keyVaultClient.registry)
 		if err != nil {
@@ -429,8 +424,8 @@ func (ce *ClientEncryption) RewrapManyDataKey(ctx context.Context, filter interf
 		}
 		co.SetMasterKey(keyDoc)
 	}
-	if rmdko.Provider != nil {
-		co.SetProvider(*rmdko.Provider)
+	if args.Provider != nil {
+		co.SetProvider(*args.Provider)
 	}
 
 	// Prepare the filters and rewrap the data key using mongocrypt.
