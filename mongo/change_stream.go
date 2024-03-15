@@ -273,7 +273,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	// If no deadline is set on the passed-in context, cs.client.timeout is set, and context is not already
 	// a Timeout context, honor cs.client.timeout in new Timeout context for change stream operation execution
 	// and potential retry.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.client.timeout != nil && !internal.IsTimeoutContext(ctx) {
+	if cs.client.timeout != nil && !internal.IsTimeoutContext(ctx) {
 		newCtx, cancelFunc := internal.MakeTimeoutContext(ctx, *cs.client.timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx

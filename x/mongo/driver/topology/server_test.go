@@ -1282,3 +1282,7 @@ func newServerDescription(
 		LastError: lastError,
 	}
 }
+
+func TestUpdateMaxTimeOffset(t *testing.T) {
+	updateMaxTimeOffset(nil, nil)
+}

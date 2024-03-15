@@ -165,6 +165,10 @@ type ErrorProcessor interface {
 	ProcessError(err error, conn Connection) ProcessErrorResult
 }
 
+type MaxTimeAdjuster interface {
+	MaxTimeAdjust() int64
+}
+
 // HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that
 // augments description.Server by also tracking server connection ID and authentication-related fields. We use this type
 // rather than adding authentication-related fields to description.Server to avoid retaining sensitive information in a

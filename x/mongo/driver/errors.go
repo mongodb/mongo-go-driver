@@ -8,6 +8,7 @@ package driver
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -49,7 +50,7 @@ var (
 	ErrUnsupportedStorageEngine = errors.New("this MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string")
 	// ErrDeadlineWouldBeExceeded is returned when a Timeout set on an operation would be exceeded
 	// if the operation were sent to the server.
-	ErrDeadlineWouldBeExceeded = errors.New("operation not sent to server, as Timeout would be exceeded")
+	ErrDeadlineWouldBeExceeded = fmt.Errorf("operation not sent to server, as Timeout would be exceeded: %w", context.DeadlineExceeded)
 	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
 	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
@@ -364,7 +365,7 @@ func (e Error) NamespaceNotFound() bool {
 
 // ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
 // if there is one. Also used in testing for SDAM.
-func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
+func ExtractErrorFromServerResponse(doc bsoncore.Document, isCSOT bool) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
@@ -497,7 +498,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			errmsg = "command failed"
 		}
 
-		return Error{
+		err := Error{
 			Code:            code,
 			Message:         errmsg,
 			Name:            codeName,
@@ -505,6 +506,12 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			TopologyVersion: tv,
 			Raw:             doc,
 		}
+
+		// TODO: Comment.
+		if isCSOT && err.Code == 50 {
+			err.Wrapped = context.DeadlineExceeded
+		}
+		return err
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {

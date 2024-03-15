@@ -84,6 +84,7 @@ type Server struct {
 
 	state          int64
 	operationCount int64
+	maxTimeRatio   int64
 
 	cfg     *serverConfig
 	address address.Address
@@ -385,10 +386,74 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 	return nil, false
 }
 
+var _ driver.MaxTimeAdjuster = (*Server)(nil)
+
+func (s *Server) MaxTimeAdjust() int64 {
+	v := atomic.LoadInt64(&s.maxTimeRatio)
+	if v < maxTimeRatioMin {
+		return maxTimeRatioMin
+	}
+	if v > maxTimeRatioMax {
+		return maxTimeRatioMax
+	}
+	return v
+}
+
+// TODO: Re-set range?
+const (
+	maxTimeRatioMin = 0
+	maxTimeRatioMax = 300
+	maxTimeRatioInc = 40
+	maxTimeRatioDec = 1
+)
+
+func setMaxTimeRatio(maxTimeRatio *int64, err error) {
+	v := atomic.LoadInt64(maxTimeRatio)
+
+	// Normalize the value before we modify it to make sure it starts in the
+	// expected range.
+	if v < maxTimeRatioMin {
+		v = maxTimeRatioMin
+	}
+	if v > maxTimeRatioMax {
+		v = maxTimeRatioMax
+	}
+
+	// If the error is a client-side timeout, increase by 40 (4%). If it's not,
+	// reduce by 1 (0.1%).
+	var nerr net.Error
+	isTimeout := (errors.As(err, &nerr) && nerr.Timeout()) || errors.Is(err, context.DeadlineExceeded)
+	if isTimeout {
+		v += maxTimeRatioInc
+		// TODO: Condition for server-side timeout?
+	} else {
+		v -= maxTimeRatioDec
+	}
+
+	// Normalize the updated value and then store it.
+	if v < maxTimeRatioMin {
+		v = maxTimeRatioMin
+	}
+	if v > maxTimeRatioMax {
+		v = maxTimeRatioMax
+	}
+	atomic.StoreInt64(maxTimeRatio, v)
+}
+
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
+
 	// Ignore nil errors.
 	if err == nil {
+		// Fast path for maxTimeRatio.
+		//
+		// If there is no error, and maxTimeRatio is already 0 or below, do
+		// nothing. If maxTimeRatio is above 0, decrement by 1 (0.1%). Note that
+		// maxTimeRatio can change between these atomic operations, but the
+		// value is normalized when used and when updated by the slow path.
+		if atomic.LoadInt64(&s.maxTimeRatio) > 0 {
+			atomic.AddInt64(&s.maxTimeRatio, -1)
+		}
 		return driver.NoChange
 	}
 
@@ -406,6 +471,10 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// pool.ready() calls from concurrent server description updates.
 	s.processErrorLock.Lock()
 	defer s.processErrorLock.Unlock()
+
+	// Slow path for maxTimeRatio. The "processErrorLock" must be held while
+	// calling.
+	setMaxTimeRatio(&s.maxTimeRatio, err)
 
 	// Get the wire version and service ID from the connection description because they will never
 	// change for the lifetime of a connection and can possibly be different between connections to
