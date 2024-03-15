@@ -34,6 +34,10 @@ type BulkWriteArgs struct {
 
 // BulkWriteOptions represents options that can be used to configure a BulkWrite
 // operation.
+
+// BulkWriteOptions contains options to configure bulk write operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
 type BulkWriteOptions struct {
 	Opts []func(*BulkWriteArgs) error
 }

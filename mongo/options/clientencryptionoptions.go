@@ -22,7 +22,9 @@ type ClientEncryptionArgs struct {
 	HTTPClient        *http.Client
 }
 
-// ClientEncryptionOptions represents functional options that configure a ClientEncryptionArgs.
+// ClientEncryptionOptions contains options to configure client encryption
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
 type ClientEncryptionOptions struct {
 	Opts []func(*ClientEncryptionArgs) error
 }

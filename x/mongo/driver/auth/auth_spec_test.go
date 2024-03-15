@@ -61,14 +61,12 @@ func runTest(t *testing.T, filename string, test testCase) {
 	t.Run(filename+":"+test.Description, func(t *testing.T) {
 		opts := options.Client().ApplyURI(test.URI)
 
-		args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+		args, _ := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
 
-		// TODO: the valdiation should happen when setting args
-		// err := options.ValidateClientArgs(args)
 		if test.Valid {
-			require.NoError(t, err)
+			require.NoError(t, opts.Validate())
 		} else {
-			require.Error(t, err)
+			require.Error(t, opts.Validate())
 
 			return
 		}

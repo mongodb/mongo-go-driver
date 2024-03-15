@@ -461,7 +461,12 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configureAutoEncryption(args *options.ClientArgs) error {
-	c.encryptedFieldsMap = args.AutoEncryptionOptions.EncryptedFieldsMap
+	aeArgs, err := newArgsFromOptions[options.AutoEncryptionArgs](args.AutoEncryptionOptions)
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
+	c.encryptedFieldsMap = aeArgs.EncryptedFieldsMap
 	if err := c.configureKeyVaultClientFLE(args); err != nil {
 		return err
 	}
@@ -505,49 +510,60 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, e
 	return c.internalClientFLE, err
 }
 
-func (c *Client) configureKeyVaultClientFLE(args *options.ClientArgs) error {
+func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientArgs) error {
 	// parse key vault options and create new key vault client
-	var err error
-	aeOpts := args.AutoEncryptionOptions
+	aeArgs, err := newArgsFromOptions[options.AutoEncryptionArgs](clientArgs.AutoEncryptionOptions)
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	switch {
-	case aeOpts.KeyVaultClientOptions != nil:
-		c.keyVaultClientFLE, err = newClient(aeOpts.KeyVaultClientOptions)
-	case args.MaxPoolSize != nil && *args.MaxPoolSize == 0:
+	case aeArgs.KeyVaultClientOptions != nil:
+		c.keyVaultClientFLE, err = newClient(aeArgs.KeyVaultClientOptions)
+	case clientArgs.MaxPoolSize != nil && *clientArgs.MaxPoolSize == 0:
 		c.keyVaultClientFLE = c
 	default:
-		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(args)
+		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientArgs)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	dbName, collName := splitNamespace(aeOpts.KeyVaultNamespace)
+	dbName, collName := splitNamespace(aeArgs.KeyVaultNamespace)
 	c.keyVaultCollFLE = c.keyVaultClientFLE.Database(dbName).Collection(collName, keyVaultCollOpts)
 	return nil
 }
 
-func (c *Client) configureMetadataClientFLE(args *options.ClientArgs) error {
+func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientArgs) error {
 	// parse key vault options and create new key vault client
-	aeOpts := args.AutoEncryptionOptions
-	if aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption {
+	aeArgs, err := newArgsFromOptions[options.AutoEncryptionArgs](clientArgs.AutoEncryptionOptions)
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
+	if aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption {
 		// no need for a metadata client.
 		return nil
 	}
-	if args.MaxPoolSize != nil && *args.MaxPoolSize == 0 {
+	if clientArgs.MaxPoolSize != nil && *clientArgs.MaxPoolSize == 0 {
 		c.metadataClientFLE = c
 		return nil
 	}
 
-	var err error
-	c.metadataClientFLE, err = c.getOrCreateInternalClient(args)
+	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientArgs)
 	return err
 }
 
-func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt.MongoCrypt, error) {
+func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionArgs]) (*mongocrypt.MongoCrypt, error) {
+	args, err := newArgsFromOptions[options.AutoEncryptionArgs](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
-	for k, v := range opts.SchemaMap {
+	for k, v := range args.SchemaMap {
 		schema, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
@@ -557,7 +573,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 
 	// convert schemas in EncryptedFieldsMap to bsoncore documents
 	cryptEncryptedFieldsMap := make(map[string]bsoncore.Document)
-	for k, v := range opts.EncryptedFieldsMap {
+	for k, v := range args.EncryptedFieldsMap {
 		encryptedFields, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
@@ -565,7 +581,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		cryptEncryptedFieldsMap[k] = encryptedFields
 	}
 
-	kmsProviders, err := marshal(opts.KmsProviders, c.bsonOpts, c.registry)
+	kmsProviders, err := marshal(args.KmsProviders, c.bsonOpts, c.registry)
 	if err != nil {
 		return nil, fmt.Errorf("error creating KMS providers document: %w", err)
 	}
@@ -573,7 +589,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// Set the crypt_shared library override path from the "cryptSharedLibPath" extra option if one
 	// was set.
 	cryptSharedLibPath := ""
-	if val, ok := opts.ExtraOptions["cryptSharedLibPath"]; ok {
+	if val, ok := args.ExtraOptions["cryptSharedLibPath"]; ok {
 		str, ok := val.(string)
 		if !ok {
 			return nil, fmt.Errorf(
@@ -586,12 +602,12 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// intended for use from tests; there is no supported public API for explicitly disabling
 	// loading the crypt_shared library.
 	cryptSharedLibDisabled := false
-	if v, ok := opts.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
+	if v, ok := args.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
 		cryptSharedLibDisabled = v.(bool)
 	}
 
-	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
-	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
+	bypassAutoEncryption := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
+	bypassQueryAnalysis := args.BypassQueryAnalysis != nil && *args.BypassQueryAnalysis
 
 	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
@@ -600,13 +616,13 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
 		SetCryptSharedLibOverridePath(cryptSharedLibPath).
-		SetHTTPClient(opts.HTTPClient))
+		SetHTTPClient(args.HTTPClient))
 	if err != nil {
 		return nil, err
 	}
 
 	var cryptSharedLibRequired bool
-	if val, ok := opts.ExtraOptions["cryptSharedLibRequired"]; ok {
+	if val, ok := args.ExtraOptions["cryptSharedLibRequired"]; ok {
 		b, ok := val.(bool)
 		if !ok {
 			return nil, fmt.Errorf(
@@ -627,8 +643,10 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 }
 
 //nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
-func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.AutoEncryptionOptions) {
-	bypass := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts Options[options.AutoEncryptionArgs]) {
+	args, _ := newArgsFromOptions[options.AutoEncryptionArgs](opts)
+
+	bypass := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
 	kr := keyRetriever{coll: c.keyVaultCollFLE}
 	var cir collInfoRetriever
 	// If bypass is true, c.metadataClientFLE is nil and the collInfoRetriever
@@ -643,7 +661,7 @@ func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.Auto
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
-		TLSConfig:            opts.TLSConfig,
+		TLSConfig:            args.TLSConfig,
 		BypassAutoEncryption: bypass,
 	})
 }

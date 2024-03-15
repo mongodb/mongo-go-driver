@@ -14,36 +14,37 @@ import (
 
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
-	options.ChangeStreamArgs | options.ClientArgs | options.ClientEncryptionArgs |
-		options.CollectionArgs | options.CountArgs | options.CreateCollectionArgs |
-		options.DefaultIndexArgs | options.FindArgs | options.FindOneArgs |
-		options.InsertOneArgs | options.ListDatabasesArgs | options.SessionArgs |
-		options.BulkWriteArgs | options.AggregateArgs |
-		options.ListSearchIndexesArgs | options.TimeSeriesArgs |
+	options.AggregateArgs | options.BucketArgs | options.BulkWriteArgs |
+		options.ClientArgs | options.ClientEncryptionArgs | options.CollectionArgs |
+		options.CountArgs | options.CreateIndexesArgs |
+		options.CreateCollectionArgs | options.CreateSearchIndexesArgs |
 		options.CreateViewArgs | options.DataKeyArgs | options.DatabaseArgs |
-		options.DeleteArgs | options.DistinctArgs | options.DropCollectionArgs |
-		options.EncryptArgs | options.RangeArgs |
-		options.EstimatedDocumentCountArgs | options.FindOneAndReplaceArgs |
-		options.FindOneAndUpdateArgs | options.FindOneAndDeleteArgs |
-		options.BucketArgs | options.GridFSUploadArgs | options.GridFSNameArgs |
-		options.GridFSFindArgs | options.CreateIndexesArgs |
-		options.DropIndexesArgs | options.ListIndexesArgs | options.IndexArgs |
-		options.InsertManyArgs | options.ListCollectionsArgs | options.LoggerArgs |
-		options.ReplaceArgs | options.UpdateArgs | options.RewrapManyDataKeyArgs |
-		options.RunCmdArgs | options.SearchIndexesArgs |
-		options.CreateSearchIndexesArgs | options.DropSearchIndexArgs |
-		options.UpdateSearchIndexArgs | options.ServerAPIArgs |
-		options.TransactionArgs
+		options.DefaultIndexArgs | options.DeleteArgs | options.DistinctArgs |
+		options.DropCollectionArgs | options.DropIndexesArgs |
+		options.DropSearchIndexArgs | options.EncryptArgs |
+		options.EstimatedDocumentCountArgs | options.FindArgs |
+		options.FindOneArgs | options.FindOneAndDeleteArgs |
+		options.FindOneAndReplaceArgs | options.FindOneAndUpdateArgs |
+		options.GridFSFindArgs | options.GridFSNameArgs | options.GridFSUploadArgs |
+		options.IndexArgs | options.InsertManyArgs | options.InsertOneArgs |
+		options.ListCollectionsArgs | options.ListDatabasesArgs |
+		options.ListIndexesArgs | options.ListSearchIndexesArgs |
+		options.LoggerArgs | options.RangeArgs | options.ReplaceArgs |
+		options.RewrapManyDataKeyArgs | options.RunCmdArgs |
+		options.SearchIndexesArgs | options.ServerAPIArgs | options.SessionArgs |
+		options.TimeSeriesArgs | options.TransactionArgs | options.UpdateArgs |
+		options.UpdateSearchIndexArgs | options.ChangeStreamArgs |
+		options.AutoEncryptionArgs
 }
 
 // MongoOptions is an interface that wraps a method to return a list of setter
-// functions that can set a generic arguments type.
+// functions for merging options for a generic argument type.
 type MongoOptions[T Args] interface {
 	ArgsSetters() []func(*T) error
 }
 
 // NewArgsFromOptions will functionally merge a slice of mongo.Options in a
-// "last-one-wins" manner.
+// "last-one-wins" manner, where nil options are ignored.
 func NewArgsFromOptions[T Args](opts ...MongoOptions[T]) (*T, error) {
 	args := new(T)
 	for _, opt := range opts {
@@ -96,10 +97,13 @@ func (opts *Options[T]) ArgsSetters() []func(*T) error {
 	}
 }
 
+// NewOptionsFromArgs will construct an Options object from the provided
+// arguments object.
 func NewOptionsFromArgs[T Args](args *T, clbk func(*T) error) *Options[T] {
 	return &Options[T]{Args: args, Clbk: clbk}
 }
 
+// AuthFromURI will create a Credentials object given the provided URI.
 func AuthFromURI(uri string) (*options.Credential, error) {
 	args, err := NewArgsFromOptions[options.ClientArgs](options.Client().ApplyURI(uri))
 	if err != nil {
@@ -109,6 +113,8 @@ func AuthFromURI(uri string) (*options.Credential, error) {
 	return args.Auth, nil
 }
 
+// HostsFromURI will parse the hosts in the URI and return them as a slice of
+// strings.
 func HostsFromURI(uri string) ([]string, error) {
 	args, err := NewArgsFromOptions[options.ClientArgs](options.Client().ApplyURI(uri))
 	if err != nil {

@@ -117,8 +117,7 @@ type T struct {
 	requireAPIVersion *bool
 
 	// options copied to sub-tests
-	clientType ClientType
-	//clientOpts  mongo.Options[options.ClientArgs]
+	clientType  ClientType
 	clientOpts  *options.ClientOptions
 	collOpts    *options.CollectionOptions
 	shareClient *bool
@@ -633,6 +632,7 @@ func (t *T) createTestClient() {
 	clientOpts := t.clientOpts
 
 	if t.clientOpts == nil {
+		// default opts
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
 

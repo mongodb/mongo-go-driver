@@ -291,18 +291,30 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
 		if args.AutoEncryptionOptions != nil {
-			bypassAutoEncryption := args.AutoEncryptionOptions.BypassAutoEncryption != nil &&
-				*args.AutoEncryptionOptions.BypassAutoEncryption
-			bypassQueryAnalysis := args.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
-				*args.AutoEncryptionOptions.BypassQueryAnalysis
+			aeArgs, err := mongoutil.NewArgsFromOptions[options.AutoEncryptionArgs](args.AutoEncryptionOptions)
+			require.NoError(mt, err, "failed to construct arguments from options")
+
+			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
+			bypassQueryAnalysis := aeArgs.BypassQueryAnalysis != nil && *aeArgs.BypassQueryAnalysis
+
 			if !bypassAutoEncryption && !bypassQueryAnalysis {
-				if args.AutoEncryptionOptions.ExtraOptions == nil {
-					args.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
+				if aeArgs.ExtraOptions == nil {
+					aeArgs.ExtraOptions = make(map[string]interface{})
 				}
 
 				for k, v := range getCryptSharedLibExtraOptions() {
-					args.AutoEncryptionOptions.ExtraOptions[k] = v
+					aeArgs.ExtraOptions[k] = v
 				}
+			}
+
+			args.AutoEncryptionOptions = &options.AutoEncryptionOptions{
+				Opts: []func(*options.AutoEncryptionArgs) error{
+					func(args *options.AutoEncryptionArgs) error {
+						*args = *aeArgs
+
+						return nil
+					},
+				},
 			}
 		}
 

@@ -72,7 +72,9 @@ type ChangeStreamArgs struct {
 	CustomPipeline bson.M
 }
 
-// ChangeStreamOptions represents functional options that configures a ChangeStreamArgs.
+// ChangeStreamOptions contains options to configure change stream operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
 type ChangeStreamOptions struct {
 	Opts []func(*ChangeStreamArgs) error
 }

@@ -67,8 +67,9 @@ type AggregateArgs struct {
 	Custom bson.M
 }
 
-// AggregateOptions represents options that can be used to configure an
-// Aggregate operation.
+// AggregateOptions contains options to configure aggregate operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
 type AggregateOptions struct {
 	Opts []func(*AggregateArgs) error
 }
