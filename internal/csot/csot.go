@@ -40,7 +40,7 @@ func IsTimeoutContext(ctx context.Context) bool {
 func WithTimeout(parent context.Context, timeout *time.Duration) (context.Context, context.CancelFunc) {
 	cancel := func() {}
 
-	if IsTimeoutContext(parent) || timeout == nil {
+	if timeout == nil || IsTimeoutContext(parent) {
 		// In the following conditions, do nothing:
 		//	1. The parent already has a deadline
 		//	2. The parent does not have a deadline, but a client-level timeout has
