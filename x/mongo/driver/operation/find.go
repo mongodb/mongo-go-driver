@@ -109,7 +109,6 @@ func (f *Find) Execute(ctx context.Context) error {
 		Logger:            f.logger,
 		Name:              driverutil.FindOp,
 	}.Execute(ctx)
-
 }
 
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {

@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -95,7 +96,7 @@ func TestRTTMonitor(t *testing.T) {
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -133,7 +134,7 @@ func TestRTTMonitor(t *testing.T) {
 					return dialer
 				}))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -155,7 +156,7 @@ func TestRTTMonitor(t *testing.T) {
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})
@@ -254,7 +255,7 @@ func TestRTTMonitor(t *testing.T) {
 			createConnectionFn: func() *connection {
 				return newConnection(address.Address(l.Addr().String()))
 			},
-			createOperationFn: func(conn driver.Connection) *operation.Hello {
+			createOperationFn: func(conn *mnet.Connection) *operation.Hello {
 				return operation.NewHello().Deployment(driver.SingleConnectionDeployment{C: conn})
 			},
 		})

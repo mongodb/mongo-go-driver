@@ -22,16 +22,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 type testHandshaker struct {
-	getHandshakeInformation func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error)
-	finishHandshake         func(context.Context, driver.Connection) error
+	getHandshakeInformation func(context.Context, address.Address, *mnet.Connection) (driver.HandshakeInformation, error)
+	finishHandshake         func(context.Context, *mnet.Connection) error
 }
 
 // GetHandshakeInformation implements the Handshaker interface.
-func (th *testHandshaker) GetHandshakeInformation(ctx context.Context, addr address.Address, conn driver.Connection) (driver.HandshakeInformation, error) {
+func (th *testHandshaker) GetHandshakeInformation(ctx context.Context, addr address.Address, conn *mnet.Connection) (driver.HandshakeInformation, error) {
 	if th.getHandshakeInformation != nil {
 		return th.getHandshakeInformation(ctx, addr, conn)
 	}
@@ -39,7 +40,7 @@ func (th *testHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 }
 
 // FinishHandshake implements the Handshaker interface.
-func (th *testHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
+func (th *testHandshaker) FinishHandshake(ctx context.Context, conn *mnet.Connection) error {
 	if th.finishHandshake != nil {
 		return th.finishHandshake(ctx, conn)
 	}
@@ -78,7 +79,7 @@ func TestConnection(t *testing.T) {
 				conn := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
-							finishHandshake: func(context.Context, driver.Connection) error {
+							finishHandshake: func(context.Context, *mnet.Connection) error {
 								return err
 							},
 						}
@@ -520,7 +521,7 @@ func TestConnection(t *testing.T) {
 				conn := newConnection(address.Address(""),
 					WithHandshaker(func(Handshaker) Handshaker {
 						return &testHandshaker{
-							finishHandshake: func(context.Context, driver.Connection) error {
+							finishHandshake: func(context.Context, *mnet.Connection) error {
 								return errors.New("handshake err")
 							},
 						}
@@ -565,11 +566,11 @@ func TestConnection(t *testing.T) {
 			var want, got interface{}
 
 			want = ErrConnectionClosed
-			got = conn.WriteWireMessage(context.Background(), nil)
+			got = conn.Write(context.Background(), nil)
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("errors do not match. got %v; want %v", got, want)
 			}
-			_, got = conn.ReadWireMessage(context.Background())
+			_, got = conn.Read(context.Background())
 			if !cmp.Equal(got, want, cmp.Comparer(compareErrors)) {
 				t.Errorf("errors do not match. got %v; want %v", got, want)
 			}

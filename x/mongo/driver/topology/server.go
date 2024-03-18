@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -309,7 +310,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 }
 
 // Connection gets a connection to the server.
-func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
+func (s *Server) Connection(ctx context.Context) (*mnet.Connection, error) {
 	if atomic.LoadInt64(&s.state) != serverConnected {
 		return nil, ErrServerClosed
 	}
@@ -324,7 +325,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, err
 	}
 
-	return &Connection{
+	serverConn := &Connection{
 		connection: conn,
 		cleanupServerFn: func() {
 			// Decrement the operation count whenever the caller is done with the connection. Note
@@ -335,7 +336,9 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 			// make the server much less selectable.
 			atomic.AddInt64(&s.operationCount, -1)
 		},
-	}, nil
+	}
+
+	return mnet.NewConnection(serverConn), nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
@@ -443,7 +446,7 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
-func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
+func (s *Server) ProcessError(err error, describer mnet.Describer) driver.ProcessErrorResult {
 	// Ignore nil errors.
 	if err == nil {
 		return driver.NoChange
@@ -454,7 +457,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// the pool generation to increment. Processing errors for stale connections could result in
 	// handling the same error root cause multiple times (e.g. a temporary network interrupt causing
 	// all connections to the same server to return errors).
-	if conn.Stale() {
+	if describer.Stale() {
 		return driver.NoChange
 	}
 
@@ -467,7 +470,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// Get the wire version and service ID from the connection description because they will never
 	// change for the lifetime of a connection and can possibly be different between connections to
 	// the same server.
-	connDesc := conn.Description()
+	connDesc := describer.Description()
 	wireVersion := connDesc.WireVersion
 	serviceID := connDesc.ServiceID
 
@@ -844,7 +847,7 @@ func (s *Server) checkWasCancelled() bool {
 	return s.heartbeatCheckCanceled
 }
 
-func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
+func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
 	return operation.
 		NewHello().
 		ClusterClock(s.cfg.clock).
@@ -910,7 +913,7 @@ func contextWithSocketTimeout(parent context.Context, srv *Server) (context.Cont
 // between the client and a server. Depending on the configuration and version,
 // this function will either poll, stream, or resume streaming.
 func doHandshake(ctx context.Context, srv *Server) (description.Server, error) {
-	heartbeatConn := initConnection{srv.conn}
+	heartbeatConn := mnet.NewConnection(initConnection{srv.conn})
 	handshakeOp := srv.createBaseOperation(heartbeatConn)
 
 	// Using timeoutMS in the monitoring and RTT calculation threads would require

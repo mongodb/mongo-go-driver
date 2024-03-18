@@ -12,12 +12,13 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 type changeStreamDeployment struct {
 	topologyKind description.TopologyKind
 	server       driver.Server
-	conn         driver.Connection
+	conn         *mnet.Connection
 }
 
 var _ driver.Deployment = (*changeStreamDeployment)(nil)
@@ -33,7 +34,7 @@ func (c *changeStreamDeployment) Kind() description.TopologyKind {
 	return c.topologyKind
 }
 
-func (c *changeStreamDeployment) Connection(context.Context) (driver.Connection, error) {
+func (c *changeStreamDeployment) Connection(context.Context) (*mnet.Connection, error) {
 	return c.conn, nil
 }
 
@@ -41,13 +42,13 @@ func (c *changeStreamDeployment) RTTMonitor() driver.RTTMonitor {
 	return c.server.RTTMonitor()
 }
 
-func (c *changeStreamDeployment) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
+func (c *changeStreamDeployment) ProcessError(err error, describer mnet.Describer) driver.ProcessErrorResult {
 	ep, ok := c.server.(driver.ErrorProcessor)
 	if !ok {
 		return driver.NoChange
 	}
 
-	return ep.ProcessError(err, conn)
+	return ep.ProcessError(err, describer)
 }
 
 // GetServerSelectionTimeout returns zero as a server selection timeout is not

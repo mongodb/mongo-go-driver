@@ -60,7 +60,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	doc := bsoncore.BuildDocumentFromElements(nil, bsoncore.AppendInt32Element(nil, "getnonce", 1))
 	cmd := operation.NewCommand(doc).
 		Database(db).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	err := cmd.Execute(ctx)
@@ -86,7 +86,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	)
 	cmd = operation.NewCommand(doc).
 		Database(db).
-		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
+		Deployment(driver.SingleConnectionDeployment{C: cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)
 	err = cmd.Execute(ctx)

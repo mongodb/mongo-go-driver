@@ -36,6 +36,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -387,7 +388,7 @@ func TestServer(t *testing.T) {
 					return append(connOpts,
 						WithHandshaker(func(Handshaker) Handshaker {
 							return &testHandshaker{
-								finishHandshake: func(context.Context, driver.Connection) error {
+								finishHandshake: func(context.Context, *mnet.Connection) error {
 									var err error
 									if tt.connectionError && returnConnectionError {
 										err = authErr.Wrapped
@@ -513,7 +514,7 @@ func TestServer(t *testing.T) {
 				}
 
 				handshaker := &testHandshaker{
-					getHandshakeInformation: func(_ context.Context, addr address.Address, _ driver.Connection) (driver.HandshakeInformation, error) {
+					getHandshakeInformation: func(_ context.Context, addr address.Address, _ *mnet.Connection) (driver.HandshakeInformation, error) {
 						if tc.getInfoErr != nil && returnConnectionError {
 							return driver.HandshakeInformation{}, tc.getInfoErr
 						}
@@ -524,7 +525,7 @@ func TestServer(t *testing.T) {
 						}
 						return driver.HandshakeInformation{Description: desc}, nil
 					},
-					finishHandshake: func(context.Context, driver.Connection) error {
+					finishHandshake: func(context.Context, *mnet.Connection) error {
 						if tc.finishHandshakeErr != nil && returnConnectionError {
 							return tc.finishHandshakeErr
 						}
@@ -820,8 +821,8 @@ func TestServer_ProcessError(t *testing.T) {
 
 		startDescription description.Server // Initial server description at the start of the test.
 
-		inputErr  error             // ProcessError error input.
-		inputConn driver.Connection // ProcessError conn input.
+		inputErr  error            // ProcessError error input.
+		inputConn *mnet.Connection // ProcessError conn input.
 
 		want            driver.ProcessErrorResult // Expected ProcessError return value.
 		wantGeneration  uint64                    // Expected resulting connection pool generation.
@@ -846,12 +847,8 @@ func TestServer_ProcessError(t *testing.T) {
 			startDescription: description.Server{
 				Kind: description.RSPrimary,
 			},
-			inputErr: errors.New("foo"),
-			inputConn: newProcessErrorTestConn(
-				&description.VersionRange{
-					Max: 17,
-				},
-				true),
+			inputErr:       errors.New("foo"),
+			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, true),
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
@@ -950,7 +947,7 @@ func TestServer_ProcessError(t *testing.T) {
 					Counter:   1,
 				},
 			},
-			inputConn: &processErrorTestConn{
+			inputConn: mnet.NewConnection(&processErrorTestConn{
 				description: description.Server{
 					WireVersion: &description.VersionRange{Max: 17},
 					TopologyVersion: &description.TopologyVersion{
@@ -959,7 +956,7 @@ func TestServer_ProcessError(t *testing.T) {
 					},
 				},
 				stale: false,
-			},
+			}),
 			want:            driver.NoChange,
 			wantGeneration:  0,
 			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
@@ -1300,20 +1297,23 @@ func includesClientMetadata(t *testing.T, wm []byte) bool {
 // for Server.ProcessError. This type should not be used for other tests
 // because it does not implement all of the functions of the interface.
 type processErrorTestConn struct {
+	mnet.ReadWriteCloser
+	mnet.Describer
 	// Embed a driver.Connection to quickly implement the interface without
 	// implementing all methods.
-	driver.Connection
 	description description.Server
 	stale       bool
 }
 
-func newProcessErrorTestConn(wireVersion *description.VersionRange, stale bool) *processErrorTestConn {
-	return &processErrorTestConn{
+func newProcessErrorTestConn(wireVersion *description.VersionRange, stale bool) *mnet.Connection {
+	peconn := &processErrorTestConn{
 		description: description.Server{
 			WireVersion: wireVersion,
 		},
 		stale: stale,
 	}
+
+	return mnet.NewConnection(peconn)
 }
 
 func (p *processErrorTestConn) Stale() bool {

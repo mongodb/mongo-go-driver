@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -246,7 +247,10 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 	var handshakeInfo driver.HandshakeInformation
 	handshakeStartTime := time.Now()
-	handshakeConn := initConnection{c}
+
+	iconn := initConnection{c}
+	handshakeConn := mnet.NewConnection(iconn)
+
 	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
 	if err == nil {
 		// We only need to retain the Description field as the connection's description. The authentication-related
@@ -540,8 +544,9 @@ func (c *connection) ServerConnectionID() *int64 {
 // *connection to a Handshaker.
 type initConnection struct{ *connection }
 
-var _ driver.Connection = initConnection{}
-var _ driver.StreamerConnection = initConnection{}
+var _ mnet.ReadWriteCloser = initConnection{}
+var _ mnet.Describer = initConnection{}
+var _ mnet.Streamer = initConnection{}
 
 func (c initConnection) Description() description.Server {
 	if c.connection == nil {
@@ -559,10 +564,10 @@ func (c initConnection) LocalAddress() address.Address {
 	}
 	return address.Address(c.nc.LocalAddr().String())
 }
-func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
+func (c initConnection) Write(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
-func (c initConnection) ReadWireMessage(ctx context.Context) ([]byte, error) {
+func (c initConnection) Read(ctx context.Context) ([]byte, error) {
 	return c.readWireMessage(ctx)
 }
 func (c initConnection) SetStreaming(streaming bool) {
@@ -590,12 +595,14 @@ type Connection struct {
 	mu sync.RWMutex
 }
 
-var _ driver.Connection = (*Connection)(nil)
+var _ mnet.ReadWriteCloser = (*Connection)(nil)
+var _ mnet.Describer = (*Connection)(nil)
+var _ mnet.Compressor = (*Connection)(nil)
+var _ mnet.Pinner = (*Connection)(nil)
 var _ driver.Expirable = (*Connection)(nil)
-var _ driver.PinnedConnection = (*Connection)(nil)
 
 // WriteWireMessage handles writing a wire message to the underlying connection.
-func (c *Connection) WriteWireMessage(ctx context.Context, wm []byte) error {
+func (c *Connection) Write(ctx context.Context, wm []byte) error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.connection == nil {
@@ -606,7 +613,7 @@ func (c *Connection) WriteWireMessage(ctx context.Context, wm []byte) error {
 
 // ReadWireMessage handles reading a wire message from the underlying connection. The dst parameter
 // will be overwritten with the new wire message.
-func (c *Connection) ReadWireMessage(ctx context.Context) ([]byte, error) {
+func (c *Connection) Read(ctx context.Context) ([]byte, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.connection == nil {

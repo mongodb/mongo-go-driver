@@ -46,8 +46,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && \
   export TZ=Etc/UTC && \
   export LC_ALL=C.UTF-8 && \
   sudo -E apt-add-repository "ppa:longsleep/golang-backports" && \
-  apt-get -qq update && \
-  apt-get -qqy install --no-install-recommends golang-go && \
+  apt-get -qq update --option Acquire::Retries=100 --option Acquire::http::Timeout="60" && \
+  apt-get -qqy install --option Acquire::Retries=100 --option Acquire::http::Timeout="60" --no-install-recommends golang-go && \
   rm -rf /var/lib/apt/lists/*
 
 COPY ./etc/docker_entry.sh /root/docker_entry.sh

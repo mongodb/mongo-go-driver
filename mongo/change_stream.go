@@ -24,6 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -307,7 +308,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	return cs, cs.Err()
 }
 
-func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection driver.Connection) driver.Deployment {
+func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection *mnet.Connection) driver.Deployment {
 	return &changeStreamDeployment{
 		topologyKind: cs.client.deployment.Kind(),
 		server:       server,
@@ -317,7 +318,7 @@ func (cs *ChangeStream) createOperationDeployment(server driver.Server, connecti
 
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
-	var conn driver.Connection
+	var conn *mnet.Connection
 
 	connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
 	defer cancel()
