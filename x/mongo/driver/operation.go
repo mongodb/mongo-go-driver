@@ -1172,7 +1172,6 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 }
 
 func (op Operation) createLegacyHandshakeWireMessage(
-	ctx context.Context,
 	maxTimeMS uint64,
 	dst []byte,
 	desc description.SelectedServer,
@@ -1217,7 +1216,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 		return dst, info, err
 	}
 
-	dst, err = op.addWriteConcern(ctx, dst, desc)
+	dst, err = op.addWriteConcern(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1289,7 +1288,7 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, info, err
 	}
-	dst, err = op.addWriteConcern(ctx, dst, desc)
+	dst, err = op.addWriteConcern(dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1356,7 +1355,7 @@ func (op Operation) createWireMessage(
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	if isLegacyHandshake(op, desc) {
-		return op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
+		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
 	}
 
 	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
@@ -1464,23 +1463,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func getWriteConcernTimeout(ctx context.Context, op Operation) time.Duration {
-	if contextDeadline, ok := ctx.Deadline(); ok {
-		return time.Until(contextDeadline)
-	}
-
-	if op.Timeout != nil {
-		return *op.Timeout
-	}
-
-	if op.Client == nil {
-		return 0
-	}
-
-	return op.Client.CurrentWTimeout
-}
-
-func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duration) (bsontype.Type, []byte, error) {
+func marshalBSONWriteConcern(wc writeconcern.WriteConcern) (bsontype.Type, []byte, error) {
 	var elems []byte
 	if wc.W != nil {
 		// Only support string or int values for W. That aligns with the
@@ -1511,10 +1494,6 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
 	}
 
-	if wtimeout != 0 {
-		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wtimeout/time.Millisecond))
-	}
-
 	if len(elems) == 0 {
 		return 0, nil, errEmptyWriteConcern
 	}
@@ -1522,7 +1501,7 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
 }
 
-func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
+func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumWriteConcernWireVersion)) {
 		return dst, nil
 	}
@@ -1531,9 +1510,18 @@ func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc descri
 		return dst, nil
 	}
 
-	wtimeout := getWriteConcernTimeout(ctx, op)
-
-	typ, wcBSON, err := marshalBSONWriteConcern(*wc, wtimeout)
+	// The specifications for committing a transaction states:
+	//
+	// > if the modified write concern does not include a wtimeout value, drivers
+	// > MUST also apply wtimeout: 10000 to the write concern in order to avoid
+	// > waiting forever (or until a socket timeout) if the majority write concern
+	// > cannot be satisfied.
+	//
+	// However, since the Go Driver now supports client and operation-level CSOT,
+	// there is a way for a user to ensure that operations never wait forever.
+	// Therefore, the Go Driver team has opted to implement this spec
+	// requirement.
+	typ, wcBSON, err := marshalBSONWriteConcern(*wc)
 	if errors.Is(err, errEmptyWriteConcern) {
 		return dst, nil
 	}
