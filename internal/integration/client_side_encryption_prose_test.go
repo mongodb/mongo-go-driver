@@ -2469,7 +2469,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			typeStr       string
 			field         string
 			typeBson      bsontype.Type
-			rangeOpts     options.RangeOptions
+			rangeOpts     *options.RangeOptions
 			zero          bson.RawValue
 			six           bson.RawValue
 			thirty        bson.RawValue
@@ -2492,12 +2492,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tests := []testcase{
 			{
-				typeStr:  "DecimalNoPrecision",
-				field:    "encryptedDecimalNoPrecision",
-				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.RangeOptions{
-					Sparsity: 1,
-				},
+				typeStr:       "DecimalNoPrecision",
+				field:         "encryptedDecimalNoPrecision",
+				typeBson:      bson.TypeDecimal128,
+				rangeOpts:     options.Range().SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30)},
@@ -2508,12 +2506,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DecimalPrecision",
 				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
-					Max:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)},
-					Sparsity:  1,
-					Precision: &precision,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)}).
+					SetMax(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200)}).
+					SetSparsity(1).
+					SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30)},
@@ -2521,12 +2518,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201)},
 			},
 			{
-				typeStr:  "DoubleNoPrecision",
-				field:    "encryptedDoubleNoPrecision",
-				typeBson: bson.TypeDouble,
-				rangeOpts: options.RangeOptions{
-					Sparsity: 1,
-				},
+				typeStr:       "DoubleNoPrecision",
+				field:         "encryptedDoubleNoPrecision",
+				typeBson:      bson.TypeDouble,
+				rangeOpts:     options.Range().SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2537,12 +2532,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DoublePrecision",
 				field:    "encryptedDoublePrecision",
 				typeBson: bson.TypeDouble,
-				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
-					Max:       &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)},
-					Sparsity:  1,
-					Precision: &precision,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)}).
+					SetSparsity(1).
+					SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2553,11 +2547,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Date",
 				field:    "encryptedDate",
 				typeBson: bson.TypeDateTime,
-				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)},
-					Sparsity: 1,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)}).
+					SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 30)},
@@ -2568,11 +2561,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Int",
 				field:    "encryptedInt",
 				typeBson: bson.TypeInt32,
-				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)},
-					Sparsity: 1,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)}).
+					SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 30)},
@@ -2583,11 +2575,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Long",
 				field:    "encryptedLong",
 				typeBson: bson.TypeInt64,
-				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)},
-					Sparsity: 1,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)}).
+					SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 30)},
@@ -2645,7 +2636,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetAlgorithm("RangePreview").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetRangeOptions(test.rangeOpts)
+						SetRangeOptions(*test.rangeOpts)
 					// Insert 0.
 					insertPayloadZero, err := clientEncryption.Encrypt(context.Background(), test.zero, eo)
 					assert.Nil(mt, err, "error in Encrypt: %v", err)
@@ -2692,7 +2683,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetAlgorithm("RangePreview").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetRangeOptions(test.rangeOpts)
+						SetRangeOptions(*test.rangeOpts)
 					insertPayloadSix, err := clientEncryption.Encrypt(context.Background(), test.six, eo)
 					assert.Nil(mt, err, "error in Encrypt: %v", err)
 					got, err := clientEncryption.Decrypt(context.Background(), insertPayloadSix)
@@ -2709,7 +2700,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(test.rangeOpts)
+						SetRangeOptions(*test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2751,7 +2742,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(test.rangeOpts)
+						SetRangeOptions(*test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2793,7 +2784,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(test.rangeOpts)
+						SetRangeOptions(*test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2830,7 +2821,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(test.rangeOpts)
+						SetRangeOptions(*test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2868,7 +2859,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							SetAlgorithm("RangePreview").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
-							SetRangeOptions(test.rangeOpts)
+							SetRangeOptions(*test.rangeOpts)
 
 						_, err := clientEncryption.Encrypt(context.Background(), test.twoHundredOne, eo)
 						assert.NotNil(mt, err, "expected error, but got none")
@@ -2882,7 +2873,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							SetAlgorithm("RangePreview").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
-							SetRangeOptions(test.rangeOpts)
+							SetRangeOptions(*test.rangeOpts)
 
 						var val bson.RawValue
 						if test.field == "encryptedInt" {
@@ -2909,7 +2900,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							SetAlgorithm("RangePreview").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
-							SetRangeOptions(ro)
+							SetRangeOptions(*ro)
 
 						_, err := clientEncryption.Encrypt(context.Background(), test.six, eo)
 						assert.NotNil(mt, err, "expected error, but got none")

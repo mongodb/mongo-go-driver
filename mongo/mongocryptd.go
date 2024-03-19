@@ -8,6 +8,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -43,14 +44,19 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClie
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
 
-	if bypass, ok := opts.ExtraOptions["mongocryptdBypassSpawn"]; ok {
-		bypassSpawn = bypass.(bool)
-	}
-	if opts.BypassAutoEncryption != nil {
-		bypassAutoEncryption = *opts.BypassAutoEncryption
+	args, err := newArgsFromOptions[options.AutoEncryptionArgs](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 
-	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
+	if bypass, ok := args.ExtraOptions["mongocryptdBypassSpawn"]; ok {
+		bypassSpawn = bypass.(bool)
+	}
+	if args.BypassAutoEncryption != nil {
+		bypassAutoEncryption = *args.BypassAutoEncryption
+	}
+
+	bypassQueryAnalysis := args.BypassQueryAnalysis != nil && *args.BypassQueryAnalysis
 
 	mc := &mongocryptdClient{
 		// mongocryptd should not be spawned if any of these conditions are true:
@@ -61,7 +67,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClie
 	}
 
 	if !mc.bypassSpawn {
-		mc.path, mc.spawnArgs = createSpawnArgs(opts.ExtraOptions)
+		mc.path, mc.spawnArgs = createSpawnArgs(args.ExtraOptions)
 		if err := mc.spawnProcess(); err != nil {
 			return nil, err
 		}
@@ -69,7 +75,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClie
 
 	// get connection string
 	uri := defaultURI
-	if u, ok := opts.ExtraOptions["mongocryptdURI"]; ok {
+	if u, ok := args.ExtraOptions["mongocryptdURI"]; ok {
 		uri = u.(string)
 	}
 

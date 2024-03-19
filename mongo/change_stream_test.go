@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestChangeStream(t *testing.T) {
@@ -27,66 +26,4 @@ func TestChangeStream(t *testing.T) {
 		err = cs.Close(bgCtx)
 		assert.Nil(t, err, "Close error: %v", err)
 	})
-}
-
-func TestMergeChangeStreamOptions(t *testing.T) {
-	t.Parallel()
-
-	fullDocumentP := func(x options.FullDocument) *options.FullDocument { return &x }
-	int32P := func(x int32) *int32 { return &x }
-
-	testCases := []struct {
-		description string
-		input       []*options.ChangeStreamOptions
-		want        *options.ChangeStreamOptions
-	}{
-		{
-			description: "nil",
-			input:       nil,
-			want:        &options.ChangeStreamOptions{},
-		},
-		{
-			description: "empty",
-			input:       []*options.ChangeStreamOptions{},
-			want:        &options.ChangeStreamOptions{},
-		},
-		{
-			description: "many ChangeStreamOptions with one configuration each",
-			input: []*options.ChangeStreamOptions{
-				options.ChangeStream().SetFullDocumentBeforeChange(options.Required),
-				options.ChangeStream().SetFullDocument(options.Required),
-				options.ChangeStream().SetBatchSize(10),
-			},
-			want: &options.ChangeStreamOptions{
-				FullDocument:             fullDocumentP(options.Required),
-				FullDocumentBeforeChange: fullDocumentP(options.Required),
-				BatchSize:                int32P(10),
-			},
-		},
-		{
-			description: "single ChangeStreamOptions with many configurations",
-			input: []*options.ChangeStreamOptions{
-				options.ChangeStream().
-					SetFullDocumentBeforeChange(options.Required).
-					SetFullDocument(options.Required).
-					SetBatchSize(10),
-			},
-			want: &options.ChangeStreamOptions{
-				FullDocument:             fullDocumentP(options.Required),
-				FullDocumentBeforeChange: fullDocumentP(options.Required),
-				BatchSize:                int32P(10),
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc // Capture range variable.
-
-		t.Run(tc.description, func(t *testing.T) {
-			t.Parallel()
-
-			got := mergeChangeStreamOptions(tc.input...)
-			assert.Equal(t, tc.want, got, "expected and actual ChangeStreamOptions are different")
-		})
-	}
 }

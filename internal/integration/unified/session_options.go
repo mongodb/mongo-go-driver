@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -94,13 +95,18 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 		so.SetDefaultMaxCommitTime(&mctms)
 	}
 	if temp.TxnOptions != nil {
-		if rc := temp.TxnOptions.ReadConcern; rc != nil {
+		txnArgs, err := mongoutil.NewArgsFromOptions[options.TransactionArgs](temp.TxnOptions)
+		if err != nil {
+			return fmt.Errorf("failed to construct arguments from options: %w", err)
+		}
+
+		if rc := txnArgs.ReadConcern; rc != nil {
 			so.SetDefaultReadConcern(rc)
 		}
-		if rp := temp.TxnOptions.ReadPreference; rp != nil {
+		if rp := txnArgs.ReadPreference; rp != nil {
 			so.SetDefaultReadPreference(rp)
 		}
-		if wc := temp.TxnOptions.WriteConcern; wc != nil {
+		if wc := txnArgs.WriteConcern; wc != nil {
 			so.SetDefaultWriteConcern(wc)
 		}
 	}

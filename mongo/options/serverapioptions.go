@@ -10,35 +10,68 @@ import (
 	"fmt"
 )
 
-// ServerAPIOptions represents options used to configure the API version sent to the server
-// when running commands.
+// ServerAPIArgs represents arguments used to configure the API version sent to
+// the server when running commands.
 //
-// Sending a specified server API version causes the server to behave in a manner compatible with that
-// API version. It also causes the driver to behave in a manner compatible with the driver’s behavior as
-// of the release when the driver first started to support the specified server API version.
+// Sending a specified server API version causes the server to behave in a
+// manner compatible with that API version. It also causes the driver to behave
+// in a manner compatible with the driver’s behavior as of the release when the
+// driver first started to support the specified server API version.
 //
-// The user must specify a ServerAPIVersion if including ServerAPIOptions in their client. That version
-// must also be currently supported by the driver. This version of the driver supports API version "1".
-type ServerAPIOptions struct {
+// The user must specify a ServerAPIVersion if including ServerAPIOptions in
+// their client. That version must also be currently supported by the driver.
+// This version of the driver supports API version "1".
+type ServerAPIArgs struct {
 	ServerAPIVersion  ServerAPIVersion
 	Strict            *bool
 	DeprecationErrors *bool
 }
 
-// ServerAPI creates a new ServerAPIOptions configured with the provided serverAPIversion.
+// ServerAPIOptions contains options to configure serverAPI operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type ServerAPIOptions struct {
+	Opts []func(*ServerAPIArgs) error
+}
+
+// ServerAPI creates a new ServerAPIOptions configured with the provided
+// serverAPIversion.
 func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptions {
-	return &ServerAPIOptions{ServerAPIVersion: serverAPIVersion}
+	opts := &ServerAPIOptions{}
+
+	opts.Opts = append(opts.Opts, func(args *ServerAPIArgs) error {
+		args.ServerAPIVersion = serverAPIVersion
+
+		return nil
+	})
+
+	return opts
+}
+
+// ArgsSetters returns a list of ServerAPIArgs setter functions.
+func (s *ServerAPIOptions) ArgsSetters() []func(*ServerAPIArgs) error {
+	return s.Opts
 }
 
 // SetStrict specifies whether the server should return errors for features that are not part of the API version.
 func (s *ServerAPIOptions) SetStrict(strict bool) *ServerAPIOptions {
-	s.Strict = &strict
+	s.Opts = append(s.Opts, func(args *ServerAPIArgs) error {
+		args.Strict = &strict
+
+		return nil
+	})
+
 	return s
 }
 
 // SetDeprecationErrors specifies whether the server should return errors for deprecated features.
 func (s *ServerAPIOptions) SetDeprecationErrors(deprecationErrors bool) *ServerAPIOptions {
-	s.DeprecationErrors = &deprecationErrors
+	s.Opts = append(s.Opts, func(args *ServerAPIArgs) error {
+		args.DeprecationErrors = &deprecationErrors
+
+		return nil
+	})
+
 	return s
 }
 

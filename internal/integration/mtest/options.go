@@ -138,6 +138,7 @@ func (op *Options) ClientOptions(opts *options.ClientOptions) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.clientOpts = opts
 	})
+
 	return op
 }
 

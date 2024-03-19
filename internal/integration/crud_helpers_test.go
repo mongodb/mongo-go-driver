@@ -23,6 +23,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/integration/unified"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -132,7 +134,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 		return commandFn(client)
 	}
 
-	for _, host := range opts.Hosts {
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %v", err)
+	}
+
+	for _, host := range hosts {
 		shardClient, err := mongo.Connect(opts.SetHosts([]string{host}))
 		if err != nil {
 			return fmt.Errorf("error creating client for mongos %v: %w", host, err)
@@ -150,12 +157,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 // aggregator is an interface used to run collection and database-level aggregations
 type aggregator interface {
-	Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
+	Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateArgs]) (*mongo.Cursor, error)
 }
 
 // watcher is an interface used to create client, db, and collection-level change streams
 type watcher interface {
-	Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
+	Watch(context.Context, interface{}, ...mongo.Options[options.ChangeStreamArgs]) (*mongo.ChangeStream, error)
 }
 
 func executeAggregate(mt *mtest.T, agg aggregator, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -894,7 +901,11 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 			mt.Fatalf("unrecognized updateOne option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewArgsFromOptions[options.UpdateArgs](opts)
+	require.NoError(mt, err, "failed to construct arguments from options")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -942,7 +953,11 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			mt.Fatalf("unrecognized updateMany option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewArgsFromOptions[options.UpdateArgs](opts)
+	require.NoError(mt, err, "failed to construct arguments from options")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -986,7 +1001,11 @@ func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 			mt.Fatalf("unrecognized replaceOne option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewArgsFromOptions[options.ReplaceArgs](opts)
+	require.NoError(mt, err, "failed to construct arguments from options")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -1416,7 +1435,12 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 
-func executeAdminCommandWithRetry(mt *mtest.T, client *mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
+func executeAdminCommandWithRetry(
+	mt *mtest.T,
+	client *mongo.Client,
+	cmd interface{},
+	opts ...mongo.Options[options.RunCmdArgs],
+) {
 	mt.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
