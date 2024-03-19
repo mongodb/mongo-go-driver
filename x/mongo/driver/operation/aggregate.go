@@ -31,7 +31,6 @@ type Aggregate struct {
 	collation                bsoncore.Document
 	comment                  bsoncore.Value
 	hint                     bsoncore.Value
-	maxTime                  *time.Duration
 	pipeline                 bsoncore.Document
 	session                  *session.Client
 	clock                    *session.ClusterClock
@@ -110,7 +109,6 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		MinimumWriteConcernWireVersion: 5,
 		ServerAPI:                      a.serverAPI,
 		IsOutputAggregate:              a.hasOutputStage,
-		MaxTime:                        a.maxTime,
 		Timeout:                        a.timeout,
 		Name:                           driverutil.AggregateOp,
 	}.Execute(ctx)
@@ -223,16 +221,6 @@ func (a *Aggregate) Hint(hint bsoncore.Value) *Aggregate {
 	}
 
 	a.hint = hint
-	return a
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (a *Aggregate) MaxTime(maxTime *time.Duration) *Aggregate {
-	if a == nil {
-		a = new(Aggregate)
-	}
-
-	a.maxTime = maxTime
 	return a
 }
 

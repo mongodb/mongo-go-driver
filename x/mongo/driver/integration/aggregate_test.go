@@ -84,9 +84,13 @@ func TestAggregate(t *testing.T) {
 		op := operation.NewAggregate(bsoncore.BuildDocumentFromElements(nil)).
 			Collection(collName).Database(dbName).Deployment(top).ServerSelector(description.WriteSelector()).
 			CommandMonitor(monitor).BatchSize(2)
-		err = op.Execute(context.Background())
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+
+		err = op.Execute(ctx)
 		noerr(t, err)
-		batchCursor, err := op.Result(driver.CursorOptions{MaxTimeMS: 10, BatchSize: 2, CommandMonitor: monitor})
+		batchCursor, err := op.Result(driver.CursorOptions{BatchSize: 2, CommandMonitor: monitor})
 		noerr(t, err)
 
 		var e *event.CommandStartedEvent

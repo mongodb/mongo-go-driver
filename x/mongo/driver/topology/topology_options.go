@@ -24,6 +24,7 @@ import (
 )
 
 const defaultServerSelectionTimeout = 30 * time.Second
+const defaultConnectionTimeout = 30 * time.Second
 
 // Config is used to construct a topology.
 type Config struct {
@@ -32,6 +33,8 @@ type Config struct {
 	SeedList               []string
 	ServerOpts             []ServerOption
 	URI                    string
+	ConnectTimeout         time.Duration
+	Timeout                *time.Duration
 	ServerSelectionTimeout time.Duration
 	ServerMonitor          *event.ServerMonitor
 	SRVMaxHosts            int
@@ -82,10 +85,15 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	var connOpts []ConnectionOption
 	var serverOpts []ServerOption
 
-	cfgp := &Config{}
+	cfgp := &Config{
+		Timeout: co.Timeout,
+	}
 
 	// Set the default "ServerSelectionTimeout" to 30 seconds.
 	cfgp.ServerSelectionTimeout = defaultServerSelectionTimeout
+
+	// Set the default "ConnectionTimeout" to 30 seconds.
+	cfgp.ConnectTimeout = defaultConnectionTimeout
 
 	// Set the default "SeedList" to localhost.
 	cfgp.SeedList = []string{"localhost:27017"}
@@ -204,15 +212,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		}
 	}
 	connOpts = append(connOpts, WithHandshaker(handshaker))
-	// ConnectTimeout
-	if co.ConnectTimeout != nil {
-		serverOpts = append(serverOpts, WithHeartbeatTimeout(
-			func(time.Duration) time.Duration { return *co.ConnectTimeout },
-		))
-		connOpts = append(connOpts, WithConnectTimeout(
-			func(time.Duration) time.Duration { return *co.ConnectTimeout },
-		))
-	}
+
 	// Dialer
 	if co.Dialer != nil {
 		connOpts = append(connOpts, WithDialer(
@@ -292,13 +292,9 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 	if co.ServerSelectionTimeout != nil {
 		cfgp.ServerSelectionTimeout = *co.ServerSelectionTimeout
 	}
-	// SocketTimeout
-	if co.SocketTimeout != nil {
-		connOpts = append(
-			connOpts,
-			WithReadTimeout(func(time.Duration) time.Duration { return *co.SocketTimeout }),
-			WithWriteTimeout(func(time.Duration) time.Duration { return *co.SocketTimeout }),
-		)
+	//ConnectionTimeout
+	if co.ConnectTimeout != nil {
+		cfgp.ConnectTimeout = *co.ConnectTimeout
 	}
 	// TLSConfig
 	if co.TLSConfig != nil {

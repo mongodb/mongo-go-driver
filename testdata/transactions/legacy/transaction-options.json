@@ -318,6 +318,7 @@
     },
     {
       "description": "transaction options inherited from defaultTransactionOptions",
+      "skipReason": "GODRIVER-2348: maxCommitTimeMS is deprecated",
       "sessionOptions": {
         "session0": {
           "defaultTransactionOptions": {
@@ -479,6 +480,7 @@
     },
     {
       "description": "startTransaction options override defaults",
+      "skipReason": "GODRIVER-2348: maxCommitTimeMS is deprecated",
       "clientOptions": {
         "readConcernLevel": "local",
         "w": 1
@@ -668,6 +670,7 @@
     },
     {
       "description": "defaultTransactionOptions override client options",
+      "skipReason": "GODRIVER-2348: maxCommitTimeMS is deprecated",
       "clientOptions": {
         "readConcernLevel": "local",
         "w": 1

@@ -56,16 +56,6 @@ const (
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
 
-func containsSubstring(possibleSubstrings []string, str string) bool {
-	for _, possibleSubstring := range possibleSubstrings {
-		if strings.Contains(str, possibleSubstring) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func TestClientSideEncryptionProse(t *testing.T) {
 	t.Parallel()
 
@@ -153,7 +143,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// Insert the copied key document into keyvault.datakeys with majority write concern.
 		wcMajority := writeconcern.Majority()
-		wcMajority.WTimeout = 1 * time.Second
 		wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 		wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 		_, err = wcmColl.InsertOne(context.Background(), alteredKeydoc)
@@ -1891,7 +1880,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 
 			wcMajority := writeconcern.Majority()
-			wcMajority.WTimeout = 1 * time.Second
 			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 			_, err = wcmColl.Indexes().CreateOne(context.Background(), keyVaultIndex)

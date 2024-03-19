@@ -47,6 +47,7 @@ type Hello struct {
 	maxAwaitTimeMS     *int64
 	serverAPI          *driver.ServerAPIOptions
 	loadBalanced       bool
+	omitMaxTimeMS      bool
 
 	res bsoncore.Document
 }
@@ -590,7 +591,8 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = info.ServerResponse
 			return nil
 		},
-		ServerAPI: h.serverAPI,
+		ServerAPI:     h.serverAPI,
+		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}
 
 	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
@@ -649,4 +651,16 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 // does not do anything besides the initial Hello for a handshake.
 func (h *Hello) FinishHandshake(context.Context, *mnet.Connection) error {
 	return nil
+}
+
+// OmitMaxTimeMS will ensure maxTimMS is not included in the wire message
+// constructed to send a hello request.
+func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+
+	h.omitMaxTimeMS = val
+
+	return h
 }

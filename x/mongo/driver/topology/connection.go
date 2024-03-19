@@ -55,8 +55,6 @@ type connection struct {
 	addr                 address.Address
 	idleTimeout          time.Duration
 	idleDeadline         atomic.Value // Stores a time.Time
-	readTimeout          time.Duration
-	writeTimeout         time.Duration
 	desc                 description.Server
 	helloRTT             time.Duration
 	compressor           wiremessage.CompressorID
@@ -64,13 +62,15 @@ type connection struct {
 	zstdLevel            int
 	connectDone          chan struct{}
 	config               *connectionConfig
-	cancelConnectContext context.CancelFunc
 	connectContextMade   chan struct{}
 	canStream            bool
 	currentlyStreaming   bool
-	connectContextMutex  sync.Mutex
 	cancellationListener cancellationListener
 	serverConnectionID   *int64 // the server's ID for this client's connection
+
+	cancelConnection   chan struct{}
+	cancelOnce         *sync.Once
+	connectionCanceled bool
 
 	// pool related fields
 	pool *pool
@@ -89,12 +89,12 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		id:                   id,
 		addr:                 addr,
 		idleTimeout:          cfg.idleTimeout,
-		readTimeout:          cfg.readTimeout,
-		writeTimeout:         cfg.writeTimeout,
 		connectDone:          make(chan struct{}),
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: newCancellListener(),
+		cancelConnection:     make(chan struct{}, 1),
+		cancelOnce:           &sync.Once{},
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -132,6 +132,39 @@ func (c *connection) hasGenerationNumber() bool {
 	return c.desc.LoadBalanced()
 }
 
+// getServerSelectionTimeout will determine the value of the CSOT and return the
+// minimum of that value and serverSelectionTimeoutMS.
+
+// getNewConnTimeout will determine the value of the CSOT to use for
+// establishing a connection with the server. Particullarly, if a new connection
+// is required then this function will return the minumim of the time on the
+// context and the connectTimeoutMS value defined at the client-level.
+func getNewConnTimeout(ctx context.Context, conn *connection) time.Duration {
+	var connTO time.Duration
+
+	if conn.pool != nil {
+		connTO = conn.pool.connectTimeout
+	}
+
+	deadline, ok := ctx.Deadline()
+	if !ok || connTO != 0 && connTO > time.Until(deadline) {
+		return connTO
+	}
+
+	return time.Until(deadline)
+}
+
+// contextWithNewConnTimeout will apply the appropriate connection establishment
+// timeout to the parent context for establishing a connection.
+func contextWithNewConnTimeout(parent context.Context, conn *connection) (context.Context, context.CancelFunc) {
+	timeout := getNewConnTimeout(parent, conn)
+	if timeout == 0 {
+		return parent, func() {}
+	}
+
+	return context.WithTimeout(parent, timeout)
+}
+
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform initialization
 // handshakes. All errors returned by connect are considered "before the handshake completes" and
 // must be handled by calling the appropriate SDAM handshake error handler.
@@ -164,35 +197,25 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// cancellation still applies but with an added timeout to ensure the connectTimeoutMS option is applied to socket
 	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
 	// holding the lock longer than necessary.
-	c.connectContextMutex.Lock()
-	var handshakeCtx context.Context
-	handshakeCtx, c.cancelConnectContext = context.WithCancel(ctx)
-	c.connectContextMutex.Unlock()
+	ctx, cancel := contextWithNewConnTimeout(ctx, c)
 
-	dialCtx := handshakeCtx
-	var dialCancel context.CancelFunc
-	if c.config.connectTimeout != 0 {
-		dialCtx, dialCancel = context.WithTimeout(handshakeCtx, c.config.connectTimeout)
-		defer dialCancel()
-	}
+	done := make(chan struct{})
 
-	defer func() {
-		var cancelFn context.CancelFunc
+	// close the Go routine connection establishment if the blocking operations
+	// in this function complete before the context is canceled.
+	defer close(done)
 
-		c.connectContextMutex.Lock()
-		cancelFn = c.cancelConnectContext
-		c.cancelConnectContext = nil
-		c.connectContextMutex.Unlock()
+	go func() {
+		defer cancel()
 
-		if cancelFn != nil {
-			cancelFn()
+		select {
+		case <-c.cancelConnection:
+		case <-done:
 		}
 	}()
 
-	close(c.connectContextMade)
-
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
-	tempNc, err := c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
+	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
 		return ConnectionError{Wrapped: err, init: true}
 	}
@@ -208,7 +231,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 			HTTPClient:              c.config.httpClient,
 		}
-		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+
 		if err != nil {
 			return ConnectionError{Wrapped: err, init: true}
 		}
@@ -225,10 +249,9 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeStartTime := time.Now()
 
 	iconn := initConnection{c}
-
 	handshakeConn := mnet.NewConnection(iconn)
 
-	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
+	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
 	if err == nil {
 		// We only need to retain the Description field as the connection's description. The authentication-related
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
@@ -252,7 +275,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
 		// the handshake.
-		err = handshaker.FinishHandshake(handshakeCtx, handshakeConn)
+		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 
 	// We have a failed handshake here
@@ -298,17 +321,11 @@ func (c *connection) wait() {
 }
 
 func (c *connection) closeConnectContext() {
-	<-c.connectContextMade
-	var cancelFn context.CancelFunc
+	c.cancelOnce.Do(func() {
+		c.cancelConnection <- struct{}{}
 
-	c.connectContextMutex.Lock()
-	cancelFn = c.cancelConnectContext
-	c.cancelConnectContext = nil
-	c.connectContextMutex.Unlock()
-
-	if cancelFn != nil {
-		cancelFn()
-	}
+		c.connectionCanceled = true
+	})
 }
 
 func transformNetworkError(ctx context.Context, originalError error, contextDeadlineUsed bool) error {
@@ -346,17 +363,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		}
 	}
 
-	var deadline time.Time
-	if c.writeTimeout != 0 {
-		deadline = time.Now().Add(c.writeTimeout)
-	}
-
-	var contextDeadlineUsed bool
-	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
-		contextDeadlineUsed = true
-		deadline = dl
-	}
-
+	deadline, contextDeadlineUsed := ctx.Deadline()
 	if err := c.nc.SetWriteDeadline(deadline); err != nil {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set write deadline"}
 	}
@@ -400,17 +407,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		}
 	}
 
-	var deadline time.Time
-	if c.readTimeout != 0 {
-		deadline = time.Now().Add(c.readTimeout)
-	}
-
-	var contextDeadlineUsed bool
-	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
-		contextDeadlineUsed = true
-		deadline = dl
-	}
-
+	deadline, contextDeadlineUsed := ctx.Deadline()
 	if err := c.nc.SetReadDeadline(deadline); err != nil {
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}
@@ -532,11 +529,6 @@ func (c *connection) setStreaming(streaming bool) {
 
 func (c *connection) getCurrentlyStreaming() bool {
 	return c.currentlyStreaming
-}
-
-func (c *connection) setSocketTimeout(timeout time.Duration) {
-	c.readTimeout = timeout
-	c.writeTimeout = timeout
 }
 
 func (c *connection) ID() string {

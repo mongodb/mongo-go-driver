@@ -181,6 +181,9 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		client.retryReads = *clientOpt.RetryReads
 	}
 	// Timeout
+	if to := clientOpt.Timeout; to != nil && *to < 0 {
+		return nil, fmt.Errorf("invalid value for \"timeout\": %q", *to)
+	}
 	client.timeout = clientOpt.Timeout
 	client.httpClient = clientOpt.HTTPClient
 	// WriteConcern
@@ -214,7 +217,13 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.serverAPI = topology.ServerAPIFromServerOptions(cfg.ServerOpts)
+
+	var connectTimeout time.Duration
+	if clientOpt.ConnectTimeout != nil {
+		connectTimeout = *clientOpt.ConnectTimeout
+	}
+
+	client.serverAPI = topology.ServerAPIFromServerOptions(connectTimeout, cfg.ServerOpts)
 
 	if client.deployment == nil {
 		client.deployment, err = topology.New(cfg)
@@ -396,9 +405,6 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 		if opt.DefaultWriteConcern != nil {
 			sopts.DefaultWriteConcern = opt.DefaultWriteConcern
 		}
-		if opt.DefaultMaxCommitTime != nil {
-			sopts.DefaultMaxCommitTime = opt.DefaultMaxCommitTime
-		}
 		if opt.Snapshot != nil {
 			sopts.Snapshot = opt.Snapshot
 		}
@@ -422,9 +428,6 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	}
 	if sopts.DefaultReadPreference != nil {
 		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
-	}
-	if sopts.DefaultMaxCommitTime != nil {
-		coreOpts.DefaultMaxCommitTime = sopts.DefaultMaxCommitTime
 	}
 	if sopts.Snapshot != nil {
 		coreOpts.Snapshot = sopts.Snapshot

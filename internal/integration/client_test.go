@@ -327,7 +327,7 @@ func TestClient(t *testing.T) {
 			// apply the correct URI.
 			invalidClientOpts := options.Client().
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
-				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
+				SetConnectTimeout(500 * time.Millisecond).SetTimeout(500 * time.Millisecond)
 			integtest.AddTestServerAPIVersion(invalidClientOpts)
 			client, err := mongo.Connect(invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)

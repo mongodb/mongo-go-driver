@@ -161,6 +161,7 @@
     },
     {
       "description": "commitTransaction applies majority write concern on retries",
+      "skipReason": "GODRIVER-2348: wtimeout is deprecated",
       "clientOptions": {
         "retryWrites": false
       },
