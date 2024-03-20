@@ -185,7 +185,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 		}
 
 		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
-		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, tEmpty, false)
+		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, reflect.New(tEmpty).Elem(), false)
 		if err != nil {
 			return err
 		}
@@ -1666,11 +1666,15 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 
 	eType := val.Type().Elem()
 
-	decoder, err := dc.LookupDecoder(eType)
-	if err != nil {
-		return nil, err
+	var vDecoder ValueDecoder
+	var tDecoder typeDecoder
+	if !(eType.Kind() == reflect.Interface && val.Len() > 0) {
+		vDecoder, err = dc.LookupDecoder(eType)
+		if err != nil {
+			return nil, err
+		}
+		tDecoder, _ = vDecoder.(typeDecoder)
 	}
-	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	idx := 0
 	for {
@@ -1682,10 +1686,34 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 			return nil, err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
-		if err != nil {
-			return nil, newDecodeError(strconv.Itoa(idx), err)
+		var elem reflect.Value
+		if vDecoder == nil {
+			e := val.Index(idx).Elem()
+			valueDecoder, err := dc.LookupDecoder(e.Type())
+			if err != nil {
+				return nil, err
+			}
+			typeDecoder, _ := valueDecoder.(typeDecoder)
+			if e.Kind() == reflect.Ptr {
+				v := reflect.New(e.Type()).Elem()
+				v.Set(e)
+				val.Index(idx).Set(v)
+				e = v
+			}
+			elem, err = decodeTypeOrValueWithInfo(valueDecoder, typeDecoder, dc, vr, e, true)
+			if err != nil {
+				return nil, newDecodeError(strconv.Itoa(idx), err)
+			}
+			if e.Kind() == reflect.Ptr && e.IsZero() {
+				elem = reflect.Zero(val.Index(idx).Type())
+			}
+		} else {
+			elem, err = decodeTypeOrValueWithInfo(vDecoder, tDecoder, dc, vr, reflect.New(eType).Elem(), true)
+			if err != nil {
+				return nil, newDecodeError(strconv.Itoa(idx), err)
+			}
 		}
+
 		elems = append(elems, elem)
 		idx++
 	}
