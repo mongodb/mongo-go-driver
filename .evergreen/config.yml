@@ -259,7 +259,7 @@ functions:
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
           REQUIRE_API_VERSION=${REQUIRE_API_VERSION} \
           LOAD_BALANCER=${LOAD_BALANCER} \
-          sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
         file: mo-expansion.yml
@@ -276,7 +276,7 @@ functions:
           AUTH=${AUTH} \
           SSL=${SSL} \
           ORCHESTRATION_FILE=${ORCHESTRATION_FILE} \
-          sh ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/run-orchestration.sh
     - command: expansions.update
       params:
         file: mo-expansion.yml
@@ -305,7 +305,7 @@ functions:
         script: |
           ${PREPARE_SHELL}
           # Clean up cse servers
-          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop_servers.sh
+          bash ${DRIVERS_TOOLS}/.evergreen/csfle/stop-servers.sh
     - command: shell.exec
       params:
         shell: "bash"
@@ -366,10 +366,10 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_expansions_to_env: true
+        include_expansions_in_env: ["TOPOLOGY", "AUTH", "SSL", "MONGODB_URI", "CRYPT_SHARED_LIB_PATH", "SKIP_CRYPT_SHARED_LIB", "RACE", "MONGO_GO_DRIVER_COMPRESSOR", "REQUIRE_API_VERSION", "LOAD_BALANCER"]
         script: |
           ${PREPARE_SHELL}
-          sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+          bash ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
 
   create-api-report:
     - command: shell.exec
@@ -383,96 +383,62 @@ functions:
           export HEAD_SHA=${github_commit}
           bash etc/api_report.sh
 
+  "add PR labels":
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export CONFIG=$PROJECT_DIRECTORY/.github/labeler.yml
+          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/apply-labels.sh"
+          bash $SCRIPT -l $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
+
+  "add PR reviewer":
+    - command: shell.exec
+      type: test
+      params:
+        shell: "bash"
+        working_dir: src/go.mongodb.org/mongo-driver
+        script: |
+          ${PREPARE_SHELL}
+          export CONFIG=$PROJECT_DIRECTORY/.github/reviewers.txt
+          export SCRIPT="$DRIVERS_TOOLS/.evergreen/github_app/assign-reviewer.sh"
+          bash $SCRIPT -p $CONFIG -h ${github_commit} -o "mongodb" -n "mongo-go-driver"
+
   send-perf-data:
     - command: perf.send
       params:
         file: src/go.mongodb.org/mongo-driver/perf.json
 
   run-enterprise-auth-tests:
+    - command: ec2.assume_role
+      params:
+        role_arn: "${aws_test_secrets_role}"
     - command: shell.exec
       type: test
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export MONGODB_URI="${MONGODB_URI}"
-          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
-
-          make -s evg-test-enterprise-auth
+          ${PREPARE_SHELL}
+          bash ./etc/run-enterprise-plain-test.sh
 
   run-enterprise-gssapi-auth-tests:
+    - command: ec2.assume_role
+      params:
+        role_arn: "${aws_test_secrets_role}"
     - command: shell.exec
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
+        include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
         script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-            export MONGODB_URI=${gssapi_auth_windows_mongodb_uri}
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-            echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
-            base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
-            mkdir -p ~/.krb5
-            cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
-            export MONGODB_URI="${gssapi_auth_linux_mongodb_uri}"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
-
-          make -s evg-test-enterprise-auth
-
-  run-enterprise-gssapi-service-host-auth-tests:
-    - command: shell.exec
-      type: test
-      params:
-        shell: "bash"
-        silent: true
-        working_dir: src/go.mongodb.org/mongo-driver
-        script: |
-          # DO NOT ECHO WITH XTRACE
-          if [ "Windows_NT" = "$OS" ]; then
-            export GOPATH=$(cygpath -w $(dirname $(dirname $(dirname `pwd`))))
-            export GOCACHE=$(cygpath -w "$(pwd)/.cache")
-            export MONGODB_URI="${gssapi_service_host_auth_windows_mongodb_uri}"
-          else
-            export GOPATH=$(dirname $(dirname $(dirname `pwd`)))
-            export GOCACHE="$(pwd)/.cache"
-            echo "${gssapi_auth_linux_keytab_base64}" > /tmp/drivers.keytab.base64
-            base64 --decode /tmp/drivers.keytab.base64 > ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab
-            mkdir -p ~/.krb5
-            cat .evergreen/krb5.config | tee -a ~/.krb5/config
-            kinit -k -t ${PROJECT_DIRECTORY}/.evergreen/drivers.keytab -p "${gssapi_auth_username}"
-            export MONGODB_URI="${gssapi_service_host_auth_linux_mongodb_uri}"
-          fi;
-          export GOPATH="$GOPATH"
-          export GOROOT="${GO_DIST}"
-          export GOCACHE="$GOCACHE"
-          export PATH="${GCC_PATH}:${GO_DIST}/bin:$PATH"
-          export MONGO_GO_DRIVER_COMPRESSOR="${MONGO_GO_DRIVER_COMPRESSOR}"
-
-          make -s evg-test-enterprise-auth
+          ${PREPARE_SHELL}
+          bash ./etc/run-enterprise-gssapi-test.sh
 
   run-atlas-test:
     - command: ec2.assume_role
@@ -513,7 +479,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -593,17 +558,9 @@ functions:
       params:
         shell: "bash"
         working_dir: src/go.mongodb.org/mongo-driver
-        add_expansions_to_env: true
         script: |
           ${PREPARE_SHELL}
-
-          AUTH="auth" \
-          SSL="ssl" \
-          MONGODB_URI="${SERVERLESS_URI}" \
-          SERVERLESS="serverless" \
-          SERVERLESS_ATLAS_USER="${SERVERLESS_ATLAS_USER}" \
-          MAKEFILE_TARGET=evg-test-serverless \
-            sh ${PROJECT_DIRECTORY}/.evergreen/run-tests.sh
+          bash etc/run-serverless-test.sh
 
   run-atlas-data-lake-test:
     - command: shell.exec
@@ -719,16 +676,13 @@ functions:
     - command: ec2.assume_role
       params:
         role_arn: ${aws_test_secrets_role}
-    - command: shell.exec
+    - command: subprocess.exec
       type: test
       params:
         include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
-        shell: "bash"
-        working_dir: "src"
-        script: |
-          ${PREPARE_SHELL}
-          cd $DRIVERS_TOOLS/.evergreen/auth_aws
-          ./setup_secrets.sh drivers/aws_auth
+        binary: "bash"
+        args: 
+          - ${DRIVERS_TOOLS}/.evergreen/auth_aws/setup-secrets.sh
 
   run-aws-auth-test-with-regular-aws-credentials:
     - command: shell.exec
@@ -862,14 +816,13 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         binary: bash
         args:
-          - ${DRIVERS_TOOLS}/.evergreen/csfle/await_servers.sh
+          - ${DRIVERS_TOOLS}/.evergreen/csfle/await-servers.sh
 
   run-kms-tls-test:
     - command: shell.exec
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -892,7 +845,6 @@ functions:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
@@ -938,6 +890,12 @@ tasks:
       - func: run-make
         vars:
           targets: "check-fmt check-license check-modules lint"
+
+  - name: pull-request-helpers
+    allowed_requesters: ["patch", "github_pr"]
+    commands:
+      - func: "add PR reviewer"  
+      - func: "add PR labels"
       - func: "create-api-report"
 
   - name: perf
@@ -1683,20 +1641,13 @@ tasks:
     tags: ["test", "enterprise-auth"]
     commands:
       - func: run-enterprise-auth-tests
-        vars:
-          MONGODB_URI: "${plain_auth_mongodb_uri}"
 
   - name: test-enterprise-auth-gssapi
     tags: ["test", "enterprise-auth"]
     commands:
       - func: run-enterprise-gssapi-auth-tests
-
-  - name: test-enterprise-auth-gssapi-service-host
-    tags: ["test", "enterprise-auth"]
-    commands:
-      - func: run-enterprise-gssapi-service-host-auth-tests
         vars:
-          MONGO_GO_DRIVER_COMPRESSOR: "snappy"
+            MONGO_GO_DRIVER_COMPRESSOR: "snappy"
 
   # Build with the oldest supported version of Go.
   - name: go1.18-build
@@ -1837,7 +1788,7 @@ tasks:
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
             make build-kms-test
           echo "Building build-kms-test ... end"
-
+          source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
           echo "Copying files ... begin"
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
@@ -1858,6 +1809,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+          source $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/secrets-export.sh
           export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
           export GCPKMS_PROJECT=${GCPKMS_PROJECT}
           export GCPKMS_ZONE=${GCPKMS_ZONE}
@@ -1892,23 +1844,10 @@ tasks:
       type: test
       params:
         shell: "bash"
-        silent: true
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags=cse" \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
-          echo "Building build-kms-test ... end"
-
-          export AWS_ACCESS_KEY_ID="${cse_aws_access_key_id}"
-          export AWS_SECRET_ACCESS_KEY="${cse_aws_secret_access_key}"
-
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-          MONGODB_URI='${atlas_free_tier_uri}' \
-          PROVIDER='aws' \
-            ./testkms
+          bash etc/run-awskms-test.sh
 
   - name: "testawskms-fail-task"
     # testawskms-fail-task runs without environment variables.
@@ -1921,17 +1860,8 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          echo "Building build-kms-test ... begin"
-          BUILD_TAGS="-tags=cse" \
-          PKG_CONFIG_PATH=$PKG_CONFIG_PATH \
-            make build-kms-test
-          echo "Building build-kms-test ... end"
-
-          LD_LIBRARY_PATH=./install/libmongocrypt/lib64 \
-          MONGODB_URI='${atlas_free_tier_uri}' \
-          EXPECT_ERROR='status=400' \
-          PROVIDER='aws' \
-            ./testkms
+          export EXPECT_ERROR='status=400'
+          bash etc/run-awskms-test.sh
 
   - name: "testazurekms-task"
     commands:
@@ -1966,8 +1896,7 @@ tasks:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
-          # Get azurekms credentials from the vault.
-          . ./etc/get_aws_secrets.sh drivers/azurekms
+          source ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
           export AZUREKMS_RESOURCEGROUP=${AZUREKMS_RESOURCEGROUP}
           export AZUREKMS_VMNAME=${AZUREKMS_VMNAME}
           export AZUREKMS_PRIVATEKEYPATH=/tmp/testazurekms_privatekey
@@ -2011,14 +1940,13 @@ tasks:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           shell: bash
-          add_expansions_to_env: true
           env:
             TEST_LAMBDA_DIRECTORY: ${PROJECT_DIRECTORY}/internal/test/faas/awslambda
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
+          include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
           script: |
             ${PREPARE_SHELL}
-            ls $TEST_LAMBDA_DIRECTORY
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
   - name: "test-search-index"
@@ -2252,10 +2180,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            echo '${testgcpkms_key_file}' > /tmp/testgcpkms_key_file.json
-            export GCPKMS_KEYFILE=/tmp/testgcpkms_key_file.json
-            export GCPKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
-            export GCPKMS_SERVICEACCOUNT="${testgcpkms_service_account}"
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/create-and-setup-instance.sh
       # Load the GCPKMS_GCLOUD, GCPKMS_INSTANCE, GCPKMS_REGION, and GCPKMS_ZONE expansions.
       - command: expansions.update
@@ -2267,10 +2191,6 @@ task_groups:
           shell: "bash"
           script: |
             ${PREPARE_SHELL}
-            export GCPKMS_GCLOUD=${GCPKMS_GCLOUD}
-            export GCPKMS_PROJECT=${GCPKMS_PROJECT}
-            export GCPKMS_ZONE=${GCPKMS_ZONE}
-            export GCPKMS_INSTANCENAME=${GCPKMS_INSTANCENAME}
             $DRIVERS_TOOLS/.evergreen/csfle/gcpkms/delete-instance.sh
       - func: handle-test-artifacts
       - func: cleanup
@@ -2294,9 +2214,8 @@ task_groups:
             export AZUREKMS_VMNAME_PREFIX="GODRIVER"
             export AZUREKMS_DRIVERS_TOOLS=$DRIVERS_TOOLS
             # Get azurekms credentials from the vault.
-            bash $DRIVERS_TOOLS/.evergreen/auth_aws/setup_secrets.sh drivers/azurekms
-            source ./secrets-export.sh
-            $DRIVERS_TOOLS/.evergreen/csfle/azurekms/create-and-setup-vm.sh
+            . ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/setup-secrets.sh
+            ${DRIVERS_TOOLS}/.evergreen/csfle/azurekms/create-and-setup-vm.sh
       - command: expansions.update
         params:
           file: testazurekms-expansions.yml
@@ -2326,21 +2245,18 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          add_expansions_to_env: true
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
+            task_id: ${task_id}
+            execution: ${execution}
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
-      - command: expansions.update
-        params:
-          file: src/go.mongodb.org/mongo-driver/atlas-expansion.yml
     teardown_group:
       - command: subprocess.exec
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          add_expansions_to_env: true
           env:
             LAMBDA_STACK_NAME: dbx-go-lambda
             AWS_REGION: us-east-1
@@ -2361,9 +2277,12 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          add_expansions_to_env: true
           env:
             MONGODB_VERSION: "7.0"
+            LAMBDA_STACK_NAME: dbx-go-lambda
+            AWS_REGION: us-east-1
+            task_id: ${task_id}
+            execution: ${execution}
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/setup-atlas-cluster.sh
       - command: expansions.update
@@ -2383,7 +2302,6 @@ task_groups:
         params:
           working_dir: src/go.mongodb.org/mongo-driver
           binary: bash
-          add_expansions_to_env: true
           args:
             - ${DRIVERS_TOOLS}/.evergreen/atlas/teardown-atlas-cluster.sh
       - func: handle-test-artifacts
@@ -2403,6 +2321,16 @@ buildvariants:
       GO_DIST: "/opt/golang/go1.20"
     tasks:
       - name: ".static-analysis"
+
+  - name: pull-request-helpers
+    tags: ["pullrequest"]
+    display_name: "Pull Request Helpers"
+    run_on:
+      - rhel8.7-small
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: "pull-request-helpers"
 
   - name: perf
     display_name: "Performance"
