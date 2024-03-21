@@ -95,7 +95,7 @@
       ]
     },
     {
-      "description": "createSearchIndex ignores read and write concern",
+      "description": "createSearchIndexes ignores read and write concern",
       "operations": [
         {
           "name": "createSearchIndexes",
