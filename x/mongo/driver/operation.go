@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/experiment"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -420,6 +421,10 @@ func (op Operation) Execute(ctx context.Context) error {
 	// resetForRetry records the error that caused the retry, decrements retries, and resets the
 	// retry loop variables to request a new server and a new connection for the next attempt.
 	resetForRetry := func(err error) {
+		if metrics := experiment.GetMetrics(ctx); metrics != nil {
+			metrics.Retries++
+		}
+
 		retries--
 		prevErr = err
 
@@ -499,6 +504,10 @@ func (op Operation) Execute(ctx context.Context) error {
 					return err
 				}
 			}
+		}
+
+		if metrics := experiment.GetMetrics(ctx); metrics != nil {
+			metrics.Server = conn.Address().String()
 		}
 
 		// Run steps that must only be run on the first attempt, but not again for retries.
@@ -1393,22 +1402,20 @@ func (op Operation) calculateMaxTimeMS(
 				adjustDur = 500 * time.Millisecond
 			}
 			subRTTAdj := subRTT - adjustDur
-
-			// if rand.Float32() < 0.01 {
-			// 	fmt.Printf("MAXTIME METHOD1: rem:%v, rtt:%v, pre:%v, adj:%v(%v), res:%v\n",
-			// 		remainingTimeout,
-			// 		rttMin,
-			// 		subRTT,
-			// 		maxTimeAdjust,
-			// 		adjustDur,
-			// 		subRTTAdj)
-			// }
-
 			maxTime := subRTTAdj
 
 			// Always round up to the next millisecond value so we never truncate the calculated
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
+
+			if metrics := experiment.GetMetrics(ctx); metrics != nil {
+				metrics.RemainingTimeout = remainingTimeout
+				metrics.MinRTT = rttMin
+				metrics.AdjustmentPct = float64(maxTimeAdjust) * 0.001
+				metrics.Adjustment = adjustDur
+				metrics.MaxTimeMS = maxTimeMS
+			}
+
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
 					"maxTimeMS calculated by context deadline is negative "+
