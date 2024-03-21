@@ -280,7 +280,7 @@ func TestSearchIndexProse(t *testing.T) {
 			view := mt.Coll.SearchIndexes()
 
 			definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
-			searchName := "test-search-index6"
+			const searchName = "test-search-index-case6"
 			opts := options.SearchIndexes().SetName(searchName)
 			index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
 				Definition: definition,
