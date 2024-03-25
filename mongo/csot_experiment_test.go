@@ -6,12 +6,15 @@ import (
 	"math"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/montanaflynn/stats"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -22,6 +25,17 @@ type csotTestCase struct {
 	failRate   float64 // Rate [0,1] of volume that should short-circuit
 	volume     uint    // Number of records to load
 	goroutines uint    // Number of goroutines to evenly split op execution
+	uri        string  // mongodb URI for test
+
+	// Test will assert that the number of timeout failures are within epsilon
+	// of volume * failRate
+	epsilon float64
+
+	// rttPercentile is the rtt percentile to use as the timeout for the
+	// short-circuit operation used for the text case. The valid interval for
+	// this field is [0,1]. If set to "0", then the minimum RTT is used. If set
+	// to "1", then the maximum RTT is used.
+	rttPercentile float64
 }
 
 func loadLargeCollection(t *testing.T, coll *Collection, tcase csotTestCase) {
@@ -75,16 +89,14 @@ func loadLargeCollection(t *testing.T, coll *Collection, tcase csotTestCase) {
 }
 
 type latencyStats struct {
-	max    time.Duration
-	min    time.Duration
-	median time.Duration
-	mean   time.Duration
-	p10    time.Duration
-	p90    time.Duration
-	p99    time.Duration
+	max        time.Duration
+	min        time.Duration
+	median     time.Duration
+	mean       time.Duration
+	percentile time.Duration
 }
 
-func getStats(t *testing.T, times []time.Duration) *latencyStats {
+func getStats(t *testing.T, times []time.Duration, tcase csotTestCase) *latencyStats {
 	t.Helper()
 
 	samples := make(stats.Float64Data, len(times))
@@ -104,19 +116,23 @@ func getStats(t *testing.T, times []time.Duration) *latencyStats {
 	mean, err := stats.Mean(samples)
 	require.NoError(t, err)
 
-	p90, err := stats.Percentile(samples, 90)
-	require.NoError(t, err)
-
-	p99, err := stats.Percentile(samples, 99)
-	require.NoError(t, err)
+	var percentile float64
+	switch tcase.rttPercentile {
+	case 0.0:
+		percentile = minv
+	case 1.0:
+		percentile = maxv
+	default:
+		percentile, err = stats.Percentile(samples, tcase.rttPercentile*100)
+		require.NoError(t, err, "expected percentile %v to calculate", tcase.rttPercentile)
+	}
 
 	return &latencyStats{
-		max:    time.Duration(maxv),
-		min:    time.Duration(minv),
-		median: time.Duration(medv),
-		mean:   time.Duration(mean),
-		p90:    time.Duration(p90),
-		p99:    time.Duration(p99),
+		max:        time.Duration(maxv),
+		min:        time.Duration(minv),
+		median:     time.Duration(medv),
+		mean:       time.Duration(mean),
+		percentile: time.Duration(percentile),
 	}
 }
 
@@ -168,17 +184,43 @@ func getQueryStats(t *testing.T, coll *Collection, query bson.D, tcase csotTestC
 	samplesMu.Lock()
 	defer samplesMu.Unlock()
 
-	return getStats(t, samples[:])
+	return getStats(t, samples[:], tcase)
 }
 
-func runCSOTTestCase(t *testing.T, client *Client, tcase csotTestCase) {
-	t.Helper()
+type csotTestResult struct {
+	percentile       float64
+	shortCircuitRate float64
+}
 
-	require.NotNil(t, client.timeout, "CSOT must be enabled")
+func runCSOTTestCase(t *testing.T, tcase csotTestCase) csotTestResult {
+	t.Helper()
 
 	// Ensure the failRate is in the interval [0,1]
 	require.LessOrEqual(t, tcase.failRate, 1.0)
 	require.GreaterOrEqual(t, tcase.failRate, 0.0)
+
+	// Ensure the rttPercentile is in the interval [0, 1]
+	require.LessOrEqual(t, tcase.rttPercentile, 1.0)
+	require.GreaterOrEqual(t, tcase.rttPercentile, 0.0)
+
+	var connectionsClosed int64
+	poolMonitor := &event.PoolMonitor{
+		Event: func(pe *event.PoolEvent) {
+			if pe.Type == event.ConnectionClosed {
+				atomic.AddInt64(&connectionsClosed, 1)
+			}
+		},
+	}
+
+	clientOpts := options.Client().SetTimeout(10 * time.Minute).ApplyURI(tcase.uri).
+		SetPoolMonitor(poolMonitor)
+
+	client, err := Connect(context.Background(), clientOpts)
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
+
+	require.NotNil(t, client.timeout, "CSOT must be enabled")
 
 	// Initialize a collection with the name "large<uuid>".
 	uuid, err := uuid.New()
@@ -201,14 +243,14 @@ func runCSOTTestCase(t *testing.T, client *Client, tcase csotTestCase) {
 	// Set the timeout values in the "timeouts" array where there a
 	// failRatio-percent of the timeouts are the minimum from query stats and
 	// the rest are max.
-	expectedFailures := math.Floor(float64(tcase.volume) * tcase.failRate)
+	wantTimeoutErrCount := math.Floor(float64(tcase.volume) * tcase.failRate)
 
 	timeouts := make([]time.Duration, tcase.volume)
 	for i := 0; i < int(tcase.volume); i++ {
-		if i >= int(expectedFailures) {
+		if i >= int(wantTimeoutErrCount) {
 			timeouts[i] = qstats.max
 		} else {
-			timeouts[i] = qstats.min
+			timeouts[i] = qstats.percentile
 		}
 	}
 
@@ -248,31 +290,48 @@ func runCSOTTestCase(t *testing.T, client *Client, tcase csotTestCase) {
 		}
 	}()
 
-	errCount := 0
+	gotTimeoutErrCount := 0
 	for err := range errs {
 		if IsTimeout(err) {
-			errCount++
+			gotTimeoutErrCount++
 		}
 	}
 
-	t.Log("number of timeout errors: ", errCount)
+	if tcase.epsilon > 0 {
+		// The relative error used to assert InEpsilon is calculate as
+		// |want - got| / |want|
+		assert.InEpsilon(t, wantTimeoutErrCount, gotTimeoutErrCount, tcase.epsilon)
+	}
+
+	shortCircuitRate := 1.0
+	if gotTimeoutErrCount != 0 {
+		shortCircuitRate = 1.0 - float64(connectionsClosed)/float64(gotTimeoutErrCount)
+	}
+
+	return csotTestResult{
+		shortCircuitRate: shortCircuitRate,
+		percentile:       tcase.rttPercentile,
+	}
 }
 
 func TestExperimentalCSOT(t *testing.T) {
 	const uri = "mongodb://localhost:27017"
 
-	clientOpts := options.Client().SetTimeout(10 * time.Minute).ApplyURI(uri)
+	exResults := make([]csotTestResult, 101)
+	for p := 0; p <= 100; p++ {
+		ex := csotTestCase{
+			failRate:      0.90,
+			goroutines:    10,
+			volume:        1000,
+			epsilon:       0.01,
+			rttPercentile: float64(p) / 100.0,
+			uri:           uri,
+		}
 
-	client, err := Connect(context.Background(), clientOpts)
-	require.NoError(t, err)
-
-	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
-
-	ex := csotTestCase{
-		failRate:   0.314,
-		goroutines: 10,
-		volume:     100,
+		exResults[p] = runCSOTTestCase(t, ex)
 	}
 
-	runCSOTTestCase(t, client, ex)
+	for _, r := range exResults {
+		fmt.Println(r.percentile, r.shortCircuitRate)
+	}
 }
