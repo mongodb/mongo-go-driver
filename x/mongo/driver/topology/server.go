@@ -88,7 +88,7 @@ type Server struct {
 
 	state          int64
 	operationCount int64
-	maxTimeRatio   int64
+	maxTimeAdjust  int64
 
 	cfg     *serverConfig
 	address address.Address
@@ -431,35 +431,36 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 
 var _ driver.MaxTimeAdjuster = (*Server)(nil)
 
+// MaxTimeAdjust returns the current "maxTimeMS" adjustment value.
 func (s *Server) MaxTimeAdjust() int64 {
-	v := atomic.LoadInt64(&s.maxTimeRatio)
-	if v < maxTimeRatioMin {
-		return maxTimeRatioMin
+	v := atomic.LoadInt64(&s.maxTimeAdjust)
+	if v < maxTimeAdjustMin {
+		return maxTimeAdjustMin
 	}
-	if v > maxTimeRatioMax {
-		return maxTimeRatioMax
+	if v > maxTimeAdjustMax {
+		return maxTimeAdjustMax
 	}
 	return v
 }
 
-// TODO: Re-set range?
 const (
-	maxTimeRatioMin = 0
-	maxTimeRatioMax = 300
-	maxTimeRatioInc = 40
-	maxTimeRatioDec = 1
+	maxTimeAdjustMin = 0
+	maxTimeAdjustMax = 300
+
+	defaultMaxTimeAdjustDown = 400
+	defaultMaxTimeAdjustUp   = 10
 )
 
-func setMaxTimeRatio(maxTimeRatio *int64, err error) {
-	v := atomic.LoadInt64(maxTimeRatio)
+func setMaxTimeAdjust(maxTimeAdjust *int64, down, up int64, err error) {
+	v := atomic.LoadInt64(maxTimeAdjust)
 
 	// Normalize the value before we modify it to make sure it starts in the
 	// expected range.
-	if v < maxTimeRatioMin {
-		v = maxTimeRatioMin
+	if v < maxTimeAdjustMin {
+		v = maxTimeAdjustMin
 	}
-	if v > maxTimeRatioMax {
-		v = maxTimeRatioMax
+	if v > maxTimeAdjustMax {
+		v = maxTimeAdjustMax
 	}
 
 	// If the error is a client-side timeout, increase by 40 (4%). If it's not,
@@ -470,20 +471,20 @@ func setMaxTimeRatio(maxTimeRatio *int64, err error) {
 	var cerr ConnectionError
 	isNetTimeout := errors.As(err, &cerr) && cerr.Timeout()
 	if isNetTimeout {
-		v += maxTimeRatioInc
+		v += down
 		// TODO: Special condition for server-side timeout?
 	} else {
-		v -= maxTimeRatioDec
+		v -= up
 	}
 
 	// Normalize the updated value and then store it.
-	if v < maxTimeRatioMin {
-		v = maxTimeRatioMin
+	if v < maxTimeAdjustMin {
+		v = maxTimeAdjustMin
 	}
-	if v > maxTimeRatioMax {
-		v = maxTimeRatioMax
+	if v > maxTimeAdjustMax {
+		v = maxTimeAdjustMax
 	}
-	atomic.StoreInt64(maxTimeRatio, v)
+	atomic.StoreInt64(maxTimeAdjust, v)
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
@@ -491,14 +492,14 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 
 	// Ignore nil errors.
 	if err == nil {
-		// Fast path for maxTimeRatio.
+		// Fast path for maxTimeAdjust.
 		//
-		// If there is no error, and maxTimeRatio is already 0 or below, do
-		// nothing. If maxTimeRatio is above 0, decrement by 1 (0.1%). Note that
-		// maxTimeRatio can change between these atomic operations, but the
-		// value is normalized when used and when updated by the slow path.
-		if atomic.LoadInt64(&s.maxTimeRatio) > 0 {
-			atomic.AddInt64(&s.maxTimeRatio, -1)
+		// If there is no error, and maxTimeAdjust is already 0 or below, do
+		// nothing. If maxTimeAdjust is above 0, decrement by 1 (0.1%). Note
+		// that maxTimeAdjust can change between these atomic operations, but
+		// the value is normalized when used and when updated by the slow path.
+		if atomic.LoadInt64(&s.maxTimeAdjust) > 0 {
+			atomic.AddInt64(&s.maxTimeAdjust, -1)
 		}
 		return driver.NoChange
 	}
@@ -518,9 +519,9 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	s.processErrorLock.Lock()
 	defer s.processErrorLock.Unlock()
 
-	// Slow path for maxTimeRatio. The "processErrorLock" must be held while
+	// Slow path for maxTimeAdjust. The "processErrorLock" must be held while
 	// calling.
-	setMaxTimeRatio(&s.maxTimeRatio, err)
+	setMaxTimeAdjust(&s.maxTimeAdjust, s.cfg.maxTimeAdjustDown, s.cfg.maxTimeAdjustUp, err)
 
 	// Get the wire version and service ID from the connection description because they will never
 	// change for the lifetime of a connection and can possibly be different between connections to

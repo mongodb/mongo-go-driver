@@ -51,6 +51,7 @@ func (e ConnectionError) Unwrap() error {
 	return e.Wrapped
 }
 
+// Timeout returns true if the ConnectionError was caused by a network timeout.
 func (e ConnectionError) Timeout() bool {
 	var nerr net.Error
 	return errors.As(e.Wrapped, &nerr) && nerr.Timeout()

@@ -1588,9 +1588,9 @@ func (op Operation) calculateMaxTimeMS(
 			subRTT := remainingTimeout - rttMin
 
 			// Calculate percentage of remaining maxTime to subtract. The maxTimeAdjust
-			// value will be between 0-300, so multiply it by 0.001 so it ranges from
+			// value will be between 0-3000, so multiply it by 0.0001 so it ranges from
 			// 0.0 to 0.3 (0-30%).
-			adjustDur := time.Duration(float64(subRTT) * float64(maxTimeAdjust) * 0.001)
+			adjustDur := time.Duration(float64(subRTT) * float64(maxTimeAdjust) * 0.0001)
 			if adjustDur > 500*time.Millisecond {
 				adjustDur = 500 * time.Millisecond
 			}

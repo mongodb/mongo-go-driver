@@ -165,6 +165,7 @@ type ErrorProcessor interface {
 	ProcessError(err error, conn Connection) ProcessErrorResult
 }
 
+// MaxTimeAdjuster describes types that provide a "maxTimeMS" adjustment value.
 type MaxTimeAdjuster interface {
 	MaxTimeAdjust() int64
 }
