@@ -445,7 +445,7 @@ func (s *Server) MaxTimeAdjust() int64 {
 
 const (
 	maxTimeAdjustMin = 0
-	maxTimeAdjustMax = 300
+	maxTimeAdjustMax = 3000
 
 	defaultMaxTimeAdjustDown = 400
 	defaultMaxTimeAdjustUp   = 10
