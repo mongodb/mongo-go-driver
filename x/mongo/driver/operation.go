@@ -310,6 +310,10 @@ func (op Operation) getServerAndConnection(ctx context.Context) (Server, Connect
 		return nil, nil, err
 	}
 
+	if metrics := experiment.GetMetrics(ctx); metrics != nil {
+		metrics.Server = conn.Address().String()
+	}
+
 	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
 	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
 		pinnedConn, ok := conn.(PinnedConnection)
@@ -504,10 +508,6 @@ func (op Operation) Execute(ctx context.Context) error {
 					return err
 				}
 			}
-		}
-
-		if metrics := experiment.GetMetrics(ctx); metrics != nil {
-			metrics.Server = conn.Address().String()
 		}
 
 		// Run steps that must only be run on the first attempt, but not again for retries.

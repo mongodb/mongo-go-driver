@@ -22,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/experiment"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -358,6 +359,9 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 
 	err = c.write(ctx, wm)
 	if err != nil {
+		if metrics := experiment.GetMetrics(ctx); metrics != nil {
+			metrics.ConnectionsClosed++
+		}
 		c.close()
 		return ConnectionError{
 			ConnectionID: c.id,
@@ -409,6 +413,9 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
+		if metrics := experiment.GetMetrics(ctx); metrics != nil {
+			metrics.ConnectionsClosed++
+		}
 		// We closeConnection the connection because we don't know if there are other bytes left to read.
 		c.close()
 		message := errMsg

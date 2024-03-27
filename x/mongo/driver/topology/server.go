@@ -421,12 +421,12 @@ func setMaxTimeRatio(maxTimeRatio *int64, err error) {
 
 	// If the error is a client-side timeout, increase by 40 (4%). If it's not,
 	// reduce by 1 (0.1%).
-	var derr driver.Error
-	isMaxTimeMSExpired := errors.As(err, &derr) && derr.Code == 50
-
-	var nerr net.Error
-	isClientTimeout := ((errors.As(err, &nerr) && nerr.Timeout()) || errors.Is(err, context.DeadlineExceeded)) && !isMaxTimeMSExpired
-	if isClientTimeout {
+	//
+	// TODO: Add a test to ensure that this always indicates a connection
+	// read/write timeout.
+	var cerr ConnectionError
+	isNetTimeout := errors.As(err, &cerr) && cerr.Timeout()
+	if isNetTimeout {
 		v += maxTimeRatioInc
 		// TODO: Special condition for server-side timeout?
 	} else {

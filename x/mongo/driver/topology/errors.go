@@ -8,7 +8,9 @@ package topology
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 
 	"go.mongodb.org/mongo-driver/mongo/description"
 )
@@ -46,6 +48,11 @@ func (e ConnectionError) Error() string {
 // Unwrap returns the underlying error.
 func (e ConnectionError) Unwrap() error {
 	return e.Wrapped
+}
+
+func (e ConnectionError) Timeout() bool {
+	var nerr net.Error
+	return errors.As(e.Wrapped, &nerr) && nerr.Timeout()
 }
 
 // ServerSelectionError represents a Server Selection error.
