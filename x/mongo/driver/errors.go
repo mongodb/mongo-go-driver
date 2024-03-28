@@ -377,7 +377,7 @@ func (e Error) NamespaceNotFound() bool {
 
 // ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
 // if there is one. Also used in testing for SDAM.
-func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
+func ExtractErrorFromServerResponse(doc bsoncore.Document, isCSOT bool) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
@@ -514,7 +514,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			errmsg = "command failed"
 		}
 
-		return Error{
+		err := Error{
 			Code:            code,
 			Message:         errmsg,
 			Name:            codeName,
@@ -522,6 +522,12 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			TopologyVersion: tv,
 			Raw:             doc,
 		}
+
+		// TODO: Comment.
+		if isCSOT && err.Code == 50 {
+			err.Wrapped = context.DeadlineExceeded
+		}
+		return err
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {

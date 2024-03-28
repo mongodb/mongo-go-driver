@@ -264,6 +264,31 @@ type ClientOptions struct {
 	// may be used in its place to control the amount of time that a single operation can run before returning
 	// an error. Setting SocketTimeout and Timeout on a single client will result in undefined behavior.
 	SocketTimeout *time.Duration
+
+	// MaxTimeAdjustDown sets the amount that the "maxTimeMS" feedback mechanism
+	// adjusts the "maxTimeMS" value down each time the driver detects a
+	// client-side timeout. If you're seeing too many client-side timeouts
+	// (context.DeadlineExceeded), set a higher value. If you're seeing too many
+	// server-side timeouts (MaxTimeMSExpired), set a lower value.
+	//
+	// The value must be in the range [0, 3000]. The default is 400.
+	//
+	// Deprecated: This option is for internal use only and should not be set.
+	// It may be changed or removed in any release.
+	MaxTimeAdjustDown *int64
+
+	// MaxTimeAdjustUp sets the amount that the "maxTimeMS" feedback mechanism
+	// adjusts the "maxTimeMS" value up each time the driver detects a
+	// client-side timeout. If you're seeing too many client-side timeouts
+	// (context.DeadlineExceeded), set a lower value. If you're seeing too many
+	// server-side timeouts (MaxTimeMSExpired), set a higher value. Prioritize
+	// adjusting MaxTimeAdjustDown first.
+	//
+	// The value must be in the range [0, 3000]. The default is 10.
+	//
+	// Deprecated: This option is for internal use only and should not be set.
+	// It may be changed or removed in any release.
+	MaxTimeAdjustUp *int64
 }
 
 // Client creates a new ClientOptions instance.
@@ -329,6 +354,14 @@ func (c *ClientOptions) validate() error {
 
 	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
 		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	}
+
+	if v := c.MaxTimeAdjustDown; v != nil && (*v < 0 || *v > 3000) {
+		return fmt.Errorf("invalid MaxTimeAdjustDown value: %q", *v)
+	}
+
+	if v := c.MaxTimeAdjustUp; v != nil && (*v < 0 || *v > 3000) {
+		return fmt.Errorf("invalid MaxTimeAdjustUp value: %q", *v)
 	}
 
 	return nil
@@ -998,6 +1031,26 @@ func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
 	return c
 }
 
+// SetMaxTimeAdjustDown sets the MaxTimeAdjustDown value. See the
+// MaxTimeAdjustDown field on [ClientOptions] for more information.
+//
+// Deprecated: This option is for internal use only and should not be set. It
+// may be changed or removed in any release.
+func (c *ClientOptions) SetMaxTimeAdjustDown(adjust int64) *ClientOptions {
+	c.MaxTimeAdjustDown = &adjust
+	return c
+}
+
+// SetMaxTimeAdjustUp sets the MaxTimeAdjustUp value. See the MaxTimeAdjustUp
+// field on [ClientOptions] for more information.
+//
+// Deprecated: This option is for internal use only and should not be set. It
+// may be changed or removed in any release.
+func (c *ClientOptions) SetMaxTimeAdjustUp(adjust int64) *ClientOptions {
+	c.MaxTimeAdjustUp = &adjust
+	return c
+}
+
 // MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last one wins fashion.
 // The specified options are merged with the existing options on the client, with the specified options taking
 // precedence.
@@ -1143,6 +1196,12 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.ServerMonitoringMode != nil {
 			c.ServerMonitoringMode = opt.ServerMonitoringMode
+		}
+		if opt.MaxTimeAdjustDown != nil {
+			c.MaxTimeAdjustDown = opt.MaxTimeAdjustDown
+		}
+		if opt.MaxTimeAdjustUp != nil {
+			c.MaxTimeAdjustUp = opt.MaxTimeAdjustUp
 		}
 	}
 

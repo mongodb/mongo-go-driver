@@ -42,6 +42,9 @@ type serverConfig struct {
 	logger               *logger.Logger
 	poolMaxIdleTime      time.Duration
 	poolMaintainInterval time.Duration
+
+	maxTimeAdjustDown int64
+	maxTimeAdjustUp   int64
 }
 
 func newServerConfig(opts ...ServerOption) *serverConfig {
@@ -49,6 +52,8 @@ func newServerConfig(opts ...ServerOption) *serverConfig {
 		heartbeatInterval: 10 * time.Second,
 		heartbeatTimeout:  10 * time.Second,
 		registry:          defaultRegistry,
+		maxTimeAdjustDown: defaultMaxTimeAdjustDown,
+		maxTimeAdjustUp:   defaultMaxTimeAdjustUp,
 	}
 
 	for _, opt := range opts {
@@ -195,6 +200,18 @@ func WithServerAPI(fn func(serverAPI *driver.ServerAPIOptions) *driver.ServerAPI
 func WithServerLoadBalanced(fn func(bool) bool) ServerOption {
 	return func(cfg *serverConfig) {
 		cfg.loadBalanced = fn(cfg.loadBalanced)
+	}
+}
+
+func withMaxTimeAdjustDown(adjust int64) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.maxTimeAdjustDown = adjust
+	}
+}
+
+func withMaxTimeAdjustUp(adjust int64) ServerOption {
+	return func(cfg *serverConfig) {
+		cfg.maxTimeAdjustUp = adjust
 	}
 }
 

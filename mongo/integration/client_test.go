@@ -8,6 +8,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -1004,5 +1006,139 @@ func TestClientStress(t *testing.T) {
 				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
 			})
 		}
+	})
+}
+
+func TestCSOTExperiment(t *testing.T) {
+	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
+
+	csotOpts := mtest.NewOptions().ClientOptions(options.Client().SetTimeout(10 * time.Second))
+	mt.RunOpts("includes maxTimeMS if CSOT timeout is set", csotOpts, func(mt *mtest.T) {
+		mt.Run("with context.Background", func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+			require.NoError(mt, err, "InsertOne error")
+
+			maxTimeVal := mt.GetStartedEvent().Command.Lookup("maxTimeMS")
+
+			require.True(mt, len(maxTimeVal.Value) > 0, "expected maxTimeMS BSON value to be non-empty")
+			require.Equal(mt, maxTimeVal.Type, bsontype.Int64, "expected maxTimeMS value to be type Int64")
+
+			maxTimeMS := maxTimeVal.Int64()
+			assert.True(mt, maxTimeMS > 0, "expected maxTimeMS value to be greater than 0")
+		})
+		mt.Run("with context.WithTimeout", func(mt *mtest.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+			defer cancel()
+
+			_, err := mt.Coll.InsertOne(ctx, bson.D{})
+			require.NoError(mt, err, "InsertOne error")
+
+			maxTimeVal := mt.GetStartedEvent().Command.Lookup("maxTimeMS")
+			require.True(mt, len(maxTimeVal.Value) > 0, "expected maxTimeMS BSON value to be non-empty")
+			require.Equal(mt, maxTimeVal.Type, bsontype.Int64, "expected maxTimeMS value to be type Int64")
+
+			maxTimeMS := maxTimeVal.Int64()
+			assert.True(mt,
+				maxTimeMS > 60_000,
+				"expected maxTimeMS value to be greater than 60000, but got %v",
+				maxTimeMS)
+		})
+	})
+
+	mt.RunOpts("timeout errors wrap context.DeadlineExceeded", csotOpts, func(mt *mtest.T) {
+		// Test that a client-side timeout is a context.DeadlineExceeded
+		mt.Run("MaxTimeMSExceeded", func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+			require.NoError(mt, err, "InsertOne error")
+
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands: []string{"find"},
+					ErrorCode:    50, // MaxTimeMSExceeded
+				},
+			})
+
+			err = mt.Coll.FindOne(context.Background(), bson.D{}).Err()
+
+			assert.True(mt,
+				errors.Is(err, context.DeadlineExceeded),
+				"expected error %[1]T(%[1]q) to wrap context.DeadlineExceeded",
+				err)
+			assert.True(mt,
+				mongo.IsTimeout(err),
+				"expected error %[1]T(%[1]q) to be a timeout error",
+				err)
+		})
+		// Test that a server-side timeout is a context.DeadlineExceeded
+		mt.Run("ErrDeadlineWouldBeExceeded", func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+			require.NoError(mt, err, "InsertOne error")
+
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands:    []string{"find"},
+					BlockConnection: true,
+					BlockTimeMS:     1000,
+				},
+			})
+
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Microsecond)
+			defer cancel()
+			err = mt.Coll.FindOne(ctx, bson.D{}).Err()
+
+			assert.True(mt,
+				errors.Is(err, driver.ErrDeadlineWouldBeExceeded),
+				"expected error %[1]T(%[1]q) to wrap driver.ErrDeadlineWouldBeExceeded",
+				err)
+			assert.True(mt,
+				errors.Is(err, context.DeadlineExceeded),
+				"expected error %[1]T(%[1]q) to wrap context.DeadlineExceeded",
+				err)
+			assert.True(mt,
+				mongo.IsTimeout(err),
+				"expected error %[1]T(%[1]q) to be a timeout error",
+				err)
+		})
+		mt.Run("context.DeadlineExceeded", func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+			require.NoError(mt, err, "InsertOne error")
+
+			mt.SetFailPoint(mtest.FailPoint{
+				ConfigureFailPoint: "failCommand",
+				Mode: mtest.FailPointMode{
+					Times: 1,
+				},
+				Data: mtest.FailPointData{
+					FailCommands:    []string{"find"},
+					BlockConnection: true,
+					BlockTimeMS:     1000,
+				},
+			})
+
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+			defer cancel()
+			err = mt.Coll.FindOne(ctx, bson.D{}).Err()
+
+			assert.False(mt,
+				errors.Is(err, driver.ErrDeadlineWouldBeExceeded),
+				"expected error %[1]T(%[1]q) to not wrap driver.ErrDeadlineWouldBeExceeded",
+				err)
+			assert.True(mt,
+				errors.Is(err, context.DeadlineExceeded),
+				"expected error %[1]T(%[1]q) to wrap context.DeadlineExceeded",
+				err)
+			assert.True(mt,
+				mongo.IsTimeout(err),
+				"expected error %[1]T(%[1]q) to be a timeout error",
+				err)
+		})
 	})
 }
