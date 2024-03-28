@@ -86,10 +86,11 @@ type Server struct {
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 
-	state          int64
-	operationCount int64
-	maxTimeAdjust  int64
-	timeoutSamples []time.Duration
+	state                     int64
+	operationCount            int64
+	maxTimeAdjust             int64
+	timeoutSamples            []time.Duration
+	largestMaxTimeMSToTimeout time.Duration
 
 	cfg     *serverConfig
 	address address.Address
@@ -451,10 +452,14 @@ func (s *Server) AddTimeoutSample(rtt time.Duration, maxTimeMS uint64) {
 	if mtd > 0 {
 		s.timeoutSamples = append(s.timeoutSamples, rtt-mtd)
 	}
+
+	if mtd > s.largestMaxTimeMSToTimeout || s.largestMaxTimeMSToTimeout == 0 {
+		s.largestMaxTimeMSToTimeout = mtd
+	}
 }
 
 // MaxTimeoutSample returns the maximum timeout sample recorded.
-func (s *Server) MaxTimeoutSample() time.Duration {
+func (s *Server) MaxTimeoutSample() (time.Duration, time.Duration) {
 	count := 0
 	max := time.Duration(0)
 	for _, d := range s.timeoutSamples {
@@ -465,7 +470,8 @@ func (s *Server) MaxTimeoutSample() time.Duration {
 			max = d
 		}
 	}
-	return max
+
+	return max, s.largestMaxTimeMSToTimeout
 }
 
 const (

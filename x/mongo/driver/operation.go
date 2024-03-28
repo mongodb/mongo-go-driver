@@ -695,11 +695,13 @@ func (op Operation) Execute(ctx context.Context) error {
 		// Calculate maxTimeMS value to potentially be appended to the wire message.
 		var maxTimeAdjust int64
 		var maxTimeoutSample time.Duration
+		var largestMaxTimeToTimeout time.Duration
 		if mta, ok := srvr.(MaxTimeAdjuster); ok {
 			maxTimeAdjust = mta.MaxTimeAdjust()
-			maxTimeoutSample = mta.MaxTimeoutSample()
+			maxTimeoutSample, largestMaxTimeToTimeout = mta.MaxTimeoutSample()
 		}
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), maxTimeAdjust, maxTimeoutSample)
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), maxTimeAdjust, maxTimeoutSample,
+			largestMaxTimeToTimeout)
 		if err != nil {
 			return err
 		}
@@ -1592,6 +1594,7 @@ func (op Operation) calculateMaxTimeMS(
 	rttMin time.Duration,
 	maxTimeAdjust int64,
 	maxTimeoutSample time.Duration,
+	largestMaxTimeToTimeout time.Duration,
 ) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
@@ -1614,7 +1617,7 @@ func (op Operation) calculateMaxTimeMS(
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 
 			mtd := time.Duration(maxTimeMS) * time.Millisecond
-			if maxTimeoutSample > 0 && remainingTimeout-mtd < maxTimeoutSample {
+			if maxTimeoutSample > 0 && largestMaxTimeToTimeout > mtd && remainingTimeout-mtd < maxTimeoutSample {
 				return 0, fmt.Errorf("calculated maxTimeMS has a high likelihood of failure: %w",
 					ErrDeadlineWouldBeExceeded)
 			}
