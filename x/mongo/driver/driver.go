@@ -168,6 +168,8 @@ type ErrorProcessor interface {
 // MaxTimeAdjuster describes types that provide a "maxTimeMS" adjustment value.
 type MaxTimeAdjuster interface {
 	MaxTimeAdjust() int64
+	AddTimeoutSample(error, time.Duration, uint64)
+	MaxTimeoutSample() time.Duration
 }
 
 // HandshakeInformation contains information extracted from a MongoDB connection handshake. This is a helper type that

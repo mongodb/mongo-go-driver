@@ -89,6 +89,7 @@ type Server struct {
 	state          int64
 	operationCount int64
 	maxTimeAdjust  int64
+	timeoutSamples []time.Duration
 
 	cfg     *serverConfig
 	address address.Address
@@ -441,6 +442,33 @@ func (s *Server) MaxTimeAdjust() int64 {
 		return maxTimeAdjustMax
 	}
 	return v
+}
+
+// AddTimeoutSample subtracts the maxTimeMS from the amount of time available
+// for the round trip (rtt), if a deadline error occurs.
+func (s *Server) AddTimeoutSample(err error, rtt time.Duration, maxTimeMS uint64) {
+	if !errors.Is(err, context.DeadlineExceeded) {
+		return
+	}
+
+	mtd := time.Duration(maxTimeMS) * time.Millisecond
+	if mtd > 0 {
+		s.timeoutSamples = append(s.timeoutSamples, rtt-mtd)
+	}
+}
+
+func (s *Server) MaxTimeoutSample() time.Duration {
+	count := 0
+	max := time.Duration(0)
+	for _, d := range s.timeoutSamples {
+		if d > 0 {
+			count++
+		}
+		if d > 0 && d > max {
+			max = d
+		}
+	}
+	return max
 }
 
 const (

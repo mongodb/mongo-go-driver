@@ -694,10 +694,12 @@ func (op Operation) Execute(ctx context.Context) error {
 
 		// Calculate maxTimeMS value to potentially be appended to the wire message.
 		var maxTimeAdjust int64
+		var maxTimeoutSample time.Duration
 		if mta, ok := srvr.(MaxTimeAdjuster); ok {
 			maxTimeAdjust = mta.MaxTimeAdjust()
+			maxTimeoutSample = mta.MaxTimeoutSample()
 		}
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), maxTimeAdjust)
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), maxTimeAdjust, maxTimeoutSample)
 		if err != nil {
 			return err
 		}
@@ -800,6 +802,11 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		if err == nil {
+			var timeUntilRTDeadline time.Duration
+			if rtDeadline, ok := ctx.Deadline(); ok {
+				timeUntilRTDeadline = time.Until(rtDeadline)
+			}
+
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
 			roundTrip := op.roundTrip
@@ -807,6 +814,10 @@ func (op Operation) Execute(ctx context.Context) error {
 				roundTrip = op.moreToComeRoundTrip
 			}
 			res, err = roundTrip(ctx, conn, *wm)
+
+			if mta, ok := srvr.(MaxTimeAdjuster); ok {
+				mta.AddTimeoutSample(err, timeUntilRTDeadline, maxTimeMS)
+			}
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -1580,6 +1591,7 @@ func (op Operation) calculateMaxTimeMS(
 	ctx context.Context,
 	rttMin time.Duration,
 	maxTimeAdjust int64,
+	maxTimeoutSample time.Duration,
 ) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
@@ -1600,6 +1612,12 @@ func (op Operation) calculateMaxTimeMS(
 			// Always round up to the next millisecond value so we never truncate the calculated
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
+
+			mtd := time.Duration(maxTimeMS) * time.Millisecond
+			if maxTimeoutSample > 0 && remainingTimeout-mtd < maxTimeoutSample {
+				return 0, fmt.Errorf("calcualte maxTimeMS has a high liklihood of connection churn: %w",
+					ErrDeadlineWouldBeExceeded)
+			}
 
 			if metrics := experiment.GetMetrics(ctx); metrics != nil {
 				metrics.RemainingTimeout = remainingTimeout
