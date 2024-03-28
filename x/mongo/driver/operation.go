@@ -815,8 +815,8 @@ func (op Operation) Execute(ctx context.Context) error {
 			}
 			res, err = roundTrip(ctx, conn, *wm)
 
-			if mta, ok := srvr.(MaxTimeAdjuster); ok {
-				mta.AddTimeoutSample(err, timeUntilRTDeadline, maxTimeMS)
+			if mta, ok := srvr.(MaxTimeAdjuster); ok && errors.Is(err, context.DeadlineExceeded) {
+				mta.AddTimeoutSample(timeUntilRTDeadline, maxTimeMS)
 			}
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
@@ -1615,7 +1615,7 @@ func (op Operation) calculateMaxTimeMS(
 
 			mtd := time.Duration(maxTimeMS) * time.Millisecond
 			if maxTimeoutSample > 0 && remainingTimeout-mtd < maxTimeoutSample {
-				return 0, fmt.Errorf("calcualte maxTimeMS has a high liklihood of connection churn: %w",
+				return 0, fmt.Errorf("calculated maxTimeMS has a high liklihood of failure: %w",
 					ErrDeadlineWouldBeExceeded)
 			}
 

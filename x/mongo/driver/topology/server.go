@@ -446,17 +446,14 @@ func (s *Server) MaxTimeAdjust() int64 {
 
 // AddTimeoutSample subtracts the maxTimeMS from the amount of time available
 // for the round trip (rtt), if a deadline error occurs.
-func (s *Server) AddTimeoutSample(err error, rtt time.Duration, maxTimeMS uint64) {
-	if !errors.Is(err, context.DeadlineExceeded) {
-		return
-	}
-
+func (s *Server) AddTimeoutSample(rtt time.Duration, maxTimeMS uint64) {
 	mtd := time.Duration(maxTimeMS) * time.Millisecond
 	if mtd > 0 {
 		s.timeoutSamples = append(s.timeoutSamples, rtt-mtd)
 	}
 }
 
+// MaxTimeoutSample returns the maximum timeout sample recorded.
 func (s *Server) MaxTimeoutSample() time.Duration {
 	count := 0
 	max := time.Duration(0)

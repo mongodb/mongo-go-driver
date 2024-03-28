@@ -168,7 +168,7 @@ type ErrorProcessor interface {
 // MaxTimeAdjuster describes types that provide a "maxTimeMS" adjustment value.
 type MaxTimeAdjuster interface {
 	MaxTimeAdjust() int64
-	AddTimeoutSample(error, time.Duration, uint64)
+	AddTimeoutSample(time.Duration, uint64)
 	MaxTimeoutSample() time.Duration
 }
 
