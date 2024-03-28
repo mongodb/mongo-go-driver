@@ -1615,7 +1615,7 @@ func (op Operation) calculateMaxTimeMS(
 
 			mtd := time.Duration(maxTimeMS) * time.Millisecond
 			if maxTimeoutSample > 0 && remainingTimeout-mtd < maxTimeoutSample {
-				return 0, fmt.Errorf("calculated maxTimeMS has a high liklihood of failure: %w",
+				return 0, fmt.Errorf("calculated maxTimeMS has a high likelihood of failure: %w",
 					ErrDeadlineWouldBeExceeded)
 			}
 
