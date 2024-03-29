@@ -23,8 +23,8 @@ type Zeroer interface {
 	IsZero() bool
 }
 
-// Following contains types similar to Go primitives for BSON types that do not have direct
-// Go primitive representations.
+// The following primitive types are similar to Go primitives for BSON types that
+// do not have direct Go primitive representations.
 
 // Binary represents a BSON binary value.
 type Binary struct {

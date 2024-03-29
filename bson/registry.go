@@ -4,59 +4,6 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// # Registry
-//
-// A Registry is a store for ValueEncoders, ValueDecoders, and a type map. See the Registry type
-// documentation for examples of registering various custom encoders and decoders. A Registry can
-// have four main types of codecs:
-//
-// 1. Type encoders/decoders - These can be registered using the RegisterTypeEncoder and
-// RegisterTypeDecoder methods. The registered codec will be invoked when encoding/decoding a value
-// whose type matches the registered type exactly.
-// If the registered type is an interface, the codec will be invoked when encoding or decoding
-// values whose type is the interface, but not for values with concrete types that implement the
-// interface.
-//
-// 2. Interface encoders/decoders - These can be registered using the RegisterInterfaceEncoder and
-// RegisterInterfaceDecoder methods. These methods only accept interface types and the registered codecs
-// will be invoked when encoding or decoding values whose types implement the interface. An example
-// of an interface defined by the driver is bson.Marshaler. The driver will call the MarshalBSON method
-// for any value whose type implements bson.Marshaler, regardless of the value's concrete type.
-//
-// 3. Type map entries - This can be used to associate a BSON type with a Go type. These type
-// associations are used when decoding into a bson.D/bson.M or a struct field of type interface{}.
-// For example, by default, BSON int32 and int64 values decode as Go int32 and int64 instances,
-// respectively, when decoding into a bson.D. The following code would change the behavior so these
-// values decode as Go int instances instead:
-//
-//	intType := reflect.TypeOf(int(0))
-//	registry.RegisterTypeMapEntry(bson.TypeInt32, intType).RegisterTypeMapEntry(bson.TypeInt64, intType)
-//
-// 4. Kind encoder/decoders - These can be registered using the RegisterDefaultEncoder and
-// RegisterDefaultDecoder methods. The registered codec will be invoked when encoding or decoding
-// values whose reflect.Kind matches the registered reflect.Kind as long as the value's type doesn't
-// match a registered type or interface encoder/decoder first. These methods should be used to change the
-// behavior for all values for a specific kind.
-//
-// # Registry Lookup Procedure
-//
-// When looking up an encoder in a Registry, the precedence rules are as follows:
-//
-// 1. A type encoder registered for the exact type of the value.
-//
-// 2. An interface encoder registered for an interface that is implemented by the value or by a pointer to
-// the value. If the value matches multiple interfaces (e.g. the type implements bsoncodec.Marshaler and
-// bsoncodec.ValueMarshaler), the first one registered will be selected. Note that registries
-// constructed using bson.NewRegistry have driver-defined interfaces registered for the
-// bsoncodec.Marshaler, bsoncodec.ValueMarshaler, and bsoncodec.Proxy interfaces, so those will take
-// precedence over any new interfaces.
-//
-// 3. A kind encoder registered for the value's kind.
-//
-// If all of these lookups fail to find an encoder, an error of type ErrNoEncoder is returned. The
-// same precedence rules apply for decoders, with the exception that an error of type ErrNoDecoder
-// will be returned if no decoder is found.
-
 package bson
 
 import (
@@ -297,8 +244,39 @@ func (rb *RegistryBuilder) Build() *Registry {
 	return r
 }
 
-// A Registry is used to store and retrieve codecs for types and interfaces. This type is the main
-// typed passed around and Encoders and Decoders are constructed from it.
+// A Registry is a store for ValueEncoders, ValueDecoders, and a type map. See the Registry type
+// documentation for examples of registering various custom encoders and decoders. A Registry can
+// have four main types of codecs:
+//
+// 1. Type encoders/decoders - These can be registered using the RegisterTypeEncoder and
+// RegisterTypeDecoder methods. The registered codec will be invoked when encoding/decoding a value
+// whose type matches the registered type exactly.
+// If the registered type is an interface, the codec will be invoked when encoding or decoding
+// values whose type is the interface, but not for values with concrete types that implement the
+// interface.
+//
+// 2. Interface encoders/decoders - These can be registered using the RegisterInterfaceEncoder and
+// RegisterInterfaceDecoder methods. These methods only accept interface types and the registered codecs
+// will be invoked when encoding or decoding values whose types implement the interface. An example
+// of an interface defined by the driver is bson.Marshaler. The driver will call the MarshalBSON method
+// for any value whose type implements bson.Marshaler, regardless of the value's concrete type.
+//
+// 3. Type map entries - This can be used to associate a BSON type with a Go type. These type
+// associations are used when decoding into a bson.D/bson.M or a struct field of type interface{}.
+// For example, by default, BSON int32 and int64 values decode as Go int32 and int64 instances,
+// respectively, when decoding into a bson.D. The following code would change the behavior so these
+// values decode as Go int instances instead:
+//
+//	intType := reflect.TypeOf(int(0))
+//	registry.RegisterTypeMapEntry(bson.TypeInt32, intType).RegisterTypeMapEntry(bson.TypeInt64, intType)
+//
+// 4. Kind encoder/decoders - These can be registered using the RegisterDefaultEncoder and
+// RegisterDefaultDecoder methods. The registered codec will be invoked when encoding or decoding
+// values whose reflect.Kind matches the registered reflect.Kind as long as the value's type doesn't
+// match a registered type or interface encoder/decoder first. These methods should be used to change the
+// behavior for all values for a specific kind.
+//
+// Read [Registry.LookupDecoder] and [Registry.LookupEncoder] for Registry lookup procedure.
 type Registry struct {
 	interfaceEncoders []interfaceValueEncoder
 	interfaceDecoders []interfaceValueDecoder
@@ -440,7 +418,11 @@ func (r *Registry) RegisterTypeMapEntry(bt Type, rt reflect.Type) {
 // registered using RegisterTypeEncoder for that interface will be selected.
 //
 // 2. An encoder registered using RegisterInterfaceEncoder for an interface implemented by the type
-// or by a pointer to the type.
+// or by a pointer to the type. If the value matches multiple interfaces (e.g. the type implements
+// bson.Marshaler and bson.ValueMarshaler), the first one registered will be selected.
+// Note that registries constructed using bson.NewRegistry have driver-defined interfaces registered
+// for the bson.Marshaler, bson.ValueMarshaler, and bson.Proxy interfaces, so those will take
+// precedence over any new interfaces.
 //
 // 3. An encoder registered using RegisterKindEncoder for the kind of value.
 //
@@ -505,7 +487,11 @@ func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool
 // registered using RegisterTypeDecoder for that interface will be selected.
 //
 // 2. A decoder registered using RegisterInterfaceDecoder for an interface implemented by the type or by
-// a pointer to the type.
+// a pointer to the type. If the value matches multiple interfaces (e.g. the type implements
+// bson.Unmarshaler and bson.ValueUnmarshaler), the first one registered will be selected.
+// Note that registries constructed using bson.NewRegistry have driver-defined interfaces registered
+// for the bson.Unmarshaler and bson.ValueUnmarshaler interfaces, so those will take
+// precedence over any new interfaces.
 //
 // 3. A decoder registered using RegisterKindDecoder for the kind of value.
 //

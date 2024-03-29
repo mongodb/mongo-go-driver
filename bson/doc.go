@@ -142,10 +142,10 @@
 //
 // The codec system is composed of two parts:
 //
-// 1) ValueEncoders and ValueDecoders that handle encoding and decoding Go values to and from BSON
+// 1) [ValueEncoder] and [ValueDecoder] that handle encoding and decoding Go values to and from BSON
 // representations.
 //
-// 2) A Registry that holds these ValueEncoders and ValueDecoders and provides methods for
+// 2) A [Registry] that holds these ValueEncoders and ValueDecoders and provides methods for
 // retrieving them.
 //
 // [Work with BSON]: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/
