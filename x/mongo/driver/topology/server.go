@@ -86,11 +86,8 @@ type Server struct {
 	// - atomic bug: https://pkg.go.dev/sync/atomic#pkg-note-BUG
 	// - suggested layout: https://go101.org/article/memory-layout.html
 
-	state                     int64
-	operationCount            int64
-	maxTimeAdjust             int64
-	timeoutSamples            []time.Duration
-	largestMaxTimeMSToTimeout time.Duration
+	state          int64
+	operationCount int64
 
 	cfg     *serverConfig
 	address address.Address
@@ -431,107 +428,10 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 	return nil, false
 }
 
-var _ driver.MaxTimeAdjuster = (*Server)(nil)
-
-// MaxTimeAdjust returns the current "maxTimeMS" adjustment value.
-func (s *Server) MaxTimeAdjust() int64 {
-	v := atomic.LoadInt64(&s.maxTimeAdjust)
-	if v < maxTimeAdjustMin {
-		return maxTimeAdjustMin
-	}
-	if v > maxTimeAdjustMax {
-		return maxTimeAdjustMax
-	}
-	return v
-}
-
-// AddTimeoutSample subtracts the maxTimeMS from the amount of time available
-// for the round trip (rtt), if a deadline error occurs.
-func (s *Server) AddTimeoutSample(rtt time.Duration, maxTimeMS uint64) {
-	mtd := time.Duration(maxTimeMS) * time.Millisecond
-	if mtd > 0 {
-		s.timeoutSamples = append(s.timeoutSamples, rtt-mtd)
-	}
-
-	if mtd > s.largestMaxTimeMSToTimeout || s.largestMaxTimeMSToTimeout == 0 {
-		s.largestMaxTimeMSToTimeout = mtd
-	}
-}
-
-// MaxTimeoutSample returns the maximum timeout sample recorded.
-func (s *Server) MaxTimeoutSample() (time.Duration, time.Duration) {
-	count := 0
-	max := time.Duration(0)
-	for _, d := range s.timeoutSamples {
-		if d > 0 {
-			count++
-		}
-		if d > 0 && d > max {
-			max = d
-		}
-	}
-
-	return max, s.largestMaxTimeMSToTimeout
-}
-
-const (
-	maxTimeAdjustMin = 0
-	maxTimeAdjustMax = 3000
-
-	defaultMaxTimeAdjustDown = 400
-	defaultMaxTimeAdjustUp   = 10
-)
-
-func setMaxTimeAdjust(maxTimeAdjust *int64, down, up int64, err error) {
-	v := atomic.LoadInt64(maxTimeAdjust)
-
-	// Normalize the value before we modify it to make sure it starts in the
-	// expected range.
-	if v < maxTimeAdjustMin {
-		v = maxTimeAdjustMin
-	}
-	if v > maxTimeAdjustMax {
-		v = maxTimeAdjustMax
-	}
-
-	// If the error is a client-side timeout, increase by 40 (4%). If it's not,
-	// reduce by 1 (0.1%).
-	//
-	// TODO: Add a test to ensure that this always indicates a connection
-	// read/write timeout.
-	var cerr ConnectionError
-	isNetTimeout := errors.As(err, &cerr) && cerr.Timeout()
-	if isNetTimeout {
-		v += down
-		// TODO: Special condition for server-side timeout?
-	} else {
-		v -= up
-	}
-
-	// Normalize the updated value and then store it.
-	if v < maxTimeAdjustMin {
-		v = maxTimeAdjustMin
-	}
-	if v > maxTimeAdjustMax {
-		v = maxTimeAdjustMax
-	}
-	atomic.StoreInt64(maxTimeAdjust, v)
-}
-
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
 func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
-
 	// Ignore nil errors.
 	if err == nil {
-		// Fast path for maxTimeAdjust.
-		//
-		// If there is no error, and maxTimeAdjust is already 0 or below, do
-		// nothing. If maxTimeAdjust is above 0, decrement by 1 (0.1%). Note
-		// that maxTimeAdjust can change between these atomic operations, but
-		// the value is normalized when used and when updated by the slow path.
-		if atomic.LoadInt64(&s.maxTimeAdjust) > 0 {
-			atomic.AddInt64(&s.maxTimeAdjust, -1)
-		}
 		return driver.NoChange
 	}
 
@@ -549,10 +449,6 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// pool.ready() calls from concurrent server description updates.
 	s.processErrorLock.Lock()
 	defer s.processErrorLock.Unlock()
-
-	// Slow path for maxTimeAdjust. The "processErrorLock" must be held while
-	// calling.
-	setMaxTimeAdjust(&s.maxTimeAdjust, s.cfg.maxTimeAdjustDown, s.cfg.maxTimeAdjustUp, err)
 
 	// Get the wire version and service ID from the connection description because they will never
 	// change for the lifetime of a connection and can possibly be different between connections to

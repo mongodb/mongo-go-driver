@@ -354,13 +354,6 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 		)
 	}
 
-	if co.MaxTimeAdjustDown != nil {
-		serverOpts = append(serverOpts, withMaxTimeAdjustDown(*co.MaxTimeAdjustDown))
-	}
-	if co.MaxTimeAdjustUp != nil {
-		serverOpts = append(serverOpts, withMaxTimeAdjustUp(*co.MaxTimeAdjustUp))
-	}
-
 	lgr, err := newLogger(co.LoggerOptions)
 	if err != nil {
 		return nil, err

@@ -78,6 +78,8 @@ type connection struct {
 	// TODO(GODRIVER-2824): change driverConnectionID type to int64.
 	driverConnectionID uint64
 	generation         uint64
+
+	awaitingResponse bool
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -418,11 +420,12 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		if metrics := experiment.GetMetrics(ctx); metrics != nil {
-			metrics.ConnectionsClosed++
-		}
-		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
+		// if metrics := experiment.GetMetrics(ctx); metrics != nil {
+		// 	metrics.ConnectionsClosed++
+		// }
+		// // We closeConnection the connection because we don't know if there are other bytes left to read.
+		// c.close()
+		c.awaitingResponse = true
 		message := errMsg
 		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"

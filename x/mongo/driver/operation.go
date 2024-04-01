@@ -692,16 +692,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			first = false
 		}
 
-		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		var maxTimeAdjust int64
-		var maxTimeoutSample time.Duration
-		var largestMaxTimeToTimeout time.Duration
-		if mta, ok := srvr.(MaxTimeAdjuster); ok {
-			maxTimeAdjust = mta.MaxTimeAdjust()
-			maxTimeoutSample, largestMaxTimeToTimeout = mta.MaxTimeoutSample()
-		}
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().Min(), maxTimeAdjust, maxTimeoutSample,
-			largestMaxTimeToTimeout)
+		maxTimeMS, err := op.calculateMaxTimeMS(
+			ctx,
+			srvr.RTTMonitor().Min())
 		if err != nil {
 			return err
 		}
@@ -804,11 +797,6 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 
 		if err == nil {
-			var timeUntilRTDeadline time.Duration
-			if rtDeadline, ok := ctx.Deadline(); ok {
-				timeUntilRTDeadline = time.Until(rtDeadline)
-			}
-
 			// roundtrip using either the full roundTripper or a special one for when the moreToCome
 			// flag is set
 			roundTrip := op.roundTrip
@@ -816,10 +804,6 @@ func (op Operation) Execute(ctx context.Context) error {
 				roundTrip = op.moreToComeRoundTrip
 			}
 			res, err = roundTrip(ctx, conn, *wm)
-
-			if mta, ok := srvr.(MaxTimeAdjuster); ok && errors.Is(err, context.DeadlineExceeded) {
-				mta.AddTimeoutSample(timeUntilRTDeadline, maxTimeMS)
-			}
 
 			if ep, ok := srvr.(ErrorProcessor); ok {
 				_ = ep.ProcessError(err, conn)
@@ -1589,56 +1573,32 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // not a Timeout context, it uses the operation's MaxTimeMS if set. If no
 // MaxTimeMS is set on the operation, and context is not a Timeout context,
 // calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(
-	ctx context.Context,
-	rttMin time.Duration,
-	maxTimeAdjust int64,
-	maxTimeoutSample time.Duration,
-	largestMaxTimeToTimeout time.Duration,
-) (uint64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 
-			subRTT := remainingTimeout - rttMin
-
-			// Calculate percentage of remaining maxTime to subtract. The maxTimeAdjust
-			// value will be between 0-3000, so multiply it by 0.0001 so it ranges from
-			// 0.0 to 0.3 (0-30%).
-			adjustDur := time.Duration(float64(subRTT) * float64(maxTimeAdjust) * 0.0001)
-			if adjustDur > 500*time.Millisecond {
-				adjustDur = 500 * time.Millisecond
-			}
-			subRTTAdj := subRTT - adjustDur
-			maxTime := subRTTAdj
+			maxTime := remainingTimeout - rttMin
 
 			// Always round up to the next millisecond value so we never truncate the calculated
 			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 
-			mtd := time.Duration(maxTimeMS) * time.Millisecond
-			if maxTimeoutSample > 0 && largestMaxTimeToTimeout > mtd && remainingTimeout-mtd < maxTimeoutSample {
-				return 0, fmt.Errorf("calculated maxTimeMS has a high likelihood of failure: %w",
-					ErrDeadlineWouldBeExceeded)
-			}
-
 			if metrics := experiment.GetMetrics(ctx); metrics != nil {
 				metrics.RemainingTimeout = remainingTimeout
 				metrics.MinRTT = rttMin
-				metrics.AdjustmentPct = float64(maxTimeAdjust) * 0.001
-				metrics.Adjustment = adjustDur
 				metrics.MaxTimeMS = maxTimeMS
 			}
 
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
 					"maxTimeMS calculated by context deadline is negative "+
-						"(remaining time: %v, minimum RTT %v, feedback adjustment %v): %w",
+						"(remaining time: %v, minimum RTT %v): %w",
 					remainingTimeout,
 					rttMin,
-					subRTTAdj,
 					ErrDeadlineWouldBeExceeded)
 			}
+
 			return uint64(maxTimeMS), nil
 		}
 	} else if op.MaxTime != nil {
