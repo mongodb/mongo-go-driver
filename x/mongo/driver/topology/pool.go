@@ -742,35 +742,51 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
-func addBGDuration(addr string, d time.Duration) {
-	var _ = addr
-	var _ = d
-	// bgDurationsMu.Lock()
-	// bgDurations[addr] = append(bgDurations[addr], d)
-	// bgDurationsMu.Unlock()
+// BGCallback is a callback for monitoring the behavior of the experimental
+// background-read-on-timeout connection preserving mechanism.
+//
+// Deprecated: BGCallback is intended for experimental use only and may be
+// removed or modified at any time.
+var BGCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
+
+func bgWait(pool *pool, conn *connection) {
+	var start, read time.Time
+	start = time.Now()
+	errs := make([]error, 0)
+	connClosed := false
+
+	err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error setting read deadline: %w", err))
+		err = conn.close()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error closing after setting read deadline: %w", err))
+		}
+	}
+
+	if err == nil {
+		// The context here is only used for cancellation, not deadline timeout.
+		// All conn read timeouts are actually accomplished using
+		// SetReadDeadline, like above.
+		_, _, err = conn.read(context.Background())
+		read = time.Now()
+	}
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error reading: %w", err))
+		err := conn.close()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error closing after reading: %w", err))
+		}
+	}
+	err = pool.checkIn(conn)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error checking in: %w", err))
+	}
+
+	if BGCallback != nil {
+		BGCallback(conn.addr.String(), start, read, errs, connClosed)
+	}
 }
-
-// func GetBGDurations() map[string][]time.Duration {
-// 	bgDurationsMu.RLock()
-// 	defer bgDurationsMu.RUnlock()
-
-// 	cp := make(map[string][]time.Duration, len(bgDurations))
-// 	for k, v := range bgDurations {
-// 		c := make([]time.Duration, len(v))
-// 		copy(c, v)
-// 		cp[k] = c
-// 	}
-// 	return cp
-// }
-
-// func ResetBGDurations() {
-// 	bgDurationsMu.Lock()
-// 	bgDurations = make(map[string][]time.Duration)
-// 	bgDurationsMu.Unlock()
-// }
-
-// var bgDurations = make(map[string][]time.Duration)
-// var bgDurationsMu sync.RWMutex
 
 // checkIn returns an idle connection to the pool. If the connection is perished or the pool is
 // closed, it is removed from the connection pool and closed.
@@ -784,31 +800,7 @@ func (p *pool) checkIn(conn *connection) error {
 
 	if conn.awaitingResponse {
 		conn.awaitingResponse = false
-		go func() {
-			start := time.Now()
-			// fmt.Println("CHECKIN: Waiting 10s to read the reply")
-			if err := conn.nc.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
-				fmt.Println("CHECKIN: Error setting read deadline:", err)
-				err := conn.close()
-				if err != nil {
-					fmt.Println("CHECKIN: Error closing after setting read deadline:", err)
-				}
-			}
-			_, _, err := conn.read(context.Background())
-			if err != nil {
-				fmt.Println("CHECKIN: Error background reading, closing:", err)
-				err := conn.close()
-				if err != nil {
-					fmt.Println("CHECKIN: Error closing after background read:", err)
-				}
-			}
-			// fmt.Println("CHECKIN: Checking in bg conn, waited", time.Since(start))
-			addBGDuration(p.address.String(), time.Since(start))
-			err = p.checkIn(conn)
-			if err != nil {
-				fmt.Println("CHECKIN: Error checking in background read conn:", err)
-			}
-		}()
+		go bgWait(p, conn)
 		return nil
 	}
 

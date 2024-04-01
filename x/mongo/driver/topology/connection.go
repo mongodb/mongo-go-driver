@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -420,12 +421,17 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		// if metrics := experiment.GetMetrics(ctx); metrics != nil {
-		// 	metrics.ConnectionsClosed++
-		// }
-		// // We closeConnection the connection because we don't know if there are other bytes left to read.
-		// c.close()
-		c.awaitingResponse = true
+		if csot.IsTimeoutContext(ctx) {
+			// If CSOT is enabled, use the background-read behavior instead of
+			// closing the connection.
+			c.awaitingResponse = true
+		} else {
+			if metrics := experiment.GetMetrics(ctx); metrics != nil {
+				metrics.ConnectionsClosed++
+			}
+			// We closeConnection the connection because we don't know if there are other bytes left to read.
+			c.close()
+		}
 		message := errMsg
 		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"
