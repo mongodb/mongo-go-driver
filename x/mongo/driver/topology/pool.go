@@ -770,14 +770,15 @@ func bgWait(pool *pool, conn *connection) {
 		// SetReadDeadline, like above.
 		_, _, err = conn.read(context.Background())
 		read = time.Now()
-	}
-	if err != nil {
-		errs = append(errs, fmt.Errorf("error reading: %w", err))
-		err := conn.close()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error closing after reading: %w", err))
+			errs = append(errs, fmt.Errorf("error reading: %w", err))
+			err = conn.close()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("error closing after reading: %w", err))
+			}
 		}
 	}
+
 	err = pool.checkIn(conn)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("error checking in: %w", err))
