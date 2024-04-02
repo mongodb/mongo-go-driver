@@ -742,6 +742,53 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
+// BGCallback is a callback for monitoring the behavior of the experimental
+// background-read-on-timeout connection preserving mechanism.
+//
+// Deprecated: BGCallback is intended for experimental use only and may be
+// removed or modified at any time.
+var BGCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
+
+func bgWait(pool *pool, conn *connection) {
+	var start, read time.Time
+	start = time.Now()
+	errs := make([]error, 0)
+	connClosed := false
+
+	err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Second))
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error setting read deadline: %w", err))
+		err = conn.close()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error closing after setting read deadline: %w", err))
+		}
+	}
+
+	if err == nil {
+		// The context here is only used for cancellation, not deadline timeout.
+		// All conn read timeouts are actually accomplished using
+		// SetReadDeadline, like above.
+		_, _, err = conn.read(context.Background())
+		read = time.Now()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error reading: %w", err))
+			err = conn.close()
+			if err != nil {
+				errs = append(errs, fmt.Errorf("error closing after reading: %w", err))
+			}
+		}
+	}
+
+	err = pool.checkIn(conn)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error checking in: %w", err))
+	}
+
+	if BGCallback != nil {
+		BGCallback(conn.addr.String(), start, read, errs, connClosed)
+	}
+}
+
 // checkIn returns an idle connection to the pool. If the connection is perished or the pool is
 // closed, it is removed from the connection pool and closed.
 func (p *pool) checkIn(conn *connection) error {
@@ -750,6 +797,12 @@ func (p *pool) checkIn(conn *connection) error {
 	}
 	if conn.pool != p {
 		return ErrWrongPool
+	}
+
+	if conn.awaitingResponse {
+		conn.awaitingResponse = false
+		go bgWait(p, conn)
+		return nil
 	}
 
 	if mustLogPoolMessage(p) {

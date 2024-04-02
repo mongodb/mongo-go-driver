@@ -1191,6 +1191,15 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) (cur *Cursor, err error) {
+	return coll.find(ctx, nil, filter, opts...)
+}
+
+func (coll *Collection) find(
+	ctx context.Context,
+	timeout *time.Duration,
+	filter interface{},
+	opts ...*options.FindOptions,
+) (cur *Cursor, err error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1230,7 +1239,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
+		Timeout(timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1408,7 +1417,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	// by the server.
 	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
-	cursor, err := coll.Find(ctx, filter, findOpts...)
+	cursor, err := coll.find(ctx, coll.client.timeout, filter, findOpts...)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
