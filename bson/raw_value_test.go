@@ -30,7 +30,7 @@ func TestRawValue(t *testing.T) {
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.Unmarshal(&s)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})
@@ -68,7 +68,7 @@ func TestRawValue(t *testing.T) {
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.UnmarshalWithRegistry(reg, &s)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})
@@ -80,7 +80,7 @@ func TestRawValue(t *testing.T) {
 			var s string
 			want := fmt.Errorf("cannot decode %v into a string type", TypeDouble)
 			got := val.UnmarshalWithRegistry(reg, &s)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})
@@ -119,7 +119,7 @@ func TestRawValue(t *testing.T) {
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.UnmarshalWithContext(&dc, &s)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})
@@ -131,7 +131,7 @@ func TestRawValue(t *testing.T) {
 			var s string
 			want := fmt.Errorf("cannot decode %v into a string type", TypeDouble)
 			got := val.UnmarshalWithContext(&dc, &s)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})

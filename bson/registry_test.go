@@ -353,7 +353,7 @@ func TestRegistryBuilder(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Run("Encoder", func(t *testing.T) {
 						gotcodec, goterr := reg.LookupEncoder(tc.t)
-						if !cmp.Equal(goterr, tc.wanterr, cmp.Comparer(compareErrors)) {
+						if !cmp.Equal(goterr, tc.wanterr, cmp.Comparer(assert.CompareErrors)) {
 							t.Errorf("errors did not match: got %#v, want %#v", goterr, tc.wanterr)
 						}
 						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
@@ -367,7 +367,7 @@ func TestRegistryBuilder(t *testing.T) {
 						}
 
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
-						if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+						if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 							t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
 						}
 						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
@@ -775,7 +775,7 @@ func TestRegistry(t *testing.T) {
 						t.Parallel()
 
 						gotcodec, goterr := reg.LookupEncoder(tc.t)
-						if !cmp.Equal(goterr, tc.wanterr, cmp.Comparer(compareErrors)) {
+						if !cmp.Equal(goterr, tc.wanterr, cmp.Comparer(assert.CompareErrors)) {
 							t.Errorf("errors did not match: got %#v, want %#v", goterr, tc.wanterr)
 						}
 						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
@@ -791,7 +791,7 @@ func TestRegistry(t *testing.T) {
 						}
 
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
-						if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+						if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 							t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
 						}
 						if !cmp.Equal(gotcodec, tc.wantcodec, allowunexported, cmp.Comparer(comparepc)) {
@@ -809,7 +809,7 @@ func TestRegistry(t *testing.T) {
 					wanterr := ErrNoEncoder{Type: reflect.TypeOf(nil)}
 
 					gotcodec, goterr := reg.LookupEncoder(nil)
-					if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+					if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 						t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
 					}
 					if !cmp.Equal(gotcodec, nil, allowunexported, cmp.Comparer(comparepc)) {
@@ -822,7 +822,7 @@ func TestRegistry(t *testing.T) {
 					wanterr := ErrNilType
 
 					gotcodec, goterr := reg.LookupDecoder(nil)
-					if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+					if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 						t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
 					}
 					if !cmp.Equal(gotcodec, nil, allowunexported, cmp.Comparer(comparepc)) {

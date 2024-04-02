@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -1500,7 +1501,7 @@ func TestValueReader(t *testing.T) {
 			vr := &valueReader{stack: []vrState{{mode: mTopLevel}}}
 			wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}}}).invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 			goterr := vr.Skip()
-			if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+			if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 				t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
 			}
 		})
@@ -1510,7 +1511,7 @@ func TestValueReader(t *testing.T) {
 		wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}).
 			invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
 		_, _, goterr := vr.ReadValueBytes(nil)
-		if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+		if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 			t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
 		}
 	})

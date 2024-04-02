@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func ExampleValueEncoder() {
@@ -40,13 +39,6 @@ func ExampleValueDecoder() {
 		val.SetString(str)
 		return nil
 	}
-}
-
-func compareTime(t1, t2 time.Time) bool {
-	if t1.Location() != t2.Location() {
-		return false
-	}
-	return t1.Equal(t2)
 }
 
 type llCodec struct {

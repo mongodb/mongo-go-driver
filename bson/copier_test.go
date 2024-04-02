@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -21,7 +22,7 @@ func TestCopier(t *testing.T) {
 			want := errors.New("ReadDocumentError")
 			src := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwReadDocument}
 			got := copyDocument(nil, src)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
 		})
@@ -30,7 +31,7 @@ func TestCopier(t *testing.T) {
 			src := &TestValueReaderWriter{}
 			dst := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwWriteDocument}
 			got := copyDocument(dst, src)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
 		})
@@ -55,7 +56,7 @@ func TestCopier(t *testing.T) {
 			want := errors.New("ReadArrayError")
 			src := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwReadArray}
 			got := copyArray(nil, src)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
 		})
@@ -64,7 +65,7 @@ func TestCopier(t *testing.T) {
 			src := &TestValueReaderWriter{}
 			dst := &TestValueReaderWriter{t: t, err: want, errAfter: llvrwWriteArray}
 			got := copyArray(dst, src)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not receive correct error. got %v; want %v", got, want)
 			}
 		})
@@ -397,7 +398,7 @@ func TestCopier(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				tc.dst.t, tc.src.t = t, t
 				err := copyValue(tc.dst, tc.src)
-				if !compareErrors(err, tc.err) {
+				if !assert.CompareErrors(err, tc.err) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
 			})
@@ -519,7 +520,7 @@ func TestCopier(t *testing.T) {
 			want := errors.New("CopyValue error")
 			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, err: want, errAfter: llvrwReadString}
 			_, _, got := appendValueBytes(make([]byte, 0), llvrw)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
 		})

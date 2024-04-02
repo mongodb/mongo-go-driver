@@ -2359,13 +2359,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 					// var got interface{}
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
 						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
-						if !compareErrors(err, rc.err) {
+						if !assert.CompareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 
 						val := reflect.New(reflect.TypeOf(rc.val)).Elem()
 						err = tc.vd.DecodeValue(dc, llvrw, val)
-						if !compareErrors(err, rc.err) {
+						if !assert.CompareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 						return
@@ -2378,13 +2378,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
 						wanterr.Received = reflect.ValueOf(nil)
-						if !compareErrors(err, wanterr) {
+						if !assert.CompareErrors(err, wanterr) {
 							t.Errorf("Errors do not match. got %v; want %v", err, wanterr)
 						}
 
 						err = tc.vd.DecodeValue(dc, llvrw, reflect.ValueOf(int(12345)))
 						wanterr.Received = reflect.ValueOf(int(12345))
-						if !compareErrors(err, wanterr) {
+						if !assert.CompareErrors(err, wanterr) {
 							t.Errorf("Errors do not match. got %v; want %v", err, wanterr)
 						}
 						return
@@ -2401,7 +2401,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						}
 					}()
 					err := tc.vd.DecodeValue(dc, llvrw, val)
-					if !compareErrors(err, rc.err) {
+					if !assert.CompareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 					}
 					invoked := llvrw.invoked
@@ -2455,7 +2455,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		want := errors.New("ubsonv error")
 		valUnmarshaler := &testValueUnmarshaler{err: want}
 		got := dvd.ValueUnmarshalerDecodeValue(dc, llvrw, reflect.ValueOf(valUnmarshaler))
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
 	})
@@ -2467,7 +2467,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		val := reflect.ValueOf(testValueUnmarshaler{})
 		want := ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 		got := dvd.ValueUnmarshalerDecodeValue(dc, llvrw, val)
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
 	})
@@ -2476,7 +2476,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		var val []string
 		want := ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: reflect.ValueOf(val)}
 		got := dvd.SliceDecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
 	})
@@ -2500,7 +2500,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		dc := DecodeContext{Registry: buildDefaultRegistry()}
 		got := dvd.ArrayDecodeValue(dc, vr, reflect.ValueOf(val))
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
 	})
@@ -3131,6 +3131,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 		}
 
 		t.Run("Decode", func(t *testing.T) {
+			compareTime := func(t1, t2 time.Time) bool {
+				if t1.Location() != t2.Location() {
+					return false
+				}
+				return t1.Equal(t2)
+			}
+
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					vr := NewValueReader(tc.b)
@@ -3315,7 +3322,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						dc := DecodeContext{Registry: newTestRegistryBuilder().Build()}
 						want := ErrNoTypeMapEntry{Type: tc.bsontype}
 						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
-						if !compareErrors(got, want) {
+						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
 					})
@@ -3332,7 +3339,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						}
 						want := ErrNoDecoder{Type: reflect.TypeOf(tc.val)}
 						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
-						if !compareErrors(got, want) {
+						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
 					})
@@ -3350,7 +3357,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 								Build(),
 						}
 						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, reflect.New(tEmpty).Elem())
-						if !compareErrors(got, want) {
+						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
 					})
@@ -3379,7 +3386,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			val := uint64(1234567890)
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
 			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
 		})
@@ -3388,7 +3395,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			var val interface{}
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
 			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
 		})
@@ -3398,7 +3405,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			want := ErrNoTypeMapEntry{Type: TypeDouble}
 			val := reflect.New(tEmpty).Elem()
 			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: newTestRegistryBuilder().Build()}, llvr, val)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
 		})

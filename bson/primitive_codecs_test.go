@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -26,37 +27,6 @@ func bytesFromDoc(doc interface{}) []byte {
 		panic(fmt.Errorf("Couldn't marshal BSON document: %w", err))
 	}
 	return b
-}
-
-func compareDecimal128(d1, d2 Decimal128) bool {
-	d1H, d1L := d1.GetBytes()
-	d2H, d2L := d2.GetBytes()
-
-	if d1H != d2H {
-		return false
-	}
-
-	if d1L != d2L {
-		return false
-	}
-
-	return true
-}
-
-func compareErrors(err1, err2 error) bool {
-	if err1 == nil && err2 == nil {
-		return true
-	}
-
-	if err1 == nil || err2 == nil {
-		return false
-	}
-
-	if err1.Error() != err2.Error() {
-		return false
-	}
-
-	return true
 }
 
 func TestPrimitiveValueEncoders(t *testing.T) {
@@ -206,7 +176,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 					}
 					llvrw.T = t
 					err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
-					if !compareErrors(err, subtest.err) {
+					if !assert.CompareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
 					invoked := llvrw.invoked
@@ -623,13 +593,13 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 					llvrw.T = t
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
 						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
-						if !compareErrors(err, rc.err) {
+						if !assert.CompareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 
 						val := reflect.New(reflect.TypeOf(rc.val)).Elem()
 						err = tc.vd.DecodeValue(dc, llvrw, val)
-						if !compareErrors(err, rc.err) {
+						if !assert.CompareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 						return
@@ -646,7 +616,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 						}
 					}()
 					err := tc.vd.DecodeValue(dc, llvrw, val)
-					if !compareErrors(err, rc.err) {
+					if !assert.CompareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 					}
 					invoked := llvrw.invoked
@@ -1129,3 +1099,18 @@ type zeroTest struct {
 func (z zeroTest) IsZero() bool { return z.reportZero }
 
 func compareZeroTest(_, _ zeroTest) bool { return true }
+
+func compareDecimal128(d1, d2 Decimal128) bool {
+	d1H, d1L := d1.GetBytes()
+	d2H, d2L := d2.GetBytes()
+
+	if d1H != d2H {
+		return false
+	}
+
+	if d1L != d2L {
+		return false
+	}
+
+	return true
+}

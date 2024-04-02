@@ -16,6 +16,7 @@ import (
 	"strings"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -203,7 +204,7 @@ func TestValueWriter(t *testing.T) {
 				}
 				want := TransitionError{current: mTopLevel, name: fnName, modes: []mode{mElement, mValue},
 					action: "write"}
-				if !compareErrors(got, want) {
+				if !assert.CompareErrors(got, want) {
 					t.Errorf("Errors do not match. got %v; want %v", got, want)
 				}
 			})
@@ -216,7 +217,7 @@ func TestValueWriter(t *testing.T) {
 		want := TransitionError{current: mArray, destination: mArray, parent: mTopLevel,
 			name: "WriteArray", modes: []mode{mElement, mValue}, action: "write"}
 		_, got := vw.WriteArray()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -226,7 +227,7 @@ func TestValueWriter(t *testing.T) {
 		want := TransitionError{current: mArray, destination: mCodeWithScope, parent: mTopLevel,
 			name: "WriteCodeWithScope", modes: []mode{mElement, mValue}, action: "write"}
 		_, got := vw.WriteCodeWithScope("")
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -236,7 +237,7 @@ func TestValueWriter(t *testing.T) {
 		want := TransitionError{current: mArray, destination: mDocument, parent: mTopLevel,
 			name: "WriteDocument", modes: []mode{mElement, mValue, mTopLevel}, action: "write"}
 		_, got := vw.WriteDocument()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -250,7 +251,7 @@ func TestValueWriter(t *testing.T) {
 			modes:       []mode{mTopLevel, mDocument},
 			action:      "write"}
 		_, got := vw.WriteDocumentElement("")
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -259,7 +260,7 @@ func TestValueWriter(t *testing.T) {
 		vw.push(mElement)
 		want := fmt.Errorf("incorrect mode to end document: %s", mElement)
 		got := vw.WriteDocumentEnd()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 		vw.pop()
@@ -267,14 +268,14 @@ func TestValueWriter(t *testing.T) {
 		maxSize = 512
 		want = errMaxDocumentSizeExceeded{size: 1024}
 		got = vw.WriteDocumentEnd()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 		maxSize = math.MaxInt32
 		want = errors.New("what a nice fake error we have here")
 		vw.w = errWriter{err: want}
 		got = vw.WriteDocumentEnd()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -288,7 +289,7 @@ func TestValueWriter(t *testing.T) {
 			modes:       []mode{mArray},
 			action:      "write"}
 		_, got := vw.WriteArrayElement()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -297,7 +298,7 @@ func TestValueWriter(t *testing.T) {
 		vw.push(mElement)
 		want := fmt.Errorf("incorrect mode to end array: %s", mElement)
 		got := vw.WriteArrayEnd()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 		vw.push(mArray)
@@ -305,7 +306,7 @@ func TestValueWriter(t *testing.T) {
 		maxSize = 512
 		want = errMaxDocumentSizeExceeded{size: 1024}
 		got = vw.WriteArrayEnd()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 		maxSize = math.MaxInt32
@@ -317,7 +318,7 @@ func TestValueWriter(t *testing.T) {
 			want := TransitionError{current: mTopLevel, destination: mode(0),
 				name: "WriteValueBytes", modes: []mode{mElement, mValue}, action: "write"}
 			got := vw.WriteValueBytes(TypeEmbeddedDocument, nil)
-			if !compareErrors(got, want) {
+			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not received expected error. got %v; want %v", got, want)
 			}
 		})

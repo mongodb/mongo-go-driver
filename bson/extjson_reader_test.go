@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 func TestExtJSONReader(t *testing.T) {
@@ -42,7 +43,7 @@ func TestExtJSONReader(t *testing.T) {
 			ejvr := &extJSONValueReader{stack: []ejvrState{{mode: mTopLevel}}}
 			wanterr := (&extJSONValueReader{stack: []ejvrState{{mode: mTopLevel}}}).invalidTransitionErr(0, "Skip", []mode{mElement, mValue})
 			goterr := ejvr.Skip()
-			if !cmp.Equal(goterr, wanterr, cmp.Comparer(compareErrors)) {
+			if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 				t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
 			}
 		})

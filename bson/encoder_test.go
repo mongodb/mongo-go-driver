@@ -99,7 +99,7 @@ func TestEncoderEncode(t *testing.T) {
 				enc := NewEncoder(vw)
 				got := enc.Encode(marshaler)
 				want := tc.wanterr
-				if !compareErrors(got, want) {
+				if !assert.CompareErrors(got, want) {
 					t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 				}
 				if compareVW {

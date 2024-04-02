@@ -111,7 +111,7 @@ func TestDecoderv2(t *testing.T) {
 					dec := NewDecoder(tc.vr)
 					got := dec.Decode(unmarshaler)
 					want := tc.err
-					if !compareErrors(got, want) {
+					if !assert.CompareErrors(got, want) {
 						t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 					}
 					if unmarshaler.Invoked != tc.invoked {

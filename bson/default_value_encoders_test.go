@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -1191,7 +1192,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					}
 					llvrw.T = t
 					err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
-					if !compareErrors(err, subtest.err) {
+					if !assert.CompareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
 					invoked := llvrw.invoked
@@ -1844,7 +1845,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		llvrw := new(valueReaderWriter)
 		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
 		want := ErrNoEncoder{Type: tInt64}
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 		}
 	})
