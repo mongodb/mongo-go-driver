@@ -1191,13 +1191,23 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) (cur *Cursor, err error) {
-	return coll.find(ctx, nil, filter, opts...)
+	// Now that "maxTimeMS" is actually set when CSOT is enabled, even when
+	// using a context-with-deadline, more users may encounter the case where
+	// setting "maxTimeMS" on a find/aggregate command will limit the lifetime
+	// of the cursor to that deadline, which is often unexpected. The current
+	// proposed improvement in DRIVERS-2722 is to omit "maxTimeMS" on Find and
+	// Aggregate operations (not FindOne). To maintain the existing behavior,
+	// include "maxTimeMS" when only "timeoutMS" is set.
+	_, deadlineSet := ctx.Deadline()
+	setMaxTimeMS := !deadlineSet && coll.client.timeout != nil
+
+	return coll.find(ctx, filter, setMaxTimeMS, opts...)
 }
 
 func (coll *Collection) find(
 	ctx context.Context,
-	timeout *time.Duration,
 	filter interface{},
+	setMaxTimeMS bool,
 	opts ...*options.FindOptions,
 ) (cur *Cursor, err error) {
 
@@ -1239,7 +1249,11 @@ func (coll *Collection) find(
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
+
+	if setMaxTimeMS {
+		op = op.Timeout(coll.client.timeout)
+	}
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1417,7 +1431,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	// by the server.
 	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
-	cursor, err := coll.find(ctx, coll.client.timeout, filter, findOpts...)
+	cursor, err := coll.find(ctx, filter, true, findOpts...)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,

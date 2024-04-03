@@ -377,6 +377,8 @@ func (e Error) NamespaceNotFound() bool {
 
 // ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
 // if there is one. Also used in testing for SDAM.
+//
+// Set isCSOT to true if "timeoutMS" is set on the Client.
 func ExtractErrorFromServerResponse(doc bsoncore.Document, isCSOT bool) error {
 	var errmsg, codeName string
 	var code int32
@@ -523,10 +525,18 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document, isCSOT bool) error {
 			Raw:             doc,
 		}
 
-		// TODO: Comment.
+		// If CSOT is enabled and we get a MaxTimeMSExpired error, assume that
+		// the error was caused by setting "maxTimeMS" on the command based on
+		// the context deadline or on "timeoutMS". In that case, make the error
+		// wrap context.DeadlineExceeded so that users can always check
+		//
+		//  errors.Is(err, context.DeadlineExceeded)
+		//
+		// for either client-side or server-side timeouts.
 		if isCSOT && err.Code == 50 {
 			err.Wrapped = context.DeadlineExceeded
 		}
+
 		return err
 	}
 

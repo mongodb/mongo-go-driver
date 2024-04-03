@@ -749,7 +749,11 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 // removed or modified at any time.
 var BGCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
 
-func bgWait(pool *pool, conn *connection) {
+// bgRead sets a new read deadline on the provided connection (1 second in the
+// future) and tries to read any bytes returned by the server. If successful, it
+// checks the connection into the provided pool. If there are any errors, close
+// the connection.
+func bgRead(pool *pool, conn *connection) {
 	var start, read time.Time
 	start = time.Now()
 	errs := make([]error, 0)
@@ -799,9 +803,11 @@ func (p *pool) checkIn(conn *connection) error {
 		return ErrWrongPool
 	}
 
+	// If the connection has an awaiting server response, try to read the
+	// response in another goroutine before checking it back into the pool.
 	if conn.awaitingResponse {
 		conn.awaitingResponse = false
-		go bgWait(p, conn)
+		go bgRead(p, conn)
 		return nil
 	}
 

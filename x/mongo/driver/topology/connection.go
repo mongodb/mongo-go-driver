@@ -79,6 +79,8 @@ type connection struct {
 	driverConnectionID uint64
 	generation         uint64
 
+	// awaitingResponse indicates that the server response was not completely
+	// read before returning the connection to the pool.
 	awaitingResponse bool
 }
 
@@ -418,12 +420,13 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
 		if csot.IsTimeoutContext(ctx) {
-			// If CSOT is enabled, use the background-read behavior instead of
-			// closing the connection.
+			// If CSOT is enabled, instead of closing the connection mark it as
+			// awaiting response so the pool can read use the response before
+			// making it available to other operations.
 			c.awaitingResponse = true
 		} else {
-			// We closeConnection the connection because we don't know if there
-			// are other bytes left to read.
+			// Otherwise, use the pre-CSOT behavior and close the connection
+			// because we don't know if there are other bytes left to read.
 			c.close()
 		}
 		message := errMsg
