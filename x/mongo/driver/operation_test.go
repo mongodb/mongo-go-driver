@@ -27,6 +27,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -568,9 +569,10 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("ExecuteExhaust", func(t *testing.T) {
 		t.Run("errors if connection is not streaming", func(t *testing.T) {
-			conn := &mockConnection{
+			conn := mnet.NewConnection(&mockConnection{
 				rStreaming: false,
-			}
+			})
+
 			err := Operation{}.ExecuteExhaust(context.TODO(), conn)
 			assert.NotNil(t, err, "expected error, got nil")
 		})
@@ -595,12 +597,15 @@ func TestOperation(t *testing.T) {
 			rReadWM:    nonStreamingResponse,
 			rCanStream: false,
 		}
+
+		mnetconn := mnet.NewConnection(conn)
+
 		op := Operation{
 			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 				return bsoncore.AppendInt32Element(dst, handshake.LegacyHello, 1), nil
 			},
 			Database:   "admin",
-			Deployment: SingleConnectionDeployment{conn},
+			Deployment: SingleConnectionDeployment{C: mnetconn},
 		}
 		err := op.Execute(context.TODO())
 		assert.Nil(t, err, "Execute error: %v", err)
@@ -622,12 +627,13 @@ func TestOperation(t *testing.T) {
 		// Reset the server response and go through ExecuteExhaust to mimic streaming the next response. After
 		// execution, the connection should still be in a streaming state.
 		conn.rReadWM = streamingResponse
-		err = op.ExecuteExhaust(context.TODO(), conn)
+		err = op.ExecuteExhaust(context.TODO(), mnetconn)
 		assert.Nil(t, err, "ExecuteExhaust error: %v", err)
 		assert.True(t, conn.CurrentlyStreaming(), "expected CurrentlyStreaming to be true")
 	})
 	t.Run("context deadline exceeded not marked as TransientTransactionError", func(t *testing.T) {
-		conn := new(mockConnection)
+		conn := mnet.NewConnection(&mockConnection{})
+
 		// Create a context that's already timed out.
 		ctx, cancel := context.WithDeadline(context.Background(), time.Unix(893934480, 0))
 		defer cancel()
@@ -635,7 +641,7 @@ func TestOperation(t *testing.T) {
 		op := Operation{
 			Database:   "foobar",
 			Deployment: SingleConnectionDeployment{C: conn},
-			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			CommandFn: func(dst []byte, _ description.SelectedServer) ([]byte, error) {
 				dst = bsoncore.AppendInt32Element(dst, "ping", 1)
 				return dst, nil
 			},
@@ -648,7 +654,8 @@ func TestOperation(t *testing.T) {
 		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
-		conn := new(mockConnection)
+		conn := mnet.NewConnection(&mockConnection{})
+
 		// Create a context and cancel it immediately.
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -756,12 +763,12 @@ func (m *mockConnection) Stale() bool                     { return false }
 
 func (m *mockConnection) DriverConnectionID() int64 { return 0 }
 
-func (m *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
+func (m *mockConnection) Write(_ context.Context, wm []byte) error {
 	m.pWriteWM = wm
 	return m.rWriteErr
 }
 
-func (m *mockConnection) ReadWireMessage(_ context.Context) ([]byte, error) {
+func (m *mockConnection) Read(_ context.Context) ([]byte, error) {
 	return m.rReadWM, m.rReadErr
 }
 
@@ -781,7 +788,7 @@ type mockRetryServer struct {
 
 // Connection records the number of calls and returns retryable errors until the provided context
 // times out or is cancelled, then returns the context error.
-func (ms *mockRetryServer) Connection(ctx context.Context) (Connection, error) {
+func (ms *mockRetryServer) Connection(ctx context.Context) (*mnet.Connection, error) {
 	ms.numCallsToConnection++
 
 	if ctx.Err() != nil {

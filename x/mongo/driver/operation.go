@@ -29,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
@@ -134,7 +135,7 @@ func (info finishedInformation) success() bool {
 type ResponseInfo struct {
 	ServerResponse        bsoncore.Document
 	Server                Server
-	Connection            Connection
+	Connection            *mnet.Connection
 	ConnectionDescription description.Server
 	CurrentIndex          int
 }
@@ -402,7 +403,7 @@ func (op Operation) getServerAndConnection(
 	ctx context.Context,
 	requestID int32,
 	deprioritized []description.Server,
-) (Server, Connection, error) {
+) (Server, *mnet.Connection, error) {
 	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
@@ -419,7 +420,8 @@ func (op Operation) getServerAndConnection(
 	// If the provided client session has a pinned connection, it should be used for the operation because this
 	// indicates that we're in a transaction and the target server is behind a load balancer.
 	if op.Client != nil && op.Client.PinnedConnection != nil {
-		return server, op.Client.PinnedConnection, nil
+		conn := mnet.NewConnection(op.Client.PinnedConnection)
+		return server, conn, nil
 	}
 
 	// Otherwise, default to checking out a connection from the server's pool.
@@ -430,18 +432,17 @@ func (op Operation) getServerAndConnection(
 
 	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
 	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
-		pinnedConn, ok := conn.(PinnedConnection)
-		if !ok {
+		if conn.Pinner == nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
 			return nil, nil, fmt.Errorf("expected Connection used to start a transaction to be a PinnedConnection, but got %T", conn)
 		}
-		if err := pinnedConn.PinToTransaction(); err != nil {
+		if err := conn.PinToTransaction(); err != nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
 			return nil, nil, fmt.Errorf("error incrementing connection reference count when starting a transaction: %w", err)
 		}
-		op.Client.PinnedConnection = pinnedConn
+		op.Client.PinnedConnection = conn
 	}
 
 	return server, conn, nil
@@ -526,7 +527,7 @@ func (op Operation) Execute(ctx context.Context) error {
 	}
 
 	var srvr Server
-	var conn Connection
+	var conn *mnet.Connection
 	var res bsoncore.Document
 	var operationErr WriteCommandError
 	var prevErr error
@@ -727,7 +728,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		moreToCome := wiremessage.IsMsgMoreToCome(*wm)
 
 		// compress wiremessage if allowed
-		if compressor, ok := conn.(Compressor); ok && op.canCompress(startedInfo.cmdName) {
+		if compressor := conn.Compressor; compressor != nil && op.canCompress(startedInfo.cmdName) {
 			b := memoryPool.Get().(*[]byte)
 			*b, err = compressor.CompressWireMessage(*wm, (*b)[:0])
 			memoryPool.Put(wm)
@@ -1030,23 +1031,23 @@ func (op Operation) retryable(desc description.Server) bool {
 
 // roundTrip writes a wiremessage to the connection and then reads a wiremessage. The wm parameter
 // is reused when reading the wiremessage.
-func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
-	err := conn.WriteWireMessage(ctx, wm)
+func (op Operation) roundTrip(ctx context.Context, conn *mnet.Connection, wm []byte) ([]byte, error) {
+	err := conn.Write(ctx, wm)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
 	return op.readWireMessage(ctx, conn)
 }
 
-func (op Operation) readWireMessage(ctx context.Context, conn Connection) (result []byte, err error) {
-	wm, err := conn.ReadWireMessage(ctx)
+func (op Operation) readWireMessage(ctx context.Context, conn *mnet.Connection) (result []byte, err error) {
+	wm, err := conn.Read(ctx)
 	if err != nil {
 		return nil, op.networkError(err)
 	}
 
 	// If we're using a streamable connection, we set its streaming state based on the moreToCome flag in the server
 	// response.
-	if streamer, ok := conn.(StreamerConnection); ok {
+	if streamer := conn.Streamer; streamer != nil {
 		streamer.SetStreaming(wiremessage.IsMsgMoreToCome(wm))
 	}
 
@@ -1110,8 +1111,8 @@ func (op Operation) networkError(err error) error {
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
 // being sent with  the moreToCome bit set.
-func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn Connection, wm []byte) (result []byte, err error) {
-	err = conn.WriteWireMessage(ctx, wm)
+func (op *Operation) moreToComeRoundTrip(ctx context.Context, conn *mnet.Connection, wm []byte) (result []byte, err error) {
+	err = conn.Write(ctx, wm)
 	if err != nil {
 		if op.Client != nil {
 			op.Client.MarkDirty()
@@ -1249,7 +1250,7 @@ func (op Operation) createMsgWireMessage(
 	maxTimeMS uint64,
 	dst []byte,
 	desc description.SelectedServer,
-	conn Connection,
+	conn *mnet.Connection,
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	var info startedInformation
@@ -1262,7 +1263,7 @@ func (op Operation) createMsgWireMessage(
 	}
 	// Set the ExhaustAllowed flag if the connection supports streaming. This will tell the server that it can
 	// respond with the MoreToCome flag and then stream responses over this connection.
-	if streamer, ok := conn.(StreamerConnection); ok && streamer.SupportsStreaming() {
+	if streamer := conn.Streamer; streamer != nil && streamer.SupportsStreaming() {
 		flags |= wiremessage.ExhaustAllowed
 	}
 
@@ -1345,7 +1346,7 @@ func (op Operation) createWireMessage(
 	maxTimeMS uint64,
 	dst []byte,
 	desc description.SelectedServer,
-	conn Connection,
+	conn *mnet.Connection,
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	if isLegacyHandshake(op, desc) {
