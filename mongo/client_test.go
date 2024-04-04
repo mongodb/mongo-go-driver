@@ -380,7 +380,7 @@ func TestClient(t *testing.T) {
 				// Do an application operation and create the number of sessions specified by the test.
 				_, err = coll.CountDocuments(bgCtx, bson.D{})
 				assert.Nil(t, err, "CountDocuments error: %v", err)
-				var sessions []Session
+				var sessions []*Session
 				for i := 0; i < tc.numSessions; i++ {
 					sess, err := client.StartSession()
 					assert.Nil(t, err, "StartSession error at index %d: %v", i, err)

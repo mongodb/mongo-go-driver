@@ -1760,7 +1760,9 @@ func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
 	events := client.Database("reporting").Collection("events")
 
 	return client.UseSession(ctx, func(sctx mongo.SessionContext) error {
-		err := sctx.StartTransaction(options.Transaction().
+		sess := mongo.SessionFromContext(sctx)
+
+		err := sess.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
 			SetWriteConcern(writeconcern.Majority()),
 		)
@@ -1770,19 +1772,19 @@ func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
 
 		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
 		if err != nil {
-			sctx.AbortTransaction(sctx)
+			sess.AbortTransaction(sctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
 		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
 		if err != nil {
-			sctx.AbortTransaction(sctx)
+			sess.AbortTransaction(sctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
 
 		for {
-			err = sctx.CommitTransaction(sctx)
+			err = sess.CommitTransaction(sctx)
 			switch e := err.(type) {
 			case nil:
 				return nil
@@ -1830,8 +1832,10 @@ func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.Session
 
 // CommitWithRetry is an example function demonstrating transaction commit with retry logic.
 func CommitWithRetry(sctx mongo.SessionContext) error {
+	sess := mongo.SessionFromContext(sctx)
+
 	for {
-		err := sctx.CommitTransaction(sctx)
+		err := sess.CommitTransaction(sctx)
 		switch e := err.(type) {
 		case nil:
 			log.Println("Transaction committed.")
@@ -1892,8 +1896,10 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 	}
 
 	commitWithRetry := func(sctx mongo.SessionContext) error {
+		sess := mongo.SessionFromContext(sctx)
+
 		for {
-			err := sctx.CommitTransaction(sctx)
+			err := sess.CommitTransaction(sctx)
 			switch e := err.(type) {
 			case nil:
 				log.Println("Transaction committed.")
@@ -1918,7 +1924,9 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 		employees := client.Database("hr").Collection("employees")
 		events := client.Database("reporting").Collection("events")
 
-		err := sctx.StartTransaction(options.Transaction().
+		sess := mongo.SessionFromContext(sctx)
+
+		err := sess.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
 			SetWriteConcern(writeconcern.Majority()),
 		)
@@ -1928,13 +1936,13 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 
 		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
 		if err != nil {
-			sctx.AbortTransaction(sctx)
+			sess.AbortTransaction(sctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
 		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
 		if err != nil {
-			sctx.AbortTransaction(sctx)
+			sess.AbortTransaction(sctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}

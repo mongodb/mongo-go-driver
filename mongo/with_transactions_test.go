@@ -325,7 +325,7 @@ func TestConvenientTransactions(t *testing.T) {
 				"expected timeout error error; got %v", commitErr)
 
 			// Assert session state is not Committed.
-			clientSession := session.(XSession).ClientSession()
+			clientSession := session.ClientSession()
 			assert.False(t, clientSession.TransactionCommitted(), "expected session state to not be Committed")
 
 			// AbortTransaction without error.

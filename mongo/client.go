@@ -374,7 +374,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
+func (c *Client) StartSession(opts ...*options.SessionOptions) (*Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
@@ -439,7 +439,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	sess.RetryWrite = false
 	sess.RetryRead = c.retryReads
 
-	return &sessionImpl{
+	return &Session{
 		clientSession: sess,
 		client:        c,
 		deployment:    c.deployment,
@@ -786,7 +786,7 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 // If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
 //
 // Any error returned by the fn callback will be returned without any modifications.
-func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
+func WithSession(ctx context.Context, sess *Session, fn func(SessionContext) error) error {
 	return fn(NewSessionContext(ctx, sess))
 }
 
@@ -809,7 +809,11 @@ func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) 
 //
 // UseSessionWithOptions is safe to call from multiple goroutines concurrently. However, the SessionContext passed to
 // the UseSessionWithOptions callback function is not safe for concurrent use by multiple goroutines.
-func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
+func (c *Client) UseSessionWithOptions(
+	ctx context.Context,
+	opts *options.SessionOptions,
+	fn func(SessionContext) error,
+) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
 		return err

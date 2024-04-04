@@ -684,11 +684,12 @@ func ExampleClient_UseSessionWithOptions() {
 		context.TODO(),
 		opts,
 		func(ctx mongo.SessionContext) error {
+			sess := mongo.SessionFromContext(ctx)
 			// Use the mongo.SessionContext as the Context parameter for
 			// InsertOne and FindOne so both operations are run under the new
 			// Session.
 
-			if err := ctx.StartTransaction(); err != nil {
+			if err := sess.StartTransaction(); err != nil {
 				return err
 			}
 
@@ -699,7 +700,7 @@ func ExampleClient_UseSessionWithOptions() {
 				// context.Background() to ensure that the abort can complete
 				// successfully even if the context passed to mongo.WithSession
 				// is changed to have a timeout.
-				_ = ctx.AbortTransaction(context.Background())
+				_ = sess.AbortTransaction(context.Background())
 				return err
 			}
 
@@ -713,7 +714,7 @@ func ExampleClient_UseSessionWithOptions() {
 				// context.Background() to ensure that the abort can complete
 				// successfully even if the context passed to mongo.WithSession
 				// is changed to have a timeout.
-				_ = ctx.AbortTransaction(context.Background())
+				_ = sess.AbortTransaction(context.Background())
 				return err
 			}
 			fmt.Println(result)
@@ -721,7 +722,7 @@ func ExampleClient_UseSessionWithOptions() {
 			// Use context.Background() to ensure that the commit can complete
 			// successfully even if the context passed to mongo.WithSession is
 			// changed to have a timeout.
-			return ctx.CommitTransaction(context.Background())
+			return sess.CommitTransaction(context.Background())
 		})
 	if err != nil {
 		log.Fatal(err)

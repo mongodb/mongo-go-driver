@@ -158,7 +158,7 @@ type watcher interface {
 	Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
 }
 
-func executeAggregate(mt *mtest.T, agg aggregator, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
+func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
 	mt.Helper()
 
 	var pipeline []interface{}
@@ -198,7 +198,7 @@ func executeAggregate(mt *mtest.T, agg aggregator, sess mongo.Session, args bson
 	return agg.Aggregate(context.Background(), pipeline, opts)
 }
 
-func executeWatch(mt *mtest.T, w watcher, sess mongo.Session, args bson.Raw) (*mongo.ChangeStream, error) {
+func executeWatch(mt *mtest.T, w watcher, sess *mongo.Session, args bson.Raw) (*mongo.ChangeStream, error) {
 	mt.Helper()
 
 	pipeline := []interface{}{}
@@ -227,7 +227,7 @@ func executeWatch(mt *mtest.T, w watcher, sess mongo.Session, args bson.Raw) (*m
 	return w.Watch(context.Background(), pipeline)
 }
 
-func executeCountDocuments(mt *mtest.T, sess mongo.Session, args bson.Raw) (int64, error) {
+func executeCountDocuments(mt *mtest.T, sess *mongo.Session, args bson.Raw) (int64, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -265,7 +265,7 @@ func executeCountDocuments(mt *mtest.T, sess mongo.Session, args bson.Raw) (int6
 	return mt.Coll.CountDocuments(context.Background(), filter, opts)
 }
 
-func executeInsertOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.InsertOneResult, error) {
+func executeInsertOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.InsertOneResult, error) {
 	mt.Helper()
 
 	doc := emptyDoc
@@ -299,7 +299,7 @@ func executeInsertOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.In
 	return mt.Coll.InsertOne(context.Background(), doc, opts)
 }
 
-func executeInsertMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.InsertManyResult, error) {
+func executeInsertMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.InsertManyResult, error) {
 	mt.Helper()
 
 	var docs []interface{}
@@ -362,7 +362,7 @@ func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptions) {
 	}
 }
 
-func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
+func executeFind(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -410,7 +410,7 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 	return mt.Coll.Find(context.Background(), filter, opts)
 }
 
-func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeRunCommand(mt *mtest.T, sess *mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	cmd := emptyDoc
@@ -443,7 +443,7 @@ func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Si
 	return mt.DB.RunCommand(context.Background(), cmd, opts)
 }
 
-func executeListCollections(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
+func executeListCollections(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -472,7 +472,7 @@ func executeListCollections(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mo
 	return mt.DB.ListCollections(context.Background(), filter)
 }
 
-func executeListCollectionNames(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]string, error) {
+func executeListCollectionNames(mt *mtest.T, sess *mongo.Session, args bson.Raw) ([]string, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -501,7 +501,7 @@ func executeListCollectionNames(mt *mtest.T, sess mongo.Session, args bson.Raw) 
 	return mt.DB.ListCollectionNames(context.Background(), filter)
 }
 
-func executeListDatabaseNames(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]string, error) {
+func executeListDatabaseNames(mt *mtest.T, sess *mongo.Session, args bson.Raw) ([]string, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -530,7 +530,7 @@ func executeListDatabaseNames(mt *mtest.T, sess mongo.Session, args bson.Raw) ([
 	return mt.Client.ListDatabaseNames(context.Background(), filter)
 }
 
-func executeListDatabases(mt *mtest.T, sess mongo.Session, args bson.Raw) (mongo.ListDatabasesResult, error) {
+func executeListDatabases(mt *mtest.T, sess *mongo.Session, args bson.Raw) (mongo.ListDatabasesResult, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -559,7 +559,7 @@ func executeListDatabases(mt *mtest.T, sess mongo.Session, args bson.Raw) (mongo
 	return mt.Client.ListDatabases(context.Background(), filter)
 }
 
-func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -587,7 +587,7 @@ func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Singl
 	return mt.Coll.FindOne(context.Background(), filter)
 }
 
-func executeListIndexes(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
+func executeListIndexes(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
 	mt.Helper()
 
 	// no arguments expected. add a Fatal in case arguments are added in the future
@@ -604,7 +604,7 @@ func executeListIndexes(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.
 	return mt.Coll.Indexes().List(context.Background())
 }
 
-func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]interface{}, error) {
+func executeDistinct(mt *mtest.T, sess *mongo.Session, args bson.Raw) ([]interface{}, error) {
 	mt.Helper()
 
 	var fieldName string
@@ -641,7 +641,7 @@ func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]interfac
 	return mt.Coll.Distinct(context.Background(), fieldName, filter, opts)
 }
 
-func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOneAndDelete(mt *mtest.T, sess *mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -680,7 +680,7 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	return mt.Coll.FindOneAndDelete(context.Background(), filter, opts)
 }
 
-func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOneAndUpdate(mt *mtest.T, sess *mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -737,7 +737,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	return mt.Coll.FindOneAndUpdate(context.Background(), filter, update, opts)
 }
 
-func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOneAndReplace(mt *mtest.T, sess *mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -790,7 +790,7 @@ func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *m
 	return mt.Coll.FindOneAndReplace(context.Background(), filter, replacement, opts)
 }
 
-func executeDeleteOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.DeleteResult, error) {
+func executeDeleteOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.DeleteResult, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -826,7 +826,7 @@ func executeDeleteOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.De
 	return mt.Coll.DeleteOne(context.Background(), filter, opts)
 }
 
-func executeDeleteMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.DeleteResult, error) {
+func executeDeleteMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.DeleteResult, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -862,7 +862,7 @@ func executeDeleteMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.D
 	return mt.Coll.DeleteMany(context.Background(), filter, opts)
 }
 
-func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
+func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -910,7 +910,7 @@ func executeUpdateOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Up
 	return mt.Coll.UpdateOne(context.Background(), filter, update, opts)
 }
 
-func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
+func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -958,7 +958,7 @@ func executeUpdateMany(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.U
 	return mt.Coll.UpdateMany(context.Background(), filter, update, opts)
 }
 
-func executeReplaceOne(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
+func executeReplaceOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.UpdateResult, error) {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -1009,7 +1009,7 @@ type withTransactionArgs struct {
 	Options bson.Raw `bson:"options"`
 }
 
-func runWithTransactionOperations(mt *mtest.T, operations []*operation, sess mongo.Session) error {
+func runWithTransactionOperations(mt *mtest.T, operations []*operation, sess *mongo.Session) error {
 	mt.Helper()
 
 	for _, op := range operations {
@@ -1037,7 +1037,7 @@ func runWithTransactionOperations(mt *mtest.T, operations []*operation, sess mon
 	return nil
 }
 
-func executeWithTransaction(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
+func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
 	var testArgs withTransactionArgs
@@ -1052,7 +1052,7 @@ func executeWithTransaction(mt *mtest.T, sess mongo.Session, args bson.Raw) erro
 	return err
 }
 
-func executeBulkWrite(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.BulkWriteResult, error) {
+func executeBulkWrite(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.BulkWriteResult, error) {
 	mt.Helper()
 
 	models := createBulkWriteModels(mt, args.Lookup("requests").Array())
@@ -1196,7 +1196,7 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 	return nil
 }
 
-func executeEstimatedDocumentCount(mt *mtest.T, sess mongo.Session, args bson.Raw) (int64, error) {
+func executeEstimatedDocumentCount(mt *mtest.T, sess *mongo.Session, args bson.Raw) (int64, error) {
 	mt.Helper()
 
 	// no arguments expected. add a Fatal in case arguments are added in the future
@@ -1255,7 +1255,7 @@ func executeGridFSDownloadByName(mt *mtest.T, bucket *mongo.GridFSBucket, args b
 	return bucket.DownloadToStreamByName(context.Background(), file, new(bytes.Buffer))
 }
 
-func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string, error) {
+func executeCreateIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (string, error) {
 	mt.Helper()
 
 	model := mongo.IndexModel{
@@ -1289,7 +1289,7 @@ func executeCreateIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (string,
 	return mt.Coll.Indexes().CreateOne(context.Background(), model)
 }
 
-func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw, error) {
+func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.Raw, error) {
 	mt.Helper()
 
 	var name string
@@ -1318,7 +1318,7 @@ func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw,
 	return mt.Coll.Indexes().DropOne(context.Background(), name)
 }
 
-func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
+func executeDropCollection(mt *mtest.T, sess *mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
 	var collName string
@@ -1348,7 +1348,7 @@ func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error
 	return coll.Drop(context.Background(), dco)
 }
 
-func executeCreateCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
+func executeCreateCollection(mt *mtest.T, sess *mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
 	cco := options.CreateCollection()
