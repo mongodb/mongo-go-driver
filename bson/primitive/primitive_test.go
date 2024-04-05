@@ -247,9 +247,9 @@ func TestMarshalingD(t *testing.T) {
 			t.Parallel()
 
 			got, err := json.Marshal(tc.test)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			want, _ := json.Marshal(tc.expected)
-			require.Equal(t, want, got)
+			assert.Equal(t, want, got)
 		})
 	}
 	for _, tc := range testcases {
@@ -258,9 +258,9 @@ func TestMarshalingD(t *testing.T) {
 			t.Parallel()
 
 			got, err := json.MarshalIndent(tc.test, "<prefix>", "<indent>")
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			want, _ := json.MarshalIndent(tc.expected, "<prefix>", "<indent>")
-			require.Equal(t, want, got)
+			assert.Equal(t, want, got)
 		})
 	}
 }
@@ -299,8 +299,8 @@ func TestUnmarshalingA(t *testing.T) {
 			b, _ := json.Marshal(tc.test)
 			var got A
 			err := json.Unmarshal(b, &got)
-			require.NoError(t, err)
-			require.Equal(t, tc.test, got)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.test, got)
 		})
 	}
 
@@ -343,13 +343,12 @@ func TestUnmarshalingA(t *testing.T) {
 			got := json.Unmarshal([]byte(tc.test), &b)
 			switch w := want.(type) {
 			case *json.UnmarshalTypeError:
+				w.Type = reflect.TypeOf(b)
 				require.IsType(t, want, got)
 				g := got.(*json.UnmarshalTypeError)
-				require.Equal(t, w.Value, g.Value, "unmatched error value")
-				require.Equal(t, reflect.TypeOf(b), g.Type, "unmatched error type")
-				require.Equal(t, w.Offset, g.Offset, "unmatched error offset")
+				assert.Equal(t, w, g)
 			default:
-				require.Equal(t, want, got)
+				assert.Equal(t, want, got)
 			}
 		})
 	}
@@ -389,8 +388,8 @@ func TestUnmarshalingM(t *testing.T) {
 			b, _ := json.Marshal(tc.test)
 			var got M
 			err := json.Unmarshal(b, &got)
-			require.NoError(t, err)
-			require.Equal(t, tc.test, got)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.test, got)
 		})
 	}
 
@@ -433,13 +432,12 @@ func TestUnmarshalingM(t *testing.T) {
 			got := json.Unmarshal([]byte(tc.test), &b)
 			switch w := want.(type) {
 			case *json.UnmarshalTypeError:
+				w.Type = reflect.TypeOf(b)
 				require.IsType(t, want, got)
 				g := got.(*json.UnmarshalTypeError)
-				require.Equal(t, w.Value, g.Value, "unmatched error value")
-				require.Equal(t, reflect.TypeOf(b), g.Type, "unmatched error type")
-				require.Equal(t, w.Offset, g.Offset, "unmatched error offset")
+				assert.Equal(t, w, g)
 			default:
-				require.Equal(t, want, got)
+				assert.Equal(t, want, got)
 			}
 		})
 	}
@@ -479,8 +477,8 @@ func TestUnmarshalingD(t *testing.T) {
 			b, _ := json.Marshal(tc.test)
 			var got D
 			err := json.Unmarshal(b, &got)
-			require.NoError(t, err)
-			require.Equal(t, tc.test, got)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.test, got)
 		})
 	}
 
@@ -523,13 +521,12 @@ func TestUnmarshalingD(t *testing.T) {
 			got := json.Unmarshal([]byte(tc.test), &b)
 			switch w := want.(type) {
 			case *json.UnmarshalTypeError:
+				w.Type = reflect.TypeOf(b)
 				require.IsType(t, want, got)
 				g := got.(*json.UnmarshalTypeError)
-				require.Equal(t, w.Value, g.Value, "unmatched error value")
-				require.Equal(t, reflect.TypeOf(b), g.Type, "unmatched error type")
-				require.Equal(t, w.Offset, g.Offset, "unmatched error offset")
+				assert.Equal(t, w, g)
 			default:
-				require.Equal(t, want, got)
+				assert.Equal(t, want, got)
 			}
 		})
 	}
