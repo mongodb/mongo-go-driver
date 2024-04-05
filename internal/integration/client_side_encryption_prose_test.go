@@ -2462,9 +2462,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
-	// libmongocrypt is configured to use the QEv2 protocol.
-	mt.RunOpts("22. range explicit encryption", qeRunOpts, func(mt *mtest.T) {
+	qeRunOpts22 := qeRunOpts.MinServerVersion("8.0")
+	mt.RunOpts("22. range explicit encryption", qeRunOpts22, func(mt *mtest.T) {
 		type testcase struct {
 			typeStr       string
 			field         string
