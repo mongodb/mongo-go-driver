@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -208,6 +209,55 @@ func (d D) Map() M {
 	return m
 }
 
+// MarshalJSON encodes D into JSON.
+func (d D) MarshalJSON() ([]byte, error) {
+	if d == nil {
+		return json.Marshal(nil)
+	}
+	var err error
+	var buf bytes.Buffer
+	buf.Write([]byte("{"))
+	enc := json.NewEncoder(&buf)
+	for i, e := range d {
+		err = enc.Encode(e.Key)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write([]byte(":"))
+		err = enc.Encode(e.Value)
+		if err != nil {
+			return nil, err
+		}
+		if i < len(d)-1 {
+			buf.Write([]byte(","))
+		}
+	}
+	buf.Write([]byte("}"))
+	return json.RawMessage(buf.Bytes()).MarshalJSON()
+}
+
+// UnmarshalJSON decodes D from JSON.
+func (d *D) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		*d = nil
+		return nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '{' {
+		return &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf(*d),
+			Offset: dec.InputOffset(),
+		}
+	}
+	*d, err = jsonDecodeD(dec)
+	return err
+}
+
 // E represents a BSON element for a D. It is usually used inside a D.
 type E struct {
 	Key   string
@@ -223,9 +273,190 @@ type E struct {
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 type M map[string]interface{}
 
+// UnmarshalJSON decodes M from JSON.
+func (m *M) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		*m = nil
+		return nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '{' {
+		return &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf(*m),
+			Offset: dec.InputOffset(),
+		}
+	}
+	*m, err = jsonDecodeM(dec)
+	return err
+}
+
 // An A is an ordered representation of a BSON array.
 //
 // Example usage:
 //
 //	bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
 type A []interface{}
+
+// UnmarshalJSON decodes A from JSON.
+func (a *A) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		*a = nil
+		return nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '[' {
+		return &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf(*a),
+			Offset: dec.InputOffset(),
+		}
+	}
+	*a, err = jsonDecodeA(dec, func(dec *json.Decoder) (interface{}, error) {
+		return jsonDecodeD(dec)
+	})
+	return err
+}
+
+func jsonDecodeD(dec *json.Decoder) (D, error) {
+	res := D{}
+	for {
+		var e E
+
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := t.(string)
+		if !ok {
+			break
+		}
+		e.Key = key
+
+		t, err = dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				e.Value, err = jsonDecodeA(dec, func(dec *json.Decoder) (interface{}, error) {
+					return jsonDecodeD(dec)
+				})
+				if err != nil {
+					return nil, err
+				}
+			case '{':
+				e.Value, err = jsonDecodeD(dec)
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			e.Value = t
+		}
+
+		res = append(res, e)
+	}
+	return res, nil
+}
+
+func jsonDecodeM(dec *json.Decoder) (M, error) {
+	res := make(M)
+	for {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := t.(string)
+		if !ok {
+			break
+		}
+
+		t, err = dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				res[key], err = jsonDecodeA(dec, func(dec *json.Decoder) (interface{}, error) {
+					return jsonDecodeM(dec)
+				})
+				if err != nil {
+					return nil, err
+				}
+			case '{':
+				res[key], err = jsonDecodeM(dec)
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			res[key] = t
+		}
+	}
+	return res, nil
+}
+
+func jsonDecodeA(dec *json.Decoder, objectDecoder func(*json.Decoder) (interface{}, error)) (A, error) {
+	res := A{}
+	done := false
+	for !done {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				a, err := jsonDecodeA(dec, objectDecoder)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, a)
+			case '{':
+				d, err := objectDecoder(dec)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, d)
+			default:
+				done = true
+			}
+		default:
+			res = append(res, t)
+		}
+	}
+	return res, nil
+}
+
+func tokenString(t json.Token) string {
+	switch v := t.(type) {
+	case json.Delim:
+		switch v {
+		case '{':
+			return "object"
+		case '[':
+			return "array"
+		}
+	case bool:
+		return "bool"
+	case float64:
+		return "number"
+	case json.Number, string:
+		return "string"
+	}
+	return "unknown"
+}
