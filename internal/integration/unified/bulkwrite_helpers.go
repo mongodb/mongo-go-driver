@@ -15,12 +15,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// This file provides helper functions to convert BSON documents to WriteModel instances.
+// This file provides helper functions to convert BSON documents to WriteModel
+// instances.
 
-// createBulkWriteModels converts a bson.Raw that is internally an array to a slice of WriteModel. Each value in the
-// array must be a document in the form { requestType: { optionKey1: optionValue1, ... } }. For example, the document
-// { insertOne: { document: { x: 1 } } } would be translated to an InsertOneModel to insert the document { x: 1 }.
-func createBulkWriteModels(rawModels bson.Raw) ([]mongo.WriteModel, error) {
+// createBulkWriteModels converts an bson raw array to a slice of WriteModel.
+// Each value in the array must be a document in the form
+//
+//	{ requestType: { optionKey1: optionValue1, ... } }.
+//
+// For example, the document
+//
+//	{ insertOne: { document: { x: 1 } } }
+//
+// would be translated to an InsertOneModel to insert the document { x: 1 }.
+func createBulkWriteModels(rawModels bson.RawArray) ([]mongo.WriteModel, error) {
 	vals, _ := rawModels.Values()
 	models := make([]mongo.WriteModel, 0, len(vals))
 
@@ -74,7 +82,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				uom.SetArrayFilters(options.ArrayFilters{
-					Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+					Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())
@@ -123,7 +131,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				umm.SetArrayFilters(options.ArrayFilters{
-					Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+					Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())
