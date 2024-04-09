@@ -419,10 +419,11 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		if csot.IsTimeoutContext(ctx) {
-			// If CSOT is enabled, instead of closing the connection mark it as
-			// awaiting response so the pool can read use the response before
-			// making it available to other operations.
+		if nerr := net.Error(nil); errors.As(err, &nerr) && nerr.Timeout() && csot.IsTimeoutContext(ctx) {
+			// If the error was a timeout error and CSOT is enabled, instead of
+			// closing the connection mark it as awaiting response so the pool
+			// can read the response before making it available to other
+			// operations.
 			c.awaitingResponse = true
 		} else {
 			// Otherwise, use the pre-CSOT behavior and close the connection
