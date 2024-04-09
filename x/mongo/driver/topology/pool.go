@@ -453,39 +453,7 @@ func (p *pool) unpinConnectionFromTransaction() {
 // checkOut enters a queue waiting for either the next idle or new connection. If the pool is not
 // ready, checkOut returns an error.
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
-func (p *pool) checkOut(ctx context.Context) (*connection, error) {
-	conn, err := p.checkOutInt(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// if conn.awaitingResponse {
-	// 	readDeadline := time.Now().Add(1 * time.Second)
-	// 	if deadline, ok := ctx.Deadline(); ok && deadline.Before(readDeadline) {
-	// 		readDeadline = deadline
-	// 	}
-	// 	err := conn.nc.SetReadDeadline(readDeadline)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	_, _, err = conn.read(ctx)
-	// 	if err != nil {
-	// 		var nerr net.Error
-	// 		if !errors.As(err, &nerr) || !nerr.Timeout() {
-	// 			if err := conn.close(); err != nil {
-	// 				panic(err)
-	// 			}
-	// 		}
-	// 		if err := p.checkIn(conn); err != nil {
-	// 			panic(err)
-	// 		}
-	// 		return nil, err
-	// 	}
-	// 	conn.awaitingResponse = false
-	// }
-	return conn, nil
-}
-
-func (p *pool) checkOutInt(ctx context.Context) (conn *connection, err error) {
+func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 	if mustLogPoolMessage(p) {
 		logPoolMessage(p, logger.ConnectionCheckoutStarted)
 	}
