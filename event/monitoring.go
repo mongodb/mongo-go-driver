@@ -117,6 +117,7 @@ type PoolEvent struct {
 	Address      string              `json:"address"`
 	ConnectionID uint64              `json:"connectionId"`
 	PoolOptions  *MonitorPoolOptions `json:"options"`
+	Duration     time.Duration       `json:"duration"`
 	Reason       string              `json:"reason"`
 	// ServiceID is only set if the Type is PoolCleared and the server is deployed behind a load balancer. This field
 	// can be used to distinguish between individual servers in a load balanced deployment.
