@@ -310,6 +310,11 @@ type Operation struct {
 	// OP_MSG as well as for logging server selection data.
 	Name string
 
+	// OmitCSOTMaxTimeMS omits the automatically-calculated "maxTimeMS" from the
+	// command when CSOT is enabled. It does not effect "maxTimeMS" set by
+	// [Operation.MaxTime].
+	OmitCSOTMaxTimeMS bool
+
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
 	// where a default read preference is used when the operation
@@ -1088,7 +1093,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	}
 
 	// decode
-	res, err := op.decodeResult(opcode, rem, csot.IsTimeoutContext(ctx))
+	res, err := op.decodeResult(ctx, opcode, rem)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -1563,6 +1568,10 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
+		if op.OmitCSOTMaxTimeMS {
+			return 0, nil
+		}
+
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 			maxTime := remainingTimeout - rtt90
@@ -1828,7 +1837,7 @@ func (Operation) decodeOpReply(wm []byte) opReply {
 	return reply
 }
 
-func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte, isCSOT bool) (bsoncore.Document, error) {
+func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode, wm []byte) (bsoncore.Document, error) {
 	switch opcode {
 	case wiremessage.OpReply:
 		reply := op.decodeOpReply(wm)
@@ -1846,7 +1855,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte, isCSOT bo
 			return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return rdr, ExtractErrorFromServerResponse(rdr, isCSOT)
+		return rdr, ExtractErrorFromServerResponse(ctx, rdr)
 	case wiremessage.OpMsg:
 		_, wm, ok := wiremessage.ReadMsgFlags(wm)
 		if !ok {
@@ -1883,7 +1892,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte, isCSOT bo
 			return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return res, ExtractErrorFromServerResponse(res, isCSOT)
+		return res, ExtractErrorFromServerResponse(ctx, res)
 	default:
 		return nil, fmt.Errorf("cannot decode result from %s", opcode)
 	}

@@ -863,6 +863,15 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		Timeout(a.client.timeout).
 		MaxTime(ao.MaxTime)
 
+	// Omit "maxTimeMS" from operations that return a user-managed cursor to
+	// prevent confusing "cursor not found" errors. To maintain existing
+	// behavior for users who set "timeoutMS" with no context deadline, only
+	// omit "maxTimeMS" when a context deadline is set.
+	//
+	// See DRIVERS-2722 for more detail.
+	_, deadlineSet := a.ctx.Deadline()
+	op.OmitCSOTMaxTimeMS(deadlineSet)
+
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
@@ -1191,23 +1200,20 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
 	opts ...*options.FindOptions) (cur *Cursor, err error) {
-	// Now that "maxTimeMS" is actually set when CSOT is enabled, even when
-	// using a context-with-deadline, more users may encounter the case where
-	// setting "maxTimeMS" on a find/aggregate command will limit the lifetime
-	// of the cursor to that deadline, which is often unexpected. The current
-	// proposed improvement in DRIVERS-2722 is to omit "maxTimeMS" on Find and
-	// Aggregate operations (not FindOne). To maintain the existing behavior,
-	// include "maxTimeMS" when only "timeoutMS" is set.
+	// Omit "maxTimeMS" from operations that return a user-managed cursor to
+	// prevent confusing "cursor not found" errors. To maintain existing
+	// behavior for users who set "timeoutMS" with no context deadline, only
+	// omit "maxTimeMS" when a context deadline is set.
+	//
+	// See DRIVERS-2722 for more detail.
 	_, deadlineSet := ctx.Deadline()
-	setMaxTimeMS := !deadlineSet && coll.client.timeout != nil
-
-	return coll.find(ctx, filter, setMaxTimeMS, opts...)
+	return coll.find(ctx, filter, deadlineSet, opts...)
 }
 
 func (coll *Collection) find(
 	ctx context.Context,
 	filter interface{},
-	setMaxTimeMS bool,
+	omitCSOTMaxTimeMS bool,
 	opts ...*options.FindOptions,
 ) (cur *Cursor, err error) {
 
@@ -1249,11 +1255,8 @@ func (coll *Collection) find(
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
-
-	if setMaxTimeMS {
-		op = op.Timeout(coll.client.timeout)
-	}
+		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger).
+		OmitCSOTMaxTimeMS(omitCSOTMaxTimeMS)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1431,7 +1434,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	// by the server.
 	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
-	cursor, err := coll.find(ctx, filter, true, findOpts...)
+	cursor, err := coll.find(ctx, filter, false, findOpts...)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,

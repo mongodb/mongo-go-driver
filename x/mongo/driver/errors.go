@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -377,9 +378,7 @@ func (e Error) NamespaceNotFound() bool {
 
 // ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
 // if there is one. Also used in testing for SDAM.
-//
-// Set isCSOT to true if "timeoutMS" is set on the Client.
-func ExtractErrorFromServerResponse(doc bsoncore.Document, isCSOT bool) error {
+func ExtractErrorFromServerResponse(ctx context.Context, doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
@@ -533,7 +532,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document, isCSOT bool) error {
 		//  errors.Is(err, context.DeadlineExceeded)
 		//
 		// for either client-side or server-side timeouts.
-		if isCSOT && err.Code == 50 {
+		if csot.IsTimeoutContext(ctx) && err.Code == 50 {
 			err.Wrapped = context.DeadlineExceeded
 		}
 

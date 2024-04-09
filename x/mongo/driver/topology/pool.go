@@ -453,7 +453,39 @@ func (p *pool) unpinConnectionFromTransaction() {
 // checkOut enters a queue waiting for either the next idle or new connection. If the pool is not
 // ready, checkOut returns an error.
 // Based partially on https://cs.opensource.google/go/go/+/refs/tags/go1.16.6:src/net/http/transport.go;l=1324
-func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
+func (p *pool) checkOut(ctx context.Context) (*connection, error) {
+	conn, err := p.checkOutInt(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// if conn.awaitingResponse {
+	// 	readDeadline := time.Now().Add(1 * time.Second)
+	// 	if deadline, ok := ctx.Deadline(); ok && deadline.Before(readDeadline) {
+	// 		readDeadline = deadline
+	// 	}
+	// 	err := conn.nc.SetReadDeadline(readDeadline)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	_, _, err = conn.read(ctx)
+	// 	if err != nil {
+	// 		var nerr net.Error
+	// 		if !errors.As(err, &nerr) || !nerr.Timeout() {
+	// 			if err := conn.close(); err != nil {
+	// 				panic(err)
+	// 			}
+	// 		}
+	// 		if err := p.checkIn(conn); err != nil {
+	// 			panic(err)
+	// 		}
+	// 		return nil, err
+	// 	}
+	// 	conn.awaitingResponse = false
+	// }
+	return conn, nil
+}
+
+func (p *pool) checkOutInt(ctx context.Context) (conn *connection, err error) {
 	if mustLogPoolMessage(p) {
 		logPoolMessage(p, logger.ConnectionCheckoutStarted)
 	}
@@ -742,54 +774,78 @@ func (p *pool) removeConnection(conn *connection, reason reason, err error) erro
 	return nil
 }
 
-// BGCallback is a callback for monitoring the behavior of the experimental
-// background-read-on-timeout connection preserving mechanism.
-//
-// Deprecated: BGCallback is intended for experimental use only and may be
-// removed or modified at any time.
-var BGCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
+var (
+	// BGReadTimeout is the maximum amount of the to wait when trying to read
+	// the server reply on a connection after an operation timed out. The
+	// default is 1 second.
+	//
+	// Deprecated: BGReadTimeout is intended for internal use only and may be
+	// removed or modified at any time.
+	BGReadTimeout = 1 * time.Second
+
+	// BGReadCallback is a callback for monitoring the behavior of the
+	// background-read-on-timeout connection preserving mechanism.
+	//
+	// Deprecated: BGReadCallback is intended for internal use only and may be
+	// removed or modified at any time.
+	BGReadCallback func(addr string, start, read time.Time, errs []error, connClosed bool)
+)
 
 // bgRead sets a new read deadline on the provided connection (1 second in the
 // future) and tries to read any bytes returned by the server. If successful, it
-// checks the connection into the provided pool. If there are any errors, close
-// the connection.
+// checks the connection into the provided pool. If there are any errors, it
+// closes the connection.
+//
+// It calls the package-global BGReadCallback function, if set, with the
+// address, timings, and any errors that occurred.
 func bgRead(pool *pool, conn *connection) {
 	var start, read time.Time
 	start = time.Now()
 	errs := make([]error, 0)
 	connClosed := false
 
-	err := conn.nc.SetReadDeadline(time.Now().Add(1 * time.Second))
-	if err != nil {
-		errs = append(errs, fmt.Errorf("error setting read deadline: %w", err))
-		err = conn.close()
+	defer func() {
+		// No matter what happens, always check the connection back into the
+		// pool, which will either make it available for other operations or
+		// remove it from the pool if it was closed.
+		err := pool.checkInNoEvent(conn)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error closing after setting read deadline: %w", err))
+			errs = append(errs, fmt.Errorf("error checking in: %w", err))
 		}
-	}
 
-	if err == nil {
-		// The context here is only used for cancellation, not deadline timeout.
-		// All conn read timeouts are actually accomplished using
-		// SetReadDeadline, like above.
-		_, _, err = conn.read(context.Background())
-		read = time.Now()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("error reading: %w", err))
-			err = conn.close()
-			if err != nil {
-				errs = append(errs, fmt.Errorf("error closing after reading: %w", err))
-			}
+		if BGReadCallback != nil {
+			BGReadCallback(conn.addr.String(), start, read, errs, connClosed)
 		}
-	}
+	}()
 
-	err = pool.checkIn(conn)
+	err := conn.nc.SetReadDeadline(time.Now().Add(BGReadTimeout))
 	if err != nil {
-		errs = append(errs, fmt.Errorf("error checking in: %w", err))
+		errs = append(errs, fmt.Errorf("error setting a read deadline: %w", err))
+
+		connClosed = true
+		err := conn.close()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error closing conn after setting read deadline: %w", err))
+		}
+
+		return
 	}
 
-	if BGCallback != nil {
-		BGCallback(conn.addr.String(), start, read, errs, connClosed)
+	// The context here is only used for cancellation, not deadline timeout, so
+	// use context.Background(). The read timeout is set by calling
+	// SetReadDeadline above.
+	_, _, err = conn.read(context.Background())
+	read = time.Now()
+	if err != nil {
+		errs = append(errs, fmt.Errorf("error reading: %w", err))
+
+		connClosed = true
+		err := conn.close()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("error closing conn after reading: %w", err))
+		}
+
+		return
 	}
 }
 
@@ -801,14 +857,6 @@ func (p *pool) checkIn(conn *connection) error {
 	}
 	if conn.pool != p {
 		return ErrWrongPool
-	}
-
-	// If the connection has an awaiting server response, try to read the
-	// response in another goroutine before checking it back into the pool.
-	if conn.awaitingResponse {
-		conn.awaitingResponse = false
-		go bgRead(p, conn)
-		return nil
 	}
 
 	if mustLogPoolMessage(p) {
@@ -838,6 +886,20 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 	}
 	if conn.pool != p {
 		return ErrWrongPool
+	}
+
+	// If the connection has an awaiting server response, try to read the
+	// response in another goroutine before checking it back into the pool.
+	//
+	// Do this here because we want to publish checkIn events when the operation
+	// is done with the connection, not when it's ready to be used again. That
+	// means that connections in "awaiting response" state are checked in but
+	// not usable, which is not covered by the current pool events. We may need
+	// to add pool event information in the future to communicate that.
+	if conn.awaitingResponse {
+		conn.awaitingResponse = false
+		go bgRead(p, conn)
+		return nil
 	}
 
 	// Bump the connection idle deadline here because we're about to make the connection "available".
