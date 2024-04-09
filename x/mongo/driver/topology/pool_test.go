@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -1178,10 +1179,22 @@ func TestPool_PoolMonitor(t *testing.T) {
 		})
 
 		tpm := eventtest.NewTestPoolMonitor()
-		p := newPool(poolConfig{
-			Address:     address.Address(addr.String()),
-			PoolMonitor: tpm.PoolMonitor,
-		})
+		p := newPool(
+			poolConfig{
+				Address:     address.Address(addr.String()),
+				PoolMonitor: tpm.PoolMonitor,
+			},
+			// Add a 10ms delay in the handshake so the test is reliable on
+			// operating systems that can't measure very short durations (e.g.
+			// Windows).
+			WithHandshaker(func(Handshaker) Handshaker {
+				return &testHandshaker{
+					getHandshakeInformation: func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error) {
+						time.Sleep(10 * time.Millisecond)
+						return driver.HandshakeInformation{}, nil
+					},
+				}
+			}))
 
 		err := p.ready()
 		require.NoError(t, err, "ready error")
