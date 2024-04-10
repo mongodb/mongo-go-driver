@@ -1,3 +1,9 @@
+// Copyright (C) MongoDB, Inc. 2024-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package integration
 
 import (
@@ -360,7 +366,11 @@ func TestCSOT(t *testing.T) {
 			})
 
 			if tc.preventsConnClosureWithTimeoutMS {
-				mt.Run("prevents connection closure with timeoutMS", func(mt *mtest.T) {
+				opts := mtest.NewOptions().
+					// Blocking failpoints don't work on pre-4.2 and sharded clusters.
+					Topologies(mtest.Single, mtest.ReplicaSet).
+					MinServerVersion("4.2")
+				mt.RunOpts("prevents connection closure with timeoutMS", opts, func(mt *mtest.T) {
 					if tc.setup != nil {
 						err := tc.setup(mt.Coll)
 						require.NoError(mt, err)
@@ -431,6 +441,10 @@ func TestCSOT(t *testing.T) {
 func TestCSOT_errors(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().
 		CreateClient(false).
+		// Blocking failpoints don't work on pre-4.2 and sharded clusters.
+		Topologies(mtest.Single, mtest.ReplicaSet).
+		MinServerVersion("4.2").
+		// Enable CSOT.
 		ClientOptions(options.Client().SetTimeout(10*time.Second)))
 
 	// Test that, when CSOT is enabled, the error returned when the database
