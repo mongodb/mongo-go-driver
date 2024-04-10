@@ -43,6 +43,9 @@ var (
 		"dropSearchIndex ignores read and write concern":       "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
+
+		// TODO(GODRIVER-3137): Implement Gossip cluster time"
+		"unpin after TransientTransactionError error on commit": "Implement GODRIVER-3137",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

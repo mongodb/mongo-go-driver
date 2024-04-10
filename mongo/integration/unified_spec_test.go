@@ -44,7 +44,6 @@ const (
 	spec1403SkipReason     = "servers less than 4.2 do not have mongocryptd; see SPEC-1403"
 	godriver2123SkipReason = "failpoints and timeouts together cause failures; see GODRIVER-2123"
 	godriver2413SkipReason = "encryptedFields argument is not supported on Collection.Drop; see GODRIVER-2413"
-	godriver3137SkipReason = "need to implement Gossip cluster time"
 )
 
 var (
@@ -57,12 +56,11 @@ var (
 		// GODRIVER-2123: The two tests below use a failpoint and a socket or server selection timeout.
 		// The timeout causes the eventual clearing of the failpoint in the test runner to fail with an
 		// i/o timeout.
-		"Ignore network timeout error on find":                  godriver2123SkipReason,
-		"Network error on minPoolSize background creation":      godriver2123SkipReason,
-		"CreateCollection from encryptedFields.":                godriver2413SkipReason,
-		"DropCollection from encryptedFields":                   godriver2413SkipReason,
-		"DropCollection from remote encryptedFields":            godriver2413SkipReason,
-		"unpin after TransientTransactionError error on commit": godriver3137SkipReason,
+		"Ignore network timeout error on find":             godriver2123SkipReason,
+		"Network error on minPoolSize background creation": godriver2123SkipReason,
+		"CreateCollection from encryptedFields.":           godriver2413SkipReason,
+		"DropCollection from encryptedFields":              godriver2413SkipReason,
+		"DropCollection from remote encryptedFields":       godriver2413SkipReason,
 	}
 )
 
