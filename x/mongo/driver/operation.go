@@ -688,7 +688,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			first = false
 		}
 
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90())
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor())
 		if err != nil {
 			return err
 		}
@@ -781,7 +781,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		} else if deadline, ok := ctx.Deadline(); ok {
 			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
 				err = fmt.Errorf(
-					"remaining time %v until context deadline is less than 90th percentile RTT: %w\n%v",
+					"remaining time %v until context deadline is less than 90th percentile network round-trip time: %w\n%v",
 					time.Until(deadline),
 					ErrDeadlineWouldBeExceeded,
 					srvr.RTTMonitor().Stats())
@@ -1566,7 +1566,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration) (uint64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
 		if op.OmitCSOTMaxTimeMS {
 			return 0, nil
@@ -1574,6 +1574,7 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
+			rtt90 := mon.P90()
 			maxTime := remainingTimeout - rtt90
 
 			// Always round up to the next millisecond value so we never truncate the calculated
@@ -1581,10 +1582,9 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration)
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
-					"maxTimeMS calculated by context deadline is negative "+
-						"(remaining time: %v, 90th percentile RTT %v): %w",
+					"negative maxTimeMS: remaining time %v until context deadline is less than 90th percentile network round-trip time (%v): %w",
 					remainingTimeout,
-					rtt90,
+					mon.Stats(),
 					ErrDeadlineWouldBeExceeded)
 			}
 
