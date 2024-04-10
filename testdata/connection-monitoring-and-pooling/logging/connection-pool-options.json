@@ -1,5 +1,5 @@
 {
-  "description": "connection-pool-logging",
+  "description": "connection-pool-options",
   "schemaVersion": "1.13",
   "runOnRequirements": [
     {
@@ -125,6 +125,13 @@
                 },
                 "serverPort": {
                   "$$type": [
+                    "int",
+                    "long"
+                  ]
+                },
+                "durationMS": {
+                  "$$type": [
+                    "double",
                     "int",
                     "long"
                   ]
