@@ -2457,6 +2457,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
+	// GODRIVER-3123.  When we implement this feature, lower the min server version to 8.0.1
 	qeRunOpts22 := qeRunOpts.MinServerVersion("8.0")
 	mt.RunOpts("22. range explicit encryption", qeRunOpts22, func(mt *mtest.T) {
 		type testcase struct {
@@ -2592,6 +2593,8 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, test := range tests {
 			mt.Run(test.typeStr, func(mt *mtest.T) {
+				mt.Skipf("Skipping test until GODRIVER-3123 is implemented")
+
 				if test.typeStr == "DecimalNoPrecision" && mtest.ClusterTopologyKind() != mtest.ReplicaSet {
 					mt.Skipf("Skipping DecimalNoPrecision tests on a non ReplicaSet topology. DecimalNoPrecision queries are expected to take a long time and may exceed the default mongos timeout")
 				}
