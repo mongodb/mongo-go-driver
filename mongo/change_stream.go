@@ -139,15 +139,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
-	// Omit "maxTimeMS" from operations that return a user-managed cursor to
-	// prevent confusing "cursor not found" errors. To maintain existing
-	// behavior for users who set "timeoutMS" with no context deadline, only
-	// omit "maxTimeMS" when a context deadline is set.
-	//
-	// See DRIVERS-2722 for more detail.
-	_, deadlineSet := ctx.Deadline()
-	cs.aggregate.OmitCSOTMaxTimeMS(deadlineSet)
-
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
 	}
