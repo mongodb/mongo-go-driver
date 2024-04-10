@@ -81,7 +81,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
-			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "resumeAfter":
 			opts.SetResumeAfter(val.Document())
 		case "showExpandedEvents":

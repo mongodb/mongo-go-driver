@@ -194,7 +194,7 @@ func TestClient(t *testing.T) {
 				assert.Nil(mt, err, "connectionStatus error: %v", err)
 				users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
 				assert.Nil(mt, err, "authenticatedUsers not found in response")
-				elems, err := users.Array().Elements()
+				elems, err := bson.Raw(users.Array()).Elements()
 				assert.Nil(mt, err, "error getting users elements: %v", err)
 
 				for _, userElem := range elems {
