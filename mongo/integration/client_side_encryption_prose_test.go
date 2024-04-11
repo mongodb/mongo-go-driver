@@ -2593,8 +2593,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		for _, test := range tests {
 			mt.Run(test.typeStr, func(mt *mtest.T) {
-				mt.Skipf("Skipping test until GODRIVER-3123 is implemented")
-
 				if test.typeStr == "DecimalNoPrecision" && mtest.ClusterTopologyKind() != mtest.ReplicaSet {
 					mt.Skipf("Skipping DecimalNoPrecision tests on a non ReplicaSet topology. DecimalNoPrecision queries are expected to take a long time and may exceed the default mongos timeout")
 				}
