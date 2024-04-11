@@ -1588,6 +1588,15 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uin
 					ErrDeadlineWouldBeExceeded)
 			}
 
+			// The server will return a "BadValue" error if maxTimeMS is greater
+			// than the maximum positive int32 value (about 24.9 days). If the
+			// user specified a timeout value greater than that,  omit maxTimeMS
+			// and let the client-side timeout handle cancelling the op if the
+			// timeout is ever reached.
+			if maxTimeMS > math.MaxInt32 {
+				return 0, nil
+			}
+
 			return uint64(maxTimeMS), nil
 		}
 	} else if op.MaxTime != nil {

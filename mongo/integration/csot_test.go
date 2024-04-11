@@ -234,7 +234,11 @@ func TestCSOT(t *testing.T) {
 			sendsMaxTimeMSWithTimeoutMS:       true,
 			sendsMaxTimeMSWithContextDeadline: true,
 			preventsConnClosureWithTimeoutMS:  true,
-			topologies:                        []mtest.TopologyKind{mtest.ReplicaSet},
+			// Change Streams aren't supported on standalone topologies.
+			topologies: []mtest.TopologyKind{
+				mtest.ReplicaSet,
+				mtest.Sharded,
+			},
 		},
 		{
 			desc:        "Cursor getMore",
@@ -436,6 +440,21 @@ func TestCSOT(t *testing.T) {
 			}
 		})
 	}
+
+	csotOpts := mtest.NewOptions().ClientOptions(options.Client().SetTimeout(10 * time.Second))
+	mt.RunOpts("maxTimeMS is omitted for values greater than 2147483647ms]", csotOpts, func(mt *mtest.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), (2147483647+1)*time.Millisecond)
+		defer cancel()
+		_, err := mt.Coll.InsertOne(ctx, bson.D{})
+		require.NoError(t, err)
+
+		evt := mt.GetStartedEvent()
+		_, err = evt.Command.LookupErr("maxTimeMS")
+		assert.ErrorIs(mt,
+			err,
+			bsoncore.ErrElementNotFound,
+			"expected maxTimeMS BSON value to be missing, but is present")
+	})
 }
 
 func TestCSOT_errors(t *testing.T) {
