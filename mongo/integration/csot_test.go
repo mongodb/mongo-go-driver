@@ -442,8 +442,8 @@ func TestCSOT(t *testing.T) {
 	}
 
 	csotOpts := mtest.NewOptions().ClientOptions(options.Client().SetTimeout(10 * time.Second))
-	mt.RunOpts("maxTimeMS is omitted for values greater than 2147483647ms]", csotOpts, func(mt *mtest.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), (2147483647+1)*time.Millisecond)
+	mt.RunOpts("maxTimeMS is omitted for values greater than 2147483647ms", csotOpts, func(mt *mtest.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), (2147483647+1000)*time.Millisecond)
 		defer cancel()
 		_, err := mt.Coll.InsertOne(ctx, bson.D{})
 		require.NoError(t, err)
