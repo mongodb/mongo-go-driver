@@ -27,7 +27,7 @@ type ChannelConn struct {
 }
 
 // WriteWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
+func (c *ChannelConn) Write(ctx context.Context, wm []byte) error {
 	// Copy wm in case it came from a buffer pool.
 	b := make([]byte, len(wm))
 	copy(b, wm)
@@ -42,7 +42,7 @@ func (c *ChannelConn) WriteWireMessage(ctx context.Context, wm []byte) error {
 }
 
 // ReadWireMessage implements the driver.Connection interface.
-func (c *ChannelConn) ReadWireMessage(ctx context.Context) ([]byte, error) {
+func (c *ChannelConn) Read(ctx context.Context) ([]byte, error) {
 	var wm []byte
 	var err error
 	select {

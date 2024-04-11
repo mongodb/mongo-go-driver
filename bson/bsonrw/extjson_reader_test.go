@@ -7,6 +7,7 @@
 package bsonrw
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -131,7 +132,7 @@ func readAllDocuments(vr ValueReader) ([][]byte, error) {
 		for {
 			result, err := c.CopyDocumentToBytes(vr)
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 				return nil, err
@@ -147,7 +148,7 @@ func readAllDocuments(vr ValueReader) ([][]byte, error) {
 		for {
 			evr, err := ar.ReadValue()
 			if err != nil {
-				if err == ErrEOA {
+				if errors.Is(err, ErrEOA) {
 					break
 				}
 				return nil, err

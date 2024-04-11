@@ -15,19 +15,27 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// This file provides helper functions to convert BSON documents to WriteModel instances.
+// This file provides helper functions to convert BSON documents to WriteModel
+// instances.
 
-// createBulkWriteModels converts a bson.Raw that is internally an array to a slice of WriteModel. Each value in the
-// array must be a document in the form { requestType: { optionKey1: optionValue1, ... } }. For example, the document
-// { insertOne: { document: { x: 1 } } } would be translated to an InsertOneModel to insert the document { x: 1 }.
-func createBulkWriteModels(rawModels bson.Raw) ([]mongo.WriteModel, error) {
+// createBulkWriteModels converts an bson raw array to a slice of WriteModel.
+// Each value in the array must be a document in the form
+//
+//	{ requestType: { optionKey1: optionValue1, ... } }.
+//
+// For example, the document
+//
+//	{ insertOne: { document: { x: 1 } } }
+//
+// would be translated to an InsertOneModel to insert the document { x: 1 }.
+func createBulkWriteModels(rawModels bson.RawArray) ([]mongo.WriteModel, error) {
 	vals, _ := rawModels.Values()
 	models := make([]mongo.WriteModel, 0, len(vals))
 
 	for idx, val := range vals {
 		model, err := createBulkWriteModel(val.Document())
 		if err != nil {
-			return nil, fmt.Errorf("error creating model at index %d: %v", idx, err)
+			return nil, fmt.Errorf("error creating model at index %d: %w", idx, err)
 		}
 		models = append(models, model)
 	}
@@ -74,12 +82,12 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				uom.SetArrayFilters(options.ArrayFilters{
-					Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+					Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())
 				if err != nil {
-					return nil, fmt.Errorf("error creating collation: %v", err)
+					return nil, fmt.Errorf("error creating collation: %w", err)
 				}
 				uom.SetCollation(collation)
 			case "filter":
@@ -87,13 +95,13 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "hint":
 				hint, err := createHint(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating hint: %v", err)
+					return nil, fmt.Errorf("error creating hint: %w", err)
 				}
 				uom.SetHint(hint)
 			case "update":
 				update, err = createUpdateValue(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating update: %v", err)
+					return nil, fmt.Errorf("error creating update: %w", err)
 				}
 			case "upsert":
 				uom.SetUpsert(val.Boolean())
@@ -123,12 +131,12 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			switch key {
 			case "arrayFilters":
 				umm.SetArrayFilters(options.ArrayFilters{
-					Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+					Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 				})
 			case "collation":
 				collation, err := createCollation(val.Document())
 				if err != nil {
-					return nil, fmt.Errorf("error creating collation: %v", err)
+					return nil, fmt.Errorf("error creating collation: %w", err)
 				}
 				umm.SetCollation(collation)
 			case "filter":
@@ -136,13 +144,13 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "hint":
 				hint, err := createHint(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating hint: %v", err)
+					return nil, fmt.Errorf("error creating hint: %w", err)
 				}
 				umm.SetHint(hint)
 			case "update":
 				update, err = createUpdateValue(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating update: %v", err)
+					return nil, fmt.Errorf("error creating update: %w", err)
 				}
 			case "upsert":
 				umm.SetUpsert(val.Boolean())
@@ -173,7 +181,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "hint":
 				hint, err := createHint(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating hint: %v", err)
+					return nil, fmt.Errorf("error creating hint: %w", err)
 				}
 				dom.SetHint(hint)
 			default:
@@ -198,7 +206,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "collation":
 				collation, err := createCollation(val.Document())
 				if err != nil {
-					return nil, fmt.Errorf("error creating collation: %v", err)
+					return nil, fmt.Errorf("error creating collation: %w", err)
 				}
 				dmm.SetCollation(collation)
 			case "filter":
@@ -206,7 +214,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "hint":
 				hint, err := createHint(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating hint: %v", err)
+					return nil, fmt.Errorf("error creating hint: %w", err)
 				}
 				dmm.SetHint(hint)
 			default:
@@ -231,7 +239,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "collation":
 				collation, err := createCollation(val.Document())
 				if err != nil {
-					return nil, fmt.Errorf("error creating collation: %v", err)
+					return nil, fmt.Errorf("error creating collation: %w", err)
 				}
 				rom.SetCollation(collation)
 			case "filter":
@@ -239,7 +247,7 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 			case "hint":
 				hint, err := createHint(val)
 				if err != nil {
-					return nil, fmt.Errorf("error creating hint: %v", err)
+					return nil, fmt.Errorf("error creating hint: %w", err)
 				}
 				rom.SetHint(hint)
 			case "replacement":

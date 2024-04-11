@@ -51,7 +51,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+				return nil, fmt.Errorf("error creating collation: %w", err)
 			}
 			opts.SetCollation(*collation)
 		case "comment":
@@ -81,7 +81,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
-			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "resumeAfter":
 			opts.SetResumeAfter(val.Document())
 		case "showExpandedEvents":
@@ -108,7 +108,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 	// empty result in this case.
 	if operation.ResultEntityID != nil {
 		if err := entities(ctx).addCursorEntity(*operation.ResultEntityID, stream); err != nil {
-			return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+			return nil, fmt.Errorf("error storing result as cursor entity: %w", err)
 		}
 	}
 	return newEmptyResult(), nil

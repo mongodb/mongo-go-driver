@@ -823,8 +823,7 @@ func sanitizeHost(host string) (string, error) {
 	// this is unfortunate that SplitHostPort actually requires
 	// a port to exist.
 	if err != nil {
-		var addrError *net.AddrError
-		if !errors.As(err, &addrError) || addrError.Err != "missing port in address" {
+		if addrError, ok := err.(*net.AddrError); !ok || addrError.Err != "missing port in address" {
 			return "", err
 		}
 	}

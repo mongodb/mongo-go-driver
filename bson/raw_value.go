@@ -158,13 +158,14 @@ func (rv RawValue) DocumentOK() (Raw, bool) {
 
 // Array returns the BSON array the Value represents as an Array. It panics if the
 // value is a BSON type other than array.
-func (rv RawValue) Array() Raw { return Raw(convertToCoreValue(rv).Array()) }
+func (rv RawValue) Array() RawArray { return RawArray(convertToCoreValue(rv).Array()) }
 
 // ArrayOK is the same as Array, except it returns a boolean instead
 // of panicking.
-func (rv RawValue) ArrayOK() (Raw, bool) {
+func (rv RawValue) ArrayOK() (RawArray, bool) {
 	doc, ok := convertToCoreValue(rv).ArrayOK()
-	return Raw(doc), ok
+
+	return RawArray(doc), ok
 }
 
 // Binary returns the BSON binary value the Value represents. It panics if the value is a BSON type

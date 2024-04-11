@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -57,7 +58,7 @@ func TestRawValue(t *testing.T) {
 			want := ErrNilRegistry
 			var val RawValue
 			got := val.UnmarshalWithRegistry(nil, &D{})
-			if got != want {
+			if !errors.Is(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})
@@ -108,7 +109,7 @@ func TestRawValue(t *testing.T) {
 			want := ErrNilContext
 			var val RawValue
 			got := val.UnmarshalWithContext(nil, &D{})
-			if got != want {
+			if !errors.Is(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
 		})
