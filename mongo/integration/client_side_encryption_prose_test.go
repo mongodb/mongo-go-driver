@@ -2458,7 +2458,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 	})
 
 	// GODRIVER-3123.  When we implement this feature, lower the min server version to 8.0.1
-	qeRunOpts22 := qeRunOpts.MinServerVersion("8.0")
+	qeRunOpts22 := qeRunOpts.MaxServerVersion("7.99.99")
 	mt.RunOpts("22. range explicit encryption", qeRunOpts22, func(mt *mtest.T) {
 		type testcase struct {
 			typeStr       string
