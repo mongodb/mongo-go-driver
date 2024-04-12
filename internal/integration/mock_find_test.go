@@ -33,7 +33,7 @@ type mockFinder struct {
 
 // FindOne mocks a findOne operation using NewSingleResultFromDocument.
 func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult[bson.Raw] {
-	return mongo.NewSingleResultFromDocument[bson.Raw](mf.docs[0], mf.err, mf.registry)
+	return mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
 }
 
 // Find mocks a find operation using NewCursorFromDocuments.
@@ -47,7 +47,7 @@ type ShopItem struct {
 	Price float64 `bson:"price"`
 }
 
-// getItem is an example function using the interface finder to test the mocking of SingleResult[bson.Raw].
+// getItem is an example function using the interface finder to test the mocking of SingleResult.
 func getItem(f finder, id int) (*ShopItem, error) {
 	res := f.FindOne(context.Background(), bson.D{{"id", id}})
 	var item ShopItem

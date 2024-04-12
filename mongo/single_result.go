@@ -36,13 +36,13 @@ type SingleResult[T bson.Raw | bson.RawArray] struct {
 // from the one provided occurs during creation of the SingleResult, that error will be stored on the returned SingleResult.
 //
 // The document parameter must be a non-nil document.
-func NewSingleResultFromDocument[T bson.Raw | bson.RawArray](
+func NewSingleResultFromDocument(
 	document interface{},
 	err error,
 	registry *bsoncodec.Registry,
-) *SingleResult[T] {
+) *SingleResult[bson.Raw] {
 	if document == nil {
-		return &SingleResult[T]{err: ErrNilDocument}
+		return &SingleResult[bson.Raw]{err: ErrNilDocument}
 	}
 	if registry == nil {
 		registry = bson.DefaultRegistry
@@ -50,10 +50,10 @@ func NewSingleResultFromDocument[T bson.Raw | bson.RawArray](
 
 	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
 	if createErr != nil {
-		return &SingleResult[T]{err: createErr}
+		return &SingleResult[bson.Raw]{err: createErr}
 	}
 
-	return &SingleResult[T]{
+	return &SingleResult[bson.Raw]{
 		cur: cur,
 		err: err,
 		reg: registry,

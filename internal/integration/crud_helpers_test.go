@@ -1662,6 +1662,6 @@ func verifySingleResult[T bson.Raw | bson.RawArray](
 	expected := expectedResult.(bson.Raw)
 	actual, _ := actualResult.Raw()
 	if err := compareDocs(mt, expected, bson.Raw(actual)); err != nil {
-		mt.Fatalf("SingleResult[bson.Raw] document mismatch: %s", err)
+		mt.Fatalf("SingleResult document mismatch: %s", err)
 	}
 }
