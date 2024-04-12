@@ -53,6 +53,7 @@ var (
 		"unpin after TransientTransactionError error on abort":        "Implement GODRIVER-3034",
 		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
 		"unpin when a non-transaction write_operation uses a session": "Implement GODRIVER-3034",
+		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
 
 		// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor
 		// also limits the lifetime of the cursor. That may be surprising to
