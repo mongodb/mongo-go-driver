@@ -410,7 +410,7 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 	return mt.Coll.Find(context.Background(), filter, opts)
 }
 
-func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
 	mt.Helper()
 
 	cmd := emptyDoc
@@ -433,7 +433,7 @@ func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Si
 	}
 
 	if sess != nil {
-		var sr *mongo.SingleResult
+		var sr *mongo.SingleResult[bson.Raw]
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			sr = mt.DB.RunCommand(sc, cmd, opts)
 			return nil
@@ -559,7 +559,7 @@ func executeListDatabases(mt *mtest.T, sess mongo.Session, args bson.Raw) (mongo
 	return mt.Client.ListDatabases(context.Background(), filter)
 }
 
-func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -577,7 +577,7 @@ func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Singl
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult
+		var res *mongo.SingleResult[bson.Raw]
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOne(sc, filter)
 			return nil
@@ -604,7 +604,7 @@ func executeListIndexes(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.
 	return mt.Coll.Indexes().List(context.Background())
 }
 
-func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]interface{}, error) {
+func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.RawArray, error) {
 	mt.Helper()
 
 	var fieldName string
@@ -629,19 +629,25 @@ func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) ([]interfac
 		}
 	}
 
+	var res *mongo.SingleResult[bson.RawArray]
 	if sess != nil {
-		var res []interface{}
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			var derr error
-			res, derr = mt.Coll.Distinct(sc, fieldName, filter, opts)
-			return derr
+			res = mt.Coll.Distinct(sc, fieldName, filter, opts)
+
+			return res.Err()
 		})
-		return res, err
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		res = mt.Coll.Distinct(context.Background(), fieldName, filter, opts)
 	}
-	return mt.Coll.Distinct(context.Background(), fieldName, filter, opts)
+
+	return res.Raw()
 }
 
-func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -670,7 +676,7 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult
+		var res *mongo.SingleResult[bson.Raw]
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndDelete(sc, filter, opts)
 			return nil
@@ -680,7 +686,7 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	return mt.Coll.FindOneAndDelete(context.Background(), filter, opts)
 }
 
-func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -727,7 +733,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult
+		var res *mongo.SingleResult[bson.Raw]
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndUpdate(sc, filter, update, opts)
 			return nil
@@ -737,7 +743,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	return mt.Coll.FindOneAndUpdate(context.Background(), filter, update, opts)
 }
 
-func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
+func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -780,7 +786,7 @@ func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *m
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult
+		var res *mongo.SingleResult[bson.Raw]
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndReplace(sc, filter, replacement, opts)
 			return nil
@@ -1531,25 +1537,29 @@ func verifyDeleteResult(mt *mtest.T, res *mongo.DeleteResult, result interface{}
 		"deleted count mismatch; expected %v, got %v", expected.DeletedCount, res.DeletedCount)
 }
 
-func verifyDistinctResult(mt *mtest.T, actualResult []interface{}, expectedResult interface{}) {
+func verifyDistinctResult(
+	mt *mtest.T,
+	got bson.RawArray,
+	want interface{},
+) {
 	mt.Helper()
 
-	if expectedResult == nil {
+	if got == nil {
 		return
 	}
 
-	for i, expected := range expectedResult.(bson.A) {
-		actual := actualResult[i]
-		iExpected := getIntFromInterface(expected)
-		iActual := getIntFromInterface(actual)
+	for i, iwant := range want.(bson.A) {
+		gotRawValue := got.Index(uint(i))
 
-		if iExpected != nil {
-			assert.NotNil(mt, iActual, "expected nil but got %v", iActual)
-			assert.Equal(mt, *iExpected, *iActual, "expected value %v but got %v", *iExpected, *iActual)
-			continue
+		iwantType, iwantBytes, err := bson.MarshalValue(iwant)
+		assert.NoError(mt, err)
+
+		wantRawValue := bson.RawValue{
+			Type:  iwantType,
+			Value: iwantBytes,
 		}
 
-		assert.Equal(mt, expected, actual, "expected value %v but got %v", expected, actual)
+		assert.EqualValues(mt, wantRawValue, gotRawValue, "expected value %v but got %v", wantRawValue, gotRawValue)
 	}
 }
 
@@ -1638,7 +1648,11 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 	}
 }
 
-func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedResult interface{}) {
+func verifySingleResult[T bson.Raw | bson.RawArray](
+	mt *mtest.T,
+	actualResult *mongo.SingleResult[T],
+	expectedResult interface{},
+) {
 	mt.Helper()
 
 	if expectedResult == nil {
@@ -1647,7 +1661,7 @@ func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedR
 
 	expected := expectedResult.(bson.Raw)
 	actual, _ := actualResult.Raw()
-	if err := compareDocs(mt, expected, actual); err != nil {
-		mt.Fatalf("SingleResult document mismatch: %s", err)
+	if err := compareDocs(mt, expected, bson.Raw(actual)); err != nil {
+		mt.Fatalf("SingleResult[bson.Raw] document mismatch: %s", err)
 	}
 }

@@ -324,7 +324,12 @@ func ExampleCollection_Distinct() {
 	// run on the server.
 	filter := bson.D{{"age", bson.D{{"$gt", 25}}}}
 	opts := options.Distinct().SetMaxTime(2 * time.Second)
-	values, err := coll.Distinct(context.TODO(), "name", filter, opts)
+	res := coll.Distinct(context.TODO(), "name", filter, opts)
+	if err := res.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	values, err := res.Raw()
 	if err != nil {
 		log.Fatal(err)
 	}

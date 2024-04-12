@@ -1904,7 +1904,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			return defKeyID
 		}
 
-		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult, expected ...string) {
+		var validateAddKeyAltName = func(mt *mtest.T, cse *cseProseTest, res *mongo.SingleResult[bson.Raw], expected ...string) {
 			assert.Nil(mt, res.Err(), "error adding key alt name: %v", res.Err())
 
 			resbytes, err := res.Raw()

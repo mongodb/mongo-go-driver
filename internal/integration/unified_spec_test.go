@@ -262,8 +262,8 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		if mtest.ClusterTopologyKind() == mtest.Sharded && test.Description == "distinct" {
 			err := runCommandOnAllServers(func(mongosClient *mongo.Client) error {
 				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
-				_, err := coll.Distinct(context.Background(), "x", bson.D{})
-				return err
+
+				return coll.Distinct(context.Background(), "x", bson.D{}).Err()
 			})
 			assert.Nil(mt, err, "error running distinct against all mongoses: %v", err)
 		}

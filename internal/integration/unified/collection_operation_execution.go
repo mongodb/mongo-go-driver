@@ -532,15 +532,17 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.Distinct(ctx, fieldName, filter, opts)
+	res := coll.Distinct(ctx, fieldName, filter, opts)
+	if err := res.Err(); err != nil {
+		return newErrorResult(err), nil
+	}
+
+	arr, err := res.Raw()
 	if err != nil {
 		return newErrorResult(err), nil
 	}
-	_, rawRes, err := bson.MarshalValue(res)
-	if err != nil {
-		return nil, fmt.Errorf("error converting Distinct result to raw BSON: %w", err)
-	}
-	return newValueResult(bsontype.Array, rawRes, nil), nil
+
+	return newValueResult(bson.TypeArray, arr, nil), nil
 }
 
 func executeDropIndex(ctx context.Context, operation *operation) (*operationResult, error) {

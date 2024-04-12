@@ -619,7 +619,7 @@ func extractReturnError(returnValues []reflect.Value) error {
 	switch converted := errVal.Interface().(type) {
 	case error:
 		return converted
-	case *mongo.SingleResult:
+	case *mongo.SingleResult[bson.Raw]:
 		return converted.Err()
 	default:
 		return nil

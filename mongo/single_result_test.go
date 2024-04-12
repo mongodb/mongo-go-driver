@@ -25,7 +25,7 @@ func TestSingleResult(t *testing.T) {
 			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
-			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry}
+			sr := &SingleResult[bson.Raw]{cur: c, reg: bson.DefaultRegistry}
 			var firstDecode, secondDecode bson.Raw
 			err = sr.Decode(&firstDecode)
 			assert.Nil(t, err, "Decode error: %v", err)
@@ -40,7 +40,13 @@ func TestSingleResult(t *testing.T) {
 		})
 		t.Run("decode with error", func(t *testing.T) {
 			r := []byte("foo")
-			sr := &SingleResult{rdr: r, err: errors.New("Raw error")}
+			sr := &SingleResult[bson.Raw]{
+				rdr: bson.RawValue{
+					Value: r,
+					Type:  bson.TypeEmbeddedDocument,
+				},
+				err: errors.New("Raw error"),
+			}
 			res, err := sr.Raw()
 			resBytes := []byte(res)
 			assert.Equal(t, r, resBytes, "expected contents %v, got %v", r, resBytes)
@@ -50,7 +56,7 @@ func TestSingleResult(t *testing.T) {
 			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
 			require.NoError(t, err, "newCursor error")
 
-			sr := &SingleResult{
+			sr := &SingleResult[bson.Raw]{
 				cur: c,
 				bsonOpts: &options.BSONOptions{
 					UseJSONStructTags: true,
@@ -74,16 +80,16 @@ func TestSingleResult(t *testing.T) {
 	})
 
 	t.Run("Err", func(t *testing.T) {
-		sr := &SingleResult{}
+		sr := &SingleResult[bson.Raw]{}
 		assert.Equal(t, ErrNoDocuments, sr.Err(), "expected error %v, got %v", ErrNoDocuments, sr.Err())
 	})
 }
 
 func TestNewSingleResultFromDocument(t *testing.T) {
-	// Mock a document returned by FindOne in SingleResult.
+	// Mock a document returned by FindOne in SingleResult[bson.Raw].
 	t.Run("mock FindOne", func(t *testing.T) {
 		findOneResult := bson.D{{"_id", 2}, {"foo", "bar"}}
-		res := NewSingleResultFromDocument(findOneResult, nil, nil)
+		res := NewSingleResultFromDocument[bson.Raw](findOneResult, nil, nil)
 
 		// Assert that first, decoded document is as expected.
 		findOneResultBytes, err := bson.Marshal(findOneResult)
@@ -96,11 +102,11 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 
 		// Assert that RDR contents are set correctly after Decode.
 		assert.NotNil(t, res.rdr, "expected non-nil rdr contents")
-		assert.Equal(t, expectedRawBytes, res.rdr,
+		assert.Equal(t, findOneResultBytes, res.rdr.Value,
 			"expected RDR contents to be %v, got %v", expectedRawBytes, res.rdr)
 
 		// Assert that a call to cur.Next will return false, as there was only one document in
-		// the slice passed to NewSingleResultFromDocument.
+		// the slice passed to NewSingleResultFromDocument[bson.Raw].
 		next := res.cur.Next(context.Background())
 		assert.False(t, next, "expected call to Next to return false, got true")
 
@@ -112,19 +118,19 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 		assert.Nil(t, err, "Close error: %v", err)
 	})
 
-	// Mock an error in SingleResult.
+	// Mock an error in SingleResult[bson.Raw].
 	t.Run("mock FindOne with error", func(t *testing.T) {
 		mockErr := fmt.Errorf("mock error")
-		res := NewSingleResultFromDocument(bson.D{}, mockErr, nil)
+		res := NewSingleResultFromDocument[bson.Raw](bson.D{}, mockErr, nil)
 
 		// Assert that the raw bytes returns the mocked error.
 		_, err := res.Raw()
 		assert.NotNil(t, err, "expected Raw error, got nil")
 		assert.Equal(t, mockErr, err, "expected error %v, got %v", mockErr, err)
 
-		// Check for error on SingleResult.
-		assert.NotNil(t, res.Err(), "expected SingleResult error, got nil")
-		assert.Equal(t, mockErr, res.Err(), "expected SingleResult error %v, got %v",
+		// Check for error on SingleResult[bson.Raw].
+		assert.NotNil(t, res.Err(), "expected SingleResult[bson.Raw] error, got nil")
+		assert.Equal(t, mockErr, res.Err(), "expected SingleResult[bson.Raw] error %v, got %v",
 			mockErr, res.Err())
 
 		// Assert that error is propagated to underlying cursor.
