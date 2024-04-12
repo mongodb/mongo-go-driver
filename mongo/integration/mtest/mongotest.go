@@ -207,7 +207,7 @@ func (t *T) cleanup() {
 // Run creates a new T instance for a sub-test and runs the given callback. It also creates a new collection using the
 // given name which is available to the callback through the T.Coll variable and is dropped after the callback
 // returns.
-func (t *T) Run(name string, callback func(*T)) {
+func (t *T) Run(name string, callback func(mt *T)) {
 	t.RunOpts(name, NewOptions(), callback)
 }
 
@@ -215,7 +215,7 @@ func (t *T) Run(name string, callback func(*T)) {
 // constraints specified in the options, the new sub-test will be skipped automatically. If the test is not skipped,
 // the callback will be run with the new T instance. RunOpts creates a new collection with the given name which is
 // available to the callback through the T.Coll variable and is dropped after the callback returns.
-func (t *T) RunOpts(name string, opts *Options, callback func(*T)) {
+func (t *T) RunOpts(name string, opts *Options, callback func(mt *T)) {
 	t.T.Run(name, func(wrapped *testing.T) {
 		sub := newT(wrapped, t.baseOpts, opts)
 
