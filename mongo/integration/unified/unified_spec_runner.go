@@ -44,6 +44,17 @@ var (
 		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 
+		// TODO(GODRIVER-3137): Implement Gossip cluster time"
+		"unpin after TransientTransactionError error on commit": "Implement GODRIVER-3137",
+
+		// TODO(GODRIVER-3034): Drivers should unpin connections when ending a session
+		"unpin on successful abort":                                   "Implement GODRIVER-3034",
+		"unpin after non-transient error on abort":                    "Implement GODRIVER-3034",
+		"unpin after TransientTransactionError error on abort":        "Implement GODRIVER-3034",
+		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
+		"unpin when a non-transaction write operation uses a session": "Implement GODRIVER-3034",
+		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
+
 		// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor
 		// also limits the lifetime of the cursor. That may be surprising to
 		// users, so omit "maxTimeMS" from operations that return user-managed
