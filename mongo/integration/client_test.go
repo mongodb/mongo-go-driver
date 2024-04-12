@@ -778,35 +778,16 @@ func TestClient(t *testing.T) {
 	mt.RunOpts("operations don't retry after a context timeout", opts, func(mt *mtest.T) {
 		testCases := []struct {
 			desc      string
-			failPoint mtest.FailPoint
 			operation func(context.Context, *mongo.Collection) error
 		}{
 			{
 				desc: "read op",
-				failPoint: mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode:               "alwaysOn",
-					Data: mtest.FailPointData{
-						FailCommands:    []string{"find"},
-						BlockConnection: true,
-						BlockTimeMS:     500,
-					},
-				},
 				operation: func(ctx context.Context, coll *mongo.Collection) error {
 					return coll.FindOne(ctx, bson.D{}).Err()
 				},
 			},
 			{
 				desc: "write op",
-				failPoint: mtest.FailPoint{
-					ConfigureFailPoint: "failCommand",
-					Mode:               "alwaysOn",
-					Data: mtest.FailPointData{
-						FailCommands:    []string{"insert"},
-						BlockConnection: true,
-						BlockTimeMS:     500,
-					},
-				},
 				operation: func(ctx context.Context, coll *mongo.Collection) error {
 					_, err := coll.InsertOne(ctx, bson.D{})
 					return err
@@ -815,11 +796,19 @@ func TestClient(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			mt.Run(tc.desc, func(t *mtest.T) {
+			mt.Run(tc.desc, func(mt *mtest.T) {
 				_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 				require.NoError(mt, err)
 
-				mt.SetFailPoint(tc.failPoint)
+				mt.SetFailPoint(mtest.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode:               "alwaysOn",
+					Data: mtest.FailPointData{
+						FailCommands:    []string{"find", "insert"},
+						BlockConnection: true,
+						BlockTimeMS:     500,
+					},
+				})
 
 				mt.ClearEvents()
 
@@ -830,8 +819,8 @@ func TestClient(t *testing.T) {
 					// probability that an operation will time out in a way that
 					// can cause a retry.
 					ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-					defer cancel()
 					err = tc.operation(ctx, mt.Coll)
+					cancel()
 					assert.ErrorIs(mt, err, context.DeadlineExceeded)
 					assert.True(mt, mongo.IsTimeout(err), "expected mongo.IsTimeout(err) to be true")
 
