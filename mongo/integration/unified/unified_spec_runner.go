@@ -48,7 +48,8 @@ var (
 		"unpin after TransientTransactionError error on commit": "Implement GODRIVER-3137",
 
 		// TODO(GODRIVER-3034): Drivers should unpin connections when ending a session
-		"unpin on successful abort": "Implement GODRIVER-3034",
+		"unpin on successful abort":                "Implement GODRIVER-3034",
+		"unpin after non-transient error on abort": "Implement GODRIVER-3034",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
