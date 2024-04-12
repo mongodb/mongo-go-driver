@@ -1390,7 +1390,6 @@ func (coll *Collection) Distinct(
 		ctx:      ctx,
 		bsonOpts: coll.bsonOpts,
 		reg:      coll.registry,
-		err:      replaceErrors(err),
 		rdr: bson.RawValue{
 			Value: arr,
 			Type:  bson.TypeArray,

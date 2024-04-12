@@ -621,6 +621,8 @@ func extractReturnError(returnValues []reflect.Value) error {
 		return converted
 	case *mongo.SingleResult[bson.Raw]:
 		return converted.Err()
+	case *mongo.SingleResult[bson.RawArray]:
+		return converted.Err()
 	default:
 		return nil
 	}
