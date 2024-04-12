@@ -50,7 +50,7 @@ var (
 		// TODO(GODRIVER-3034): Drivers should unpin connections when ending a session
 		"unpin on successful abort":                            "Implement GODRIVER-3034",
 		"unpin after non-transient error on abort":             "Implement GODRIVER-3034",
-		"unpin_after_TransientTransactionError_error_on_abort": "Implement GODRIVER-3034",
+		"unpin after TransientTransactionError error on abort": "Implement GODRIVER-3034",
 
 		// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor
 		// also limits the lifetime of the cursor. That may be surprising to
