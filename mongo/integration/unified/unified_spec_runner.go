@@ -43,6 +43,18 @@ var (
 		"dropSearchIndex ignores read and write concern":       "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
+
+		// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor
+		// also limits the lifetime of the cursor. That may be surprising to
+		// users, so omit "maxTimeMS" from operations that return user-managed
+		// cursors.
+		"timeoutMS can be overridden for a find":                                               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured for an operation - find on collection":                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured for an operation - aggregate on collection":               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured for an operation - aggregate on database":                 "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"operation is retried multiple times for non-zero timeoutMS - find on collection":      "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"operation is retried multiple times for non-zero timeoutMS - aggregate on collection": "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"operation is retried multiple times for non-zero timeoutMS - aggregate on database":   "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

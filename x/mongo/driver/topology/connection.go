@@ -18,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -77,6 +78,10 @@ type connection struct {
 	// TODO(GODRIVER-2824): change driverConnectionID type to int64.
 	driverConnectionID uint64
 	generation         uint64
+
+	// awaitingResponse indicates that the server response was not completely
+	// read before returning the connection to the pool.
+	awaitingResponse bool
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -414,8 +419,17 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 
 	dst, errMsg, err := c.read(ctx)
 	if err != nil {
-		// We closeConnection the connection because we don't know if there are other bytes left to read.
-		c.close()
+		if nerr := net.Error(nil); errors.As(err, &nerr) && nerr.Timeout() && csot.IsTimeoutContext(ctx) {
+			// If the error was a timeout error and CSOT is enabled, instead of
+			// closing the connection mark it as awaiting response so the pool
+			// can read the response before making it available to other
+			// operations.
+			c.awaitingResponse = true
+		} else {
+			// Otherwise, use the pre-CSOT behavior and close the connection
+			// because we don't know if there are other bytes left to read.
+			c.close()
+		}
 		message := errMsg
 		if errors.Is(err, io.EOF) {
 			message = "socket was unexpectedly closed"

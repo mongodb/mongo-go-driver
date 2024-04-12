@@ -310,6 +310,11 @@ type Operation struct {
 	// OP_MSG as well as for logging server selection data.
 	Name string
 
+	// OmitCSOTMaxTimeMS omits the automatically-calculated "maxTimeMS" from the
+	// command when CSOT is enabled. It does not effect "maxTimeMS" set by
+	// [Operation.MaxTime].
+	OmitCSOTMaxTimeMS bool
+
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
 	// where a default read preference is used when the operation
@@ -499,9 +504,9 @@ func (op Operation) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
-	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !csot.IsTimeoutContext(ctx) {
+	// If op.Timeout is set, and context is not already a Timeout context, honor
+	// op.Timeout in new Timeout context for operation execution.
+	if op.Timeout != nil && !csot.IsTimeoutContext(ctx) {
 		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *op.Timeout)
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
@@ -683,8 +688,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			first = false
 		}
 
-		// Calculate maxTimeMS value to potentially be appended to the wire message.
-		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor().P90(), srvr.RTTMonitor().Stats())
+		maxTimeMS, err := op.calculateMaxTimeMS(ctx, srvr.RTTMonitor())
 		if err != nil {
 			return err
 		}
@@ -777,7 +781,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		} else if deadline, ok := ctx.Deadline(); ok {
 			if csot.IsTimeoutContext(ctx) && time.Now().Add(srvr.RTTMonitor().P90()).After(deadline) {
 				err = fmt.Errorf(
-					"remaining time %v until context deadline is less than 90th percentile RTT: %w\n%v",
+					"remaining time %v until context deadline is less than 90th percentile network round-trip time: %w\n%v",
 					time.Until(deadline),
 					ErrDeadlineWouldBeExceeded,
 					srvr.RTTMonitor().Stats())
@@ -1089,7 +1093,7 @@ func (op Operation) readWireMessage(ctx context.Context, conn Connection) (resul
 	}
 
 	// decode
-	res, err := op.decodeResult(opcode, rem)
+	res, err := op.decodeResult(ctx, opcode, rem)
 	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
 	// everything.
 	op.updateClusterTimes(res)
@@ -1562,10 +1566,15 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // if the ctx is a Timeout context. If the context is not a Timeout context, it uses the
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
-func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration, rttStats string) (uint64, error) {
+func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uint64, error) {
 	if csot.IsTimeoutContext(ctx) {
+		if op.OmitCSOTMaxTimeMS {
+			return 0, nil
+		}
+
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
+			rtt90 := mon.P90()
 			maxTime := remainingTimeout - rtt90
 
 			// Always round up to the next millisecond value so we never truncate the calculated
@@ -1573,11 +1582,21 @@ func (op Operation) calculateMaxTimeMS(ctx context.Context, rtt90 time.Duration,
 			maxTimeMS := int64((maxTime + (time.Millisecond - 1)) / time.Millisecond)
 			if maxTimeMS <= 0 {
 				return 0, fmt.Errorf(
-					"remaining time %v until context deadline is less than or equal to 90th percentile RTT: %w\n%v",
+					"negative maxTimeMS: remaining time %v until context deadline is less than 90th percentile network round-trip time (%v): %w",
 					remainingTimeout,
-					ErrDeadlineWouldBeExceeded,
-					rttStats)
+					mon.Stats(),
+					ErrDeadlineWouldBeExceeded)
 			}
+
+			// The server will return a "BadValue" error if maxTimeMS is greater
+			// than the maximum positive int32 value (about 24.9 days). If the
+			// user specified a timeout value greater than that,  omit maxTimeMS
+			// and let the client-side timeout handle cancelling the op if the
+			// timeout is ever reached.
+			if maxTimeMS > math.MaxInt32 {
+				return 0, nil
+			}
+
 			return uint64(maxTimeMS), nil
 		}
 	} else if op.MaxTime != nil {
@@ -1827,7 +1846,7 @@ func (Operation) decodeOpReply(wm []byte) opReply {
 	return reply
 }
 
-func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore.Document, error) {
+func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode, wm []byte) (bsoncore.Document, error) {
 	switch opcode {
 	case wiremessage.OpReply:
 		reply := op.decodeOpReply(wm)
@@ -1845,7 +1864,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 			return nil, NewCommandResponseError("malformed OP_REPLY: invalid document", err)
 		}
 
-		return rdr, ExtractErrorFromServerResponse(rdr)
+		return rdr, ExtractErrorFromServerResponse(ctx, rdr)
 	case wiremessage.OpMsg:
 		_, wm, ok := wiremessage.ReadMsgFlags(wm)
 		if !ok {
@@ -1882,7 +1901,7 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 			return nil, NewCommandResponseError("malformed OP_MSG: invalid document", err)
 		}
 
-		return res, ExtractErrorFromServerResponse(res)
+		return res, ExtractErrorFromServerResponse(ctx, res)
 	default:
 		return nil, fmt.Errorf("cannot decode result from %s", opcode)
 	}
