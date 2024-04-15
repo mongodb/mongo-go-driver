@@ -55,7 +55,7 @@ func (listener *eventListener) commandMonitor() *event.CommandMonitor {
 	}
 }
 
-// severMonitor initializes an event.ServerMonitor that will count the number
+// serverMonitor initializes an event.ServerMonitor that will count the number
 // of successful or failed heartbeat events and record a running duration of
 // these events.
 func (listener *eventListener) serverMonitor() *event.ServerMonitor {

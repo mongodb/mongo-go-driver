@@ -1989,7 +1989,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	}
 }
 
-// canPublishSucceededEvent returns true if a CommandSucceededEvent can be
+// canPublishFinishedEvent returns true if a CommandSucceededEvent can be
 // published for the given command. This is true if the command is not an
 // unacknowledged write and the command monitor is monitoring succeeded events.
 func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {
