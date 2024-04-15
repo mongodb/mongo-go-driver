@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -37,7 +38,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 				options.Find().SetSkip(1),
 			},
 			want: &options.FindArgs{
-				Skip: ptrOf(int64(1)),
+				Skip: ptrutil.Ptr(int64(1)),
 			},
 		},
 		{
@@ -47,7 +48,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 				options.Find().SetSkip(2),
 			},
 			want: &options.FindArgs{
-				Skip: ptrOf(int64(2)),
+				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 		{
@@ -58,7 +59,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 				options.Find().SetSkip(2),
 			},
 			want: &options.FindArgs{
-				Skip: ptrOf(int64(2)),
+				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 		{
@@ -69,7 +70,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 				options.Find().SetSkip(2),
 			},
 			want: &options.FindArgs{
-				Skip: ptrOf(int64(2)),
+				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 		{
@@ -80,7 +81,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 				nil,
 			},
 			want: &options.FindArgs{
-				Skip: ptrOf(int64(2)),
+				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 	}

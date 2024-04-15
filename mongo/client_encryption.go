@@ -88,7 +88,6 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 
 	createArgs, err := newArgsFromOptions[options.CreateCollectionArgs](createOpts)
 	if err != nil {
-		fmt.Println("err: ", err)
 		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 

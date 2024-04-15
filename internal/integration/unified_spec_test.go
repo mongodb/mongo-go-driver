@@ -329,7 +329,6 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 			testClientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
 		}
 
-		//newOpts := mongoutil.NewOptionsFromArgs[options.ClientArgs](args, nil)
 		mt.ResetClient(testClientOpts)
 
 		// Record the underlying topology for the test's Client.

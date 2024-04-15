@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -230,24 +231,24 @@ func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 			name: "nil",
 			args: nil,
 			want: &options.FindArgs{
-				Limit: ptrOf(int64(-1)),
+				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 		{
 			name: "empty",
 			args: &options.FindOneArgs{},
 			want: &options.FindArgs{
-				Limit: ptrOf(int64(-1)),
+				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 		{
 			name: "non empty",
 			args: &options.FindOneArgs{
-				Skip: ptrOf(int64(1)),
+				Skip: ptrutil.Ptr(int64(1)),
 			},
 			want: &options.FindArgs{
-				Skip:  ptrOf(int64(1)),
-				Limit: ptrOf(int64(-1)),
+				Skip:  ptrutil.Ptr(int64(1)),
+				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 	}
