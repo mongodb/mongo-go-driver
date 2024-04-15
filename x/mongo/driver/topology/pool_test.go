@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -1189,7 +1190,7 @@ func TestPool_PoolMonitor(t *testing.T) {
 			// Windows).
 			WithHandshaker(func(Handshaker) Handshaker {
 				return &testHandshaker{
-					getHandshakeInformation: func(context.Context, address.Address, driver.Connection) (driver.HandshakeInformation, error) {
+					getHandshakeInformation: func(context.Context, address.Address, *mnet.Connection) (driver.HandshakeInformation, error) {
 						time.Sleep(10 * time.Millisecond)
 						return driver.HandshakeInformation{}, nil
 					},

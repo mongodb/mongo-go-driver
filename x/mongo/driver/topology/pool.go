@@ -490,8 +490,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.ConnectionCheckOutFailed,
-				Address: p.address.String(),
+				Type:     event.ConnectionCheckOutFailed,
+				Address:  p.address.String(),
 				Duration: duration,
 				Reason:   event.ReasonPoolClosed,
 			})
@@ -513,9 +513,9 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.ConnectionCheckOutFailed,
-				Address: p.address.String(),
-				Reason:  event.ReasonConnectionErrored,
+				Type:     event.ConnectionCheckOutFailed,
+				Address:  p.address.String(),
+				Reason:   event.ReasonConnectionErrored,
 				Duration: duration,
 				Error:    err,
 			})
@@ -559,8 +559,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
-					Type:    event.ConnectionCheckOutFailed,
-					Address: p.address.String(),
+					Type:     event.ConnectionCheckOutFailed,
+					Address:  p.address.String(),
 					Duration: duration,
 					Reason:   event.ReasonConnectionErrored,
 					Error:    w.err,
@@ -614,8 +614,8 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 			if p.monitor != nil {
 				p.monitor.Event(&event.PoolEvent{
-					Type:    event.ConnectionCheckOutFailed,
-					Address: p.address.String(),
+					Type:     event.ConnectionCheckOutFailed,
+					Address:  p.address.String(),
 					Duration: duration,
 					Reason:   event.ReasonConnectionErrored,
 					Error:    w.err,
@@ -659,7 +659,7 @@ func (p *pool) checkOut(ctx context.Context) (conn *connection, err error) {
 
 		if p.monitor != nil {
 			p.monitor.Event(&event.PoolEvent{
-				Type:    event.ConnectionCheckOutFailed,
+				Type:     event.ConnectionCheckOutFailed,
 				Address:  p.address.String(),
 				Duration: duration,
 				Reason:   event.ReasonTimedOut,
