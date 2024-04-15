@@ -92,7 +92,7 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 	case bson.TypeArray:
 		e := expected.Array()
 		a := actual.Array()
-		return compareDocsHelper(mt, e, a, key)
+		return compareDocsHelper(mt, bson.Raw(e), bson.Raw(a), key)
 	}
 
 	if expected.Type != actual.Type {
@@ -429,7 +429,7 @@ func compareSucceededEvent(mt *mtest.T, expectation *expectation) error {
 
 		switch key {
 		case "writeErrors":
-			if err = compareWriteErrors(mt, val.Array(), actualVal.Array()); err != nil {
+			if err = compareWriteErrors(mt, bson.Raw(val.Array()), bson.Raw(actualVal.Array())); err != nil {
 				return newMatchError(mt, expected.Reply, evt.Reply, "%s", err)
 			}
 		default:

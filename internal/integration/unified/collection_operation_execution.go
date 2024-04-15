@@ -74,7 +74,7 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
-			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "let":
 			opts.SetLet(val.Document())
 		default:
@@ -917,7 +917,7 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "arrayFilters":
 			opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 			})
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
@@ -1004,7 +1004,7 @@ func executeInsertMany(ctx context.Context, operation *operation) (*operationRes
 		case "comment":
 			opts.SetComment(val)
 		case "documents":
-			documents = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
+			documents = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "ordered":
 			opts.SetOrdered(val.Boolean())
 		default:

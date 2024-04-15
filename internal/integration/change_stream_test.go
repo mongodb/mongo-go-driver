@@ -71,7 +71,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.NotNil(mt, started, "expected started event for aggregate, got nil")
 
 		// pipeline is array of documents. first value of first element in array is the first stage document
-		firstStage := started.Command.Lookup("pipeline").Array().Index(0).Value().Document()
+		firstStage := started.Command.Lookup("pipeline").Array().Index(0).Document()
 		elems, _ := firstStage.Elements()
 		assert.Equal(mt, 1, len(elems), "expected first stage document to have 1 element, got %v", len(elems))
 		firstKey := elems[0].Key()
@@ -282,7 +282,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.Equal(mt, "aggregate", aggEvent.CommandName, "expected command name 'aggregate', got '%v'", aggEvent.CommandName)
 
 		// check for startAtOperationTime in pipeline
-		csStage := aggEvent.Command.Lookup("pipeline").Array().Index(0).Value().Document() // $changeStream stage
+		csStage := aggEvent.Command.Lookup("pipeline").Array().Index(0).Document() // $changeStream stage
 		_, err = csStage.Lookup("$changeStream").Document().LookupErr("startAtOperationTime")
 		assert.Nil(mt, err, "startAtOperationTime not included in aggregate command")
 	})
