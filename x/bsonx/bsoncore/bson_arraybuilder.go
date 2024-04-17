@@ -81,7 +81,7 @@ func (a *ArrayBuilder) AppendString(str string) *ArrayBuilder {
 }
 
 // AppendObjectID will append oid to ArrayBuilder.doc
-func (a *ArrayBuilder) AppendObjectID(oid [idLen]byte) *ArrayBuilder {
+func (a *ArrayBuilder) AppendObjectID(oid objectID) *ArrayBuilder {
 	a.arr = AppendObjectIDElement(a.arr, a.incrementKey(), oid)
 	return a
 }
@@ -124,7 +124,7 @@ func (a *ArrayBuilder) AppendRegex(pattern, options string) *ArrayBuilder {
 }
 
 // AppendDBPointer will append ns and oid to a.arr
-func (a *ArrayBuilder) AppendDBPointer(ns string, oid [idLen]byte) *ArrayBuilder {
+func (a *ArrayBuilder) AppendDBPointer(ns string, oid objectID) *ArrayBuilder {
 	a.arr = AppendDBPointerElement(a.arr, a.incrementKey(), ns, oid)
 	return a
 }

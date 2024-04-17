@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal/bsonutil/primitive"
+	"go.mongodb.org/mongo-driver/internal/decimal128"
 )
 
 // These constants are the maximum and minimum values for the exponent field in a decimal128 value.
@@ -52,7 +52,7 @@ func (d Decimal128) GetBytes() (uint64, uint64) {
 
 // String returns a string representation of the decimal value.
 func (d Decimal128) String() string {
-	return primitive.Decimal128String(d.h, d.l)
+	return decimal128.String(d.h, d.l)
 }
 
 // BigInt returns significand as big.Int and exponent, bi * 10 ^ exp.

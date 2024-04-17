@@ -22,10 +22,9 @@ const (
 	nullTerminator       = string(byte(0))
 	invalidKeyPanicMsg   = "BSON element keys cannot contain null bytes"
 	invalidRegexPanicMsg = "BSON regex values cannot contain null bytes"
-
-	// idLen is the length of a ObjectID
-	idLen = 12
 )
+
+type objectID = [12]byte
 
 // AppendType will append t to dst and return the extended buffer.
 func AppendType(dst []byte, t Type) []byte { return append(dst, byte(t)) }
@@ -339,21 +338,22 @@ func AppendUndefinedElement(dst []byte, key string) []byte {
 }
 
 // AppendObjectID will append oid to dst and return the extended buffer.
-func AppendObjectID(dst []byte, oid [idLen]byte) []byte { return append(dst, oid[:]...) }
+func AppendObjectID(dst []byte, oid objectID) []byte { return append(dst, oid[:]...) }
 
 // AppendObjectIDElement will append a BSON ObjectID element using key and oid to dst
 // and return the extended buffer.
-func AppendObjectIDElement(dst []byte, key string, oid [idLen]byte) []byte {
+func AppendObjectIDElement(dst []byte, key string, oid objectID) []byte {
 	return AppendObjectID(AppendHeader(dst, TypeObjectID, key), oid)
 }
 
 // ReadObjectID will read an ObjectID from src. If there are not enough bytes it
 // will return false.
-func ReadObjectID(src []byte) ([idLen]byte, []byte, bool) {
-	if len(src) < 12 {
-		return [idLen]byte{}, src, false
+func ReadObjectID(src []byte) (objectID, []byte, bool) {
+	var oid objectID
+	idLen := cap(oid)
+	if len(src) < idLen {
+		return oid, src, false
 	}
-	var oid [idLen]byte
 	copy(oid[:], src[0:idLen])
 	return oid, src[idLen:], true
 }
@@ -447,26 +447,26 @@ func ReadRegex(src []byte) (pattern, options string, rem []byte, ok bool) {
 }
 
 // AppendDBPointer will append ns and oid to dst and return the extended buffer.
-func AppendDBPointer(dst []byte, ns string, oid [idLen]byte) []byte {
+func AppendDBPointer(dst []byte, ns string, oid objectID) []byte {
 	return append(appendstring(dst, ns), oid[:]...)
 }
 
 // AppendDBPointerElement will append a BSON DBPointer element using key, ns,
 // and oid to dst and return the extended buffer.
-func AppendDBPointerElement(dst []byte, key, ns string, oid [idLen]byte) []byte {
+func AppendDBPointerElement(dst []byte, key, ns string, oid objectID) []byte {
 	return AppendDBPointer(AppendHeader(dst, TypeDBPointer, key), ns, oid)
 }
 
 // ReadDBPointer will read a ns and oid from src. If there are not enough bytes it
 // will return false.
-func ReadDBPointer(src []byte) (ns string, oid [idLen]byte, rem []byte, ok bool) {
+func ReadDBPointer(src []byte) (ns string, oid objectID, rem []byte, ok bool) {
 	ns, rem, ok = readstring(src)
 	if !ok {
-		return "", [idLen]byte{}, src, false
+		return "", objectID{}, src, false
 	}
 	oid, rem, ok = ReadObjectID(rem)
 	if !ok {
-		return "", [idLen]byte{}, src, false
+		return "", objectID{}, src, false
 	}
 	return ns, oid, rem, true
 }

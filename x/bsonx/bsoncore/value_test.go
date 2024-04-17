@@ -73,7 +73,7 @@ func TestValue(t *testing.T) {
 	})
 
 	now := time.Now().Truncate(time.Millisecond)
-	oid := [idLen]byte{}
+	var oid [12]byte
 
 	testCases := []struct {
 		name     string
@@ -253,24 +253,24 @@ func TestValue(t *testing.T) {
 			nil,
 		},
 		{
-			"ObjectID/Success", Value.ObjectID, Value{Type: TypeObjectID, Data: AppendObjectID(nil, [idLen]byte{0x01, 0x02})},
+			"ObjectID/Success", Value.ObjectID, Value{Type: TypeObjectID, Data: AppendObjectID(nil, [12]byte{0x01, 0x02})},
 			nil,
-			[]interface{}{[idLen]byte{0x01, 0x02}},
+			[]interface{}{[12]byte{0x01, 0x02}},
 		},
 		{
 			"ObjectIDOK/Not ObjectID", Value.ObjectIDOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{[idLen]byte{}, false},
+			[]interface{}{[12]byte{}, false},
 		},
 		{
 			"ObjectIDOK/Insufficient Bytes", Value.ObjectIDOK, Value{Type: TypeObjectID, Data: []byte{0x01, 0x02, 0x03, 0x04}},
 			nil,
-			[]interface{}{[idLen]byte{}, false},
+			[]interface{}{[12]byte{}, false},
 		},
 		{
-			"ObjectIDOK/Success", Value.ObjectIDOK, Value{Type: TypeObjectID, Data: AppendObjectID(nil, [idLen]byte{0x01, 0x02})},
+			"ObjectIDOK/Success", Value.ObjectIDOK, Value{Type: TypeObjectID, Data: AppendObjectID(nil, [12]byte{0x01, 0x02})},
 			nil,
-			[]interface{}{[idLen]byte{0x01, 0x02}, true},
+			[]interface{}{[12]byte{0x01, 0x02}, true},
 		},
 		{
 			"Boolean/Not Boolean", Value.Boolean, Value{Type: TypeString},
@@ -410,12 +410,12 @@ func TestValue(t *testing.T) {
 		{
 			"DBPointerOK/Not DBPointer", Value.DBPointerOK, Value{Type: TypeString},
 			nil,
-			[]interface{}{"", [idLen]byte{}, false},
+			[]interface{}{"", [12]byte{}, false},
 		},
 		{
 			"DBPointerOK/Insufficient Bytes", Value.DBPointerOK, Value{Type: TypeDBPointer, Data: []byte{0x01, 0x02, 0x03}},
 			nil,
-			[]interface{}{"", [idLen]byte{}, false},
+			[]interface{}{"", [12]byte{}, false},
 		},
 		{
 			"DBPointerOK/Success", Value.DBPointerOK, Value{Type: TypeDBPointer, Data: AppendDBPointer(nil, "foobar", oid)},

@@ -4,7 +4,7 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package primitive
+package decimal128
 
 import (
 	"strconv"
@@ -33,8 +33,8 @@ func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
 	return (aq<<32 | bq), (cq<<32 | dq), uint32(dr)
 }
 
-// Decimal128String returns a string representation of the decimal value.
-func Decimal128String(h, l uint64) string {
+// String returns a string representation of the decimal value.
+func String(h, l uint64) string {
 	var posSign int      // positive sign
 	var exp int          // exponent
 	var high, low uint64 // significand high/low

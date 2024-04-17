@@ -18,7 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"go.mongodb.org/mongo-driver/internal/bsonutil/primitive"
+	"go.mongodb.org/mongo-driver/internal/decimal128"
 )
 
 // ElementTypeError specifies that a method to obtain a BSON value an incorrect type was called on a bson.Value.
@@ -326,7 +326,7 @@ func (v Value) String() string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, primitive.Decimal128String(h, l))
+		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l))
 	case TypeMinKey:
 		return `{"$minKey":1}`
 	case TypeMaxKey:
@@ -507,7 +507,7 @@ func (v Value) BinaryOK() (subtype byte, data []byte, ok bool) {
 
 // ObjectID returns the BSON objectid value the Value represents. It panics if the value is a BSON
 // type other than objectid.
-func (v Value) ObjectID() [idLen]byte {
+func (v Value) ObjectID() objectID {
 	if v.Type != TypeObjectID {
 		panic(ElementTypeError{"bsoncore.Value.ObjectID", v.Type})
 	}
@@ -520,13 +520,13 @@ func (v Value) ObjectID() [idLen]byte {
 
 // ObjectIDOK is the same as ObjectID, except it returns a boolean instead of
 // panicking.
-func (v Value) ObjectIDOK() ([idLen]byte, bool) {
+func (v Value) ObjectIDOK() (objectID, bool) {
 	if v.Type != TypeObjectID {
-		return [idLen]byte{}, false
+		return objectID{}, false
 	}
 	oid, _, ok := ReadObjectID(v.Data)
 	if !ok {
-		return [idLen]byte{}, false
+		return objectID{}, false
 	}
 	return oid, true
 }
@@ -637,7 +637,7 @@ func (v Value) RegexOK() (pattern, options string, ok bool) {
 
 // DBPointer returns the BSON dbpointer value the Value represents. It panics if the value is a BSON
 // type other than DBPointer.
-func (v Value) DBPointer() (string, [idLen]byte) {
+func (v Value) DBPointer() (string, objectID) {
 	if v.Type != TypeDBPointer {
 		panic(ElementTypeError{"bsoncore.Value.DBPointer", v.Type})
 	}
@@ -650,13 +650,13 @@ func (v Value) DBPointer() (string, [idLen]byte) {
 
 // DBPointerOK is the same as DBPoitner, except that it returns a boolean
 // instead of panicking.
-func (v Value) DBPointerOK() (string, [idLen]byte, bool) {
+func (v Value) DBPointerOK() (string, objectID, bool) {
 	if v.Type != TypeDBPointer {
-		return "", [idLen]byte{}, false
+		return "", objectID{}, false
 	}
 	ns, pointer, _, ok := ReadDBPointer(v.Data)
 	if !ok {
-		return "", [idLen]byte{}, false
+		return "", objectID{}, false
 	}
 	return ns, pointer, true
 }

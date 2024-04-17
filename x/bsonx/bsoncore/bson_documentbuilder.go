@@ -67,7 +67,7 @@ func (db *DocumentBuilder) AppendString(key string, str string) *DocumentBuilder
 }
 
 // AppendObjectID will append oid to DocumentBuilder.doc with the given key
-func (db *DocumentBuilder) AppendObjectID(key string, oid [idLen]byte) *DocumentBuilder {
+func (db *DocumentBuilder) AppendObjectID(key string, oid objectID) *DocumentBuilder {
 	db.doc = AppendObjectIDElement(db.doc, key, oid)
 	return db
 }
@@ -110,7 +110,7 @@ func (db *DocumentBuilder) AppendRegex(key, pattern, options string) *DocumentBu
 }
 
 // AppendDBPointer will append ns and oid to using key to db.doc
-func (db *DocumentBuilder) AppendDBPointer(key string, ns string, oid [idLen]byte) *DocumentBuilder {
+func (db *DocumentBuilder) AppendDBPointer(key string, ns string, oid objectID) *DocumentBuilder {
 	db.doc = AppendDBPointerElement(db.doc, key, ns, oid)
 	return db
 }
