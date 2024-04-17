@@ -17,9 +17,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
@@ -42,12 +39,12 @@ type negateCodec struct {
 	ID int64 `bson:"_id"`
 }
 
-func (e *negateCodec) EncodeValue(_ bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+func (e *negateCodec) EncodeValue(_ bson.EncodeContext, vw bson.ValueWriter, val reflect.Value) error {
 	return vw.WriteInt64(val.Int())
 }
 
 // DecodeValue negates the value of ID when reading
-func (e *negateCodec) DecodeValue(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func (e *negateCodec) DecodeValue(_ bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
 	i, err := vr.ReadInt64()
 	if err != nil {
 		return err
@@ -194,7 +191,7 @@ func TestClient(t *testing.T) {
 				assert.Nil(mt, err, "connectionStatus error: %v", err)
 				users, err := rdr.LookupErr("authInfo", "authenticatedUsers")
 				assert.Nil(mt, err, "authenticatedUsers not found in response")
-				elems, err := users.Array().Elements()
+				elems, err := bson.Raw(users.Array()).Elements()
 				assert.Nil(mt, err, "error getting users elements: %v", err)
 
 				for _, userElem := range elems {
@@ -660,6 +657,77 @@ func TestClient(t *testing.T) {
 				"expected 'OP_MSG' OpCode in wire message, got %q", pair.Sent.OpCode.String())
 		}
 	})
+
+	opts := mtest.NewOptions().
+		// Blocking failpoints don't work on pre-4.2 and sharded clusters.
+		Topologies(mtest.Single, mtest.ReplicaSet).
+		MinServerVersion("4.2").
+		// Expliticly enable retryable reads and retryable writes.
+		ClientOptions(options.Client().SetRetryReads(true).SetRetryWrites(true))
+	mt.RunOpts("operations don't retry after a context timeout", opts, func(mt *mtest.T) {
+		testCases := []struct {
+			desc      string
+			operation func(context.Context, *mongo.Collection) error
+		}{
+			{
+				desc: "read op",
+				operation: func(ctx context.Context, coll *mongo.Collection) error {
+					return coll.FindOne(ctx, bson.D{}).Err()
+				},
+			},
+			{
+				desc: "write op",
+				operation: func(ctx context.Context, coll *mongo.Collection) error {
+					_, err := coll.InsertOne(ctx, bson.D{})
+					return err
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			mt.Run(tc.desc, func(mt *mtest.T) {
+				_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
+				require.NoError(mt, err)
+
+				mt.SetFailPoint(mtest.FailPoint{
+					ConfigureFailPoint: "failCommand",
+					Mode:               "alwaysOn",
+					Data: mtest.FailPointData{
+						FailCommands:    []string{"find", "insert"},
+						BlockConnection: true,
+						BlockTimeMS:     500,
+					},
+				})
+
+				mt.ClearEvents()
+
+				for i := 0; i < 50; i++ {
+					// Run 50 operations, each with a timeout of 50ms. Expect
+					// them to all return a timeout error because the failpoint
+					// blocks find operations for 500ms. Run 50 to increase the
+					// probability that an operation will time out in a way that
+					// can cause a retry.
+					ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+					err = tc.operation(ctx, mt.Coll)
+					cancel()
+					assert.ErrorIs(mt, err, context.DeadlineExceeded)
+					assert.True(mt, mongo.IsTimeout(err), "expected mongo.IsTimeout(err) to be true")
+
+					// Assert that each operation reported exactly one command
+					// started events, which means the operation did not retry
+					// after the context timeout.
+					evts := mt.GetAllStartedEvents()
+					require.Len(mt,
+						mt.GetAllStartedEvents(),
+						1,
+						"expected exactly 1 command started event per operation, but got %d after %d iterations",
+						len(evts),
+						i)
+					mt.ClearEvents()
+				}
+			})
+		}
+	})
 }
 
 func TestClient_BSONOptions(t *testing.T) {
@@ -787,7 +855,7 @@ func TestClientStress(t *testing.T) {
 
 	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
 	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
-		oid := primitive.NewObjectID()
+		oid := bson.NewObjectID()
 		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
 		_, err := mt.Coll.InsertOne(context.Background(), doc)
 		assert.Nil(mt, err, "InsertOne error: %v", err)

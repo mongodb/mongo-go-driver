@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"path"
 	"reflect"
@@ -22,7 +21,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 )
@@ -183,26 +181,6 @@ func unescapeUnicode(s, bsonType string) string {
 	}
 
 	return newS
-}
-
-func formatDouble(f float64) string {
-	var s string
-	if math.IsInf(f, 1) {
-		s = "Infinity"
-	} else if math.IsInf(f, -1) {
-		s = "-Infinity"
-	} else if math.IsNaN(f) {
-		s = "NaN"
-	} else {
-		// Print exactly one decimalType place for integers; otherwise, print as many are necessary to
-		// perfectly represent it.
-		s = strconv.FormatFloat(f, 'G', -1, 64)
-		if !strings.ContainsRune(s, 'E') && !strings.ContainsRune(s, '.') {
-			s += ".0"
-		}
-	}
-
-	return s
 }
 
 func normalizeCanonicalDouble(t *testing.T, key string, cEJ string) string {
@@ -410,7 +388,7 @@ func runTest(t *testing.T, file string) {
 					for _, elem := range doc {
 						value := reflect.ValueOf(elem.Value)
 						invalidString := (value.Kind() == reflect.String) && !utf8.ValidString(value.String())
-						dbPtr, ok := elem.Value.(primitive.DBPointer)
+						dbPtr, ok := elem.Value.(DBPointer)
 						invalidDBPtr := ok && !utf8.ValidString(dbPtr.DB)
 
 						if invalidString || invalidDBPtr {
