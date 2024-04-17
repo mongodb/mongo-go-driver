@@ -6,13 +6,9 @@
 
 package bson
 
-import (
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-)
-
 type marshalingTestCase struct {
 	name string
-	reg  *bsoncodec.Registry
+	reg  *Registry
 	val  interface{}
 	want []byte
 }

@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -111,53 +110,53 @@ func compareValues(mt *mtest.T, key string, expected, actual bson.RawValue) erro
 }
 
 // helper for $$type assertions
-func checkValueType(mt *mtest.T, key string, actual bsontype.Type, typeStr string) error {
+func checkValueType(mt *mtest.T, key string, actual bson.Type, typeStr string) error {
 	mt.Helper()
 
-	var expected bsontype.Type
+	var expected bson.Type
 	switch typeStr {
 	case "double":
-		expected = bsontype.Double
+		expected = bson.TypeDouble
 	case "string":
-		expected = bsontype.String
+		expected = bson.TypeString
 	case "object":
-		expected = bsontype.EmbeddedDocument
+		expected = bson.TypeEmbeddedDocument
 	case "array":
-		expected = bsontype.Array
+		expected = bson.TypeArray
 	case "binData":
-		expected = bsontype.Binary
+		expected = bson.TypeBinary
 	case "undefined":
-		expected = bsontype.Undefined
+		expected = bson.TypeUndefined
 	case "objectId":
-		expected = bsontype.ObjectID
+		expected = bson.TypeObjectID
 	case "boolean":
-		expected = bsontype.Boolean
+		expected = bson.TypeBoolean
 	case "date":
-		expected = bsontype.DateTime
+		expected = bson.TypeDateTime
 	case "null":
-		expected = bsontype.Null
+		expected = bson.TypeNull
 	case "regex":
-		expected = bsontype.Regex
+		expected = bson.TypeRegex
 	case "dbPointer":
-		expected = bsontype.DBPointer
+		expected = bson.TypeDBPointer
 	case "javascript":
-		expected = bsontype.JavaScript
+		expected = bson.TypeJavaScript
 	case "symbol":
-		expected = bsontype.Symbol
+		expected = bson.TypeSymbol
 	case "javascriptWithScope":
-		expected = bsontype.CodeWithScope
+		expected = bson.TypeCodeWithScope
 	case "int":
-		expected = bsontype.Int32
+		expected = bson.TypeInt32
 	case "timestamp":
-		expected = bsontype.Timestamp
+		expected = bson.TypeTimestamp
 	case "long":
-		expected = bsontype.Int64
+		expected = bson.TypeInt64
 	case "decimal":
-		expected = bsontype.Decimal128
+		expected = bson.TypeDecimal128
 	case "minKey":
-		expected = bsontype.MinKey
+		expected = bson.TypeMinKey
 	case "maxKey":
-		expected = bsontype.MaxKey
+		expected = bson.TypeMaxKey
 	default:
 		mt.Fatalf("unrecognized type string: %v", typeStr)
 	}

@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -45,7 +45,7 @@ var DefaultDialer Dialer = &net.Dialer{}
 type Handshaker = driver.Handshaker
 
 // generationNumberFn is a callback type used by a connection to fetch its generation number given its service ID.
-type generationNumberFn func(serviceID *primitive.ObjectID) uint64
+type generationNumberFn func(serviceID *bson.ObjectID) uint64
 
 type connectionConfig struct {
 	connectTimeout           time.Duration

@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -149,7 +148,7 @@ func Custom(tag string) *WriteConcern {
 //
 // Deprecated: Marshaling a WriteConcern to BSON will not be supported in Go
 // Driver 2.0.
-func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (wc *WriteConcern) MarshalBSONValue() (bson.Type, []byte, error) {
 	if wc == nil {
 		return 0, nil, ErrEmptyWriteConcern
 	}

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -92,7 +91,7 @@ type Client struct {
 	ClientID       uuid.UUID
 	ClusterTime    bson.Raw
 	Consistent     bool // causal consistency
-	OperationTime  *primitive.Timestamp
+	OperationTime  *bson.Timestamp
 	IsImplicit     bool
 	Terminated     bool
 	RetryingCommit bool
@@ -120,7 +119,7 @@ type Client struct {
 	PinnedServer     *description.Server
 	RecoveryToken    bson.Raw
 	PinnedConnection LoadBalancedTransactionConnection
-	SnapshotTime     *primitive.Timestamp
+	SnapshotTime     *bson.Timestamp
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -232,7 +231,7 @@ func (c *Client) AdvanceClusterTime(clusterTime bson.Raw) error {
 }
 
 // AdvanceOperationTime updates the session's operation time.
-func (c *Client) AdvanceOperationTime(opTime *primitive.Timestamp) error {
+func (c *Client) AdvanceOperationTime(opTime *bson.Timestamp) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}
@@ -294,7 +293,7 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
 	}
 
 	t, i := ssTimeElem.Timestamp()
-	c.SnapshotTime = &primitive.Timestamp{
+	c.SnapshotTime = &bson.Timestamp{
 		T: t,
 		I: i,
 	}

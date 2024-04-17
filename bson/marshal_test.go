@@ -16,27 +16,22 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-var tInt32 = reflect.TypeOf(int32(0))
-
 func TestMarshalWithRegistry(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var reg *bsoncodec.Registry
+			var reg *Registry
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
 				reg = DefaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw := bsonrw.NewValueWriter(buf)
+			vw := NewValueWriter(buf)
 			enc := NewEncoder(vw)
 			enc.SetRegistry(reg)
 			err := enc.Encode(tc.val)
@@ -53,14 +48,14 @@ func TestMarshalWithRegistry(t *testing.T) {
 func TestMarshalWithContext(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			var reg *bsoncodec.Registry
+			var reg *Registry
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
 				reg = DefaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw := bsonrw.NewValueWriter(buf)
+			vw := NewValueWriter(buf)
 			enc := NewEncoder(vw)
 			enc.IntMinSize()
 			enc.SetRegistry(reg)
@@ -134,7 +129,7 @@ func TestMarshal_roundtripFromDoc(t *testing.T) {
 	before := D{
 		{"foo", "bar"},
 		{"baz", int64(-27)},
-		{"bing", A{nil, primitive.Regex{Pattern: "word", Options: "i"}}},
+		{"bing", A{nil, Regex{Pattern: "word", Options: "i"}}},
 	}
 
 	b, err := Marshal(before)
@@ -154,7 +149,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates int32 values when encoding.
-	var encodeInt32 bsoncodec.ValueEncoderFunc = func(_ bsoncodec.EncodeContext, vw bsonrw.ValueWriter, val reflect.Value) error {
+	var encodeInt32 ValueEncoderFunc = func(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 		if val.Kind() != reflect.Int32 {
 			return fmt.Errorf("expected kind to be int32, got %v", val.Kind())
 		}
@@ -178,7 +173,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
 
 		buf := new(bytes.Buffer)
-		vw := bsonrw.NewValueWriter(buf)
+		vw := NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.SetRegistry(customReg)
 		err = enc.Encode(original)
@@ -228,7 +223,7 @@ func TestNullBytes(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				regex := primitive.Regex{
+				regex := Regex{
 					Pattern: tc.pattern,
 					Options: tc.options,
 				}
