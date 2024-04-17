@@ -238,21 +238,13 @@ func (d D) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON decodes D from JSON.
 func (d *D) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	t, err := dec.Token()
+	dec, err := newJsonObjDecoder[D](b)
 	if err != nil {
 		return err
 	}
-	if t == nil {
+	if dec == nil {
 		*d = nil
 		return nil
-	}
-	if v, ok := t.(json.Delim); !ok || v != '{' {
-		return &json.UnmarshalTypeError{
-			Value:  tokenString(t),
-			Type:   reflect.TypeOf(*d),
-			Offset: dec.InputOffset(),
-		}
 	}
 	*d, err = jsonDecodeD(dec)
 	return err
@@ -275,21 +267,13 @@ type M map[string]interface{}
 
 // UnmarshalJSON decodes M from JSON.
 func (m *M) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	t, err := dec.Token()
+	dec, err := newJsonObjDecoder[M](b)
 	if err != nil {
 		return err
 	}
-	if t == nil {
+	if dec == nil {
 		*m = nil
 		return nil
-	}
-	if v, ok := t.(json.Delim); !ok || v != '{' {
-		return &json.UnmarshalTypeError{
-			Value:  tokenString(t),
-			Type:   reflect.TypeOf(*m),
-			Offset: dec.InputOffset(),
-		}
 	}
 	*m, err = jsonDecodeM(dec)
 	return err
@@ -324,6 +308,25 @@ func (a *A) UnmarshalJSON(b []byte) error {
 		return jsonDecodeD(dec)
 	})
 	return err
+}
+
+func newJsonObjDecoder[T D | M](b []byte) (*json.Decoder, error) {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
+	if err != nil {
+		return nil, err
+	}
+	if t == nil {
+		return nil, nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '{' {
+		return nil, &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf((T)(nil)),
+			Offset: dec.InputOffset(),
+		}
+	}
+	return dec, nil
 }
 
 func jsonDecodeD(dec *json.Decoder) (D, error) {
