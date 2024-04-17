@@ -238,7 +238,7 @@ func (d D) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON decodes D from JSON.
 func (d *D) UnmarshalJSON(b []byte) error {
-	dec, err := newJsonObjDecoder[D](b)
+	dec, err := newJSONObjDecoder[D](b)
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ type M map[string]interface{}
 
 // UnmarshalJSON decodes M from JSON.
 func (m *M) UnmarshalJSON(b []byte) error {
-	dec, err := newJsonObjDecoder[M](b)
+	dec, err := newJSONObjDecoder[M](b)
 	if err != nil {
 		return err
 	}
@@ -310,7 +310,7 @@ func (a *A) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-func newJsonObjDecoder[T D | M](b []byte) (*json.Decoder, error) {
+func newJSONObjDecoder[T D | M](b []byte) (*json.Decoder, error) {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	t, err := dec.Token()
 	if err != nil {
