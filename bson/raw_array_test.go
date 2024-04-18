@@ -84,7 +84,7 @@ func TestReadArray(t *testing.T) {
 			t.Parallel()
 
 			arr, err := ReadArray(tc.ioReader)
-			if !compareErrors(err, tc.err) {
+			if !assert.CompareErrors(err, tc.err) {
 				t.Errorf("errors do not match. got %v; want %v", err, tc.err)
 			}
 			if !bytes.Equal(tc.arr, arr) {
@@ -102,7 +102,7 @@ func TestArray_Validate(t *testing.T) {
 
 		want := bsoncore.NewInsufficientBytesError(nil, nil)
 		got := RawArray{'\x00', '\x00'}.Validate()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -114,7 +114,7 @@ func TestArray_Validate(t *testing.T) {
 		r := make(RawArray, 5)
 		binary.LittleEndian.PutUint32(r[0:4], 200)
 		got := r.Validate()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -127,7 +127,7 @@ func TestArray_Validate(t *testing.T) {
 		binary.LittleEndian.PutUint32(r[0:4], 7)
 		r[4], r[5], r[6] = 0x02, 'f', 0x00
 		got := r.Validate()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -140,7 +140,7 @@ func TestArray_Validate(t *testing.T) {
 		binary.LittleEndian.PutUint32(r[0:4], 6)
 		r[4], r[5] = 0x0A, '0'
 		got := r.Validate()
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not get expected error. got %v; want %v", got, want)
 		}
 	})
@@ -199,7 +199,7 @@ func TestArray_Validate(t *testing.T) {
 			t.Parallel()
 
 			got := tc.r.Validate()
-			if !compareErrors(got, tc.want) {
+			if !assert.CompareErrors(got, tc.want) {
 				t.Errorf("Returned error does not match. got %v; want %v", got, tc.want)
 			}
 		})
@@ -226,7 +226,7 @@ func TestArray_Index(t *testing.T) {
 		rdr := RawArray{0x07, 0x00, 0x00, 0x00, 0x00}
 		_, got := rdr.IndexErr(1)
 		want := bsoncore.NewInsufficientBytesError(nil, nil)
-		if !compareErrors(got, want) {
+		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 		}
 	})
