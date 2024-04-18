@@ -13,8 +13,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 )
 
@@ -114,14 +112,14 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 		Extra             map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
-		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %v", err)
+		return fmt.Errorf("error unmarshalling to temporary expectedEvents object: %w", err)
 	}
 	if len(temp.Extra) > 0 {
 		return fmt.Errorf("unrecognized fields for expectedEvents: %v", temp.Extra)
 	}
 
 	e.ClientID = temp.ClientID
-	if temp.Events.Type != bsontype.Array {
+	if temp.Events.Type != bson.TypeArray {
 		return fmt.Errorf("expected 'events' to be an array but got a %q", temp.Events.Type)
 	}
 
@@ -138,7 +136,7 @@ func (e *expectedEvents) UnmarshalBSON(data []byte) error {
 	}
 
 	if err := temp.Events.Unmarshal(target); err != nil {
-		return fmt.Errorf("error unmarshalling events array: %v", err)
+		return fmt.Errorf("error unmarshalling events array: %w", err)
 	}
 
 	if temp.IgnoreExtraEvents != nil {
@@ -203,7 +201,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				// In the case of an empty Command, hardcode an empty bson.RawValue document.
 				if len(actual.Command) == 0 {
 					emptyDoc := []byte{5, 0, 0, 0, 0}
-					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: emptyDoc}
+					actualDoc = bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: emptyDoc}
 				}
 
 				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
@@ -247,7 +245,7 @@ func verifyCommandEvents(ctx context.Context, client *clientEntity, expectedEven
 				// In the case of an empty Reply, hardcode an empty bson.RawValue document.
 				if len(actual.Reply) == 0 {
 					emptyDoc := []byte{5, 0, 0, 0, 0}
-					actualDoc = bson.RawValue{Type: bsontype.EmbeddedDocument, Value: emptyDoc}
+					actualDoc = bson.RawValue{Type: bson.TypeEmbeddedDocument, Value: emptyDoc}
 				}
 
 				if err := verifyValuesMatch(ctx, expectedDoc, actualDoc, true); err != nil {
@@ -391,7 +389,7 @@ func getNextPoolEvent(events []*event.PoolEvent, expectedType string) (*event.Po
 	return evt, events[1:], nil
 }
 
-func verifyServiceID(expectServiceID bool, serviceID *primitive.ObjectID) error {
+func verifyServiceID(expectServiceID bool, serviceID *bson.ObjectID) error {
 	if eventHasID := serviceID != nil; expectServiceID != eventHasID {
 		return fmt.Errorf("expected event to have server ID: %v, event has server ID %v", expectServiceID, serviceID)
 	}

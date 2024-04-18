@@ -15,12 +15,12 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -42,7 +42,7 @@ type BatchCursor struct {
 	server               Server
 	serverDescription    description.Server
 	errorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
-	connection           PinnedConnection
+	connection           *mnet.Connection
 	batchSize            int32
 	maxTimeMS            int64
 	currentBatch         *bsoncore.Iterator
@@ -62,7 +62,7 @@ type BatchCursor struct {
 type CursorResponse struct {
 	Server               Server
 	ErrorProcessor       ErrorProcessor // This will only be set when pinning to a connection.
-	Connection           PinnedConnection
+	Connection           *mnet.Connection
 	Desc                 description.Server
 	FirstBatch           *bsoncore.Iterator
 	Database             string
@@ -79,7 +79,7 @@ type CursorResponse struct {
 func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 	response := info.ServerResponse
 	cur, err := response.LookupErr("cursor")
-	if err == bsoncore.ErrElementNotFound {
+	if errors.Is(err, bsoncore.ErrElementNotFound) {
 		return CursorResponse{}, ErrNoCursor
 	}
 	if err != nil {
@@ -138,14 +138,15 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 		}
 		curresp.ErrorProcessor = ep
 
-		refConn, ok := info.Connection.(PinnedConnection)
-		if !ok {
+		refConn := info.Connection.Pinner
+		if refConn == nil {
+			//debug.PrintStack()
 			return CursorResponse{}, fmt.Errorf("expected Connection used to establish a cursor to implement PinnedConnection, but got %T", info.Connection)
 		}
 		if err := refConn.PinToCursor(); err != nil {
 			return CursorResponse{}, fmt.Errorf("error incrementing connection reference count when creating a cursor: %w", err)
 		}
-		curresp.Connection = refConn
+		curresp.Connection = info.Connection
 	}
 
 	return curresp, nil
@@ -277,7 +278,7 @@ func (bc *BatchCursor) Close(ctx context.Context) error {
 }
 
 func (bc *BatchCursor) unpinConnection() error {
-	if bc.connection == nil {
+	if bc.connection == nil || bc.connection.Pinner == nil {
 		return nil
 	}
 
@@ -308,7 +309,7 @@ func (bc *BatchCursor) KillCursor(ctx context.Context) error {
 	return Operation{
 		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
 			dst = bsoncore.AppendStringElement(dst, "killCursors", bc.collection)
-			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsontype.Int64, Data: bsoncore.AppendInt64(nil, bc.id)})
+			dst = bsoncore.BuildArrayElement(dst, "cursors", bsoncore.Value{Type: bsoncore.TypeInt64, Data: bsoncore.AppendInt64(nil, bc.id)})
 			return dst, nil
 		},
 		Database:       bc.database,
@@ -377,7 +378,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 			}
 
 			// The getMore command does not support commenting pre-4.4.
-			if comment.Type != bsontype.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
+			if comment.Type != bsoncore.Type(0) && bc.serverDescription.WireVersion.Max >= 9 {
 				dst = bsoncore.AppendValueElement(dst, "comment", comment)
 			}
 
@@ -445,8 +446,7 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 	// If we're in load balanced mode and the pinned connection encounters a network error, we should not use it for
 	// future commands. Per the spec, the connection will not be unpinned until the cursor is actually closed, but
 	// we set the cursor ID to 0 to ensure the Close() call will not execute a killCursors command.
-	var driverErr Error
-	if errors.As(bc.err, &driverErr) && driverErr.NetworkError() && bc.connection != nil {
+	if driverErr, ok := bc.err.(Error); ok && driverErr.NetworkError() && bc.connection != nil {
 		bc.id = 0
 	}
 
@@ -500,7 +500,8 @@ func (bc *BatchCursor) getOperationDeployment() Deployment {
 // handled for these commands in this mode.
 type loadBalancedCursorDeployment struct {
 	errorProcessor ErrorProcessor
-	conn           PinnedConnection
+	//conn           PinnedConnection
+	conn *mnet.Connection
 }
 
 var _ Deployment = (*loadBalancedCursorDeployment)(nil)
@@ -515,7 +516,7 @@ func (lbcd *loadBalancedCursorDeployment) Kind() description.TopologyKind {
 	return description.LoadBalanced
 }
 
-func (lbcd *loadBalancedCursorDeployment) Connection(_ context.Context) (Connection, error) {
+func (lbcd *loadBalancedCursorDeployment) Connection(context.Context) (*mnet.Connection, error) {
 	return lbcd.conn, nil
 }
 
@@ -524,6 +525,6 @@ func (lbcd *loadBalancedCursorDeployment) RTTMonitor() RTTMonitor {
 	return &csot.ZeroRTTMonitor{}
 }
 
-func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, conn Connection) ProcessErrorResult {
-	return lbcd.errorProcessor.ProcessError(err, conn)
+func (lbcd *loadBalancedCursorDeployment) ProcessError(err error, desc mnet.Describer) ProcessErrorResult {
+	return lbcd.errorProcessor.ProcessError(err, desc)
 }

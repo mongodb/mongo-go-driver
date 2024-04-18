@@ -19,10 +19,11 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -207,7 +208,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		}
 	}))
 
-	s := NewServer("mongodb://fake", primitive.NewObjectID(), sOpts...)
+	s := NewServer("mongodb://fake", bson.NewObjectID(), sOpts...)
 	s.state = serverConnected
 	require.NoError(t, err, "error connecting connection pool")
 	defer s.pool.close(context.Background())
@@ -517,7 +518,7 @@ func runOperationInThread(t *testing.T, operation map[string]interface{}, testIn
 			t.Fatalf("was unable to find %v in objects when expected", cName)
 		}
 
-		c, ok := cEmptyInterface.(*Connection)
+		c, ok := cEmptyInterface.(*mnet.Connection)
 		if !ok {
 			t.Fatalf("object in objects was expected to be a connection, but was instead a %T", cEmptyInterface)
 		}

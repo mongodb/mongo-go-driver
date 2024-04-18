@@ -11,7 +11,6 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -111,7 +110,6 @@ func (f *Find) Execute(ctx context.Context) error {
 		Logger:            f.logger,
 		Name:              driverutil.FindOp,
 	}.Execute(ctx)
-
 }
 
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -137,13 +135,13 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", f.collation)
 	}
-	if f.comment.Type != bsontype.Type(0) {
+	if f.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", f.comment)
 	}
 	if f.filter != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "filter", f.filter)
 	}
-	if f.hint.Type != bsontype.Type(0) {
+	if f.hint.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "hint", f.hint)
 	}
 	if f.let != nil {

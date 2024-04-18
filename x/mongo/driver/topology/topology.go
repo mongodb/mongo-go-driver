@@ -15,14 +15,13 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
@@ -30,6 +29,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
 
@@ -87,6 +87,8 @@ type Topology struct {
 	rescanSRVInterval time.Duration
 	pollHeartbeatTime atomic.Value // holds a bool
 
+	hosts []string
+
 	updateCallback updateTopologyCallback
 	fsm            *fsm
 
@@ -106,7 +108,7 @@ type Topology struct {
 	serversClosed bool
 	servers       map[address.Address]*Server
 
-	id primitive.ObjectID
+	id bson.ObjectID
 }
 
 var (
@@ -145,7 +147,7 @@ func New(cfg *Config) (*Topology, error) {
 		subscribers:       make(map[uint64]chan description.Topology),
 		servers:           make(map[address.Address]*Server),
 		dnsResolver:       dns.DefaultResolver,
-		id:                primitive.NewObjectID(),
+		id:                bson.NewObjectID(),
 	}
 	t.desc.Store(description.Topology{})
 	t.updateCallback = func(desc description.Server) description.Server {
@@ -153,7 +155,12 @@ func New(cfg *Config) (*Topology, error) {
 	}
 
 	if t.cfg.URI != "" {
-		t.pollingRequired = strings.HasPrefix(t.cfg.URI, "mongodb+srv://") && !t.cfg.LoadBalanced
+		connStr, err := connstring.Parse(t.cfg.URI)
+		if err != nil {
+			return nil, err
+		}
+		t.pollingRequired = (connStr.Scheme == connstring.SchemeMongoDBSRV) && !t.cfg.LoadBalanced
+		t.hosts = connStr.RawHosts
 	}
 
 	t.publishTopologyOpeningEvent()
@@ -347,26 +354,21 @@ func (t *Topology) Connect() error {
 	}
 
 	t.serversLock.Unlock()
-	uri, err := url.Parse(t.cfg.URI)
-	if err != nil {
-		return err
-	}
-	parsedHosts := strings.Split(uri.Host, ",")
 	if mustLogTopologyMessage(t, logger.LevelInfo) {
-		logTopologyThirdPartyUsage(t, parsedHosts)
+		logTopologyThirdPartyUsage(t, t.hosts)
 	}
 	if t.pollingRequired {
 		// sanity check before passing the hostname to resolver
-		if len(parsedHosts) != 1 {
+		if len(t.hosts) != 1 {
 			return fmt.Errorf("URI with SRV must include one and only one hostname")
 		}
-		_, _, err = net.SplitHostPort(uri.Host)
+		_, _, err = net.SplitHostPort(t.hosts[0])
 		if err == nil {
 			// we were able to successfully extract a port from the host,
 			// but should not be able to when using SRV
 			return fmt.Errorf("URI with srv must not include a port number")
 		}
-		go t.pollSRVRecords(uri.Host)
+		go t.pollSRVRecords(t.hosts[0])
 		t.pollingwg.Add(1)
 	}
 

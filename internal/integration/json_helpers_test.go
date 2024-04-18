@@ -8,6 +8,7 @@ package integration
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -27,18 +28,18 @@ import (
 )
 
 var (
-	awsAccessKeyID                  = os.Getenv("AWS_ACCESS_KEY_ID")
-	awsSecretAccessKey              = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	awsAccessKeyID                  = os.Getenv("FLE_AWS_KEY")
+	awsSecretAccessKey              = os.Getenv("FLE_AWS_SECRET")
 	awsTempAccessKeyID              = os.Getenv("CSFLE_AWS_TEMP_ACCESS_KEY_ID")
 	awsTempSecretAccessKey          = os.Getenv("CSFLE_AWS_TEMP_SECRET_ACCESS_KEY")
 	awsTempSessionToken             = os.Getenv("CSFLE_AWS_TEMP_SESSION_TOKEN")
-	azureTenantID                   = os.Getenv("AZURE_TENANT_ID")
-	azureClientID                   = os.Getenv("AZURE_CLIENT_ID")
-	azureClientSecret               = os.Getenv("AZURE_CLIENT_SECRET")
-	gcpEmail                        = os.Getenv("GCP_EMAIL")
-	gcpPrivateKey                   = os.Getenv("GCP_PRIVATE_KEY")
+	azureTenantID                   = os.Getenv("FLE_AZURE_TENANTID")
+	azureClientID                   = os.Getenv("FLE_AZURE_CLIENTID")
+	azureClientSecret               = os.Getenv("FLE_AZURE_CLIENTSECRET")
+	gcpEmail                        = os.Getenv("FLE_GCP_EMAIL")
+	gcpPrivateKey                   = os.Getenv("FLE_GCP_PRIVATEKEY")
 	tlsCAFileKMIP                   = os.Getenv("CSFLE_TLS_CA_FILE")
-	tlsClientCertificateKeyFileKMIP = os.Getenv("CSFLE_TLS_CERTIFICATE_KEY_FILE")
+	tlsClientCertificateKeyFileKMIP = os.Getenv("CSFLE_TLS_CLIENT_CERT_FILE")
 )
 
 // Helper functions to do read JSON spec test files and convert JSON objects into the appropriate driver types.
@@ -515,12 +516,12 @@ func extractErrorDetails(err error) (errorDetails, bool) {
 func verifyError(expected *operationError, actual error) error {
 	// The spec test format doesn't treat ErrNoDocuments or ErrUnacknowledgedWrite as errors, so set actual to nil
 	// to indicate that no error occurred.
-	if actual == mongo.ErrNoDocuments || actual == mongo.ErrUnacknowledgedWrite {
+	if errors.Is(actual, mongo.ErrNoDocuments) || errors.Is(actual, mongo.ErrUnacknowledgedWrite) {
 		actual = nil
 	}
 
 	if expected == nil && actual != nil {
-		return fmt.Errorf("did not expect error but got %v", actual)
+		return fmt.Errorf("did not expect error but got %w", actual)
 	}
 	if expected != nil && actual == nil {
 		return fmt.Errorf("expected error but got nil")
@@ -555,12 +556,12 @@ func verifyError(expected *operationError, actual error) error {
 	}
 	for _, label := range expected.ErrorLabelsContain {
 		if !stringSliceContains(details.labels, label) {
-			return fmt.Errorf("expected error %v to contain label %q", actual, label)
+			return fmt.Errorf("expected error %w to contain label %q", actual, label)
 		}
 	}
 	for _, label := range expected.ErrorLabelsOmit {
 		if stringSliceContains(details.labels, label) {
-			return fmt.Errorf("expected error %v to not contain label %q", actual, label)
+			return fmt.Errorf("expected error %w to not contain label %q", actual, label)
 		}
 	}
 	return nil

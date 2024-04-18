@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/youmark/pkcs8"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -221,7 +221,7 @@ type ClientOptions struct {
 	ReadConcern              *readconcern.ReadConcern
 	ReadPreference           *readpref.ReadPref
 	BSONOptions              *BSONOptions
-	Registry                 *bsoncodec.Registry
+	Registry                 *bson.Registry
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
@@ -237,7 +237,6 @@ type ClientOptions struct {
 	ZstdLevel                *int
 
 	err error
-	uri string
 	cs  *connstring.ConnString
 
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
@@ -332,7 +331,10 @@ func (c *ClientOptions) validate() error {
 // GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
 // construction, this returns "".
 func (c *ClientOptions) GetURI() string {
-	return c.uri
+	if c.cs == nil {
+		return ""
+	}
+	return c.cs.Original
 }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
@@ -354,13 +356,12 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		return c
 	}
 
-	c.uri = uri
 	cs, err := connstring.ParseAndValidate(uri)
 	if err != nil {
 		c.err = err
 		return c
 	}
-	c.cs = &cs
+	c.cs = cs
 
 	if cs.AppName != "" {
 		c.AppName = &cs.AppName
@@ -777,7 +778,7 @@ func (c *ClientOptions) SetBSONOptions(opts *BSONOptions) *ClientOptions {
 
 // SetRegistry specifies the BSON registry to use for BSON marshalling/unmarshalling operations. The default is
 // bson.DefaultRegistry.
-func (c *ClientOptions) SetRegistry(registry *bsoncodec.Registry) *ClientOptions {
+func (c *ClientOptions) SetRegistry(registry *bson.Registry) *ClientOptions {
 	c.Registry = registry
 	return c
 }
@@ -1122,9 +1123,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.err != nil {
 			c.err = opt.err
-		}
-		if opt.uri != "" {
-			c.uri = opt.uri
 		}
 		if opt.cs != nil {
 			c.cs = opt.cs

@@ -14,7 +14,6 @@ import (
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -255,7 +254,7 @@ func Example_explictEncryption() {
 	// Decrypt the encrypted field in the found document.
 	decrypted, err := clientEncryption.Decrypt(
 		context.TODO(),
-		foundDoc["encryptedField"].(primitive.Binary))
+		foundDoc["encryptedField"].(bson.Binary))
 	if err != nil {
 		panic(err)
 	}

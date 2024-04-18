@@ -25,7 +25,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/httputil"
@@ -148,7 +147,7 @@ func TestClientOptions(t *testing.T) {
 				if !cmp.Equal(
 					got.Interface(), want.Interface(),
 					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
+					cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
 					cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				) {
@@ -162,7 +161,7 @@ func TestClientOptions(t *testing.T) {
 			if diff := cmp.Diff(
 				got, want,
 				cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-				cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
+				cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 				cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
 				cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				cmp.AllowUnexported(ClientOptions{}),
@@ -182,16 +181,6 @@ func TestClientOptions(t *testing.T) {
 			got := MergeClientOptions(nil, opt1, opt2)
 			if got.err.Error() != "Test error" {
 				t.Errorf("Merged client options do not match. got %v; want %v", got.err.Error(), opt1.err.Error())
-			}
-		})
-
-		t.Run("MergeClientOptions/uri", func(t *testing.T) {
-			opt1, opt2 := Client(), Client()
-			opt1.uri = "Test URI"
-
-			got := MergeClientOptions(nil, opt1, opt2)
-			if got.uri != "Test URI" {
-				t.Errorf("Merged client options do not match. got %v; want %v", got.uri, opt1.uri)
 			}
 		})
 	})
@@ -586,10 +575,9 @@ func TestClientOptions(t *testing.T) {
 
 				// Manually add the URI and ConnString to the test expectations to avoid adding them in each test
 				// definition. The ConnString should only be recorded if there was no error while parsing.
-				tc.result.uri = tc.uri
 				cs, err := connstring.ParseAndValidate(tc.uri)
 				if err == nil {
-					tc.result.cs = &cs
+					tc.result.cs = cs
 				}
 
 				// We have to sort string slices in comparison, as Hosts resolved from SRV URIs do not have a set order.
@@ -597,7 +585,7 @@ func TestClientOptions(t *testing.T) {
 				if diff := cmp.Diff(
 					tc.result, result,
 					cmp.AllowUnexported(ClientOptions{}, readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
+					cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(compareTLSConfig),
 					cmp.Comparer(compareErrors),
 					cmpopts.SortSlices(stringLess),
@@ -889,9 +877,8 @@ func compareErrors(err1, err2 error) bool {
 		return false
 	}
 
-	ospe1, ok1 := err1.(*os.PathError)
-	ospe2, ok2 := err2.(*os.PathError)
-	if ok1 && ok2 {
+	var ospe1, ospe2 *os.PathError
+	if errors.As(err1, &ospe1) && errors.As(err2, &ospe2) {
 		return ospe1.Op == ospe2.Op && ospe1.Path == ospe2.Path
 	}
 

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -51,7 +51,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+				return nil, fmt.Errorf("error creating collation: %w", err)
 			}
 			opts.SetCollation(*collation)
 		case "comment":
@@ -81,7 +81,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
-			pipeline = bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...)
+			pipeline = bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...)
 		case "resumeAfter":
 			opts.SetResumeAfter(val.Document())
 		case "showExpandedEvents":
@@ -90,7 +90,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 			opts.SetStartAfter(val.Document())
 		case "startAtOperationTime":
 			t, i := val.Timestamp()
-			opts.SetStartAtOperationTime(&primitive.Timestamp{T: t, I: i})
+			opts.SetStartAtOperationTime(&bson.Timestamp{T: t, I: i})
 		default:
 			return nil, fmt.Errorf("unrecognized createChangeStream option %q", key)
 		}
@@ -108,7 +108,7 @@ func executeCreateChangeStream(ctx context.Context, operation *operation) (*oper
 	// empty result in this case.
 	if operation.ResultEntityID != nil {
 		if err := entities(ctx).addCursorEntity(*operation.ResultEntityID, stream); err != nil {
-			return nil, fmt.Errorf("error storing result as cursor entity: %v", err)
+			return nil, fmt.Errorf("error storing result as cursor entity: %w", err)
 		}
 	}
 	return newEmptyResult(), nil

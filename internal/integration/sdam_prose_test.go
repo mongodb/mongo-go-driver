@@ -8,16 +8,22 @@ package integration
 
 import (
 	"context"
+	"net"
 	"os"
 	"runtime"
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 func TestSDAMProse(t *testing.T) {
@@ -171,5 +177,64 @@ func TestSDAMProse(t *testing.T) {
 		assert.True(mt, pingTime > 2000*time.Millisecond && pingTime < 3500*time.Millisecond,
 			"expected Ping to take between 2 and 3.5 seconds, took %v seconds", pingTime.Seconds())
 
+	})
+}
+
+func TestServerHeartbeatStartedEvent(t *testing.T) {
+	t.Run("emits the first HeartbeatStartedEvent before the monitoring socket was created", func(t *testing.T) {
+		t.Parallel()
+
+		const address = address.Address("localhost:9999")
+		expectedEvents := []string{
+			"serverHeartbeatStartedEvent",
+			"client connected",
+			"client hello received",
+			"serverHeartbeatFailedEvent",
+		}
+
+		events := make(chan string)
+
+		listener, err := net.Listen("tcp", address.String())
+		assert.NoError(t, err)
+		defer listener.Close()
+		go func() {
+			conn, err := listener.Accept()
+			assert.NoError(t, err)
+			defer conn.Close()
+
+			events <- "client connected"
+			_, _ = conn.Read(nil)
+			events <- "client hello received"
+		}()
+
+		server := topology.NewServer(
+			address,
+			bson.NewObjectID(),
+			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
+				return &event.ServerMonitor{
+					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
+						events <- "serverHeartbeatStartedEvent"
+					},
+					ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
+						events <- "serverHeartbeatFailedEvent"
+					},
+				}
+			}),
+		)
+		require.NoError(t, server.Connect(nil))
+
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		actualEvents := make([]string, 0, len(expectedEvents))
+		for len(actualEvents) < len(expectedEvents) {
+			select {
+			case event := <-events:
+				actualEvents = append(actualEvents, event)
+			case <-ticker.C:
+				assert.FailNow(t, "timed out for incoming event")
+			}
+		}
+		assert.Equal(t, expectedEvents, actualEvents)
 	})
 }

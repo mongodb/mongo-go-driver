@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
@@ -658,7 +658,11 @@ func TestTopologyConstruction(t *testing.T) {
 			uri             string
 			pollingRequired bool
 		}{
-			{"normal", "mongodb://localhost:27017", false},
+			{
+				name:            "normal",
+				uri:             "mongodb://localhost:27017",
+				pollingRequired: false,
+			},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -863,6 +867,11 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				msgs: []string{},
 			},
 			{
+				name: "socket",
+				uri:  "mongodb://%2Ftmp%2Fmongodb-27017.sock/",
+				msgs: []string{},
+			},
+			{
 				name: "srv",
 				uri:  "mongodb+srv://test22.test.build.10gen.cc/?srvServiceName=customname",
 				msgs: []string{},
@@ -972,7 +981,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	for _, testDesc := range test.TopologyDescription.Servers {
 		server := NewServer(
 			address.Address(testDesc.Address),
-			primitive.NilObjectID,
+			bson.NilObjectID,
 			withMonitoringDisabled(func(bool) bool { return true }))
 		servers[testDesc.Address] = server
 

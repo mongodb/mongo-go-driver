@@ -8,10 +8,10 @@ package unified
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -31,19 +31,19 @@ func parseDataKeyOptions(opts bson.Raw) (*options.DataKeyOptions, error) {
 		case "masterKey":
 			masterKey := make(map[string]interface{})
 			if err := val.Unmarshal(&masterKey); err != nil {
-				return nil, fmt.Errorf("error unmarshaling 'masterKey': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'masterKey': %w", err)
 			}
 			dko.SetMasterKey(masterKey)
 		case "keyAltNames":
 			keyAltNames := []string{}
 			if err := val.Unmarshal(&keyAltNames); err != nil {
-				return nil, fmt.Errorf("error unmarshaling 'keyAltNames': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'keyAltNames': %w", err)
 			}
 			dko.SetKeyAltNames(keyAltNames)
 		case "keyMaterial":
-			bin := primitive.Binary{}
+			bin := bson.Binary{}
 			if err := val.Unmarshal(&bin); err != nil {
-				return nil, fmt.Errorf("error unmarshaling 'keyMaterial': %v", err)
+				return nil, fmt.Errorf("error unmarshaling 'keyMaterial': %w", err)
 			}
 			dko.SetKeyMaterial(bin.Data)
 		default:
@@ -61,7 +61,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 	var keyAltName string
 
 	elems, err := operation.Arguments.Elements()
@@ -75,7 +75,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		case "keyAltName":
 			keyAltName = val.StringValue()
 		default:
@@ -86,7 +86,7 @@ func executeAddKeyAltName(ctx context.Context, operation *operation) (*operation
 	res, err := cee.AddKeyAltName(ctx, id, keyAltName).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -145,7 +145,7 @@ func executeDeleteKey(ctx context.Context, operation *operation) (*operationResu
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -158,7 +158,7 @@ func executeDeleteKey(ctx context.Context, operation *operation) (*operationResu
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		default:
 			return nil, fmt.Errorf("unrecognized DeleteKey arg: %q", key)
 		}
@@ -202,7 +202,7 @@ func executeGetKeyByAltName(ctx context.Context, operation *operation) (*operati
 	res, err := cee.GetKeyByAltName(ctx, keyAltName).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -216,7 +216,7 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -229,7 +229,7 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		default:
 			return nil, fmt.Errorf("unrecognized GetKey arg: %q", key)
 		}
@@ -238,7 +238,7 @@ func executeGetKey(ctx context.Context, operation *operation) (*operationResult,
 	res, err := cee.GetKey(ctx, id).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -269,7 +269,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 		return nil, err
 	}
 
-	var id primitive.Binary
+	var id bson.Binary
 	var keyAltName string
 
 	elems, err := operation.Arguments.Elements()
@@ -283,7 +283,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 		switch key {
 		case "id":
 			subtype, data := val.Binary()
-			id = primitive.Binary{Subtype: subtype, Data: data}
+			id = bson.Binary{Subtype: subtype, Data: data}
 		case "keyAltName":
 			keyAltName = val.StringValue()
 		default:
@@ -294,7 +294,7 @@ func executeRemoveKeyAltName(ctx context.Context, operation *operation) (*operat
 	res, err := cee.RemoveKeyAltName(ctx, id, keyAltName).Raw()
 	// Ignore ErrNoDocuments errors from Raw. In the event that the cursor returned in a find operation has no
 	// associated documents, Raw will return ErrNoDocuments.
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		err = nil
 	}
 	return newDocumentResult(res, err), nil
@@ -333,7 +333,7 @@ func rewrapManyDataKeyResultsOpResult(result *mongo.RewrapManyDataKeyResult) (*o
 		if res.UpsertedIDs != nil {
 			rawUpsertedIDs, marshalErr = bson.Marshal(res.UpsertedIDs)
 			if marshalErr != nil {
-				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %v", marshalErr)
+				return nil, fmt.Errorf("error marshalling UpsertedIDs map to BSON: %w", marshalErr)
 			}
 		}
 		bulkWriteResult := bsoncore.NewDocumentBuilder()

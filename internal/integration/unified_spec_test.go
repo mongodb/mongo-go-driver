@@ -20,9 +20,6 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
@@ -80,9 +77,9 @@ type testData struct {
 }
 
 // custom decoder for testData type
-func decodeTestData(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
 	switch vr.Type() {
-	case bsontype.Array:
+	case bson.TypeArray:
 		docsVal := val.FieldByName("Documents")
 		decoder, err := dc.Registry.LookupDecoder(docsVal.Type())
 		if err != nil {
@@ -90,7 +87,7 @@ func decodeTestData(dc bsoncodec.DecodeContext, vr bsonrw.ValueReader, val refle
 		}
 
 		return decoder.DecodeValue(dc, vr, docsVal)
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		gridfsDataVal := val.FieldByName("GridFSData")
 		decoder, err := dc.Registry.LookupDecoder(gridfsDataVal.Type())
 		if err != nil {
@@ -184,10 +181,10 @@ var directories = []string{
 }
 
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
-var specTestRegistry = func() *bsoncodec.Registry {
+var specTestRegistry = func() *bson.Registry {
 	reg := bson.NewRegistry()
 	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-	reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bsoncodec.ValueDecoderFunc(decodeTestData))
+	reg.RegisterTypeDecoder(reflect.TypeOf(testData{}), bson.ValueDecoderFunc(decodeTestData))
 	return reg
 }()
 
@@ -363,9 +360,7 @@ func createBucket(mt *mtest.T, testFile testFile, testCase *testCase) {
 	}
 	bucketOpts.SetChunkSizeBytes(chunkSize)
 
-	var err error
-	testCase.bucket, err = mt.DB.GridFSBucket(bucketOpts)
-	assert.Nil(mt, err, "NewBucket error: %v", err)
+	testCase.bucket = mt.DB.GridFSBucket(bucketOpts)
 }
 
 func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 mongo.Session) error {

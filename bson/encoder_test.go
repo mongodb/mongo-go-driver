@@ -12,10 +12,6 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -24,12 +20,12 @@ import (
 func TestBasicEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(bsonrw.SliceWriter, 0, 1024)
-			vw := bsonrw.NewValueWriter(&got)
+			got := make(SliceWriter, 0, 1024)
+			vw := NewValueWriter(&got)
 			reg := DefaultRegistry
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
 			noerr(t, err)
-			err = encoder.EncodeValue(bsoncodec.EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.val))
+			err = encoder.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.val))
 			noerr(t, err)
 
 			if !bytes.Equal(got, tc.want) {
@@ -43,8 +39,8 @@ func TestBasicEncode(t *testing.T) {
 func TestEncoderEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(bsonrw.SliceWriter, 0, 1024)
-			vw := bsonrw.NewValueWriter(&got)
+			got := make(SliceWriter, 0, 1024)
+			vw := NewValueWriter(&got)
 			enc := NewEncoder(vw)
 			err := enc.Encode(tc.val)
 			noerr(t, err)
@@ -62,21 +58,21 @@ func TestEncoderEncode(t *testing.T) {
 			buf     []byte
 			err     error
 			wanterr error
-			vw      bsonrw.ValueWriter
+			vw      ValueWriter
 		}{
 			{
 				"error",
 				nil,
 				errors.New("Marshaler error"),
 				errors.New("Marshaler error"),
-				&bsonrwtest.ValueReaderWriter{},
+				&valueReaderWriter{},
 			},
 			{
 				"copy error",
 				[]byte{0x05, 0x00, 0x00, 0x00, 0x00},
 				nil,
 				errors.New("copy error"),
-				&bsonrwtest.ValueReaderWriter{Err: errors.New("copy error"), ErrAfter: bsonrwtest.WriteDocument},
+				&valueReaderWriter{Err: errors.New("copy error"), ErrAfter: writeDocument},
 			},
 			{
 				"success",
@@ -91,19 +87,19 @@ func TestEncoderEncode(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				marshaler := testMarshaler{buf: tc.buf, err: tc.err}
 
-				var vw bsonrw.ValueWriter
-				b := make(bsonrw.SliceWriter, 0, 100)
+				var vw ValueWriter
+				b := make(SliceWriter, 0, 100)
 				compareVW := false
 				if tc.vw != nil {
 					vw = tc.vw
 				} else {
 					compareVW = true
-					vw = bsonrw.NewValueWriter(&b)
+					vw = NewValueWriter(&b)
 				}
 				enc := NewEncoder(vw)
 				got := enc.Encode(marshaler)
 				want := tc.wanterr
-				if !compareErrors(got, want) {
+				if !assert.CompareErrors(got, want) {
 					t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 				}
 				if compareVW {
@@ -237,7 +233,7 @@ func TestEncoderConfiguration(t *testing.T) {
 			},
 			input: D{{Key: "myBytes", Value: []byte(nil)}},
 			want: bsoncore.NewDocumentBuilder().
-				AppendBinary("myBytes", bsontype.BinaryGeneric, []byte{}).
+				AppendBinary("myBytes", TypeBinaryGeneric, []byte{}).
 				Build(),
 		},
 		// Test that OmitZeroStruct omits empty structs from the marshaled document if the
@@ -277,7 +273,7 @@ func TestEncoderConfiguration(t *testing.T) {
 			t.Parallel()
 
 			got := new(bytes.Buffer)
-			vw := bsonrw.NewValueWriter(got)
+			vw := NewValueWriter(got)
 			enc := NewEncoder(vw)
 
 			tc.configure(enc)

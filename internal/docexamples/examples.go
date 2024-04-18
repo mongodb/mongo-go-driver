@@ -8,7 +8,6 @@ package docexamples
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	logger "log"
@@ -18,7 +17,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -297,7 +295,7 @@ func QueryToplevelFieldsExamples(t *testing.T, db *mongo.Database) {
 				{"status", "A"},
 				{"$or", bson.A{
 					bson.D{{"qty", bson.D{{"$lt", 30}}}},
-					bson.D{{"item", primitive.Regex{Pattern: "^p", Options: ""}}},
+					bson.D{{"item", bson.Regex{Pattern: "^p", Options: ""}}},
 				}},
 			})
 
@@ -1817,8 +1815,7 @@ func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.Session
 		log.Println("Transaction aborted. Caught exception during transaction.")
 
 		// If transient error, retry the whole transaction
-		var cmdErr mongo.CommandError
-		if errors.As(err, &cmdErr) && cmdErr.HasErrorLabel("TransientTransactionError") {
+		if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
 			log.Println("TransientTransactionError, retrying transaction...")
 			continue
 		}
@@ -1885,8 +1882,7 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 			log.Println("Transaction aborted. Caught exception during transaction.")
 
 			// If transient error, retry the whole transaction
-			var cmdErr mongo.CommandError
-			if errors.As(err, &cmdErr) && cmdErr.HasErrorLabel("TransientTransactionError") {
+			if cmdErr, ok := err.(mongo.CommandError); ok && cmdErr.HasErrorLabel("TransientTransactionError") {
 				log.Println("TransientTransactionError, retrying transaction...")
 				continue
 			}

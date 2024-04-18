@@ -8,9 +8,10 @@ package session
 
 import (
 	"bytes"
+	"errors"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/uuid"
@@ -23,7 +24,7 @@ var sessionOpts = &ClientOptions{
 	CausalConsistency: &consistent,
 }
 
-func compareOperationTimes(t *testing.T, expected *primitive.Timestamp, actual *primitive.Timestamp) {
+func compareOperationTimes(t *testing.T, expected *bson.Timestamp, actual *bson.Timestamp) {
 	if expected.T != actual.T {
 		t.Fatalf("T value mismatch; expected %d got %d", expected.T, actual.T)
 	}
@@ -86,7 +87,7 @@ func TestClientSession(t *testing.T) {
 		sess, err := NewClientSession(&Pool{}, id, sessionOpts)
 		require.Nil(t, err, "Unexpected error")
 
-		optime1 := &primitive.Timestamp{
+		optime1 := &bson.Timestamp{
 			T: 1,
 			I: 0,
 		}
@@ -94,7 +95,7 @@ func TestClientSession(t *testing.T) {
 		assert.Nil(t, err, "error updating first operation time: %s", err)
 		compareOperationTimes(t, optime1, sess.OperationTime)
 
-		optime2 := &primitive.Timestamp{
+		optime2 := &bson.Timestamp{
 			T: 2,
 			I: 0,
 		}
@@ -102,7 +103,7 @@ func TestClientSession(t *testing.T) {
 		assert.Nil(t, err, "error updating second operation time: %s", err)
 		compareOperationTimes(t, optime2, sess.OperationTime)
 
-		optime3 := &primitive.Timestamp{
+		optime3 := &bson.Timestamp{
 			T: 2,
 			I: 1,
 		}
@@ -110,7 +111,7 @@ func TestClientSession(t *testing.T) {
 		assert.Nil(t, err, "error updating third operation time: %s", err)
 		compareOperationTimes(t, optime3, sess.OperationTime)
 
-		err = sess.AdvanceOperationTime(&primitive.Timestamp{
+		err = sess.AdvanceOperationTime(&bson.Timestamp{
 			T: 1,
 			I: 10,
 		})
@@ -125,12 +126,12 @@ func TestClientSession(t *testing.T) {
 		require.Nil(t, err, "Unexpected error")
 
 		err = sess.CommitTransaction()
-		if err != ErrNoTransactStarted {
+		if !errors.Is(err, ErrNoTransactStarted) {
 			t.Errorf("expected error, got %v", err)
 		}
 
 		err = sess.AbortTransaction()
-		if err != ErrNoTransactStarted {
+		if !errors.Is(err, ErrNoTransactStarted) {
 			t.Errorf("expected error, got %v", err)
 		}
 
@@ -145,7 +146,7 @@ func TestClientSession(t *testing.T) {
 		}
 
 		err = sess.StartTransaction(nil)
-		if err != ErrTransactInProgress {
+		if !errors.Is(err, ErrTransactInProgress) {
 			t.Errorf("expected error, got %v", err)
 		}
 
@@ -156,7 +157,7 @@ func TestClientSession(t *testing.T) {
 		}
 
 		err = sess.StartTransaction(nil)
-		if err != ErrTransactInProgress {
+		if !errors.Is(err, ErrTransactInProgress) {
 			t.Errorf("expected error, got %v", err)
 		}
 
@@ -167,7 +168,7 @@ func TestClientSession(t *testing.T) {
 		}
 
 		err = sess.AbortTransaction()
-		if err != ErrAbortAfterCommit {
+		if !errors.Is(err, ErrAbortAfterCommit) {
 			t.Errorf("expected error, got %v", err)
 		}
 
@@ -184,12 +185,12 @@ func TestClientSession(t *testing.T) {
 		}
 
 		err = sess.AbortTransaction()
-		if err != ErrAbortTwice {
+		if !errors.Is(err, ErrAbortTwice) {
 			t.Errorf("expected error, got %v", err)
 		}
 
 		err = sess.CommitTransaction()
-		if err != ErrCommitAfterAbort {
+		if !errors.Is(err, ErrCommitAfterAbort) {
 			t.Errorf("expected error, got %v", err)
 		}
 	})

@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -41,14 +40,14 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		switch key {
 		case "arrayFilters":
 			ua.opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 			})
 		case "bypassDocumentValidation":
 			ua.opts.SetBypassDocumentValidation(val.Boolean())
 		case "collation":
 			collation, err := createCollation(val.Document())
 			if err != nil {
-				return nil, fmt.Errorf("error creating collation: %v", err)
+				return nil, fmt.Errorf("error creating collation: %w", err)
 			}
 			ua.opts.SetCollation(collation)
 		case "comment":
@@ -58,7 +57,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		case "hint":
 			hint, err := createHint(val)
 			if err != nil {
-				return nil, fmt.Errorf("error creating hint: %v", err)
+				return nil, fmt.Errorf("error creating hint: %w", err)
 			}
 			ua.opts.SetHint(hint)
 		case "let":
@@ -66,7 +65,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		case "update":
 			ua.update, err = createUpdateValue(val)
 			if err != nil {
-				return nil, fmt.Errorf("error processing update value: %v", err)
+				return nil, fmt.Errorf("error processing update value: %w", err)
 			}
 		case "upsert":
 			ua.opts.SetUpsert(val.Boolean())
@@ -150,9 +149,9 @@ func createHint(val bson.RawValue) (interface{}, error) {
 	var hint interface{}
 
 	switch val.Type {
-	case bsontype.String:
+	case bson.TypeString:
 		hint = val.StringValue()
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		hint = val.Document()
 	default:
 		return nil, fmt.Errorf("unrecognized hint value type %s", val.Type)

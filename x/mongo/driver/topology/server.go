@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -24,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -104,7 +104,7 @@ type Server struct {
 	// description related fields
 	desc                   atomic.Value // holds a description.Server
 	updateTopologyCallback atomic.Value
-	topologyID             primitive.ObjectID
+	topologyID             bson.ObjectID
 
 	// subscriber related fields
 	subLock             sync.Mutex
@@ -137,7 +137,7 @@ type updateTopologyCallback func(description.Server) description.Server
 func ConnectServer(
 	addr address.Address,
 	updateCallback updateTopologyCallback,
-	topologyID primitive.ObjectID,
+	topologyID bson.ObjectID,
 	opts ...ServerOption,
 ) (*Server, error) {
 	srvr := NewServer(addr, topologyID, opts...)
@@ -150,7 +150,7 @@ func ConnectServer(
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...ServerOption) *Server {
+func NewServer(addr address.Address, topologyID bson.ObjectID, opts ...ServerOption) *Server {
 	cfg := newServerConfig(opts...)
 	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
 	s := &Server{
@@ -295,7 +295,7 @@ func (s *Server) Disconnect(ctx context.Context) error {
 }
 
 // Connection gets a connection to the server.
-func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
+func (s *Server) Connection(ctx context.Context) (*mnet.Connection, error) {
 	if atomic.LoadInt64(&s.state) != serverConnected {
 		return nil, ErrServerClosed
 	}
@@ -310,7 +310,7 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 		return nil, err
 	}
 
-	return &Connection{
+	serverConn := &Connection{
 		connection: conn,
 		cleanupServerFn: func() {
 			// Decrement the operation count whenever the caller is done with the connection. Note
@@ -321,12 +321,14 @@ func (s *Server) Connection(ctx context.Context) (driver.Connection, error) {
 			// make the server much less selectable.
 			atomic.AddInt64(&s.operationCount, -1)
 		},
-	}, nil
+	}
+
+	return mnet.NewConnection(serverConn), nil
 }
 
 // ProcessHandshakeError implements SDAM error handling for errors that occur before a connection
 // finishes handshaking.
-func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *primitive.ObjectID) {
+func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint64, serviceID *bson.ObjectID) {
 	// Ignore the error if the server is behind a load balancer but the service ID is unknown. This indicates that the
 	// error happened when dialing the connection or during the MongoDB handshake, so we don't know the service ID to
 	// use for clearing the pool.
@@ -416,8 +418,8 @@ func (s *Server) RequestImmediateCheck() {
 // (error, true) if the error is a WriteConcernError and the falls under the requirements for SDAM error
 // handling and (nil, false) otherwise.
 func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bool) {
-	writeCmdErr, ok := err.(driver.WriteCommandError)
-	if !ok {
+	var writeCmdErr driver.WriteCommandError
+	if !errors.As(err, &writeCmdErr) {
 		return nil, false
 	}
 
@@ -429,7 +431,7 @@ func getWriteConcernErrorForProcessing(err error) (*driver.WriteConcernError, bo
 }
 
 // ProcessError handles SDAM error handling and implements driver.ErrorProcessor.
-func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessErrorResult {
+func (s *Server) ProcessError(err error, describer mnet.Describer) driver.ProcessErrorResult {
 	// Ignore nil errors.
 	if err == nil {
 		return driver.NoChange
@@ -440,7 +442,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// the pool generation to increment. Processing errors for stale connections could result in
 	// handling the same error root cause multiple times (e.g. a temporary network interrupt causing
 	// all connections to the same server to return errors).
-	if conn.Stale() {
+	if describer.Stale() {
 		return driver.NoChange
 	}
 
@@ -453,7 +455,7 @@ func (s *Server) ProcessError(err error, conn driver.Connection) driver.ProcessE
 	// Get the wire version and service ID from the connection description because they will never
 	// change for the lifetime of a connection and can possibly be different between connections to
 	// the same server.
-	connDesc := conn.Description()
+	connDesc := describer.Description()
 	wireVersion := connDesc.WireVersion
 	serviceID := connDesc.ServiceID
 
@@ -604,7 +606,7 @@ func (s *Server) update() {
 
 		// Perform the next check.
 		desc, err := s.check()
-		if err == errCheckCancelled {
+		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
 			}
@@ -796,7 +798,7 @@ func (s *Server) checkWasCancelled() bool {
 	return s.heartbeatCtx.Err() != nil
 }
 
-func (s *Server) createBaseOperation(conn driver.Connection) *operation.Hello {
+func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
 	return operation.
 		NewHello().
 		ClusterClock(s.cfg.clock).
@@ -854,7 +856,9 @@ func (s *Server) check() (description.Server, error) {
 		// An existing connection is being used. Use the server description properties to execute the right heartbeat.
 
 		// Wrap conn in a type that implements driver.StreamerConnection.
-		heartbeatConn := initConnection{s.conn}
+		iconn := initConnection{s.conn}
+		heartbeatConn := mnet.NewConnection(iconn)
+
 		baseOperation := s.createBaseOperation(heartbeatConn)
 		previousDescription := s.Description()
 		streamable := isStreamingEnabled(s) && isStreamable(s)

@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,6 +22,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -81,11 +80,11 @@ type ChangeStream struct {
 	sess            *session.Client
 	client          *Client
 	bsonOpts        *options.BSONOptions
-	registry        *bsoncodec.Registry
+	registry        *bson.Registry
 	streamType      StreamType
 	options         *options.ChangeStreamOptions
 	selector        description.ServerSelector
-	operationTime   *primitive.Timestamp
+	operationTime   *bson.Timestamp
 	wireVersion     *description.VersionRange
 }
 
@@ -94,7 +93,7 @@ type changeStreamConfig struct {
 	readPreference *readpref.ReadPref
 	client         *Client
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 	streamType     StreamType
 	collectionName string
 	databaseName   string
@@ -218,7 +217,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		cs.aggregate.CustomOptions(customOptions)
@@ -234,7 +233,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			cs.pipelineOptions[optionName] = optionValueBSON
 		}
 	}
@@ -282,7 +281,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	return cs, cs.Err()
 }
 
-func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection driver.Connection) driver.Deployment {
+func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection *mnet.Connection) driver.Deployment {
 	return &changeStreamDeployment{
 		topologyKind: cs.client.deployment.Kind(),
 		server:       server,
@@ -292,7 +291,7 @@ func (cs *ChangeStream) createOperationDeployment(server driver.Server, connecti
 
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
-	var conn driver.Connection
+	var conn *mnet.Connection
 
 	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
 		return cs.Err()
