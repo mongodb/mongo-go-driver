@@ -125,7 +125,7 @@ type Server struct {
 
 	processErrorLock sync.Mutex
 	rttMonitor       *rttMonitor
-	monitorOnce      *sync.Once
+	monitorOnce      sync.Once
 }
 
 // updateTopologyCallback is a callback used to create a server that should be called when the parent Topology instance
@@ -169,8 +169,6 @@ func NewServer(addr address.Address, topologyID primitive.ObjectID, opts ...Serv
 		subscribers:     make(map[uint64]chan description.Server),
 		globalCtx:       globalCtx,
 		globalCtxCancel: globalCtxCancel,
-
-		monitorOnce: new(sync.Once),
 	}
 	s.desc.Store(description.NewDefaultServer(addr))
 	rttCfg := &rttConfig{
