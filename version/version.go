@@ -8,4 +8,4 @@
 package version // import "go.mongodb.org/mongo-driver/version"
 
 // Driver is the current version of the driver.
-var Driver = "v1.14.0-prerelease"
+var Driver = "v1.16.0-prerelease"

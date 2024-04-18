@@ -75,7 +75,7 @@ func (u *unifiedRunnerEventMonitor) getPoolEventCount(eventType string) int {
 	return u.poolEventCount[mappedType]
 }
 
-// getServerMarkedUnknownEvent returns the number of ServerMarkedUnknownEvents, or 0 if none were recorded.
+// getServerMarkedUnknownCount returns the number of ServerMarkedUnknownEvents, or 0 if none were recorded.
 func (u *unifiedRunnerEventMonitor) getServerMarkedUnknownCount() int {
 	u.serverMarkedUnknownCountLock.Lock()
 	defer u.serverMarkedUnknownCountLock.Unlock()

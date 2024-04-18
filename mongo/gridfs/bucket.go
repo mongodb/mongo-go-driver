@@ -257,10 +257,10 @@ func (b *Bucket) Delete(fileID interface{}) error {
 //
 // Use the context parameter to time-out or cancel the delete operation. The deadline set by SetWriteDeadline is ignored.
 func (b *Bucket) DeleteContext(ctx context.Context, fileID interface{}) error {
-	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
-	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
+	// If Timeout is set on the Client and context is not already a Timeout
+	// context, honor Timeout in new Timeout context for operation execution to
 	// be shared by both delete operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().Timeout() != nil && !csot.IsTimeoutContext(ctx) {
+	if b.db.Client().Timeout() != nil && !csot.IsTimeoutContext(ctx) {
 		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().Timeout())
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
@@ -384,10 +384,10 @@ func (b *Bucket) Drop() error {
 //
 // Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
 func (b *Bucket) DropContext(ctx context.Context) error {
-	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
-	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
+	// If Timeout is set on the Client and context is not already a Timeout
+	// context, honor Timeout in new Timeout context for operation execution to
 	// be shared by both drop operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().Timeout() != nil && !csot.IsTimeoutContext(ctx) {
+	if b.db.Client().Timeout() != nil && !csot.IsTimeoutContext(ctx) {
 		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().Timeout())
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
