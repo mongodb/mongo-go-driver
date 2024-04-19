@@ -270,7 +270,7 @@ func TestSearchIndexProse(t *testing.T) {
 	})
 
 	mt.RunOpts("case 6: Driver can successfully create and list search indexes with non-default readConcern and writeConcern",
-		mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(writeconcern.New(writeconcern.W(1))).SetReadConcern(readconcern.Majority())),
+		mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(writeconcern.W1()).SetReadConcern(readconcern.Majority())),
 		func(mt *mtest.T) {
 			ctx := context.Background()
 
