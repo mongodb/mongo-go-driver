@@ -49,11 +49,11 @@ tests:
                 writeConcern: { $$exists: false }
                 readConcern: { $$exists: false }
 
-  - description: "createSearchIndex ignores read and write concern"
+  - description: "createSearchIndexes ignores read and write concern"
     operations:
       - name: createSearchIndexes
         object: *collection0
-        arguments: 
+        arguments:
           models: []
         expectError:
           # This test always errors in a non-Atlas environment.  The test functions as a unit test  by asserting
