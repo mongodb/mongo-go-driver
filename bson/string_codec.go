@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -56,7 +57,7 @@ func (sc *StringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.
 	return vw.WriteString(val.String())
 }
 
-func (sc *StringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *StringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -78,12 +79,10 @@ func (sc *StringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Typ
 		if err != nil {
 			return emptyValue, err
 		}
-		if sc.DecodeObjectIDAsHex {
+		if dc.decodeObjectIDAsHex {
 			str = oid.Hex()
 		} else {
-			// TODO(GODRIVER-2796): Return an error here instead of decoding to a garbled string.
-			byteArray := [12]byte(oid)
-			str = string(byteArray[:])
+			return emptyValue, errors.New("cannot decode ObjectID as string if DecodeObjectIDAsHex is not set")
 		}
 	case TypeSymbol:
 		str, err = vr.ReadSymbol()

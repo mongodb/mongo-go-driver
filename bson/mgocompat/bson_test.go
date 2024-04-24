@@ -1442,9 +1442,6 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ S []byte }{[]byte("def")}, &struct{ S bson.Symbol }{"def"}},
 	{&struct{ S string }{"ghi"}, &struct{ S bson.Symbol }{"ghi"}},
 
-	{&struct{ S string }{"0123456789ab"},
-		&struct{ S bson.ObjectID }{bson.ObjectID{0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62}}},
-
 	// map <=> struct
 	{&struct {
 		A struct {

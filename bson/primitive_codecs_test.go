@@ -32,8 +32,6 @@ func bytesFromDoc(doc interface{}) []byte {
 func TestPrimitiveValueEncoders(t *testing.T) {
 	t.Parallel()
 
-	var pc PrimitiveCodecs
-
 	var wrong = func(string, string) string { return "wrong" }
 
 	type subtest struct {
@@ -52,7 +50,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 	}{
 		{
 			"RawValueEncodeValue",
-			ValueEncoderFunc(pc.RawValueEncodeValue),
+			ValueEncoderFunc(rawValueEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -100,7 +98,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 		},
 		{
 			"RawEncodeValue",
-			ValueEncoderFunc(pc.RawEncodeValue),
+			ValueEncoderFunc(rawEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -478,8 +476,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 }
 
 func TestPrimitiveValueDecoders(t *testing.T) {
-	var pc PrimitiveCodecs
-
 	var wrong = func(string, string) string { return "wrong" }
 
 	const cansetreflectiontest = "cansetreflectiontest"
@@ -500,7 +496,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 	}{
 		{
 			"RawValueDecodeValue",
-			ValueDecoderFunc(pc.RawValueDecodeValue),
+			ValueDecoderFunc(rawValueDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -544,7 +540,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 		},
 		{
 			"RawDecodeValue",
-			ValueDecoderFunc(pc.RawDecodeValue),
+			ValueDecoderFunc(rawDecodeValue),
 			[]subtest{
 				{
 					"wrong type",

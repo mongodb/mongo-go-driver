@@ -90,7 +90,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
-		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.Index(idx))
+		currEncoder, currVal, lookupErr := lookupElementEncoder(ec, encoder, val.Index(idx))
 		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
@@ -176,9 +176,9 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 	switch val.Type().Elem() {
 	case tE:
 		dc.Ancestor = val.Type()
-		elemsFunc = defaultValueDecoders.decodeD
+		elemsFunc = decodeD
 	default:
-		elemsFunc = defaultValueDecoders.decodeDefault
+		elemsFunc = decodeDefault
 	}
 
 	elems, err := elemsFunc(dc, vr, val)

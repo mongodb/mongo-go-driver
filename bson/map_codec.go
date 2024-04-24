@@ -126,7 +126,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val refl
 			return fmt.Errorf("Key %s of inlined map conflicts with a struct field name", key)
 		}
 
-		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.MapIndex(key))
+		currEncoder, currVal, lookupErr := lookupElementEncoder(ec, encoder, val.MapIndex(key))
 		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}

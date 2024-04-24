@@ -36,11 +36,12 @@ type Decoder struct {
 	defaultDocumentM bool
 	defaultDocumentD bool
 
-	binaryAsSlice     bool
-	useJSONStructTags bool
-	useLocalTimeZone  bool
-	zeroMaps          bool
-	zeroStructs       bool
+	binaryAsSlice       bool
+	decodeObjectIDAsHex bool
+	useJSONStructTags   bool
+	useLocalTimeZone    bool
+	zeroMaps            bool
+	zeroStructs         bool
 }
 
 // NewDecoder returns a new decoder that uses the DefaultRegistry to read from vr.
@@ -93,6 +94,9 @@ func (d *Decoder) Decode(val interface{}) error {
 	if d.binaryAsSlice {
 		d.dc.BinaryAsSlice()
 	}
+	if d.decodeObjectIDAsHex {
+		d.dc.DecodeObjectIDAsHex()
+	}
 	if d.useJSONStructTags {
 		d.dc.UseJSONStructTags()
 	}
@@ -143,6 +147,11 @@ func (d *Decoder) AllowTruncatingDoubles() {
 // "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
 func (d *Decoder) BinaryAsSlice() {
 	d.binaryAsSlice = true
+}
+
+// DecodeObjectIDAsHex causes the Decoder to unmarshal BSON ObjectID as a hexadecimal string.
+func (d *Decoder) DecodeObjectIDAsHex() {
+	d.decodeObjectIDAsHex = true
 }
 
 // UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"

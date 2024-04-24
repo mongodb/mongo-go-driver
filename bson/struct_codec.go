@@ -153,7 +153,7 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			}
 		}
 
-		desc.encoder, rv, err = defaultValueEncoders.lookupElementEncoder(ec, desc.encoder, rv)
+		desc.encoder, rv, err = lookupElementEncoder(ec, desc.encoder, rv)
 
 		if err != nil && !errors.Is(err, errInvalidValue) {
 			return err

@@ -7,35 +7,37 @@
 package bson
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
 func TestStringCodec(t *testing.T) {
 	t.Run("ObjectIDAsHex", func(t *testing.T) {
 		oid := NewObjectID()
-		byteArray := [12]byte(oid)
 		reader := &valueReaderWriter{BSONType: TypeObjectID, Return: oid}
 		testCases := []struct {
 			name   string
-			opts   *bsonoptions.StringCodecOptions
-			hex    bool
+			dctx   DecodeContext
+			err    error
 			result string
 		}{
-			{"default", bsonoptions.StringCodec(), true, oid.Hex()},
-			{"true", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(true), true, oid.Hex()},
-			{"false", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false), false, string(byteArray[:])},
+			{"default", DecodeContext{}, errors.New("cannot decode ObjectID as string if DecodeObjectIDAsHex is not set"), ""},
+			{"decode hex", DecodeContext{decodeObjectIDAsHex: true}, nil, oid.Hex()},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				stringCodec := NewStringCodec(tc.opts)
+				stringCodec := NewStringCodec()
 
 				actual := reflect.New(reflect.TypeOf("")).Elem()
-				err := stringCodec.DecodeValue(DecodeContext{}, reader, actual)
-				assert.Nil(t, err, "StringCodec.DecodeValue error: %v", err)
+				err := stringCodec.DecodeValue(tc.dctx, reader, actual)
+				if tc.err == nil {
+					assert.NoError(t, err)
+				} else {
+					assert.EqualError(t, err, tc.err.Error())
+				}
 
 				actualString := actual.Interface().(string)
 				assert.Equal(t, tc.result, actualString, "Expected string %v, got %v", tc.result, actualString)

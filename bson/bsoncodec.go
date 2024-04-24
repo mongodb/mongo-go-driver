@@ -179,11 +179,12 @@ type DecodeContext struct {
 	// error. DocumentType overrides the Ancestor field.
 	defaultDocumentType reflect.Type
 
-	binaryAsSlice     bool
-	useJSONStructTags bool
-	useLocalTimeZone  bool
-	zeroMaps          bool
-	zeroStructs       bool
+	binaryAsSlice       bool
+	decodeObjectIDAsHex bool
+	useJSONStructTags   bool
+	useLocalTimeZone    bool
+	zeroMaps            bool
+	zeroStructs         bool
 }
 
 // BinaryAsSlice causes the Decoder to unmarshal BSON binary field values that are the "Generic" or
@@ -192,6 +193,13 @@ type DecodeContext struct {
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.BinaryAsSlice] instead.
 func (dc *DecodeContext) BinaryAsSlice() {
 	dc.binaryAsSlice = true
+}
+
+// DecodeObjectIDAsHex causes the Decoder to unmarshal BSON ObjectID as a hexadecimal string.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DecodeObjectIDAsHex] instead.
+func (dc *DecodeContext) DecodeObjectIDAsHex() {
+	dc.decodeObjectIDAsHex = true
 }
 
 // UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"
