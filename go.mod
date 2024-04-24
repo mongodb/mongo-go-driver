@@ -31,7 +31,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 	golang.org/x/crypto v0.17.0
-	golang.org/x/sync v0.1.0
+	golang.org/x/sync v0.7.0
 )
 
 require (
