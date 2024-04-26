@@ -1759,8 +1759,8 @@ func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
 	employees := client.Database("hr").Collection("employees")
 	events := client.Database("reporting").Collection("events")
 
-	return client.UseSession(ctx, func(sctx mongo.SessionContext) error {
-		sess := mongo.SessionFromContext(sctx)
+	return client.UseSession(ctx, func(ctx context.Context) error {
+		sess := mongo.SessionFromContext(ctx)
 
 		err := sess.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
@@ -1770,21 +1770,21 @@ func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
 			return err
 		}
 
-		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
+		_, err = employees.UpdateOne(ctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
 		if err != nil {
-			sess.AbortTransaction(sctx)
+			sess.AbortTransaction(ctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
-		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
+		_, err = events.InsertOne(ctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
 		if err != nil {
-			sess.AbortTransaction(sctx)
+			sess.AbortTransaction(ctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
 
 		for {
-			err = sess.CommitTransaction(sctx)
+			err = sess.CommitTransaction(ctx)
 			switch e := err.(type) {
 			case nil:
 				return nil
@@ -1808,9 +1808,9 @@ func UpdateEmployeeInfo(ctx context.Context, client *mongo.Client) error {
 // Start Transactions Retry Example 1
 
 // RunTransactionWithRetry is an example function demonstrating transaction retry logic.
-func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.SessionContext) error) error {
+func RunTransactionWithRetry(ctx context.Context, txnFn func(context.Context) error) error {
 	for {
-		err := txnFn(sctx) // Performs transaction.
+		err := txnFn(ctx) // Performs transaction.
 		if err == nil {
 			return nil
 		}
@@ -1831,11 +1831,11 @@ func RunTransactionWithRetry(sctx mongo.SessionContext, txnFn func(mongo.Session
 // Start Transactions Retry Example 2
 
 // CommitWithRetry is an example function demonstrating transaction commit with retry logic.
-func CommitWithRetry(sctx mongo.SessionContext) error {
-	sess := mongo.SessionFromContext(sctx)
+func CommitWithRetry(ctx context.Context) error {
+	sess := mongo.SessionFromContext(ctx)
 
 	for {
-		err := sess.CommitTransaction(sctx)
+		err := sess.CommitTransaction(ctx)
 		switch e := err.(type) {
 		case nil:
 			log.Println("Transaction committed.")
@@ -1877,9 +1877,9 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 	}
 	// Start Transactions Retry Example 3
 
-	runTransactionWithRetry := func(sctx mongo.SessionContext, txnFn func(mongo.SessionContext) error) error {
+	runTransactionWithRetry := func(ctx context.Context, txnFn func(context.Context) error) error {
 		for {
-			err := txnFn(sctx) // Performs transaction.
+			err := txnFn(ctx) // Performs transaction.
 			if err == nil {
 				return nil
 			}
@@ -1895,11 +1895,11 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 		}
 	}
 
-	commitWithRetry := func(sctx mongo.SessionContext) error {
-		sess := mongo.SessionFromContext(sctx)
+	commitWithRetry := func(ctx context.Context) error {
+		sess := mongo.SessionFromContext(ctx)
 
 		for {
-			err := sess.CommitTransaction(sctx)
+			err := sess.CommitTransaction(ctx)
 			switch e := err.(type) {
 			case nil:
 				log.Println("Transaction committed.")
@@ -1920,11 +1920,11 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 	}
 
 	// Updates two collections in a transaction.
-	updateEmployeeInfo := func(sctx mongo.SessionContext) error {
+	updateEmployeeInfo := func(ctx context.Context) error {
 		employees := client.Database("hr").Collection("employees")
 		events := client.Database("reporting").Collection("events")
 
-		sess := mongo.SessionFromContext(sctx)
+		sess := mongo.SessionFromContext(ctx)
 
 		err := sess.StartTransaction(options.Transaction().
 			SetReadConcern(readconcern.Snapshot()).
@@ -1934,26 +1934,26 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 			return err
 		}
 
-		_, err = employees.UpdateOne(sctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
+		_, err = employees.UpdateOne(ctx, bson.D{{"employee", 3}}, bson.D{{"$set", bson.D{{"status", "Inactive"}}}})
 		if err != nil {
-			sess.AbortTransaction(sctx)
+			sess.AbortTransaction(ctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
-		_, err = events.InsertOne(sctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
+		_, err = events.InsertOne(ctx, bson.D{{"employee", 3}, {"status", bson.D{{"new", "Inactive"}, {"old", "Active"}}}})
 		if err != nil {
-			sess.AbortTransaction(sctx)
+			sess.AbortTransaction(ctx)
 			log.Println("caught exception during transaction, aborting.")
 			return err
 		}
 
-		return commitWithRetry(sctx)
+		return commitWithRetry(ctx)
 	}
 
 	return client.UseSessionWithOptions(
 		ctx, options.Session().SetDefaultReadPreference(readpref.Primary()),
-		func(sctx mongo.SessionContext) error {
-			return runTransactionWithRetry(sctx, updateEmployeeInfo)
+		func(ctx context.Context) error {
+			return runTransactionWithRetry(ctx, updateEmployeeInfo)
 		},
 	)
 }
@@ -1985,13 +1985,13 @@ func WithTransactionExample(ctx context.Context) error {
 	barColl := client.Database("mydb1").Collection("bar", wcMajorityCollectionOpts)
 
 	// Step 1: Define the callback that specifies the sequence of operations to perform inside the transaction.
-	callback := func(sessCtx mongo.SessionContext) (interface{}, error) {
-		// Important: You must pass sessCtx as the Context parameter to the operations for them to be executed in the
+	callback := func(sesctx context.Context) (interface{}, error) {
+		// Important: You must pass sesctx as the Context parameter to the operations for them to be executed in the
 		// transaction.
-		if _, err := fooColl.InsertOne(sessCtx, bson.D{{"abc", 1}}); err != nil {
+		if _, err := fooColl.InsertOne(sesctx, bson.D{{"abc", 1}}); err != nil {
 			return nil, err
 		}
-		if _, err := barColl.InsertOne(sessCtx, bson.D{{"xyz", 999}}); err != nil {
+		if _, err := barColl.InsertOne(sesctx, bson.D{{"xyz", 999}}); err != nil {
 			return nil, err
 		}
 
@@ -2569,15 +2569,15 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	}
 	defer session1.EndSession(context.TODO())
 
-	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
+	err = client.UseSessionWithOptions(context.TODO(), opts, func(ctx context.Context) error {
 		// Run an update with our causally-consistent session
-		_, err = coll.UpdateOne(sctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
+		_, err = coll.UpdateOne(ctx, bson.D{{"sku", 111}}, bson.D{{"$set", bson.D{{"end", currentDate}}}})
 		if err != nil {
 			return err
 		}
 
 		// Run an insert with our causally-consistent session
-		_, err = coll.InsertOne(sctx, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", currentDate}})
+		_, err = coll.InsertOne(ctx, bson.D{{"sku", "nuts-111"}, {"name", "Pecans"}, {"start", currentDate}})
 		if err != nil {
 			return err
 		}
@@ -2602,7 +2602,7 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	}
 	defer session2.EndSession(context.TODO())
 
-	err = client.UseSessionWithOptions(context.TODO(), opts, func(sctx mongo.SessionContext) error {
+	err = client.UseSessionWithOptions(context.TODO(), opts, func(ctx context.Context) error {
 		// Set cluster time of session2 to session1's cluster time
 		clusterTime := session1.ClusterTime()
 		session2.AdvanceClusterTime(clusterTime)
@@ -2611,13 +2611,13 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 		operationTime := session1.OperationTime()
 		session2.AdvanceOperationTime(operationTime)
 		// Run a find on session2, which should find all the writes from session1
-		cursor, err := coll.Find(sctx, bson.D{{"end", nil}})
+		cursor, err := coll.Find(ctx, bson.D{{"end", nil}})
 
 		if err != nil {
 			return err
 		}
 
-		for cursor.Next(sctx) {
+		for cursor.Next(ctx) {
 			doc := cursor.Current
 			fmt.Printf("Document: %v\n", doc.String())
 		}
@@ -2993,7 +2993,7 @@ func snapshotQueryPetExample(mt *mtest.T) error {
 	defer sess.EndSession(ctx)
 
 	var adoptablePetsCount int32
-	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
+	err = mongo.WithSession(ctx, sess, func(ctx context.Context) error {
 		// Count the adoptable cats
 		const adoptableCatsOutput = "adoptableCatsCount"
 		cursor, err := db.Collection("cats").Aggregate(ctx, mongo.Pipeline{
@@ -3057,7 +3057,7 @@ func snapshotQueryRetailExample(mt *mtest.T) error {
 	defer sess.EndSession(ctx)
 
 	var totalDailySales int32
-	err = mongo.WithSession(ctx, sess, func(ctx mongo.SessionContext) error {
+	err = mongo.WithSession(ctx, sess, func(ctx context.Context) error {
 		// Count the total daily sales
 		const totalDailySalesOutput = "totalDailySales"
 		cursor, err := db.Collection("sales").Aggregate(ctx, mongo.Pipeline{

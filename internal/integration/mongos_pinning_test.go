@@ -31,7 +31,7 @@ func TestMongosPinning(t *testing.T) {
 
 	mt.Run("unpin for next transaction", func(mt *mtest.T) {
 		addresses := map[string]struct{}{}
-		_ = mt.Client.UseSession(context.Background(), func(sctx mongo.SessionContext) error {
+		_ = mt.Client.UseSession(context.Background(), func(sctx context.Context) error {
 			sess := mongo.SessionFromContext(sctx)
 			// Insert a document in a transaction to pin session to a mongos
 			err := sess.StartTransaction()
@@ -65,7 +65,7 @@ func TestMongosPinning(t *testing.T) {
 	})
 	mt.Run("unpin for non transaction operation", func(mt *mtest.T) {
 		addresses := map[string]struct{}{}
-		_ = mt.Client.UseSession(context.Background(), func(sctx mongo.SessionContext) error {
+		_ = mt.Client.UseSession(context.Background(), func(sctx context.Context) error {
 			sess := mongo.SessionFromContext(sctx)
 
 			// Insert a document in a transaction to pin session to a mongos

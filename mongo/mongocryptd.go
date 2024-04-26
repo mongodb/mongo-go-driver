@@ -88,7 +88,7 @@ func (mc *mongocryptdClient) markCommand(ctx context.Context, dbName string, cmd
 	// Remove the explicit session from the context if one is set.
 	// The explicit session will be from a different client.
 	// If an explicit session is set, it is applied after automatic encryption.
-	ctx = NewSessionContext(ctx, nil)
+	ctx = ContextWithSession(ctx, nil)
 	db := mc.client.Database(dbName, databaseOpts)
 
 	res, err := db.RunCommand(ctx, cmd).Raw()

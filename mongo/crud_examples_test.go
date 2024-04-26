@@ -626,8 +626,8 @@ func ExampleWithSession() {
 	err = mongo.WithSession(
 		context.TODO(),
 		sess,
-		func(ctx mongo.SessionContext) error {
-			// Use the mongo.SessionContext as the Context parameter for
+		func(ctx context.Context) error {
+			// Use the context.Context as the Context parameter for
 			// InsertOne and FindOne so both operations are run under the new
 			// Session.
 
@@ -683,9 +683,9 @@ func ExampleClient_UseSessionWithOptions() {
 	err := client.UseSessionWithOptions(
 		context.TODO(),
 		opts,
-		func(ctx mongo.SessionContext) error {
+		func(ctx context.Context) error {
 			sess := mongo.SessionFromContext(ctx)
-			// Use the mongo.SessionContext as the Context parameter for
+			// Use the context.Context as the Context parameter for
 			// InsertOne and FindOne so both operations are run under the new
 			// Session.
 
@@ -752,8 +752,8 @@ func ExampleClient_StartSession_withTransaction() {
 		SetReadPreference(readpref.PrimaryPreferred())
 	result, err := sess.WithTransaction(
 		context.TODO(),
-		func(ctx mongo.SessionContext) (interface{}, error) {
-			// Use the mongo.SessionContext as the Context parameter for
+		func(ctx context.Context) (interface{}, error) {
+			// Use the context.Context as the Context parameter for
 			// InsertOne and FindOne so both operations are run in the same
 			// transaction.
 
@@ -780,7 +780,7 @@ func ExampleClient_StartSession_withTransaction() {
 	fmt.Printf("result: %v\n", result)
 }
 
-func ExampleNewSessionContext() {
+func ExampleContextWithSession() {
 	var client *mongo.Client
 
 	// Create a new Session and SessionContext.
@@ -789,9 +789,9 @@ func ExampleNewSessionContext() {
 		panic(err)
 	}
 	defer sess.EndSession(context.TODO())
-	ctx := mongo.NewSessionContext(context.TODO(), sess)
+	ctx := mongo.ContextWithSession(context.TODO(), sess)
 
-	// Start a transaction and use the mongo.SessionContext as the Context
+	// Start a transaction and use the context.Context as the Context
 	// parameter for InsertOne and FindOne so both operations are run in the
 	// transaction.
 	if err = sess.StartTransaction(); err != nil {

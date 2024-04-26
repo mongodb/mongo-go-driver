@@ -158,7 +158,7 @@ func TestSessionsMongocryptdProse(t *testing.T) {
 
 		defer session.EndSession(context.Background())
 
-		sessionCtx := mongo.NewSessionContext(context.TODO(), session)
+		sessionCtx := mongo.ContextWithSession(context.TODO(), session)
 
 		err = session.StartTransaction()
 		require.NoError(mt, err, "expected error to be nil, got %v", err)

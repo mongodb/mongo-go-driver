@@ -145,7 +145,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
-		sessionCtx := mongo.NewSessionContext(context.Background(), session)
+		sessionCtx := mongo.ContextWithSession(context.Background(), session)
 
 		capturedEvents = make([]event.CommandStartedEvent, 0)
 		_, err = coll.InsertOne(sessionCtx, bson.D{{"encryptMe", "test"}, {"keyName", "myKey"}})
@@ -209,7 +209,7 @@ func TestClientSideEncryptionWithExplicitSessions(t *testing.T) {
 
 		session, err := client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
-		sessionCtx := mongo.NewSessionContext(context.Background(), session)
+		sessionCtx := mongo.ContextWithSession(context.Background(), session)
 
 		capturedEvents = make([]event.CommandStartedEvent, 0)
 		res := coll.FindOne(sessionCtx, bson.D{{}})

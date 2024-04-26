@@ -46,29 +46,12 @@ type Session struct {
 	didCommitAfterStart bool // true if commit was called after start with no other operations
 }
 
-// SessionContext combines the context.Context and mongo.Session interfaces. It should be used as the Context arguments
-// to operations that should be executed in a session.
-//
-// Implementations of SessionContext are not safe for concurrent use by multiple goroutines.
-//
-// There are two ways to create a SessionContext and use it in a session/transaction. The first is to use one of the
-// callback-based functions such as WithSession and UseSession. These functions create a SessionContext and pass it to
-// the provided callback. The other is to use NewSessionContext to explicitly create a SessionContext.
-type SessionContext interface {
-	context.Context
-}
-
-type sessionCtx struct {
-	context.Context
-}
-
 type sessionKey struct{}
 
-// NewSessionContext creates a new SessionContext associated with the given Context and Session parameters.
-func NewSessionContext(ctx context.Context, sess *Session) SessionContext {
-	return &sessionCtx{
-		Context: context.WithValue(ctx, sessionKey{}, sess),
-	}
+// ContextWithSession creates a new SessionContext associated with the given
+// Context and Session parameters.
+func ContextWithSession(parent context.Context, sess *Session) context.Context {
+	return context.WithValue(parent, sessionKey{}, sess)
 }
 
 // SessionFromContext extracts the mongo.Session object stored in a Context. This can be used on a SessionContext that
@@ -108,7 +91,7 @@ func (s *Session) EndSession(ctx context.Context) {
 }
 
 // WithTransaction implements the Session interface.
-func (s *Session) WithTransaction(ctx context.Context, fn func(ctx SessionContext) (interface{}, error),
+func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Context) (interface{}, error),
 	opts ...*options.TransactionOptions) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
@@ -119,7 +102,7 @@ func (s *Session) WithTransaction(ctx context.Context, fn func(ctx SessionContex
 			return nil, err
 		}
 
-		res, err := fn(NewSessionContext(ctx, s))
+		res, err := fn(ContextWithSession(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
