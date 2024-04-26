@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -41,7 +40,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 		switch key {
 		case "arrayFilters":
 			ua.opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawToDocuments(val.Array())...),
+				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
 			})
 		case "bypassDocumentValidation":
 			ua.opts.SetBypassDocumentValidation(val.Boolean())
@@ -150,9 +149,9 @@ func createHint(val bson.RawValue) (interface{}, error) {
 	var hint interface{}
 
 	switch val.Type {
-	case bsontype.String:
+	case bson.TypeString:
 		hint = val.StringValue()
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		hint = val.Document()
 	default:
 		return nil, fmt.Errorf("unrecognized hint value type %s", val.Type)

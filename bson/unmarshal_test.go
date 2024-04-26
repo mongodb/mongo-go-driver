@@ -13,9 +13,6 @@ import (
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -72,7 +69,7 @@ func TestUnmarshalWithContext(t *testing.T) {
 			copy(data, tc.data)
 
 			// Assert that unmarshaling the input data results in the expected value.
-			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+			dc := DecodeContext{Registry: DefaultRegistry}
 			got := reflect.New(tc.sType).Interface()
 			err := UnmarshalWithContext(dc, data, got)
 			noerr(t, err)
@@ -101,7 +98,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
 		data := []byte("invalid")
 		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
-		if !errors.Is(err, bsonrw.ErrInvalidJSON) {
+		if !errors.Is(err, ErrInvalidJSON) {
 			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
 		}
 	})
@@ -181,7 +178,7 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 			name:  "bson.D with binary",
 			sType: reflect.TypeOf(D{}),
 			data:  []byte(`{"foo": {"$binary": {"subType": "0", "base64": "AAECAwQF"}}}`),
-			want:  &D{{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}}},
+			want:  &D{{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}}},
 		},
 		// GODRIVER-2311
 		// Test that ExtJSON-encoded binary unmarshals correctly to a struct and that the
@@ -202,7 +199,7 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			dc := bsoncodec.DecodeContext{Registry: DefaultRegistry}
+			dc := DecodeContext{Registry: DefaultRegistry}
 			err := UnmarshalExtJSONWithContext(dc, data, true, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
@@ -222,7 +219,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates BSON int32 values when decoding.
-	var decodeInt32 bsoncodec.ValueDecoderFunc = func(_ bsoncodec.DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	var decodeInt32 ValueDecoderFunc = func(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
@@ -580,15 +577,15 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 	}
 
 	type fooBinary struct {
-		Foo primitive.Binary
+		Foo Binary
 	}
 
 	type fooObjectID struct {
-		Foo primitive.ObjectID
+		Foo ObjectID
 	}
 
 	type fooDBPointer struct {
-		Foo primitive.DBPointer
+		Foo DBPointer
 	}
 
 	testCases := []struct {
@@ -621,10 +618,10 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*D)))[0].Value.(primitive.Binary).Data
+				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
 		{
@@ -647,78 +644,78 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.Binary{Subtype: 0, Data: myBytes{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: myBytes{0, 1, 2, 3, 4, 5}}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*D)))[0].Value.(primitive.Binary).Data
+				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
 		{
-			description: "struct with primitive.Binary",
+			description: "struct with Binary",
 			data: docToBytes(fooBinary{
-				Foo: primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
+				Foo: Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
 			}),
 			sType: reflect.TypeOf(fooBinary{}),
 			want: &fooBinary{
-				Foo: primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
+				Foo: Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}},
 			},
 			getByteSlice: func(val interface{}) []byte {
 				return (*(val.(*fooBinary))).Foo.Data
 			},
 		},
 		{
-			description: "bson.D with primitive.Binary",
+			description: "bson.D with Binary",
 			data: docToBytes(D{
-				{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
+				{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				return (*(val.(*D)))[0].Value.(primitive.Binary).Data
+				return (*(val.(*D)))[0].Value.(Binary).Data
 			},
 		},
 		{
-			description: "struct with primitive.ObjectID",
+			description: "struct with ObjectID",
 			data: docToBytes(fooObjectID{
-				Foo: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+				Foo: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 			}),
 			sType: reflect.TypeOf(fooObjectID{}),
 			want: &fooObjectID{
-				Foo: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+				Foo: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 			},
 			getByteSlice: func(val interface{}) []byte {
 				return (*(val.(*fooObjectID))).Foo[:]
 			},
 		},
 		{
-			description: "bson.D with primitive.ObjectID",
+			description: "bson.D with ObjectID",
 			data: docToBytes(D{
-				{"foo", primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+				{"foo", ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
+				{"foo", ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				oid := (*(val.(*D)))[0].Value.(primitive.ObjectID)
+				oid := (*(val.(*D)))[0].Value.(ObjectID)
 				return oid[:]
 			},
 		},
 		{
-			description: "struct with primitive.DBPointer",
+			description: "struct with DBPointer",
 			data: docToBytes(fooDBPointer{
-				Foo: primitive.DBPointer{
+				Foo: DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				},
 			}),
 			sType: reflect.TypeOf(fooDBPointer{}),
 			want: &fooDBPointer{
-				Foo: primitive.DBPointer{
+				Foo: DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				},
 			},
 			getByteSlice: func(val interface{}) []byte {
@@ -726,22 +723,22 @@ func TestUnmarshalByteSlicesUseDistinctArrays(t *testing.T) {
 			},
 		},
 		{
-			description: "bson.D with primitive.DBPointer",
+			description: "bson.D with DBPointer",
 			data: docToBytes(D{
-				{"foo", primitive.DBPointer{
+				{"foo", DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				}},
 			}),
 			sType: reflect.TypeOf(D{}),
 			want: &D{
-				{"foo", primitive.DBPointer{
+				{"foo", DBPointer{
 					DB:      "test",
-					Pointer: primitive.ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
+					Pointer: ObjectID{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11},
 				}},
 			},
 			getByteSlice: func(val interface{}) []byte {
-				oid := (*(val.(*D)))[0].Value.(primitive.DBPointer).Pointer
+				oid := (*(val.(*D)))[0].Value.(DBPointer).Pointer
 				return oid[:]
 			},
 		},

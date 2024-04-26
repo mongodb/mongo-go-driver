@@ -6,10 +6,12 @@
 
 package benchmark
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"go.mongodb.org/mongo-driver/bson"
+)
 
 type flatBSONTags struct {
-	ID primitive.ObjectID `bson:"_id"`
+	ID bson.ObjectID `bson:"_id"`
 
 	AA  int64  `bson:"AAgSNVyBb"`
 	AI  bool   `bson:"aicoMxZq"`
@@ -233,7 +235,7 @@ type flatBSON struct {
 	XxvXmHiQ  int
 	YDHWnEXV  string
 	ZmtEJFSO  string
-	ID        primitive.ObjectID `bson:"_id"`
+	ID        bson.ObjectID `bson:"_id"`
 	AhFCBmqT  int64
 	AicoMxZq  bool
 	BkuaZWRT  int64

@@ -12,9 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 var (
@@ -31,83 +29,83 @@ var (
 	tSetter         = reflect.TypeOf((*Setter)(nil)).Elem()
 )
 
-// Registry is the mgo compatible bsoncodec.Registry. It contains the default and
+// Registry is the mgo compatible bson.Registry. It contains the default and
 // primitive codecs with mgo compatible options.
 var Registry = NewRegistryBuilder().Build()
 
-// RegistryRespectNilValues is the bsoncodec.Registry compatible with mgo withSetRespectNilValues set to true.
-var RegistryRespectNilValues = NewRespectNilValuesRegistryBuilder().Build()
+// RespectNilValuesRegistry is the bson.Registry compatible with mgo withSetRespectNilValues set to true.
+var RespectNilValuesRegistry = NewRespectNilValuesRegistryBuilder().Build()
 
-// NewRegistryBuilder creates a new bsoncodec.RegistryBuilder configured with the default encoders and
-// decoders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
+// NewRegistryBuilder creates a new bson.RegistryBuilder configured with the default encoders and
+// decoders from the bson.DefaultValueEncoders and bson.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
-func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
-	rb := bsoncodec.NewRegistryBuilder()
-	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
-	bsoncodec.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
+func NewRegistryBuilder() *bson.RegistryBuilder {
+	rb := bson.NewRegistryBuilder()
+	bson.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
+	bson.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
 	bson.PrimitiveCodecs{}.RegisterPrimitiveCodecs(rb)
 
-	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.DefaultStructTagParser,
+	structcodec, _ := bson.NewStructCodec(bson.DefaultStructTagParser,
 		bsonoptions.StructCodec().
 			SetDecodeZeroStruct(true).
 			SetEncodeOmitDefaultStruct(true).
 			SetOverwriteDuplicatedInlinedFields(false).
 			SetAllowUnexportedFields(true))
-	emptyInterCodec := bsoncodec.NewEmptyInterfaceCodec(
+	emptyInterCodec := bson.NewEmptyInterfaceCodec(
 		bsonoptions.EmptyInterfaceCodec().
 			SetDecodeBinaryAsSlice(true))
-	mapCodec := bsoncodec.NewMapCodec(
+	mapCodec := bson.NewMapCodec(
 		bsonoptions.MapCodec().
 			SetDecodeZerosMap(true).
 			SetEncodeNilAsEmpty(true).
 			SetEncodeKeysWithStringer(true))
-	uintcodec := bsoncodec.NewUIntCodec(bsonoptions.UIntCodec().SetEncodeToMinSize(true))
+	uintcodec := bson.NewUIntCodec(bsonoptions.UIntCodec().SetEncodeToMinSize(true))
 
 	rb.RegisterTypeDecoder(tEmpty, emptyInterCodec).
-		RegisterDefaultDecoder(reflect.String, bsoncodec.NewStringCodec(bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false))).
+		RegisterDefaultDecoder(reflect.String, bson.NewStringCodec(bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false))).
 		RegisterDefaultDecoder(reflect.Struct, structcodec).
 		RegisterDefaultDecoder(reflect.Map, mapCodec).
-		RegisterTypeEncoder(tByteSlice, bsoncodec.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(true))).
+		RegisterTypeEncoder(tByteSlice, bson.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Struct, structcodec).
-		RegisterDefaultEncoder(reflect.Slice, bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))).
+		RegisterDefaultEncoder(reflect.Slice, bson.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))).
 		RegisterDefaultEncoder(reflect.Map, mapCodec).
 		RegisterDefaultEncoder(reflect.Uint, uintcodec).
 		RegisterDefaultEncoder(reflect.Uint8, uintcodec).
 		RegisterDefaultEncoder(reflect.Uint16, uintcodec).
 		RegisterDefaultEncoder(reflect.Uint32, uintcodec).
 		RegisterDefaultEncoder(reflect.Uint64, uintcodec).
-		RegisterTypeMapEntry(bsontype.Int32, tInt).
-		RegisterTypeMapEntry(bsontype.DateTime, tTime).
-		RegisterTypeMapEntry(bsontype.Array, tInterfaceSlice).
-		RegisterTypeMapEntry(bsontype.Type(0), tM).
-		RegisterTypeMapEntry(bsontype.EmbeddedDocument, tM).
-		RegisterHookEncoder(tGetter, bsoncodec.ValueEncoderFunc(GetterEncodeValue)).
-		RegisterHookDecoder(tSetter, bsoncodec.ValueDecoderFunc(SetterDecodeValue))
+		RegisterTypeMapEntry(bson.TypeInt32, tInt).
+		RegisterTypeMapEntry(bson.TypeDateTime, tTime).
+		RegisterTypeMapEntry(bson.TypeArray, tInterfaceSlice).
+		RegisterTypeMapEntry(bson.Type(0), tM).
+		RegisterTypeMapEntry(bson.TypeEmbeddedDocument, tM).
+		RegisterHookEncoder(tGetter, bson.ValueEncoderFunc(GetterEncodeValue)).
+		RegisterHookDecoder(tSetter, bson.ValueDecoderFunc(SetterDecodeValue))
 
 	return rb
 }
 
-// NewRespectNilValuesRegistryBuilder creates a new bsoncodec.RegistryBuilder configured to behave like mgo/bson
+// NewRespectNilValuesRegistryBuilder creates a new bson.RegistryBuilder configured to behave like mgo/bson
 // with RespectNilValues set to true.
-func NewRespectNilValuesRegistryBuilder() *bsoncodec.RegistryBuilder {
+func NewRespectNilValuesRegistryBuilder() *bson.RegistryBuilder {
 	rb := NewRegistryBuilder()
 
-	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.DefaultStructTagParser,
+	structcodec, _ := bson.NewStructCodec(bson.DefaultStructTagParser,
 		bsonoptions.StructCodec().
 			SetDecodeZeroStruct(true).
 			SetEncodeOmitDefaultStruct(true).
 			SetOverwriteDuplicatedInlinedFields(false).
 			SetAllowUnexportedFields(true))
-	mapCodec := bsoncodec.NewMapCodec(
+	mapCodec := bson.NewMapCodec(
 		bsonoptions.MapCodec().
 			SetDecodeZerosMap(true).
 			SetEncodeNilAsEmpty(false))
 
 	rb.RegisterDefaultDecoder(reflect.Struct, structcodec).
 		RegisterDefaultDecoder(reflect.Map, mapCodec).
-		RegisterTypeEncoder(tByteSlice, bsoncodec.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(false))).
+		RegisterTypeEncoder(tByteSlice, bson.NewByteSliceCodec(bsonoptions.ByteSliceCodec().SetEncodeNilAsEmpty(false))).
 		RegisterDefaultEncoder(reflect.Struct, structcodec).
-		RegisterDefaultEncoder(reflect.Slice, bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(false))).
+		RegisterDefaultEncoder(reflect.Slice, bson.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(false))).
 		RegisterDefaultEncoder(reflect.Map, mapCodec)
 
 	return rb

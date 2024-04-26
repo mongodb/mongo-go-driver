@@ -153,7 +153,8 @@ evg-test-load-balancers:
 
 .PHONY: evg-test-search-index
 evg-test-search-index:
-	go test ./internal/integration -run TestSearchIndexProse -v -timeout $(TEST_TIMEOUT)s >> test.suite
+	# Double the timeout to wait for the responses from the server.
+	go test ./internal/integration -run TestSearchIndexProse -v -timeout $(shell echo "$$(( $(TEST_TIMEOUT) * 2))")s >> test.suite
 
 .PHONY: evg-test-ocsp
 evg-test-ocsp:

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -288,12 +287,12 @@ func (s *Session) AdvanceClusterTime(d bson.Raw) error {
 }
 
 // OperationTime implements the Session interface.
-func (s *Session) OperationTime() *primitive.Timestamp {
+func (s *Session) OperationTime() *bson.Timestamp {
 	return s.clientSession.OperationTime
 }
 
 // AdvanceOperationTime implements the Session interface.
-func (s *Session) AdvanceOperationTime(ts *primitive.Timestamp) error {
+func (s *Session) AdvanceOperationTime(ts *bson.Timestamp) error {
 	return s.clientSession.AdvanceOperationTime(ts)
 }
 

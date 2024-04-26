@@ -10,8 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // errCorruptedDocument is returned when a full document couldn't be read from
@@ -73,7 +71,7 @@ func (iter *Iterator) Documents() ([]Document, error) {
 
 	docs := make([]Document, 0, len(vals))
 	for _, v := range vals {
-		if v.Type != bsontype.EmbeddedDocument {
+		if v.Type != TypeEmbeddedDocument {
 			return nil, fmt.Errorf("invalid DocumentSequence: a non-document value was found in sequence")
 		}
 

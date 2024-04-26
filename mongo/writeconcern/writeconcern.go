@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -43,7 +42,7 @@ var ErrNegativeW = errors.New("write concern `w` field cannot be a negative numb
 // Deprecated: ErrNegativeWTimeout will be removed in Go Driver 2.0.
 var ErrNegativeWTimeout = errors.New("write concern `wtimeout` field cannot be negative")
 
-// A WriteConcern defines a MongoDB read concern, which describes the level of acknowledgment
+// A WriteConcern defines a MongoDB write concern, which describes the level of acknowledgment
 // requested from MongoDB for write operations to a standalone mongod, to replica sets, or to
 // sharded clusters.
 //
@@ -149,7 +148,7 @@ func Custom(tag string) *WriteConcern {
 //
 // Deprecated: Marshaling a WriteConcern to BSON will not be supported in Go
 // Driver 2.0.
-func (wc *WriteConcern) MarshalBSONValue() (bsontype.Type, []byte, error) {
+func (wc *WriteConcern) MarshalBSONValue() (bson.Type, []byte, error) {
 	if wc == nil {
 		return 0, nil, ErrEmptyWriteConcern
 	}
