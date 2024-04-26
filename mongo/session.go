@@ -70,7 +70,7 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
-// ClientSession implements the XSession interface.
+// ClientSession returns the experimental client session.
 func (s *Session) ClientSession() *session.Client {
 	return s.clientSession
 }
