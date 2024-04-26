@@ -23,13 +23,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
 
@@ -291,17 +292,17 @@ func (t *Topology) Connect() error {
 	// specified, in which case the initial type is Single.
 	if t.cfg.ReplicaSetName != "" {
 		t.fsm.SetName = t.cfg.ReplicaSetName
-		t.fsm.Kind = description.ReplicaSetNoPrimary
+		t.fsm.Kind = description.TopologyKindReplicaSetNoPrimary
 	}
 
 	// A direct connection unconditionally sets the topology type to Single.
 	if t.cfg.Mode == SingleMode {
-		t.fsm.Kind = description.Single
+		t.fsm.Kind = description.TopologyKindSingle
 	}
 
 	for _, a := range t.cfg.SeedList {
 		addr := address.Address(a).Canonicalize()
-		t.fsm.Servers = append(t.fsm.Servers, description.NewDefaultServer(addr))
+		t.fsm.Servers = append(t.fsm.Servers, newServerDescriptionFromError(addr, nil, nil))
 	}
 
 	switch {
@@ -312,7 +313,7 @@ func (t *Topology) Connect() error {
 		// monitoring routines in this mode, so we have to mock state changes.
 
 		// Transition from Unknown with no servers to LoadBalanced with a single Unknown server.
-		t.fsm.Kind = description.LoadBalanced
+		t.fsm.Kind = description.TopologyKindLoadBalanced
 		t.publishTopologyDescriptionChangedEvent(description.Topology{}, t.fsm.Topology)
 
 		addr := address.Address(t.cfg.SeedList[0]).Canonicalize()
@@ -733,7 +734,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 	// If the topology kind is LoadBalanced, the LB is the only server and it is always considered selectable. The
 	// selectors exported by the driver should already return the LB as a candidate, so this but this check ensures that
 	// the LB is always selectable even if a user of the low-level driver provides a custom selector.
-	if desc.Kind == description.LoadBalanced {
+	if desc.Kind == description.TopologyKindLoadBalanced {
 		return desc.Servers, nil
 	}
 
@@ -781,7 +782,7 @@ func (t *Topology) pollSRVRecords(hosts string) {
 			return
 		}
 		topoKind := t.Description().Kind
-		if !(topoKind == description.Unknown || topoKind == description.Sharded) {
+		if !(topoKind == description.Unknown || topoKind == description.TopologyKindSharded) {
 			break
 		}
 
@@ -808,6 +809,38 @@ func (t *Topology) pollSRVRecords(hosts string) {
 	}
 	<-t.pollingDone
 	doneOnce = true
+}
+
+// equalTopologies compares two topology descriptions and returns true if they
+// are equal.
+func equalTopologies(topo1, topo2 description.Topology) bool {
+	if topo1.Kind != topo2.Kind {
+		return false
+	}
+
+	topoServers := make(map[string]description.Server)
+	for _, s := range topo1.Servers {
+		topoServers[s.Addr.String()] = s
+	}
+
+	otherServers := make(map[string]description.Server)
+	for _, s := range topo2.Servers {
+		otherServers[s.Addr.String()] = s
+	}
+
+	if len(topoServers) != len(otherServers) {
+		return false
+	}
+
+	for _, server := range topoServers {
+		otherServer := otherServers[server.Addr.String()]
+
+		if !driverutil.EqualServers(server, otherServer) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (t *Topology) processSRVResults(parsedHosts []string) bool {
@@ -866,7 +899,7 @@ func (t *Topology) processSRVResults(parsedHosts []string) bool {
 	}
 	t.desc.Store(newDesc)
 
-	if !prev.Equal(newDesc) {
+	if !equalTopologies(prev, newDesc) {
 		t.publishTopologyDescriptionChangedEvent(prev, newDesc)
 	}
 
@@ -897,14 +930,14 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 
 	prev := t.fsm.Topology
 	oldDesc := t.fsm.Servers[ind]
-	if oldDesc.TopologyVersion.CompareToIncoming(desc.TopologyVersion) > 0 {
+	if driverutil.CompareTopologyVersions(oldDesc.TopologyVersion, desc.TopologyVersion) > 0 {
 		return oldDesc
 	}
 
 	var current description.Topology
 	current, desc = t.fsm.apply(desc)
 
-	if !oldDesc.Equal(desc) {
+	if !driverutil.EqualServers(oldDesc, desc) {
 		t.publishServerDescriptionChangedEvent(oldDesc, desc)
 	}
 
@@ -927,7 +960,7 @@ func (t *Topology) apply(ctx context.Context, desc description.Server) descripti
 	}
 
 	t.desc.Store(current)
-	if !prev.Equal(current) {
+	if !equalTopologies(prev, current) {
 		t.publishTopologyDescriptionChangedEvent(prev, current)
 	}
 
@@ -978,8 +1011,8 @@ func (t *Topology) publishServerDescriptionChangedEvent(prev description.Server,
 	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
 		Address:             current.Addr,
 		TopologyID:          t.id,
-		PreviousDescription: prev,
-		NewDescription:      current,
+		PreviousDescription: driverutil.NewEventServerDescription(prev),
+		NewDescription:      driverutil.NewEventServerDescription(current),
 	}
 
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.ServerDescriptionChanged != nil {
@@ -1017,8 +1050,8 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topology, current description.Topology) {
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
 		TopologyID:          t.id,
-		PreviousDescription: prev,
-		NewDescription:      current,
+		PreviousDescription: driverutil.NewEventServerTopology(prev),
+		NewDescription:      driverutil.NewEventServerTopology(current),
 	}
 
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.TopologyDescriptionChanged != nil {

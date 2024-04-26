@@ -14,9 +14,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -43,7 +43,7 @@ func setUpMonitor() (*event.CommandMonitor, chan *event.CommandStartedEvent, cha
 }
 
 func skipIfBelow32(ctx context.Context, t *testing.T, topo *topology.Topology) {
-	server, err := topo.SelectServer(ctx, description.WriteSelector())
+	server, err := topo.SelectServer(ctx, &driverutil.WriteServerSelector{})
 	noerr(t, err)
 
 	versionCmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))
@@ -77,12 +77,12 @@ func TestAggregate(t *testing.T) {
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
 		).Collection(collName).Database(dbName).
-			Deployment(top).ServerSelector(description.WriteSelector()).Execute(context.Background())
+			Deployment(top).ServerSelector(&driverutil.WriteServerSelector{}).Execute(context.Background())
 		noerr(t, err)
 
 		clearChannels(started, succeeded, failed)
 		op := operation.NewAggregate(bsoncore.BuildDocumentFromElements(nil)).
-			Collection(collName).Database(dbName).Deployment(top).ServerSelector(description.WriteSelector()).
+			Collection(collName).Database(dbName).Deployment(top).ServerSelector(&driverutil.WriteServerSelector{}).
 			CommandMonitor(monitor).BatchSize(2)
 		err = op.Execute(context.Background())
 		noerr(t, err)
@@ -138,7 +138,7 @@ func TestAggregate(t *testing.T) {
 				),
 			),
 		)).Collection(integtest.ColName(t)).Database(dbName).Deployment(integtest.Topology(t)).
-			ServerSelector(description.WriteSelector()).BatchSize(2)
+			ServerSelector(&driverutil.WriteServerSelector{}).BatchSize(2)
 		err := op.Execute(context.Background())
 		noerr(t, err)
 		cursor, err := op.Result(driver.CursorOptions{BatchSize: 2})
@@ -173,7 +173,7 @@ func TestAggregate(t *testing.T) {
 		autoInsertDocs(t, wc, ds...)
 
 		op := operation.NewAggregate(bsoncore.BuildArray(nil)).Collection(integtest.ColName(t)).Database(dbName).
-			Deployment(integtest.Topology(t)).ServerSelector(description.WriteSelector()).AllowDiskUse(true)
+			Deployment(integtest.Topology(t)).ServerSelector(&driverutil.WriteServerSelector{}).AllowDiskUse(true)
 		err := op.Execute(context.Background())
 		if err != nil {
 			t.Errorf("Expected no error from allowing disk use, but got %v", err)

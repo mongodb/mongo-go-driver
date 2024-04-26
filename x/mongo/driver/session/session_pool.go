@@ -10,8 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // Node represents a server session in a linked list
@@ -23,6 +23,9 @@ type Node struct {
 
 // topologyDescription is used to track a subset of the fields present in a description.Topology instance that are
 // relevant for determining session expiration.
+//
+// TODO(GODRIVER-2965): Can this be removed and it's usage replaced by
+// description.Topology?
 type topologyDescription struct {
 	kind           description.TopologyKind
 	timeoutMinutes *int64

@@ -14,11 +14,12 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -78,11 +79,15 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		closeImplicitSession(sess)
 		return nil, err
 	}
+	var selector description.ServerSelector
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(iv.coll.client.localThreshold),
-	})
+	selector = &driverutil.CompositeServerSelector{
+		Selectors: []description.ServerSelector{
+			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Primary()},
+			&driverutil.LatencyServerSelector{Latency: iv.coll.client.localThreshold},
+		},
+	}
+
 	selector = makeReadPrefSelector(sess, selector, iv.coll.client.localThreshold)
 	op := operation.NewListIndexes().
 		Session(sess).CommandMonitor(iv.coll.client.monitor).

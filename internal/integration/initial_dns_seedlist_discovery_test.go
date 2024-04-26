@@ -19,12 +19,13 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -248,14 +249,16 @@ func getSSLSettings(mt *mtest.T, test seedlistTest) *tls.Config {
 }
 
 func getServerByAddress(address string, topo *topology.Topology) (description.Server, error) {
-	selectByName := description.ServerSelectorFunc(func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
-		for _, s := range servers {
-			if s.Addr.String() == address {
-				return []description.Server{s}, nil
+	selectByName := driverutil.ServerSelectorFunc(
+		func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
+			for _, s := range servers {
+				if s.Addr.String() == address {
+					return []description.Server{s}, nil
+				}
 			}
-		}
-		return []description.Server{}, nil
-	})
+
+			return []description.Server{}, nil
+		})
 
 	selectedServer, err := topo.SelectServer(context.Background(), selectByName)
 	if err != nil {

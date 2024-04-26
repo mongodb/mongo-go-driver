@@ -15,10 +15,10 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -128,7 +128,7 @@ func (d *Delete) command(dst []byte, desc description.SelectedServer) ([]byte, e
 		dst = bsoncore.AppendBooleanElement(dst, "ordered", *d.ordered)
 	}
 	if d.hint != nil && *d.hint {
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 5) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 5")
 		}
 		if !d.writeConcern.Acknowledged() {

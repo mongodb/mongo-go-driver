@@ -19,13 +19,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 const testTimeout = 2 * time.Second
@@ -55,17 +56,17 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestServerSelection(t *testing.T) {
-	var selectFirst description.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
+	var selectFirst driverutil.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
 			return []description.Server{}, nil
 		}
 		return candidates[0:1], nil
 	}
-	var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	var selectNone driverutil.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return []description.Server{}, nil
 	}
 	var errSelectionError = errors.New("encountered an error in the selector")
-	var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	var selectError driverutil.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
 	}
 
@@ -74,9 +75,9 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
 			},
 		}
 		subCh := make(chan description.Topology, 1)
@@ -96,11 +97,11 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
 		desc := description.Topology{
-			Kind: description.Single,
+			Kind: description.TopologyKindSingle,
 			Servers: []description.Server{
-				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
-				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 6}},
-				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 6}},
+				{Addr: address.Address("one:27017"), Kind: description.ServerKindStandalone, WireVersion: &description.VersionRange{Max: 11, Min: 11}},
+				{Addr: address.Address("two:27017"), Kind: description.ServerKindStandalone, WireVersion: &description.VersionRange{Max: 9, Min: 6}},
+				{Addr: address.Address("three:27017"), Kind: description.ServerKindStandalone, WireVersion: &description.VersionRange{Max: 9, Min: 6}},
 			},
 		}
 		want := fmt.Errorf(
@@ -119,11 +120,11 @@ func TestServerSelection(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
 		desc := description.Topology{
-			Kind: description.Single,
+			Kind: description.TopologyKindSingle,
 			Servers: []description.Server{
-				{Addr: address.Address("one:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 21, Min: 6}},
-				{Addr: address.Address("two:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
-				{Addr: address.Address("three:27017"), Kind: description.Standalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("one:27017"), Kind: description.ServerKindStandalone, WireVersion: &description.VersionRange{Max: 21, Min: 6}},
+				{Addr: address.Address("two:27017"), Kind: description.ServerKindStandalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
+				{Addr: address.Address("three:27017"), Kind: description.ServerKindStandalone, WireVersion: &description.VersionRange{Max: 9, Min: 2}},
 			},
 		}
 		want := fmt.Errorf(
@@ -155,9 +156,9 @@ func TestServerSelection(t *testing.T) {
 
 		desc = description.Topology{
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
 			},
 		}
 		select {
@@ -183,9 +184,9 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Cancel", func(t *testing.T) {
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
 			},
 		}
 		topo, err := New(nil)
@@ -220,9 +221,9 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Timeout", func(t *testing.T) {
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
 			},
 		}
 		topo, err := New(nil)
@@ -256,9 +257,9 @@ func TestServerSelection(t *testing.T) {
 	t.Run("Error", func(t *testing.T) {
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.Standalone},
-				{Addr: address.Address("two"), Kind: description.Standalone},
-				{Addr: address.Address("three"), Kind: description.Standalone},
+				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
+				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
 			},
 		}
 		topo, err := New(nil)
@@ -291,15 +292,15 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 		topo.servers[address.Address("one")] = srvr
 		desc := topo.desc.Load().(description.Topology)
-		desc.Kind = description.Single
+		desc.Kind = description.TopologyKindSingle
 		topo.desc.Store(desc)
 
 		selected := description.Server{Addr: address.Address("one")}
 
 		ss, err := topo.FindServer(selected)
 		noerr(t, err)
-		if ss.Kind != description.Single {
-			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.Single)
+		if ss.Kind != description.TopologyKindSingle {
+			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.TopologyKindSingle)
 		}
 	})
 	t.Run("Update on not primary error", func(t *testing.T) {
@@ -312,9 +313,9 @@ func TestServerSelection(t *testing.T) {
 		addr3 := address.Address("three")
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: addr1, Kind: description.RSPrimary},
-				{Addr: addr2, Kind: description.RSSecondary},
-				{Addr: addr3, Kind: description.RSSecondary},
+				{Addr: addr1, Kind: description.ServerKindRSPrimary},
+				{Addr: addr2, Kind: description.ServerKindRSSecondary},
+				{Addr: addr3, Kind: description.ServerKindRSSecondary},
 			},
 		}
 
@@ -328,9 +329,9 @@ func TestServerSelection(t *testing.T) {
 		// Send updated description
 		desc = description.Topology{
 			Servers: []description.Server{
-				{Addr: addr1, Kind: description.RSSecondary},
-				{Addr: addr2, Kind: description.RSPrimary},
-				{Addr: addr3, Kind: description.RSSecondary},
+				{Addr: addr1, Kind: description.ServerKindRSSecondary},
+				{Addr: addr2, Kind: description.ServerKindRSPrimary},
+				{Addr: addr3, Kind: description.ServerKindRSSecondary},
 			},
 		}
 
@@ -347,7 +348,7 @@ func TestServerSelection(t *testing.T) {
 
 		go func() {
 			// server selection should discover the new topology
-			state := newServerSelectionState(description.WriteSelector(), nil)
+			state := newServerSelectionState(&driverutil.WriteServerSelector{}, nil)
 			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 			noerr(t, err)
 			resp <- srvs
@@ -376,7 +377,7 @@ func TestServerSelection(t *testing.T) {
 		primaryAddr := address.Address("one")
 		desc := description.Topology{
 			Servers: []description.Server{
-				{Addr: primaryAddr, Kind: description.RSPrimary},
+				{Addr: primaryAddr, Kind: description.ServerKindRSPrimary},
 			},
 		}
 		topo.desc.Store(desc)
@@ -391,7 +392,7 @@ func TestServerSelection(t *testing.T) {
 		topo.subscriptionsClosed = true
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		selectedServer, err := topo.SelectServer(ctx, description.WriteSelector())
+		selectedServer, err := topo.SelectServer(ctx, &driverutil.WriteServerSelector{})
 		noerr(t, err)
 		selectedAddr := selectedServer.(*SelectedServer).address
 		assert.Equal(t, primaryAddr, selectedAddr, "expected address %v, got %v", primaryAddr, selectedAddr)
@@ -407,7 +408,7 @@ func TestServerSelection(t *testing.T) {
 		topo.desc.Store(desc)
 
 		topo.subscriptionsClosed = true
-		_, err = topo.SelectServer(context.Background(), description.WriteSelector())
+		_, err = topo.SelectServer(context.Background(), &driverutil.WriteServerSelector{})
 		assert.Equal(t, ErrSubscribeAfterClosed, err, "expected error %v, got %v", ErrSubscribeAfterClosed, err)
 	})
 }
@@ -422,7 +423,7 @@ func TestSessionTimeout(t *testing.T) {
 		topo.fsm.Servers = []description.Server{
 			{
 				Addr:                  address.Address("foo").Canonicalize(),
-				Kind:                  description.RSPrimary,
+				Kind:                  description.ServerKindRSPrimary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
@@ -432,7 +433,7 @@ func TestSessionTimeout(t *testing.T) {
 
 		desc := description.Server{
 			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
+			Kind:                  description.ServerKindRSPrimary,
 			SessionTimeoutMinutes: int64ToPtr(30),
 		}
 		topo.apply(ctx, desc)
@@ -445,18 +446,18 @@ func TestSessionTimeout(t *testing.T) {
 	t.Run("MultipleUpdates", func(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
-		topo.fsm.Kind = description.ReplicaSetWithPrimary
+		topo.fsm.Kind = description.TopologyKindReplicaSetWithPrimary
 		topo.servers["foo"] = nil
 		topo.servers["bar"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
 				Addr:                  address.Address("foo").Canonicalize(),
-				Kind:                  description.RSPrimary,
+				Kind:                  description.ServerKindRSPrimary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 			{
 				Addr:                  address.Address("bar").Canonicalize(),
-				Kind:                  description.RSSecondary,
+				Kind:                  description.ServerKindRSSecondary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
@@ -466,14 +467,14 @@ func TestSessionTimeout(t *testing.T) {
 
 		desc1 := description.Server{
 			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
+			Kind:                  description.ServerKindRSPrimary,
 			SessionTimeoutMinutes: int64ToPtr(30),
 			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should update because new timeout is lower
 		desc2 := description.Server{
 			Addr:                  "bar",
-			Kind:                  description.RSPrimary,
+			Kind:                  description.ServerKindRSPrimary,
 			SessionTimeoutMinutes: int64ToPtr(20),
 			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -493,12 +494,12 @@ func TestSessionTimeout(t *testing.T) {
 		topo.fsm.Servers = []description.Server{
 			{
 				Addr:                  address.Address("foo").Canonicalize(),
-				Kind:                  description.RSPrimary,
+				Kind:                  description.ServerKindRSPrimary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 			{
 				Addr:                  address.Address("bar").Canonicalize(),
-				Kind:                  description.RSSecondary,
+				Kind:                  description.ServerKindRSSecondary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
@@ -508,14 +509,14 @@ func TestSessionTimeout(t *testing.T) {
 
 		desc1 := description.Server{
 			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
+			Kind:                  description.ServerKindRSPrimary,
 			SessionTimeoutMinutes: int64ToPtr(20),
 			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
 		// should not update because new timeout is higher
 		desc2 := description.Server{
 			Addr:                  "bar",
-			Kind:                  description.RSPrimary,
+			Kind:                  description.ServerKindRSPrimary,
 			SessionTimeoutMinutes: int64ToPtr(30),
 			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -535,12 +536,12 @@ func TestSessionTimeout(t *testing.T) {
 		topo.fsm.Servers = []description.Server{
 			{
 				Addr:                  address.Address("foo").Canonicalize(),
-				Kind:                  description.RSPrimary,
+				Kind:                  description.ServerKindRSPrimary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 			{
 				Addr:                  address.Address("bar").Canonicalize(),
-				Kind:                  description.RSSecondary,
+				Kind:                  description.ServerKindRSSecondary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
@@ -550,7 +551,7 @@ func TestSessionTimeout(t *testing.T) {
 
 		desc1 := description.Server{
 			Addr:                  "foo",
-			Kind:                  description.RSPrimary,
+			Kind:                  description.ServerKindRSPrimary,
 			SessionTimeoutMinutes: int64ToPtr(20),
 			Members:               []address.Address{address.Address("foo").Canonicalize(), address.Address("bar").Canonicalize()},
 		}
@@ -572,24 +573,24 @@ func TestSessionTimeout(t *testing.T) {
 	t.Run("MixedSessionSupport", func(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
-		topo.fsm.Kind = description.ReplicaSetWithPrimary
+		topo.fsm.Kind = description.TopologyKindReplicaSetWithPrimary
 		topo.servers["one"] = nil
 		topo.servers["two"] = nil
 		topo.servers["three"] = nil
 		topo.fsm.Servers = []description.Server{
 			{
 				Addr:                  address.Address("one").Canonicalize(),
-				Kind:                  description.RSPrimary,
+				Kind:                  description.ServerKindRSPrimary,
 				SessionTimeoutMinutes: int64ToPtr(20),
 			},
 			{
 				// does not support sessions
 				Addr: address.Address("two").Canonicalize(),
-				Kind: description.RSSecondary,
+				Kind: description.ServerKindRSSecondary,
 			},
 			{
 				Addr:                  address.Address("three").Canonicalize(),
-				Kind:                  description.RSPrimary,
+				Kind:                  description.ServerKindRSPrimary,
 				SessionTimeoutMinutes: int64ToPtr(60),
 			},
 		}
@@ -599,7 +600,7 @@ func TestSessionTimeout(t *testing.T) {
 
 		desc := description.Server{
 			Addr:                  address.Address("three"),
-			Kind:                  description.RSSecondary,
+			Kind:                  description.ServerKindRSSecondary,
 			SessionTimeoutMinutes: int64ToPtr(30),
 		}
 
@@ -1026,7 +1027,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	for i := 0; i < test.Iterations; i++ {
 		selected, err := topology.SelectServer(
 			context.Background(),
-			description.ReadPrefSelector(readpref.Nearest()))
+			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Nearest()})
 		require.NoError(t, err, "error selecting server")
 		counts[string(selected.(*SelectedServer).address)]++
 	}
@@ -1073,17 +1074,17 @@ func topologyKindFromString(t *testing.T, s string) description.TopologyKind {
 
 	switch s {
 	case "Single":
-		return description.Single
+		return description.TopologyKindSingle
 	case "ReplicaSet":
-		return description.ReplicaSet
+		return description.TopologyKindReplicaSet
 	case "ReplicaSetNoPrimary":
-		return description.ReplicaSetNoPrimary
+		return description.TopologyKindReplicaSetNoPrimary
 	case "ReplicaSetWithPrimary":
-		return description.ReplicaSetWithPrimary
+		return description.TopologyKindReplicaSetWithPrimary
 	case "Sharded":
-		return description.Sharded
+		return description.TopologyKindSharded
 	case "LoadBalanced":
-		return description.LoadBalanced
+		return description.TopologyKindLoadBalanced
 	case "Unknown":
 		return description.Unknown
 	default:
@@ -1098,21 +1099,21 @@ func serverKindFromString(t *testing.T, s string) description.ServerKind {
 
 	switch s {
 	case "Standalone":
-		return description.Standalone
+		return description.ServerKindStandalone
 	case "RSOther":
-		return description.RSMember
+		return description.ServerKindRSMember
 	case "RSPrimary":
-		return description.RSPrimary
+		return description.ServerKindRSPrimary
 	case "RSSecondary":
-		return description.RSSecondary
+		return description.ServerKindRSSecondary
 	case "RSArbiter":
-		return description.RSArbiter
+		return description.ServerKindRSArbiter
 	case "RSGhost":
-		return description.RSGhost
+		return description.ServerKindRSGhost
 	case "Mongos":
-		return description.Mongos
+		return description.ServerKindMongos
 	case "LoadBalancer":
-		return description.LoadBalancer
+		return description.ServerKindLoadBalancer
 	case "PossiblePrimary", "Unknown":
 		// Go does not have a PossiblePrimary server type and per the SDAM spec, this type is synonymous with Unknown.
 		return description.Unknown
@@ -1163,7 +1164,7 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 				HeartbeatInterval: time.Duration(10) * time.Second,
 				LastWriteTime:     time.Date(2017, 2, 11, 14, 0, 0, 0, time.UTC),
 				LastUpdateTime:    time.Date(2017, 2, 11, 14, 0, 2, 0, time.UTC),
-				Kind:              description.Mongos,
+				Kind:              description.ServerKindMongos,
 				WireVersion:       &description.VersionRange{Min: 6, Max: 21},
 			}
 			servers := make([]description.Server, 100)

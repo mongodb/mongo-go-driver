@@ -11,7 +11,7 @@ import (
 	"io"
 
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // ReadWriteCloser represents a Connection where server operations

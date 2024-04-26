@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -131,7 +131,7 @@ func runCommand(s driver.Server, db string, cmd bsoncore.Document) (bsoncore.Doc
 // dropCollection drops the collection in the test cluster.
 func dropCollection(t *testing.T, dbname, colname string) {
 	err := operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "drop", colname))).
-		Database(dbname).ServerSelector(description.WriteSelector()).Deployment(integtest.Topology(t)).
+		Database(dbname).ServerSelector(&driverutil.WriteServerSelector{}).Deployment(integtest.Topology(t)).
 		Execute(context.Background())
 	if de, ok := err.(driver.Error); err != nil && !(ok && de.NamespaceNotFound()) {
 		require.NoError(t, err)
@@ -149,7 +149,7 @@ func insertDocs(t *testing.T, dbname, colname string, writeConcern *writeconcern
 		Collection(colname).
 		Database(dbname).
 		Deployment(integtest.Topology(t)).
-		ServerSelector(description.WriteSelector()).
+		ServerSelector(&driverutil.WriteServerSelector{}).
 		WriteConcern(writeConcern).
 		Execute(context.Background())
 	require.NoError(t, err)

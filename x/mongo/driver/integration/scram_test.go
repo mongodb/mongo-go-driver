@@ -12,8 +12,8 @@ import (
 	"os"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -32,13 +32,13 @@ func TestSCRAM(t *testing.T) {
 		t.Skip("Skipping because authentication is required")
 	}
 
-	server, err := integtest.Topology(t).SelectServer(context.Background(), description.WriteSelector())
+	server, err := integtest.Topology(t).SelectServer(context.Background(), &driverutil.WriteServerSelector{})
 	noerr(t, err)
 	serverConnection, err := server.Connection(context.Background())
 	noerr(t, err)
 	defer serverConnection.Close()
 
-	if !serverConnection.Description().WireVersion.Includes(7) {
+	if !driverutil.VersionRangeIncludes(*serverConnection.Description().WireVersion, 7) {
 		t.Skip("Skipping because MongoDB 4.0 is needed for SCRAM-SHA-256")
 	}
 
@@ -142,7 +142,7 @@ func testScramUserAuthWithMech(t *testing.T, c scramTestCase, mech string) error
 func runScramAuthTest(t *testing.T, credential options.Credential) error {
 	t.Helper()
 	topology := integtest.TopologyWithCredential(t, credential)
-	server, err := topology.SelectServer(context.Background(), description.WriteSelector())
+	server, err := topology.SelectServer(context.Background(), &driverutil.WriteServerSelector{})
 	noerr(t, err)
 
 	cmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dbstats", 1))

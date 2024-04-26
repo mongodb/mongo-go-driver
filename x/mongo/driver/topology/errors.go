@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // ConnectionError represents a connection error.

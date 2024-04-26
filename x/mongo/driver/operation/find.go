@@ -14,11 +14,11 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -115,7 +115,7 @@ func (f *Find) Execute(ctx context.Context) error {
 func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "find", f.collection)
 	if f.allowDiskUse != nil {
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(4) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 4) {
 			return nil, errors.New("the 'allowDiskUse' command parameter requires a minimum server wire version of 4")
 		}
 		dst = bsoncore.AppendBooleanElement(dst, "allowDiskUse", *f.allowDiskUse)
@@ -130,7 +130,7 @@ func (f *Find) command(dst []byte, desc description.SelectedServer) ([]byte, err
 		dst = bsoncore.AppendInt32Element(dst, "batchSize", *f.batchSize)
 	}
 	if f.collation != nil {
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", f.collation)

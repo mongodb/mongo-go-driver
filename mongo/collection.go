@@ -16,13 +16,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -119,15 +120,19 @@ func newCollection(db *Database, name string, opts ...*options.CollectionOptions
 		reg = collOpt.Registry
 	}
 
-	readSelector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(rp),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	readSelector := &driverutil.CompositeServerSelector{
+		Selectors: []description.ServerSelector{
+			&driverutil.ReadPrefServerSelector{ReadPref: rp},
+			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+		},
+	}
 
-	writeSelector := description.CompositeSelector([]description.ServerSelector{
-		description.WriteSelector(),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	writeSelector := &driverutil.CompositeServerSelector{
+		Selectors: []description.ServerSelector{
+			&driverutil.WriteServerSelector{},
+			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+		},
+	}
 
 	coll := &Collection{
 		client:         db.client,
@@ -182,10 +187,12 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 		copyColl.registry = optsColl.Registry
 	}
 
-	copyColl.readSelector = description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(copyColl.readPreference),
-		description.LatencySelector(copyColl.client.localThreshold),
-	})
+	copyColl.readSelector = &driverutil.CompositeServerSelector{
+		Selectors: []description.ServerSelector{
+			&driverutil.ReadPrefServerSelector{ReadPref: copyColl.readPreference},
+			&driverutil.LatencyServerSelector{Latency: copyColl.client.localThreshold},
+		},
+	}
 
 	return copyColl, nil
 }
@@ -2286,6 +2293,8 @@ type pinnedServerSelector struct {
 	session  *session.Client
 }
 
+var _ description.ServerSelector = pinnedServerSelector{}
+
 func (pss pinnedServerSelector) String() string {
 	if pss.stringer == nil {
 		return ""
@@ -2298,10 +2307,10 @@ func (pss pinnedServerSelector) SelectServer(
 	t description.Topology,
 	svrs []description.Server,
 ) ([]description.Server, error) {
-	if pss.session != nil && pss.session.PinnedServer != nil {
+	if pss.session != nil && pss.session.PinnedServerAddr != nil {
 		// If there is a pinned server, try to find it in the list of candidates.
 		for _, candidate := range svrs {
-			if candidate.Addr == pss.session.PinnedServer.Addr {
+			if candidate.Addr == *pss.session.PinnedServerAddr {
 				return []description.Server{candidate}, nil
 			}
 		}
@@ -2312,7 +2321,7 @@ func (pss pinnedServerSelector) SelectServer(
 	return pss.fallback.SelectServer(t, svrs)
 }
 
-func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) description.ServerSelector {
+func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) pinnedServerSelector {
 	pss := pinnedServerSelector{
 		session:  sess,
 		fallback: fallback,
@@ -2325,27 +2334,40 @@ func makePinnedSelector(sess *session.Client, fallback description.ServerSelecto
 	return pss
 }
 
-func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelector {
+func makeReadPrefSelector(
+	sess *session.Client,
+	selector description.ServerSelector,
+	localThreshold time.Duration,
+) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
-		selector = description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(sess.CurrentRp),
-			description.LatencySelector(localThreshold),
-		})
+		selector = &driverutil.CompositeServerSelector{
+			Selectors: []description.ServerSelector{
+				&driverutil.ReadPrefServerSelector{ReadPref: sess.CurrentRp},
+				&driverutil.LatencyServerSelector{Latency: localThreshold},
+			},
+		}
 	}
 
 	return makePinnedSelector(sess, selector)
 }
 
-func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelector {
+func makeOutputAggregateSelector(
+	sess *session.Client,
+	rp *readpref.ReadPref,
+	localThreshold time.Duration,
+) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		// Use current transaction's read preference if available
 		rp = sess.CurrentRp
 	}
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.OutputAggregateSelector(rp),
-		description.LatencySelector(localThreshold),
-	})
+	selector := &driverutil.CompositeServerSelector{
+		Selectors: []description.ServerSelector{
+			&driverutil.ReadPrefServerSelector{ReadPref: rp, IsOutputAggregate: true},
+			&driverutil.LatencyServerSelector{Latency: localThreshold},
+		},
+	}
+
 	return makePinnedSelector(sess, selector)
 }
 

@@ -15,16 +15,17 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -452,8 +453,8 @@ func (c *Client) endSessions(ctx context.Context) {
 
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
-		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
-		Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
+		ServerSelector(&driverutil.ReadPrefServerSelector{ReadPref: readpref.PrimaryPreferred()}).
+		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -704,10 +705,15 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(c.localThreshold),
-	})
+	var selector description.ServerSelector
+
+	selector = &driverutil.CompositeServerSelector{
+		Selectors: []description.ServerSelector{
+			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Primary()},
+			&driverutil.LatencyServerSelector{Latency: c.localThreshold},
+		},
+	}
+
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
 	ldo := options.ListDatabases()
