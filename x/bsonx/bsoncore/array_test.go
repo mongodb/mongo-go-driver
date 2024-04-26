@@ -14,7 +14,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 func TestArray(t *testing.T) {
@@ -151,21 +150,21 @@ func TestArray(t *testing.T) {
 			{"first",
 				0,
 				Value{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x72, 0x00},
 				},
 			},
 			{"second",
 				1,
 				Value{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x62, 0x61, 0x7a, 0x00},
 				},
 			},
 			{"third",
 				2,
 				Value{
-					Type: bsontype.String,
+					Type: TypeString,
 					Data: []byte{0x04, 0x00, 0x00, 0x00, 0x71, 0x75, 0x78, 0x00},
 				},
 			},

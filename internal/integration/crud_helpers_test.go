@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -69,9 +67,9 @@ func createHint(mt *mtest.T, val bson.RawValue) interface{} {
 
 	var hint interface{}
 	switch val.Type {
-	case bsontype.String:
+	case bson.TypeString:
 		hint = val.StringValue()
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		hint = val.Document()
 	default:
 		mt.Fatalf("unrecognized hint value type: %s\n", val.Type)
@@ -1224,7 +1222,7 @@ func executeEstimatedDocumentCount(mt *mtest.T, sess mongo.Session, args bson.Ra
 func executeGridFSDownload(mt *mtest.T, bucket *mongo.GridFSBucket, args bson.Raw) (int64, error) {
 	mt.Helper()
 
-	var fileID primitive.ObjectID
+	var fileID bson.ObjectID
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -1648,9 +1646,9 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 	}
 }
 
-func verifySingleResult[T bson.Raw | bson.RawArray](
+func verifySingleResult(
 	mt *mtest.T,
-	actualResult *mongo.SingleResult[T],
+	actualResult *mongo.SingleResult[bson.Raw],
 	expectedResult interface{},
 ) {
 	mt.Helper()
@@ -1661,7 +1659,7 @@ func verifySingleResult[T bson.Raw | bson.RawArray](
 
 	expected := expectedResult.(bson.Raw)
 	actual, _ := actualResult.Raw()
-	if err := compareDocs(mt, expected, bson.Raw(actual)); err != nil {
+	if err := compareDocs(mt, expected, actual); err != nil {
 		mt.Fatalf("SingleResult document mismatch: %s", err)
 	}
 }

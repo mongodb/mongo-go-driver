@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -150,9 +149,9 @@ func createHint(val bson.RawValue) (interface{}, error) {
 	var hint interface{}
 
 	switch val.Type {
-	case bsontype.String:
+	case bson.TypeString:
 		hint = val.StringValue()
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		hint = val.Document()
 	default:
 		return nil, fmt.Errorf("unrecognized hint value type %s", val.Type)

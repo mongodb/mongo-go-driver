@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -227,7 +226,7 @@ func ExampleCollection_Aggregate() {
 
 func ExampleCollection_BulkWrite() {
 	var coll *mongo.Collection
-	var firstID, secondID primitive.ObjectID
+	var firstID, secondID bson.ObjectID
 
 	// Update the "email" field for two users.
 	// For each update, specify the Upsert option to insert a new document if a
@@ -378,7 +377,7 @@ func ExampleCollection_Find() {
 
 func ExampleCollection_FindOne() {
 	var coll *mongo.Collection
-	var id primitive.ObjectID
+	var id bson.ObjectID
 
 	// Find the document for which the _id field matches id.
 	// Specify the Sort option to sort the documents by age.
@@ -403,7 +402,7 @@ func ExampleCollection_FindOne() {
 
 func ExampleCollection_FindOneAndDelete() {
 	var coll *mongo.Collection
-	var id primitive.ObjectID
+	var id bson.ObjectID
 
 	// Find and delete the document for which the _id field matches id.
 	// Specify the Projection option to only include the name and age fields in
@@ -429,7 +428,7 @@ func ExampleCollection_FindOneAndDelete() {
 
 func ExampleCollection_FindOneAndReplace() {
 	var coll *mongo.Collection
-	var id primitive.ObjectID
+	var id bson.ObjectID
 
 	// Find the document for which the _id field matches id and add a field
 	// called "location".
@@ -458,7 +457,7 @@ func ExampleCollection_FindOneAndReplace() {
 
 func ExampleCollection_FindOneAndUpdate() {
 	var coll *mongo.Collection
-	var id primitive.ObjectID
+	var id bson.ObjectID
 
 	// Find the document for which the _id field matches id and set the email to
 	// "newemail@example.com".
@@ -516,7 +515,7 @@ func ExampleCollection_InsertOne() {
 
 func ExampleCollection_ReplaceOne() {
 	var coll *mongo.Collection
-	var id primitive.ObjectID
+	var id bson.ObjectID
 
 	// Find the document for which the _id field matches id and add a field
 	// called "location".
@@ -560,7 +559,7 @@ func ExampleCollection_UpdateMany() {
 
 func ExampleCollection_UpdateOne() {
 	var coll *mongo.Collection
-	var id primitive.ObjectID
+	var id bson.ObjectID
 
 	// Find the document for which the _id field matches id and set the email to
 	// "newemail@example.com".
@@ -1114,7 +1113,7 @@ func ExampleCollection_Find_primitiveRegex() {
 	// Create a filter to find a document with key "name" and any value that
 	// starts with letter "m". Use the "i" option to indicate
 	// case-insensitivity.
-	filter := bson.D{{"name", primitive.Regex{Pattern: "^m", Options: "i"}}}
+	filter := bson.D{{"name", bson.Regex{Pattern: "^m", Options: "i"}}}
 
 	_, err = coll.Find(ctx, filter)
 	if err != nil {

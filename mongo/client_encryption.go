@@ -13,8 +13,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -108,7 +106,7 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	if err != nil {
 		return nil, nil, err
 	}
-	r := bsonrw.NewValueReader(efBSON)
+	r := bson.NewValueReader(efBSON)
 	dec := bson.NewDecoder(r)
 	var m bson.M
 	err = dec.Decode(&m)
@@ -146,7 +144,7 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
 // given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult[bson.Raw] {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
@@ -156,7 +154,7 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id primitive.Bina
 // CreateDataKey creates a new key document and inserts into the key vault collection. Returns the _id of the created
 // document as a UUID (BSON binary subtype 0x04).
 func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string,
-	opts ...*options.DataKeyOptions) (primitive.Binary, error) {
+	opts ...*options.DataKeyOptions) (bson.Binary, error) {
 
 	// translate opts to mcopts.DataKeyOptions
 	dko := options.DataKey()
@@ -182,7 +180,7 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 			ce.keyVaultClient.bsonOpts,
 			ce.keyVaultClient.registry)
 		if err != nil {
-			return primitive.Binary{}, err
+			return bson.Binary{}, err
 		}
 		co.SetMasterKey(keyDoc)
 	}
@@ -193,17 +191,17 @@ func (ce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider strin
 	// create data key document
 	dataKeyDoc, err := ce.crypt.CreateDataKey(ctx, kmsProvider, co)
 	if err != nil {
-		return primitive.Binary{}, err
+		return bson.Binary{}, err
 	}
 
 	// insert key into key vault
 	_, err = ce.keyVaultColl.InsertOne(ctx, dataKeyDoc)
 	if err != nil {
-		return primitive.Binary{}, err
+		return bson.Binary{}, err
 	}
 
 	subtype, data := bson.Raw(dataKeyDoc).Lookup("_id").Binary()
-	return primitive.Binary{Subtype: subtype, Data: data}, nil
+	return bson.Binary{Subtype: subtype, Data: data}, nil
 }
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
@@ -250,10 +248,10 @@ func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts
 	if eo.RangeOptions != nil {
 		var transformedRange mcopts.ExplicitRangeOptions
 		if eo.RangeOptions.Min != nil {
-			transformedRange.Min = &bsoncore.Value{Type: eo.RangeOptions.Min.Type, Data: eo.RangeOptions.Min.Value}
+			transformedRange.Min = &bsoncore.Value{Type: bsoncore.Type(eo.RangeOptions.Min.Type), Data: eo.RangeOptions.Min.Value}
 		}
 		if eo.RangeOptions.Max != nil {
-			transformedRange.Max = &bsoncore.Value{Type: eo.RangeOptions.Max.Type, Data: eo.RangeOptions.Max.Value}
+			transformedRange.Max = &bsoncore.Value{Type: bsoncore.Type(eo.RangeOptions.Max.Type), Data: eo.RangeOptions.Max.Value}
 		}
 		if eo.RangeOptions.Precision != nil {
 			transformedRange.Precision = eo.RangeOptions.Precision
@@ -266,14 +264,14 @@ func transformExplicitEncryptionOptions(opts ...*options.EncryptOptions) *mcopts
 
 // Encrypt encrypts a BSON value with the given key and algorithm. Returns an encrypted value (BSON binary of subtype 6).
 func (ce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue,
-	opts ...*options.EncryptOptions) (primitive.Binary, error) {
+	opts ...*options.EncryptOptions) (bson.Binary, error) {
 
 	transformed := transformExplicitEncryptionOptions(opts...)
-	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: val.Type, Data: val.Value}, transformed)
+	subtype, data, err := ce.crypt.EncryptExplicit(ctx, bsoncore.Value{Type: bsoncore.Type(val.Type), Data: val.Value}, transformed)
 	if err != nil {
-		return primitive.Binary{}, err
+		return bson.Binary{}, err
 	}
-	return primitive.Binary{Subtype: subtype, Data: data}, nil
+	return bson.Binary{Subtype: subtype, Data: data}, nil
 }
 
 // EncryptExpression encrypts an expression to query a range index.
@@ -311,13 +309,13 @@ func (ce *ClientEncryption) EncryptExpression(ctx context.Context, expr interfac
 }
 
 // Decrypt decrypts an encrypted value (BSON binary of subtype 6) and returns the original BSON value.
-func (ce *ClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (bson.RawValue, error) {
+func (ce *ClientEncryption) Decrypt(ctx context.Context, val bson.Binary) (bson.RawValue, error) {
 	decrypted, err := ce.crypt.DecryptExplicit(ctx, val.Subtype, val.Data)
 	if err != nil {
 		return bson.RawValue{}, err
 	}
 
-	return bson.RawValue{Type: decrypted.Type, Value: decrypted.Data}, nil
+	return bson.RawValue{Type: bson.Type(decrypted.Type), Value: decrypted.Data}, nil
 }
 
 // Close cleans up any resources associated with the ClientEncryption instance. This includes disconnecting the
@@ -329,7 +327,7 @@ func (ce *ClientEncryption) Close(ctx context.Context) error {
 
 // DeleteKey removes the key document with the given UUID (BSON binary subtype 0x04) from the key vault collection.
 // Returns the result of the internal deleteOne() operation on the key vault collection.
-func (ce *ClientEncryption) DeleteKey(ctx context.Context, id primitive.Binary) (*DeleteResult, error) {
+func (ce *ClientEncryption) DeleteKey(ctx context.Context, id bson.Binary) (*DeleteResult, error) {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.DeleteOne(ctx, filter)
 }
@@ -342,7 +340,7 @@ func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName stri
 
 // GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
 // internal find() operation on the key vault collection.
-func (ce *ClientEncryption) GetKey(ctx context.Context, id primitive.Binary) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) GetKey(ctx context.Context, id bson.Binary) *SingleResult[bson.Raw] {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
@@ -355,7 +353,7 @@ func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
 
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id primitive.Binary, keyAltName string) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult[bson.Raw] {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
 		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
@@ -388,7 +386,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 			return err
 		}
 		keyMaterialSubtype, keyMaterialData := keyMaterialValue.Binary()
-		keyMaterialBinary := primitive.Binary{Subtype: keyMaterialSubtype, Data: keyMaterialData}
+		keyMaterialBinary := bson.Binary{Subtype: keyMaterialSubtype, Data: keyMaterialData}
 
 		// Prepare the _id filter for documents to update.
 		id, err := rewrappedDocument.LookupErr(idKey)
@@ -400,7 +398,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 		if !ok {
 			return fmt.Errorf("expected to assert %q as binary, got type %T", idKey, id)
 		}
-		binaryID := primitive.Binary{Subtype: idSubtype, Data: idData}
+		binaryID := bson.Binary{Subtype: idSubtype, Data: idData}
 
 		// Append the mutable document to the slice for bulk update.
 		*writeModels = append(*writeModels, NewUpdateOneModel().
