@@ -779,7 +779,7 @@ func ExampleClient_StartSession_withTransaction() {
 	fmt.Printf("result: %v\n", result)
 }
 
-func ExampleContextWithSession() {
+func ExampleNewSessionContext() {
 	var client *mongo.Client
 
 	// Create a new Session and SessionContext.
@@ -788,7 +788,7 @@ func ExampleContextWithSession() {
 		panic(err)
 	}
 	defer sess.EndSession(context.TODO())
-	ctx := mongo.ContextWithSession(context.TODO(), sess)
+	ctx := mongo.NewSessionContext(context.TODO(), sess)
 
 	// Start a transaction and use the context.Context as the Context
 	// parameter for InsertOne and FindOne so both operations are run in the

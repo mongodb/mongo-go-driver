@@ -62,7 +62,7 @@ func TestSessions(t *testing.T) {
 			assert.Nil(mt, err, "StartSession error: %v", err)
 			defer sess.EndSession(context.Background())
 
-			ctx := mongo.ContextWithSession(context.Background(), sess)
+			ctx := mongo.NewSessionContext(context.Background(), sess)
 
 			gotSess := mongo.SessionFromContext(ctx)
 			assert.NotNil(mt, gotSess, "expected SessionFromContext to return non-nil value, got nil")
@@ -80,7 +80,7 @@ func TestSessions(t *testing.T) {
 				sess, err := mt.Client.StartSession()
 				assert.Nil(mt, err, "StartSession error: %v", err)
 
-				return mongo.ContextWithSession(context.Background(), sess)
+				return mongo.NewSessionContext(context.Background(), sess)
 			}
 
 			ctx := createSessionContext(mt)

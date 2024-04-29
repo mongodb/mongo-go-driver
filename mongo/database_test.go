@@ -120,7 +120,7 @@ func TestDatabase(t *testing.T) {
 			assert.Nil(t, err, "expected nil, got %v", err)
 			defer sess.EndSession(bgCtx)
 
-			sessCtx := ContextWithSession(bgCtx, sess)
+			sessCtx := NewSessionContext(bgCtx, sess)
 			err = sess.StartTransaction()
 			assert.Nil(t, err, "expected nil, got %v", err)
 

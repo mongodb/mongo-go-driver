@@ -47,9 +47,9 @@ type Session struct {
 
 type sessionKey struct{}
 
-// ContextWithSession creates a new SessionContext associated with the given
+// NewSessionContext creates a new SessionContext associated with the given
 // Context and Session parameters.
-func ContextWithSession(parent context.Context, sess *Session) context.Context {
+func NewSessionContext(parent context.Context, sess *Session) context.Context {
 	return context.WithValue(parent, sessionKey{}, sess)
 }
 
@@ -75,12 +75,13 @@ func (s *Session) ClientSession() *session.Client {
 	return s.clientSession
 }
 
-// ID implements the Session interface.
+// ID returns the current ID document associated with the session. The ID
+// 1document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
 	return bson.Raw(s.clientSession.SessionID)
 }
 
-// EndSession implements the Session interface.
+// EndSession aborts any existing transactions and close the session.
 func (s *Session) EndSession(ctx context.Context) {
 	if s.clientSession.TransactionInProgress() {
 		// ignore all errors aborting during an end session
@@ -89,7 +90,20 @@ func (s *Session) EndSession(ctx context.Context) {
 	s.clientSession.EndSession()
 }
 
-// WithTransaction implements the Session interface.
+// WithTransaction starts a transaction on this session and runs the fn
+// callback. Errors with the TransientTransactionError and
+// UnknownTransactionCommitResult labels are retried for up to 120 seconds.
+// Inside the callback, the SessionContext must be used as the Context parameter
+// for any operations that should be part of the transaction. If the ctx
+// parameter already has a Session attached to it, it will be replaced by this
+// session. The fn callback may be run multiple times during WithTransaction due
+// to retry attempts, so it must be idempotent. Non-retryable operation errors
+// or any operation errors that occur after the timeout expires will be returned
+// without retrying. If the callback fails, the driver will call
+// AbortTransaction. Because this method must succeed to ensure that server-side
+// resources are properly cleaned up, context deadlines and cancellations will
+// not be respected during this call. For a usage example, see the
+// Client.StartSession method documentation.
 func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Context) (interface{}, error),
 	opts ...*options.TransactionOptions) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
@@ -101,7 +115,7 @@ func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Conte
 			return nil, err
 		}
 
-		res, err := fn(ContextWithSession(ctx, s))
+		res, err := fn(NewSessionContext(ctx, s))
 		if err != nil {
 			if s.clientSession.TransactionRunning() {
 				// Wrap the user-provided Context in a new one that behaves like context.Background() for deadlines and
@@ -169,7 +183,8 @@ func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Conte
 	}
 }
 
-// StartTransaction implements the Session interface.
+// StartTransaction starts a new transaction. This method returns an error if
+// there is already a transaction in-progress for this session.
 func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
@@ -206,7 +221,9 @@ func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
 	return s.clientSession.StartTransaction(coreOpts)
 }
 
-// AbortTransaction implements the Session interface.
+// AbortTransaction aborts the active transaction for this session. This method
+// returns an error if there is no active transaction for this session or if the
+// transaction has been committed or aborted.
 func (s *Session) AbortTransaction(ctx context.Context) error {
 	err := s.clientSession.CheckAbortTransaction()
 	if err != nil {
@@ -232,7 +249,9 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 	return nil
 }
 
-// CommitTransaction implements the Session interface.
+// CommitTransaction commits the active transaction for this session. This
+// method returns an error if there is no active transaction for this session or
+// if the transaction has been aborted.
 func (s *Session) CommitTransaction(ctx context.Context) error {
 	err := s.clientSession.CheckCommitTransaction()
 	if err != nil {
@@ -276,27 +295,31 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 	return commitErr
 }
 
-// ClusterTime implements the Session interface.
+// ClusterTime returns the current cluster time document associated with the
+// session.
 func (s *Session) ClusterTime() bson.Raw {
 	return s.clientSession.ClusterTime
 }
 
-// AdvanceClusterTime implements the Session interface.
+// AdvanceClusterTime advances the cluster time for a session. This method
+// returns an error if the session has ended.
 func (s *Session) AdvanceClusterTime(d bson.Raw) error {
 	return s.clientSession.AdvanceClusterTime(d)
 }
 
-// OperationTime implements the Session interface.
+// OperationTime returns the current operation time document associated with the
+// session.
 func (s *Session) OperationTime() *bson.Timestamp {
 	return s.clientSession.OperationTime
 }
 
-// AdvanceOperationTime implements the Session interface.
+// AdvanceOperationTime advances the operation time for a session. This method
+// returns an error if the session has ended.
 func (s *Session) AdvanceOperationTime(ts *bson.Timestamp) error {
 	return s.clientSession.AdvanceOperationTime(ts)
 }
 
-// Client implements the Session interface.
+// Client the Client associated with the session.
 func (s *Session) Client() *Client {
 	return s.client
 }
@@ -304,8 +327,7 @@ func (s *Session) Client() *Client {
 // sessionFromContext checks for a sessionImpl in the argued context and returns the session if it
 // exists
 func sessionFromContext(ctx context.Context) *session.Client {
-	s := ctx.Value(sessionKey{})
-	if ses, ok := s.(*Session); ses != nil && ok {
+	if ses := SessionFromContext(ctx); ses != nil {
 		return ses.clientSession
 	}
 

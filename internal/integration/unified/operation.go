@@ -83,7 +83,7 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		if err != nil {
 			return nil, err
 		}
-		ctx = mongo.ContextWithSession(ctx, sess)
+		ctx = mongo.NewSessionContext(ctx, sess)
 
 		// Set op.Arguments to a new document that has the "session" field removed so individual operations do
 		// not have to account for it.

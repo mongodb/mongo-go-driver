@@ -240,8 +240,8 @@ func TestConvenientTransactions(t *testing.T) {
 		// insert succeeds, it cancels the Context created above and returns a non-retryable error, which forces
 		// WithTransaction to abort the txn.
 		callbackErr := errors.New("error")
-		callback := func(sc context.Context) (interface{}, error) {
-			_, err = coll.InsertOne(sc, bson.D{{"x", 1}})
+		callback := func(ctx context.Context) (interface{}, error) {
+			_, err = coll.InsertOne(ctx, bson.D{{"x", 1}})
 			if err != nil {
 				return nil, err
 			}
@@ -306,17 +306,17 @@ func TestConvenientTransactions(t *testing.T) {
 		defer session.EndSession(bgCtx)
 		assert.Nil(t, err, "StartSession error: %v", err)
 
-		_ = WithSession(bgCtx, session, func(sessionContext context.Context) error {
+		_ = WithSession(bgCtx, session, func(ctx context.Context) error {
 			// Start transaction.
 			err = session.StartTransaction()
 			assert.Nil(t, err, "StartTransaction error: %v", err)
 
 			// Insert a document.
-			_, err := coll.InsertOne(sessionContext, bson.D{{"val", 17}})
+			_, err := coll.InsertOne(ctx, bson.D{{"val", 17}})
 			assert.Nil(t, err, "InsertOne error: %v", err)
 
 			// Set a timeout of 0 for commitTransaction.
-			commitTimeoutCtx, commitCancel := context.WithTimeout(sessionContext, 0)
+			commitTimeoutCtx, commitCancel := context.WithTimeout(ctx, 0)
 			defer commitCancel()
 
 			// CommitTransaction results in context.DeadlineExceeded.

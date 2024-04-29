@@ -85,7 +85,7 @@ func TestLoadBalancerSupport(t *testing.T) {
 				sess, err := mt.Client.StartSession()
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
-				ctx := mongo.ContextWithSession(context.Background(), sess)
+				ctx := mongo.NewSessionContext(context.Background(), sess)
 
 				// Start a transaction and perform one transactional operation to pin a connection.
 				err = sess.StartTransaction()
@@ -116,7 +116,7 @@ func TestLoadBalancerSupport(t *testing.T) {
 					err = sess.StartTransaction()
 					require.NoError(mt, err, "StartTransaction error")
 
-					ctx := mongo.ContextWithSession(ctx, sess)
+					ctx := mongo.NewSessionContext(ctx, sess)
 					_, err = mt.Coll.InsertOne(ctx, bson.M{"x": 1})
 					assert.NoError(mt, err, "InsertOne error")
 
