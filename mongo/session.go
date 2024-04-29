@@ -70,6 +70,14 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
+// ClientSession returns the experimental client session.
+//
+// Deprecated: This method is for internal use only and should not be used (see
+// GODRIVER-2700). It may be changed or removed in any release.
+func (s *Session) ClientSession() *session.Client {
+	return s.clientSession
+}
+
 // ID returns the current ID document associated with the session. The ID
 // document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
