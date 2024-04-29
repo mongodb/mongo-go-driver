@@ -47,8 +47,12 @@ type Session struct {
 
 type sessionKey struct{}
 
-// NewSessionContext creates a new SessionContext associated with the given
-// Context and Session parameters.
+// NewSessionContext returns a Context that holds the given Session. If the
+// Context already contains a Session, that Session will be replaced with the
+// one provided.
+//
+// The returned Context can be used with Collection methods like
+// [Collection.InsertOne] or [Collection.Find] to run operations in a Session.
 func NewSessionContext(parent context.Context, sess *Session) context.Context {
 	return context.WithValue(parent, sessionKey{}, sess)
 }
