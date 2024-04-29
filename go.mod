@@ -24,7 +24,7 @@ retract (
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/snappy v0.0.1
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.6.0
 	github.com/klauspost/compress v1.13.6
 	github.com/montanaflynn/stats v0.7.1
 	github.com/xdg-go/scram v1.1.2
@@ -37,5 +37,4 @@ require (
 require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 )
