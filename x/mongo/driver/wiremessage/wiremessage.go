@@ -486,7 +486,7 @@ func ReadReplyCursorID(src []byte) (cursorID int64, rem []byte, ok bool) {
 	return readi64(src)
 }
 
-// ReadReplyStartingFrom reads the starting from from src.
+// ReadReplyStartingFrom reads the starting from src.
 func ReadReplyStartingFrom(src []byte) (startingFrom int32, rem []byte, ok bool) {
 	return readi32(src)
 }
