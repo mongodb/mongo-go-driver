@@ -70,11 +70,6 @@ func SessionFromContext(ctx context.Context) *Session {
 	return sess
 }
 
-// ClientSession returns the experimental client session.
-func (s *Session) ClientSession() *session.Client {
-	return s.clientSession
-}
-
 // ID returns the current ID document associated with the session. The ID
 // document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
