@@ -25,11 +25,12 @@ func TestStringCodec(t *testing.T) {
 			result string
 		}{
 			{"default", DecodeContext{}, errors.New("cannot decode ObjectID as string if DecodeObjectIDAsHex is not set"), ""},
-			{"decode hex", DecodeContext{decodeObjectIDAsHex: true}, nil, oid.Hex()},
+			{"true", DecodeContext{decodeObjectIDAsHex: true}, nil, oid.Hex()},
+			{"false", DecodeContext{decodeObjectIDAsHex: false}, errors.New("cannot decode ObjectID as string if DecodeObjectIDAsHex is not set"), ""},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				stringCodec := NewStringCodec()
+				stringCodec := &stringCodec{}
 
 				actual := reflect.New(reflect.TypeOf("")).Elem()
 				err := stringCodec.DecodeValue(tc.dctx, reader, actual)

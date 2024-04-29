@@ -195,7 +195,7 @@ func TestRegistryBuilder(t *testing.T) {
 				ti3ImplPtr      = reflect.TypeOf((*testInterface3Impl)(nil))
 				fc1, fc2        = &fakeCodec{num: 1}, &fakeCodec{num: 2}
 				fsc, fslcc, fmc = new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
-				pc              = NewPointerCodec()
+				pc              = &pointerCodec{}
 			)
 
 			reg := newTestRegistry()
@@ -334,7 +334,7 @@ func TestRegistryBuilder(t *testing.T) {
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
-			comparepc := func(pc1, pc2 *PointerCodec) bool { return true }
+			comparepc := func(pc1, pc2 *pointerCodec) bool { return true }
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Run("Encoder", func(t *testing.T) {
@@ -610,7 +610,7 @@ func TestRegistry(t *testing.T) {
 				ti3ImplPtr      = reflect.TypeOf((*testInterface3Impl)(nil))
 				fc1, fc2        = &fakeCodec{num: 1}, &fakeCodec{num: 2}
 				fsc, fslcc, fmc = new(fakeStructCodec), new(fakeSliceCodec), new(fakeMapCodec)
-				pc              = NewPointerCodec()
+				pc              = &pointerCodec{}
 			)
 
 			reg := newTestRegistry()
@@ -749,7 +749,7 @@ func TestRegistry(t *testing.T) {
 			}
 
 			allowunexported := cmp.AllowUnexported(fakeCodec{}, fakeStructCodec{}, fakeSliceCodec{}, fakeMapCodec{})
-			comparepc := func(pc1, pc2 *PointerCodec) bool { return true }
+			comparepc := func(pc1, pc2 *pointerCodec) bool { return true }
 			for _, tc := range testCases {
 				tc := tc
 

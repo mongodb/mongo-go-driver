@@ -9,11 +9,6 @@
 // with mgo's BSON with RespectNilValues set to true. A registry can be configured on a
 // mongo.Client with the SetRegistry option. See the bson docs for more details on registries.
 //
-// Registry supports Getter and Setter equivalents by registering hooks. Note that if a value
-// matches the hook for bson.Marshaler, bson.ValueMarshaler, or bson.Proxy, that
-// hook will take priority over the Getter hook. The same is true for the hooks for
-// bson.Unmarshaler and bson.ValueUnmarshaler and the Setter hook.
-//
 // The functional differences between Registry and globalsign/mgo's BSON library are:
 //
 // 1) Registry errors instead of silently skipping mismatched types when decoding.

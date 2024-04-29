@@ -31,16 +31,6 @@ func (d decodeBinaryError) Error() string {
 	return fmt.Sprintf("only binary values with subtype 0x00 or 0x02 can be decoded into %s, but got subtype %v", d.typeName, d.subtype)
 }
 
-func newDefaultStructCodec() *StructCodec {
-	codec, err := NewStructCodec(DefaultStructTagParser)
-	if err != nil {
-		// This function is called from the codec registration path, so errors can't be propagated. If there's an error
-		// constructing the StructCodec, we panic to avoid losing it.
-		panic(fmt.Errorf("error creating default StructCodec: %w", err))
-	}
-	return codec
-}
-
 // registerDefaultDecoders will register the default decoder methods with the provided Registry.
 //
 // There is no support for decoding map[string]interface{} because there is no decoder for
@@ -66,10 +56,10 @@ func registerDefaultDecoders(reg *Registry) {
 	reg.RegisterTypeDecoder(tMaxKey, decodeAdapter{maxKeyDecodeValue, maxKeyDecodeType})
 	reg.RegisterTypeDecoder(tJavaScript, decodeAdapter{javaScriptDecodeValue, javaScriptDecodeType})
 	reg.RegisterTypeDecoder(tSymbol, decodeAdapter{symbolDecodeValue, symbolDecodeType})
-	reg.RegisterTypeDecoder(tByteSlice, defaultByteSliceCodec)
-	reg.RegisterTypeDecoder(tTime, defaultTimeCodec)
-	reg.RegisterTypeDecoder(tEmpty, defaultEmptyInterfaceCodec)
-	reg.RegisterTypeDecoder(tCoreArray, defaultArrayCodec)
+	reg.RegisterTypeDecoder(tByteSlice, &byteSliceCodec{})
+	reg.RegisterTypeDecoder(tTime, &timeCodec{})
+	reg.RegisterTypeDecoder(tEmpty, &emptyInterfaceCodec{})
+	reg.RegisterTypeDecoder(tCoreArray, &arrayCodec{})
 	reg.RegisterTypeDecoder(tOID, decodeAdapter{objectIDDecodeValue, objectIDDecodeType})
 	reg.RegisterTypeDecoder(tDecimal, decodeAdapter{decimal128DecodeValue, decimal128DecodeType})
 	reg.RegisterTypeDecoder(tJSONNumber, decodeAdapter{jsonNumberDecodeValue, jsonNumberDecodeType})
@@ -82,19 +72,19 @@ func registerDefaultDecoders(reg *Registry) {
 	reg.RegisterKindDecoder(reflect.Int16, intDecoder)
 	reg.RegisterKindDecoder(reflect.Int32, intDecoder)
 	reg.RegisterKindDecoder(reflect.Int64, intDecoder)
-	reg.RegisterKindDecoder(reflect.Uint, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint8, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint16, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint32, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint64, defaultUIntCodec)
+	reg.RegisterKindDecoder(reflect.Uint, &uintCodec{})
+	reg.RegisterKindDecoder(reflect.Uint8, &uintCodec{})
+	reg.RegisterKindDecoder(reflect.Uint16, &uintCodec{})
+	reg.RegisterKindDecoder(reflect.Uint32, &uintCodec{})
+	reg.RegisterKindDecoder(reflect.Uint64, &uintCodec{})
 	reg.RegisterKindDecoder(reflect.Float32, floatDecoder)
 	reg.RegisterKindDecoder(reflect.Float64, floatDecoder)
 	reg.RegisterKindDecoder(reflect.Array, ValueDecoderFunc(arrayDecodeValue))
-	reg.RegisterKindDecoder(reflect.Map, defaultMapCodec)
-	reg.RegisterKindDecoder(reflect.Slice, defaultSliceCodec)
-	reg.RegisterKindDecoder(reflect.String, defaultStringCodec)
-	reg.RegisterKindDecoder(reflect.Struct, newDefaultStructCodec())
-	reg.RegisterKindDecoder(reflect.Ptr, NewPointerCodec())
+	reg.RegisterKindDecoder(reflect.Map, &mapCodec{})
+	reg.RegisterKindDecoder(reflect.Slice, &sliceCodec{})
+	reg.RegisterKindDecoder(reflect.String, &stringCodec{})
+	reg.RegisterKindDecoder(reflect.Struct, newStructCodec(DefaultStructTagParser))
+	reg.RegisterKindDecoder(reflect.Ptr, &pointerCodec{})
 	reg.RegisterTypeMapEntry(TypeDouble, tFloat64)
 	reg.RegisterTypeMapEntry(TypeString, tString)
 	reg.RegisterTypeMapEntry(TypeArray, tA)

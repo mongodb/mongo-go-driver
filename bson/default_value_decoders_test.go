@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	defaultTestStructCodec = newDefaultStructCodec()
+	defaultTestStructCodec = newStructCodec(DefaultStructTagParser)
 )
 
 func TestDefaultValueDecoders(t *testing.T) {
@@ -371,7 +371,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultUIntCodec.DecodeValue",
-			defaultUIntCodec,
+			&uintCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -736,7 +736,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultTimeCodec.DecodeValue",
-			defaultTimeCodec,
+			&timeCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -790,7 +790,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultMapCodec.DecodeValue",
-			defaultMapCodec,
+			&mapCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -962,7 +962,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultSliceCodec.DecodeValue",
-			defaultSliceCodec,
+			&sliceCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -1373,7 +1373,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultByteSliceCodec.DecodeValue",
-			defaultByteSliceCodec,
+			&byteSliceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -1441,7 +1441,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultStringCodec.DecodeValue",
-			defaultStringCodec,
+			&stringCodec{},
 			[]subtest{
 				{
 					"symbol",
@@ -1550,15 +1550,15 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"PointerCodec.DecodeValue",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"not valid", nil, nil, nil, nothing,
-					ValueDecoderError{Name: "PointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: reflect.Value{}},
+					ValueDecoderError{Name: "pointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: reflect.Value{}},
 				},
 				{
 					"can set", cansettest, nil, nil, nothing,
-					ValueDecoderError{Name: "PointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}},
+					ValueDecoderError{Name: "pointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}},
 				},
 				{
 					"No Decoder", &wrong, &DecodeContext{Registry: buildDefaultRegistry()}, nil, nothing,
@@ -2312,7 +2312,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"CoreArrayDecodeValue",
-			defaultArrayCodec,
+			&arrayCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -3195,6 +3195,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	})
 
 	t.Run("defaultEmptyInterfaceCodec.DecodeValue", func(t *testing.T) {
+		defaultEmptyInterfaceCodec := &emptyInterfaceCodec{}
 		t.Run("DecodeValue", func(t *testing.T) {
 			testCases := []struct {
 				name     string
@@ -3486,7 +3487,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			var got D
 			vr := NewValueReader(doc)
 			val := reflect.ValueOf(&got).Elem()
-			err := defaultSliceCodec.DecodeValue(DecodeContext{Registry: reg}, vr, val)
+			err := (&sliceCodec{}).DecodeValue(DecodeContext{Registry: reg}, vr, val)
 			noerr(t, err)
 			if !cmp.Equal(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
@@ -3574,7 +3575,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				D{},
 				NewValueReader(docBytes),
 				emptyInterfaceErrorRegistry,
-				defaultSliceCodec,
+				&sliceCodec{},
 				docEmptyInterfaceErr,
 			},
 			{
@@ -3583,7 +3584,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				[]string{},
 				&valueReaderWriter{BSONType: TypeArray},
 				nil,
-				defaultSliceCodec,
+				&sliceCodec{},
 				&DecodeError{
 					keys:    []string{"0"},
 					wrapped: errors.New("cannot decode array into a string type"),
@@ -3620,7 +3621,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				map[string]interface{}{},
 				NewValueReader(docBytes),
 				emptyInterfaceErrorRegistry,
-				defaultMapCodec,
+				&mapCodec{},
 				docEmptyInterfaceErr,
 			},
 			{
@@ -3730,7 +3731,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			dc := DecodeContext{Registry: buildDefaultRegistry()}
 			vr := NewValueReader(docBytes)
 			val := reflect.New(reflect.TypeOf(myMap{})).Elem()
-			err := defaultMapCodec.DecodeValue(dc, vr, val)
+			err := (&mapCodec{}).DecodeValue(dc, vr, val)
 			assert.Nil(t, err, "DecodeValue error: %v", err)
 
 			want := myMap{

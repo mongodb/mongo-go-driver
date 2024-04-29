@@ -9,56 +9,32 @@ package bson
 import (
 	"fmt"
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
-// ByteSliceCodec is the Codec used for []byte values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// ByteSliceCodec registered.
-type ByteSliceCodec struct {
-	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
+// byteSliceCodec is the Codec used for []byte values.
+type byteSliceCodec struct {
+	// encodeNilAsEmpty causes EncodeValue to marshal nil Go byte slices as empty BSON binary values
 	// instead of BSON null.
-	//
-	// Deprecated: Use bson.Encoder.NilByteSliceAsEmpty instead.
-	EncodeNilAsEmpty bool
+	encodeNilAsEmpty bool
 }
 
-var (
-	defaultByteSliceCodec = NewByteSliceCodec()
-
-	// Assert that defaultByteSliceCodec satisfies the typeDecoder interface, which allows it to be
-	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-	// collection.
-	_ typeDecoder = defaultByteSliceCodec
-)
-
-// NewByteSliceCodec returns a ByteSliceCodec with options opts.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// ByteSliceCodec registered.
-func NewByteSliceCodec(opts ...*bsonoptions.ByteSliceCodecOptions) *ByteSliceCodec {
-	byteSliceOpt := bsonoptions.MergeByteSliceCodecOptions(opts...)
-	codec := ByteSliceCodec{}
-	if byteSliceOpt.EncodeNilAsEmpty != nil {
-		codec.EncodeNilAsEmpty = *byteSliceOpt.EncodeNilAsEmpty
-	}
-	return &codec
-}
+// Assert that defaultByteSliceCodec satisfies the typeDecoder interface, which allows it to be
+// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+// collection.
+var _ typeDecoder = (*byteSliceCodec)(nil)
 
 // EncodeValue is the ValueEncoder for []byte.
-func (bsc *ByteSliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (bsc *byteSliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
-	if val.IsNil() && !bsc.EncodeNilAsEmpty && !ec.nilByteSliceAsEmpty {
+	if val.IsNil() && !bsc.encodeNilAsEmpty && !ec.nilByteSliceAsEmpty {
 		return vw.WriteNull()
 	}
 	return vw.WriteBinary(val.Interface().([]byte))
 }
 
-func (bsc *ByteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (bsc *byteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tByteSlice {
 		return emptyValue, ValueDecoderError{
 			Name:     "ByteSliceDecodeValue",
@@ -106,7 +82,7 @@ func (bsc *ByteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect
 }
 
 // DecodeValue is the ValueDecoder for []byte.
-func (bsc *ByteSliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (bsc *byteSliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tByteSlice {
 		return ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}

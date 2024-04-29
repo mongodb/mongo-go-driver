@@ -30,7 +30,7 @@ func TestCondAddrCodec(t *testing.T) {
 			invoked = 2
 			return nil
 		})
-		condEncoder := newCondAddrEncoder(encode1, encode2)
+		condEncoder := &condAddrEncoder{canAddrEnc: encode1, elseEnc: encode2}
 
 		testCases := []struct {
 			name    string
@@ -50,7 +50,7 @@ func TestCondAddrCodec(t *testing.T) {
 		}
 
 		t.Run("error", func(t *testing.T) {
-			errEncoder := newCondAddrEncoder(encode1, nil)
+			errEncoder := &condAddrEncoder{canAddrEnc: encode1, elseEnc: nil}
 			err := errEncoder.EncodeValue(EncodeContext{}, rw, unaddressable)
 			want := ErrNoEncoder{Type: unaddressable.Type()}
 			assert.Equal(t, err, want, "expected error %v, got %v", want, err)

@@ -297,7 +297,7 @@ func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool
 			if !found {
 				defaultEnc, _ = r.kindEncoders.Load(valueType.Kind())
 			}
-			return newCondAddrEncoder(ienc.ve, defaultEnc), true
+			return &condAddrEncoder{canAddrEnc: ienc.ve, elseEnc: defaultEnc}, true
 		}
 	}
 	return nil, false

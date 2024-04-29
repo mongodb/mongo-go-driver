@@ -12,24 +12,11 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// ArrayCodec is the Codec used for bsoncore.Array values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// ArrayCodec registered.
-type ArrayCodec struct{}
-
-var defaultArrayCodec = NewArrayCodec()
-
-// NewArrayCodec returns an ArrayCodec.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// ArrayCodec registered.
-func NewArrayCodec() *ArrayCodec {
-	return &ArrayCodec{}
-}
+// arrayCodec is the Codec used for bsoncore.Array values.
+type arrayCodec struct{}
 
 // EncodeValue is the ValueEncoder for bsoncore.Array values.
-func (ac *ArrayCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (ac *arrayCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCoreArray {
 		return ValueEncoderError{Name: "CoreArrayEncodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
 	}
@@ -39,7 +26,7 @@ func (ac *ArrayCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.V
 }
 
 // DecodeValue is the ValueDecoder for bsoncore.Array values.
-func (ac *ArrayCodec) DecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func (ac *arrayCodec) DecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCoreArray {
 		return ValueDecoderError{Name: "CoreArrayDecodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
 	}

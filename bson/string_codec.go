@@ -10,42 +10,22 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
-// StringCodec is the Codec used for string values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// StringCodec registered.
-type StringCodec struct {
-	// DecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
+// stringCodec is the Codec used for string values.
+type stringCodec struct {
+	// decodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
 	// If false, a string made from the raw object ID bytes will be used. Defaults to true.
-	//
-	// Deprecated: Decoding object IDs as raw bytes will not be supported in Go Driver 2.0.
-	DecodeObjectIDAsHex bool
+	decodeObjectIDAsHex bool
 }
 
-var (
-	defaultStringCodec = NewStringCodec()
-
-	// Assert that defaultStringCodec satisfies the typeDecoder interface, which allows it to be
-	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-	// collection.
-	_ typeDecoder = defaultStringCodec
-)
-
-// NewStringCodec returns a StringCodec with options opts.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// StringCodec registered.
-func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
-	stringOpt := bsonoptions.MergeStringCodecOptions(opts...)
-	return &StringCodec{*stringOpt.DecodeObjectIDAsHex}
-}
+// Assert that defaultStringCodec satisfies the typeDecoder interface, which allows it to be
+// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+// collection.
+var _ typeDecoder = (*stringCodec)(nil)
 
 // EncodeValue is the ValueEncoder for string types.
-func (sc *StringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (sc *stringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.String {
 		return ValueEncoderError{
 			Name:     "StringEncodeValue",
@@ -57,7 +37,7 @@ func (sc *StringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.
 	return vw.WriteString(val.String())
 }
 
-func (sc *StringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -79,11 +59,10 @@ func (sc *StringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 		if err != nil {
 			return emptyValue, err
 		}
-		if dc.decodeObjectIDAsHex {
-			str = oid.Hex()
-		} else {
+		if !sc.decodeObjectIDAsHex && !dc.decodeObjectIDAsHex {
 			return emptyValue, errors.New("cannot decode ObjectID as string if DecodeObjectIDAsHex is not set")
 		}
+		str = oid.Hex()
 	case TypeSymbol:
 		str, err = vr.ReadSymbol()
 		if err != nil {
@@ -114,7 +93,7 @@ func (sc *StringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 }
 
 // DecodeValue is the ValueDecoder for string types.
-func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+func (sc *stringCodec) DecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.String {
 		return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 	}

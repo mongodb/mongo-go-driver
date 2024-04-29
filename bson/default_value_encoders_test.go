@@ -135,7 +135,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UintEncodeValue",
-			defaultUIntCodec,
+			&uintCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -198,7 +198,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimeEncodeValue",
-			defaultTimeCodec,
+			&timeCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -213,7 +213,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MapEncodeValue",
-			defaultMapCodec,
+			&mapCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -371,7 +371,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SliceEncodeValue",
-			defaultSliceCodec,
+			&sliceCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -535,7 +535,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ByteSliceEncodeValue",
-			defaultByteSliceCodec,
+			&byteSliceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -551,7 +551,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"EmptyInterfaceEncodeValue",
-			defaultEmptyInterfaceCodec,
+			&emptyInterfaceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -775,7 +775,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"PointerCodec.EncodeValue",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"nil",
@@ -791,7 +791,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nil,
 					nothing,
-					ValueEncoderError{Name: "PointerCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: reflect.ValueOf(int32(123456))},
+					ValueEncoderError{Name: "pointerCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: reflect.ValueOf(int32(123456))},
 				},
 				{
 					"typed nil",
@@ -813,7 +813,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"pointer implementation addressable interface",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"ValueMarshaler",
@@ -1073,7 +1073,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"StructEncodeValue",
-			defaultTestStructCodec,
+			newStructCodec(DefaultStructTagParser),
 			[]subtest{
 				{
 					"interface value",
@@ -1130,7 +1130,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreArrayEncodeValue",
-			defaultArrayCodec,
+			&arrayCodec{},
 			[]subtest{
 				{
 					"wrong type",

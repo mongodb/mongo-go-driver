@@ -18,12 +18,6 @@ type condAddrEncoder struct {
 
 var _ ValueEncoder = (*condAddrEncoder)(nil)
 
-// newCondAddrEncoder returns an condAddrEncoder.
-func newCondAddrEncoder(canAddrEnc, elseEnc ValueEncoder) *condAddrEncoder {
-	encoder := condAddrEncoder{canAddrEnc: canAddrEnc, elseEnc: elseEnc}
-	return &encoder
-}
-
 // EncodeValue is the ValueEncoderFunc for a value that may be addressable.
 func (cae *condAddrEncoder) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if val.CanAddr() {
