@@ -76,7 +76,7 @@ func (s *Session) ClientSession() *session.Client {
 }
 
 // ID returns the current ID document associated with the session. The ID
-// 1document is in the form {"id": <BSON binary value>}.
+// document is in the form {"id": <BSON binary value>}.
 func (s *Session) ID() bson.Raw {
 	return bson.Raw(s.clientSession.SessionID)
 }
@@ -319,7 +319,7 @@ func (s *Session) AdvanceOperationTime(ts *bson.Timestamp) error {
 	return s.clientSession.AdvanceOperationTime(ts)
 }
 
-// Client the Client associated with the session.
+// Client is the Client associated with the session.
 func (s *Session) Client() *Client {
 	return s.client
 }
