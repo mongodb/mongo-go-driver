@@ -1546,7 +1546,12 @@ func verifyDistinctResult(
 		return
 	}
 
-	for i, iwant := range want.(bson.A) {
+	assert.NotNil(mt, want, "expected want to be non-nil")
+
+	arr, ok := want.(bson.A)
+	assert.True(mt, ok, "expected want to be a BSON array")
+
+	for i, iwant := range arr {
 		gotRawValue := got.Index(uint(i))
 
 		iwantType, iwantBytes, err := bson.MarshalValue(iwant)

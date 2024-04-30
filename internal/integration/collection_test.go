@@ -896,7 +896,7 @@ func TestCollection(t *testing.T) {
 				err := res.Decode(&got)
 				assert.NoError(t, err)
 
-				assert.EqualValues(mt, tc.want, got, "expected result %v, got %v", tc.want, res)
+				assert.EqualValues(mt, tc.want, got, "expected result %v, got %v", tc.want, got)
 			})
 		}
 	})
