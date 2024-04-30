@@ -1303,7 +1303,7 @@ func (coll *Collection) Distinct(
 	fieldName string,
 	filter interface{},
 	opts ...*options.DistinctOptions,
-) *SingleResult[bson.RawArray] {
+) *DistinctResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1311,7 +1311,7 @@ func (coll *Collection) Distinct(
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return &SingleResult[bson.RawArray]{err: err}
+		return &DistinctResult{err: err}
 	}
 
 	sess := sessionFromContext(ctx)
@@ -1323,7 +1323,7 @@ func (coll *Collection) Distinct(
 
 	err = coll.client.validSession(sess)
 	if err != nil {
-		return &SingleResult[bson.RawArray]{err: err}
+		return &DistinctResult{err: err}
 	}
 
 	rc := coll.readConcern
@@ -1361,7 +1361,7 @@ func (coll *Collection) Distinct(
 	if option.Comment != nil {
 		comment, err := marshalValue(option.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.RawArray]{err: err}
+			return &DistinctResult{err: err}
 		}
 		op.Comment(comment)
 	}
@@ -1373,23 +1373,19 @@ func (coll *Collection) Distinct(
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return &SingleResult[bson.RawArray]{err: replaceErrors(err)}
+		return &DistinctResult{err: replaceErrors(err)}
 	}
 
 	arr, ok := op.Result().Values.ArrayOK()
 	if !ok {
 		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
 
-		return &SingleResult[bson.RawArray]{err: err}
+		return &DistinctResult{err: err}
 	}
 
-	return &SingleResult[bson.RawArray]{
-		bsonOpts: coll.bsonOpts,
-		reg:      coll.registry,
-		rdr: bson.RawValue{
-			Value: arr,
-			Type:  bson.TypeArray,
-		},
+	return &DistinctResult{
+		reg: coll.registry,
+		arr: bson.RawArray(arr),
 	}
 }
 
@@ -1677,14 +1673,14 @@ func newFindOptionsFromFindOneOptions(opts ...*options.FindOneOptions) []*option
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...*options.FindOneOptions) *SingleResult[bson.Raw] {
+	opts ...*options.FindOneOptions) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	cursor, err := coll.Find(ctx, filter, newFindOptionsFromFindOneOptions(opts...)...)
-	return &SingleResult[bson.Raw]{
+	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
 		bsonOpts: coll.bsonOpts,
@@ -1693,7 +1689,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	}
 }
 
-func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult[bson.Raw] {
+func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAndModify) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1707,7 +1703,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	err = coll.client.validSession(sess)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 
 	wc := coll.writeConcern
@@ -1738,15 +1734,12 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 
 	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 
-	return &SingleResult[bson.Raw]{
-		ctx: ctx,
-		rdr: bson.RawValue{
-			Value: op.Result().Value,
-			Type:  bson.TypeEmbeddedDocument,
-		},
+	return &SingleResult{
+		ctx:      ctx,
+		rdr:      bson.Raw(op.Result().Value),
 		bsonOpts: coll.bsonOpts,
 		reg:      coll.registry,
 	}
@@ -1798,11 +1791,11 @@ func mergeFindOneAndDeleteOptions(opts ...*options.FindOneAndDeleteOptions) *opt
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{},
-	opts ...*options.FindOneAndDeleteOptions) *SingleResult[bson.Raw] {
+	opts ...*options.FindOneAndDeleteOptions) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 	fod := mergeFindOneAndDeleteOptions(opts...)
 	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
@@ -1813,41 +1806,41 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 	if fod.Comment != nil {
 		comment, err := marshalValue(fod.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Comment(comment)
 	}
 	if fod.Projection != nil {
 		proj, err := marshal(fod.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Fields(proj)
 	}
 	if fod.Sort != nil {
 		if isUnorderedMap(fod.Sort) {
-			return &SingleResult[bson.Raw]{err: ErrMapForOrderedArgument{"sort"}}
+			return &SingleResult{err: ErrMapForOrderedArgument{"sort"}}
 		}
 		sort, err := marshal(fod.Sort, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Sort(sort)
 	}
 	if fod.Hint != nil {
 		if isUnorderedMap(fod.Hint) {
-			return &SingleResult[bson.Raw]{err: ErrMapForOrderedArgument{"hint"}}
+			return &SingleResult{err: ErrMapForOrderedArgument{"hint"}}
 		}
 		hint, err := marshalValue(fod.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Hint(hint)
 	}
 	if fod.Let != nil {
 		let, err := marshal(fod.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
 	}
@@ -1913,18 +1906,18 @@ func mergeFindOneAndReplaceOptions(opts ...*options.FindOneAndReplaceOptions) *o
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{},
-	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult[bson.Raw] {
+	replacement interface{}, opts ...*options.FindOneAndReplaceOptions) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 	r, err := marshal(replacement, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 	if firstElem, err := r.IndexErr(0); err == nil && strings.HasPrefix(firstElem.Key(), "$") {
-		return &SingleResult[bson.Raw]{err: errors.New("replacement document cannot contain keys beginning with '$'")}
+		return &SingleResult{err: errors.New("replacement document cannot contain keys beginning with '$'")}
 	}
 
 	fo := mergeFindOneAndReplaceOptions(opts...)
@@ -1939,14 +1932,14 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	if fo.Comment != nil {
 		comment, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Comment(comment)
 	}
 	if fo.Projection != nil {
 		proj, err := marshal(fo.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Fields(proj)
 	}
@@ -1955,11 +1948,11 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 	if fo.Sort != nil {
 		if isUnorderedMap(fo.Sort) {
-			return &SingleResult[bson.Raw]{err: ErrMapForOrderedArgument{"sort"}}
+			return &SingleResult{err: ErrMapForOrderedArgument{"sort"}}
 		}
 		sort, err := marshal(fo.Sort, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Sort(sort)
 	}
@@ -1968,18 +1961,18 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 	if fo.Hint != nil {
 		if isUnorderedMap(fo.Hint) {
-			return &SingleResult[bson.Raw]{err: ErrMapForOrderedArgument{"hint"}}
+			return &SingleResult{err: ErrMapForOrderedArgument{"hint"}}
 		}
 		hint, err := marshalValue(fo.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Hint(hint)
 	}
 	if fo.Let != nil {
 		let, err := marshal(fo.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
 	}
@@ -2049,7 +2042,7 @@ func mergeFindOneAndUpdateOptions(opts ...*options.FindOneAndUpdateOptions) *opt
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/findAndModify/.
 func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{},
-	update interface{}, opts ...*options.FindOneAndUpdateOptions) *SingleResult[bson.Raw] {
+	update interface{}, opts ...*options.FindOneAndUpdateOptions) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -2057,7 +2050,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 
 	fo := mergeFindOneAndUpdateOptions(opts...)
@@ -2066,7 +2059,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 	op = op.Update(u)
 
@@ -2078,7 +2071,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 		}
 		filtersDoc, err := marshalValue(af.Filters, coll.bsonOpts, reg)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.ArrayFilters(filtersDoc.Data)
 	}
@@ -2091,14 +2084,14 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	if fo.Comment != nil {
 		comment, err := marshalValue(fo.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Comment(comment)
 	}
 	if fo.Projection != nil {
 		proj, err := marshal(fo.Projection, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Fields(proj)
 	}
@@ -2107,11 +2100,11 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 	if fo.Sort != nil {
 		if isUnorderedMap(fo.Sort) {
-			return &SingleResult[bson.Raw]{err: ErrMapForOrderedArgument{"sort"}}
+			return &SingleResult{err: ErrMapForOrderedArgument{"sort"}}
 		}
 		sort, err := marshal(fo.Sort, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Sort(sort)
 	}
@@ -2120,18 +2113,18 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 	if fo.Hint != nil {
 		if isUnorderedMap(fo.Hint) {
-			return &SingleResult[bson.Raw]{err: ErrMapForOrderedArgument{"hint"}}
+			return &SingleResult{err: ErrMapForOrderedArgument{"hint"}}
 		}
 		hint, err := marshalValue(fo.Hint, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Hint(hint)
 	}
 	if fo.Let != nil {
 		let, err := marshal(fo.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return &SingleResult[bson.Raw]{err: err}
+			return &SingleResult{err: err}
 		}
 		op = op.Let(let)
 	}

@@ -21,11 +21,11 @@ var ErrNoDocuments = errors.New("mongo: no documents in result")
 // SingleResult represents a single document returned from an operation. If the operation resulted in an error, all
 // SingleResult methods will return that error. If the operation did not return any documents, all SingleResult methods
 // will return ErrNoDocuments.
-type SingleResult[T bson.Raw | bson.RawArray] struct {
+type SingleResult struct {
 	ctx      context.Context
 	err      error
 	cur      *Cursor
-	rdr      bson.RawValue
+	rdr      bson.Raw
 	bsonOpts *options.BSONOptions
 	reg      *bson.Registry
 }
@@ -39,9 +39,9 @@ func NewSingleResultFromDocument(
 	document interface{},
 	err error,
 	registry *bson.Registry,
-) *SingleResult[bson.Raw] {
+) *SingleResult {
 	if document == nil {
-		return &SingleResult[bson.Raw]{err: ErrNilDocument}
+		return &SingleResult{err: ErrNilDocument}
 	}
 	if registry == nil {
 		registry = bson.DefaultRegistry
@@ -49,10 +49,10 @@ func NewSingleResultFromDocument(
 
 	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)
 	if createErr != nil {
-		return &SingleResult[bson.Raw]{err: createErr}
+		return &SingleResult{err: createErr}
 	}
 
-	return &SingleResult[bson.Raw]{
+	return &SingleResult{
 		cur: cur,
 		err: err,
 		reg: registry,
@@ -65,7 +65,7 @@ func NewSingleResultFromDocument(
 //
 // If the operation was successful and returned a document, Decode will return any errors from the unmarshalling process
 // without any modification. If v is nil or is a typed nil, an error will be returned.
-func (sr *SingleResult[T]) Decode(v interface{}) error {
+func (sr *SingleResult) Decode(v interface{}) error {
 	if sr.err != nil {
 		return sr.err
 	}
@@ -77,37 +77,33 @@ func (sr *SingleResult[T]) Decode(v interface{}) error {
 		return sr.err
 	}
 
-	if sr.rdr.Type == bson.TypeEmbeddedDocument {
-		dec := getDecoder(sr.rdr.Value, sr.bsonOpts, sr.reg)
+	dec := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
 
-		return dec.Decode(v)
-	}
-
-	return sr.rdr.Unmarshal(v)
+	return dec.Decode(v)
 }
 
 // Raw returns the document represented by this SingleResult as a bson.Raw. If
 // there was an error from the operation that created this SingleResult, both
 // the result and that error will be returned. If the operation returned no
 // documents, this will return (nil, ErrNoDocuments).
-func (sr *SingleResult[T]) Raw() (T, error) {
+func (sr *SingleResult) Raw() (bson.Raw, error) {
 	if sr.err != nil {
-		return sr.rdr.Value, sr.err
+		return sr.rdr, sr.err
 	}
 
 	if sr.err = sr.setRdrContents(); sr.err != nil {
 		return nil, sr.err
 	}
 
-	return sr.rdr.Value, nil
+	return sr.rdr, nil
 }
 
 // setRdrContents will set the contents of rdr by iterating the underlying cursor if necessary.
-func (sr *SingleResult[T]) setRdrContents() error {
+func (sr *SingleResult) setRdrContents() error {
 	switch {
 	case sr.err != nil:
 		return sr.err
-	case sr.rdr.Value != nil:
+	case sr.rdr != nil:
 		return nil
 	case sr.cur != nil:
 		defer sr.cur.Close(sr.ctx)
@@ -120,8 +116,7 @@ func (sr *SingleResult[T]) setRdrContents() error {
 			return ErrNoDocuments
 		}
 
-		sr.rdr.Value = sr.cur.Current
-		sr.rdr.Type = bson.TypeEmbeddedDocument // Cursors only return documents
+		sr.rdr = sr.cur.Current
 
 		return nil
 	}
@@ -133,7 +128,7 @@ func (sr *SingleResult[T]) setRdrContents() error {
 // any, that was encountered while running the operation. If the operation was successful but did
 // not return any documents, Err returns ErrNoDocuments. If this error is not nil, this error will
 // also be returned from Decode.
-func (sr *SingleResult[T]) Err() error {
+func (sr *SingleResult) Err() error {
 	sr.err = sr.setRdrContents()
 
 	return sr.err

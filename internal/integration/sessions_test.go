@@ -619,9 +619,9 @@ func extractReturnError(returnValues []reflect.Value) error {
 	switch converted := errVal.Interface().(type) {
 	case error:
 		return converted
-	case *mongo.SingleResult[bson.Raw]:
+	case *mongo.SingleResult:
 		return converted.Err()
-	case *mongo.SingleResult[bson.RawArray]:
+	case *mongo.DistinctResult:
 		return converted.Err()
 	default:
 		return nil

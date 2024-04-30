@@ -19,7 +19,7 @@ import (
 
 // finder is an object that implements FindOne and Find.
 type finder interface {
-	FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult[bson.Raw]
+	FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult
 	Find(context.Context, interface{}, ...*options.FindOptions) (*mongo.Cursor, error)
 }
 
@@ -31,7 +31,7 @@ type mockFinder struct {
 }
 
 // FindOne mocks a findOne operation using NewSingleResultFromDocument.
-func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult[bson.Raw] {
+func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult {
 	return mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
 }
 

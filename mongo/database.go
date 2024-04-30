@@ -234,7 +234,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult[bson.Raw] {
+func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -242,19 +242,16 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 	op, sess, err := db.processRunCommand(ctx, runCommand, false, opts...)
 	defer closeImplicitSession(sess)
 	if err != nil {
-		return &SingleResult[bson.Raw]{err: err}
+		return &SingleResult{err: err}
 	}
 
 	err = op.Execute(ctx)
 	// RunCommand can be used to run a write, thus execute may return a write error
 	_, convErr := processWriteError(err)
-	return &SingleResult[bson.Raw]{
-		ctx: ctx,
-		err: convErr,
-		rdr: bson.RawValue{
-			Value: op.Result(),
-			Type:  bson.TypeEmbeddedDocument,
-		},
+	return &SingleResult{
+		ctx:      ctx,
+		err:      convErr,
+		rdr:      bson.Raw(op.Result()),
 		bsonOpts: db.bsonOpts,
 		reg:      db.registry,
 	}

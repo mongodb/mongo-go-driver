@@ -33,7 +33,7 @@ func TestNewSingleResultFromDocument(t *testing.T) {
 
 		// Assert that RDR contents are set correctly after Decode.
 		assert.NotNil(t, res.rdr, "expected non-nil rdr contents")
-		assert.Equal(t, findOneResultBytes, res.rdr.Value,
+		assert.Equal(t, expectedRawBytes, res.rdr,
 			"expected RDR contents to be %v, got %v", expectedRawBytes, res.rdr)
 
 		// Assert that a call to cur.Next will return false, as there was only one document in
@@ -99,7 +99,7 @@ func TestSingleResult_Decode(t *testing.T) {
 			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
 			assert.Nil(t, err, "newCursor error: %v", err)
 
-			sr := &SingleResult[bson.Raw]{cur: c, reg: bson.DefaultRegistry}
+			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry}
 			var firstDecode, secondDecode bson.Raw
 			err = sr.Decode(&firstDecode)
 			assert.Nil(t, err, "Decode error: %v", err)
@@ -112,62 +112,15 @@ func TestSingleResult_Decode(t *testing.T) {
 			assert.Equal(t, firstDecode, secondDecode, "expected contents %v, got %v", firstDecode, secondDecode)
 			assert.Equal(t, firstDecode, rawBytes, "expected contents %v, got %v", firstDecode, rawBytes)
 		})
-
-		t.Run("bson.RawArray", func(t *testing.T) {
-			_, vbytes, err := bson.MarshalValue([]int32{1, 2, 3})
-			assert.NoError(t, err)
-
-			sr := &SingleResult[bson.RawArray]{
-				reg: bson.DefaultRegistry,
-				rdr: bson.RawValue{
-					Type:  bson.TypeArray,
-					Value: vbytes,
-				},
-			}
-
-			var firstDecode, secondDecode bson.RawArray
-
-			err = sr.Decode(&firstDecode)
-			assert.Nil(t, err, "Decode error: %v", err)
-
-			err = sr.Decode(&secondDecode)
-			assert.Nil(t, err, "Decode error: %v", err)
-
-			assert.Equal(t, firstDecode, secondDecode, "expected contents %v, got %v", firstDecode, secondDecode)
-
-			rawBytes, err := sr.Raw()
-			assert.Nil(t, err, "Raw error: %v", err)
-
-			assert.Equal(t, vbytes, []byte(rawBytes), "expected contents %v, got %v", firstDecode, rawBytes)
-		})
 	})
 
 	t.Run("decode with error", func(t *testing.T) {
 		t.Run("bson.Raw", func(t *testing.T) {
 			r := []byte("foo")
-			sr := &SingleResult[bson.Raw]{
-				rdr: bson.RawValue{
-					Value: r,
-					Type:  bson.TypeEmbeddedDocument,
-				},
+			sr := &SingleResult{
+				rdr: r,
 				err: errors.New("Raw error"),
 			}
-			res, err := sr.Raw()
-			resBytes := []byte(res)
-			assert.Equal(t, r, resBytes, "expected contents %v, got %v", r, resBytes)
-			assert.Equal(t, sr.err, err, "expected error %v, got %v", sr.err, err)
-		})
-
-		t.Run("bson.RawArray", func(t *testing.T) {
-			r := []byte("foo")
-			sr := &SingleResult[bson.RawArray]{
-				rdr: bson.RawValue{
-					Value: r,
-					Type:  bson.TypeArray,
-				},
-				err: errors.New("Raw error"),
-			}
-
 			res, err := sr.Raw()
 			resBytes := []byte(res)
 			assert.Equal(t, r, resBytes, "expected contents %v, got %v", r, resBytes)
@@ -178,12 +131,7 @@ func TestSingleResult_Decode(t *testing.T) {
 
 func TestSingleResult_Err(t *testing.T) {
 	t.Run("bson.Raw", func(t *testing.T) {
-		sr := &SingleResult[bson.Raw]{}
-		assert.Equal(t, ErrNoDocuments, sr.Err(), "expected error %v, got %v", ErrNoDocuments, sr.Err())
-	})
-
-	t.Run("bson.RawArray", func(t *testing.T) {
-		sr := &SingleResult[bson.RawArray]{}
+		sr := &SingleResult{}
 		assert.Equal(t, ErrNoDocuments, sr.Err(), "expected error %v, got %v", ErrNoDocuments, sr.Err())
 	})
 }

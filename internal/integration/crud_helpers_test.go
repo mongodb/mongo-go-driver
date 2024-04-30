@@ -408,7 +408,7 @@ func executeFind(mt *mtest.T, sess mongo.Session, args bson.Raw) (*mongo.Cursor,
 	return mt.Coll.Find(context.Background(), filter, opts)
 }
 
-func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
+func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	cmd := emptyDoc
@@ -431,7 +431,7 @@ func executeRunCommand(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Si
 	}
 
 	if sess != nil {
-		var sr *mongo.SingleResult[bson.Raw]
+		var sr *mongo.SingleResult
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			sr = mt.DB.RunCommand(sc, cmd, opts)
 			return nil
@@ -557,7 +557,7 @@ func executeListDatabases(mt *mtest.T, sess mongo.Session, args bson.Raw) (mongo
 	return mt.Client.ListDatabases(context.Background(), filter)
 }
 
-func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
+func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -575,7 +575,7 @@ func executeFindOne(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.Singl
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult[bson.Raw]
+		var res *mongo.SingleResult
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOne(sc, filter)
 			return nil
@@ -627,7 +627,7 @@ func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.RawAr
 		}
 	}
 
-	var res *mongo.SingleResult[bson.RawArray]
+	var res *mongo.DistinctResult
 	if sess != nil {
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.Distinct(sc, fieldName, filter, opts)
@@ -645,7 +645,7 @@ func executeDistinct(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.RawAr
 	return res.Raw()
 }
 
-func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
+func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -674,7 +674,7 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult[bson.Raw]
+		var res *mongo.SingleResult
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndDelete(sc, filter, opts)
 			return nil
@@ -684,7 +684,7 @@ func executeFindOneAndDelete(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	return mt.Coll.FindOneAndDelete(context.Background(), filter, opts)
 }
 
-func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
+func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -731,7 +731,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult[bson.Raw]
+		var res *mongo.SingleResult
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndUpdate(sc, filter, update, opts)
 			return nil
@@ -741,7 +741,7 @@ func executeFindOneAndUpdate(mt *mtest.T, sess mongo.Session, args bson.Raw) *mo
 	return mt.Coll.FindOneAndUpdate(context.Background(), filter, update, opts)
 }
 
-func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult[bson.Raw] {
+func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *mongo.SingleResult {
 	mt.Helper()
 
 	filter := emptyDoc
@@ -784,7 +784,7 @@ func executeFindOneAndReplace(mt *mtest.T, sess mongo.Session, args bson.Raw) *m
 	}
 
 	if sess != nil {
-		var res *mongo.SingleResult[bson.Raw]
+		var res *mongo.SingleResult
 		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			res = mt.Coll.FindOneAndReplace(sc, filter, replacement, opts)
 			return nil
@@ -1648,7 +1648,7 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 
 func verifySingleResult(
 	mt *mtest.T,
-	actualResult *mongo.SingleResult[bson.Raw],
+	actualResult *mongo.SingleResult,
 	expectedResult interface{},
 ) {
 	mt.Helper()

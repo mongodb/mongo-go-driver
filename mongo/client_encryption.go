@@ -144,7 +144,7 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 
 // AddKeyAltName adds a keyAltName to the keyAltNames array of the key document in the key vault collection with the
 // given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	keyAltNameDoc := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	update := bsoncore.NewDocumentBuilder().AppendDocument("$addToSet", keyAltNameDoc).Build()
@@ -333,14 +333,14 @@ func (ce *ClientEncryption) DeleteKey(ctx context.Context, id bson.Binary) (*Del
 }
 
 // GetKeyByAltName returns a key document in the key vault collection with the given keyAltName.
-func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) GetKeyByAltName(ctx context.Context, keyAltName string) *SingleResult {
 	filter := bsoncore.NewDocumentBuilder().AppendString("keyAltNames", keyAltName).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
 
 // GetKey finds a single key document with the given UUID (BSON binary subtype 0x04). Returns the result of the
 // internal find() operation on the key vault collection.
-func (ce *ClientEncryption) GetKey(ctx context.Context, id bson.Binary) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) GetKey(ctx context.Context, id bson.Binary) *SingleResult {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	return ce.keyVaultColl.FindOne(ctx, filter)
 }
@@ -353,7 +353,7 @@ func (ce *ClientEncryption) GetKeys(ctx context.Context) (*Cursor, error) {
 
 // RemoveKeyAltName removes a keyAltName from the keyAltNames array of the key document in the key vault collection with
 // the given UUID (BSON binary subtype 0x04). Returns the previous version of the key document.
-func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult[bson.Raw] {
+func (ce *ClientEncryption) RemoveKeyAltName(ctx context.Context, id bson.Binary, keyAltName string) *SingleResult {
 	filter := bsoncore.NewDocumentBuilder().AppendBinary("_id", id.Subtype, id.Data).Build()
 	update := bson.A{bson.D{{"$set", bson.D{{"keyAltNames", bson.D{{"$cond", bson.A{bson.D{{"$eq",
 		bson.A{"$keyAltNames", bson.A{keyAltName}}}}, "$$REMOVE", bson.D{{"$filter",
