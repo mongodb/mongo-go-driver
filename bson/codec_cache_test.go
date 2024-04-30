@@ -134,7 +134,7 @@ func TestKindCacheClone(t *testing.T) {
 func TestKindCacheEncoderNilEncoder(t *testing.T) {
 	t.Run("Encoder", func(t *testing.T) {
 		c := new(kindEncoderCache)
-		c.Store(reflect.Invalid, ValueEncoder(nil))
+		c.Store(reflect.Invalid, valueEncoder(nil))
 		v, ok := c.Load(reflect.Invalid)
 		if v != nil || ok {
 			t.Errorf("Load of nil ValueEncoder should return: nil, false; got: %v, %t", v, ok)
@@ -142,7 +142,7 @@ func TestKindCacheEncoderNilEncoder(t *testing.T) {
 	})
 	t.Run("Decoder", func(t *testing.T) {
 		c := new(kindDecoderCache)
-		c.Store(reflect.Invalid, ValueDecoder(nil))
+		c.Store(reflect.Invalid, valueDecoder(nil))
 		v, ok := c.Load(reflect.Invalid)
 		if v != nil || ok {
 			t.Errorf("Load of nil ValueDecoder should return: nil, false; got: %v, %t", v, ok)

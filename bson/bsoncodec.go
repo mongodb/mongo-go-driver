@@ -77,12 +77,10 @@ func (vde ValueDecoderError) Error() string {
 type EncodeContext struct {
 	*Registry
 
-	// MinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64,
+	// minSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64,
 	// uint, uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits)
 	// that can represent the integer value.
-	//
-	// Deprecated: Use bson.Encoder.IntMinSize instead.
-	MinSize bool
+	minSize bool
 
 	errorOnInlineDuplicates bool
 	stringifyMapKeysWithFmt bool
@@ -93,91 +91,28 @@ type EncodeContext struct {
 	useJSONStructTags       bool
 }
 
-// ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in
-// the marshaled BSON when the "inline" struct tag option is set.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.ErrorOnInlineDuplicates] instead.
-func (ec *EncodeContext) ErrorOnInlineDuplicates() {
-	ec.errorOnInlineDuplicates = true
-}
-
-// StringifyMapKeysWithFmt causes the Encoder to convert Go map keys to BSON document field name
-// strings using fmt.Sprintf() instead of the default string conversion logic.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.StringifyMapKeysWithFmt] instead.
-func (ec *EncodeContext) StringifyMapKeysWithFmt() {
-	ec.stringifyMapKeysWithFmt = true
-}
-
-// NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON
-// null.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.NilMapAsEmpty] instead.
-func (ec *EncodeContext) NilMapAsEmpty() {
-	ec.nilMapAsEmpty = true
-}
-
-// NilSliceAsEmpty causes the Encoder to marshal nil Go slices as empty BSON arrays instead of BSON
-// null.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.NilSliceAsEmpty] instead.
-func (ec *EncodeContext) NilSliceAsEmpty() {
-	ec.nilSliceAsEmpty = true
-}
-
-// NilByteSliceAsEmpty causes the Encoder to marshal nil Go byte slices as empty BSON binary values
-// instead of BSON null.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.NilByteSliceAsEmpty] instead.
-func (ec *EncodeContext) NilByteSliceAsEmpty() {
-	ec.nilByteSliceAsEmpty = true
-}
-
-// OmitZeroStruct causes the Encoder to consider the zero value for a struct (e.g. MyStruct{})
-// as empty and omit it from the marshaled BSON when the "omitempty" struct tag option is set.
-//
-// Note that the Encoder only examines exported struct fields when determining if a struct is the
-// zero value. It considers pointers to a zero struct value (e.g. &MyStruct{}) not empty.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.OmitZeroStruct] instead.
-func (ec *EncodeContext) OmitZeroStruct() {
-	ec.omitZeroStruct = true
-}
-
-// UseJSONStructTags causes the Encoder to fall back to using the "json" struct tag if a "bson"
-// struct tag is not specified.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.UseJSONStructTags] instead.
-func (ec *EncodeContext) UseJSONStructTags() {
-	ec.useJSONStructTags = true
-}
-
 // DecodeContext is the contextual information required for a Codec to decode a
 // value.
 type DecodeContext struct {
 	*Registry
 
-	// Truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
-	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, int64,
-	// uint, uint8, uint16, uint32, or uint64) struct field. The truncation logic does not apply to
-	// BSON "decimal128" values.
-	//
-	// Deprecated: Use bson.Decoder.AllowTruncatingDoubles instead.
-	Truncate bool
-
-	// Ancestor is the type of a containing document. This is mainly used to determine what type
+	// ancestor is the type of a containing document. This is mainly used to determine what type
 	// should be used when decoding an embedded document into an empty interface. For example, if
 	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
 	// will be decoded into a bson.M.
-	//
-	// Deprecated: Use bson.Decoder.DefaultDocumentM or bson.Decoder.DefaultDocumentD instead.
-	Ancestor reflect.Type
+	ancestor reflect.Type
 
 	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
 	// usage for this field is restricted to data typed as "interface{}" or "map[string]interface{}". If DocumentType is
 	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
 	// error. DocumentType overrides the Ancestor field.
 	defaultDocumentType reflect.Type
+
+	// truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
+	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, int64,
+	// uint, uint8, uint16, uint32, or uint64) struct field. The truncation logic does not apply to
+	// BSON "decimal128" values.
+	truncate bool
 
 	binaryAsSlice       bool
 	decodeObjectIDAsHex bool
@@ -187,85 +122,13 @@ type DecodeContext struct {
 	zeroStructs         bool
 }
 
-// BinaryAsSlice causes the Decoder to unmarshal BSON binary field values that are the "Generic" or
-// "Old" BSON binary subtype as a Go byte slice instead of a Binary.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.BinaryAsSlice] instead.
-func (dc *DecodeContext) BinaryAsSlice() {
-	dc.binaryAsSlice = true
-}
-
-// DecodeObjectIDAsHex causes the Decoder to unmarshal BSON ObjectID as a hexadecimal string.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DecodeObjectIDAsHex] instead.
-func (dc *DecodeContext) DecodeObjectIDAsHex() {
-	dc.decodeObjectIDAsHex = true
-}
-
-// UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"
-// struct tag is not specified.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.UseJSONStructTags] instead.
-func (dc *DecodeContext) UseJSONStructTags() {
-	dc.useJSONStructTags = true
-}
-
-// UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
-// of the UTC timezone.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.UseLocalTimeZone] instead.
-func (dc *DecodeContext) UseLocalTimeZone() {
-	dc.useLocalTimeZone = true
-}
-
-// ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value
-// passed to Decode before unmarshaling BSON documents into them.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.ZeroMaps] instead.
-func (dc *DecodeContext) ZeroMaps() {
-	dc.zeroMaps = true
-}
-
-// ZeroStructs causes the Decoder to delete any existing values from Go structs in the destination
-// value passed to Decode before unmarshaling BSON documents into them.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.ZeroStructs] instead.
-func (dc *DecodeContext) ZeroStructs() {
-	dc.zeroStructs = true
-}
-
-// DefaultDocumentM causes the Decoder to always unmarshal documents into the M type. This
-// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DefaultDocumentM] instead.
-func (dc *DecodeContext) DefaultDocumentM() {
-	dc.defaultDocumentType = reflect.TypeOf(M{})
-}
-
-// DefaultDocumentD causes the Decoder to always unmarshal documents into the D type. This
-// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DefaultDocumentD] instead.
-func (dc *DecodeContext) DefaultDocumentD() {
-	dc.defaultDocumentType = reflect.TypeOf(D{})
-}
-
-// ValueCodec is an interface for encoding and decoding a reflect.Value.
-// values.
-//
-// Deprecated: Use [ValueEncoder] and [ValueDecoder] instead.
-type ValueCodec interface {
-	ValueEncoder
-	ValueDecoder
-}
-
-// ValueEncoder is the interface implemented by types that can encode a provided Go type to BSON.
+// valueEncoder is the interface implemented by types that can encode a provided Go type to BSON.
 // The value to encode is provided as a reflect.Value and a bson.ValueWriter is used within the
 // EncodeValue method to actually create the BSON representation. For convenience, ValueEncoderFunc
 // is provided to allow use of a function with the correct signature as a ValueEncoder. An
 // EncodeContext instance is provided to allow implementations to lookup further ValueEncoders and
 // to provide configuration information.
-type ValueEncoder interface {
+type valueEncoder interface {
 	EncodeValue(EncodeContext, ValueWriter, reflect.Value) error
 }
 
@@ -278,12 +141,12 @@ func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val ref
 	return fn(ec, vw, val)
 }
 
-// ValueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
+// valueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
 // Implementations should ensure that the value they receive is settable. Similar to ValueEncoderFunc,
 // ValueDecoderFunc is provided to allow the use of a function with the correct signature as a
 // ValueDecoder. A DecodeContext instance is provided and serves similar functionality to the
 // EncodeContext.
-type ValueDecoder interface {
+type valueDecoder interface {
 	DecodeValue(DecodeContext, ValueReader, reflect.Value) error
 }
 
@@ -314,17 +177,17 @@ type decodeAdapter struct {
 	typeDecoderFunc
 }
 
-var _ ValueDecoder = decodeAdapter{}
+var _ valueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
 // decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of type
 // t and calls decoder.DecodeValue on it.
-func decodeTypeOrValue(decoder ValueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func decodeTypeOrValue(decoder valueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	td, _ := decoder.(typeDecoder)
 	return decodeTypeOrValueWithInfo(decoder, td, dc, vr, t, true)
 }
 
-func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
+func decodeTypeOrValueWithInfo(vd valueDecoder, td typeDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
 	if td != nil {
 		val, err := td.decodeType(dc, vr, t)
 		if err == nil && convert && val.Type() != t {

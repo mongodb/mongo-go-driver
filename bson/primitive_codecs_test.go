@@ -45,7 +45,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		ve       ValueEncoder
+		ve       valueEncoder
 		subtests []subtest
 	}{
 		{
@@ -491,7 +491,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		vd       ValueDecoder
+		vd       valueDecoder
 		subtests []subtest
 	}{
 		{

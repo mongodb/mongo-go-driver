@@ -47,11 +47,11 @@ func (eic emptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 			// that type.
 			return dc.defaultDocumentType, nil
 		}
-		if dc.Ancestor != nil {
+		if dc.ancestor != nil {
 			// Using ancestor information rather than looking up the type map entry forces consistent decoding.
 			// If we're decoding into a bson.D, subdocuments should also be decoded as bson.D, even if a type map entry
 			// has been registered.
-			return dc.Ancestor, nil
+			return dc.ancestor, nil
 		}
 	}
 

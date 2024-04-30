@@ -10,8 +10,8 @@ import (
 	"reflect"
 )
 
-var _ ValueEncoder = &pointerCodec{}
-var _ ValueDecoder = &pointerCodec{}
+var _ valueEncoder = &pointerCodec{}
+var _ valueDecoder = &pointerCodec{}
 
 // pointerCodec is the Codec used for pointers.
 type pointerCodec struct {

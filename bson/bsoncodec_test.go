@@ -7,39 +7,9 @@
 package bson
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 )
-
-func ExampleValueEncoder() {
-	var _ ValueEncoderFunc = func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-		if val.Kind() != reflect.String {
-			return ValueEncoderError{Name: "StringEncodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
-		}
-
-		return vw.WriteString(val.String())
-	}
-}
-
-func ExampleValueDecoder() {
-	var _ ValueDecoderFunc = func(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-		if !val.CanSet() || val.Kind() != reflect.String {
-			return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
-		}
-
-		if vr.Type() != TypeString {
-			return fmt.Errorf("cannot decode %v into a string type", vr.Type())
-		}
-
-		str, err := vr.ReadString()
-		if err != nil {
-			return err
-		}
-		val.SetString(str)
-		return nil
-	}
-}
 
 type llCodec struct {
 	t         *testing.T

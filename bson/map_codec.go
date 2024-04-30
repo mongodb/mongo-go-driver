@@ -159,7 +159,7 @@ func (mc *mapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	if eType == tEmpty {
-		dc.Ancestor = val.Type()
+		dc.ancestor = val.Type()
 	}
 
 	keyType := val.Type().Key()

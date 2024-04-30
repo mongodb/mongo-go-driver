@@ -30,18 +30,6 @@ var decPool = sync.Pool{
 type Decoder struct {
 	dc DecodeContext
 	vr ValueReader
-
-	// We persist defaultDocumentM and defaultDocumentD on the Decoder to prevent overwriting from
-	// (*Decoder).SetContext.
-	defaultDocumentM bool
-	defaultDocumentD bool
-
-	binaryAsSlice       bool
-	decodeObjectIDAsHex bool
-	useJSONStructTags   bool
-	useLocalTimeZone    bool
-	zeroMaps            bool
-	zeroStructs         bool
 }
 
 // NewDecoder returns a new decoder that uses the DefaultRegistry to read from vr.
@@ -85,31 +73,6 @@ func (d *Decoder) Decode(val interface{}) error {
 		return err
 	}
 
-	if d.defaultDocumentM {
-		d.dc.DefaultDocumentM()
-	}
-	if d.defaultDocumentD {
-		d.dc.DefaultDocumentD()
-	}
-	if d.binaryAsSlice {
-		d.dc.BinaryAsSlice()
-	}
-	if d.decodeObjectIDAsHex {
-		d.dc.DecodeObjectIDAsHex()
-	}
-	if d.useJSONStructTags {
-		d.dc.UseJSONStructTags()
-	}
-	if d.useLocalTimeZone {
-		d.dc.UseLocalTimeZone()
-	}
-	if d.zeroMaps {
-		d.dc.ZeroMaps()
-	}
-	if d.zeroStructs {
-		d.dc.ZeroStructs()
-	}
-
 	return decoder.DecodeValue(d.dc, d.vr, rval)
 }
 
@@ -127,53 +90,53 @@ func (d *Decoder) SetRegistry(r *Registry) {
 // DefaultDocumentM causes the Decoder to always unmarshal documents into the primitive.M type. This
 // behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentM() {
-	d.defaultDocumentM = true
+	d.dc.defaultDocumentType = reflect.TypeOf(M{})
 }
 
 // DefaultDocumentD causes the Decoder to always unmarshal documents into the primitive.D type. This
 // behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentD() {
-	d.defaultDocumentD = true
+	d.dc.defaultDocumentType = reflect.TypeOf(D{})
 }
 
 // AllowTruncatingDoubles causes the Decoder to truncate the fractional part of BSON "double" values
 // when attempting to unmarshal them into a Go integer (int, int8, int16, int32, or int64) struct
 // field. The truncation logic does not apply to BSON "decimal128" values.
 func (d *Decoder) AllowTruncatingDoubles() {
-	d.dc.Truncate = true
+	d.dc.truncate = true
 }
 
 // BinaryAsSlice causes the Decoder to unmarshal BSON binary field values that are the "Generic" or
 // "Old" BSON binary subtype as a Go byte slice instead of a primitive.Binary.
 func (d *Decoder) BinaryAsSlice() {
-	d.binaryAsSlice = true
+	d.dc.binaryAsSlice = true
 }
 
 // DecodeObjectIDAsHex causes the Decoder to unmarshal BSON ObjectID as a hexadecimal string.
 func (d *Decoder) DecodeObjectIDAsHex() {
-	d.decodeObjectIDAsHex = true
+	d.dc.decodeObjectIDAsHex = true
 }
 
 // UseJSONStructTags causes the Decoder to fall back to using the "json" struct tag if a "bson"
 // struct tag is not specified.
 func (d *Decoder) UseJSONStructTags() {
-	d.useJSONStructTags = true
+	d.dc.useJSONStructTags = true
 }
 
 // UseLocalTimeZone causes the Decoder to unmarshal time.Time values in the local timezone instead
 // of the UTC timezone.
 func (d *Decoder) UseLocalTimeZone() {
-	d.useLocalTimeZone = true
+	d.dc.useLocalTimeZone = true
 }
 
 // ZeroMaps causes the Decoder to delete any existing values from Go maps in the destination value
 // passed to Decode before unmarshaling BSON documents into them.
 func (d *Decoder) ZeroMaps() {
-	d.zeroMaps = true
+	d.dc.zeroMaps = true
 }
 
 // ZeroStructs causes the Decoder to delete any existing values from Go structs in the destination
 // value passed to Decode before unmarshaling BSON documents into them.
 func (d *Decoder) ZeroStructs() {
-	d.zeroStructs = true
+	d.dc.zeroStructs = true
 }

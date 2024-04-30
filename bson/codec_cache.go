@@ -29,20 +29,20 @@ type typeEncoderCache struct {
 	cache sync.Map // map[reflect.Type]ValueEncoder
 }
 
-func (c *typeEncoderCache) Store(rt reflect.Type, enc ValueEncoder) {
+func (c *typeEncoderCache) Store(rt reflect.Type, enc valueEncoder) {
 	c.cache.Store(rt, enc)
 }
 
-func (c *typeEncoderCache) Load(rt reflect.Type) (ValueEncoder, bool) {
+func (c *typeEncoderCache) Load(rt reflect.Type) (valueEncoder, bool) {
 	if v, _ := c.cache.Load(rt); v != nil {
-		return v.(ValueEncoder), true
+		return v.(valueEncoder), true
 	}
 	return nil, false
 }
 
-func (c *typeEncoderCache) LoadOrStore(rt reflect.Type, enc ValueEncoder) ValueEncoder {
+func (c *typeEncoderCache) LoadOrStore(rt reflect.Type, enc valueEncoder) valueEncoder {
 	if v, loaded := c.cache.LoadOrStore(rt, enc); loaded {
-		enc = v.(ValueEncoder)
+		enc = v.(valueEncoder)
 	}
 	return enc
 }
@@ -62,20 +62,20 @@ type typeDecoderCache struct {
 	cache sync.Map // map[reflect.Type]ValueDecoder
 }
 
-func (c *typeDecoderCache) Store(rt reflect.Type, dec ValueDecoder) {
+func (c *typeDecoderCache) Store(rt reflect.Type, dec valueDecoder) {
 	c.cache.Store(rt, dec)
 }
 
-func (c *typeDecoderCache) Load(rt reflect.Type) (ValueDecoder, bool) {
+func (c *typeDecoderCache) Load(rt reflect.Type) (valueDecoder, bool) {
 	if v, _ := c.cache.Load(rt); v != nil {
-		return v.(ValueDecoder), true
+		return v.(valueDecoder), true
 	}
 	return nil, false
 }
 
-func (c *typeDecoderCache) LoadOrStore(rt reflect.Type, dec ValueDecoder) ValueDecoder {
+func (c *typeDecoderCache) LoadOrStore(rt reflect.Type, dec valueDecoder) valueDecoder {
 	if v, loaded := c.cache.LoadOrStore(rt, dec); loaded {
-		dec = v.(ValueDecoder)
+		dec = v.(valueDecoder)
 	}
 	return dec
 }
@@ -96,20 +96,20 @@ func (c *typeDecoderCache) Clone() *typeDecoderCache {
 // is always the same (since different concrete types may implement the
 // ValueEncoder interface).
 type kindEncoderCacheEntry struct {
-	enc ValueEncoder
+	enc valueEncoder
 }
 
 type kindEncoderCache struct {
 	entries [reflect.UnsafePointer + 1]atomic.Value // *kindEncoderCacheEntry
 }
 
-func (c *kindEncoderCache) Store(rt reflect.Kind, enc ValueEncoder) {
+func (c *kindEncoderCache) Store(rt reflect.Kind, enc valueEncoder) {
 	if enc != nil && rt < reflect.Kind(len(c.entries)) {
 		c.entries[rt].Store(&kindEncoderCacheEntry{enc: enc})
 	}
 }
 
-func (c *kindEncoderCache) Load(rt reflect.Kind) (ValueEncoder, bool) {
+func (c *kindEncoderCache) Load(rt reflect.Kind) (valueEncoder, bool) {
 	if rt < reflect.Kind(len(c.entries)) {
 		if ent, ok := c.entries[rt].Load().(*kindEncoderCacheEntry); ok {
 			return ent.enc, ent.enc != nil
@@ -133,20 +133,20 @@ func (c *kindEncoderCache) Clone() *kindEncoderCache {
 // is always the same (since different concrete types may implement the
 // ValueDecoder interface).
 type kindDecoderCacheEntry struct {
-	dec ValueDecoder
+	dec valueDecoder
 }
 
 type kindDecoderCache struct {
 	entries [reflect.UnsafePointer + 1]atomic.Value // *kindDecoderCacheEntry
 }
 
-func (c *kindDecoderCache) Store(rt reflect.Kind, dec ValueDecoder) {
+func (c *kindDecoderCache) Store(rt reflect.Kind, dec valueDecoder) {
 	if rt < reflect.Kind(len(c.entries)) {
 		c.entries[rt].Store(&kindDecoderCacheEntry{dec: dec})
 	}
 }
 
-func (c *kindDecoderCache) Load(rt reflect.Kind) (ValueDecoder, bool) {
+func (c *kindDecoderCache) Load(rt reflect.Kind) (valueDecoder, bool) {
 	if rt < reflect.Kind(len(c.entries)) {
 		if ent, ok := c.entries[rt].Load().(*kindDecoderCacheEntry); ok {
 			return ent.dec, ent.dec != nil

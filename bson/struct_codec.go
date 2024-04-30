@@ -73,8 +73,8 @@ type structCodec struct {
 	overwriteDuplicatedInlinedFields bool
 }
 
-var _ ValueEncoder = &structCodec{}
-var _ ValueDecoder = &structCodec{}
+var _ valueEncoder = &structCodec{}
+var _ valueDecoder = &structCodec{}
 
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.
 func newStructCodec(p StructTagParser) *structCodec {
@@ -158,7 +158,7 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 
 		ectx := EncodeContext{
 			Registry:                ec.Registry,
-			MinSize:                 desc.minSize || ec.MinSize,
+			minSize:                 desc.minSize || ec.minSize,
 			errorOnInlineDuplicates: ec.errorOnInlineDuplicates,
 			stringifyMapKeysWithFmt: ec.stringifyMapKeysWithFmt,
 			nilMapAsEmpty:           ec.nilMapAsEmpty,
@@ -239,7 +239,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		val.Set(deepZero(val.Type()))
 	}
 
-	var decoder ValueDecoder
+	var decoder valueDecoder
 	var inlineMap reflect.Value
 	if sd.inlineMap >= 0 {
 		inlineMap = val.Field(sd.inlineMap)
@@ -287,7 +287,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
-			dc.Ancestor = inlineMap.Type()
+			dc.ancestor = inlineMap.Type()
 			err = decoder.DecodeValue(dc, vr, elem)
 			if err != nil {
 				return err
@@ -317,7 +317,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 
 		dctx := DecodeContext{
 			Registry:            dc.Registry,
-			Truncate:            fd.truncate || dc.Truncate,
+			truncate:            fd.truncate || dc.truncate,
 			defaultDocumentType: dc.defaultDocumentType,
 			binaryAsSlice:       dc.binaryAsSlice,
 			useJSONStructTags:   dc.useJSONStructTags,
@@ -385,8 +385,8 @@ type fieldDescription struct {
 	minSize   bool
 	truncate  bool
 	inline    []int
-	encoder   ValueEncoder
-	decoder   ValueDecoder
+	encoder   valueEncoder
+	decoder   valueDecoder
 }
 
 type byIndex []fieldDescription
