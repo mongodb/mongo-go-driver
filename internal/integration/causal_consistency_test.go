@@ -41,8 +41,8 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		// first read in a causally consistent session must not send afterClusterTime to the server
 
 		ccOpts := options.Session().SetCausalConsistency(true)
-		_ = mt.Client.UseSessionWithOptions(context.Background(), ccOpts, func(sc mongo.SessionContext) error {
-			_, _ = mt.Coll.Find(sc, bson.D{})
+		_ = mt.Client.UseSessionWithOptions(context.Background(), ccOpts, func(ctx context.Context) error {
+			_, _ = mt.Coll.Find(ctx, bson.D{})
 			return nil
 		})
 
@@ -57,8 +57,8 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_, _ = mt.Coll.Find(sc, bson.D{})
+		_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+			_, _ = mt.Coll.Find(ctx, bson.D{})
 			return nil
 		})
 
@@ -85,8 +85,8 @@ func TestCausalConsistency_Supported(t *testing.T) {
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
 
-				_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-					_ = mt.Coll.FindOne(sc, bson.D{})
+				_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+					_ = mt.Coll.FindOne(ctx, bson.D{})
 					return nil
 				})
 				currOptime := sess.OperationTime()
@@ -120,8 +120,8 @@ func TestCausalConsistency_Supported(t *testing.T) {
 				assert.NotNil(mt, currOptime, "expected session operation time, got nil")
 
 				mt.ClearEvents()
-				_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-					_ = mt.Coll.FindOne(sc, bson.D{})
+				_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+					_ = mt.Coll.FindOne(ctx, bson.D{})
 					return nil
 				})
 				_, sentOptime := getReadConcernFields(mt, mt.GetStartedEvent().Command)
@@ -134,10 +134,10 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		// a read operation in a non causally-consistent session should not include afterClusterTime
 
 		sessOpts := options.Session().SetCausalConsistency(false)
-		_ = mt.Client.UseSessionWithOptions(context.Background(), sessOpts, func(sc mongo.SessionContext) error {
-			_, _ = mt.Coll.Find(sc, bson.D{})
+		_ = mt.Client.UseSessionWithOptions(context.Background(), sessOpts, func(ctx context.Context) error {
+			_, _ = mt.Coll.Find(ctx, bson.D{})
 			mt.ClearEvents()
-			_, _ = mt.Coll.Find(sc, bson.D{})
+			_, _ = mt.Coll.Find(ctx, bson.D{})
 			return nil
 		})
 		evt := mt.GetStartedEvent()
@@ -152,14 +152,14 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_ = mt.Coll.FindOne(sc, bson.D{})
+		_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+			_ = mt.Coll.FindOne(ctx, bson.D{})
 			return nil
 		})
 		currOptime := sess.OperationTime()
 		mt.ClearEvents()
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_ = mt.Coll.FindOne(sc, bson.D{})
+		_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+			_ = mt.Coll.FindOne(ctx, bson.D{})
 			return nil
 		})
 
@@ -174,14 +174,14 @@ func TestCausalConsistency_Supported(t *testing.T) {
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_ = mt.Coll.FindOne(sc, bson.D{})
+		_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+			_ = mt.Coll.FindOne(ctx, bson.D{})
 			return nil
 		})
 		currOptime := sess.OperationTime()
 		mt.ClearEvents()
-		_ = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
-			_ = mt.Coll.FindOne(sc, bson.D{})
+		_ = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+			_ = mt.Coll.FindOne(ctx, bson.D{})
 			return nil
 		})
 
@@ -215,8 +215,8 @@ func TestCausalConsistency_NotSupported(t *testing.T) {
 		// support cluster times
 
 		sessOpts := options.Session().SetCausalConsistency(true)
-		_ = mt.Client.UseSessionWithOptions(context.Background(), sessOpts, func(sc mongo.SessionContext) error {
-			_, _ = mt.Coll.Find(sc, bson.D{})
+		_ = mt.Client.UseSessionWithOptions(context.Background(), sessOpts, func(ctx context.Context) error {
+			_, _ = mt.Coll.Find(ctx, bson.D{})
 			return nil
 		})
 

@@ -108,7 +108,7 @@ func TestRetryableWritesProse(t *testing.T) {
 
 			mt.ClearEvents()
 
-			err = mongo.WithSession(context.Background(), sess, func(ctx mongo.SessionContext) error {
+			err = mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
 				doc := bson.D{{"foo", 1}}
 				_, err := mt.Coll.InsertOne(ctx, doc)
 				return err
