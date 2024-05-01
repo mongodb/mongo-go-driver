@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/internal/logger"
@@ -62,7 +61,7 @@ type Client struct {
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 	monitor        *event.CommandMonitor
 	serverAPI      *driver.ServerAPIOptions
 	serverMonitor  *event.ServerMonitor
@@ -383,7 +382,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) {
+func (c *Client) StartSession(opts ...*options.SessionOptions) (*Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
@@ -442,7 +441,7 @@ func (c *Client) StartSession(opts ...*options.SessionOptions) (Session, error) 
 	sess.RetryWrite = false
 	sess.RetryRead = c.retryReads
 
-	return &sessionImpl{
+	return &Session{
 		clientSession: sess,
 		client:        c,
 		deployment:    c.deployment,
@@ -779,40 +778,51 @@ func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts
 	return names, nil
 }
 
-// WithSession creates a new SessionContext from the ctx and sess parameters and uses it to call the fn callback. The
-// SessionContext must be used as the Context parameter for any operations in the fn callback that should be executed
-// under the session.
+// WithSession creates a new session context from the ctx and sess parameters
+// and uses it to call the fn callback.
 //
-// WithSession is safe to call from multiple goroutines concurrently. However, the SessionContext passed to the
-// WithSession callback function is not safe for concurrent use by multiple goroutines.
+// WithSession is safe to call from multiple goroutines concurrently. However,
+// the context passed to the WithSession callback function is not safe for
+// concurrent use by multiple goroutines.
 //
-// If the ctx parameter already contains a Session, that Session will be replaced with the one provided.
+// If the ctx parameter already contains a Session, that Session will be
+// replaced with the one provided.
 //
-// Any error returned by the fn callback will be returned without any modifications.
-func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
+// Any error returned by the fn callback will be returned without any
+// modifications.
+func WithSession(ctx context.Context, sess *Session, fn func(context.Context) error) error {
 	return fn(NewSessionContext(ctx, sess))
 }
 
-// UseSession creates a new Session and uses it to create a new SessionContext, which is used to call the fn callback.
-// The SessionContext parameter must be used as the Context parameter for any operations in the fn callback that should
-// be executed under a session. After the callback returns, the created Session is ended, meaning that any in-progress
-// transactions started by fn will be aborted even if fn returns an error.
+// UseSession creates a new Session and uses it to create a new session context,
+// which is used to call the fn callback. After the callback returns, the
+// created Session is ended, meaning that any in-progress transactions started
+// by fn will be aborted even if fn returns an error.
 //
-// UseSession is safe to call from multiple goroutines concurrently. However, the SessionContext passed to the
-// UseSession callback function is not safe for concurrent use by multiple goroutines.
+// UseSession is safe to call from multiple goroutines concurrently. However,
+// the context passed to the UseSession callback function is not safe for
+// concurrent use by multiple goroutines.
 //
-// If the ctx parameter already contains a Session, that Session will be replaced with the newly created one.
+// If the ctx parameter already contains a Session, that Session will be
+// replaced with the newly created one.
 //
-// Any error returned by the fn callback will be returned without any modifications.
-func (c *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
+// Any error returned by the fn callback will be returned without any
+// modifications.
+func (c *Client) UseSession(ctx context.Context, fn func(context.Context) error) error {
 	return c.UseSessionWithOptions(ctx, options.Session(), fn)
 }
 
-// UseSessionWithOptions operates like UseSession but uses the given SessionOptions to create the Session.
+// UseSessionWithOptions operates like UseSession but uses the given
+// SessionOptions to create the Session.
 //
-// UseSessionWithOptions is safe to call from multiple goroutines concurrently. However, the SessionContext passed to
-// the UseSessionWithOptions callback function is not safe for concurrent use by multiple goroutines.
-func (c *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
+// UseSessionWithOptions is safe to call from multiple goroutines concurrently.
+// However, the context passed to the UseSessionWithOptions callback function is
+// not safe for concurrent use by multiple goroutines.
+func (c *Client) UseSessionWithOptions(
+	ctx context.Context,
+	opts *options.SessionOptions,
+	fn func(context.Context) error,
+) error {
 	defaultSess, err := c.StartSession(opts)
 	if err != nil {
 		return err

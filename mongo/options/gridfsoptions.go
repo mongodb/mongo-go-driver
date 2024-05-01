@@ -8,7 +8,6 @@ package options
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -93,7 +92,7 @@ type UploadOptions struct {
 	Metadata interface{}
 
 	// The BSON registry to use for converting filters to BSON documents. The default value is bson.DefaultRegistry.
-	Registry *bsoncodec.Registry
+	Registry *bson.Registry
 }
 
 // GridFSUpload creates a new UploadOptions instance.

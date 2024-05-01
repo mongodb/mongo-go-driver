@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
@@ -166,7 +166,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			tpm := eventtest.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address("localhost:27017"),
-				primitive.NewObjectID(),
+				bson.NewObjectID(),
 				defaultConnectionTimeout,
 				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
 					return tpm.PoolMonitor
@@ -303,7 +303,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			tpm := eventtest.NewTestPoolMonitor()
 			server := NewServer(
 				address.Address(l.Addr().String()),
-				primitive.NewObjectID(),
+				bson.NewObjectID(),
 				tc.connectTimeout,
 				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
 					return tpm.PoolMonitor
@@ -382,7 +382,7 @@ func TestServer(t *testing.T) {
 			var returnConnectionError bool
 			s := NewServer(
 				address.Address("localhost"),
-				primitive.NewObjectID(),
+				bson.NewObjectID(),
 				defaultConnectionTimeout,
 				WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 					return append(connOpts,
@@ -453,10 +453,10 @@ func TestServer(t *testing.T) {
 	}
 
 	t.Run("multiple connection initialization errors are processed correctly", func(t *testing.T) {
-		assertGenerationStats := func(t *testing.T, server *Server, serviceID primitive.ObjectID, wantGeneration, wantNumConns uint64) {
+		assertGenerationStats := func(t *testing.T, server *Server, serviceID bson.ObjectID, wantGeneration, wantNumConns uint64) {
 			t.Helper()
 
-			getGeneration := func(serviceIDPtr *primitive.ObjectID) uint64 {
+			getGeneration := func(serviceIDPtr *bson.ObjectID) uint64 {
 				generation, _ := server.pool.generation.getGeneration(serviceIDPtr)
 				return generation
 			}
@@ -508,9 +508,9 @@ func TestServer(t *testing.T) {
 
 			t.Run(tc.name, func(t *testing.T) {
 				var returnConnectionError bool
-				var serviceID primitive.ObjectID
+				var serviceID bson.ObjectID
 				if tc.loadBalanced {
-					serviceID = primitive.NewObjectID()
+					serviceID = bson.NewObjectID()
 				}
 
 				handshaker := &testHandshaker{
@@ -573,7 +573,7 @@ func TestServer(t *testing.T) {
 				server, err := ConnectServer(
 					address.Address("localhost:27017"),
 					nil,
-					primitive.NewObjectID(),
+					bson.NewObjectID(),
 					defaultConnectionTimeout,
 					serverOpts...,
 				)
@@ -609,7 +609,7 @@ func TestServer(t *testing.T) {
 		})
 		d := newdialer(&net.Dialer{})
 		s := NewServer(address.Address(addr.String()),
-			primitive.NewObjectID(),
+			bson.NewObjectID(),
 			defaultConnectionTimeout,
 			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
 				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
@@ -662,7 +662,7 @@ func TestServer(t *testing.T) {
 		s, err := ConnectServer(
 			address.Address("localhost"),
 			updateCallback,
-			primitive.NewObjectID(),
+			bson.NewObjectID(),
 			defaultConnectionTimeout,
 		)
 
@@ -680,7 +680,7 @@ func TestServer(t *testing.T) {
 			return append(connOpts, dialerOpt)
 		})
 
-		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), defaultConnectionTimeout, serverOpt)
+		s := NewServer(address.Address("localhost:27017"), bson.NewObjectID(), defaultConnectionTimeout, serverOpt)
 
 		// do a heartbeat with a nil connection so a new one will be dialed
 		_, err := s.check(context.Background())
@@ -744,7 +744,7 @@ func TestServer(t *testing.T) {
 			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 		}
 
-		s := NewServer(address.Address("localhost:27017"), primitive.NewObjectID(), defaultConnectionTimeout, serverOpts...)
+		s := NewServer(address.Address("localhost:27017"), bson.NewObjectID(), defaultConnectionTimeout, serverOpts...)
 
 		// set up heartbeat connection, which doesn't send events
 		_, err := s.check(context.Background())
@@ -803,7 +803,7 @@ func TestServer(t *testing.T) {
 		name := "test"
 
 		s := NewServer(address.Address("localhost"),
-			primitive.NewObjectID(),
+			bson.NewObjectID(),
 			defaultConnectionTimeout,
 			WithServerAppName(func(string) string { return name }))
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
@@ -813,8 +813,8 @@ func TestServer(t *testing.T) {
 func TestServer_ProcessError(t *testing.T) {
 	t.Parallel()
 
-	processID := primitive.NewObjectID()
-	newProcessID := primitive.NewObjectID()
+	processID := bson.NewObjectID()
+	newProcessID := bson.NewObjectID()
 
 	testCases := []struct {
 		name string
@@ -1150,7 +1150,7 @@ func TestServer_ProcessError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := NewServer(address.Address(""), primitive.NewObjectID(), defaultConnectionTimeout)
+			server := NewServer(address.Address(""), bson.NewObjectID(), defaultConnectionTimeout)
 			server.state = serverConnected
 			err := server.pool.ready()
 			require.Nil(t, err, "pool.ready() error: %v", err)
@@ -1328,7 +1328,7 @@ func (p *processErrorTestConn) Description() description.Server {
 // kind, topology version process ID and counter, and last error.
 func newServerDescription(
 	kind description.ServerKind,
-	processID primitive.ObjectID,
+	processID bson.ObjectID,
 	counter int64,
 	lastError error,
 ) description.Server {

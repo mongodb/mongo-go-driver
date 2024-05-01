@@ -11,8 +11,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -20,7 +18,7 @@ func testEncFn(t *testing.T) EncoderFn {
 	t.Helper()
 
 	return func(w io.Writer) (*bson.Encoder, error) {
-		rw := bsonrw.NewValueWriter(w)
+		rw := bson.NewValueWriter(w)
 		enc := bson.NewEncoder(rw)
 
 		return enc, nil
@@ -33,7 +31,7 @@ func TestMarshalValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		val      interface{}
-		registry *bsoncodec.Registry
+		registry *bson.Registry
 		encFn    EncoderFn
 		want     string
 		wantErr  error

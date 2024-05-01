@@ -15,8 +15,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -32,7 +30,7 @@ const (
 
 var (
 	serverDefaultConcern = []byte{5, 0, 0, 0, 0} // server default read concern and write concern is empty document
-	specTestRegistry     = func() *bsoncodec.Registry {
+	specTestRegistry     = func() *bson.Registry {
 		reg := bson.NewRegistry()
 		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 		return reg
@@ -239,10 +237,10 @@ func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
 		case "w":
 			wc.wSet = true
 			switch val.Type {
-			case bsontype.Int32:
+			case bson.TypeInt32:
 				w := int(val.Int32())
 				wc.WriteConcern.W = w
-			case bsontype.String:
+			case bson.TypeString:
 				wc.WriteConcern.W = val.StringValue()
 			default:
 				t.Fatalf("unexpected type for w: %v", val.Type)

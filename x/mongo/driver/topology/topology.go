@@ -21,7 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
@@ -104,7 +104,7 @@ type Topology struct {
 	serversClosed bool
 	servers       map[address.Address]*Server
 
-	id primitive.ObjectID
+	id bson.ObjectID
 }
 
 var (
@@ -131,7 +131,7 @@ func New(cfg *Config) (*Topology, error) {
 		subscribers:       make(map[uint64]chan description.Topology),
 		servers:           make(map[address.Address]*Server),
 		dnsResolver:       dns.DefaultResolver,
-		id:                primitive.NewObjectID(),
+		id:                bson.NewObjectID(),
 	}
 	t.desc.Store(description.Topology{})
 	t.updateCallback = func(desc description.Server) description.Server {

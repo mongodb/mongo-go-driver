@@ -14,7 +14,6 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -485,11 +484,11 @@ func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel)
 
 		bsonValue := elem.Value()
 		switch bsonValue.Type {
-		case bsontype.Int32:
+		case bsoncore.TypeInt32:
 			value = fmt.Sprintf("%d", bsonValue.Int32())
-		case bsontype.Int64:
+		case bsoncore.TypeInt64:
 			value = fmt.Sprintf("%d", bsonValue.Int64())
-		case bsontype.String:
+		case bsoncore.TypeString:
 			value = bsonValue.StringValue()
 		default:
 			return "", ErrInvalidIndexValue

@@ -387,19 +387,19 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 		switch elem.Key() {
 		case "ok":
 			switch elem.Value().Type {
-			case bson.TypeInt32:
+			case bsoncore.TypeInt32:
 				if elem.Value().Int32() == 1 {
 					ok = true
 				}
-			case bson.TypeInt64:
+			case bsoncore.TypeInt64:
 				if elem.Value().Int64() == 1 {
 					ok = true
 				}
-			case bson.TypeDouble:
+			case bsoncore.TypeDouble:
 				if elem.Value().Double() == 1 {
 					ok = true
 				}
-			case bson.TypeBoolean:
+			case bsoncore.TypeBoolean:
 				if elem.Value().Boolean() {
 					ok = true
 				}

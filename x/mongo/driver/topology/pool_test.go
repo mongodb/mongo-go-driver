@@ -14,8 +14,13 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/eventtest"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -1187,4 +1192,88 @@ func assertConnectionsOpened(t *testing.T, dialer *dialer, count int) {
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+func TestPool_PoolMonitor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("records durations", func(t *testing.T) {
+		t.Parallel()
+
+		cleanup := make(chan struct{})
+		defer close(cleanup)
+
+		// Create a listener that responds to exactly 1 connection. All
+		// subsequent connection requests should fail.
+		addr := bootstrapConnections(t, 1, func(nc net.Conn) {
+			<-cleanup
+			_ = nc.Close()
+		})
+
+		tpm := eventtest.NewTestPoolMonitor()
+		p := newPool(
+			poolConfig{
+				Address:     address.Address(addr.String()),
+				PoolMonitor: tpm.PoolMonitor,
+			},
+			// Add a 10ms delay in the handshake so the test is reliable on
+			// operating systems that can't measure very short durations (e.g.
+			// Windows).
+			WithHandshaker(func(Handshaker) Handshaker {
+				return &testHandshaker{
+					getHandshakeInformation: func(context.Context, address.Address, *mnet.Connection) (driver.HandshakeInformation, error) {
+						time.Sleep(10 * time.Millisecond)
+						return driver.HandshakeInformation{}, nil
+					},
+				}
+			}))
+
+		err := p.ready()
+		require.NoError(t, err, "ready error")
+
+		// Check out a connection to trigger "ConnectionReady" and
+		// "ConnectionCheckedOut" events.
+		conn, err := p.checkOut(context.Background())
+		require.NoError(t, err, "checkOut error")
+
+		// Close the connection so the next checkOut tries to create a new
+		// connection.
+		err = conn.close()
+		require.NoError(t, err, "close error")
+
+		err = p.checkIn(conn)
+		require.NoError(t, err, "checkIn error")
+
+		// Try to check out another connection to trigger a
+		// "ConnectionCheckOutFailed" event.
+		_, err = p.checkOut(context.Background())
+		require.Error(t, err, "expected a checkOut error")
+
+		p.close(context.Background())
+
+		events := tpm.Events(func(evt *event.PoolEvent) bool {
+			switch evt.Type {
+			case "ConnectionReady", "ConnectionCheckedOut", "ConnectionCheckOutFailed":
+				return true
+			}
+			return false
+		})
+
+		require.Lenf(t, events, 3, "expected there to be 3 pool events")
+
+		assert.Equal(t, events[0].Type, "ConnectionReady")
+		assert.Positive(t,
+			events[0].Duration,
+			"expected ConnectionReady Duration to be set")
+
+		assert.Equal(t, events[1].Type, "ConnectionCheckedOut")
+		assert.Positive(t,
+			events[1].Duration,
+			"expected ConnectionCheckedOut Duration to be set")
+
+		assert.Equal(t, events[2].Type, "ConnectionCheckOutFailed")
+		assert.Positive(t,
+			events[2].Duration,
+			"expected ConnectionCheckOutFailed Duration to be set")
+	})
 }

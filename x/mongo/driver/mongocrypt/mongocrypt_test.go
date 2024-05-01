@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 )
@@ -318,7 +317,7 @@ func TestMongoCrypt(t *testing.T) {
 			defer crypt.Close()
 
 			// create explicit encryption context and check initial state
-			keyID := primitive.Binary{
+			keyID := bson.Binary{
 				Subtype: 0x04, // 0x04 is UUID subtype
 				Data:    []byte("aaaaaaaaaaaaaaaa"),
 			}

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -143,7 +142,7 @@ func (c *Count) command(dst []byte, _ description.SelectedServer) ([]byte, error
 	if c.query != nil {
 		dst = bsoncore.AppendDocumentElement(dst, "query", c.query)
 	}
-	if c.comment.Type != bsontype.Type(0) {
+	if c.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", c.comment)
 	}
 	return dst, nil

@@ -18,8 +18,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
@@ -106,7 +104,7 @@ type startedInformation struct {
 	driverConnectionID       int64
 	serverConnID             *int64
 	redacted                 bool
-	serviceID                *primitive.ObjectID
+	serviceID                *bson.ObjectID
 	serverAddress            address.Address
 }
 
@@ -120,7 +118,7 @@ type finishedInformation struct {
 	driverConnectionID int64
 	serverConnID       *int64
 	redacted           bool
-	serviceID          *primitive.ObjectID
+	serviceID          *bson.ObjectID
 	serverAddress      address.Address
 	duration           time.Duration
 }
@@ -604,6 +602,13 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
+		// If we're starting a retry and the error from the previous try was
+		// a context canceled or deadline exceeded error, stop retrying and
+		// return that error.
+		if errors.Is(prevErr, context.Canceled) || errors.Is(prevErr, context.DeadlineExceeded) {
+			return prevErr
+		}
+
 		requestID := wiremessage.NextRequestID()
 
 		// If the server or connection are nil, try to select a new server and get a new connection.
@@ -1199,7 +1204,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 	}
 	if len(rp) > 0 {
 		wrapper, dst = bsoncore.AppendDocumentStart(dst)
-		dst = bsoncore.AppendHeader(dst, bsontype.EmbeddedDocument, "$query")
+		dst = bsoncore.AppendHeader(dst, bsoncore.TypeEmbeddedDocument, "$query")
 	}
 	idx, dst := bsoncore.AppendDocumentStart(dst)
 	dst, err = op.CommandFn(dst, desc)
@@ -1463,7 +1468,7 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func marshalBSONWriteConcern(wc writeconcern.WriteConcern) (bsontype.Type, []byte, error) {
+func marshalBSONWriteConcern(wc writeconcern.WriteConcern) (bson.Type, []byte, error) {
 	var elems []byte
 	if wc.W != nil {
 		// Only support string or int values for W. That aligns with the
@@ -1530,7 +1535,7 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 		return dst, err
 	}
 
-	return append(bsoncore.AppendHeader(dst, typ, "writeConcern"), wcBSON...), nil
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(typ), "writeConcern"), wcBSON...), nil
 }
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -1584,7 +1589,7 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 	if err != nil {
 		return dst
 	}
-	return append(bsoncore.AppendHeader(dst, val.Type, "$clusterTime"), val.Value...)
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(val.Type), "$clusterTime"), val.Value...)
 	// return bsoncore.AppendDocumentElement(dst, "$clusterTime", clusterTime)
 }
 
@@ -1658,7 +1663,7 @@ func (op Operation) updateOperationTime(response bsoncore.Document) {
 	}
 
 	t, i := opTimeElem.Timestamp()
-	_ = sess.AdvanceOperationTime(&primitive.Timestamp{
+	_ = sess.AdvanceOperationTime(&bson.Timestamp{
 		T: t,
 		I: i,
 	})
@@ -1988,7 +1993,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	}
 }
 
-// canPublishSucceededEvent returns true if a CommandSucceededEvent can be
+// canPublishFinishedEvent returns true if a CommandSucceededEvent can be
 // published for the given command. This is true if the command is not an
 // unacknowledged write and the command monitor is monitoring succeeded events.
 func (op Operation) canPublishFinishedEvent(info finishedInformation) bool {

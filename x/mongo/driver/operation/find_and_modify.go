@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -83,7 +82,7 @@ func buildFindAndModifyResult(response bsoncore.Document) (FindAndModifyResult, 
 			famr.Value, ok = element.Value().DocumentOK()
 
 			// The 'value' field returned by a FindAndModify can be null in the case that no document was found.
-			if element.Value().Type != bsontype.Null && !ok {
+			if element.Value().Type != bsoncore.TypeNull && !ok {
 				return famr, fmt.Errorf("response field 'value' is type document or null, but received BSON type %s", element.Value().Type)
 			}
 		case "lastErrorObject":
@@ -167,7 +166,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", fam.collation)
 	}
-	if fam.comment.Type != bsontype.Type(0) {
+	if fam.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", fam.comment)
 	}
 	if fam.fields != nil {
@@ -197,7 +196,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 
 		dst = bsoncore.AppendBooleanElement(dst, "upsert", *fam.upsert)
 	}
-	if fam.hint.Type != bsontype.Type(0) {
+	if fam.hint.Type != bsoncore.Type(0) {
 
 		if desc.WireVersion == nil || !desc.WireVersion.Includes(8) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 8")

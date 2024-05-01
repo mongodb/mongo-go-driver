@@ -11,7 +11,6 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -116,9 +115,9 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 }
 
 func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	header := bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, a.collection)}
+	header := bsoncore.Value{Type: bsoncore.TypeString, Data: bsoncore.AppendString(nil, a.collection)}
 	if a.collection == "" {
-		header = bsoncore.Value{Type: bsontype.Int32, Data: []byte{0x01, 0x00, 0x00, 0x00}}
+		header = bsoncore.Value{Type: bsoncore.TypeInt32, Data: []byte{0x01, 0x00, 0x00, 0x00}}
 	}
 	dst = bsoncore.AppendValueElement(dst, "aggregate", header)
 
@@ -141,10 +140,10 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", a.collation)
 	}
-	if a.comment.Type != bsontype.Type(0) {
+	if a.comment.Type != bsoncore.Type(0) {
 		dst = bsoncore.AppendValueElement(dst, "comment", a.comment)
 	}
-	if a.hint.Type != bsontype.Type(0) {
+	if a.hint.Type != bsoncore.Type(0) {
 
 		dst = bsoncore.AppendValueElement(dst, "hint", a.hint)
 	}

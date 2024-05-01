@@ -442,8 +442,8 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 	}
 }
 
-func extractClientSession(sess mongo.Session) *session.Client {
-	return sess.(mongo.XSession).ClientSession()
+func extractClientSession(sess *mongo.Session) *session.Client {
+	return sess.ClientSession()
 }
 
 func verifySessionPinnedState(ctx context.Context, sessionID string, expectedPinned bool) error {

@@ -50,6 +50,17 @@ var (
 		"A successful find with options":                                          "Uses unsupported maxTimeMS",
 		"estimatedDocumentCount with maxTimeMS":                                   "Uses unsupported maxTimeMS",
 		"supports configuring getMore maxTimeMS":                                  "Uses unsupported maxTimeMS",
+
+		// TODO(GODRIVER-3137): Implement Gossip cluster time"
+		"unpin after TransientTransactionError error on commit": "Implement GODRIVER-3137",
+
+		// TODO(GODRIVER-3034): Drivers should unpin connections when ending a session
+		"unpin on successful abort":                                   "Implement GODRIVER-3034",
+		"unpin after non-transient error on abort":                    "Implement GODRIVER-3034",
+		"unpin after TransientTransactionError error on abort":        "Implement GODRIVER-3034",
+		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
+		"unpin when a non-transaction write operation uses a session": "Implement GODRIVER-3034",
+		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -42,7 +40,7 @@ type Database struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 }
 
 func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
@@ -369,8 +367,8 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 		Name string `bson:"name"`
 		Type string `bson:"type"`
 		Info *struct {
-			ReadOnly bool              `bson:"readOnly"`
-			UUID     *primitive.Binary `bson:"uuid"`
+			ReadOnly bool         `bson:"readOnly"`
+			UUID     *bson.Binary `bson:"uuid"`
 		} `bson:"info"`
 		Options bson.Raw                       `bson:"options"`
 		IDIndex indexListSpecificationResponse `bson:"idIndex"`
@@ -684,7 +682,7 @@ func (db *Database) getEncryptedFieldsFromServer(ctx context.Context, collection
 	return encryptedFields, nil
 }
 
-// getEncryptedFieldsFromServer tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
+// getEncryptedFieldsFromMap tries to get an "encryptedFields" document associated with collectionName by checking the client EncryptedFieldsMap.
 // Returns nil and no error if an EncryptedFieldsMap is not configured, or does not contain an entry for collectionName.
 func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{} {
 	// Check the EncryptedFieldsMap

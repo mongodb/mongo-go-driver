@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -45,7 +44,7 @@ func TestCollection(t *testing.T) {
 
 	mt.RunOpts("insert one", noClientOpts, func(mt *mtest.T) {
 		mt.Run("success", func(mt *mtest.T) {
-			id := primitive.NewObjectID()
+			id := bson.NewObjectID()
 			doc := bson.D{{"_id", id}, {"x", 1}}
 			res, err := mt.Coll.InsertOne(context.Background(), doc)
 			assert.Nil(mt, err, "InsertOne error: %v", err)
@@ -180,9 +179,9 @@ func TestCollection(t *testing.T) {
 			mt.Parallel()
 
 			docs := []interface{}{
-				bson.D{{"_id", primitive.NewObjectID()}},
-				bson.D{{"_id", primitive.NewObjectID()}},
-				bson.D{{"_id", primitive.NewObjectID()}},
+				bson.D{{"_id", bson.NewObjectID()}},
+				bson.D{{"_id", bson.NewObjectID()}},
+				bson.D{{"_id", bson.NewObjectID()}},
 			}
 
 			testCases := []struct {
@@ -497,7 +496,7 @@ func TestCollection(t *testing.T) {
 				name   string
 				update interface{}
 			}{
-				{"bsoncore Document", bsoncore.Document(docBytes)},
+				{"bson Document", bsoncore.Document(docBytes)},
 				{"bson Raw", bson.Raw(docBytes)},
 				{"bson D", doc},
 				{"byte slice", docBytes},
@@ -530,7 +529,7 @@ func TestCollection(t *testing.T) {
 				name string
 				id   interface{}
 			}{
-				{"objectID", primitive.NewObjectID()},
+				{"objectID", bson.NewObjectID()},
 				{"string", "foo"},
 				{"int", 11},
 			}
@@ -551,7 +550,7 @@ func TestCollection(t *testing.T) {
 			}
 		})
 		mt.Run("not found", func(mt *mtest.T) {
-			id := primitive.NewObjectID()
+			id := bson.NewObjectID()
 			doc := bson.D{{"_id", id}, {"x", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), doc)
 			assert.Nil(mt, err, "InsertOne error: %v", err)
@@ -565,7 +564,7 @@ func TestCollection(t *testing.T) {
 			assert.Nil(mt, res.UpsertedID, "expected upserted ID nil, got %v", res.UpsertedID)
 		})
 		mt.Run("upsert", func(mt *mtest.T) {
-			doc := bson.D{{"_id", primitive.NewObjectID()}, {"x", 1}}
+			doc := bson.D{{"_id", bson.NewObjectID()}, {"x", 1}}
 			_, err := mt.Coll.InsertOne(context.Background(), doc)
 			assert.Nil(mt, err, "InsertOne error: %v", err)
 
@@ -1779,7 +1778,7 @@ func TestCollection(t *testing.T) {
 			//
 			// The response from the first batch should look like:
 			// {ok: 1, n: 100000, nModified: 99999, upserted: [{index: 0, _id: <id>}]}
-			firstBatchUpserted := bson.A{bson.D{{"index", 0}, {"_id", primitive.NewObjectID()}}}
+			firstBatchUpserted := bson.A{bson.D{{"index", 0}, {"_id", bson.NewObjectID()}}}
 			firstBatchResponse := mtest.CreateSuccessResponse(
 				bson.E{"n", 100000},
 				bson.E{"nModified", 99999},
@@ -1787,13 +1786,13 @@ func TestCollection(t *testing.T) {
 			)
 			// The response from the second batch should look like:
 			// {ok: 1, n: 50, nModified: 49, upserted: [{index: 49, _id: <id>}]}
-			secondBatchUpserted := bson.A{bson.D{{"index", 49}, {"_id", primitive.NewObjectID()}}}
+			secondBatchUpserted := bson.A{bson.D{{"index", 49}, {"_id", bson.NewObjectID()}}}
 			secondBatchResponse := mtest.CreateSuccessResponse(
 				bson.E{"n", 50},
 				bson.E{"nModified", 49},
 				bson.E{"upserted", secondBatchUpserted},
 			)
-			mt.AddMockResponses([]primitive.D{firstBatchResponse, secondBatchResponse}...)
+			mt.AddMockResponses([]bson.D{firstBatchResponse, secondBatchResponse}...)
 
 			mt.ClearEvents()
 			res, err := mt.Coll.BulkWrite(context.Background(), models)
@@ -1922,7 +1921,7 @@ func create16MBDocument(mt *mtest.T) bsoncore.Document {
 	}
 
 	idx, doc := bsoncore.AppendDocumentStart(nil)
-	doc = bsoncore.AppendObjectIDElement(doc, "_id", primitive.NewObjectID())
+	doc = bsoncore.AppendObjectIDElement(doc, "_id", bson.NewObjectID())
 	doc = bsoncore.AppendStringElement(doc, "key", b.String())
 	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 	assert.Equal(mt, targetDocSize, len(doc), "expected document length %v, got %v", targetDocSize, len(doc))
