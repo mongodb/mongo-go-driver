@@ -19,20 +19,20 @@ type uintCodec struct {
 	encodeToMinSize bool
 }
 
-// Assert that defaultUIntCodec satisfies the typeDecoder interface, which allows it to be used
-// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
-var _ typeDecoder = (*uintCodec)(nil)
+var (
+	defaultUIntCodec = &uintCodec{}
+)
 
 // EncodeValue is the ValueEncoder for uint types.
-func (uic *uintCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (uic *uintCodec) EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Uint8, reflect.Uint16:
 		return vw.WriteInt32(int32(val.Uint()))
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		u64 := val.Uint()
 
-		// If ec.MinSize or if encodeToMinSize is true for a non-uint64 value we should write val as an int32
-		useMinSize := ec.minSize || (uic.encodeToMinSize && val.Kind() != reflect.Uint64)
+		// If encodeToMinSize is true for a non-uint64 value we should write val as an int32
+		useMinSize := uic.encodeToMinSize && val.Kind() != reflect.Uint64
 
 		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))

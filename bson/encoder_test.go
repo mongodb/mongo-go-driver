@@ -25,7 +25,7 @@ func TestBasicEncode(t *testing.T) {
 			reg := DefaultRegistry
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
 			noerr(t, err)
-			err = encoder.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.val))
+			err = encoder.EncodeValue(reg, vw, reflect.ValueOf(tc.val))
 			noerr(t, err)
 
 			if !bytes.Equal(got, tc.want) {

@@ -125,7 +125,7 @@ func NewRegistry() *Registry {
 // interface. To get the latter behavior, call RegisterHookEncoder instead.
 //
 // RegisterTypeEncoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterTypeEncoder(valueType reflect.Type, enc valueEncoder) {
+func (r *Registry) RegisterTypeEncoder(valueType reflect.Type, enc ValueEncoder) {
 	r.typeEncoders.Store(valueType, enc)
 }
 
@@ -139,7 +139,7 @@ func (r *Registry) RegisterTypeEncoder(valueType reflect.Type, enc valueEncoder)
 // implements the interface. To get the latter behavior, call RegisterHookDecoder instead.
 //
 // RegisterTypeDecoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterTypeDecoder(valueType reflect.Type, dec valueDecoder) {
+func (r *Registry) RegisterTypeDecoder(valueType reflect.Type, dec ValueDecoder) {
 	r.typeDecoders.Store(valueType, dec)
 }
 
@@ -155,7 +155,7 @@ func (r *Registry) RegisterTypeDecoder(valueType reflect.Type, dec valueDecoder)
 //	reg.RegisterKindEncoder(reflect.Int32, myEncoder)
 //
 // RegisterKindEncoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterKindEncoder(kind reflect.Kind, enc valueEncoder) {
+func (r *Registry) RegisterKindEncoder(kind reflect.Kind, enc ValueEncoder) {
 	r.kindEncoders.Store(kind, enc)
 }
 
@@ -171,7 +171,7 @@ func (r *Registry) RegisterKindEncoder(kind reflect.Kind, enc valueEncoder) {
 //	reg.RegisterKindDecoder(reflect.Int32, myDecoder)
 //
 // RegisterKindDecoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterKindDecoder(kind reflect.Kind, dec valueDecoder) {
+func (r *Registry) RegisterKindDecoder(kind reflect.Kind, dec ValueDecoder) {
 	r.kindDecoders.Store(kind, dec)
 }
 
@@ -181,7 +181,7 @@ func (r *Registry) RegisterKindDecoder(kind reflect.Kind, dec valueDecoder) {
 // (i.e. iface.Kind() != reflect.Interface), this method will panic.
 //
 // RegisterInterfaceEncoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterInterfaceEncoder(iface reflect.Type, enc valueEncoder) {
+func (r *Registry) RegisterInterfaceEncoder(iface reflect.Type, enc ValueEncoder) {
 	if iface.Kind() != reflect.Interface {
 		panicStr := fmt.Errorf("RegisterInterfaceEncoder expects a type with kind reflect.Interface, "+
 			"got type %s with kind %s", iface, iface.Kind())
@@ -204,7 +204,7 @@ func (r *Registry) RegisterInterfaceEncoder(iface reflect.Type, enc valueEncoder
 // this method will panic.
 //
 // RegisterInterfaceDecoder should not be called concurrently with any other Registry method.
-func (r *Registry) RegisterInterfaceDecoder(iface reflect.Type, dec valueDecoder) {
+func (r *Registry) RegisterInterfaceDecoder(iface reflect.Type, dec ValueDecoder) {
 	if iface.Kind() != reflect.Interface {
 		panicStr := fmt.Errorf("RegisterInterfaceDecoder expects a type with kind reflect.Interface, "+
 			"got type %s with kind %s", iface, iface.Kind())
@@ -251,7 +251,7 @@ func (r *Registry) RegisterTypeMapEntry(bt Type, rt reflect.Type) {
 //
 // If no encoder is found, an error of type ErrNoEncoder is returned. LookupEncoder is safe for
 // concurrent use by multiple goroutines after all codecs and encoders are registered.
-func (r *Registry) LookupEncoder(valueType reflect.Type) (valueEncoder, error) {
+func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if valueType == nil {
 		return nil, ErrNoEncoder{Type: valueType}
 	}
@@ -274,15 +274,15 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (valueEncoder, error) {
 	return nil, ErrNoEncoder{Type: valueType}
 }
 
-func (r *Registry) storeTypeEncoder(rt reflect.Type, enc valueEncoder) valueEncoder {
+func (r *Registry) storeTypeEncoder(rt reflect.Type, enc ValueEncoder) ValueEncoder {
 	return r.typeEncoders.LoadOrStore(rt, enc)
 }
 
-func (r *Registry) lookupTypeEncoder(rt reflect.Type) (valueEncoder, bool) {
+func (r *Registry) lookupTypeEncoder(rt reflect.Type) (ValueEncoder, bool) {
 	return r.typeEncoders.Load(rt)
 }
 
-func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool) (valueEncoder, bool) {
+func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool) (ValueEncoder, bool) {
 	if valueType == nil {
 		return nil, false
 	}
@@ -320,7 +320,7 @@ func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool
 //
 // If no decoder is found, an error of type ErrNoDecoder is returned. LookupDecoder is safe for
 // concurrent use by multiple goroutines after all codecs and decoders are registered.
-func (r *Registry) LookupDecoder(valueType reflect.Type) (valueDecoder, error) {
+func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if valueType == nil {
 		return nil, ErrNilType
 	}
@@ -343,15 +343,15 @@ func (r *Registry) LookupDecoder(valueType reflect.Type) (valueDecoder, error) {
 	return nil, ErrNoDecoder{Type: valueType}
 }
 
-func (r *Registry) lookupTypeDecoder(valueType reflect.Type) (valueDecoder, bool) {
+func (r *Registry) lookupTypeDecoder(valueType reflect.Type) (ValueDecoder, bool) {
 	return r.typeDecoders.Load(valueType)
 }
 
-func (r *Registry) storeTypeDecoder(typ reflect.Type, dec valueDecoder) valueDecoder {
+func (r *Registry) storeTypeDecoder(typ reflect.Type, dec ValueDecoder) ValueDecoder {
 	return r.typeDecoders.LoadOrStore(typ, dec)
 }
 
-func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool) (valueDecoder, bool) {
+func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool) (ValueDecoder, bool) {
 	for _, idec := range r.interfaceDecoders {
 		if valueType.Implements(idec.i) {
 			return idec.vd, true
@@ -383,10 +383,10 @@ func (r *Registry) LookupTypeMapEntry(bt Type) (reflect.Type, error) {
 
 type interfaceValueEncoder struct {
 	i  reflect.Type
-	ve valueEncoder
+	ve ValueEncoder
 }
 
 type interfaceValueDecoder struct {
 	i  reflect.Type
-	vd valueDecoder
+	vd ValueDecoder
 }

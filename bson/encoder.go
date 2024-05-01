@@ -23,15 +23,15 @@ var encPool = sync.Pool{
 // An Encoder writes a serialization format to an output stream. It writes to a ValueWriter
 // as the destination of BSON data.
 type Encoder struct {
-	ec EncodeContext
-	vw ValueWriter
+	reg *Registry
+	vw  ValueWriter
 }
 
 // NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
 func NewEncoder(vw ValueWriter) *Encoder {
 	return &Encoder{
-		ec: EncodeContext{Registry: DefaultRegistry},
-		vw: vw,
+		reg: DefaultRegistry,
+		vw:  vw,
 	}
 }
 
@@ -48,12 +48,12 @@ func (e *Encoder) Encode(val interface{}) error {
 		return copyDocumentFromBytes(e.vw, buf)
 	}
 
-	encoder, err := e.ec.LookupEncoder(reflect.TypeOf(val))
+	encoder, err := e.reg.LookupEncoder(reflect.TypeOf(val))
 	if err != nil {
 		return err
 	}
 
-	return encoder.EncodeValue(e.ec, e.vw, reflect.ValueOf(val))
+	return encoder.EncodeValue(e.reg, e.vw, reflect.ValueOf(val))
 }
 
 // Reset will reset the state of the Encoder, using the same *EncodeContext used in
@@ -64,44 +64,73 @@ func (e *Encoder) Reset(vw ValueWriter) {
 
 // SetRegistry replaces the current registry of the Encoder with r.
 func (e *Encoder) SetRegistry(r *Registry) {
-	e.ec.Registry = r
+	e.reg = r
 }
 
 // ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in
 // the marshaled BSON when the "inline" struct tag option is set.
 func (e *Encoder) ErrorOnInlineDuplicates() {
-	e.ec.errorOnInlineDuplicates = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Struct); ok {
+		if enc, ok := v.(*structCodec); ok {
+			enc.overwriteDuplicatedInlinedFields = false
+		}
+	}
 }
 
 // IntMinSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64, uint,
 // uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits) that can
 // represent the integer value.
 func (e *Encoder) IntMinSize() {
-	e.ec.minSize = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Int); ok {
+		if enc, ok := v.(*intCodec); ok {
+			enc.encodeToMinSize = true
+		}
+	}
+	if v, ok := e.reg.kindEncoders.Load(reflect.Uint); ok {
+		if enc, ok := v.(*uintCodec); ok {
+			enc.encodeToMinSize = true
+		}
+	}
 }
 
 // StringifyMapKeysWithFmt causes the Encoder to convert Go map keys to BSON document field name
 // strings using fmt.Sprint instead of the default string conversion logic.
 func (e *Encoder) StringifyMapKeysWithFmt() {
-	e.ec.stringifyMapKeysWithFmt = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Map); ok {
+		if enc, ok := v.(*mapCodec); ok {
+			enc.encodeKeysWithStringer = true
+		}
+	}
 }
 
 // NilMapAsEmpty causes the Encoder to marshal nil Go maps as empty BSON documents instead of BSON
 // null.
 func (e *Encoder) NilMapAsEmpty() {
-	e.ec.nilMapAsEmpty = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Map); ok {
+		if enc, ok := v.(*mapCodec); ok {
+			enc.encodeNilAsEmpty = true
+		}
+	}
 }
 
 // NilSliceAsEmpty causes the Encoder to marshal nil Go slices as empty BSON arrays instead of BSON
 // null.
 func (e *Encoder) NilSliceAsEmpty() {
-	e.ec.nilSliceAsEmpty = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Slice); ok {
+		if enc, ok := v.(*sliceCodec); ok {
+			enc.encodeNilAsEmpty = true
+		}
+	}
 }
 
 // NilByteSliceAsEmpty causes the Encoder to marshal nil Go byte slices as empty BSON binary values
 // instead of BSON null.
 func (e *Encoder) NilByteSliceAsEmpty() {
-	e.ec.nilByteSliceAsEmpty = true
+	if v, ok := e.reg.typeEncoders.Load(tByteSlice); ok {
+		if enc, ok := v.(*byteSliceCodec); ok {
+			enc.encodeNilAsEmpty = true
+		}
+	}
 }
 
 // TODO(GODRIVER-2820): Update the description to remove the note about only examining exported
@@ -113,11 +142,19 @@ func (e *Encoder) NilByteSliceAsEmpty() {
 // Note that the Encoder only examines exported struct fields when determining if a struct is the
 // zero value. It considers pointers to a zero struct value (e.g. &MyStruct{}) not empty.
 func (e *Encoder) OmitZeroStruct() {
-	e.ec.omitZeroStruct = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Struct); ok {
+		if enc, ok := v.(*structCodec); ok {
+			enc.encodeOmitDefaultStruct = true
+		}
+	}
 }
 
 // UseJSONStructTags causes the Encoder to fall back to using the "json" struct tag if a "bson"
 // struct tag is not specified.
 func (e *Encoder) UseJSONStructTags() {
-	e.ec.useJSONStructTags = true
+	if v, ok := e.reg.kindEncoders.Load(reflect.Struct); ok {
+		if enc, ok := v.(*structCodec); ok {
+			enc.useJSONStructTags = true
+		}
+	}
 }

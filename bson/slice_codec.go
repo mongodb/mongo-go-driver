@@ -12,6 +12,10 @@ import (
 	"reflect"
 )
 
+var (
+	defaultSliceCodec = &sliceCodec{}
+)
+
 // sliceCodec is the Codec used for slice values.
 type sliceCodec struct {
 	// encodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
@@ -20,12 +24,12 @@ type sliceCodec struct {
 }
 
 // EncodeValue is the ValueEncoder for slice types.
-func (sc sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (sc sliceCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Slice {
 		return ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
-	if val.IsNil() && !sc.encodeNilAsEmpty && !ec.nilSliceAsEmpty {
+	if val.IsNil() && !sc.encodeNilAsEmpty {
 		return vw.WriteNull()
 	}
 
@@ -46,7 +50,7 @@ func (sc sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 		}
 
 		for _, e := range d {
-			err = encodeElement(ec, dw, e)
+			err = encodeElement(reg, dw, e)
 			if err != nil {
 				return err
 			}
@@ -61,13 +65,13 @@ func (sc sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 	}
 
 	elemType := val.Type().Elem()
-	encoder, err := ec.LookupEncoder(elemType)
+	encoder, err := reg.LookupEncoder(elemType)
 	if err != nil && elemType.Kind() != reflect.Interface {
 		return err
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
-		currEncoder, currVal, lookupErr := lookupElementEncoder(ec, encoder, val.Index(idx))
+		currEncoder, currVal, lookupErr := lookupElementEncoder(reg, encoder, val.Index(idx))
 		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
@@ -85,7 +89,7 @@ func (sc sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 			continue
 		}
 
-		err = currEncoder.EncodeValue(ec, vw, currVal)
+		err = currEncoder.EncodeValue(reg, vw, currVal)
 		if err != nil {
 			return err
 		}

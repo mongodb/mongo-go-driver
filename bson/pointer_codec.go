@@ -10,9 +10,6 @@ import (
 	"reflect"
 )
 
-var _ valueEncoder = &pointerCodec{}
-var _ valueDecoder = &pointerCodec{}
-
 // pointerCodec is the Codec used for pointers.
 type pointerCodec struct {
 	ecache typeEncoderCache
@@ -21,7 +18,7 @@ type pointerCodec struct {
 
 // EncodeValue handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
 // or looking up an encoder for the type of value the pointer points to.
-func (pc *pointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (pc *pointerCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.Ptr {
 		if !val.IsValid() {
 			return vw.WriteNull()
@@ -38,15 +35,15 @@ func (pc *pointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflec
 		if v == nil {
 			return ErrNoEncoder{Type: typ}
 		}
-		return v.EncodeValue(ec, vw, val.Elem())
+		return v.EncodeValue(reg, vw, val.Elem())
 	}
 	// TODO(charlie): handle concurrent requests for the same type
-	enc, err := ec.LookupEncoder(typ.Elem())
+	enc, err := reg.LookupEncoder(typ.Elem())
 	enc = pc.ecache.LoadOrStore(typ, enc)
 	if err != nil {
 		return err
 	}
-	return enc.EncodeValue(ec, vw, val.Elem())
+	return enc.EncodeValue(reg, vw, val.Elem())
 }
 
 // DecodeValue handles decoding a pointer by looking up a decoder for the type it points to and

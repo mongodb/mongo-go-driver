@@ -65,7 +65,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		vd       valueDecoder
+		vd       ValueDecoder
 		subtests []subtest
 	}{
 		{
@@ -3566,7 +3566,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			val      interface{}
 			vr       ValueReader
 			registry *Registry // buildDefaultRegistry will be used if this is nil
-			decoder  valueDecoder
+			decoder  ValueDecoder
 			err      error
 		}{
 			{

@@ -14,6 +14,10 @@ import (
 	"strconv"
 )
 
+var (
+	defaultMapCodec = &mapCodec{}
+)
+
 // mapCodec is the Codec used for map values.
 type mapCodec struct {
 	// decodeZerosMap causes DecodeValue to delete any existing values from Go maps in the destination
@@ -46,12 +50,12 @@ type KeyUnmarshaler interface {
 }
 
 // EncodeValue is the ValueEncoder for map[*]* types.
-func (mc *mapCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (mc *mapCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Map {
 		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
-	if val.IsNil() && !mc.encodeNilAsEmpty && !ec.nilMapAsEmpty {
+	if val.IsNil() && !mc.encodeNilAsEmpty {
 		// If we have a nil map but we can't WriteNull, that means we're probably trying to encode
 		// to a TopLevel document. We can't currently tell if this is what actually happened, but if
 		// there's a deeper underlying problem, the error will also be returned from WriteDocument,
@@ -68,23 +72,23 @@ func (mc *mapCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Va
 		return err
 	}
 
-	return mc.mapEncodeValue(ec, dw, val, nil)
+	return mc.mapEncodeValue(reg, dw, val, nil)
 }
 
 // mapEncodeValue handles encoding of the values of a map. The collisionFn returns
 // true if the provided key exists, this is mainly used for inline maps in the
 // struct codec.
-func (mc *mapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
+func (mc *mapCodec) mapEncodeValue(reg *Registry, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
 
 	elemType := val.Type().Elem()
-	encoder, err := ec.LookupEncoder(elemType)
+	encoder, err := reg.LookupEncoder(elemType)
 	if err != nil && elemType.Kind() != reflect.Interface {
 		return err
 	}
 
 	keys := val.MapKeys()
 	for _, key := range keys {
-		keyStr, err := mc.encodeKey(key, ec.stringifyMapKeysWithFmt)
+		keyStr, err := mc.encodeKey(key, mc.encodeKeysWithStringer)
 		if err != nil {
 			return err
 		}
@@ -93,7 +97,7 @@ func (mc *mapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val refl
 			return fmt.Errorf("Key %s of inlined map conflicts with a struct field name", key)
 		}
 
-		currEncoder, currVal, lookupErr := lookupElementEncoder(ec, encoder, val.MapIndex(key))
+		currEncoder, currVal, lookupErr := lookupElementEncoder(reg, encoder, val.MapIndex(key))
 		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
@@ -111,7 +115,7 @@ func (mc *mapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val refl
 			continue
 		}
 
-		err = currEncoder.EncodeValue(ec, vw, currVal)
+		err = currEncoder.EncodeValue(reg, vw, currVal)
 		if err != nil {
 			return err
 		}

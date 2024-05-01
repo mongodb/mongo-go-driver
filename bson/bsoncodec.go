@@ -72,25 +72,6 @@ func (vde ValueDecoderError) Error() string {
 	return fmt.Sprintf("%s can only decode valid and settable %s, but got %s", vde.Name, strings.Join(typeKinds, ", "), received)
 }
 
-// EncodeContext is the contextual information required for a Codec to encode a
-// value.
-type EncodeContext struct {
-	*Registry
-
-	// minSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64,
-	// uint, uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits)
-	// that can represent the integer value.
-	minSize bool
-
-	errorOnInlineDuplicates bool
-	stringifyMapKeysWithFmt bool
-	nilMapAsEmpty           bool
-	nilSliceAsEmpty         bool
-	nilByteSliceAsEmpty     bool
-	omitZeroStruct          bool
-	useJSONStructTags       bool
-}
-
 // DecodeContext is the contextual information required for a Codec to decode a
 // value.
 type DecodeContext struct {
@@ -122,31 +103,30 @@ type DecodeContext struct {
 	zeroStructs         bool
 }
 
-// valueEncoder is the interface implemented by types that can encode a provided Go type to BSON.
+// ValueEncoder is the interface implemented by types that can encode a provided Go type to BSON.
 // The value to encode is provided as a reflect.Value and a bson.ValueWriter is used within the
 // EncodeValue method to actually create the BSON representation. For convenience, ValueEncoderFunc
-// is provided to allow use of a function with the correct signature as a ValueEncoder. An
-// EncodeContext instance is provided to allow implementations to lookup further ValueEncoders and
-// to provide configuration information.
-type valueEncoder interface {
-	EncodeValue(EncodeContext, ValueWriter, reflect.Value) error
+// is provided to allow use of a function with the correct signature as a ValueEncoder. A pointer
+// to a Registry instance is provided to allow implementations to lookup further ValueEncoders.
+type ValueEncoder interface {
+	EncodeValue(*Registry, ValueWriter, reflect.Value) error
 }
 
 // ValueEncoderFunc is an adapter function that allows a function with the correct signature to be
 // used as a ValueEncoder.
-type ValueEncoderFunc func(EncodeContext, ValueWriter, reflect.Value) error
+type ValueEncoderFunc func(*Registry, ValueWriter, reflect.Value) error
 
 // EncodeValue implements the ValueEncoder interface.
-func (fn ValueEncoderFunc) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	return fn(ec, vw, val)
+func (fn ValueEncoderFunc) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+	return fn(reg, vw, val)
 }
 
-// valueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
+// ValueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
 // Implementations should ensure that the value they receive is settable. Similar to ValueEncoderFunc,
 // ValueDecoderFunc is provided to allow the use of a function with the correct signature as a
 // ValueDecoder. A DecodeContext instance is provided and serves similar functionality to the
 // EncodeContext.
-type valueDecoder interface {
+type ValueDecoder interface {
 	DecodeValue(DecodeContext, ValueReader, reflect.Value) error
 }
 
@@ -177,17 +157,17 @@ type decodeAdapter struct {
 	typeDecoderFunc
 }
 
-var _ valueDecoder = decodeAdapter{}
+var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
 // decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of type
 // t and calls decoder.DecodeValue on it.
-func decodeTypeOrValue(decoder valueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func decodeTypeOrValue(decoder ValueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	td, _ := decoder.(typeDecoder)
 	return decodeTypeOrValueWithInfo(decoder, td, dc, vr, t, true)
 }
 
-func decodeTypeOrValueWithInfo(vd valueDecoder, td typeDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
+func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
 	if td != nil {
 		val, err := td.decodeType(dc, vr, t)
 		if err == nil && convert && val.Type() != t {

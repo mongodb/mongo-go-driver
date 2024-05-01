@@ -22,11 +22,11 @@ func TestCondAddrCodec(t *testing.T) {
 
 	t.Run("addressEncode", func(t *testing.T) {
 		invoked := 0
-		encode1 := ValueEncoderFunc(func(EncodeContext, ValueWriter, reflect.Value) error {
+		encode1 := ValueEncoderFunc(func(*Registry, ValueWriter, reflect.Value) error {
 			invoked = 1
 			return nil
 		})
-		encode2 := ValueEncoderFunc(func(EncodeContext, ValueWriter, reflect.Value) error {
+		encode2 := ValueEncoderFunc(func(*Registry, ValueWriter, reflect.Value) error {
 			invoked = 2
 			return nil
 		})
@@ -42,7 +42,7 @@ func TestCondAddrCodec(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				err := condEncoder.EncodeValue(EncodeContext{}, rw, tc.val)
+				err := condEncoder.EncodeValue(nil, rw, tc.val)
 				assert.Nil(t, err, "CondAddrEncoder error: %v", err)
 
 				assert.Equal(t, invoked, tc.invoked, "Expected function %v to be called, called %v", tc.invoked, invoked)
@@ -51,7 +51,7 @@ func TestCondAddrCodec(t *testing.T) {
 
 		t.Run("error", func(t *testing.T) {
 			errEncoder := &condAddrEncoder{canAddrEnc: encode1, elseEnc: nil}
-			err := errEncoder.EncodeValue(EncodeContext{}, rw, unaddressable)
+			err := errEncoder.EncodeValue(nil, rw, unaddressable)
 			want := ErrNoEncoder{Type: unaddressable.Type()}
 			assert.Equal(t, err, want, "expected error %v, got %v", want, err)
 		})

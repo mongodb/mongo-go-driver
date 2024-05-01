@@ -18,17 +18,16 @@ type byteSliceCodec struct {
 	encodeNilAsEmpty bool
 }
 
-// Assert that defaultByteSliceCodec satisfies the typeDecoder interface, which allows it to be
-// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-// collection.
-var _ typeDecoder = (*byteSliceCodec)(nil)
+var (
+	defaultByteSliceCodec = &byteSliceCodec{}
+)
 
 // EncodeValue is the ValueEncoder for []byte.
-func (bsc *byteSliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (bsc *byteSliceCodec) EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
-	if val.IsNil() && !bsc.encodeNilAsEmpty && !ec.nilByteSliceAsEmpty {
+	if val.IsNil() && !bsc.encodeNilAsEmpty {
 		return vw.WriteNull()
 	}
 	return vw.WriteBinary(val.Interface().([]byte))

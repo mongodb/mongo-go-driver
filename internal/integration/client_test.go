@@ -39,7 +39,7 @@ type negateCodec struct {
 	ID int64 `bson:"_id"`
 }
 
-func (e *negateCodec) EncodeValue(_ bson.EncodeContext, vw bson.ValueWriter, val reflect.Value) error {
+func (e *negateCodec) EncodeValue(_ *bson.Registry, vw bson.ValueWriter, val reflect.Value) error {
 	return vw.WriteInt64(val.Int())
 }
 

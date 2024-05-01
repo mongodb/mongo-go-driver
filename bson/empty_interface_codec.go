@@ -17,13 +17,12 @@ type emptyInterfaceCodec struct {
 	decodeBinaryAsSlice bool
 }
 
-// Assert that defaultEmptyInterfaceCodec satisfies the typeDecoder interface, which allows it
-// to be used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-// collection.
-var _ typeDecoder = (*emptyInterfaceCodec)(nil)
+var (
+	defaultEmptyInterfaceCodec = &emptyInterfaceCodec{}
+)
 
 // EncodeValue is the ValueEncoderFunc for interface{}.
-func (eic emptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (eic emptyInterfaceCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tEmpty {
 		return ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}
@@ -31,12 +30,12 @@ func (eic emptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val
 	if val.IsNil() {
 		return vw.WriteNull()
 	}
-	encoder, err := ec.LookupEncoder(val.Elem().Type())
+	encoder, err := reg.LookupEncoder(val.Elem().Type())
 	if err != nil {
 		return err
 	}
 
-	return encoder.EncodeValue(ec, vw, val.Elem())
+	return encoder.EncodeValue(reg, vw, val.Elem())
 }
 
 func (eic emptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType Type) (reflect.Type, error) {

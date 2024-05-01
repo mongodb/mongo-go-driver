@@ -18,7 +18,7 @@ type llCodec struct {
 	err       error
 }
 
-func (llc *llCodec) EncodeValue(_ EncodeContext, _ ValueWriter, i interface{}) error {
+func (llc *llCodec) EncodeValue(_ *Registry, _ ValueWriter, i interface{}) error {
 	if llc.err != nil {
 		return llc.err
 	}

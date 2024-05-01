@@ -103,7 +103,7 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vwFlusher)
-	enc.ec = EncodeContext{Registry: r}
+	enc.SetRegistry(r)
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -127,7 +127,7 @@ func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error)
 	defer encPool.Put(enc)
 
 	enc.Reset(ejvw)
-	enc.ec = EncodeContext{Registry: DefaultRegistry}
+	enc.SetRegistry(DefaultRegistry)
 
 	err := enc.Encode(val)
 	if err != nil {

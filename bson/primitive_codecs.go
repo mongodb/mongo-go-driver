@@ -31,7 +31,7 @@ func registerPrimitiveCodecs(reg *Registry) {
 //
 // If the RawValue's Type is "invalid" and the RawValue's Value is not empty or
 // nil, then this method will return an error.
-func rawValueEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+func rawValueEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tRawValue {
 		return ValueEncoderError{
 			Name:     "RawValueEncodeValue",
@@ -65,7 +65,7 @@ func rawValueDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) err
 }
 
 // rawEncodeValue is the ValueEncoderFunc for Reader.
-func rawEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+func rawEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tRaw {
 		return ValueEncoderError{Name: "RawEncodeValue", Types: []reflect.Type{tRaw}, Received: val}
 	}

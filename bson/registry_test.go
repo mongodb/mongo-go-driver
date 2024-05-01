@@ -62,7 +62,7 @@ func TestRegistryBuilder(t *testing.T) {
 			reg.RegisterTypeEncoder(reflect.TypeOf(ft4), fc4)
 			want := []struct {
 				t reflect.Type
-				c valueEncoder
+				c ValueEncoder
 			}{
 				{reflect.TypeOf(ft1), fc3},
 				{reflect.TypeOf(ft2), fc2},
@@ -90,7 +90,7 @@ func TestRegistryBuilder(t *testing.T) {
 			reg.RegisterKindEncoder(k4, fc4)
 			want := []struct {
 				k reflect.Kind
-				c valueEncoder
+				c ValueEncoder
 			}{
 				{k1, fc3},
 				{k2, fc2},
@@ -173,8 +173,8 @@ func TestRegistryBuilder(t *testing.T) {
 		})
 		t.Run("Lookup", func(t *testing.T) {
 			type Codec interface {
-				valueEncoder
-				valueDecoder
+				ValueEncoder
+				ValueDecoder
 			}
 
 			var (
@@ -472,7 +472,7 @@ func TestRegistry(t *testing.T) {
 
 			want := []struct {
 				t reflect.Type
-				c valueEncoder
+				c ValueEncoder
 			}{
 				{reflect.TypeOf(ft1), fc3},
 				{reflect.TypeOf(ft2), fc2},
@@ -502,7 +502,7 @@ func TestRegistry(t *testing.T) {
 
 			want := []struct {
 				k reflect.Kind
-				c valueEncoder
+				c ValueEncoder
 			}{
 				{k1, fc3},
 				{k2, fc2},
@@ -588,8 +588,8 @@ func TestRegistry(t *testing.T) {
 			t.Parallel()
 
 			type Codec interface {
-				valueEncoder
-				valueDecoder
+				ValueEncoder
+				ValueDecoder
 			}
 
 			var (
@@ -887,7 +887,7 @@ func TestRegistry(t *testing.T) {
 }
 
 // get is only for testing as it does return if the value was found
-func (c *kindEncoderCache) get(rt reflect.Kind) valueEncoder {
+func (c *kindEncoderCache) get(rt reflect.Kind) ValueEncoder {
 	e, _ := c.Load(rt)
 	return e
 }
@@ -948,7 +948,7 @@ type fakeCodec struct {
 	num int
 }
 
-func (*fakeCodec) EncodeValue(EncodeContext, ValueWriter, reflect.Value) error {
+func (*fakeCodec) EncodeValue(*Registry, ValueWriter, reflect.Value) error {
 	return nil
 }
 func (*fakeCodec) DecodeValue(DecodeContext, ValueReader, reflect.Value) error {

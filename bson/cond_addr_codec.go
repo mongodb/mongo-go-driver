@@ -12,33 +12,31 @@ import (
 
 // condAddrEncoder is the encoder used when a pointer to the encoding value has an encoder.
 type condAddrEncoder struct {
-	canAddrEnc valueEncoder
-	elseEnc    valueEncoder
+	canAddrEnc ValueEncoder
+	elseEnc    ValueEncoder
 }
 
-var _ valueEncoder = (*condAddrEncoder)(nil)
-
 // EncodeValue is the ValueEncoderFunc for a value that may be addressable.
-func (cae *condAddrEncoder) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (cae *condAddrEncoder) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	if val.CanAddr() {
-		return cae.canAddrEnc.EncodeValue(ec, vw, val)
+		return cae.canAddrEnc.EncodeValue(reg, vw, val)
 	}
 	if cae.elseEnc != nil {
-		return cae.elseEnc.EncodeValue(ec, vw, val)
+		return cae.elseEnc.EncodeValue(reg, vw, val)
 	}
 	return ErrNoEncoder{Type: val.Type()}
 }
 
 // condAddrDecoder is the decoder used when a pointer to the value has a decoder.
 type condAddrDecoder struct {
-	canAddrDec valueDecoder
-	elseDec    valueDecoder
+	canAddrDec ValueDecoder
+	elseDec    ValueDecoder
 }
 
-var _ valueDecoder = (*condAddrDecoder)(nil)
+var _ ValueDecoder = (*condAddrDecoder)(nil)
 
 // newCondAddrDecoder returns an CondAddrDecoder.
-func newCondAddrDecoder(canAddrDec, elseDec valueDecoder) *condAddrDecoder {
+func newCondAddrDecoder(canAddrDec, elseDec ValueDecoder) *condAddrDecoder {
 	decoder := condAddrDecoder{canAddrDec: canAddrDec, elseDec: elseDec}
 	return &decoder
 }

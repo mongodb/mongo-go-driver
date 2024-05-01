@@ -16,6 +16,10 @@ import (
 	"time"
 )
 
+var (
+	defaultStructCodec = newStructCodec(DefaultStructTagParser)
+)
+
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
 type DecodeError struct {
 	keys    []string
@@ -71,10 +75,9 @@ type structCodec struct {
 	// a duplicate field in the marshaled BSON when the "inline" struct tag option is set. The
 	// default value is true.
 	overwriteDuplicatedInlinedFields bool
-}
 
-var _ valueEncoder = &structCodec{}
-var _ valueDecoder = &structCodec{}
+	useJSONStructTags bool
+}
 
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.
 func newStructCodec(p StructTagParser) *structCodec {
@@ -85,12 +88,12 @@ func newStructCodec(p StructTagParser) *structCodec {
 }
 
 // EncodeValue handles encoding generic struct types.
-func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (sc *structCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Struct {
 		return ValueEncoderError{Name: "structCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
 
-	sd, err := sc.describeStruct(ec.Registry, val.Type(), ec.useJSONStructTags, ec.errorOnInlineDuplicates)
+	sd, err := sc.describeStruct(reg, val.Type(), sc.useJSONStructTags, !sc.overwriteDuplicatedInlinedFields)
 	if err != nil {
 		return err
 	}
@@ -110,7 +113,7 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			}
 		}
 
-		desc.encoder, rv, err = lookupElementEncoder(ec, desc.encoder, rv)
+		desc.encoder, rv, err = lookupElementEncoder(reg, desc.encoder, rv)
 
 		if err != nil && !errors.Is(err, errInvalidValue) {
 			return err
@@ -145,7 +148,7 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			// nil interface separately.
 			empty = rv.IsNil()
 		} else {
-			empty = isEmpty(rv, sc.encodeOmitDefaultStruct || ec.omitZeroStruct)
+			empty = isEmpty(rv, sc.encodeOmitDefaultStruct)
 		}
 		if desc.omitEmpty && empty {
 			continue
@@ -156,18 +159,19 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			return err
 		}
 
-		ectx := EncodeContext{
-			Registry:                ec.Registry,
-			minSize:                 desc.minSize || ec.minSize,
-			errorOnInlineDuplicates: ec.errorOnInlineDuplicates,
-			stringifyMapKeysWithFmt: ec.stringifyMapKeysWithFmt,
-			nilMapAsEmpty:           ec.nilMapAsEmpty,
-			nilSliceAsEmpty:         ec.nilSliceAsEmpty,
-			nilByteSliceAsEmpty:     ec.nilByteSliceAsEmpty,
-			omitZeroStruct:          ec.omitZeroStruct,
-			useJSONStructTags:       ec.useJSONStructTags,
+		// defaultUIntCodec.encodeToMinSize = desc.minSize
+		switch v := encoder.(type) {
+		case *uintCodec:
+			encoder = &uintCodec{
+				encodeToMinSize: v.encodeToMinSize || desc.minSize,
+			}
+		case *intCodec:
+			encoder = &intCodec{
+				encodeToMinSize: v.encodeToMinSize || desc.minSize,
+			}
 		}
-		err = encoder.EncodeValue(ectx, vw2, rv)
+
+		err = encoder.EncodeValue(reg, vw2, rv)
 		if err != nil {
 			return err
 		}
@@ -180,7 +184,7 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			return exists
 		}
 
-		return (&mapCodec{}).mapEncodeValue(ec, dw, rv, collisionFn)
+		return (&mapCodec{}).mapEncodeValue(reg, dw, rv, collisionFn)
 	}
 
 	return dw.WriteDocumentEnd()
@@ -239,7 +243,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		val.Set(deepZero(val.Type()))
 	}
 
-	var decoder valueDecoder
+	var decoder ValueDecoder
 	var inlineMap reflect.Value
 	if sd.inlineMap >= 0 {
 		inlineMap = val.Field(sd.inlineMap)
@@ -385,8 +389,8 @@ type fieldDescription struct {
 	minSize   bool
 	truncate  bool
 	inline    []int
-	encoder   valueEncoder
-	decoder   valueDecoder
+	encoder   ValueEncoder
+	decoder   ValueDecoder
 }
 
 type byIndex []fieldDescription

@@ -149,7 +149,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates int32 values when encoding.
-	var encodeInt32 ValueEncoderFunc = func(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
+	var encodeInt32 ValueEncoderFunc = func(_ *Registry, vw ValueWriter, val reflect.Value) error {
 		if val.Kind() != reflect.Int32 {
 			return fmt.Errorf("expected kind to be int32, got %v", val.Kind())
 		}

@@ -37,7 +37,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 	type subtest struct {
 		name   string
 		val    interface{}
-		ectx   *EncodeContext
 		llvrw  *valueReaderWriter
 		invoke invoked
 		err    error
@@ -45,7 +44,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		ve       valueEncoder
+		ve       ValueEncoder
 		subtests []subtest
 	}{
 		{
@@ -55,7 +54,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				{
 					"wrong type",
 					wrong,
-					nil,
 					nil,
 					nothing,
 					ValueEncoderError{
@@ -68,7 +66,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 					"RawValue/success",
 					RawValue{Type: TypeDouble, Value: bsoncore.AppendDouble(nil, 3.14159)},
 					nil,
-					nil,
 					writeDouble,
 					nil,
 				},
@@ -79,7 +76,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 						Value: bsoncore.AppendDouble(nil, 3.14159),
 					},
 					nil,
-					nil,
 					nothing,
 					fmt.Errorf("the RawValue Type specifies an invalid BSON type: 0x0"),
 				},
@@ -89,7 +85,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 						Type:  0x8F,
 						Value: bsoncore.AppendDouble(nil, 3.14159),
 					},
-					nil,
 					nil,
 					nothing,
 					fmt.Errorf("the RawValue Type specifies an invalid BSON type: 0x8f"),
@@ -104,14 +99,12 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 					"wrong type",
 					wrong,
 					nil,
-					nil,
 					nothing,
 					ValueEncoderError{Name: "RawEncodeValue", Types: []reflect.Type{tRaw}, Received: reflect.ValueOf(wrong)},
 				},
 				{
 					"WriteDocument Error",
 					Raw{},
-					nil,
 					&valueReaderWriter{Err: errors.New("wd error"), ErrAfter: writeDocument},
 					writeDocument,
 					errors.New("wd error"),
@@ -119,7 +112,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				{
 					"Raw.Elements Error",
 					Raw{0xFF, 0x00, 0x00, 0x00, 0x00},
-					nil,
 					&valueReaderWriter{},
 					writeDocument,
 					errors.New("length read exceeds number of bytes available. length=5 bytes=255"),
@@ -127,7 +119,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				{
 					"WriteDocumentElement Error",
 					Raw(bytesFromDoc(D{{"foo", nil}})),
-					nil,
 					&valueReaderWriter{Err: errors.New("wde error"), ErrAfter: writeDocumentElement},
 					writeDocumentElement,
 					errors.New("wde error"),
@@ -135,7 +126,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				{
 					"encodeValue error",
 					Raw(bytesFromDoc(D{{"foo", nil}})),
-					nil,
 					&valueReaderWriter{Err: errors.New("ev error"), ErrAfter: writeNull},
 					writeNull,
 					errors.New("ev error"),
@@ -143,7 +133,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				{
 					"iterator error",
 					Raw{0x0C, 0x00, 0x00, 0x00, 0x01, 'f', 'o', 'o', 0x00, 0x01, 0x02, 0x03},
-					nil,
 					&valueReaderWriter{},
 					writeDocumentElement,
 					errors.New("not enough bytes available to read type. bytes=3 type=double"),
@@ -164,16 +153,12 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 				t.Run(subtest.name, func(t *testing.T) {
 					t.Parallel()
 
-					var ec EncodeContext
-					if subtest.ectx != nil {
-						ec = *subtest.ectx
-					}
 					llvrw := new(valueReaderWriter)
 					if subtest.llvrw != nil {
 						llvrw = subtest.llvrw
 					}
 					llvrw.T = t
-					err := tc.ve.EncodeValue(ec, llvrw, reflect.ValueOf(subtest.val))
+					err := tc.ve.EncodeValue(nil, llvrw, reflect.ValueOf(subtest.val))
 					if !assert.CompareErrors(err, subtest.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, subtest.err)
 					}
@@ -491,7 +476,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		vd       valueDecoder
+		vd       ValueDecoder
 		subtests []subtest
 	}{
 		{
