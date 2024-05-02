@@ -35,7 +35,11 @@ type SingleResult struct {
 // from the one provided occurs during creation of the SingleResult, that error will be stored on the returned SingleResult.
 //
 // The document parameter must be a non-nil document.
-func NewSingleResultFromDocument(document interface{}, err error, registry *bson.Registry) *SingleResult {
+func NewSingleResultFromDocument(
+	document interface{},
+	err error,
+	registry *bson.Registry,
+) *SingleResult {
 	if document == nil {
 		return &SingleResult{err: ErrNilDocument}
 	}
@@ -90,6 +94,7 @@ func (sr *SingleResult) Raw() (bson.Raw, error) {
 	if sr.err = sr.setRdrContents(); sr.err != nil {
 		return nil, sr.err
 	}
+
 	return sr.rdr, nil
 }
 
@@ -110,7 +115,9 @@ func (sr *SingleResult) setRdrContents() error {
 
 			return ErrNoDocuments
 		}
+
 		sr.rdr = sr.cur.Current
+
 		return nil
 	}
 

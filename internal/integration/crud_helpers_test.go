@@ -602,7 +602,7 @@ func executeListIndexes(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo
 	return mt.Coll.Indexes().List(context.Background())
 }
 
-func executeDistinct(mt *mtest.T, sess *mongo.Session, args bson.Raw) ([]interface{}, error) {
+func executeDistinct(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.RawArray, error) {
 	mt.Helper()
 
 	var fieldName string
@@ -627,16 +627,22 @@ func executeDistinct(mt *mtest.T, sess *mongo.Session, args bson.Raw) ([]interfa
 		}
 	}
 
+	var res *mongo.DistinctResult
 	if sess != nil {
-		var res []interface{}
-		err := mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
-			var derr error
-			res, derr = mt.Coll.Distinct(sc, fieldName, filter, opts)
-			return derr
+		err := mongo.WithSession(context.Background(), sess, func(ctx context.Context) error {
+			res = mt.Coll.Distinct(ctx, fieldName, filter, opts)
+
+			return res.Err()
 		})
-		return res, err
+
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		res = mt.Coll.Distinct(context.Background(), fieldName, filter, opts)
 	}
-	return mt.Coll.Distinct(context.Background(), fieldName, filter, opts)
+
+	return res.Raw()
 }
 
 func executeFindOneAndDelete(mt *mtest.T, sess *mongo.Session, args bson.Raw) *mongo.SingleResult {
@@ -1529,25 +1535,34 @@ func verifyDeleteResult(mt *mtest.T, res *mongo.DeleteResult, result interface{}
 		"deleted count mismatch; expected %v, got %v", expected.DeletedCount, res.DeletedCount)
 }
 
-func verifyDistinctResult(mt *mtest.T, actualResult []interface{}, expectedResult interface{}) {
+func verifyDistinctResult(
+	mt *mtest.T,
+	got bson.RawArray,
+	want interface{},
+) {
 	mt.Helper()
 
-	if expectedResult == nil {
+	if got == nil {
 		return
 	}
 
-	for i, expected := range expectedResult.(bson.A) {
-		actual := actualResult[i]
-		iExpected := getIntFromInterface(expected)
-		iActual := getIntFromInterface(actual)
+	assert.NotNil(mt, want, "expected want to be non-nil")
 
-		if iExpected != nil {
-			assert.NotNil(mt, iActual, "expected nil but got %v", iActual)
-			assert.Equal(mt, *iExpected, *iActual, "expected value %v but got %v", *iExpected, *iActual)
-			continue
+	arr, ok := want.(bson.A)
+	assert.True(mt, ok, "expected want to be a BSON array")
+
+	for i, iwant := range arr {
+		gotRawValue := got.Index(uint(i))
+
+		iwantType, iwantBytes, err := bson.MarshalValue(iwant)
+		assert.NoError(mt, err)
+
+		wantRawValue := bson.RawValue{
+			Type:  iwantType,
+			Value: iwantBytes,
 		}
 
-		assert.Equal(mt, expected, actual, "expected value %v but got %v", expected, actual)
+		assert.EqualValues(mt, wantRawValue, gotRawValue, "expected value %v but got %v", wantRawValue, gotRawValue)
 	}
 }
 
@@ -1636,7 +1651,11 @@ func verifyCursorResult(mt *mtest.T, cur *mongo.Cursor, result interface{}) {
 	}
 }
 
-func verifySingleResult(mt *mtest.T, actualResult *mongo.SingleResult, expectedResult interface{}) {
+func verifySingleResult(
+	mt *mtest.T,
+	actualResult *mongo.SingleResult,
+	expectedResult interface{},
+) {
 	mt.Helper()
 
 	if expectedResult == nil {
