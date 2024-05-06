@@ -1,22 +1,35 @@
 package stats
 
-type statsErr struct {
+type statsError struct {
 	err string
 }
 
-func (s statsErr) Error() string {
+func (s statsError) Error() string {
+	return s.err
+}
+
+func (s statsError) String() string {
 	return s.err
 }
 
 // These are the package-wide error values.
 // All error identification should use these values.
+// https://github.com/golang/go/wiki/Errors#naming
 var (
-	EmptyInput  = statsErr{"Input must not be empty."}
-	SampleSize  = statsErr{"Samples number must be less than input length."}
-	NaNErr      = statsErr{"Not a number"}
-	NegativeErr = statsErr{"Slice must not contain negative values."}
-	ZeroErr     = statsErr{"Slice must not contain zero values."}
-	BoundsErr   = statsErr{"Input is outside of range."}
-	SizeErr     = statsErr{"Slices must be the same length."}
-	InfValue    = statsErr{"Value is infinite."}
+	// ErrEmptyInput Input must not be empty
+	ErrEmptyInput = statsError{"Input must not be empty."}
+	// ErrNaN Not a number
+	ErrNaN = statsError{"Not a number."}
+	// ErrNegative Must not contain negative values
+	ErrNegative = statsError{"Must not contain negative values."}
+	// ErrZero Must not contain zero values
+	ErrZero = statsError{"Must not contain zero values."}
+	// ErrBounds Input is outside of range
+	ErrBounds = statsError{"Input is outside of range."}
+	// ErrSize Must be the same length
+	ErrSize = statsError{"Must be the same length."}
+	// ErrInfValue Value is infinite
+	ErrInfValue = statsError{"Value is infinite."}
+	// ErrYCoord Y Value must be greater than zero
+	ErrYCoord = statsError{"Y Value must be greater than zero."}
 )

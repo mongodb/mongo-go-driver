@@ -5,9 +5,9 @@ import (
 )
 
 // Validate data for distance calculation
-func validateData(dataPointX, dataPointY []float64) error {
+func validateData(dataPointX, dataPointY Float64Data) error {
 	if len(dataPointX) == 0 || len(dataPointY) == 0 {
-		return EmptyInput
+		return EmptyInputErr
 	}
 
 	if len(dataPointX) != len(dataPointY) {
@@ -16,8 +16,8 @@ func validateData(dataPointX, dataPointY []float64) error {
 	return nil
 }
 
-// Computes Chebyshev distance between two data sets
-func ChebyshevDistance(dataPointX, dataPointY []float64) (distance float64, err error) {
+// ChebyshevDistance computes the Chebyshev distance between two data sets
+func ChebyshevDistance(dataPointX, dataPointY Float64Data) (distance float64, err error) {
 	err = validateData(dataPointX, dataPointY)
 	if err != nil {
 		return math.NaN(), err
@@ -32,10 +32,8 @@ func ChebyshevDistance(dataPointX, dataPointY []float64) (distance float64, err 
 	return distance, nil
 }
 
-//
-// Computes Euclidean distance between two data sets
-//
-func EuclideanDistance(dataPointX, dataPointY []float64) (distance float64, err error) {
+// EuclideanDistance computes the Euclidean distance between two data sets
+func EuclideanDistance(dataPointX, dataPointY Float64Data) (distance float64, err error) {
 
 	err = validateData(dataPointX, dataPointY)
 	if err != nil {
@@ -48,10 +46,8 @@ func EuclideanDistance(dataPointX, dataPointY []float64) (distance float64, err 
 	return math.Sqrt(distance), nil
 }
 
-//
-// Computes Manhattan distance between two data sets
-//
-func ManhattanDistance(dataPointX, dataPointY []float64) (distance float64, err error) {
+// ManhattanDistance computes the Manhattan distance between two data sets
+func ManhattanDistance(dataPointX, dataPointY Float64Data) (distance float64, err error) {
 	err = validateData(dataPointX, dataPointY)
 	if err != nil {
 		return math.NaN(), err
@@ -63,22 +59,23 @@ func ManhattanDistance(dataPointX, dataPointY []float64) (distance float64, err 
 	return distance, nil
 }
 
+// MinkowskiDistance computes the Minkowski distance between two data sets
 //
-// Computes minkowski distance between two data sets.
+// Arguments:
 //
-// Input:
-//    dataPointX: First set of data points
-//    dataPointY: Second set of data points. Length of both data
-//                sets must be equal.
-//    lambda:     aka p or city blocks; With lambda = 1
-//                returned distance is manhattan distance and
-//                lambda = 2; it is euclidean distance. Lambda
-//                reaching to infinite - distance would be chebysev
-//                distance.
-// Output:
-//     Distance or error
+//	dataPointX: First set of data points
+//	dataPointY: Second set of data points. Length of both data
+//	            sets must be equal.
+//	lambda:     aka p or city blocks; With lambda = 1
+//	            returned distance is manhattan distance and
+//	            lambda = 2; it is euclidean distance. Lambda
+//	            reaching to infinite - distance would be chebysev
+//	            distance.
 //
-func MinkowskiDistance(dataPointX, dataPointY []float64, lambda float64) (distance float64, err error) {
+// Return:
+//
+//	Distance or error
+func MinkowskiDistance(dataPointX, dataPointY Float64Data, lambda float64) (distance float64, err error) {
 	err = validateData(dataPointX, dataPointY)
 	if err != nil {
 		return math.NaN(), err
@@ -86,8 +83,8 @@ func MinkowskiDistance(dataPointX, dataPointY []float64, lambda float64) (distan
 	for i := 0; i < len(dataPointY); i++ {
 		distance = distance + math.Pow(math.Abs(dataPointX[i]-dataPointY[i]), lambda)
 	}
-	distance = math.Pow(distance, float64(1/lambda))
-	if math.IsInf(distance, 1) == true {
+	distance = math.Pow(distance, 1/lambda)
+	if math.IsInf(distance, 1) {
 		return math.NaN(), InfValue
 	}
 	return distance, nil
