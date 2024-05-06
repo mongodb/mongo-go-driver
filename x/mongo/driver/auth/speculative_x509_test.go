@@ -125,7 +125,7 @@ func createSpeculativeX509Handshake() []bsoncore.Document {
 	return []bsoncore.Document{hello}
 }
 
-// createSpeculativeX509Handshake creates the server replies for a handshake + X509 authentication attempt.
+// createRegularX509Handshake creates the server replies for a handshake + X509 authentication attempt.
 // There are two replies:
 //
 // 1. hello reply

@@ -4,8 +4,8 @@ github.com/davecgh/go-spew/spew
 # github.com/golang/snappy v0.0.1
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-cmp v0.5.2
-## explicit; go 1.8
+# github.com/google/go-cmp v0.6.0
+## explicit; go 1.13
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/cmpopts
 github.com/google/go-cmp/cmp/internal/diff
@@ -20,8 +20,8 @@ github.com/klauspost/compress/huff0
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
-## explicit
+# github.com/montanaflynn/stats v0.7.1
+## explicit; go 1.13
 github.com/montanaflynn/stats
 # github.com/xdg-go/pbkdf2 v1.0.0
 ## explicit; go 1.9
@@ -35,7 +35,7 @@ github.com/xdg-go/stringprep
 # github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
 ## explicit
 github.com/youmark/pkcs8
-# golang.org/x/crypto v0.17.0
+# golang.org/x/crypto v0.22.0
 ## explicit; go 1.18
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
@@ -47,7 +47,3 @@ golang.org/x/sync/singleflight
 ## explicit; go 1.18
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
-## explicit; go 1.11
-golang.org/x/xerrors
-golang.org/x/xerrors/internal
