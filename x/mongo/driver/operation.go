@@ -622,7 +622,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		}
 	}()
 	for {
-		// If we're starting a retry and the the error from the previous try was
+		// If we're starting a retry and the error from the previous try was
 		// a context canceled or deadline exceeded error, stop retrying and
 		// return that error.
 		if errors.Is(prevErr, context.Canceled) || errors.Is(prevErr, context.DeadlineExceeded) {

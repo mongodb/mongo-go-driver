@@ -1961,6 +1961,10 @@ axes:
   - id: version
     display_name: MongoDB Version
     values:
+      - id: "8.0"
+        display_name: "8.0"
+        variables:
+          VERSION: "8.0"
       - id: "7.0"
         display_name: "7.0"
         variables:
@@ -2397,7 +2401,7 @@ buildvariants:
 
   - matrix_name: "tests-42-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
@@ -2415,20 +2419,20 @@ buildvariants:
       - name: ".test .enterprise-auth"
 
   - matrix_name: "aws-auth-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], os-aws-auth: "*" }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-aws-auth: "*" }
     display_name: "MONGODB-AWS Auth ${version} ${os-aws-auth}"
     tasks:
       - name: "aws-auth-test"
 
   - matrix_name: "ocsp-test"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], ocsp-rhel-87: ["rhel87-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], ocsp-rhel-87: ["rhel87-go-1-20"] }
     display_name: "OCSP ${version} ${ocsp-rhel-87}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
       - name: ".ocsp"
 
   - matrix_name: "ocsp-test-windows"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2436,7 +2440,7 @@ buildvariants:
       - name: ".ocsp-rsa !.ocsp-staple"
 
   - matrix_name: "ocsp-test-macos"
-    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "latest"], os-ssl-40: ["macos11-go-1-20"] }
+    matrix_spec: { version: ["4.4", "5.0", "6.0", "7.0", "8.0", "latest"], os-ssl-40: ["macos11-go-1-20"] }
     display_name: "OCSP ${version} ${os-ssl-40}"
     batchtime: 20160 # Use a batchtime of 14 days as suggested by the OCSP test README
     tasks:
@@ -2452,7 +2456,7 @@ buildvariants:
 
   - matrix_name: "versioned-api-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
     display_name: "API Version ${version} ${os-ssl-40}"
     tasks:
       - name: ".versioned-api"
@@ -2471,7 +2475,7 @@ buildvariants:
 
   - matrix_name: "load-balancer-test"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["5.0", "6.0", "7.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "Load Balancer Support ${version} ${os-ssl-40}"
     tasks:
       - name: ".load-balancer"

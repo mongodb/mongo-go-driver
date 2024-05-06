@@ -24,18 +24,17 @@ retract (
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/snappy v0.0.4
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.6.0
 	github.com/klauspost/compress v1.13.6
-	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe
+	github.com/montanaflynn/stats v0.7.1
 	github.com/xdg-go/scram v1.1.2
 	github.com/xdg-go/stringprep v1.0.4
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d
-	golang.org/x/crypto v0.17.0
+	golang.org/x/crypto v0.22.0
 	golang.org/x/sync v0.1.0
 )
 
 require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 )

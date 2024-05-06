@@ -1,6 +1,6 @@
 // Copyright 2019, The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE.md file.
+// license that can be found in the LICENSE file.
 
 package cmp
 
@@ -393,6 +393,7 @@ func (s diffStats) Append(ds diffStats) diffStats {
 // String prints a humanly-readable summary of coalesced records.
 //
 // Example:
+//
 //	diffStats{Name: "Field", NumIgnored: 5}.String() => "5 ignored fields"
 func (s diffStats) String() string {
 	var ss []string
