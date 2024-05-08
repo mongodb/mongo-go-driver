@@ -62,10 +62,6 @@ func TestServerSelection(t *testing.T) {
 	var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return []description.Server{}, nil
 	}
-	//var errSelectionError = errors.New("encountered an error in the selector")
-	//var selectError description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
-	//	return nil, errSelectionError
-	//}
 
 	t.Run("Success", func(t *testing.T) {
 		topo, err := New(nil)
