@@ -15,9 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/description"
@@ -42,7 +39,7 @@ type Collection struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 }
 
 // aggregateParams is used to store information to configure an Aggregate operation.
@@ -51,7 +48,7 @@ type aggregateParams struct {
 	pipeline       interface{}
 	client         *Client
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
 	retryRead      bool
@@ -268,7 +265,7 @@ func (coll *Collection) insert(
 		if err != nil {
 			return nil, err
 		}
-		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, primitive.NilObjectID, coll.bsonOpts, coll.registry)
+		bsoncoreDoc, id, err := ensureID(bsoncoreDoc, bson.NilObjectID, coll.bsonOpts, coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -991,7 +988,7 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *
 			if err != nil {
 				return nil, err
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		op.CustomOptions(customOptions)
@@ -1190,15 +1187,14 @@ func (coll *Collection) Distinct(
 	fieldName string,
 	filter interface{},
 	opts ...Options[options.DistinctArgs],
-) ([]interface{}, error) {
-
+) *DistinctResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return nil, err
+		return &DistinctResult{err: err}
 	}
 
 	sess := sessionFromContext(ctx)
@@ -1210,7 +1206,7 @@ func (coll *Collection) Distinct(
 
 	err = coll.client.validSession(sess)
 	if err != nil {
-		return nil, err
+		return &DistinctResult{err: err}
 	}
 
 	rc := coll.readConcern
@@ -1222,7 +1218,9 @@ func (coll *Collection) Distinct(
 
 	args, err := newArgsFromOptions[options.DistinctArgs](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		err = fmt.Errorf("failed to construct arguments from options: %w", err)
+
+		return &DistinctResult{err: err}
 	}
 
 	op := operation.NewDistinct(fieldName, f).
@@ -1238,7 +1236,7 @@ func (coll *Collection) Distinct(
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return nil, err
+			return &DistinctResult{err: err}
 		}
 		op.Comment(comment)
 	}
@@ -1250,30 +1248,20 @@ func (coll *Collection) Distinct(
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return nil, replaceErrors(err)
+		return &DistinctResult{err: replaceErrors(err)}
 	}
 
 	arr, ok := op.Result().Values.ArrayOK()
 	if !ok {
-		return nil, fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+
+		return &DistinctResult{err: err}
 	}
 
-	values, err := arr.Values()
-	if err != nil {
-		return nil, err
+	return &DistinctResult{
+		reg: coll.registry,
+		arr: bson.RawArray(arr),
 	}
-
-	retArray := make([]interface{}, len(values))
-
-	for i, val := range values {
-		raw := bson.RawValue{Type: val.Type, Value: val.Data}
-		err = raw.Unmarshal(&retArray[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return retArray, replaceErrors(err)
 }
 
 // Find executes a find command and returns a Cursor over the matching documents in the collection.
@@ -1678,7 +1666,7 @@ func (coll *Collection) FindOneAndReplace(
 		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r}).
+	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).MaxTime(args.MaxTime)
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
@@ -1887,8 +1875,11 @@ func (coll *Collection) Indexes() IndexView {
 
 // SearchIndexes returns a SearchIndexView instance that can be used to perform operations on the search indexes for the collection.
 func (coll *Collection) SearchIndexes() SearchIndexView {
+	c, _ := coll.Clone() // Clone() always return a nil error.
+	c.readConcern = nil
+	c.writeConcern = nil
 	return SearchIndexView{
-		coll: coll,
+		coll: c,
 	}
 }
 

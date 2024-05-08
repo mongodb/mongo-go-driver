@@ -24,7 +24,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
@@ -164,7 +163,7 @@ func TestClientOptions(t *testing.T) {
 				if !cmp.Equal(
 					got.Interface(), want.Interface(),
 					cmp.AllowUnexported(readconcern.ReadConcern{}, writeconcern.WriteConcern{}, readpref.ReadPref{}),
-					cmp.Comparer(func(r1, r2 *bsoncodec.Registry) bool { return r1 == r2 }),
+					cmp.Comparer(func(r1, r2 *bson.Registry) bool { return r1 == r2 }),
 					cmp.Comparer(func(cfg1, cfg2 *tls.Config) bool { return cfg1 == cfg2 }),
 					cmp.Comparer(func(fp1, fp2 *event.PoolMonitor) bool { return fp1 == fp2 }),
 				) {

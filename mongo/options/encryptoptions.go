@@ -8,7 +8,6 @@ package options
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // These constants specify valid values for QueryType
@@ -46,7 +45,7 @@ func (ro *RangeOptions) ArgsSetters() []func(*RangeArgs) error {
 
 // EncryptArgs represents options to explicitly encrypt a value.
 type EncryptArgs struct {
-	KeyID            *primitive.Binary
+	KeyID            *bson.Binary
 	KeyAltName       *string
 	Algorithm        string
 	QueryType        string
@@ -72,13 +71,12 @@ func Encrypt() *EncryptOptions {
 }
 
 // SetKeyID specifies an _id of a data key. This should be a UUID (a primitive.Binary with subtype 4).
-func (e *EncryptOptions) SetKeyID(keyID primitive.Binary) *EncryptOptions {
+func (e *EncryptOptions) SetKeyID(keyID bson.Binary) *EncryptOptions {
 	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
 		args.KeyID = &keyID
 
 		return nil
 	})
-
 	return e
 }
 

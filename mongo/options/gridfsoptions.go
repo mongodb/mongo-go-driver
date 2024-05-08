@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -133,7 +132,7 @@ type GridFSUploadArgs struct {
 	Metadata interface{}
 
 	// The BSON registry to use for converting filters to BSON documents. The default value is bson.DefaultRegistry.
-	Registry *bsoncodec.Registry
+	Registry *bson.Registry
 }
 
 // GridFSUploadOptions contains options to configure a GridFS Upload. Each
@@ -179,7 +178,7 @@ func (u *GridFSUploadOptions) SetMetadata(doc interface{}) *GridFSUploadOptions 
 }
 
 // SetRegistry sets the bson codec registry for the Registry field.
-func (u *GridFSUploadOptions) SetRegistry(registry *bsoncodec.Registry) *GridFSUploadOptions {
+func (u *GridFSUploadOptions) SetRegistry(registry *bson.Registry) *GridFSUploadOptions {
 	u.Opts = append(u.Opts, func(args *GridFSUploadArgs) error {
 		args.Registry = registry
 

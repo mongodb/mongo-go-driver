@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"sync"
@@ -21,6 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 func TestSearchIndexProse(t *testing.T) {
@@ -62,7 +65,9 @@ func TestSearchIndexProse(t *testing.T) {
 			if !cursor.Next(ctx) {
 				break
 			}
-			if cursor.Current.Lookup("queryable").Boolean() {
+			name := cursor.Current.Lookup("name").StringValue()
+			queryable := cursor.Current.Lookup("queryable").Boolean()
+			if name == searchName && queryable {
 				doc = cursor.Current
 			} else {
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -70,7 +75,6 @@ func TestSearchIndexProse(t *testing.T) {
 			}
 		}
 		require.NotNil(mt, doc, "got empty document")
-		assert.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
 		expected, err := bson.Marshal(definition)
 		require.NoError(mt, err, "failed to marshal definition")
 		actual := doc.Lookup("latestDefinition").Value
@@ -114,7 +118,13 @@ func TestSearchIndexProse(t *testing.T) {
 				if !cursor.Next(ctx) {
 					return nil
 				}
-				if cursor.Current.Lookup("queryable").Boolean() {
+				name := cursor.Current.Lookup("name").StringValue()
+				queryable := cursor.Current.Lookup("queryable").Boolean()
+
+				args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](opts)
+				require.NoError(mt, err, "failed to construct arguments from options")
+
+				if name == *args.Name && queryable {
 					return cursor.Current
 				}
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -171,7 +181,9 @@ func TestSearchIndexProse(t *testing.T) {
 			if !cursor.Next(ctx) {
 				break
 			}
-			if cursor.Current.Lookup("queryable").Boolean() {
+			name := cursor.Current.Lookup("name").StringValue()
+			queryable := cursor.Current.Lookup("queryable").Boolean()
+			if name == searchName && queryable {
 				doc = cursor.Current
 			} else {
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -179,7 +191,6 @@ func TestSearchIndexProse(t *testing.T) {
 			}
 		}
 		require.NotNil(mt, doc, "got empty document")
-		require.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
 
 		err = view.DropOne(ctx, searchName)
 		require.NoError(mt, err, "failed to drop index")
@@ -213,37 +224,49 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, searchName, index, "unmatched name")
 
-		getDocument := func() bson.Raw {
-			for {
-				cursor, err := view.List(ctx, opts)
-				require.NoError(mt, err, "failed to list")
+		var doc bson.Raw
+		for doc == nil {
+			cursor, err := view.List(ctx, opts)
+			require.NoError(mt, err, "failed to list")
 
-				if !cursor.Next(ctx) {
-					return nil
-				}
-				if cursor.Current.Lookup("queryable").Boolean() {
-					return cursor.Current
-				}
+			if !cursor.Next(ctx) {
+				break
+			}
+			name := cursor.Current.Lookup("name").StringValue()
+			queryable := cursor.Current.Lookup("queryable").Boolean()
+			if name == searchName && queryable {
+				doc = cursor.Current
+			} else {
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
 				time.Sleep(5 * time.Second)
 			}
 		}
-
-		doc := getDocument()
 		require.NotNil(mt, doc, "got empty document")
-		require.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
 
 		definition = bson.D{{"mappings", bson.D{{"dynamic", true}}}}
-		err = view.UpdateOne(ctx, searchName, definition)
-		require.NoError(mt, err, "failed to drop index")
-		doc = getDocument()
-		require.NotNil(mt, doc, "got empty document")
-		assert.Equal(mt, searchName, doc.Lookup("name").StringValue(), "unmatched name")
-		assert.Equal(mt, "READY", doc.Lookup("status").StringValue(), "unexpected status")
 		expected, err := bson.Marshal(definition)
 		require.NoError(mt, err, "failed to marshal definition")
-		actual := doc.Lookup("latestDefinition").Value
-		assert.Equal(mt, expected, actual, "unmatched definition")
+		err = view.UpdateOne(ctx, searchName, definition)
+		require.NoError(mt, err, "failed to update index")
+		for doc == nil {
+			cursor, err := view.List(ctx, opts)
+			require.NoError(mt, err, "failed to list")
+
+			if !cursor.Next(ctx) {
+				break
+			}
+			name := cursor.Current.Lookup("name").StringValue()
+			queryable := cursor.Current.Lookup("queryable").Boolean()
+			status := cursor.Current.Lookup("status").StringValue()
+			latestDefinition := doc.Lookup("latestDefinition").Value
+			if name == searchName && queryable && status == "READY" && bytes.Equal(latestDefinition, expected) {
+				doc = cursor.Current
+			} else {
+				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+				time.Sleep(5 * time.Second)
+			}
+		}
+		require.NotNil(mt, doc, "got empty document")
 	})
 
 	mt.Run("case 5: dropSearchIndex suppresses namespace not found errors", func(mt *mtest.T) {
@@ -259,4 +282,47 @@ func TestSearchIndexProse(t *testing.T) {
 		err = collection.SearchIndexes().DropOne(ctx, "foo")
 		require.NoError(mt, err)
 	})
+
+	mt.RunOpts("case 6: Driver can successfully create and list search indexes with non-default readConcern and writeConcern",
+		mtest.NewOptions().CollectionOptions(options.Collection().SetWriteConcern(writeconcern.W1()).SetReadConcern(readconcern.Majority())),
+		func(mt *mtest.T) {
+			ctx := context.Background()
+
+			_, err := mt.Coll.InsertOne(ctx, bson.D{})
+			require.NoError(mt, err, "failed to insert")
+
+			view := mt.Coll.SearchIndexes()
+
+			definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
+			const searchName = "test-search-index-case6"
+			opts := options.SearchIndexes().SetName(searchName)
+			index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+				Definition: definition,
+				Options:    opts,
+			})
+			require.NoError(mt, err, "failed to create index")
+			require.Equal(mt, searchName, index, "unmatched name")
+			var doc bson.Raw
+			for doc == nil {
+				cursor, err := view.List(ctx, opts)
+				require.NoError(mt, err, "failed to list")
+
+				if !cursor.Next(ctx) {
+					break
+				}
+				name := cursor.Current.Lookup("name").StringValue()
+				queryable := cursor.Current.Lookup("queryable").Boolean()
+				if name == searchName && queryable {
+					doc = cursor.Current
+				} else {
+					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					time.Sleep(5 * time.Second)
+				}
+			}
+			require.NotNil(mt, doc, "got empty document")
+			expected, err := bson.Marshal(definition)
+			require.NoError(mt, err, "failed to marshal definition")
+			actual := doc.Lookup("latestDefinition").Value
+			assert.Equal(mt, expected, actual, "unmatched definition")
+		})
 }

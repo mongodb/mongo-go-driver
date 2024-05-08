@@ -54,7 +54,6 @@ type rttMonitor struct {
 	cfg      *rttConfig
 	ctx      context.Context
 	cancelFn context.CancelFunc
-	started  bool
 }
 
 var _ driver.RTTMonitor = &rttMonitor{}
@@ -78,7 +77,6 @@ func (r *rttMonitor) connect() {
 	r.connMu.Lock()
 	defer r.connMu.Unlock()
 
-	r.started = true
 	r.closeWg.Add(1)
 
 	go func() {
@@ -91,10 +89,6 @@ func (r *rttMonitor) connect() {
 func (r *rttMonitor) disconnect() {
 	r.connMu.Lock()
 	defer r.connMu.Unlock()
-
-	if !r.started {
-		return
-	}
 
 	r.cancelFn()
 

@@ -36,21 +36,22 @@ func TestMongosPinning(t *testing.T) {
 
 	mt.Run("unpin for next transaction", func(mt *mtest.T) {
 		addresses := map[string]struct{}{}
-		_ = mt.Client.UseSession(context.Background(), func(sc mongo.SessionContext) error {
+		_ = mt.Client.UseSession(context.Background(), func(sctx context.Context) error {
+			sess := mongo.SessionFromContext(sctx)
 			// Insert a document in a transaction to pin session to a mongos
-			err := sc.StartTransaction()
+			err := sess.StartTransaction()
 			assert.Nil(mt, err, "StartTransaction error: %v", err)
-			_, err = mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+			_, err = mt.Coll.InsertOne(sctx, bson.D{{"x", 1}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
-			err = sc.CommitTransaction(sc)
+			err = sess.CommitTransaction(sctx)
 			assert.Nil(mt, err, "CommitTransaction error: %v", err)
 
 			for i := 0; i < 50; i++ {
 				// Call Find in a new transaction to unpin from the old mongos and select a new one
-				err = sc.StartTransaction()
+				err = sess.StartTransaction()
 				assert.Nil(mt, err, iterationErrmsg("StartTransaction", i, err))
 
-				cursor, err := mt.Coll.Find(sc, bson.D{})
+				cursor, err := mt.Coll.Find(sctx, bson.D{})
 				assert.Nil(mt, err, iterationErrmsg("Find", i, err))
 				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 
@@ -60,7 +61,7 @@ func TestMongosPinning(t *testing.T) {
 				err = descConn.Close()
 				assert.Nil(mt, err, iterationErrmsg("connection Close", i, err))
 
-				err = sc.CommitTransaction(sc)
+				err = sess.CommitTransaction(sctx)
 				assert.Nil(mt, err, iterationErrmsg("CommitTransaction", i, err))
 			}
 			return nil
@@ -69,18 +70,20 @@ func TestMongosPinning(t *testing.T) {
 	})
 	mt.Run("unpin for non transaction operation", func(mt *mtest.T) {
 		addresses := map[string]struct{}{}
-		_ = mt.Client.UseSession(context.Background(), func(sc mongo.SessionContext) error {
+		_ = mt.Client.UseSession(context.Background(), func(sctx context.Context) error {
+			sess := mongo.SessionFromContext(sctx)
+
 			// Insert a document in a transaction to pin session to a mongos
-			err := sc.StartTransaction()
+			err := sess.StartTransaction()
 			assert.Nil(mt, err, "StartTransaction error: %v", err)
-			_, err = mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+			_, err = mt.Coll.InsertOne(sctx, bson.D{{"x", 1}})
 			assert.Nil(mt, err, "InsertOne error: %v", err)
-			err = sc.CommitTransaction(sc)
+			err = sess.CommitTransaction(sctx)
 			assert.Nil(mt, err, "CommitTransaction error: %v", err)
 
 			for i := 0; i < 50; i++ {
 				// Call Find with the session but outside of a transaction
-				cursor, err := mt.Coll.Find(sc, bson.D{})
+				cursor, err := mt.Coll.Find(sctx, bson.D{})
 				assert.Nil(mt, err, iterationErrmsg("Find", i, err))
 				assert.True(mt, cursor.Next(context.Background()), "Next returned false on iteration %v", i)
 

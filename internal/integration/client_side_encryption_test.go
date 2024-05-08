@@ -14,8 +14,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -29,7 +27,7 @@ import (
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
 // Returns a ciphertext encrypted with the data key as test data.
-func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
+func createDataKeyAndEncrypt(mt *mtest.T, keyName string) bson.Binary {
 	mt.Helper()
 
 	kvClientOpts := options.Client().
@@ -61,7 +59,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	_, err = ce.CreateDataKey(context.Background(), "local", dkOpts)
 	assert.Nil(mt, err, "CreateDataKey error: %v", err)
 
-	in := bson.RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "test")}
+	in := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "test")}
 	eOpts := options.Encrypt().
 		SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Random").
 		SetKeyAltName(keyName)
@@ -503,8 +501,8 @@ func TestFLE2DocsExample(t *testing.T) {
 			"local": {"key": localMasterKey},
 		}
 
-		var key1ID primitive.Binary
-		var key2ID primitive.Binary
+		var key1ID bson.Binary
+		var key2ID bson.Binary
 
 		// Create two data keys.
 		{
@@ -595,9 +593,9 @@ func TestFLE2DocsExample(t *testing.T) {
 			assert.Nil(mt, err, "error in Raw: %v", err)
 
 			val := resBSON.Lookup("encryptedIndexed")
-			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedIndexed to be Binary, got %v", val.Type)
+			assert.Equal(mt, val.Type, bson.TypeBinary, "expected encryptedIndexed to be Binary, got %v", val.Type)
 			val = resBSON.Lookup("encryptedUnindexed")
-			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
+			assert.Equal(mt, val.Type, bson.TypeBinary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
 		}
 	})
 }

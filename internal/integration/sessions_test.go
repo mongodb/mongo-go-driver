@@ -36,14 +36,14 @@ func TestSessionPool(t *testing.T) {
 		sess, err := mt.Client.StartSession()
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
-		initialLastUsedTime := getSessionLastUsedTime(mt, sess)
+		initialLastUsedTime := sess.ClientSession().LastUsed
 
-		err = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
+		err = mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
 			return mt.Client.Ping(sc, readpref.Primary())
 		})
 		assert.Nil(mt, err, "WithSession error: %v", err)
 
-		newLastUsedTime := getSessionLastUsedTime(mt, sess)
+		newLastUsedTime := sess.ClientSession().LastUsed
 		assert.True(mt, newLastUsedTime.After(initialLastUsedTime),
 			"last used time %s is not after the initial last used time %s", newLastUsedTime, initialLastUsedTime)
 	})
@@ -64,7 +64,6 @@ func TestSessions(t *testing.T) {
 			defer sess.EndSession(context.Background())
 
 			ctx := mongo.NewSessionContext(context.Background(), sess)
-			assert.Equal(mt, sess.ID(), ctx.ID(), "expected Session ID %v, got %v", sess.ID(), ctx.ID())
 
 			gotSess := mongo.SessionFromContext(ctx)
 			assert.NotNil(mt, gotSess, "expected SessionFromContext to return non-nil value, got nil")
@@ -78,7 +77,7 @@ func TestSessions(t *testing.T) {
 		mt.RunOpts("run transaction", txnOpts, func(mt *mtest.T) {
 			// Test that the imperative sessions API can be used to run a transaction.
 
-			createSessionContext := func(mt *mtest.T) mongo.SessionContext {
+			createSessionContext := func(mt *mtest.T) context.Context {
 				sess, err := mt.Client.StartSession()
 				assert.Nil(mt, err, "StartSession error: %v", err)
 
@@ -115,7 +114,7 @@ func TestSessions(t *testing.T) {
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		err = mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
+		err = mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
 			_, err := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
 			return err
 		})
@@ -515,7 +514,7 @@ type sessionFunction struct {
 	params []interface{} // should not include context
 }
 
-func (sf sessionFunction) execute(mt *mtest.T, sess mongo.Session) error {
+func (sf sessionFunction) execute(mt *mtest.T, sess *mongo.Session) error {
 	var target reflect.Value
 	switch sf.target {
 	case "client":
@@ -540,7 +539,7 @@ func (sf sessionFunction) execute(mt *mtest.T, sess mongo.Session) error {
 	paramsValues := interfaceSliceToValueSlice(sf.params)
 
 	if sess != nil {
-		return mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
+		return mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
 			valueArgs := []reflect.Value{reflect.ValueOf(sc)}
 			valueArgs = append(valueArgs, paramsValues...)
 			returnValues := fn.Call(valueArgs)
@@ -623,6 +622,8 @@ func extractReturnError(returnValues []reflect.Value) error {
 		return converted
 	case *mongo.SingleResult:
 		return converted.Err()
+	case *mongo.DistinctResult:
+		return converted.Err()
 	default:
 		return nil
 	}
@@ -640,10 +641,4 @@ func extractSentSessionID(mt *mtest.T) []byte {
 
 	_, data := lsid.Document().Lookup("id").Binary()
 	return data
-}
-
-func getSessionLastUsedTime(mt *mtest.T, sess mongo.Session) time.Time {
-	xsess, ok := sess.(mongo.XSession)
-	assert.True(mt, ok, "expected session to implement mongo.XSession, but got %T", sess)
-	return xsess.ClientSession().LastUsed
 }

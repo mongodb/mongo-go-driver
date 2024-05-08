@@ -398,7 +398,7 @@ func ExampleConnect_stableAPI() {
 	coll := serverAPIStrictClient.Database("db").Collection("coll")
 	// Fails with error: (APIStrictError) Provided apiStrict:true, but the
 	// command distinct is not in API Version 1
-	_, err = coll.Distinct(context.TODO(), "distinct", bson.D{})
+	err = coll.Distinct(context.TODO(), "distinct", bson.D{}).Err()
 	log.Println(err)
 
 	// ServerAPIOptions can be declared with a DeprecationErrors option.

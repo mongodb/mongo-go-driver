@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
@@ -99,6 +98,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// cause an event to occur so the resume token is updated
 		generateEvents(mt, 1)
 		assert.True(mt, cs.Next(context.Background()), "expected next to return true, got false")
+		assert.Equal(mt, 0, cs.RemainingBatchLength())
 		firstToken := cs.ResumeToken()
 
 		// cause an event on a different collection than the one being watched so the server's PBRT is updated
@@ -374,6 +374,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 						// Iterate over one event to get resume token
 						assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
+						assert.Equal(mt, numEvents-1, cs.RemainingBatchLength())
 						token := cs.ResumeToken()
 						closeStream(cs)
 
@@ -836,7 +837,7 @@ func killChangeStreamCursor(mt *mtest.T, cs *mongo.ChangeStream) {
 }
 
 // returns pbrt, operationTime from aggregate command response
-func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
+func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, bson.Timestamp) {
 	mt.Helper()
 
 	succeeded := mt.GetSucceededEvent()
@@ -845,7 +846,7 @@ func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
 
 	pbrt := succeeded.Reply.Lookup("cursor", "postBatchResumeToken").Document()
 	optimeT, optimeI := succeeded.Reply.Lookup("operationTime").Timestamp()
-	return pbrt, primitive.Timestamp{T: optimeT, I: optimeI}
+	return pbrt, bson.Timestamp{T: optimeT, I: optimeI}
 }
 
 func compareResumeTokens(mt *mtest.T, cs *mongo.ChangeStream, expected bson.Raw) {

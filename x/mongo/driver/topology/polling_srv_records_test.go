@@ -309,7 +309,7 @@ func TestPollingSRVRecordsLoadBalanced(t *testing.T) {
 
 func TestPollSRVRecordsMaxHosts(t *testing.T) {
 	// simulateSRVPoll creates a topology with srvMaxHosts, mocks the DNS changes described by
-	// recordsToAdd and recordsToRemove, and returns the the topology.
+	// recordsToAdd and recordsToRemove, and returns the topology.
 	simulateSRVPoll := func(srvMaxHosts int, recordsToAdd []*net.SRV, recordsToRemove []*net.SRV) (*Topology, func(ctx context.Context) error) {
 		t.Helper()
 

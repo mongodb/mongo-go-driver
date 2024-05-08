@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -77,7 +77,7 @@ type poolConfig struct {
 	LoadBalanced     bool
 	PoolMonitor      *event.PoolMonitor
 	Logger           *logger.Logger
-	handshakeErrFn   func(error, uint64, *primitive.ObjectID)
+	handshakeErrFn   func(error, uint64, *bson.ObjectID)
 }
 
 type pool struct {
@@ -100,7 +100,7 @@ type pool struct {
 
 	// handshakeErrFn is used to handle any errors that happen during connection establishment and
 	// handshaking.
-	handshakeErrFn func(error, uint64, *primitive.ObjectID)
+	handshakeErrFn func(error, uint64, *bson.ObjectID)
 
 	connOpts   []ConnectionOption
 	generation *poolGenerationMap
@@ -703,7 +703,7 @@ func (p *pool) closeConnection(conn *connection) error {
 	return nil
 }
 
-func (p *pool) getGenerationForNewConnection(serviceID *primitive.ObjectID) uint64 {
+func (p *pool) getGenerationForNewConnection(serviceID *bson.ObjectID) uint64 {
 	return p.generation.addConnection(serviceID)
 }
 
@@ -851,12 +851,12 @@ func (p *pool) checkInNoEvent(conn *connection) error {
 }
 
 // clear calls clearImpl internally with a false interruptAllConnections value.
-func (p *pool) clear(err error, serviceID *primitive.ObjectID) {
+func (p *pool) clear(err error, serviceID *bson.ObjectID) {
 	p.clearImpl(err, serviceID, false)
 }
 
 // clearAll does same as the "clear" method but interrupts all connections.
-func (p *pool) clearAll(err error, serviceID *primitive.ObjectID) {
+func (p *pool) clearAll(err error, serviceID *bson.ObjectID) {
 	p.clearImpl(err, serviceID, true)
 }
 
@@ -880,7 +880,7 @@ func (p *pool) interruptConnections(conns []*connection) {
 // mode).
 // If interruptAllConnections is true, this function calls interruptConnections to interrupt all
 // non-idle connections.
-func (p *pool) clearImpl(err error, serviceID *primitive.ObjectID, interruptAllConnections bool) {
+func (p *pool) clearImpl(err error, serviceID *bson.ObjectID, interruptAllConnections bool) {
 	if p.getState() == poolClosed {
 		return
 	}

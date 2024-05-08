@@ -7,7 +7,7 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -33,7 +33,7 @@ type DatabaseArgs struct {
 
 	// Registry is the BSON registry to marshal and unmarshal documents for operations executed on the Database. The default value
 	// is nil, which means that the registry of the Client used to configure the Database will be used.
-	Registry *bsoncodec.Registry
+	Registry *bson.Registry
 }
 
 // DatabaseOptions contains options to configure a database object. Each option
@@ -98,12 +98,11 @@ func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
 }
 
 // SetRegistry sets the value for the Registry field.
-func (d *DatabaseOptions) SetRegistry(r *bsoncodec.Registry) *DatabaseOptions {
+func (d *DatabaseOptions) SetRegistry(r *bson.Registry) *DatabaseOptions {
 	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
 		args.Registry = r
 
 		return nil
 	})
-
 	return d
 }

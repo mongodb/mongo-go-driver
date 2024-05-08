@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -348,7 +347,7 @@ func TestGridFS(x *testing.T) {
 			// Test that opening a download returns ErrMissingChunkSize if the files collection document has no
 			// chunk size field.
 
-			oid := primitive.NewObjectID()
+			oid := bson.NewObjectID()
 			filesDoc := bson.D{
 				{"_id", oid},
 				{"length", 10},

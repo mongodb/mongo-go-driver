@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -211,7 +210,7 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 	if err != nil {
 		return newErrorResult(err), nil
 	}
-	return newValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
+	return newValueResult(bson.TypeInt64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
 func executeCreateIndex(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -289,7 +288,7 @@ func executeCreateIndex(ctx context.Context, operation *operation) (*operationRe
 		Options: indexOpts,
 	}
 	name, err := coll.Indexes().CreateOne(ctx, model)
-	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
+	return newValueResult(bson.TypeString, bsoncore.AppendString(nil, name), err), nil
 }
 
 func executeCreateSearchIndex(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -329,7 +328,7 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 	}
 
 	name, err := coll.SearchIndexes().CreateOne(ctx, model)
-	return newValueResult(bsontype.String, bsoncore.AppendString(nil, name), err), nil
+	return newValueResult(bson.TypeString, bsoncore.AppendString(nil, name), err), nil
 }
 
 func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -382,7 +381,7 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 	for _, name := range names {
 		builder.AppendString(name)
 	}
-	return newValueResult(bsontype.Array, builder.Build(), err), nil
+	return newValueResult(bson.TypeArray, builder.Build(), err), nil
 }
 
 func executeDeleteOne(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -537,15 +536,17 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		return nil, newMissingArgumentError("filter")
 	}
 
-	res, err := coll.Distinct(ctx, fieldName, filter, opts)
+	res := coll.Distinct(ctx, fieldName, filter, opts)
+	if err := res.Err(); err != nil {
+		return newErrorResult(err), nil
+	}
+
+	arr, err := res.Raw()
 	if err != nil {
 		return newErrorResult(err), nil
 	}
-	_, rawRes, err := bson.MarshalValue(res)
-	if err != nil {
-		return nil, fmt.Errorf("error converting Distinct result to raw BSON: %w", err)
-	}
-	return newValueResult(bsontype.Array, rawRes, nil), nil
+
+	return newValueResult(bson.TypeArray, arr, nil), nil
 }
 
 func executeDropIndex(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -628,7 +629,7 @@ func executeDropSearchIndex(ctx context.Context, operation *operation) (*operati
 	}
 
 	err = coll.SearchIndexes().DropOne(ctx, name)
-	return newValueResult(bsontype.Null, nil, err), nil
+	return newValueResult(bson.TypeNull, nil, err), nil
 }
 
 func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -664,7 +665,7 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 	if err != nil {
 		return newErrorResult(err), nil
 	}
-	return newValueResult(bsontype.Int64, bsoncore.AppendInt64(nil, count), nil), nil
+	return newValueResult(bson.TypeInt64, bsoncore.AppendInt64(nil, count), nil), nil
 }
 
 func executeCreateFindCursor(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -1073,7 +1074,7 @@ func executeInsertOne(ctx context.Context, operation *operation) (*operationResu
 			return nil, fmt.Errorf("error converting InsertedID field to BSON: %w", err)
 		}
 		raw = bsoncore.NewDocumentBuilder().
-			AppendValue("insertedId", bsoncore.Value{Type: t, Data: data}).
+			AppendValue("insertedId", bsoncore.Value{Type: bsoncore.Type(t), Data: data}).
 			Build()
 	}
 	return newDocumentResult(raw, err), nil
@@ -1331,7 +1332,7 @@ func executeUpdateSearchIndex(ctx context.Context, operation *operation) (*opera
 	}
 
 	err = coll.SearchIndexes().UpdateOne(ctx, name, definition)
-	return newValueResult(bsontype.Null, nil, err), nil
+	return newValueResult(bson.TypeNull, nil, err), nil
 }
 
 func buildUpdateResultDocument(res *mongo.UpdateResult) (bsoncore.Document, error) {
@@ -1349,7 +1350,7 @@ func buildUpdateResultDocument(res *mongo.UpdateResult) (bsoncore.Document, erro
 		if err != nil {
 			return nil, fmt.Errorf("error converting UpsertedID to BSON: %w", err)
 		}
-		builder.AppendValue("upsertedId", bsoncore.Value{Type: t, Data: data})
+		builder.AppendValue("upsertedId", bsoncore.Value{Type: bsoncore.Type(t), Data: data})
 	}
 	return builder.Build(), nil
 }

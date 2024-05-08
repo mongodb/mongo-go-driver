@@ -13,12 +13,11 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var datakeyopts = map[string]primitive.M{
+var datakeyopts = map[string]bson.M{
 	"aws": bson.M{
 		"region": "us-east-1",
 		"key":    "arn:aws:kms:us-east-1:579766882180:key/89fcc2c4-08b0-4bd9-9f25-e30687b580d0",

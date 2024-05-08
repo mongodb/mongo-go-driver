@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -41,7 +39,7 @@ type Database struct {
 	readSelector   description.ServerSelector
 	writeSelector  description.ServerSelector
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 }
 
 func newDatabase(client *Client, name string, opts ...Options[options.DatabaseArgs]) *Database {
@@ -363,8 +361,8 @@ func (db *Database) ListCollectionSpecifications(
 		Name string `bson:"name"`
 		Type string `bson:"type"`
 		Info *struct {
-			ReadOnly bool              `bson:"readOnly"`
-			UUID     *primitive.Binary `bson:"uuid"`
+			ReadOnly bool         `bson:"readOnly"`
+			UUID     *bson.Binary `bson:"uuid"`
 		} `bson:"info"`
 		Options bson.Raw                       `bson:"options"`
 		IDIndex indexListSpecificationResponse `bson:"idIndex"`
