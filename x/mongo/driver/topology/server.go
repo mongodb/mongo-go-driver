@@ -123,9 +123,8 @@ type Server struct {
 
 	// Data required to cancel blocking operations while checking the status of
 	// the server during heartbeat monitoring.
-	cancelHeartbeatCheck     chan struct{}
-	cancelHeartbeatCheckOnce *sync.Once
-	heartbeatCheckCanceled   bool
+	cancelCheckSig chan struct{}
+	checkCanceled  atomic.Value
 
 	processErrorLock sync.Mutex
 	rttMonitor       *rttMonitor
@@ -170,11 +169,9 @@ func NewServer(
 		cfg:     cfg,
 		address: addr,
 
-		done:                     make(chan struct{}),
-		checkNow:                 make(chan struct{}, 1),
-		disconnecting:            make(chan struct{}),
-		cancelHeartbeatCheck:     make(chan struct{}, 1),
-		cancelHeartbeatCheckOnce: &sync.Once{},
+		done:          make(chan struct{}),
+		checkNow:      make(chan struct{}, 1),
+		disconnecting: make(chan struct{}),
 
 		topologyID: topologyID,
 
@@ -556,6 +553,43 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	return driver.ConnectionPoolCleared
 }
 
+// resetCheck will re-initialize data used to perform a check.
+func (s *Server) resetCheck() {
+	s.heartbeatLock.Lock()
+	s.cancelCheckSig = make(chan struct{}, 1)
+	s.heartbeatLock.Unlock()
+
+	s.checkCanceled.Store(false)
+}
+
+type serverChecker interface {
+	check(ctx context.Context) (description.Server, error)
+}
+
+var _ serverChecker = &Server{}
+
+// checkServerWithSignal will run the server heartbeat check, canceling if the
+// sig channel's buffer is emptied or is closed.
+func checkServerWithSignal(checker serverChecker, sig <-chan struct{}) (description.Server, error) {
+	// Create a context for the blocking operations associated with checking the
+	// status of a server.
+	//
+	// The Server Monitoring spec already mandates that drivers set and
+	// dynamically update the read/write timeout of the dedicated connections
+	// used in monitoring threads, so we rely on that to time out commands
+	// rather than adding complexity to the behavior of timeoutMS.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		defer cancel()
+
+		<-sig
+	}()
+
+	return checker.check(ctx)
+}
+
 // update handle performing heartbeats and updating any subscribers of the
 // newest description.Server retrieved.
 func (s *Server) update() {
@@ -606,31 +640,6 @@ func (s *Server) update() {
 		}
 	}
 
-	performCheck := func() (description.Server, error) {
-		// Create a context for the blocking operations associated with checking the
-		// status of a server.
-		//
-		// The Server Monitoring spec already mandates that drivers set and
-		// dynamically update the read/write timeout of the dedicated connections
-		// used in monitoring threads, so we rely on that to time out commands
-		// rather than adding complexity to the behavior of timeoutMS.
-		ctx, cancel := context.WithCancel(context.Background())
-
-		done := make(chan struct{})
-		defer close(done) // close the Go routine if check conmpletes w/o signal.
-
-		go func() {
-			defer cancel()
-
-			select {
-			case <-s.cancelHeartbeatCheck:
-			case <-done:
-			}
-		}()
-
-		return s.check(ctx) // Perform the next check.
-	}
-
 	timeoutCnt := 0
 	for {
 		// Check if the server is disconnecting. Even if waitForNextCheck has already read from the done channel, we
@@ -642,9 +651,11 @@ func (s *Server) update() {
 		default:
 		}
 
+		s.resetCheck()
+
 		previousDescription := s.Description()
 
-		desc, err := performCheck()
+		desc, err := checkServerWithSignal(s, s.cancelCheckSig)
 		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
@@ -817,15 +828,14 @@ func (s *Server) cancelCheck() {
 	// Take heartbeatLock for mutual exclusion with the checks in the update
 	// function.
 	s.heartbeatLock.Lock()
-
-	s.cancelHeartbeatCheckOnce.Do(func() {
-		s.cancelHeartbeatCheck <- struct{}{}
-
-		s.heartbeatCheckCanceled = true
-	})
-
+	select {
+	case s.cancelCheckSig <- struct{}{}:
+		s.checkCanceled.Store(true)
+	default:
+		// Drop the signal, either the channel has already been sent to or has been
+		// closed.
+	}
 	conn = s.conn
-
 	s.heartbeatLock.Unlock()
 
 	if conn == nil {
@@ -838,13 +848,6 @@ func (s *Server) cancelCheck() {
 	conn.closeConnectContext()
 	conn.wait()
 	_ = conn.close()
-}
-
-func (s *Server) checkWasCancelled() bool {
-	s.heartbeatLock.Lock()
-	defer s.heartbeatLock.Unlock()
-
-	return s.heartbeatCheckCanceled
 }
 
 func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
@@ -874,9 +877,9 @@ func (s *Server) streamable() bool {
 	return isStreamingEnabled(s) && isStreamable(s)
 }
 
-// getSocketTimeout will return the maximum allowable duration for streaming /
-// polling a hello command during server monitoring.
-func getSocketTimeout(srv *Server) time.Duration {
+// getHeartbeatTimeout will return the maximum allowable duration for streaming
+// or polling a hello command during server monitoring.
+func getHeartbeatTimeout(srv *Server) time.Duration {
 	if srv.conn.getCurrentlyStreaming() || srv.streamable() {
 		// If connectTimeoutMS=0, the operation timeout should be infinite.
 		// Otherwise, it is connectTimeoutMS + heartbeatFrequencyMS to account for
@@ -890,18 +893,18 @@ func getSocketTimeout(srv *Server) time.Duration {
 		return streamingTO
 	}
 
-	// The server doesn't support the awaitable protocol. Set the socket timeout
-	// to connectTimeoutMS and execute a regular heartbeat without any
-	// additional parameters.
+	// The server doesn't support the awaitable protocol. Set the timeout to
+	// connectTimeoutMS and execute a regular heartbeat without any additional
+	// parameters.
 	return srv.cfg.connectTimeout
 }
 
-// contextWithSocketTimeout will apply the appropriate socket timeout to the
-// parent context for server monitoring.
-func contextWithSocketTimeout(parent context.Context, srv *Server) (context.Context, context.CancelFunc) {
+// withHeartbeatTimeout will apply the appropriate timeout to the parent context
+// for server monitoring.
+func withHeartbeatTimeout(parent context.Context, srv *Server) (context.Context, context.CancelFunc) {
 	var cancel context.CancelFunc
 
-	timeout := getSocketTimeout(srv)
+	timeout := getHeartbeatTimeout(srv)
 	if timeout == 0 {
 		return parent, cancel
 	}
@@ -928,7 +931,7 @@ func doHandshake(ctx context.Context, srv *Server) (description.Server, error) {
 	handshakeOp = handshakeOp.OmitMaxTimeMS(true)
 
 	// Apply monitoring timeout.
-	ctx, cancel := contextWithSocketTimeout(ctx, srv)
+	ctx, cancel := withHeartbeatTimeout(ctx, srv)
 	defer cancel()
 
 	// If we are currently streaming, get more data and return the result.
@@ -969,7 +972,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
-	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
+	if s.conn == nil || s.conn.closed() || s.checkCanceled.Load().(bool) {
 		connID := "0"
 		if s.conn != nil {
 			connID = s.conn.ID()
@@ -1033,7 +1036,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 		return desc, nil
 	}
 
-	if s.checkWasCancelled() {
+	if s.checkCanceled.Load().(bool) {
 		// If the previous check was cancelled, we don't want to clear the pool. Return a sentinel error so the caller
 		// will know that an actual error didn't occur.
 		return emptyDescription, errCheckCancelled

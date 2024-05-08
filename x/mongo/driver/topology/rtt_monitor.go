@@ -55,8 +55,6 @@ type rttMonitor struct {
 
 var _ driver.RTTMonitor = &rttMonitor{}
 
-// TODO(GODRIVER-2348): Experiment passing the connectTimeout when constructing
-// Rtt monitors, from server.
 func newRTTMonitor(cfg *rttConfig) *rttMonitor {
 	if cfg.interval <= 0 {
 		panic("RTT monitor interval must be greater than 0")
@@ -118,8 +116,6 @@ func (r *rttMonitor) start() {
 		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.connectTimeout)
 		defer cancel()
 
-		// TODO(GODRIVER-2348): Apply the connection timeout passed when constructing
-		// RTTM by the server.
 		err := conn.connect(ctx)
 
 		// Add an RTT sample from the new connection handshake and start a runHellos() loop if we

@@ -67,10 +67,7 @@ type connection struct {
 	currentlyStreaming   bool
 	cancellationListener cancellationListener
 	serverConnectionID   *int64 // the server's ID for this client's connection
-
-	cancelConnection   chan struct{}
-	cancelOnce         *sync.Once
-	connectionCanceled bool
+	cancelConnSig        chan struct{}
 
 	// pool related fields
 	pool *pool
@@ -93,8 +90,6 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: newCancellListener(),
-		cancelConnection:     make(chan struct{}, 1),
-		cancelOnce:           &sync.Once{},
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -198,20 +193,12 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
 	// holding the lock longer than necessary.
 	ctx, cancel := contextWithNewConnTimeout(ctx, c)
-
-	done := make(chan struct{})
-
-	// close the Go routine connection establishment if the blocking operations
-	// in this function complete before the context is canceled.
-	defer close(done)
+	defer cancel()
 
 	go func() {
 		defer cancel()
 
-		select {
-		case <-c.cancelConnection:
-		case <-done:
-		}
+		<-c.cancelConnSig
 	}()
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
@@ -321,11 +308,12 @@ func (c *connection) wait() {
 }
 
 func (c *connection) closeConnectContext() {
-	c.cancelOnce.Do(func() {
-		c.cancelConnection <- struct{}{}
-
-		c.connectionCanceled = true
-	})
+	select {
+	case c.cancelConnSig <- struct{}{}:
+	default:
+		// Drop the signal, either the channel has already been sent to or has been
+		// closed.
+	}
 }
 
 func transformNetworkError(ctx context.Context, originalError error, contextDeadlineUsed bool) error {

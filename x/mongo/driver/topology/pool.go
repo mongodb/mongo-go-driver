@@ -1117,15 +1117,20 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		//
 		// Per the specifications, an explicit value of connectTimeout=0 means the
 		// timeout is "infinite".
+
+		var cancel context.CancelFunc
+
 		connctx := context.Background()
 		if p.connectTimeout != 0 {
-			var cancel context.CancelFunc
 			connctx, cancel = context.WithTimeout(ctx, p.connectTimeout)
-
-			defer cancel()
 		}
 
 		err := conn.connect(connctx)
+
+		if cancel != nil {
+			cancel()
+		}
+
 		if err != nil {
 			w.tryDeliver(nil, err)
 

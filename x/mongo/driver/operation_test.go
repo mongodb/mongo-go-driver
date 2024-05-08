@@ -230,7 +230,8 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.Majority()}.
+			addWriteConcern(context.Background(), nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -976,6 +977,14 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 			wtimeout:     0,
 			wantErr:      "a write concern must have at least one field set",
 		},
+		{
+			name:         "journal and wtimout",
+			writeConcern: *writeconcern.Journaled(),
+			wtimeout:     10 * time.Millisecond,
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}, {"wtimeout", int64(10 * time.Millisecond / time.Millisecond)}},
+			wantErr:      "a write concern must have at least one field set",
+		},
 	}
 
 	for _, test := range tests {
@@ -984,7 +993,7 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern)
+			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern, test.wtimeout)
 			assert.Equal(t, test.wantBSONType, gotBSONType)
 
 			wantBSON := []byte(nil)

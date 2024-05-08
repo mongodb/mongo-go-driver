@@ -1245,7 +1245,7 @@ func TestServer_getSocketTimeout(t *testing.T) {
 				srv.cfg.serverMonitoringMode = connstring.ServerMonitoringModeStream
 			}
 
-			got := getSocketTimeout(srv)
+			got := getHeartbeatTimeout(srv)
 			assert.Equal(t, test.want, got)
 		})
 	}
@@ -1340,4 +1340,47 @@ func newServerDescription(
 		},
 		LastError: lastError,
 	}
+}
+
+type mockServerChecker struct {
+	sleep time.Duration
+}
+
+var _ serverChecker = &mockServerChecker{}
+
+func (checker *mockServerChecker) check(ctx context.Context) (description.Server, error) {
+	select {
+	case <-ctx.Done():
+		return description.Server{}, ctx.Err()
+	case <-time.After(checker.sleep):
+	}
+
+	return description.Server{}, nil
+}
+
+func TestCheckServerWithSignal(t *testing.T) {
+	t.Run("check finishes before signal", func(t *testing.T) {
+		sig := make(chan struct{}, 1)
+		go func() {
+			defer close(sig)
+
+			time.Sleep(105 * time.Millisecond)
+		}()
+
+		_, err := checkServerWithSignal(&mockServerChecker{sleep: 100 * time.Millisecond}, sig)
+		assert.NoError(t, err)
+	})
+
+	t.Run("check finishes after signal", func(t *testing.T) {
+		sig := make(chan struct{}, 1)
+		go func() {
+			defer close(sig)
+
+			time.Sleep(100 * time.Millisecond)
+		}()
+
+		_, err := checkServerWithSignal(&mockServerChecker{sleep: 1 * time.Second}, sig)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
 }

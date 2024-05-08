@@ -148,7 +148,6 @@ func TestConnection(t *testing.T) {
 
 					// Simulate cancelling connection establishment and assert that this clears the CancelFunc.
 					conn.closeConnectContext()
-					assert.True(t, conn.connectionCanceled, "cancellation function was not cleared")
 					close(doneChan)
 					wg.Wait()
 				})

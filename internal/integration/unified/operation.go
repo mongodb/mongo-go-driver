@@ -98,21 +98,9 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 		// in Go. This would result in an immediate "context deadline exceeded"
 		// error.
 		//
-		// In practice, users would have to rely on defining a 0 timeout at the
-		// client level to achieve an "infinite" case as defined in the CSOT
-		// specifications.
-		//
-		// If a unified spec test defines a 0 timeout at the operation level, the
-		// WithTimeout method is designed to honor the "infinite" scenario. However,
-		// it assumes that the timeout is a client-level timeout. Therefore, all
-		// tests relying on a 0 operation-level timeout are not feasible in the Go
-		// Driver. Testing this case is purely for completeness and these tests
-		// may be potentially skipped as of GODRIVER-3131.
-		//
-		// TODO(GODRIVER-3131): The Go Driver may implement a context wrapper that
-		// allows infinite timeout in the mongo package. In this case, the following
-		// can be updated to use that wrapper when the operation-level timeout is
-		// defined as 0 in a unified spec test.
+		// To achieve an "infinite" case, users would have to rely on either (1)
+		// defining a 0 timeout at the client-level, or (2) use
+		// context.Background() at the operation-level.
 		newCtx, cancelFunc := csot.WithTimeout(ctx, &timeout)
 
 		// Redefine ctx to be the new timeout-derived context.

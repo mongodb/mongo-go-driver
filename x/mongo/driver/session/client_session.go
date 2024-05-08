@@ -449,7 +449,8 @@ func (c *Client) CommitTransaction() error {
 // the modified write concern does not include a "wtimeout" value, drivers
 // MUST apply "wtimeout: 10000" to the write concern in order to avoid waiting
 // forever (oruntil a socket timeout) if the majority write concern cannot be
-// satisfied. This field abstracts that functionality.
+// satisfied. This field abstracts that functionality. For more information,
+// see SPEC-1185.
 func (c *Client) UpdateCommitTransactionWriteConcern() {
 	c.CurrentWc = &writeconcern.WriteConcern{
 		W: "majority",

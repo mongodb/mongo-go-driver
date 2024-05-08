@@ -152,7 +152,14 @@ func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.Cha
 // validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
 // timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
 // equal to timeoutMS. Otherwise, the timeouts are valid.
-func validChangeStreamTimeouts(ctx context.Context, maxAwaitTime, timeout *time.Duration) bool {
+func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
+	if cs.options == nil || cs.client == nil {
+		return true
+	}
+
+	maxAwaitTime := cs.options.MaxAwaitTime
+	timeout := cs.client.timeout
+
 	if maxAwaitTime == nil {
 		return true
 	}
@@ -180,9 +187,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
 	changeStreamOpts := mergeChangeStreamOptions(opts...)
-	if !validChangeStreamTimeouts(ctx, changeStreamOpts.MaxAwaitTime, config.client.timeout) {
-		return nil, fmt.Errorf("maxAwaitTimeMS cannot be greater than or equal to timeoutMS")
-	}
 
 	cs := &ChangeStream{
 		client:     config.client,
@@ -229,6 +233,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
+		fmt.Println("max await time: ", cs.options.MaxAwaitTime)
 		cs.cursorOptions.SetMaxAwaitTime(*cs.options.MaxAwaitTime)
 	}
 	if cs.options.Custom != nil {
@@ -318,6 +323,10 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	var server driver.Server
 	var conn *mnet.Connection
 
+	// Apply the client-level timeout if the operation-level timeout is not set.
+	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
+	defer cancel()
+
 	connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
 	defer cancel()
 
@@ -354,12 +363,6 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
-	// If no deadline is set on the passed-in context, cs.client.timeout is set, and context is not already
-	// a Timeout context, honor cs.client.timeout in new Timeout context for change stream operation execution
-	// and potential retry.
-	ctx, cancel = csot.WithTimeout(ctx, cs.client.timeout)
-	defer cancel()
-
 	// Execute the aggregate, retrying on retryable errors once (1) if retryable reads are enabled and
 	// infinitely (-1) if context is a Timeout context.
 	var retries int
@@ -385,6 +388,9 @@ AggregateExecuteLoop:
 			if !tt.RetryableRead() {
 				break AggregateExecuteLoop
 			}
+
+			connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
+			defer cancel()
 
 			// If error is retryable: subtract 1 from retries, redo server selection, checkout
 			// a connection, and restart loop.
@@ -706,12 +712,6 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 		ctx = context.Background()
 	}
 
-	// Drivers MUST apply the origin timeoutMS value to each next call on the
-	// change stream but MUST NOT use it to derive a maxTimeMS field for getMore
-	// commands.
-	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
-	defer cancel()
-
 	if len(cs.batch) == 0 {
 		cs.loopNext(ctx, nonBlocking)
 		if cs.err != nil {
@@ -733,6 +733,18 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 }
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
+	if !validChangeStreamTimeouts(ctx, cs) {
+		cs.err = fmt.Errorf("maxAwaitTimeMS cannot be greater than or equal to timeoutMS")
+
+		return
+	}
+
+	// Apply the client-level timeout if the operation-level timeout is not set.
+	// This calculation is also done in "executeOperation" but cursor.Next is also
+	// blocking and should honor client-level timeouts.
+	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
+	defer cancel()
+
 	for {
 		if cs.cursor == nil {
 			return

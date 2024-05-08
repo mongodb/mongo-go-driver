@@ -75,8 +75,9 @@ func TestSDAMErrorHandling(t *testing.T) {
 				mt.ResetClient(baseClientOpts().
 					SetAppName(appName).
 					SetPoolMonitor(tpm.PoolMonitor).
-					// Set a 100ms socket timeout so that the saslContinue delay of 150ms causes a
-					// timeout during socket read (i.e. a timeout not caused by the InsertOne context).
+					// Set a 100ms connect timeout so that the saslContinue delay of 150ms
+					// causes a timeout during a heartbeat (i.e. a timeout not caused by
+					// the InsertOne context).
 					SetConnectTimeout(100 * time.Millisecond))
 
 				// Use context.Background() so that the new connection will not time out due to an

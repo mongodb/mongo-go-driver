@@ -171,7 +171,16 @@ func TestValidChangeStreamTimeouts(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := validChangeStreamTimeouts(test.parent, test.maxAwaitTimeout, test.timeout)
+			cs := &ChangeStream{
+				options: &options.ChangeStreamOptions{
+					MaxAwaitTime: test.maxAwaitTimeout,
+				},
+				client: &Client{
+					timeout: test.timeout,
+				},
+			}
+
+			got := validChangeStreamTimeouts(test.parent, cs)
 			assert.Equal(t, test.want, got)
 		})
 	}
