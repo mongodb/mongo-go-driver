@@ -11,7 +11,7 @@
 //
 // WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
 // NOTICE! USE WITH EXTREME CAUTION!
-package connstring // import "go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+package connstring
 
 import (
 	"errors"

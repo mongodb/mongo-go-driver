@@ -17,7 +17,7 @@
 // workings of service discovery and monitoring to allow low level applications
 // to have fine grained control, while hiding most of the detailed
 // implementation of the algorithms.
-package topology // import "go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+package topology
 
 import (
 	"context"
