@@ -79,7 +79,7 @@ func TestOperation(t *testing.T) {
 			_, err := op.selectServer(context.Background(), 1, nil)
 			noerr(t, err)
 
-			// Assert the the selector is an operation selector wrapper.
+			// Assert the selector is an operation selector wrapper.
 			oss, ok := d.params.selector.(*opServerSelector)
 			require.True(t, ok)
 
