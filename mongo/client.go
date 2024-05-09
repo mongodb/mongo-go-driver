@@ -181,7 +181,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 	// Timeout
 	if to := clientOpt.Timeout; to != nil && *to < 0 {
-		return nil, fmt.Errorf(`invalid value %q for "Timeout": value must be positive", *to)
+		return nil, fmt.Errorf(`invalid value %q for "Timeout": value must be positive"`, *to)
 	}
 	client.timeout = clientOpt.Timeout
 	client.httpClient = clientOpt.HTTPClient
