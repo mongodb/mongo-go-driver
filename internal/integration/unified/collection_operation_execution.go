@@ -1126,7 +1126,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []*mongoutil.Options[options.ListSearchIndexesArgs]
+	var opts []*mongoutil.ArgOptions[options.ListSearchIndexesArgs]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1141,9 +1141,9 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
 			// Unmarshal the document into the AggregateArgs embedded object.
-			opt := &mongoutil.Options[options.ListSearchIndexesArgs]{
+			opt := &mongoutil.ArgOptions[options.ListSearchIndexesArgs]{
 				Args: &options.ListSearchIndexesArgs{},
-				Clbk: func(args *options.ListSearchIndexesArgs) error {
+				Callback: func(args *options.ListSearchIndexesArgs) error {
 					args.AggregateArgs = &options.AggregateArgs{}
 
 					return bson.Unmarshal(val.Document(), args.AggregateArgs)

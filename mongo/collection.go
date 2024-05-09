@@ -826,7 +826,7 @@ func (coll *Collection) ReplaceOne(
 		Comment:                  args.Comment,
 	}
 
-	updateOptions := mongoutil.NewOptionsFromArgs[options.UpdateArgs](updateArgs, nil)
+	updateOptions := mongoutil.NewOptionsFromArgs[options.UpdateArgs](updateArgs)
 
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions)
 }

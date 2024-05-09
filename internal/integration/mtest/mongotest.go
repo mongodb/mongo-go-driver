@@ -709,7 +709,7 @@ func (t *T) createTestClient() {
 		t.mockDeployment = newMockDeployment()
 		args.Deployment = t.mockDeployment
 
-		opts := &mongoutil.Options[options.ClientArgs]{Args: args}
+		opts := &mongoutil.ArgOptions[options.ClientArgs]{Args: args}
 		t.Client, err = mongo.Connect(opts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()

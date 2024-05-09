@@ -66,7 +66,7 @@ func (siv SearchIndexView) List(
 		return nil, err
 	}
 
-	aggregateOpts := &mongoutil.Options[options.AggregateArgs]{Args: args.AggregateArgs}
+	aggregateOpts := &mongoutil.ArgOptions[options.AggregateArgs]{Args: args.AggregateArgs}
 
 	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts)
 }

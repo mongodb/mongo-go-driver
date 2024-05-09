@@ -95,7 +95,17 @@ func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Confi
 func NewConfigFromArgs(args *options.ClientArgs, clock *session.ClusterClock) (*Config, error) {
 	var serverAPI *driver.ServerAPIOptions
 
-	if err := options.ValidateClientArgs(args); err != nil {
+	clientOpts := options.ClientOptions{
+		Opts: []func(*options.ClientArgs) error{
+			func(ca *options.ClientArgs) error {
+				*ca = *args
+
+				return nil
+			},
+		},
+	}
+
+	if err := clientOpts.Validate(); err != nil {
 		return nil, err
 	}
 

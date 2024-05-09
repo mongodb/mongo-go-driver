@@ -71,25 +71,25 @@ func NewArgsFromOptions[T Args](opts ...MongoOptions[T]) (*T, error) {
 	return args, nil
 }
 
-// Options implements a mongo.Options object for an arbitrary arguments type.
+// ArgOptions implements a mongo.ArgOptions object for an arbitrary arguments type.
 // The intended use case is to create options from arguments.
-type Options[T Args] struct {
-	Args *T             // Arguments to set on the option type
-	Clbk func(*T) error // A callback for further modification
+type ArgOptions[T Args] struct {
+	Args     *T             // Arguments to set on the option type
+	Callback func(*T) error // A callback for further modification
 }
 
 // ArgsSetters will re-assign the entire argument option to the Args field
 // defined on opts. If a callback exists, that function will be executed to
 // further modify the arguments.
-func (opts *Options[T]) ArgsSetters() []func(*T) error {
+func (opts *ArgOptions[T]) ArgsSetters() []func(*T) error {
 	return []func(*T) error{
 		func(args *T) error {
 			if opts.Args != nil {
 				*args = *opts.Args
 			}
 
-			if opts.Clbk != nil {
-				return opts.Clbk(args)
+			if opts.Callback != nil {
+				return opts.Callback(args)
 			}
 
 			return nil
@@ -99,8 +99,8 @@ func (opts *Options[T]) ArgsSetters() []func(*T) error {
 
 // NewOptionsFromArgs will construct an Options object from the provided
 // arguments object.
-func NewOptionsFromArgs[T Args](args *T, clbk func(*T) error) *Options[T] {
-	return &Options[T]{Args: args, Clbk: clbk}
+func NewOptionsFromArgs[T Args](args *T) *ArgOptions[T] {
+	return &ArgOptions[T]{Args: args}
 }
 
 // AuthFromURI will create a Credentials object given the provided URI.

@@ -280,68 +280,6 @@ func (c *ClientOptions) ArgsSetters() []func(*ClientArgs) error {
 	return c.Opts
 }
 
-// ValidateClientArgs checks if the client arguments will create a valid
-// connection.
-func ValidateClientArgs(args *ClientArgs) error {
-	// Direct connections cannot be made if multiple hosts are specified or an SRV
-	// URI is used.
-	if args.Direct != nil && *args.Direct {
-		if len(args.Hosts) > 1 {
-			return errors.New("a direct connection cannot be made if multiple hosts are specified")
-		}
-		if args.connString != nil && args.connString.Scheme == connstring.SchemeMongoDBSRV {
-			return errors.New("a direct connection cannot be made if an SRV URI is used")
-		}
-	}
-
-	if args.MaxPoolSize != nil && args.MinPoolSize != nil && *args.MaxPoolSize != 0 &&
-		*args.MinPoolSize > *args.MaxPoolSize {
-		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d",
-			*args.MinPoolSize, *args.MaxPoolSize)
-	}
-
-	// verify server API version if ServerAPIOptions are passed in.
-	if args.ServerAPIOptions != nil {
-		serverAPIArgs, err := getArgs[ServerAPIArgs](args.ServerAPIOptions)
-		if err != nil {
-			return fmt.Errorf("failed to construct arguments from options: %w", err)
-		}
-
-		if err := serverAPIArgs.ServerAPIVersion.Validate(); err != nil {
-			return err
-		}
-	}
-
-	// Validation for load-balanced mode.
-	if args.LoadBalanced != nil && *args.LoadBalanced {
-		if len(args.Hosts) > 1 {
-			return connstring.ErrLoadBalancedWithMultipleHosts
-		}
-		if args.ReplicaSet != nil {
-			return connstring.ErrLoadBalancedWithReplicaSet
-		}
-		if args.Direct != nil && *args.Direct {
-			return connstring.ErrLoadBalancedWithDirectConnection
-		}
-	}
-
-	// Validation for srvMaxHosts.
-	if args.SRVMaxHosts != nil && *args.SRVMaxHosts > 0 {
-		if args.ReplicaSet != nil {
-			return connstring.ErrSRVMaxHostsWithReplicaSet
-		}
-		if args.LoadBalanced != nil && *args.LoadBalanced {
-			return connstring.ErrSRVMaxHostsWithLoadBalanced
-		}
-	}
-
-	if mode := args.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
-		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
-	}
-
-	return nil
-}
-
 // GetURI returns the original URI used to configure the ClientOptions instance.
 // If ApplyURI was not called during construction, this returns "".
 func (args *ClientArgs) GetURI() string {
@@ -579,11 +517,69 @@ func (c *ClientOptions) GetURI() string {
 // error found.
 func (c *ClientOptions) Validate() error {
 	args, err := getArgs[ClientArgs](c)
+	//return err
+
 	if err != nil {
 		return err
 	}
 
-	return ValidateClientArgs(args)
+	// Direct connections cannot be made if multiple hosts are specified or an SRV
+	// URI is used.
+	if args.Direct != nil && *args.Direct {
+		if len(args.Hosts) > 1 {
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
+		}
+		if args.connString != nil && args.connString.Scheme == connstring.SchemeMongoDBSRV {
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
+		}
+	}
+
+	if args.MaxPoolSize != nil && args.MinPoolSize != nil && *args.MaxPoolSize != 0 &&
+		*args.MinPoolSize > *args.MaxPoolSize {
+		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d",
+			*args.MinPoolSize, *args.MaxPoolSize)
+	}
+
+	// verify server API version if ServerAPIOptions are passed in.
+	if args.ServerAPIOptions != nil {
+		serverAPIArgs, err := getArgs[ServerAPIArgs](args.ServerAPIOptions)
+		if err != nil {
+			return fmt.Errorf("failed to construct arguments from options: %w", err)
+		}
+
+		if err := serverAPIArgs.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
+	}
+
+	// Validation for load-balanced mode.
+	if args.LoadBalanced != nil && *args.LoadBalanced {
+		if len(args.Hosts) > 1 {
+			return connstring.ErrLoadBalancedWithMultipleHosts
+		}
+		if args.ReplicaSet != nil {
+			return connstring.ErrLoadBalancedWithReplicaSet
+		}
+		if args.Direct != nil && *args.Direct {
+			return connstring.ErrLoadBalancedWithDirectConnection
+		}
+	}
+
+	// Validation for srvMaxHosts.
+	if args.SRVMaxHosts != nil && *args.SRVMaxHosts > 0 {
+		if args.ReplicaSet != nil {
+			return connstring.ErrSRVMaxHostsWithReplicaSet
+		}
+		if args.LoadBalanced != nil && *args.LoadBalanced {
+			return connstring.ErrSRVMaxHostsWithLoadBalanced
+		}
+	}
+
+	if mode := args.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
+		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	}
+
+	return nil
 }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or

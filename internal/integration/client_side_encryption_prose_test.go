@@ -2642,7 +2642,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetAlgorithm("RangePreview").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetRangeOptions(*test.rangeOpts)
+						SetRangeOptions(test.rangeOpts)
 					// Insert 0.
 					insertPayloadZero, err := clientEncryption.Encrypt(context.Background(), test.zero, eo)
 					assert.Nil(mt, err, "error in Encrypt: %v", err)
@@ -2689,7 +2689,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetAlgorithm("RangePreview").
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
-						SetRangeOptions(*test.rangeOpts)
+						SetRangeOptions(test.rangeOpts)
 					insertPayloadSix, err := clientEncryption.Encrypt(context.Background(), test.six, eo)
 					assert.Nil(mt, err, "error in Encrypt: %v", err)
 					got, err := clientEncryption.Decrypt(context.Background(), insertPayloadSix)
@@ -2706,7 +2706,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(*test.rangeOpts)
+						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2748,7 +2748,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(*test.rangeOpts)
+						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2790,7 +2790,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(*test.rangeOpts)
+						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2827,7 +2827,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 						SetKeyID(key1ID).
 						SetContentionFactor(0).
 						SetQueryType("rangePreview").
-						SetRangeOptions(*test.rangeOpts)
+						SetRangeOptions(test.rangeOpts)
 
 					expr := bson.M{
 						"$and": bson.A{
@@ -2865,7 +2865,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							SetAlgorithm("RangePreview").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
-							SetRangeOptions(*test.rangeOpts)
+							SetRangeOptions(test.rangeOpts)
 
 						_, err := clientEncryption.Encrypt(context.Background(), test.twoHundredOne, eo)
 						assert.NotNil(mt, err, "expected error, but got none")
@@ -2879,7 +2879,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							SetAlgorithm("RangePreview").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
-							SetRangeOptions(*test.rangeOpts)
+							SetRangeOptions(test.rangeOpts)
 
 						var val bson.RawValue
 						if test.field == "encryptedInt" {
@@ -2906,7 +2906,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 							SetAlgorithm("RangePreview").
 							SetKeyID(key1ID).
 							SetContentionFactor(0).
-							SetRangeOptions(*ro)
+							SetRangeOptions(ro)
 
 						_, err := clientEncryption.Encrypt(context.Background(), test.six, eo)
 						assert.NotNil(mt, err, "expected error, but got none")

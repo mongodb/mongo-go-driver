@@ -136,9 +136,9 @@ func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOpt
 
 // SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "rangePreview".
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (e *EncryptOptions) SetRangeOptions(ro RangeOptions) *EncryptOptions {
+func (e *EncryptOptions) SetRangeOptions(ro *RangeOptions) *EncryptOptions {
 	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
-		args.RangeOptions = &ro
+		args.RangeOptions = ro
 
 		return nil
 	})

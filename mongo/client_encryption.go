@@ -128,7 +128,7 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 		}
 	}
 
-	updatedCreateOpts := mongoutil.NewOptionsFromArgs[options.CreateCollectionArgs](createArgs, nil)
+	updatedCreateOpts := mongoutil.NewOptionsFromArgs[options.CreateCollectionArgs](createArgs)
 	err = db.CreateCollection(ctx, coll, updatedCreateOpts)
 	if err != nil {
 		return nil, m, err

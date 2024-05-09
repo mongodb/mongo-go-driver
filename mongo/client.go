@@ -211,10 +211,6 @@ func newClient(opts ...Options[options.ClientArgs]) (*Client, error) {
 		args.MaxPoolSize = &defaultMaxPoolSize
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	cfg, err := topology.NewConfigFromArgs(args, client.clock)
 	if err != nil {
 		return nil, err
@@ -501,7 +497,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, e
 	argsCopy.AutoEncryptionOptions = nil
 	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
 
-	opts := &mongoutil.Options[options.ClientArgs]{Args: &argsCopy}
+	opts := &mongoutil.ArgOptions[options.ClientArgs]{Args: &argsCopy}
 
 	var err error
 	c.internalClientFLE, err = newClient(opts)

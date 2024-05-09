@@ -141,18 +141,7 @@ func TestNewOptionsFromArgs(t *testing.T) {
 		{
 			name: "no callback",
 			args: &options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
-			clbk: nil,
 			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
-		},
-		{
-			name: "mutating callback",
-			args: &options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp1")},
-			clbk: func(args *options.ClientArgs) error {
-				*args.AppName = "testApp2"
-
-				return nil
-			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp2")},
 		},
 	}
 
@@ -162,7 +151,7 @@ func TestNewOptionsFromArgs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := NewOptionsFromArgs[options.ClientArgs](test.args, test.clbk)
+			opts := NewOptionsFromArgs[options.ClientArgs](test.args)
 
 			got, err := NewArgsFromOptions[options.ClientArgs](opts)
 			assert.NoError(t, err)
