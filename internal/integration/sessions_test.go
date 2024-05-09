@@ -620,6 +620,8 @@ func extractReturnError(returnValues []reflect.Value) error {
 		return converted
 	case *mongo.SingleResult:
 		return converted.Err()
+	case *mongo.DistinctResult:
+		return converted.Err()
 	default:
 		return nil
 	}

@@ -970,9 +970,11 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 
 	start := time.Now()
 
+	checkCanceled := s.checkCanceled.Load()
+
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
-	if s.conn == nil || s.conn.closed() || s.checkCanceled.Load().(bool) {
+	if s.conn == nil || s.conn.closed() || checkCanceled != nil && checkCanceled.(bool) {
 		connID := "0"
 		if s.conn != nil {
 			connID = s.conn.ID()
@@ -1036,7 +1038,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 		return desc, nil
 	}
 
-	if s.checkCanceled.Load().(bool) {
+	if checkCanceled != nil && checkCanceled.(bool) {
 		// If the previous check was cancelled, we don't want to clear the pool. Return a sentinel error so the caller
 		// will know that an actual error didn't occur.
 		return emptyDescription, errCheckCancelled

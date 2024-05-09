@@ -872,24 +872,29 @@ func TestCollection(t *testing.T) {
 		}
 	})
 	mt.RunOpts("distinct", noClientOpts, func(mt *mtest.T) {
-		all := []interface{}{int32(1), int32(2), int32(3), int32(4), int32(5)}
-		last3 := []interface{}{int32(3), int32(4), int32(5)}
+		all := []int32{1, 2, 3, 4, 5}
+
 		testCases := []struct {
-			name     string
-			filter   bson.D
-			opts     *options.DistinctOptions
-			expected []interface{}
+			name   string
+			filter bson.D
+			opts   *options.DistinctOptions
+			want   []int32
 		}{
 			{"no options", bson.D{}, nil, all},
-			{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, last3},
+			{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, all[2:]},
 			{"options", bson.D{}, options.Distinct().SetComment("1"), all},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
 				initCollection(mt, mt.Coll)
-				res, err := mt.Coll.Distinct(context.Background(), "x", tc.filter, tc.opts)
-				assert.Nil(mt, err, "Distinct error: %v", err)
-				assert.Equal(mt, tc.expected, res, "expected result %v, got %v", tc.expected, res)
+				res := mt.Coll.Distinct(context.Background(), "x", tc.filter, tc.opts)
+				assert.Nil(mt, res.Err(), "Distinct error: %v", res.Err())
+
+				var got []int32
+				err := res.Decode(&got)
+				assert.NoError(t, err)
+
+				assert.EqualValues(mt, tc.want, got, "expected result %v, got %v", tc.want, got)
 			})
 		}
 	})

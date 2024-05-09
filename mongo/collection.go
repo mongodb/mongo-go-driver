@@ -1288,8 +1288,12 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 // The opts parameter can be used to specify options for the operation (see the options.DistinctOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/distinct/.
-func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter interface{},
-	opts ...*options.DistinctOptions) ([]interface{}, error) {
+func (coll *Collection) Distinct(
+	ctx context.Context,
+	fieldName string,
+	filter interface{},
+	opts ...*options.DistinctOptions,
+) *DistinctResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1297,7 +1301,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
-		return nil, err
+		return &DistinctResult{err: err}
 	}
 
 	sess := sessionFromContext(ctx)
@@ -1309,7 +1313,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 
 	err = coll.client.validSession(sess)
 	if err != nil {
-		return nil, err
+		return &DistinctResult{err: err}
 	}
 
 	rc := coll.readConcern
@@ -1344,7 +1348,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	if option.Comment != nil {
 		comment, err := marshalValue(option.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
-			return nil, err
+			return &DistinctResult{err: err}
 		}
 		op.Comment(comment)
 	}
@@ -1356,30 +1360,20 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return nil, replaceErrors(err)
+		return &DistinctResult{err: replaceErrors(err)}
 	}
 
 	arr, ok := op.Result().Values.ArrayOK()
 	if !ok {
-		return nil, fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+		err := fmt.Errorf("response field 'values' is type array, but received BSON type %s", op.Result().Values.Type)
+
+		return &DistinctResult{err: err}
 	}
 
-	values, err := arr.Values()
-	if err != nil {
-		return nil, err
+	return &DistinctResult{
+		reg: coll.registry,
+		arr: bson.RawArray(arr),
 	}
-
-	retArray := make([]interface{}, len(values))
-
-	for i, val := range values {
-		raw := bson.RawValue{Type: bson.Type(val.Type), Value: val.Data}
-		err = raw.Unmarshal(&retArray[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return retArray, replaceErrors(err)
 }
 
 // mergeFindOptions combines the given FindOptions instances into a single FindOptions in a last-property-wins fashion.

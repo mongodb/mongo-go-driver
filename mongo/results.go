@@ -173,3 +173,51 @@ type CollectionSpecification struct {
 	// option is used and for MongoDB versions < 3.4.
 	IDIndex *IndexSpecification
 }
+
+// DistinctResult represents an array of BSON data returned from an operation.
+// If the operation resulted in an error, all DistinctResult methods will return
+// that error. If the operation did not return any data, all DistinctResult
+// methods will return ErrNoDocuments.
+type DistinctResult struct {
+	err error
+	arr bson.RawArray
+	reg *bson.Registry
+}
+
+// Decode will unmarshal the array represented by this DistinctResult into v. If
+// there was an error from the operation that created this DistinctReuslt, that
+// error will be returned. If the operation returned no array, Decode will
+// return ErrNoDocuments.
+//
+// If the operation was successful and returned an array, Decode will return any
+// errors from the unmarshalling process without any modification. If v is nil
+// or is a typed nil, an error will be returned.
+func (dr *DistinctResult) Decode(v any) error {
+	val := bson.RawValue{
+		Value: dr.arr,
+		Type:  bson.TypeArray,
+	}
+
+	return val.UnmarshalWithRegistry(dr.reg, v)
+}
+
+// Err provides a way to check for query errors without calling Decode. Err
+// returns the error, if any, that was encountered while running the operation.
+// If the operation was successful but did not return any documents, Err returns
+// ErrNoDocuments. If this error is not nil, this error will also be returned
+// from Decode.
+func (dr *DistinctResult) Err() error {
+	return dr.err
+}
+
+// Raw returns the document represented by this DistinctResult as a bson.Raw. If
+// there was an error from the operation that created this DistinctResult, both
+// the result and that error will be returned. If the operation returned no
+// documents, this will return (nil, ErrNoDocuments).
+func (dr *DistinctResult) Raw() (bson.RawArray, error) {
+	if dr.err != nil {
+		return nil, dr.err
+	}
+
+	return dr.arr, nil
+}

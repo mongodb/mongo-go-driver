@@ -324,7 +324,12 @@ func ExampleCollection_Distinct() {
 	// Find all unique values for the "name" field for documents in which the
 	// "age" field is greater than 25.
 	filter := bson.D{{"age", bson.D{{"$gt", 25}}}}
-	values, err := coll.Distinct(ctx, "name", filter, nil)
+	res := coll.Distinct(ctx, "name", filter)
+	if err := res.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	values, err := res.Raw()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -67,7 +67,7 @@ func performDistinctWorkaround(ctx context.Context) error {
 	commandFn := func(ctx context.Context, client *mongo.Client) error {
 		for _, coll := range entities(ctx).collections() {
 			newColl := client.Database(coll.Database().Name()).Collection(coll.Name())
-			_, err := newColl.Distinct(ctx, "x", bson.D{})
+			err := newColl.Distinct(ctx, "x", bson.D{}).Err()
 			if err != nil {
 				ns := fmt.Sprintf("%s.%s", coll.Database().Name(), coll.Name())
 				return fmt.Errorf("error running distinct for collection %q: %w", ns, err)
