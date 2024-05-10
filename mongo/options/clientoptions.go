@@ -517,8 +517,6 @@ func (c *ClientOptions) GetURI() string {
 // error found.
 func (c *ClientOptions) Validate() error {
 	args, err := getArgs[ClientArgs](c)
-	//return err
-
 	if err != nil {
 		return err
 	}

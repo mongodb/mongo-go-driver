@@ -197,11 +197,8 @@ func (b *GridFSBucket) OpenDownloadStreamByName(
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 
-	var numSkip int32 = -1
-
-	if args.Revision == nil {
-		args.Revision = &options.DefaultRevision
-	} else {
+	numSkip := options.DefaultRevision
+	if args.Revision != nil {
 		numSkip = *args.Revision
 	}
 
