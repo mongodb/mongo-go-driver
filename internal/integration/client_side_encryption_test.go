@@ -692,6 +692,7 @@ func TestFLEIndexView(t *testing.T) {
 	assert.NoError(mt, err)
 
 	coll := client.Database("db").Collection("coll")
+	mt.Cleanup(func() { coll.Drop(context.Background()) })
 
 	mt.Run("create many", func(mt *mtest.T) {
 		createIndexes(mt, coll, 2)
