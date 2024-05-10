@@ -36,7 +36,7 @@ func (d decodeBinaryError) Error() string {
 // There is no support for decoding map[string]interface{} because there is no decoder for
 // interface{}, so users must either register this decoder themselves or use the
 // EmptyInterfaceDecoder available in the bson package.
-func registerDefaultDecoders(reg *Registry) {
+func registerDefaultDecoders(reg *RegistryBuilder) {
 	if reg == nil {
 		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
 	}

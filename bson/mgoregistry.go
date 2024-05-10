@@ -22,10 +22,7 @@ var (
 	tSetter         = reflect.TypeOf((*Setter)(nil)).Elem()
 )
 
-// NewMgoRegistry creates a new bson.Registry configured with the default encoders and decoders.
-func NewMgoRegistry() *Registry {
-	reg := NewRegistry()
-
+func newMgoRegistryBuilder() *RegistryBuilder {
 	structcodec := &structCodec{
 		parser:                  DefaultStructTagParser,
 		decodeZeroStruct:        true,
@@ -37,45 +34,47 @@ func NewMgoRegistry() *Registry {
 		encodeNilAsEmpty:       true,
 		encodeKeysWithStringer: true,
 	}
-	uintcodec := &uintCodec{encodeToMinSize: true}
+	intcodec := func() ValueEncoder { return &intCodec{encodeToMinSize: true} }
 
-	reg.RegisterTypeDecoder(tEmpty, &emptyInterfaceCodec{decodeBinaryAsSlice: true})
-	reg.RegisterKindDecoder(reflect.String, &stringCodec{})
-	reg.RegisterKindDecoder(reflect.Struct, structcodec)
-	reg.RegisterKindDecoder(reflect.Map, mapCodec)
-	reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: true})
-	reg.RegisterKindEncoder(reflect.Struct, structcodec)
-	reg.RegisterKindEncoder(reflect.Slice, &sliceCodec{encodeNilAsEmpty: true})
-	reg.RegisterKindEncoder(reflect.Map, mapCodec)
-	reg.RegisterKindEncoder(reflect.Uint, uintcodec)
-	reg.RegisterKindEncoder(reflect.Uint8, uintcodec)
-	reg.RegisterKindEncoder(reflect.Uint16, uintcodec)
-	reg.RegisterKindEncoder(reflect.Uint32, uintcodec)
-	reg.RegisterKindEncoder(reflect.Uint64, uintcodec)
-	reg.RegisterTypeMapEntry(TypeInt32, tInt)
-	reg.RegisterTypeMapEntry(TypeDateTime, tTime)
-	reg.RegisterTypeMapEntry(TypeArray, tInterfaceSlice)
-	reg.RegisterTypeMapEntry(Type(0), tM)
-	reg.RegisterTypeMapEntry(TypeEmbeddedDocument, tM)
-	reg.RegisterInterfaceEncoder(tGetter, ValueEncoderFunc(GetterEncodeValue))
-	reg.RegisterInterfaceDecoder(tSetter, ValueDecoderFunc(SetterDecodeValue))
+	return NewRegistryBuilder().
+		RegisterTypeDecoder(tEmpty, &emptyInterfaceCodec{decodeBinaryAsSlice: true}).
+		RegisterKindDecoder(reflect.String, &stringCodec{}).
+		RegisterKindDecoder(reflect.Struct, structcodec).
+		RegisterKindDecoder(reflect.Map, mapCodec).
+		RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{encodeNilAsEmpty: true} }).
+		RegisterKindEncoder(reflect.Struct, func() ValueEncoder { return structcodec }).
+		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{encodeNilAsEmpty: true} }).
+		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return mapCodec }).
+		RegisterKindEncoder(reflect.Uint, intcodec).
+		RegisterKindEncoder(reflect.Uint8, intcodec).
+		RegisterKindEncoder(reflect.Uint16, intcodec).
+		RegisterKindEncoder(reflect.Uint32, intcodec).
+		RegisterKindEncoder(reflect.Uint64, intcodec).
+		RegisterTypeMapEntry(TypeInt32, tInt).
+		RegisterTypeMapEntry(TypeDateTime, tTime).
+		RegisterTypeMapEntry(TypeArray, tInterfaceSlice).
+		RegisterTypeMapEntry(Type(0), tM).
+		RegisterTypeMapEntry(TypeEmbeddedDocument, tM).
+		RegisterInterfaceEncoder(tGetter, func() ValueEncoder { return ValueEncoderFunc(GetterEncodeValue) }).
+		RegisterInterfaceDecoder(tSetter, ValueDecoderFunc(SetterDecodeValue))
+}
 
-	return reg
+// NewMgoRegistry creates a new bson.Registry configured with the default encoders and decoders.
+func NewMgoRegistry() *Registry {
+	return newMgoRegistryBuilder().Build()
 }
 
 // NewRespectNilValuesMgoRegistry creates a new bson.Registry configured to behave like mgo/bson
 // with RespectNilValues set to true.
 func NewRespectNilValuesMgoRegistry() *Registry {
-	reg := NewMgoRegistry()
-
 	mapCodec := &mapCodec{
 		decodeZerosMap: true,
 	}
 
-	reg.RegisterKindDecoder(reflect.Map, mapCodec)
-	reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: false})
-	reg.RegisterKindEncoder(reflect.Slice, &sliceCodec{})
-	reg.RegisterKindEncoder(reflect.Map, mapCodec)
-
-	return reg
+	return newMgoRegistryBuilder().
+		RegisterKindDecoder(reflect.Map, mapCodec).
+		RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{encodeNilAsEmpty: false} }).
+		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{} }).
+		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return mapCodec }).
+		Build()
 }

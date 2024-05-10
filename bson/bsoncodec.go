@@ -103,21 +103,26 @@ type DecodeContext struct {
 	zeroStructs         bool
 }
 
+// EncoderRegistry is an interface provides a ValueEncoder based on the given reflect.Type.
+type EncoderRegistry interface {
+	LookupEncoder(reflect.Type) (ValueEncoder, error)
+}
+
 // ValueEncoder is the interface implemented by types that can encode a provided Go type to BSON.
 // The value to encode is provided as a reflect.Value and a bson.ValueWriter is used within the
 // EncodeValue method to actually create the BSON representation. For convenience, ValueEncoderFunc
 // is provided to allow use of a function with the correct signature as a ValueEncoder. A pointer
 // to a Registry instance is provided to allow implementations to lookup further ValueEncoders.
 type ValueEncoder interface {
-	EncodeValue(*Registry, ValueWriter, reflect.Value) error
+	EncodeValue(EncoderRegistry, ValueWriter, reflect.Value) error
 }
 
 // ValueEncoderFunc is an adapter function that allows a function with the correct signature to be
 // used as a ValueEncoder.
-type ValueEncoderFunc func(*Registry, ValueWriter, reflect.Value) error
+type ValueEncoderFunc func(EncoderRegistry, ValueWriter, reflect.Value) error
 
 // EncodeValue implements the ValueEncoder interface.
-func (fn ValueEncoderFunc) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (fn ValueEncoderFunc) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	return fn(reg, vw, val)
 }
 

@@ -28,7 +28,7 @@ var sliceWriterPool = sync.Pool{
 	},
 }
 
-func encodeElement(reg *Registry, dw DocumentWriter, e E) error {
+func encodeElement(reg EncoderRegistry, dw DocumentWriter, e E) error {
 	vw, err := dw.WriteDocumentElement(e.Key)
 	if err != nil {
 		return err
@@ -50,59 +50,59 @@ func encodeElement(reg *Registry, dw DocumentWriter, e E) error {
 }
 
 // registerDefaultEncoders will register the default encoder methods with the provided Registry.
-func registerDefaultEncoders(reg *Registry) {
-	if reg == nil {
+func registerDefaultEncoders(rb *RegistryBuilder) {
+	if rb == nil {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
 	}
-	intEncoder := &intCodec{}
-	uintEncoder := &uintCodec{}
-	reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{})
-	reg.RegisterTypeEncoder(tTime, &timeCodec{})
-	reg.RegisterTypeEncoder(tEmpty, &emptyInterfaceCodec{})
-	reg.RegisterTypeEncoder(tCoreArray, &arrayCodec{})
-	reg.RegisterTypeEncoder(tOID, ValueEncoderFunc(objectIDEncodeValue))
-	reg.RegisterTypeEncoder(tDecimal, ValueEncoderFunc(decimal128EncodeValue))
-	reg.RegisterTypeEncoder(tJSONNumber, ValueEncoderFunc(jsonNumberEncodeValue))
-	reg.RegisterTypeEncoder(tURL, ValueEncoderFunc(urlEncodeValue))
-	reg.RegisterTypeEncoder(tJavaScript, ValueEncoderFunc(javaScriptEncodeValue))
-	reg.RegisterTypeEncoder(tSymbol, ValueEncoderFunc(symbolEncodeValue))
-	reg.RegisterTypeEncoder(tBinary, ValueEncoderFunc(binaryEncodeValue))
-	reg.RegisterTypeEncoder(tUndefined, ValueEncoderFunc(undefinedEncodeValue))
-	reg.RegisterTypeEncoder(tDateTime, ValueEncoderFunc(dateTimeEncodeValue))
-	reg.RegisterTypeEncoder(tNull, ValueEncoderFunc(nullEncodeValue))
-	reg.RegisterTypeEncoder(tRegex, ValueEncoderFunc(regexEncodeValue))
-	reg.RegisterTypeEncoder(tDBPointer, ValueEncoderFunc(dbPointerEncodeValue))
-	reg.RegisterTypeEncoder(tTimestamp, ValueEncoderFunc(timestampEncodeValue))
-	reg.RegisterTypeEncoder(tMinKey, ValueEncoderFunc(minKeyEncodeValue))
-	reg.RegisterTypeEncoder(tMaxKey, ValueEncoderFunc(maxKeyEncodeValue))
-	reg.RegisterTypeEncoder(tCoreDocument, ValueEncoderFunc(coreDocumentEncodeValue))
-	reg.RegisterTypeEncoder(tCodeWithScope, ValueEncoderFunc(codeWithScopeEncodeValue))
-	reg.RegisterKindEncoder(reflect.Bool, ValueEncoderFunc(booleanEncodeValue))
-	reg.RegisterKindEncoder(reflect.Int, intEncoder)
-	reg.RegisterKindEncoder(reflect.Int8, intEncoder)
-	reg.RegisterKindEncoder(reflect.Int16, intEncoder)
-	reg.RegisterKindEncoder(reflect.Int32, intEncoder)
-	reg.RegisterKindEncoder(reflect.Int64, intEncoder)
-	reg.RegisterKindEncoder(reflect.Uint, uintEncoder)
-	reg.RegisterKindEncoder(reflect.Uint8, uintEncoder)
-	reg.RegisterKindEncoder(reflect.Uint16, uintEncoder)
-	reg.RegisterKindEncoder(reflect.Uint32, uintEncoder)
-	reg.RegisterKindEncoder(reflect.Uint64, uintEncoder)
-	reg.RegisterKindEncoder(reflect.Float32, ValueEncoderFunc(floatEncodeValue))
-	reg.RegisterKindEncoder(reflect.Float64, ValueEncoderFunc(floatEncodeValue))
-	reg.RegisterKindEncoder(reflect.Array, ValueEncoderFunc(arrayEncodeValue))
-	reg.RegisterKindEncoder(reflect.Map, &mapCodec{})
-	reg.RegisterKindEncoder(reflect.Slice, &sliceCodec{})
-	reg.RegisterKindEncoder(reflect.String, &stringCodec{})
-	reg.RegisterKindEncoder(reflect.Struct, newStructCodec(DefaultStructTagParser))
-	reg.RegisterKindEncoder(reflect.Ptr, &pointerCodec{})
-	reg.RegisterInterfaceEncoder(tValueMarshaler, ValueEncoderFunc(valueMarshalerEncodeValue))
-	reg.RegisterInterfaceEncoder(tMarshaler, ValueEncoderFunc(marshalerEncodeValue))
-	reg.RegisterInterfaceEncoder(tProxy, ValueEncoderFunc(proxyEncodeValue))
+	intEncoder := func() ValueEncoder { return &intCodec{} }
+	floatEncoder := func() ValueEncoder { return ValueEncoderFunc(floatEncodeValue) }
+	rb.RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{} }).
+		RegisterTypeEncoder(tTime, func() ValueEncoder { return &timeCodec{} }).
+		RegisterTypeEncoder(tEmpty, func() ValueEncoder { return &emptyInterfaceCodec{} }).
+		RegisterTypeEncoder(tCoreArray, func() ValueEncoder { return &arrayCodec{} }).
+		RegisterTypeEncoder(tOID, func() ValueEncoder { return ValueEncoderFunc(objectIDEncodeValue) }).
+		RegisterTypeEncoder(tDecimal, func() ValueEncoder { return ValueEncoderFunc(decimal128EncodeValue) }).
+		RegisterTypeEncoder(tJSONNumber, func() ValueEncoder { return ValueEncoderFunc(jsonNumberEncodeValue) }).
+		RegisterTypeEncoder(tURL, func() ValueEncoder { return ValueEncoderFunc(urlEncodeValue) }).
+		RegisterTypeEncoder(tJavaScript, func() ValueEncoder { return ValueEncoderFunc(javaScriptEncodeValue) }).
+		RegisterTypeEncoder(tSymbol, func() ValueEncoder { return ValueEncoderFunc(symbolEncodeValue) }).
+		RegisterTypeEncoder(tBinary, func() ValueEncoder { return ValueEncoderFunc(binaryEncodeValue) }).
+		RegisterTypeEncoder(tUndefined, func() ValueEncoder { return ValueEncoderFunc(undefinedEncodeValue) }).
+		RegisterTypeEncoder(tDateTime, func() ValueEncoder { return ValueEncoderFunc(dateTimeEncodeValue) }).
+		RegisterTypeEncoder(tNull, func() ValueEncoder { return ValueEncoderFunc(nullEncodeValue) }).
+		RegisterTypeEncoder(tRegex, func() ValueEncoder { return ValueEncoderFunc(regexEncodeValue) }).
+		RegisterTypeEncoder(tDBPointer, func() ValueEncoder { return ValueEncoderFunc(dbPointerEncodeValue) }).
+		RegisterTypeEncoder(tTimestamp, func() ValueEncoder { return ValueEncoderFunc(timestampEncodeValue) }).
+		RegisterTypeEncoder(tMinKey, func() ValueEncoder { return ValueEncoderFunc(minKeyEncodeValue) }).
+		RegisterTypeEncoder(tMaxKey, func() ValueEncoder { return ValueEncoderFunc(maxKeyEncodeValue) }).
+		RegisterTypeEncoder(tCoreDocument, func() ValueEncoder { return ValueEncoderFunc(coreDocumentEncodeValue) }).
+		RegisterTypeEncoder(tCodeWithScope, func() ValueEncoder { return ValueEncoderFunc(codeWithScopeEncodeValue) }).
+		RegisterKindEncoder(reflect.Bool, func() ValueEncoder { return ValueEncoderFunc(booleanEncodeValue) }).
+		RegisterKindEncoder(reflect.Int, intEncoder).
+		RegisterKindEncoder(reflect.Int8, intEncoder).
+		RegisterKindEncoder(reflect.Int16, intEncoder).
+		RegisterKindEncoder(reflect.Int32, intEncoder).
+		RegisterKindEncoder(reflect.Int64, intEncoder).
+		RegisterKindEncoder(reflect.Uint, intEncoder).
+		RegisterKindEncoder(reflect.Uint8, intEncoder).
+		RegisterKindEncoder(reflect.Uint16, intEncoder).
+		RegisterKindEncoder(reflect.Uint32, intEncoder).
+		RegisterKindEncoder(reflect.Uint64, intEncoder).
+		RegisterKindEncoder(reflect.Float32, floatEncoder).
+		RegisterKindEncoder(reflect.Float64, floatEncoder).
+		RegisterKindEncoder(reflect.Array, func() ValueEncoder { return ValueEncoderFunc(arrayEncodeValue) }).
+		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return &mapCodec{} }).
+		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{} }).
+		RegisterKindEncoder(reflect.String, func() ValueEncoder { return &stringCodec{} }).
+		RegisterKindEncoder(reflect.Struct, func() ValueEncoder { return newStructCodec(DefaultStructTagParser) }).
+		RegisterKindEncoder(reflect.Ptr, func() ValueEncoder { return &pointerCodec{} }).
+		RegisterInterfaceEncoder(tValueMarshaler, func() ValueEncoder { return ValueEncoderFunc(valueMarshalerEncodeValue) }).
+		RegisterInterfaceEncoder(tMarshaler, func() ValueEncoder { return ValueEncoderFunc(marshalerEncodeValue) }).
+		RegisterInterfaceEncoder(tProxy, func() ValueEncoder { return ValueEncoderFunc(proxyEncodeValue) })
 }
 
 // booleanEncodeValue is the ValueEncoderFunc for bool types.
-func booleanEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func booleanEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Bool {
 		return ValueEncoderError{Name: "BooleanEncodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
 	}
@@ -114,7 +114,7 @@ func fitsIn32Bits(i int64) bool {
 }
 
 // floatEncodeValue is the ValueEncoderFunc for float types.
-func floatEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func floatEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Float32, reflect.Float64:
 		return vw.WriteDouble(val.Float())
@@ -124,7 +124,7 @@ func floatEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // objectIDEncodeValue is the ValueEncoderFunc for ObjectID.
-func objectIDEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func objectIDEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tOID {
 		return ValueEncoderError{Name: "ObjectIDEncodeValue", Types: []reflect.Type{tOID}, Received: val}
 	}
@@ -132,7 +132,7 @@ func objectIDEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // decimal128EncodeValue is the ValueEncoderFunc for Decimal128.
-func decimal128EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func decimal128EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDecimal {
 		return ValueEncoderError{Name: "Decimal128EncodeValue", Types: []reflect.Type{tDecimal}, Received: val}
 	}
@@ -140,7 +140,7 @@ func decimal128EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error
 }
 
 // jsonNumberEncodeValue is the ValueEncoderFunc for json.Number.
-func jsonNumberEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func jsonNumberEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tJSONNumber {
 		return ValueEncoderError{Name: "JSONNumberEncodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
 	}
@@ -164,7 +164,7 @@ func jsonNumberEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) err
 }
 
 // urlEncodeValue is the ValueEncoderFunc for url.URL.
-func urlEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func urlEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tURL {
 		return ValueEncoderError{Name: "URLEncodeValue", Types: []reflect.Type{tURL}, Received: val}
 	}
@@ -173,7 +173,7 @@ func urlEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // arrayEncodeValue is the ValueEncoderFunc for array types.
-func arrayEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func arrayEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Array {
 		return ValueEncoderError{Name: "ArrayEncodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: val}
 	}
@@ -243,7 +243,7 @@ func arrayEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 	return aw.WriteArrayEnd()
 }
 
-func lookupElementEncoder(reg *Registry, origEncoder ValueEncoder, currVal reflect.Value) (ValueEncoder, reflect.Value, error) {
+func lookupElementEncoder(reg EncoderRegistry, origEncoder ValueEncoder, currVal reflect.Value) (ValueEncoder, reflect.Value, error) {
 	if origEncoder != nil || (currVal.Kind() != reflect.Interface) {
 		return origEncoder, currVal, nil
 	}
@@ -257,7 +257,7 @@ func lookupElementEncoder(reg *Registry, origEncoder ValueEncoder, currVal refle
 }
 
 // valueMarshalerEncodeValue is the ValueEncoderFunc for ValueMarshaler implementations.
-func valueMarshalerEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func valueMarshalerEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement ValueMarshaler
 	switch {
 	case !val.IsValid():
@@ -285,7 +285,7 @@ func valueMarshalerEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) e
 }
 
 // marshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
-func marshalerEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func marshalerEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Marshaler
 	switch {
 	case !val.IsValid():
@@ -313,7 +313,7 @@ func marshalerEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error 
 }
 
 // proxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
-func proxyEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func proxyEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Proxy
 	switch {
 	case !val.IsValid():
@@ -357,7 +357,7 @@ func proxyEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // javaScriptEncodeValue is the ValueEncoderFunc for the JavaScript type.
-func javaScriptEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func javaScriptEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tJavaScript {
 		return ValueEncoderError{Name: "JavaScriptEncodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
 	}
@@ -366,7 +366,7 @@ func javaScriptEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error
 }
 
 // symbolEncodeValue is the ValueEncoderFunc for the Symbol type.
-func symbolEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func symbolEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tSymbol {
 		return ValueEncoderError{Name: "SymbolEncodeValue", Types: []reflect.Type{tSymbol}, Received: val}
 	}
@@ -375,7 +375,7 @@ func symbolEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // binaryEncodeValue is the ValueEncoderFunc for Binary.
-func binaryEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func binaryEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tBinary {
 		return ValueEncoderError{Name: "BinaryEncodeValue", Types: []reflect.Type{tBinary}, Received: val}
 	}
@@ -385,7 +385,7 @@ func binaryEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // undefinedEncodeValue is the ValueEncoderFunc for Undefined.
-func undefinedEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func undefinedEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tUndefined {
 		return ValueEncoderError{Name: "UndefinedEncodeValue", Types: []reflect.Type{tUndefined}, Received: val}
 	}
@@ -394,7 +394,7 @@ func undefinedEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error 
 }
 
 // dateTimeEncodeValue is the ValueEncoderFunc for DateTime.
-func dateTimeEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func dateTimeEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDateTime {
 		return ValueEncoderError{Name: "DateTimeEncodeValue", Types: []reflect.Type{tDateTime}, Received: val}
 	}
@@ -403,7 +403,7 @@ func dateTimeEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // nullEncodeValue is the ValueEncoderFunc for Null.
-func nullEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func nullEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tNull {
 		return ValueEncoderError{Name: "NullEncodeValue", Types: []reflect.Type{tNull}, Received: val}
 	}
@@ -412,7 +412,7 @@ func nullEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // regexEncodeValue is the ValueEncoderFunc for Regex.
-func regexEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func regexEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tRegex {
 		return ValueEncoderError{Name: "RegexEncodeValue", Types: []reflect.Type{tRegex}, Received: val}
 	}
@@ -423,7 +423,7 @@ func regexEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // dbPointerEncodeValue is the ValueEncoderFunc for DBPointer.
-func dbPointerEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func dbPointerEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tDBPointer {
 		return ValueEncoderError{Name: "DBPointerEncodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
 	}
@@ -434,7 +434,7 @@ func dbPointerEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error 
 }
 
 // timestampEncodeValue is the ValueEncoderFunc for Timestamp.
-func timestampEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func timestampEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTimestamp {
 		return ValueEncoderError{Name: "TimestampEncodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
 	}
@@ -445,7 +445,7 @@ func timestampEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error 
 }
 
 // minKeyEncodeValue is the ValueEncoderFunc for MinKey.
-func minKeyEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func minKeyEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tMinKey {
 		return ValueEncoderError{Name: "MinKeyEncodeValue", Types: []reflect.Type{tMinKey}, Received: val}
 	}
@@ -454,7 +454,7 @@ func minKeyEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // maxKeyEncodeValue is the ValueEncoderFunc for MaxKey.
-func maxKeyEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func maxKeyEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tMaxKey {
 		return ValueEncoderError{Name: "MaxKeyEncodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
 	}
@@ -463,7 +463,7 @@ func maxKeyEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
 }
 
 // coreDocumentEncodeValue is the ValueEncoderFunc for bsoncore.Document.
-func coreDocumentEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func coreDocumentEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCoreDocument {
 		return ValueEncoderError{Name: "CoreDocumentEncodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
 	}
@@ -474,7 +474,7 @@ func coreDocumentEncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) err
 }
 
 // codeWithScopeEncodeValue is the ValueEncoderFunc for CodeWithScope.
-func codeWithScopeEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func codeWithScopeEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCodeWithScope {
 		return ValueEncoderError{Name: "CodeWithScopeEncodeValue", Types: []reflect.Type{tCodeWithScope}, Received: val}
 	}

@@ -24,7 +24,7 @@ var (
 )
 
 // EncodeValue is the ValueEncoder for string types.
-func (sc *stringCodec) EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func (sc *stringCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.String {
 		return ValueEncoderError{
 			Name:     "StringEncodeValue",

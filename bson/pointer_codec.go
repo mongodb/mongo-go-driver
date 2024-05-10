@@ -18,7 +18,7 @@ type pointerCodec struct {
 
 // EncodeValue handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
 // or looking up an encoder for the type of value the pointer points to.
-func (pc *pointerCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (pc *pointerCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.Ptr {
 		if !val.IsValid() {
 			return vw.WriteNull()

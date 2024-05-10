@@ -99,7 +99,7 @@ func (tc *timeCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.V
 }
 
 // EncodeValue is the ValueEncoderFunc for time.TIme.
-func (tc *timeCodec) EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func (tc *timeCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tTime {
 		return ValueEncoderError{Name: "TimeEncodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}

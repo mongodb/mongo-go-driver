@@ -23,7 +23,7 @@ var (
 )
 
 // EncodeValue is the ValueEncoder for []byte.
-func (bsc *byteSliceCodec) EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func (bsc *byteSliceCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
 		return ValueEncoderError{Name: "ByteSliceEncodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}

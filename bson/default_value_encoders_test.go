@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"reflect"
 	"strings"
@@ -37,11 +38,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 	var wrong = func(string, string) string { return "wrong" }
 
 	type mybool bool
-	// type myint8 int8
-	// type myint16 int16
-	// type myint32 int32
-	// type myint64 int64
-	// type myint int
+	type myint8 int8
+	type myint16 int16
+	type myint32 int32
+	type myint64 int64
+	type myint int
 	type myuint8 uint8
 	type myuint16 uint16
 	type myuint32 uint32
@@ -92,51 +93,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"reflection path", mybool(true), nil, nil, writeBoolean, nil},
 			},
 		},
-		/*
-			{
-				"IntEncodeValue",
-				ValueEncoderFunc(intEncodeValue),
-				[]subtest{
-					{
-						"wrong type",
-						wrong,
-						nil,
-						nil,
-						nothing,
-						ValueEncoderError{
-							Name:     "IntEncodeValue",
-							Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
-							Received: reflect.ValueOf(wrong),
-						},
-					},
-					{"int8/fast path", int8(127), nil, nil, writeInt32, nil},
-					{"int16/fast path", int16(32767), nil, nil, writeInt32, nil},
-					{"int32/fast path", int32(2147483647), nil, nil, writeInt32, nil},
-					{"int64/fast path", int64(1234567890987), nil, nil, writeInt64, nil},
-					{"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-					{"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-					{"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-					{"int/fast path - positive int32", int(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
-					{"int/fast path - negative int32", int(math.MinInt32 + 1), nil, nil, writeInt32, nil},
-					{"int/fast path - MaxInt32", int(math.MaxInt32), nil, nil, writeInt32, nil},
-					{"int/fast path - MinInt32", int(math.MinInt32), nil, nil, writeInt32, nil},
-					{"int8/reflection path", myint8(127), nil, nil, writeInt32, nil},
-					{"int16/reflection path", myint16(32767), nil, nil, writeInt32, nil},
-					{"int32/reflection path", myint32(2147483647), nil, nil, writeInt32, nil},
-					{"int64/reflection path", myint64(1234567890987), nil, nil, writeInt64, nil},
-					{"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-					{"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-					{"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-					{"int/reflection path - positive int32", myint(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
-					{"int/reflection path - negative int32", myint(math.MinInt32 + 1), nil, nil, writeInt32, nil},
-					{"int/reflection path - MaxInt32", myint(math.MaxInt32), nil, nil, writeInt32, nil},
-					{"int/reflection path - MinInt32", myint(math.MinInt32), nil, nil, writeInt32, nil},
-				},
-			},
-		*/
 		{
-			"UintEncodeValue",
-			&uintCodec{},
+			"IntEncodeValue",
+			&intCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -145,8 +104,54 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nothing,
 					ValueEncoderError{
-						Name:     "UintEncodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntEncodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
+						Received: reflect.ValueOf(wrong),
+					},
+				},
+				{"int8/fast path", int8(127), nil, nil, writeInt32, nil},
+				{"int16/fast path", int16(32767), nil, nil, writeInt32, nil},
+				{"int32/fast path", int32(2147483647), nil, nil, writeInt32, nil},
+				{"int64/fast path", int64(1234567890987), nil, nil, writeInt64, nil},
+				// {"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				// {"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				// {"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"int/fast path - positive int32", int(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
+				{"int/fast path - negative int32", int(math.MinInt32 + 1), nil, nil, writeInt32, nil},
+				{"int/fast path - MaxInt32", int(math.MaxInt32), nil, nil, writeInt32, nil},
+				{"int/fast path - MinInt32", int(math.MinInt32), nil, nil, writeInt32, nil},
+				{"int8/reflection path", myint8(127), nil, nil, writeInt32, nil},
+				{"int16/reflection path", myint16(32767), nil, nil, writeInt32, nil},
+				{"int32/reflection path", myint32(2147483647), nil, nil, writeInt32, nil},
+				{"int64/reflection path", myint64(1234567890987), nil, nil, writeInt64, nil},
+				// {"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				// {"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				// {"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"int/reflection path - positive int32", myint(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
+				{"int/reflection path - negative int32", myint(math.MinInt32 + 1), nil, nil, writeInt32, nil},
+				{"int/reflection path - MaxInt32", myint(math.MaxInt32), nil, nil, writeInt32, nil},
+				{"int/reflection path - MinInt32", myint(math.MinInt32), nil, nil, writeInt32, nil},
+			},
+		},
+		{
+			"UintEncodeValue",
+			&intCodec{},
+			[]subtest{
+				{
+					"wrong type",
+					wrong,
+					nil,
+					nil,
+					nothing,
+					ValueEncoderError{
+						Name: "IntEncodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf(wrong),
 					},
 				},
@@ -235,7 +240,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					map[string]int{"foo": 1},
-					newTestRegistry(),
+					newTestRegistryBuilder().Build(),
 					&valueReaderWriter{},
 					writeDocument,
 					fmt.Errorf("no encoder found for int"),
@@ -259,7 +264,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty map/success",
 					map[string]interface{}{},
-					newTestRegistry(),
+					newTestRegistryBuilder().Build(),
 					&valueReaderWriter{},
 					writeDocumentEnd,
 					nil,
@@ -315,7 +320,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[1]int{1},
-					newTestRegistry(),
+					newTestRegistryBuilder().Build(),
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -393,7 +398,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[]int{1},
-					newTestRegistry(),
+					newTestRegistryBuilder().Build(),
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -433,7 +438,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty slice/success",
 					[]interface{}{},
-					newTestRegistry(),
+					newTestRegistryBuilder().Build(),
 					&valueReaderWriter{},
 					writeArrayEnd,
 					nil,
@@ -510,7 +515,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"json.Number/int64/success",
 					json.Number("1234567890"),
-					nil, nil, writeInt64, nil,
+					buildDefaultRegistry(), nil, writeInt64, nil,
 				},
 				{
 					"json.Number/float64/success",

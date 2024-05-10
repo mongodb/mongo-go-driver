@@ -88,12 +88,12 @@ func newStructCodec(p StructTagParser) *structCodec {
 }
 
 // EncodeValue handles encoding generic struct types.
-func (sc *structCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Struct {
 		return ValueEncoderError{Name: "structCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
 
-	sd, err := sc.describeStruct(reg, val.Type(), sc.useJSONStructTags, !sc.overwriteDuplicatedInlinedFields)
+	sd, err := sc.describeStruct(val.Type(), sc.useJSONStructTags, !sc.overwriteDuplicatedInlinedFields)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,12 @@ func (sc *structCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Va
 			}
 		}
 
-		desc.encoder, rv, err = lookupElementEncoder(reg, desc.encoder, rv)
+		var encoder ValueEncoder
+		if encoder, err = reg.LookupEncoder(desc.fieldType); err != nil {
+			encoder = nil
+		}
+
+		encoder, rv, err = lookupElementEncoder(reg, encoder, rv)
 
 		if err != nil && !errors.Is(err, errInvalidValue) {
 			return err
@@ -134,11 +139,9 @@ func (sc *structCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Va
 			continue
 		}
 
-		if desc.encoder == nil {
+		if encoder == nil {
 			return ErrNoEncoder{Type: rv.Type()}
 		}
-
-		encoder := desc.encoder
 
 		var empty bool
 		if cz, ok := encoder.(CodecZeroer); ok {
@@ -160,12 +163,7 @@ func (sc *structCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Va
 		}
 
 		// defaultUIntCodec.encodeToMinSize = desc.minSize
-		switch v := encoder.(type) {
-		case *uintCodec:
-			encoder = &uintCodec{
-				encodeToMinSize: v.encodeToMinSize || desc.minSize,
-			}
-		case *intCodec:
+		if v, ok := encoder.(*intCodec); ok {
 			encoder = &intCodec{
 				encodeToMinSize: v.encodeToMinSize || desc.minSize,
 			}
@@ -231,7 +229,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
 
-	sd, err := sc.describeStruct(dc.Registry, val.Type(), dc.useJSONStructTags, false)
+	sd, err := sc.describeStruct(val.Type(), dc.useJSONStructTags, false)
 	if err != nil {
 		return err
 	}
@@ -330,11 +328,12 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			zeroStructs:         dc.zeroStructs,
 		}
 
-		if fd.decoder == nil {
+		decoder, err := dc.Registry.LookupDecoder(fd.fieldType)
+		if err != nil {
 			return newDecodeError(fd.name, ErrNoDecoder{Type: field.Elem().Type()})
 		}
 
-		err = fd.decoder.DecodeValue(dctx, vr, field.Elem())
+		err = decoder.DecodeValue(dctx, vr, field.Elem())
 		if err != nil {
 			return newDecodeError(fd.name, err)
 		}
@@ -389,8 +388,7 @@ type fieldDescription struct {
 	minSize   bool
 	truncate  bool
 	inline    []int
-	encoder   ValueEncoder
-	decoder   ValueDecoder
+	fieldType reflect.Type
 }
 
 type byIndex []fieldDescription
@@ -423,7 +421,6 @@ func (bi byIndex) Less(i, j int) bool {
 }
 
 func (sc *structCodec) describeStruct(
-	r *Registry,
 	t reflect.Type,
 	useJSONStructTags bool,
 	errorOnDuplicates bool,
@@ -435,7 +432,7 @@ func (sc *structCodec) describeStruct(
 	}
 	// TODO(charlie): Only describe the struct once when called
 	// concurrently with the same type.
-	ds, err := sc.describeStructSlow(r, t, useJSONStructTags, errorOnDuplicates)
+	ds, err := sc.describeStructSlow(t, useJSONStructTags, errorOnDuplicates)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +443,6 @@ func (sc *structCodec) describeStruct(
 }
 
 func (sc *structCodec) describeStructSlow(
-	r *Registry,
 	t reflect.Type,
 	useJSONStructTags bool,
 	errorOnDuplicates bool,
@@ -467,23 +463,15 @@ func (sc *structCodec) describeStructSlow(
 		}
 
 		sfType := sf.Type
-		encoder, err := r.LookupEncoder(sfType)
-		if err != nil {
-			encoder = nil
-		}
-		decoder, err := r.LookupDecoder(sfType)
-		if err != nil {
-			decoder = nil
-		}
 
 		description := fieldDescription{
 			fieldName: sf.Name,
 			idx:       i,
-			encoder:   encoder,
-			decoder:   decoder,
+			fieldType: sfType,
 		}
 
 		var stags StructTags
+		var err error
 		// If the caller requested that we use JSON struct tags, use the JSONFallbackStructTagParser
 		// instead of the parser defined on the codec.
 		if useJSONStructTags {
@@ -520,7 +508,7 @@ func (sc *structCodec) describeStructSlow(
 				}
 				fallthrough
 			case reflect.Struct:
-				inlinesf, err := sc.describeStruct(r, sfType, useJSONStructTags, errorOnDuplicates)
+				inlinesf, err := sc.describeStruct(sfType, useJSONStructTags, errorOnDuplicates)
 				if err != nil {
 					return nil, err
 				}

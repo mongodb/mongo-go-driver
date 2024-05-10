@@ -17,7 +17,7 @@ type condAddrEncoder struct {
 }
 
 // EncodeValue is the ValueEncoderFunc for a value that may be addressable.
-func (cae *condAddrEncoder) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (cae *condAddrEncoder) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if val.CanAddr() {
 		return cae.canAddrEnc.EncodeValue(reg, vw, val)
 	}

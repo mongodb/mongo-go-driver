@@ -20,7 +20,7 @@ var (
 )
 
 // EncodeValue is the ValueEncoder for bsoncore.Array values.
-func (ac *arrayCodec) EncodeValue(_ *Registry, vw ValueWriter, val reflect.Value) error {
+func (ac *arrayCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tCoreArray {
 		return ValueEncoderError{Name: "CoreArrayEncodeValue", Types: []reflect.Type{tCoreArray}, Received: val}
 	}

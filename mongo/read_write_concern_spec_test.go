@@ -31,11 +31,9 @@ const (
 
 var (
 	serverDefaultConcern = []byte{5, 0, 0, 0, 0} // server default read concern and write concern is empty document
-	specTestRegistry     = func() *bson.Registry {
-		reg := bson.NewRegistry()
-		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-		return reg
-	}()
+	specTestRegistry     = bson.NewRegistryBuilder().
+				RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
+				Build()
 )
 
 type connectionStringTestFile struct {

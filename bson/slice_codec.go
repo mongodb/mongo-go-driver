@@ -24,7 +24,7 @@ type sliceCodec struct {
 }
 
 // EncodeValue is the ValueEncoder for slice types.
-func (sc sliceCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (sc sliceCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Slice {
 		return ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}

@@ -149,15 +149,16 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates int32 values when encoding.
-	var encodeInt32 ValueEncoderFunc = func(_ *Registry, vw ValueWriter, val reflect.Value) error {
+	var encodeInt32 ValueEncoderFunc = func(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 		if val.Kind() != reflect.Int32 {
 			return fmt.Errorf("expected kind to be int32, got %v", val.Kind())
 		}
 
 		return vw.WriteInt32(int32(val.Int()) * -1)
 	}
-	customReg := NewRegistry()
-	customReg.RegisterTypeEncoder(tInt32, encodeInt32)
+	customReg := NewRegistryBuilder().
+		RegisterTypeEncoder(tInt32, func() ValueEncoder { return encodeInt32 }).
+		Build()
 
 	// Helper function to run the test and make assertions. The provided original value should result in the document
 	// {"x": {$numberInt: 1}} when marshalled with the default registry.

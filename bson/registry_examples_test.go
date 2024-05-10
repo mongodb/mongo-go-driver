@@ -23,7 +23,7 @@ func ExampleRegistry_customEncoder() {
 	negatedIntType := reflect.TypeOf(negatedInt(0))
 
 	negatedIntEncoder := func(
-		_ *bson.Registry,
+		_ bson.EncoderRegistry,
 		vw bson.ValueWriter,
 		val reflect.Value,
 	) error {
@@ -46,10 +46,13 @@ func ExampleRegistry_customEncoder() {
 		return vw.WriteInt64(negatedVal)
 	}
 
-	reg := bson.NewRegistry()
+	reg := bson.NewRegistryBuilder()
 	reg.RegisterTypeEncoder(
 		negatedIntType,
-		bson.ValueEncoderFunc(negatedIntEncoder))
+		func() bson.ValueEncoder {
+			return bson.ValueEncoderFunc(negatedIntEncoder)
+		},
+	)
 
 	// Define a document that includes both int and negatedInt fields with the
 	// same value.
@@ -67,7 +70,7 @@ func ExampleRegistry_customEncoder() {
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
 	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(reg)
+	enc.SetRegistry(reg.Build())
 	err := enc.Encode(doc)
 	if err != nil {
 		panic(err)
@@ -129,10 +132,11 @@ func ExampleRegistry_customDecoder() {
 		return nil
 	}
 
-	reg := bson.NewRegistry()
+	reg := bson.NewRegistryBuilder()
 	reg.RegisterTypeDecoder(
 		lenientBoolType,
-		bson.ValueDecoderFunc(lenientBoolDecoder))
+		bson.ValueDecoderFunc(lenientBoolDecoder),
+	)
 
 	// Marshal a BSON document with a single field "isOK" that is a non-zero
 	// integer value.
@@ -148,7 +152,7 @@ func ExampleRegistry_customDecoder() {
 		IsOK lenientBool `bson:"isOK"`
 	}
 	var doc MyDocument
-	err = bson.UnmarshalWithRegistry(reg, b, &doc)
+	err = bson.UnmarshalWithRegistry(reg.Build(), b, &doc)
 	if err != nil {
 		panic(err)
 	}
@@ -156,13 +160,13 @@ func ExampleRegistry_customDecoder() {
 	// Output: {IsOK:true}
 }
 
-func ExampleRegistry_RegisterKindEncoder() {
+func ExampleRegistryBuilder_RegisterKindEncoder() {
 	// Create a custom encoder that writes any Go type that has underlying type
 	// int32 as an a BSON int64. To do that, we register the encoder as a "kind"
 	// encoder for kind reflect.Int32. That way, even user-defined types with
 	// underlying type int32 will be encoded as a BSON int64.
 	int32To64Encoder := func(
-		_ *bson.Registry,
+		_ bson.EncoderRegistry,
 		vw bson.ValueWriter,
 		val reflect.Value,
 	) error {
@@ -181,10 +185,13 @@ func ExampleRegistry_RegisterKindEncoder() {
 
 	// Create a default registry and register our int32-to-int64 encoder for
 	// kind reflect.Int32.
-	reg := bson.NewRegistry()
+	reg := bson.NewRegistryBuilder()
 	reg.RegisterKindEncoder(
 		reflect.Int32,
-		bson.ValueEncoderFunc(int32To64Encoder))
+		func() bson.ValueEncoder {
+			return bson.ValueEncoderFunc(int32To64Encoder)
+		},
+	)
 
 	// Define a document that includes an int32, an int64, and a user-defined
 	// type "myInt" that has underlying type int32.
@@ -205,7 +212,7 @@ func ExampleRegistry_RegisterKindEncoder() {
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
 	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(reg)
+	enc.SetRegistry(reg.Build())
 	err := enc.Encode(doc)
 	if err != nil {
 		panic(err)
@@ -214,7 +221,7 @@ func ExampleRegistry_RegisterKindEncoder() {
 	// Output: {"myint": {"$numberLong":"1"},"int32": {"$numberLong":"1"},"int64": {"$numberLong":"1"}}
 }
 
-func ExampleRegistry_RegisterKindDecoder() {
+func ExampleRegistryBuilder_RegisterKindDecoder() {
 	// Create a custom decoder that can decode any integer value, including
 	// integer values encoded as floating point numbers, to any Go type
 	// with underlying type int64. To do that, we register the decoder as a
@@ -270,10 +277,11 @@ func ExampleRegistry_RegisterKindDecoder() {
 		return nil
 	}
 
-	reg := bson.NewRegistry()
+	reg := bson.NewRegistryBuilder()
 	reg.RegisterKindDecoder(
 		reflect.Int64,
-		bson.ValueDecoderFunc(flexibleInt64KindDecoder))
+		bson.ValueDecoderFunc(flexibleInt64KindDecoder),
+	)
 
 	// Marshal a BSON document with fields that are mixed numeric types but all
 	// hold integer values (i.e. values with no fractional part).
@@ -290,7 +298,7 @@ func ExampleRegistry_RegisterKindDecoder() {
 		Int64 int64
 	}
 	var doc myDocument
-	err = bson.UnmarshalWithRegistry(reg, b, &doc)
+	err = bson.UnmarshalWithRegistry(reg.Build(), b, &doc)
 	if err != nil {
 		panic(err)
 	}

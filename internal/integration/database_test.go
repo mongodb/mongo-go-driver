@@ -29,11 +29,9 @@ const (
 )
 
 var (
-	interfaceAsMapRegistry = func() *bson.Registry {
-		reg := bson.NewRegistry()
-		reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{}))
-		return reg
-	}()
+	interfaceAsMapRegistry = bson.NewRegistryBuilder().
+		RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.M{})).
+		Build()
 )
 
 func TestDatabase(t *testing.T) {

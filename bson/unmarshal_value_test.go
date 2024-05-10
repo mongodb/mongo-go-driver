@@ -75,8 +75,9 @@ func TestUnmarshalValue(t *testing.T) {
 				bytes:    bsoncore.AppendString(nil, "hello world"),
 			},
 		}
-		reg := NewRegistry()
-		reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
+		reg := NewRegistryBuilder().
+			RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{}).
+			Build()
 		for _, tc := range testCases {
 			tc := tc
 
@@ -110,8 +111,9 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 			bytes:    bsoncore.AppendString(nil, strings.Repeat("t", 4096)),
 		},
 	}
-	reg := NewRegistry()
-	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
+	reg := NewRegistryBuilder().
+		RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{}).
+		Build()
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {

@@ -84,7 +84,7 @@ func SetterDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error
 }
 
 // GetterEncodeValue is the ValueEncoderFunc for Getter types.
-func GetterEncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func GetterEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	// Either val or a pointer to val must implement Getter
 	switch {
 	case !val.IsValid():

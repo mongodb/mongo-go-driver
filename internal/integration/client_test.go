@@ -39,7 +39,7 @@ type negateCodec struct {
 	ID int64 `bson:"_id"`
 }
 
-func (e *negateCodec) EncodeValue(_ *bson.Registry, vw bson.ValueWriter, val reflect.Value) error {
+func (e *negateCodec) EncodeValue(_ bson.EncoderRegistry, vw bson.ValueWriter, val reflect.Value) error {
 	return vw.WriteInt64(val.Int())
 }
 
@@ -100,9 +100,10 @@ func (sc *slowConn) Read(b []byte) (n int, err error) {
 func TestClient(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
-	reg := bson.NewRegistry()
-	reg.RegisterTypeEncoder(reflect.TypeOf(int64(0)), &negateCodec{})
-	reg.RegisterTypeDecoder(reflect.TypeOf(int64(0)), &negateCodec{})
+	reg := bson.NewRegistryBuilder().
+		RegisterTypeEncoder(reflect.TypeOf(int64(0)), func() bson.ValueEncoder { return &negateCodec{} }).
+		RegisterTypeDecoder(reflect.TypeOf(int64(0)), &negateCodec{}).
+		Build()
 	registryOpts := options.Client().
 		SetRegistry(reg)
 	mt.RunOpts("registry passed to cursors", mtest.NewOptions().ClientOptions(registryOpts), func(mt *mtest.T) {

@@ -50,7 +50,7 @@ type KeyUnmarshaler interface {
 }
 
 // EncodeValue is the ValueEncoder for map[*]* types.
-func (mc *mapCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (mc *mapCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Map {
 		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
@@ -78,7 +78,7 @@ func (mc *mapCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value
 // mapEncodeValue handles encoding of the values of a map. The collisionFn returns
 // true if the provided key exists, this is mainly used for inline maps in the
 // struct codec.
-func (mc *mapCodec) mapEncodeValue(reg *Registry, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
+func (mc *mapCodec) mapEncodeValue(reg EncoderRegistry, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
 
 	elemType := val.Type().Elem()
 	encoder, err := reg.LookupEncoder(elemType)

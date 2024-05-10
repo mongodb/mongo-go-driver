@@ -22,7 +22,7 @@ var (
 )
 
 // EncodeValue is the ValueEncoderFunc for interface{}.
-func (eic emptyInterfaceCodec) EncodeValue(reg *Registry, vw ValueWriter, val reflect.Value) error {
+func (eic emptyInterfaceCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tEmpty {
 		return ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}

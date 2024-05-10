@@ -55,11 +55,9 @@ type crudOutcome struct {
 	Collection *outcomeCollection `bson:"collection"`
 }
 
-var crudRegistry = func() *bson.Registry {
-	reg := bson.NewRegistry()
-	reg.RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-	return reg
-}()
+var crudRegistry = bson.NewRegistryBuilder().
+	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
+	Build()
 
 func TestCrudSpec(t *testing.T) {
 	for _, dir := range []string{crudReadDir, crudWriteDir} {

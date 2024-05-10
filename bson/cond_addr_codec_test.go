@@ -22,11 +22,11 @@ func TestCondAddrCodec(t *testing.T) {
 
 	t.Run("addressEncode", func(t *testing.T) {
 		invoked := 0
-		encode1 := ValueEncoderFunc(func(*Registry, ValueWriter, reflect.Value) error {
+		encode1 := ValueEncoderFunc(func(EncoderRegistry, ValueWriter, reflect.Value) error {
 			invoked = 1
 			return nil
 		})
-		encode2 := ValueEncoderFunc(func(*Registry, ValueWriter, reflect.Value) error {
+		encode2 := ValueEncoderFunc(func(EncoderRegistry, ValueWriter, reflect.Value) error {
 			invoked = 2
 			return nil
 		})
