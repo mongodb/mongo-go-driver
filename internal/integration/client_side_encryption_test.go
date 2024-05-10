@@ -670,7 +670,7 @@ func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
 	})
 }
 
-func TestCSE_IndexView(t *testing.T) {
+func TestFLEIndexView(t *testing.T) {
 	verifyClientSideEncryptionVarsSet(t)
 
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
