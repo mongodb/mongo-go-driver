@@ -1,6 +1,6 @@
 description: state change errors are correctly handled
 
-schemaVersion: '1.3'
+schemaVersion: '1.4'
 
 runOnRequirements:
   - topologies: [ load-balanced ]
@@ -139,7 +139,7 @@ tests:
 
   # This test uses singleClient to ensure that connection attempts are routed
   # to the same mongos on which the failpoint is set.
-  - description: errors during the initial connection hello are ignore 
+  - description: errors during the initial connection hello are ignored
     runOnRequirements:
       # Server version 4.9+ is needed to set a fail point on the initial
       # connection handshake with the appName filter due to SERVER-49336.
