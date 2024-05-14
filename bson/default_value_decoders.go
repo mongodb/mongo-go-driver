@@ -135,7 +135,6 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	tEmptyTypeDecoder, _ := decoder.(typeDecoder)
 
 	// Use the elements in the provided value if it's non nil. Otherwise, allocate a new D instance.
 	var elems D
@@ -155,7 +154,7 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 		}
 
 		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
-		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, tEmpty, false)
+		elem, err := decodeTypeOrValueWithInfo(decoder, dc, elemVr, tEmpty, false)
 		if err != nil {
 			return err
 		}
@@ -1274,7 +1273,6 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 	if err != nil {
 		return nil, err
 	}
-	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	idx := 0
 	for {
@@ -1286,7 +1284,7 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 			return nil, err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
+		elem, err := decodeTypeOrValueWithInfo(decoder, dc, vr, eType, true)
 		if err != nil {
 			return nil, newDecodeError(strconv.Itoa(idx), err)
 		}

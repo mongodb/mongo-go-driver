@@ -171,8 +171,8 @@ type decodeAdapter struct {
 var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
-func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
-	if td != nil {
+func decodeTypeOrValueWithInfo(vd ValueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
+	if td := vd.(typeDecoder); td != nil {
 		val, err := td.decodeType(dc, vr, t)
 		if err == nil && convert && val.Type() != t {
 			// This conversion step is necessary for slices and maps. If a user declares variables like:

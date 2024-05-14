@@ -99,7 +99,7 @@ func (eic emptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t re
 		return emptyValue, err
 	}
 
-	elem, err := decodeTypeOrValueWithInfo(decoder, decoder.(typeDecoder), dc, vr, rtype, true)
+	elem, err := decodeTypeOrValueWithInfo(decoder, dc, vr, rtype, true)
 	if err != nil {
 		return emptyValue, err
 	}
