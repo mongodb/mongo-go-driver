@@ -568,7 +568,7 @@ func TestRegistryBuilder(t *testing.T) {
 				t.Run("Decoder", func(t *testing.T) {
 					t.Parallel()
 
-					wanterr := ErrNilType
+					wanterr := ErrNoDecoder{Type: nil}
 
 					gotcodec, goterr := reg.LookupDecoder(nil)
 					if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {

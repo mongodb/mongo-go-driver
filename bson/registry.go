@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -16,11 +15,6 @@ import (
 // DefaultRegistry is the default Registry. It contains the default codecs and the
 // primitive codecs.
 var DefaultRegistry = NewRegistryBuilder().Build()
-
-// ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.
-//
-// Deprecated: ErrNilType will not be supported in Go Driver 2.0.
-var ErrNilType = errors.New("cannot perform a decoder lookup on <nil>")
 
 // ErrNoEncoder is returned when there wasn't an encoder available for a type.
 //
@@ -58,6 +52,12 @@ func (entme ErrNoTypeMapEntry) Error() string {
 	return "no type map entry found for " + entme.Type.String()
 }
 
+// EncoderFactory is a factory function that generates a new ValueEncoder.
+type EncoderFactory func() ValueEncoder
+
+// DecoderFactory is a factory function that generates a new ValueDecoder.
+type DecoderFactory func() ValueDecoder
+
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
 // safe.
 type RegistryBuilder struct {
@@ -84,12 +84,6 @@ func NewRegistryBuilder() *RegistryBuilder {
 	registerPrimitiveCodecs(rb)
 	return rb
 }
-
-// EncoderFactory is a factory function that generates a new ValueEncoder.
-type EncoderFactory func() ValueEncoder
-
-// DecoderFactory is a factory function that generates a new ValueDecoder.
-type DecoderFactory func() ValueDecoder
 
 // RegisterTypeEncoder registers a ValueEncoder factory for the provided type.
 //
@@ -412,7 +406,7 @@ func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool
 // concurrent use by multiple goroutines.
 func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if valueType == nil {
-		return nil, ErrNilType
+		return nil, ErrNoDecoder{Type: valueType}
 	}
 	dec, found := r.typeDecoders.Load(valueType)
 	if found {
@@ -434,6 +428,9 @@ func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 }
 
 func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool) (ValueDecoder, bool) {
+	if valueType == nil {
+		return nil, false
+	}
 	for _, idec := range r.interfaceDecoders {
 		if valueType.Implements(idec.i) {
 			return idec.vd, true
@@ -445,7 +442,7 @@ func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool
 			if !found {
 				defaultDec, _ = r.kindDecoders.Load(valueType.Kind())
 			}
-			return newCondAddrDecoder(idec.vd, defaultDec), true
+			return &condAddrDecoder{canAddrDec: idec.vd, elseDec: defaultDec}, true
 		}
 	}
 	return nil, false

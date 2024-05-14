@@ -16,6 +16,8 @@ type condAddrEncoder struct {
 	elseEnc    ValueEncoder
 }
 
+var _ ValueEncoder = (*condAddrEncoder)(nil)
+
 // EncodeValue is the ValueEncoderFunc for a value that may be addressable.
 func (cae *condAddrEncoder) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if val.CanAddr() {
@@ -34,12 +36,6 @@ type condAddrDecoder struct {
 }
 
 var _ ValueDecoder = (*condAddrDecoder)(nil)
-
-// newCondAddrDecoder returns an CondAddrDecoder.
-func newCondAddrDecoder(canAddrDec, elseDec ValueDecoder) *condAddrDecoder {
-	decoder := condAddrDecoder{canAddrDec: canAddrDec, elseDec: elseDec}
-	return &decoder
-}
 
 // DecodeValue is the ValueDecoderFunc for a value that may be addressable.
 func (cad *condAddrDecoder) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {

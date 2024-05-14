@@ -126,6 +126,12 @@ func (fn ValueEncoderFunc) EncodeValue(reg EncoderRegistry, vw ValueWriter, val 
 	return fn(reg, vw, val)
 }
 
+// DecoderRegistry is an interface provides a ValueDecoder based on the given reflect.Type.
+type DecoderRegistry interface {
+	LookupDecoder(reflect.Type) (ValueDecoder, error)
+	LookupTypeMapEntry(Type) (reflect.Type, error)
+}
+
 // ValueDecoder is the interface implemented by types that can decode BSON to a provided Go type.
 // Implementations should ensure that the value they receive is settable. Similar to ValueEncoderFunc,
 // ValueDecoderFunc is provided to allow the use of a function with the correct signature as a
@@ -164,13 +170,6 @@ type decodeAdapter struct {
 
 var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
-
-// decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of type
-// t and calls decoder.DecodeValue on it.
-func decodeTypeOrValue(decoder ValueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	td, _ := decoder.(typeDecoder)
-	return decodeTypeOrValueWithInfo(decoder, td, dc, vr, t, true)
-}
 
 func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
 	if td != nil {

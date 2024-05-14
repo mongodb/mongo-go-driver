@@ -8,12 +8,13 @@ package bson
 
 import (
 	"reflect"
+	"sync"
 )
 
 // pointerCodec is the Codec used for pointers.
 type pointerCodec struct {
-	ecache typeEncoderCache
-	dcache typeDecoderCache
+	ecache sync.Map // map[reflect.Type]ValueEncoder
+	dcache sync.Map // map[reflect.Type]ValueDecoder
 }
 
 // EncodeValue handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
@@ -35,13 +36,15 @@ func (pc *pointerCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val ref
 		if v == nil {
 			return ErrNoEncoder{Type: typ}
 		}
-		return v.EncodeValue(reg, vw, val.Elem())
+		return v.(ValueEncoder).EncodeValue(reg, vw, val.Elem())
 	}
 	// TODO(charlie): handle concurrent requests for the same type
 	enc, err := reg.LookupEncoder(typ.Elem())
-	enc = pc.ecache.LoadOrStore(typ, enc)
 	if err != nil {
 		return err
+	}
+	if v, ok := pc.ecache.LoadOrStore(typ, enc); ok {
+		enc = v.(ValueEncoder)
 	}
 	return enc.EncodeValue(reg, vw, val.Elem())
 }
@@ -71,13 +74,15 @@ func (pc *pointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflec
 		if v == nil {
 			return ErrNoDecoder{Type: typ}
 		}
-		return v.DecodeValue(dc, vr, val.Elem())
+		return v.(ValueDecoder).DecodeValue(dc, vr, val.Elem())
 	}
 	// TODO(charlie): handle concurrent requests for the same type
 	dec, err := dc.LookupDecoder(typ.Elem())
-	dec = pc.dcache.LoadOrStore(typ, dec)
 	if err != nil {
 		return err
+	}
+	if v, ok := pc.dcache.LoadOrStore(typ, dec); ok {
+		dec = v.(ValueDecoder)
 	}
 	return dec.DecodeValue(dc, vr, val.Elem())
 }
