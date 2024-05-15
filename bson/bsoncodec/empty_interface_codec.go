@@ -128,7 +128,8 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReade
 		return emptyValue, err
 	}
 
-	elem, err := decodeTypeOrValue(decoder, dc, vr, rtype)
+	td, _ := decoder.(typeDecoder)
+	elem, err := decodeTypeOrValueWithInfo(decoder, td, dc, vr, rtype, true)
 	if err != nil {
 		return emptyValue, err
 	}

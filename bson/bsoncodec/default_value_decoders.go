@@ -185,7 +185,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr bsonrw.ValueRe
 		}
 
 		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
-		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, reflect.New(tEmpty).Elem(), false)
+		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, tEmpty, false)
 		if err != nil {
 			return err
 		}
@@ -1700,7 +1700,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 				val.Index(idx).Set(v)
 				e = v
 			}
-			elem, err = decodeTypeOrValueWithInfo(valueDecoder, typeDecoder, dc, vr, e, true)
+			elem, err = decodeTypeOrValueWithInfo(valueDecoder, typeDecoder, dc, vr, e.Type(), true)
 			if err != nil {
 				return nil, newDecodeError(strconv.Itoa(idx), err)
 			}
@@ -1708,7 +1708,7 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr bsonrw.ValueR
 				elem = reflect.Zero(val.Index(idx).Type())
 			}
 		} else {
-			elem, err = decodeTypeOrValueWithInfo(vDecoder, tDecoder, dc, vr, reflect.New(eType).Elem(), true)
+			elem, err = decodeTypeOrValueWithInfo(vDecoder, tDecoder, dc, vr, eType, true)
 			if err != nil {
 				return nil, newDecodeError(strconv.Itoa(idx), err)
 			}

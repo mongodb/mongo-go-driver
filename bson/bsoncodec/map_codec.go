@@ -213,7 +213,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 			return err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, reflect.New(eType).Elem(), true)
+		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
 		if err != nil {
 			return newDecodeError(key, err)
 		}

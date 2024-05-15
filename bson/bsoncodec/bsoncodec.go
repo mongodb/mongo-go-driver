@@ -343,17 +343,8 @@ type decodeAdapter struct {
 var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
-// decodeTypeOrValue calls decoder.decodeType is decoder is a typeDecoder. Otherwise, it allocates a new element of type
-// t and calls decoder.DecodeValue on it.
-func decodeTypeOrValue(decoder ValueDecoder, dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
-	td, _ := decoder.(typeDecoder)
-	val := reflect.New(t).Elem()
-	return decodeTypeOrValueWithInfo(decoder, td, dc, vr, val, true)
-}
-
-func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr bsonrw.ValueReader, val reflect.Value, convert bool) (reflect.Value, error) {
+func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
 	if td != nil {
-		t := val.Type()
 		val, err := td.decodeType(dc, vr, t)
 		if err == nil && convert && val.Type() != t {
 			// This conversion step is necessary for slices and maps. If a user declares variables like:
@@ -368,6 +359,7 @@ func decodeTypeOrValueWithInfo(vd ValueDecoder, td typeDecoder, dc DecodeContext
 		return val, err
 	}
 
+	val := reflect.New(t).Elem()
 	err := vd.DecodeValue(dc, vr, val)
 	return val, err
 }
