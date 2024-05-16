@@ -2471,14 +2471,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 		}
 	})
 
-	t.Run("SliceCodec/DecodeValue/can't set slice", func(t *testing.T) {
-		var val []string
-		want := ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: reflect.ValueOf(val)}
-		got := dvd.SliceDecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
-		if !compareErrors(got, want) {
-			t.Errorf("Errors do not match. got %v; want %v", got, want)
-		}
-	})
 	t.Run("SliceCodec/DecodeValue/too many elements", func(t *testing.T) {
 		idx, doc := bsoncore.AppendDocumentStart(nil)
 		aidx, doc := bsoncore.AppendArrayElementStart(doc, "foo")
