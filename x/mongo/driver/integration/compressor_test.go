@@ -11,7 +11,6 @@ import (
 	"os"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -52,7 +51,7 @@ func TestCompression(t *testing.T) {
 	networkVal, err := result.LookupErr("network")
 	noerr(t, err)
 
-	require.Equal(t, networkVal.Type, bson.TypeEmbeddedDocument)
+	require.Equal(t, bsoncore.TypeEmbeddedDocument, networkVal.Type)
 
 	compressionVal, err := networkVal.Document().LookupErr("compression")
 	noerr(t, err)

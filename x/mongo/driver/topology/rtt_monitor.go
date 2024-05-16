@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -34,7 +35,7 @@ type rttConfig struct {
 
 	minRTTWindow       time.Duration
 	createConnectionFn func() *connection
-	createOperationFn  func(driver.Connection) *operation.Hello
+	createOperationFn  func(*mnet.Connection) *operation.Hello
 }
 
 type rttMonitor struct {
@@ -53,7 +54,6 @@ type rttMonitor struct {
 	cfg      *rttConfig
 	ctx      context.Context
 	cancelFn context.CancelFunc
-	started  bool
 }
 
 var _ driver.RTTMonitor = &rttMonitor{}
@@ -77,7 +77,6 @@ func (r *rttMonitor) connect() {
 	r.connMu.Lock()
 	defer r.connMu.Unlock()
 
-	r.started = true
 	r.closeWg.Add(1)
 
 	go func() {
@@ -90,10 +89,6 @@ func (r *rttMonitor) connect() {
 func (r *rttMonitor) disconnect() {
 	r.connMu.Lock()
 	defer r.connMu.Unlock()
-
-	if !r.started {
-		return
-	}
 
 	r.cancelFn()
 
@@ -173,7 +168,9 @@ func (r *rttMonitor) runHellos(conn *connection) {
 		ctx, cancel := context.WithTimeout(r.ctx, timeout)
 
 		start := time.Now()
-		err := r.cfg.createOperationFn(initConnection{conn}).Execute(ctx)
+		iconn := mnet.NewConnection(initConnection{conn})
+
+		err := r.cfg.createOperationFn(iconn).Execute(ctx)
 		cancel()
 		if err != nil {
 			return

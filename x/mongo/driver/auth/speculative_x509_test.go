@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 var (
@@ -47,12 +48,14 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), conn)
+		mnetconn := mnet.NewConnection(conn)
+
+		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
 		assert.NotNil(t, info.SpeculativeAuthenticate, "desc.SpeculativeAuthenticate not set")
 		conn.Desc = info.Description
 
-		err = handshaker.FinishHandshake(context.Background(), conn)
+		err = handshaker.FinishHandshake(context.Background(), mnetconn)
 		assert.Nil(t, err, "FinishHandshake error: %v", err)
 		assert.Equal(t, 0, len(conn.ReadResp), "%d messages left unread", len(conn.ReadResp))
 
@@ -91,13 +94,15 @@ func TestSpeculativeX509(t *testing.T) {
 			ReadResp: responses,
 		}
 
-		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), conn)
+		mnetconn := mnet.NewConnection(conn)
+
+		info, err := handshaker.GetHandshakeInformation(context.Background(), address.Address("localhost:27017"), mnetconn)
 		assert.Nil(t, err, "GetDescription error: %v", err)
 		assert.Nil(t, info.SpeculativeAuthenticate, "expected desc.SpeculativeAuthenticate to be unset, got %s",
 			bson.Raw(info.SpeculativeAuthenticate))
 		conn.Desc = info.Description
 
-		err = handshaker.FinishHandshake(context.Background(), conn)
+		err = handshaker.FinishHandshake(context.Background(), mnetconn)
 		assert.Nil(t, err, "FinishHandshake error: %v", err)
 		assert.Equal(t, 0, len(conn.ReadResp), "%d messages left unread", len(conn.ReadResp))
 
@@ -125,7 +130,7 @@ func createSpeculativeX509Handshake() []bsoncore.Document {
 	return []bsoncore.Document{hello}
 }
 
-// createSpeculativeX509Handshake creates the server replies for a handshake + X509 authentication attempt.
+// createRegularX509Handshake creates the server replies for a handshake + X509 authentication attempt.
 // There are two replies:
 //
 // 1. hello reply

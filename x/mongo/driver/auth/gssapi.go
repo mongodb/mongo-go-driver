@@ -44,7 +44,7 @@ type GSSAPIAuthenticator struct {
 
 // Auth authenticates the connection.
 func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	target := cfg.Description.Addr.String()
+	target := cfg.Connection.Description().Addr.String()
 	hostname, _, err := net.SplitHostPort(target)
 	if err != nil {
 		return newAuthError(fmt.Sprintf("invalid endpoint (%s) specified: %s", target, err), nil)

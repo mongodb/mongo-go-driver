@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // keyPathCtxKey is used as a key for a Context object. The value conveys the BSON key path that is currently being
@@ -243,10 +242,10 @@ func evaluateSpecialComparison(ctx context.Context, assertionDoc bson.Raw, actua
 			return fmt.Errorf("expected lsid %v, got %v", expectedID, actualID)
 		}
 	case "$$lte":
-		if assertionVal.Type != bsontype.Int32 && assertionVal.Type != bsontype.Int64 {
+		if assertionVal.Type != bson.TypeInt32 && assertionVal.Type != bson.TypeInt64 {
 			return fmt.Errorf("expected assertionVal to be an Int32 or Int64 but got a %s", assertionVal.Type)
 		}
-		if actual.Type != bsontype.Int32 && actual.Type != bsontype.Int64 {
+		if actual.Type != bson.TypeInt32 && actual.Type != bson.TypeInt64 {
 			return fmt.Errorf("expected value to be an Int32 or Int64 but got a %s", actual.Type)
 		}
 
@@ -290,22 +289,22 @@ func requiresSpecialMatching(doc bson.Raw) bool {
 	return len(elems) == 1 && strings.HasPrefix(elems[0].Key(), "$$")
 }
 
-func getTypesArray(val bson.RawValue) ([]bsontype.Type, error) {
+func getTypesArray(val bson.RawValue) ([]bson.Type, error) {
 	switch val.Type {
-	case bsontype.String:
+	case bson.TypeString:
 		convertedType, err := convertStringToBSONType(val.StringValue())
 		if err != nil {
 			return nil, err
 		}
 
-		return []bsontype.Type{convertedType}, nil
-	case bsontype.Array:
+		return []bson.Type{convertedType}, nil
+	case bson.TypeArray:
 		var typeStrings []string
 		if err := val.Unmarshal(&typeStrings); err != nil {
 			return nil, fmt.Errorf("error unmarshalling to slice of strings: %v", err)
 		}
 
-		var types []bsontype.Type
+		var types []bson.Type
 		for _, typeStr := range typeStrings {
 			convertedType, err := convertStringToBSONType(typeStr)
 			if err != nil {
@@ -316,56 +315,56 @@ func getTypesArray(val bson.RawValue) ([]bsontype.Type, error) {
 		}
 		return types, nil
 	default:
-		return nil, fmt.Errorf("invalid type to convert to bsontype.Type slice: %s", val.Type)
+		return nil, fmt.Errorf("invalid type to convert to bson.Type slice: %s", val.Type)
 	}
 }
 
-func convertStringToBSONType(typeStr string) (bsontype.Type, error) {
+func convertStringToBSONType(typeStr string) (bson.Type, error) {
 	switch typeStr {
 	case "double":
-		return bsontype.Double, nil
+		return bson.TypeDouble, nil
 	case "string":
-		return bsontype.String, nil
+		return bson.TypeString, nil
 	case "object":
-		return bsontype.EmbeddedDocument, nil
+		return bson.TypeEmbeddedDocument, nil
 	case "array":
-		return bsontype.Array, nil
+		return bson.TypeArray, nil
 	case "binData":
-		return bsontype.Binary, nil
+		return bson.TypeBinary, nil
 	case "undefined":
-		return bsontype.Undefined, nil
+		return bson.TypeUndefined, nil
 	case "objectId":
-		return bsontype.ObjectID, nil
+		return bson.TypeObjectID, nil
 	case "bool":
-		return bsontype.Boolean, nil
+		return bson.TypeBoolean, nil
 	case "date":
-		return bsontype.DateTime, nil
+		return bson.TypeDateTime, nil
 	case "null":
-		return bsontype.Null, nil
+		return bson.TypeNull, nil
 	case "regex":
-		return bsontype.Regex, nil
+		return bson.TypeRegex, nil
 	case "dbPointer":
-		return bsontype.DBPointer, nil
+		return bson.TypeDBPointer, nil
 	case "javascript":
-		return bsontype.JavaScript, nil
+		return bson.TypeJavaScript, nil
 	case "symbol":
-		return bsontype.Symbol, nil
+		return bson.TypeSymbol, nil
 	case "javascriptWithScope":
-		return bsontype.CodeWithScope, nil
+		return bson.TypeCodeWithScope, nil
 	case "int":
-		return bsontype.Int32, nil
+		return bson.TypeInt32, nil
 	case "timestamp":
-		return bsontype.Timestamp, nil
+		return bson.TypeTimestamp, nil
 	case "long":
-		return bsontype.Int64, nil
+		return bson.TypeInt64, nil
 	case "decimal":
-		return bsontype.Decimal128, nil
+		return bson.TypeDecimal128, nil
 	case "minKey":
-		return bsontype.MinKey, nil
+		return bson.TypeMinKey, nil
 	case "maxKey":
-		return bsontype.MaxKey, nil
+		return bson.TypeMaxKey, nil
 	default:
-		return bsontype.Type(0), fmt.Errorf("unrecognized BSON type string %q", typeStr)
+		return bson.Type(0), fmt.Errorf("unrecognized BSON type string %q", typeStr)
 	}
 }
 

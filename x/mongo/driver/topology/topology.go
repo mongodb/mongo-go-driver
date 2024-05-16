@@ -4,10 +4,19 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-// Package topology contains types that handles the discovery, monitoring, and selection
-// of servers. This package is designed to expose enough inner workings of service discovery
-// and monitoring to allow low level applications to have fine grained control, while hiding
-// most of the detailed implementation of the algorithms.
+// Package topology is intended for internal use only. It is made available to
+// facilitate use cases that require access to internal MongoDB driver
+// functionality and state. The API of this package is not stable and there is
+// no backward compatibility guarantee.
+//
+// WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
+// NOTICE! USE WITH EXTREME CAUTION!
+//
+// Package topology contains types that handles the discovery, monitoring, and
+// selection of servers. This package is designed to expose enough inner
+// workings of service discovery and monitoring to allow low level applications
+// to have fine grained control, while hiding most of the detailed
+// implementation of the algorithms.
 package topology
 
 import (
@@ -21,7 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/randutil"
@@ -108,7 +117,7 @@ type Topology struct {
 	serversClosed bool
 	servers       map[address.Address]*Server
 
-	id primitive.ObjectID
+	id bson.ObjectID
 }
 
 var (
@@ -147,7 +156,7 @@ func New(cfg *Config) (*Topology, error) {
 		subscribers:       make(map[uint64]chan description.Topology),
 		servers:           make(map[address.Address]*Server),
 		dnsResolver:       dns.DefaultResolver,
-		id:                primitive.NewObjectID(),
+		id:                bson.NewObjectID(),
 	}
 	t.desc.Store(description.Topology{})
 	t.updateCallback = func(desc description.Server) description.Server {

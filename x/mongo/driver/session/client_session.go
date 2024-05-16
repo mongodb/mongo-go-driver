@@ -7,19 +7,17 @@
 package session
 
 import (
-	"context"
 	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 // ErrSessionEnded is returned when a client session is used after a call to endSession().
@@ -76,26 +74,15 @@ func (s TransactionState) String() string {
 	}
 }
 
+var _ mnet.Pinner = (LoadBalancedTransactionConnection)(nil)
+
 // LoadBalancedTransactionConnection represents a connection that's pinned by a ClientSession because it's being used
 // to execute a transaction when running against a load balancer. This interface is a copy of driver.PinnedConnection
 // and exists to be able to pin transactions to a connection without causing an import cycle.
 type LoadBalancedTransactionConnection interface {
-	// Functions copied over from driver.Connection.
-	WriteWireMessage(context.Context, []byte) error
-	ReadWireMessage(ctx context.Context) ([]byte, error)
-	Description() description.Server
-	Close() error
-	ID() string
-	ServerConnectionID() *int64
-	DriverConnectionID() int64
-	Address() address.Address
-	Stale() bool
-
-	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
-	PinToCursor() error
-	PinToTransaction() error
-	UnpinFromCursor() error
-	UnpinFromTransaction() error
+	mnet.ReadWriteCloser
+	mnet.Describer
+	mnet.Pinner
 }
 
 // Client is a session for clients to run commands.
@@ -104,7 +91,7 @@ type Client struct {
 	ClientID       uuid.UUID
 	ClusterTime    bson.Raw
 	Consistent     bool // causal consistency
-	OperationTime  *primitive.Timestamp
+	OperationTime  *bson.Timestamp
 	IsImplicit     bool
 	Terminated     bool
 	RetryingCommit bool
@@ -132,7 +119,7 @@ type Client struct {
 	PinnedServer     *description.Server
 	RecoveryToken    bson.Raw
 	PinnedConnection LoadBalancedTransactionConnection
-	SnapshotTime     *primitive.Timestamp
+	SnapshotTime     *bson.Timestamp
 }
 
 func getClusterTime(clusterTime bson.Raw) (uint32, uint32) {
@@ -244,7 +231,7 @@ func (c *Client) AdvanceClusterTime(clusterTime bson.Raw) error {
 }
 
 // AdvanceOperationTime updates the session's operation time.
-func (c *Client) AdvanceOperationTime(opTime *primitive.Timestamp) error {
+func (c *Client) AdvanceOperationTime(opTime *bson.Timestamp) error {
 	if c.Terminated {
 		return ErrSessionEnded
 	}
@@ -306,7 +293,7 @@ func (c *Client) UpdateSnapshotTime(response bsoncore.Document) {
 	}
 
 	t, i := ssTimeElem.Timestamp()
-	c.SnapshotTime = &primitive.Timestamp{
+	c.SnapshotTime = &bson.Timestamp{
 		T: t,
 		I: i,
 	}

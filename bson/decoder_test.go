@@ -13,10 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsonrw/bsonrwtest"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -32,11 +28,11 @@ func TestBasicDecode(t *testing.T) {
 			t.Parallel()
 
 			got := reflect.New(tc.sType).Elem()
-			vr := bsonrw.NewValueReader(tc.data)
+			vr := NewValueReader(tc.data)
 			reg := DefaultRegistry
 			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
 			noerr(t, err)
-			err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: reg}, vr, got)
+			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got.Addr().Interface(), "Results do not match.")
 		})
@@ -188,11 +184,11 @@ func TestDecodingInterfaces(t *testing.T) {
 
 			data, receiver, check := tc.stub()
 			got := reflect.ValueOf(receiver).Elem()
-			vr := bsonrw.NewValueReader(data)
+			vr := NewValueReader(data)
 			reg := DefaultRegistry
 			decoder, err := reg.LookupDecoder(got.Type())
 			noerr(t, err)
-			err = decoder.DecodeValue(bsoncodec.DecodeContext{Registry: reg}, vr, got)
+			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
 			noerr(t, err)
 			check(t)
 		})
@@ -212,7 +208,7 @@ func TestDecoderv2(t *testing.T) {
 				t.Parallel()
 
 				got := reflect.New(tc.sType).Interface()
-				vr := bsonrw.NewValueReader(tc.data)
+				vr := NewValueReader(tc.data)
 				dec := NewDecoder(vr)
 				err := dec.Decode(got)
 				noerr(t, err)
@@ -227,8 +223,8 @@ func TestDecoderv2(t *testing.T) {
 			_ = certainlydoesntexistelsewhereihope(func(string, string) string { return "" })
 
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
-			dec := NewDecoder(bsonrw.NewValueReader([]byte{}))
-			want := bsoncodec.ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
+			dec := NewDecoder(NewValueReader([]byte{}))
+			want := ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
 			assert.Equal(t, want, got, "Received unexpected error.")
 		})
@@ -238,25 +234,25 @@ func TestDecoderv2(t *testing.T) {
 			testCases := []struct {
 				name    string
 				err     error
-				vr      bsonrw.ValueReader
+				vr      ValueReader
 				invoked bool
 			}{
 				{
 					"error",
 					errors.New("Unmarshaler error"),
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: bsonrw.ErrEOD, ErrAfter: bsonrwtest.ReadElement},
+					&valueReaderWriter{BSONType: TypeEmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
 					true,
 				},
 				{
 					"copy error",
 					errors.New("copy error"),
-					&bsonrwtest.ValueReaderWriter{Err: errors.New("copy error"), ErrAfter: bsonrwtest.ReadDocument},
+					&valueReaderWriter{Err: errors.New("copy error"), ErrAfter: readDocument},
 					false,
 				},
 				{
 					"success",
 					nil,
-					&bsonrwtest.ValueReaderWriter{BSONType: bsontype.EmbeddedDocument, Err: bsonrw.ErrEOD, ErrAfter: bsonrwtest.ReadElement},
+					&valueReaderWriter{BSONType: TypeEmbeddedDocument, Err: ErrEOD, ErrAfter: readElement},
 					true,
 				},
 			}
@@ -267,14 +263,14 @@ func TestDecoderv2(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
 
-					unmarshaler := &testUnmarshaler{err: tc.err}
+					unmarshaler := &testUnmarshaler{Err: tc.err}
 					dec := NewDecoder(tc.vr)
 					got := dec.Decode(unmarshaler)
 					want := tc.err
-					if !compareErrors(got, want) {
+					if !assert.CompareErrors(got, want) {
 						t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 					}
-					if unmarshaler.invoked != tc.invoked {
+					if unmarshaler.Invoked != tc.invoked {
 						if tc.invoked {
 							t.Error("Expected to have UnmarshalBSON invoked, but it wasn't.")
 						} else {
@@ -284,16 +280,16 @@ func TestDecoderv2(t *testing.T) {
 				})
 			}
 
-			t.Run("Unmarshaler/success bsonrw.ValueReader", func(t *testing.T) {
+			t.Run("Unmarshaler/success ValueReader", func(t *testing.T) {
 				t.Parallel()
 
 				want := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
 				unmarshaler := &testUnmarshaler{}
-				vr := bsonrw.NewValueReader(want)
+				vr := NewValueReader(want)
 				dec := NewDecoder(vr)
 				err := dec.Decode(unmarshaler)
 				noerr(t, err)
-				got := unmarshaler.data
+				got := unmarshaler.Val
 				if !bytes.Equal(got, want) {
 					t.Errorf("Did not unmarshal properly. got %v; want %v", got, want)
 				}
@@ -306,7 +302,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			got := NewDecoder(bsonrw.NewValueReader([]byte{}))
+			got := NewDecoder(NewValueReader([]byte{}))
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
@@ -318,7 +314,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			got := NewDecoder(bsonrw.NewValueReader([]byte{}))
+			got := NewDecoder(NewValueReader([]byte{}))
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
@@ -336,7 +332,7 @@ func TestDecoderv2(t *testing.T) {
 		got.Item = "apple"
 		got.Bonus = 2
 		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
-		vr := bsonrw.NewValueReader(data)
+		vr := NewValueReader(data)
 		dec := NewDecoder(vr)
 		err := dec.Decode(&got)
 		noerr(t, err)
@@ -346,7 +342,7 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("Reset", func(t *testing.T) {
 		t.Parallel()
 
-		vr1, vr2 := bsonrw.NewValueReader([]byte{}), bsonrw.NewValueReader([]byte{})
+		vr1, vr2 := NewValueReader([]byte{}), NewValueReader([]byte{})
 		dec := NewDecoder(vr1)
 		if dec.vr != vr1 {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr1)
@@ -360,9 +356,9 @@ func TestDecoderv2(t *testing.T) {
 		t.Parallel()
 
 		r1, r2 := DefaultRegistry, NewRegistry()
-		dc1 := bsoncodec.DecodeContext{Registry: r1}
-		dc2 := bsoncodec.DecodeContext{Registry: r2}
-		dec := NewDecoder(bsonrw.NewValueReader([]byte{}))
+		dc1 := DecodeContext{Registry: r1}
+		dc2 := DecodeContext{Registry: r2}
+		dec := NewDecoder(NewValueReader([]byte{}))
 		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
@@ -375,7 +371,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Parallel()
 
 		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
-		vr := bsonrw.NewValueReader(data)
+		vr := NewValueReader(data)
 		dec := NewDecoder(vr)
 
 		var got *D
@@ -387,15 +383,15 @@ func TestDecoderv2(t *testing.T) {
 }
 
 type testUnmarshaler struct {
-	invoked bool
-	err     error
-	data    []byte
+	Invoked bool
+	Val     []byte
+	Err     error
 }
 
 func (tu *testUnmarshaler) UnmarshalBSON(d []byte) error {
-	tu.invoked = true
-	tu.data = d
-	return tu.err
+	tu.Invoked = true
+	tu.Val = d
+	return tu.Err
 }
 
 func TestDecoderConfiguration(t *testing.T) {
@@ -477,7 +473,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				dec.BinaryAsSlice()
 			},
 			input: bsoncore.NewDocumentBuilder().
-				AppendBinary("myBinary", bsontype.BinaryGeneric, []byte{}).
+				AppendBinary("myBinary", TypeBinaryGeneric, []byte{}).
 				Build(),
 			decodeInto: func() interface{} { return &D{} },
 			want:       &D{{Key: "myBinary", Value: []byte{}}},
@@ -582,7 +578,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			dec := NewDecoder(bsonrw.NewValueReader(tc.input))
+			dec := NewDecoder(NewValueReader(tc.input))
 
 			tc.configure(dec)
 
@@ -603,7 +599,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build()).
 			Build()
 
-		dec := NewDecoder(bsonrw.NewValueReader(input))
+		dec := NewDecoder(NewValueReader(input))
 
 		dec.DefaultDocumentM()
 
@@ -627,7 +623,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build()).
 			Build()
 
-		dec := NewDecoder(bsonrw.NewValueReader(input))
+		dec := NewDecoder(NewValueReader(input))
 
 		dec.DefaultDocumentD()
 

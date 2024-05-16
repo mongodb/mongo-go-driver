@@ -191,7 +191,7 @@ type EntityMap struct {
 	clientEntities           map[string]*clientEntity
 	dbEntites                map[string]*mongo.Database
 	collEntities             map[string]*mongo.Collection
-	sessions                 map[string]mongo.Session
+	sessions                 map[string]*mongo.Session
 	gridfsBuckets            map[string]*mongo.GridFSBucket
 	bsonValues               map[string]bson.RawValue
 	eventListEntities        map[string][]bson.Raw
@@ -225,7 +225,7 @@ func newEntityMap() *EntityMap {
 		clientEntities:           make(map[string]*clientEntity),
 		collEntities:             make(map[string]*mongo.Collection),
 		dbEntites:                make(map[string]*mongo.Database),
-		sessions:                 make(map[string]mongo.Session),
+		sessions:                 make(map[string]*mongo.Session),
 		eventListEntities:        make(map[string][]bson.Raw),
 		bsonArrayEntities:        make(map[string][]bson.Raw),
 		successValues:            make(map[string]int32),
@@ -422,7 +422,7 @@ func (em *EntityMap) database(id string) (*mongo.Database, error) {
 	return db, nil
 }
 
-func (em *EntityMap) session(id string) (mongo.Session, error) {
+func (em *EntityMap) session(id string) (*mongo.Session, error) {
 	sess, ok := em.sessions[id]
 	if !ok {
 		return nil, newEntityNotFoundError("session", id)

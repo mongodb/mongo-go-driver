@@ -135,5 +135,18 @@
 //
 // Manually marshaling and unmarshaling can be done with the Marshal and Unmarshal family of functions.
 //
+// bsoncodec code provides a system for encoding values to BSON representations and decoding
+// values from BSON representations. This package considers both binary BSON and ExtendedJSON as
+// BSON representations. The types in this package enable a flexible system for handling this
+// encoding and decoding.
+//
+// The codec system is composed of two parts:
+//
+// 1) [ValueEncoder] and [ValueDecoder] that handle encoding and decoding Go values to and from BSON
+// representations.
+//
+// 2) A [Registry] that holds these ValueEncoders and ValueDecoders and provides methods for
+// retrieving them.
+//
 // [Work with BSON]: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/
 package bson

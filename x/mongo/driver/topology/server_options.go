@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -29,7 +28,7 @@ type serverConfig struct {
 	heartbeatTimeout     time.Duration
 	serverMonitoringMode string
 	serverMonitor        *event.ServerMonitor
-	registry             *bsoncodec.Registry
+	registry             *bson.Registry
 	monitoringDisabled   bool
 	serverAPI            *driver.ServerAPIOptions
 	loadBalanced         bool
@@ -178,7 +177,7 @@ func WithClock(fn func(clock *session.ClusterClock) *session.ClusterClock) Serve
 
 // WithRegistry configures the registry for the server to use when creating
 // cursors.
-func WithRegistry(fn func(*bsoncodec.Registry) *bsoncodec.Registry) ServerOption {
+func WithRegistry(fn func(*bson.Registry) *bson.Registry) ServerOption {
 	return func(cfg *serverConfig) {
 		cfg.registry = fn(cfg.registry)
 	}

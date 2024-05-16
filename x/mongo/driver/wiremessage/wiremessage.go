@@ -4,6 +4,13 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// Package wiremessage is intended for internal use only. It is made available
+// to facilitate use cases that require access to internal MongoDB driver
+// functionality and state. The API of this package is not stable and there is
+// no backward compatibility guarantee.
+//
+// WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
+// NOTICE! USE WITH EXTREME CAUTION!
 package wiremessage
 
 import (
@@ -486,7 +493,7 @@ func ReadReplyCursorID(src []byte) (cursorID int64, rem []byte, ok bool) {
 	return readi64(src)
 }
 
-// ReadReplyStartingFrom reads the starting from from src.
+// ReadReplyStartingFrom reads the starting from src.
 func ReadReplyStartingFrom(src []byte) (startingFrom int32, rem []byte, ok bool) {
 	return readi32(src)
 }
