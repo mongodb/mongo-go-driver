@@ -179,7 +179,6 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr ValueReader, v
 			return err
 		}
 
-		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
 		var v interface{}
 		err = decoder.DecodeValue(dc, elemVr, reflect.ValueOf(&v).Elem())
 		if err != nil {
@@ -1393,10 +1392,10 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr ValueReader, 
 					return nil, newDecodeError(strconv.Itoa(idx), err)
 				}
 			} else if vr.Type() == TypeNull {
-				elem = reflect.Zero(val.Index(idx).Type())
 				if err = vr.ReadNull(); err != nil {
 					return nil, err
 				}
+				elem = reflect.Zero(val.Index(idx).Type())
 			} else {
 				e := elem.Elem()
 				valueDecoder, err := dc.LookupDecoder(e.Type())
