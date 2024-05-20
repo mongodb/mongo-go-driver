@@ -688,11 +688,10 @@ func TestFLEIndexView(t *testing.T) {
 
 	mt.Cleanup(func() { client.Disconnect(context.Background()) })
 
-	err = client.Database("db").CreateCollection(context.Background(), "coll")
-	assert.NoError(mt, err)
-
 	coll := client.Database("db").Collection("coll")
-	mt.Cleanup(func() { coll.Drop(context.Background()) })
+
+	err = coll.Drop(context.Background())
+	assert.Nil(mt, err, "Drop error: %v", err)
 
 	mt.Run("create many", func(mt *mtest.T) {
 		createIndexes(mt, coll, 2)
