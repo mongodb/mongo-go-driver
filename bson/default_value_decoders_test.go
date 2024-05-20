@@ -139,7 +139,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"IntDecodeValue",
-			ValueDecoderFunc(intDecodeValue),
+			&intCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -371,7 +371,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultUIntCodec.DecodeValue",
-			&uintCodec{},
+			&intCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -607,7 +607,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"FloatDecodeValue",
-			ValueDecoderFunc(floatDecodeValue),
+			&floatCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -3341,7 +3341,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 							t.Skip()
 						}
 						want := errors.New("DecodeValue failure error")
-						llc := &llCodec{t: t, err: want}
+						llc := func() ValueDecoder { return &llCodec{t: t, err: want} }
 						reg := newTestRegistryBuilder().
 							RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
 							RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
@@ -3357,7 +3357,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 					t.Run("Success", func(t *testing.T) {
 						want := tc.val
-						llc := &llCodec{t: t, decodeval: tc.val}
+						llc := func() ValueDecoder { return &llCodec{t: t, decodeval: tc.val} }
 						reg := newTestRegistryBuilder().
 							RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
 							RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
@@ -3501,11 +3501,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 	t.Run("decode errors contain key information", func(t *testing.T) {
 		decodeValueError := errors.New("decode value error")
-		emptyInterfaceErrorDecode := func(DecodeContext, ValueReader, reflect.Value) error {
+		emptyInterfaceErrorDecode := func(DecoderRegistry, ValueReader, reflect.Value) error {
 			return decodeValueError
 		}
 		emptyInterfaceErrorRegistry := newTestRegistryBuilder().
-			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).
+			RegisterTypeDecoder(tEmpty, func() ValueDecoder { return ValueDecoderFunc(emptyInterfaceErrorDecode) }).
 			Build()
 
 		// Set up a document {foo: 10} and an error that would happen if the value were decoded into interface{}
@@ -3560,7 +3560,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
 		nestedRegistryBuilder := newTestRegistryBuilder()
 		registerDefaultDecoders(nestedRegistryBuilder)
-		nestedRegistryBuilder.RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode))
+		nestedRegistryBuilder.RegisterTypeDecoder(tEmpty, func() ValueDecoder { return ValueDecoderFunc(emptyInterfaceErrorDecode) })
 		nestedErr := &DecodeError{
 			keys:    []string{"fourth", "1", "third", "randomKey", "second", "first"},
 			wrapped: decodeValueError,

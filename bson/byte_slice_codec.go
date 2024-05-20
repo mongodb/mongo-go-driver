@@ -18,10 +18,6 @@ type byteSliceCodec struct {
 	encodeNilAsEmpty bool
 }
 
-var (
-	defaultByteSliceCodec = &byteSliceCodec{}
-)
-
 // EncodeValue is the ValueEncoder for []byte.
 func (bsc *byteSliceCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tByteSlice {
@@ -33,7 +29,7 @@ func (bsc *byteSliceCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val re
 	return vw.WriteBinary(val.Interface().([]byte))
 }
 
-func (bsc *byteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (bsc *byteSliceCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tByteSlice {
 		return emptyValue, ValueDecoderError{
 			Name:     "ByteSliceDecodeValue",
@@ -81,12 +77,12 @@ func (bsc *byteSliceCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect
 }
 
 // DecodeValue is the ValueDecoder for []byte.
-func (bsc *byteSliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (bsc *byteSliceCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tByteSlice {
 		return ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
 	}
 
-	elem, err := bsc.decodeType(dc, vr, tByteSlice)
+	elem, err := bsc.decodeType(reg, vr, tByteSlice)
 	if err != nil {
 		return err
 	}

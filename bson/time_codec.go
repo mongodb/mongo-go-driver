@@ -22,11 +22,7 @@ type timeCodec struct {
 	useLocalTimeZone bool
 }
 
-var (
-	defaultTimeCodec = &timeCodec{}
-)
-
-func (tc *timeCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (tc *timeCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tTime {
 		return emptyValue, ValueDecoderError{
 			Name:     "TimeDecodeValue",
@@ -77,19 +73,19 @@ func (tc *timeCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type
 		return emptyValue, fmt.Errorf("cannot decode %v into a time.Time", vrType)
 	}
 
-	if !tc.useLocalTimeZone && !dc.useLocalTimeZone {
+	if !tc.useLocalTimeZone {
 		timeVal = timeVal.UTC()
 	}
 	return reflect.ValueOf(timeVal), nil
 }
 
 // DecodeValue is the ValueDecoderFunc for time.Time.
-func (tc *timeCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (tc *timeCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tTime {
 		return ValueDecoderError{Name: "TimeDecodeValue", Types: []reflect.Type{tTime}, Received: val}
 	}
 
-	elem, err := tc.decodeType(dc, vr, tTime)
+	elem, err := tc.decodeType(reg, vr, tTime)
 	if err != nil {
 		return err
 	}

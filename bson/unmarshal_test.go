@@ -219,7 +219,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 	// different Registry is used.
 
 	// Create a custom Registry that negates BSON int32 values when decoding.
-	var decodeInt32 ValueDecoderFunc = func(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+	var decodeInt32 ValueDecoderFunc = func(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 		i32, err := vr.ReadInt32()
 		if err != nil {
 			return err
@@ -229,7 +229,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		return nil
 	}
 	customReg := NewRegistryBuilder().
-		RegisterTypeDecoder(tInt32, decodeInt32).
+		RegisterTypeDecoder(tInt32, func() ValueDecoder { return decodeInt32 }).
 		Build()
 
 	docBytes := bsoncore.BuildDocumentFromElements(

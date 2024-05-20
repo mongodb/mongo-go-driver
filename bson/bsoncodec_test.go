@@ -18,7 +18,7 @@ type llCodec struct {
 	err       error
 }
 
-func (llc *llCodec) EncodeValue(_ *Registry, _ ValueWriter, i interface{}) error {
+func (llc *llCodec) EncodeValue(_ EncoderRegistry, _ ValueWriter, i interface{}) error {
 	if llc.err != nil {
 		return llc.err
 	}
@@ -27,7 +27,7 @@ func (llc *llCodec) EncodeValue(_ *Registry, _ ValueWriter, i interface{}) error
 	return nil
 }
 
-func (llc *llCodec) DecodeValue(_ DecodeContext, _ ValueReader, val reflect.Value) error {
+func (llc *llCodec) DecodeValue(_ DecoderRegistry, _ ValueReader, val reflect.Value) error {
 	if llc.err != nil {
 		return llc.err
 	}

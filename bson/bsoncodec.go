@@ -77,12 +77,6 @@ func (vde ValueDecoderError) Error() string {
 type DecodeContext struct {
 	*Registry
 
-	// ancestor is the type of a containing document. This is mainly used to determine what type
-	// should be used when decoding an embedded document into an empty interface. For example, if
-	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
-	// will be decoded into a bson.M.
-	ancestor reflect.Type
-
 	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
 	// usage for this field is restricted to data typed as "interface{}" or "map[string]interface{}". If DocumentType is
 	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
@@ -138,28 +132,28 @@ type DecoderRegistry interface {
 // ValueDecoder. A DecodeContext instance is provided and serves similar functionality to the
 // EncodeContext.
 type ValueDecoder interface {
-	DecodeValue(DecodeContext, ValueReader, reflect.Value) error
+	DecodeValue(DecoderRegistry, ValueReader, reflect.Value) error
 }
 
 // ValueDecoderFunc is an adapter function that allows a function with the correct signature to be
 // used as a ValueDecoder.
-type ValueDecoderFunc func(DecodeContext, ValueReader, reflect.Value) error
+type ValueDecoderFunc func(DecoderRegistry, ValueReader, reflect.Value) error
 
 // DecodeValue implements the ValueDecoder interface.
-func (fn ValueDecoderFunc) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-	return fn(dc, vr, val)
+func (fn ValueDecoderFunc) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
+	return fn(reg, vr, val)
 }
 
 // typeDecoder is the interface implemented by types that can handle the decoding of a value given its type.
 type typeDecoder interface {
-	decodeType(DecodeContext, ValueReader, reflect.Type) (reflect.Value, error)
+	decodeType(DecoderRegistry, ValueReader, reflect.Type) (reflect.Value, error)
 }
 
 // typeDecoderFunc is an adapter function that allows a function with the correct signature to be used as a typeDecoder.
-type typeDecoderFunc func(DecodeContext, ValueReader, reflect.Type) (reflect.Value, error)
+type typeDecoderFunc func(DecoderRegistry, ValueReader, reflect.Type) (reflect.Value, error)
 
-func (fn typeDecoderFunc) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	return fn(dc, vr, t)
+func (fn typeDecoderFunc) decodeType(reg DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+	return fn(reg, vr, t)
 }
 
 // decodeAdapter allows two functions with the correct signatures to be used as both a ValueDecoder and typeDecoder.
@@ -171,24 +165,14 @@ type decodeAdapter struct {
 var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
-func decodeTypeOrValueWithInfo(vd ValueDecoder, dc DecodeContext, vr ValueReader, t reflect.Type, convert bool) (reflect.Value, error) {
-	if td := vd.(typeDecoder); td != nil {
-		val, err := td.decodeType(dc, vr, t)
-		if err == nil && convert && val.Type() != t {
-			// This conversion step is necessary for slices and maps. If a user declares variables like:
-			//
-			// type myBool bool
-			// var m map[string]myBool
-			//
-			// and tries to decode BSON bytes into the map, the decoding will fail if this conversion is not present
-			// because we'll try to assign a value of type bool to one of type myBool.
-			val = val.Convert(t)
-		}
-		return val, err
+func decodeTypeOrValueWithInfo(vd ValueDecoder, reg DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+	td, ok := vd.(typeDecoder)
+	if ok && td != nil {
+		return td.decodeType(reg, vr, t)
 	}
 
 	val := reflect.New(t).Elem()
-	err := vd.DecodeValue(dc, vr, val)
+	err := vd.DecodeValue(reg, vr, val)
 	return val, err
 }
 

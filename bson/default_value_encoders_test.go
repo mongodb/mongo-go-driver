@@ -182,7 +182,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"FloatEncodeValue",
-			ValueEncoderFunc(floatEncodeValue),
+			&floatCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -1074,28 +1074,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&valueReaderWriter{},
 					writeDocumentElement,
 					errors.New("not enough bytes available to read type. bytes=3 type=double"),
-				},
-			},
-		},
-		{
-			"StructEncodeValue",
-			defaultStructCodec,
-			[]subtest{
-				{
-					"interface value",
-					struct{ Foo myInterface }{Foo: myStruct{1}},
-					buildDefaultRegistry(),
-					nil,
-					writeDocumentEnd,
-					nil,
-				},
-				{
-					"nil interface value",
-					struct{ Foo myInterface }{Foo: nil},
-					buildDefaultRegistry(),
-					nil,
-					writeDocumentEnd,
-					nil,
 				},
 			},
 		},

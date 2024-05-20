@@ -14,10 +14,6 @@ import (
 	"strconv"
 )
 
-var (
-	defaultMapCodec = &mapCodec{}
-)
-
 // mapCodec is the Codec used for map values.
 type mapCodec struct {
 	// decodeZerosMap causes DecodeValue to delete any existing values from Go maps in the destination
@@ -125,7 +121,7 @@ func (mc *mapCodec) mapEncodeValue(reg EncoderRegistry, dw DocumentWriter, val r
 }
 
 // DecodeValue is the ValueDecoder for map[string/decimal]* types.
-func (mc *mapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (mc *mapCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if val.Kind() != reflect.Map || (!val.CanSet() && val.IsNil()) {
 		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
@@ -151,18 +147,18 @@ func (mc *mapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 		val.Set(reflect.MakeMap(val.Type()))
 	}
 
-	if val.Len() > 0 && (mc.decodeZerosMap || dc.zeroMaps) {
+	if val.Len() > 0 && mc.decodeZerosMap {
 		clearMap(val)
 	}
 
 	eType := val.Type().Elem()
-	decoder, err := dc.LookupDecoder(eType)
+	decoder, err := reg.LookupDecoder(eType)
 	if err != nil {
 		return err
 	}
 
 	if eType == tEmpty {
-		dc.ancestor = val.Type()
+		eType = val.Type()
 	}
 
 	keyType := val.Type().Key()
@@ -181,9 +177,12 @@ func (mc *mapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 			return err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, dc, vr, eType, true)
+		elem, err := decodeTypeOrValueWithInfo(decoder, reg, vr, eType)
 		if err != nil {
 			return newDecodeError(key, err)
+		}
+		if t := val.Type().Elem(); elem.Type() != t {
+			elem = elem.Convert(t)
 		}
 
 		val.SetMapIndex(k, elem)

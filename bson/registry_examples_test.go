@@ -88,7 +88,7 @@ func ExampleRegistry_customDecoder() {
 	lenientBoolType := reflect.TypeOf(lenientBool(true))
 
 	lenientBoolDecoder := func(
-		dc bson.DecodeContext,
+		_ bson.DecoderRegistry,
 		vr bson.ValueReader,
 		val reflect.Value,
 	) error {
@@ -135,7 +135,7 @@ func ExampleRegistry_customDecoder() {
 	reg := bson.NewRegistryBuilder()
 	reg.RegisterTypeDecoder(
 		lenientBoolType,
-		bson.ValueDecoderFunc(lenientBoolDecoder),
+		func() bson.ValueDecoder { return bson.ValueDecoderFunc(lenientBoolDecoder) },
 	)
 
 	// Marshal a BSON document with a single field "isOK" that is a non-zero
@@ -228,7 +228,7 @@ func ExampleRegistryBuilder_RegisterKindDecoder() {
 	// "kind" decoder for kind reflect.Int64. That way, we can even decode to
 	// user-defined types with underlying type int64.
 	flexibleInt64KindDecoder := func(
-		dc bson.DecodeContext,
+		_ bson.DecoderRegistry,
 		vr bson.ValueReader,
 		val reflect.Value,
 	) error {
@@ -280,7 +280,7 @@ func ExampleRegistryBuilder_RegisterKindDecoder() {
 	reg := bson.NewRegistryBuilder()
 	reg.RegisterKindDecoder(
 		reflect.Int64,
-		bson.ValueDecoderFunc(flexibleInt64KindDecoder),
+		func() bson.ValueDecoder { return bson.ValueDecoderFunc(flexibleInt64KindDecoder) },
 	)
 
 	// Marshal a BSON document with fields that are mixed numeric types but all

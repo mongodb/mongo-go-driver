@@ -12,10 +12,6 @@ import (
 	"reflect"
 )
 
-var (
-	defaultSliceCodec = &sliceCodec{}
-)
-
 // sliceCodec is the Codec used for slice values.
 type sliceCodec struct {
 	// encodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
@@ -98,7 +94,7 @@ func (sc sliceCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflec
 }
 
 // DecodeValue is the ValueDecoder for slice types.
-func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (sc *sliceCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Slice {
 		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
@@ -153,16 +149,15 @@ func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 		return fmt.Errorf("cannot decode %v into a slice", vrType)
 	}
 
-	var elemsFunc func(DecodeContext, ValueReader, reflect.Value) ([]reflect.Value, error)
+	var elemsFunc func(DecoderRegistry, ValueReader, reflect.Value) ([]reflect.Value, error)
 	switch val.Type().Elem() {
 	case tE:
-		dc.ancestor = val.Type()
 		elemsFunc = decodeD
 	default:
 		elemsFunc = decodeDefault
 	}
 
-	elems, err := elemsFunc(dc, vr, val)
+	elems, err := elemsFunc(reg, vr, val)
 	if err != nil {
 		return err
 	}

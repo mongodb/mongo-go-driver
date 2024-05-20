@@ -54,8 +54,9 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 	if rb == nil {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
 	}
+
 	intEncoder := func() ValueEncoder { return &intCodec{} }
-	floatEncoder := func() ValueEncoder { return ValueEncoderFunc(floatEncodeValue) }
+	floatEncoder := func() ValueEncoder { return &floatCodec{} }
 	rb.RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{} }).
 		RegisterTypeEncoder(tTime, func() ValueEncoder { return &timeCodec{} }).
 		RegisterTypeEncoder(tEmpty, func() ValueEncoder { return &emptyInterfaceCodec{} }).
@@ -113,16 +114,6 @@ func fitsIn32Bits(i int64) bool {
 	return math.MinInt32 <= i && i <= math.MaxInt32
 }
 
-// floatEncodeValue is the ValueEncoderFunc for float types.
-func floatEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
-	switch val.Kind() {
-	case reflect.Float32, reflect.Float64:
-		return vw.WriteDouble(val.Float())
-	}
-
-	return ValueEncoderError{Name: "FloatEncodeValue", Kinds: []reflect.Kind{reflect.Float32, reflect.Float64}, Received: val}
-}
-
 // objectIDEncodeValue is the ValueEncoderFunc for ObjectID.
 func objectIDEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tOID {
@@ -160,7 +151,7 @@ func jsonNumberEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Valu
 		return err
 	}
 
-	return floatEncodeValue(reg, vw, reflect.ValueOf(f64))
+	return (&floatCodec{}).EncodeValue(reg, vw, reflect.ValueOf(f64))
 }
 
 // urlEncodeValue is the ValueEncoderFunc for url.URL.

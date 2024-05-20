@@ -77,24 +77,24 @@ type testData struct {
 }
 
 // custom decoder for testData type
-func decodeTestData(dc bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
+func decodeTestData(reg bson.DecoderRegistry, vr bson.ValueReader, val reflect.Value) error {
 	switch vr.Type() {
 	case bson.TypeArray:
 		docsVal := val.FieldByName("Documents")
-		decoder, err := dc.Registry.LookupDecoder(docsVal.Type())
+		decoder, err := reg.LookupDecoder(docsVal.Type())
 		if err != nil {
 			return err
 		}
 
-		return decoder.DecodeValue(dc, vr, docsVal)
+		return decoder.DecodeValue(reg, vr, docsVal)
 	case bson.TypeEmbeddedDocument:
 		gridfsDataVal := val.FieldByName("GridFSData")
-		decoder, err := dc.Registry.LookupDecoder(gridfsDataVal.Type())
+		decoder, err := reg.LookupDecoder(gridfsDataVal.Type())
 		if err != nil {
 			return err
 		}
 
-		return decoder.DecodeValue(dc, vr, gridfsDataVal)
+		return decoder.DecodeValue(reg, vr, gridfsDataVal)
 	}
 	return nil
 }
@@ -183,7 +183,7 @@ var directories = []string{
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
 var specTestRegistry = bson.NewRegistryBuilder().
 	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
-	RegisterTypeDecoder(reflect.TypeOf(testData{}), bson.ValueDecoderFunc(decodeTestData)).
+	RegisterTypeDecoder(reflect.TypeOf(testData{}), func() bson.ValueDecoder { return bson.ValueDecoderFunc(decodeTestData) }).
 	Build()
 
 func TestUnifiedSpecs(t *testing.T) {

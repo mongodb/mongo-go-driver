@@ -58,11 +58,11 @@ func TestCondAddrCodec(t *testing.T) {
 	})
 	t.Run("addressDecode", func(t *testing.T) {
 		invoked := 0
-		decode1 := ValueDecoderFunc(func(DecodeContext, ValueReader, reflect.Value) error {
+		decode1 := ValueDecoderFunc(func(DecoderRegistry, ValueReader, reflect.Value) error {
 			invoked = 1
 			return nil
 		})
-		decode2 := ValueDecoderFunc(func(DecodeContext, ValueReader, reflect.Value) error {
+		decode2 := ValueDecoderFunc(func(DecoderRegistry, ValueReader, reflect.Value) error {
 			invoked = 2
 			return nil
 		})

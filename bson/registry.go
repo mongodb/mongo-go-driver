@@ -62,11 +62,11 @@ type DecoderFactory func() ValueDecoder
 // safe.
 type RegistryBuilder struct {
 	typeEncoders      map[reflect.Type]EncoderFactory
-	typeDecoders      *typeDecoderCache
+	typeDecoders      map[reflect.Type]DecoderFactory
 	interfaceEncoders map[reflect.Type]EncoderFactory
-	interfaceDecoders []interfaceValueDecoder
+	interfaceDecoders map[reflect.Type]DecoderFactory
 	kindEncoders      [reflect.UnsafePointer + 1]EncoderFactory
-	kindDecoders      *kindDecoderCache
+	kindDecoders      [reflect.UnsafePointer + 1]DecoderFactory
 	typeMap           map[Type]reflect.Type
 }
 
@@ -74,9 +74,9 @@ type RegistryBuilder struct {
 func NewRegistryBuilder() *RegistryBuilder {
 	rb := &RegistryBuilder{
 		typeEncoders:      make(map[reflect.Type]EncoderFactory),
-		typeDecoders:      new(typeDecoderCache),
+		typeDecoders:      make(map[reflect.Type]DecoderFactory),
 		interfaceEncoders: make(map[reflect.Type]EncoderFactory),
-		kindDecoders:      new(kindDecoderCache),
+		interfaceDecoders: make(map[reflect.Type]DecoderFactory),
 		typeMap:           make(map[Type]reflect.Type),
 	}
 	registerDefaultEncoders(rb)
@@ -102,7 +102,7 @@ func (rb *RegistryBuilder) RegisterTypeEncoder(valueType reflect.Type, encFac En
 	return rb
 }
 
-// RegisterTypeDecoder registers the provided ValueDecoder for the provided type.
+// RegisterTypeDecoder registers a ValueDecoder factory for the provided type.
 //
 // The type will be used as provided, so a decoder can be registered for a type and a different
 // decoder can be registered for a pointer to that type.
@@ -112,8 +112,10 @@ func (rb *RegistryBuilder) RegisterTypeEncoder(valueType reflect.Type, encFac En
 // implements the interface. To get the latter behavior, call RegisterHookDecoder instead.
 //
 // RegisterTypeDecoder should not be called concurrently with any other Registry method.
-func (rb *RegistryBuilder) RegisterTypeDecoder(valueType reflect.Type, dec ValueDecoder) *RegistryBuilder {
-	rb.typeDecoders.Store(valueType, dec)
+func (rb *RegistryBuilder) RegisterTypeDecoder(valueType reflect.Type, decFac DecoderFactory) *RegistryBuilder {
+	if decFac != nil {
+		rb.typeDecoders[valueType] = decFac
+	}
 	return rb
 }
 
@@ -136,7 +138,7 @@ func (rb *RegistryBuilder) RegisterKindEncoder(kind reflect.Kind, encFac Encoder
 	return rb
 }
 
-// RegisterKindDecoder registers the provided ValueDecoder for the provided kind.
+// RegisterKindDecoder registers a ValueDecoder factory for the provided kind.
 //
 // Use RegisterKindDecoder to register a decoder for any type with the same underlying kind. For
 // example, consider the type MyInt defined as
@@ -148,8 +150,10 @@ func (rb *RegistryBuilder) RegisterKindEncoder(kind reflect.Kind, encFac Encoder
 //	reg.RegisterKindDecoder(reflect.Int32, myDecoder)
 //
 // RegisterKindDecoder should not be called concurrently with any other Registry method.
-func (rb *RegistryBuilder) RegisterKindDecoder(kind reflect.Kind, dec ValueDecoder) *RegistryBuilder {
-	rb.kindDecoders.Store(kind, dec)
+func (rb *RegistryBuilder) RegisterKindDecoder(kind reflect.Kind, decFac DecoderFactory) *RegistryBuilder {
+	if decFac != nil && kind < reflect.Kind(len(rb.kindDecoders)) {
+		rb.kindDecoders[kind] = decFac
+	}
 	return rb
 }
 
@@ -173,27 +177,22 @@ func (rb *RegistryBuilder) RegisterInterfaceEncoder(iface reflect.Type, encFac E
 	return rb
 }
 
-// RegisterInterfaceDecoder registers an decoder for the provided interface type iface. This decoder will
-// be called when unmarshaling into a type if the type implements iface or a pointer to the type
+// RegisterInterfaceDecoder registers a decoder factory for the provided interface type iface. This decoder
+// will be called when unmarshaling into a type if the type implements iface or a pointer to the type
 // implements iface. If the provided type is not an interface (i.e. iface.Kind() != reflect.Interface),
 // this method will panic.
 //
 // RegisterInterfaceDecoder should not be called concurrently with any other Registry method.
-func (rb *RegistryBuilder) RegisterInterfaceDecoder(iface reflect.Type, dec ValueDecoder) *RegistryBuilder {
+func (rb *RegistryBuilder) RegisterInterfaceDecoder(iface reflect.Type, decFac DecoderFactory) *RegistryBuilder {
 	if iface.Kind() != reflect.Interface {
 		panicStr := fmt.Errorf("RegisterInterfaceDecoder expects a type with kind reflect.Interface, "+
 			"got type %s with kind %s", iface, iface.Kind())
 		panic(panicStr)
 	}
 
-	for idx, decoder := range rb.interfaceDecoders {
-		if decoder.i == iface {
-			rb.interfaceDecoders[idx].vd = dec
-			return rb
-		}
+	if decFac != nil {
+		rb.interfaceDecoders[iface] = decFac
 	}
-
-	rb.interfaceDecoders = append(rb.interfaceDecoders, interfaceValueDecoder{i: iface, vd: dec})
 
 	return rb
 }
@@ -218,56 +217,73 @@ func (rb *RegistryBuilder) RegisterTypeMapEntry(bt Type, rt reflect.Type) *Regis
 func (rb *RegistryBuilder) Build() *Registry {
 	r := &Registry{
 		typeEncoders:      new(sync.Map),
-		typeDecoders:      rb.typeDecoders.Clone(),
+		typeDecoders:      new(sync.Map),
 		interfaceEncoders: make([]interfaceValueEncoder, 0, len(rb.interfaceEncoders)),
-		interfaceDecoders: append([]interfaceValueDecoder(nil), rb.interfaceDecoders...),
-		kindDecoders:      rb.kindDecoders.Clone(),
-		encoderTypeMap:    make(map[reflect.Type][]ValueEncoder),
+		interfaceDecoders: make([]interfaceValueDecoder, 0, len(rb.interfaceDecoders)),
 		typeMap:           make(map[Type]reflect.Type),
+
+		encoderTypeMap: make(map[reflect.Type][]ValueEncoder),
+		decoderTypeMap: make(map[reflect.Type][]ValueDecoder),
 	}
+
 	encoderCache := make(map[reflect.Value]ValueEncoder)
-	for k, v := range rb.typeEncoders {
-		var encoder ValueEncoder
-		if enc, ok := encoderCache[reflect.ValueOf(v)]; ok {
-			encoder = enc
-		} else {
-			encoder = v()
-			encoderCache[reflect.ValueOf(v)] = encoder
-			et := reflect.ValueOf(encoder).Type()
-			r.encoderTypeMap[et] = append(r.encoderTypeMap[et], encoder)
+	getEncoder := func(encFac EncoderFactory) ValueEncoder {
+		if enc, ok := encoderCache[reflect.ValueOf(encFac)]; ok {
+			return enc
 		}
+		encoder := encFac()
+		encoderCache[reflect.ValueOf(encFac)] = encoder
+		t := reflect.ValueOf(encoder).Type()
+		r.encoderTypeMap[t] = append(r.encoderTypeMap[t], encoder)
+		return encoder
+	}
+	for k, v := range rb.typeEncoders {
+		encoder := getEncoder(v)
 		r.typeEncoders.Store(k, encoder)
 	}
 	for k, v := range rb.interfaceEncoders {
-		var encoder ValueEncoder
-		if enc, ok := encoderCache[reflect.ValueOf(v)]; ok {
-			encoder = enc
-		} else {
-			encoder = v()
-			encoderCache[reflect.ValueOf(v)] = encoder
-			et := reflect.ValueOf(encoder).Type()
-			r.encoderTypeMap[et] = append(r.encoderTypeMap[et], encoder)
-		}
+		encoder := getEncoder(v)
 		r.interfaceEncoders = append(r.interfaceEncoders, interfaceValueEncoder{k, encoder})
 	}
 	for i, v := range rb.kindEncoders {
 		if v == nil {
 			continue
 		}
-		var encoder ValueEncoder
-		if enc, ok := encoderCache[reflect.ValueOf(v)]; ok {
-			encoder = enc
-		} else {
-			encoder = v()
-			encoderCache[reflect.ValueOf(v)] = encoder
-			et := reflect.ValueOf(encoder).Type()
-			r.encoderTypeMap[et] = append(r.encoderTypeMap[et], encoder)
-		}
+		encoder := getEncoder(v)
 		r.kindEncoders[i] = encoder
 	}
+
+	decoderCache := make(map[reflect.Value]ValueDecoder)
+	getDecoder := func(decFac DecoderFactory) ValueDecoder {
+		if dec, ok := decoderCache[reflect.ValueOf(decFac)]; ok {
+			return dec
+		}
+		decoder := decFac()
+		decoderCache[reflect.ValueOf(decFac)] = decoder
+		t := reflect.ValueOf(decoder).Type()
+		r.decoderTypeMap[t] = append(r.decoderTypeMap[t], decoder)
+		return decoder
+	}
+	for k, v := range rb.typeDecoders {
+		decoder := getDecoder(v)
+		r.typeDecoders.Store(k, decoder)
+	}
+	for k, v := range rb.interfaceDecoders {
+		decoder := getDecoder(v)
+		r.interfaceDecoders = append(r.interfaceDecoders, interfaceValueDecoder{k, decoder})
+	}
+	for i, v := range rb.kindDecoders {
+		if v == nil {
+			continue
+		}
+		decoder := getDecoder(v)
+		r.kindDecoders[i] = decoder
+	}
+
 	for k, v := range rb.typeMap {
 		r.typeMap[k] = v
 	}
+
 	return r
 }
 
@@ -306,14 +322,15 @@ func (rb *RegistryBuilder) Build() *Registry {
 // Read [Registry.LookupDecoder] and [Registry.LookupEncoder] for Registry lookup procedure.
 type Registry struct {
 	typeEncoders      *sync.Map // map[reflect.Type]ValueEncoder
-	typeDecoders      *typeDecoderCache
+	typeDecoders      *sync.Map // map[reflect.Type]ValueDecoder
 	interfaceEncoders []interfaceValueEncoder
 	interfaceDecoders []interfaceValueDecoder
 	kindEncoders      [reflect.UnsafePointer + 1]ValueEncoder
-	kindDecoders      *kindDecoderCache
+	kindDecoders      [reflect.UnsafePointer + 1]ValueDecoder
 	typeMap           map[Type]reflect.Type
 
 	encoderTypeMap map[reflect.Type][]ValueEncoder
+	decoderTypeMap map[reflect.Type][]ValueDecoder
 }
 
 // LookupEncoder returns the first matching encoder in the Registry. It uses the following lookup
@@ -408,23 +425,33 @@ func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if valueType == nil {
 		return nil, ErrNoDecoder{Type: valueType}
 	}
-	dec, found := r.typeDecoders.Load(valueType)
-	if found {
+
+	if dec, found := r.typeDecoders.Load(valueType); found {
 		if dec == nil {
 			return nil, ErrNoDecoder{Type: valueType}
 		}
+		return dec.(ValueDecoder), nil
+	}
+
+	if dec, found := r.lookupInterfaceDecoder(valueType, true); found {
+		r.typeDecoders.Store(valueType, dec)
 		return dec, nil
 	}
 
-	dec, found = r.lookupInterfaceDecoder(valueType, true)
-	if found {
-		return r.typeDecoders.LoadOrStore(valueType, dec), nil
-	}
-
-	if v, ok := r.kindDecoders.Load(valueType.Kind()); ok {
-		return r.typeDecoders.LoadOrStore(valueType, v), nil
+	if dec, found := r.lookupKindDecoder(valueType.Kind()); found {
+		r.typeDecoders.Store(valueType, dec)
+		return dec, nil
 	}
 	return nil, ErrNoDecoder{Type: valueType}
+}
+
+func (r *Registry) lookupKindDecoder(valueKind reflect.Kind) (ValueDecoder, bool) {
+	if valueKind < reflect.Kind(len(r.kindDecoders)) {
+		if dec := r.kindDecoders[valueKind]; dec != nil {
+			return dec, true
+		}
+	}
+	return nil, false
 }
 
 func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool) (ValueDecoder, bool) {
@@ -440,7 +467,7 @@ func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool
 			// ahead in interfaceDecoders
 			defaultDec, found := r.lookupInterfaceDecoder(valueType, false)
 			if !found {
-				defaultDec, _ = r.kindDecoders.Load(valueType.Kind())
+				defaultDec, _ = r.lookupKindDecoder(valueType.Kind())
 			}
 			return &condAddrDecoder{canAddrDec: idec.vd, elseDec: defaultDec}, true
 		}

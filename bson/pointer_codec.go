@@ -51,7 +51,7 @@ func (pc *pointerCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val ref
 
 // DecodeValue handles decoding a pointer by looking up a decoder for the type it points to and
 // using that to decode. If the BSON value is Null, this method will set the pointer to nil.
-func (pc *pointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (pc *pointerCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Ptr {
 		return ValueDecoderError{Name: "pointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: val}
 	}
@@ -74,15 +74,15 @@ func (pc *pointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflec
 		if v == nil {
 			return ErrNoDecoder{Type: typ}
 		}
-		return v.(ValueDecoder).DecodeValue(dc, vr, val.Elem())
+		return v.(ValueDecoder).DecodeValue(reg, vr, val.Elem())
 	}
 	// TODO(charlie): handle concurrent requests for the same type
-	dec, err := dc.LookupDecoder(typ.Elem())
+	dec, err := reg.LookupDecoder(typ.Elem())
 	if err != nil {
 		return err
 	}
 	if v, ok := pc.dcache.LoadOrStore(typ, dec); ok {
 		dec = v.(ValueDecoder)
 	}
-	return dec.DecodeValue(dc, vr, val.Elem())
+	return dec.DecodeValue(reg, vr, val.Elem())
 }

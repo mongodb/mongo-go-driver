@@ -38,12 +38,12 @@ type condAddrDecoder struct {
 var _ ValueDecoder = (*condAddrDecoder)(nil)
 
 // DecodeValue is the ValueDecoderFunc for a value that may be addressable.
-func (cad *condAddrDecoder) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (cad *condAddrDecoder) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if val.CanAddr() {
-		return cad.canAddrDec.DecodeValue(dc, vr, val)
+		return cad.canAddrDec.DecodeValue(reg, vr, val)
 	}
 	if cad.elseDec != nil {
-		return cad.elseDec.DecodeValue(dc, vr, val)
+		return cad.elseDec.DecodeValue(reg, vr, val)
 	}
 	return ErrNoDecoder{Type: val.Type()}
 }

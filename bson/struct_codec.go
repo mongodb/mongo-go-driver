@@ -16,10 +16,6 @@ import (
 	"time"
 )
 
-var (
-	defaultStructCodec = newStructCodec(DefaultStructTagParser)
-)
-
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
 type DecodeError struct {
 	keys    []string
@@ -204,7 +200,7 @@ func newDecodeError(key string, original error) error {
 // DecodeValue implements the Codec interface.
 // By default, map types in val will not be cleared. If a map has existing key/value pairs, it will be extended with the new ones from vr.
 // For slices, the decoder will set the length of the slice to zero and append all elements. The underlying array will not be cleared.
-func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (sc *structCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Struct {
 		return ValueDecoderError{Name: "structCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
@@ -229,12 +225,12 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		return fmt.Errorf("cannot decode %v into a %s", vrType, val.Type())
 	}
 
-	sd, err := sc.describeStruct(val.Type(), dc.useJSONStructTags, false)
+	sd, err := sc.describeStruct(val.Type(), sc.useJSONStructTags, false)
 	if err != nil {
 		return err
 	}
 
-	if sc.decodeZeroStruct || dc.zeroStructs {
+	if sc.decodeZeroStruct {
 		val.Set(reflect.Zero(val.Type()))
 	}
 	if sc.decodeDeepZeroInline && sd.inline {
@@ -245,7 +241,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 	var inlineMap reflect.Value
 	if sd.inlineMap >= 0 {
 		inlineMap = val.Field(sd.inlineMap)
-		decoder, err = dc.LookupDecoder(inlineMap.Type().Elem())
+		decoder, err = reg.LookupDecoder(inlineMap.Type().Elem())
 		if err != nil {
 			return err
 		}
@@ -289,8 +285,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
-			dc.ancestor = inlineMap.Type()
-			err = decoder.DecodeValue(dc, vr, elem)
+			err = decoder.DecodeValue(reg, vr, elem)
 			if err != nil {
 				return err
 			}
@@ -317,23 +312,12 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		}
 		field = field.Addr()
 
-		dctx := DecodeContext{
-			Registry:            dc.Registry,
-			truncate:            fd.truncate || dc.truncate,
-			defaultDocumentType: dc.defaultDocumentType,
-			binaryAsSlice:       dc.binaryAsSlice,
-			useJSONStructTags:   dc.useJSONStructTags,
-			useLocalTimeZone:    dc.useLocalTimeZone,
-			zeroMaps:            dc.zeroMaps,
-			zeroStructs:         dc.zeroStructs,
-		}
-
-		decoder, err := dc.Registry.LookupDecoder(fd.fieldType)
+		decoder, err := reg.LookupDecoder(fd.fieldType)
 		if err != nil {
 			return newDecodeError(fd.name, ErrNoDecoder{Type: field.Elem().Type()})
 		}
 
-		err = decoder.DecodeValue(dctx, vr, field.Elem())
+		err = decoder.DecodeValue(reg, vr, field.Elem())
 		if err != nil {
 			return newDecodeError(fd.name, err)
 		}

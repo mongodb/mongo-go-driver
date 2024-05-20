@@ -19,10 +19,6 @@ type stringCodec struct {
 	decodeObjectIDAsHex bool
 }
 
-var (
-	defaultStringCodec = &stringCodec{}
-)
-
 // EncodeValue is the ValueEncoder for string types.
 func (sc *stringCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.String {
@@ -36,7 +32,7 @@ func (sc *stringCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflec
 	return vw.WriteString(val.String())
 }
 
-func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *stringCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -58,7 +54,7 @@ func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 		if err != nil {
 			return emptyValue, err
 		}
-		if !sc.decodeObjectIDAsHex && !dc.decodeObjectIDAsHex {
+		if !sc.decodeObjectIDAsHex {
 			return emptyValue, errors.New("cannot decode ObjectID as string if DecodeObjectIDAsHex is not set")
 		}
 		str = oid.Hex()
@@ -92,12 +88,12 @@ func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 }
 
 // DecodeValue is the ValueDecoder for string types.
-func (sc *stringCodec) DecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+func (sc *stringCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.String {
 		return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 	}
 
-	elem, err := sc.decodeType(dctx, vr, val.Type())
+	elem, err := sc.decodeType(reg, vr, val.Type())
 	if err != nil {
 		return err
 	}

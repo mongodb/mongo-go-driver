@@ -46,7 +46,7 @@ type Getter interface {
 }
 
 // SetterDecodeValue is the ValueDecoderFunc for Setter types.
-func SetterDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func SetterDecodeValue(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tSetter) && !reflect.PtrTo(val.Type()).Implements(tSetter)) {
 		return ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 	}

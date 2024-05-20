@@ -70,117 +70,105 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 	}
 }
 
-// DecodeValue is the ValueDecoder for uint types.
-func (ic *intCodec) DecodeValue(_ *Registry, vr ValueReader, val reflect.Value) error {
-	if !val.CanSet() {
-		return ValueDecoderError{
-			Name: "IntDecodeValue",
-			Kinds: []reflect.Kind{
-				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
-				reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
-			},
-			Received: val,
-		}
-	}
-
+func (ic *intCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	var i64 int64
 	switch vrType := vr.Type(); vrType {
 	case TypeInt32:
 		i32, err := vr.ReadInt32()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 		i64 = int64(i32)
 	case TypeInt64:
 		var err error
 		i64, err = vr.ReadInt64()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 	case TypeDouble:
 		f64, err := vr.ReadDouble()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 		if !ic.truncate && math.Floor(f64) != f64 {
-			return errCannotTruncate
+			return emptyValue, errCannotTruncate
 		}
 		if f64 > float64(math.MaxInt64) {
-			return fmt.Errorf("%g overflows int64", f64)
+			return emptyValue, fmt.Errorf("%g overflows int64", f64)
 		}
 		i64 = int64(f64)
 	case TypeBoolean:
 		b, err := vr.ReadBoolean()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 		if b {
 			i64 = 1
 		}
 	case TypeNull:
 		if err := vr.ReadNull(); err != nil {
-			return err
+			return emptyValue, err
 		}
 	case TypeUndefined:
 		if err := vr.ReadUndefined(); err != nil {
-			return err
+			return emptyValue, err
 		}
 	default:
-		return fmt.Errorf("cannot decode %v into an integer type", vrType)
+		return emptyValue, fmt.Errorf("cannot decode %v into an integer type", vrType)
 	}
 
-	switch t := val.Type(); t.Kind() {
+	switch t.Kind() {
 	case reflect.Int8:
 		if i64 < math.MinInt8 || i64 > math.MaxInt8 {
-			return fmt.Errorf("%d overflows int8", i64)
+			return emptyValue, fmt.Errorf("%d overflows int8", i64)
 		}
-		val.SetInt(i64)
+		return reflect.ValueOf(int8(i64)), nil
 	case reflect.Int16:
 		if i64 < math.MinInt16 || i64 > math.MaxInt16 {
-			return fmt.Errorf("%d overflows int16", i64)
+			return emptyValue, fmt.Errorf("%d overflows int16", i64)
 		}
-		val.SetInt(i64)
+		return reflect.ValueOf(int16(i64)), nil
 	case reflect.Int32:
 		if i64 < math.MinInt32 || i64 > math.MaxInt32 {
-			return fmt.Errorf("%d overflows int32", i64)
+			return emptyValue, fmt.Errorf("%d overflows int32", i64)
 		}
-		val.SetInt(i64)
+		return reflect.ValueOf(int32(i64)), nil
 	case reflect.Int64:
-		val.SetInt(i64)
+		return reflect.ValueOf(i64), nil
 	case reflect.Int:
 		if int64(int(i64)) != i64 { // Can we fit this inside of an int
-			return fmt.Errorf("%d overflows int", i64)
+			return emptyValue, fmt.Errorf("%d overflows int", i64)
 		}
-		val.SetInt(i64)
+		return reflect.ValueOf(int(i64)), nil
 
 	case reflect.Uint8:
 		if i64 < 0 || i64 > math.MaxUint8 {
-			return fmt.Errorf("%d overflows uint8", i64)
+			return emptyValue, fmt.Errorf("%d overflows uint8", i64)
 		}
-		val.SetUint(uint64(i64))
+		return reflect.ValueOf(uint8(i64)), nil
 	case reflect.Uint16:
 		if i64 < 0 || i64 > math.MaxUint16 {
-			return fmt.Errorf("%d overflows uint16", i64)
+			return emptyValue, fmt.Errorf("%d overflows uint16", i64)
 		}
-		val.SetUint(uint64(i64))
+		return reflect.ValueOf(uint16(i64)), nil
 	case reflect.Uint32:
 		if i64 < 0 || i64 > math.MaxUint32 {
-			return fmt.Errorf("%d overflows uint32", i64)
+			return emptyValue, fmt.Errorf("%d overflows uint32", i64)
 		}
-		val.SetUint(uint64(i64))
+		return reflect.ValueOf(uint32(i64)), nil
 	case reflect.Uint64:
 		if i64 < 0 {
-			return fmt.Errorf("%d overflows uint64", i64)
+			return emptyValue, fmt.Errorf("%d overflows uint64", i64)
 		}
-		val.SetUint(uint64(i64))
+		return reflect.ValueOf(uint64(i64)), nil
 	case reflect.Uint:
 		if i64 < 0 || int64(uint(i64)) != i64 { // Can we fit this inside of an uint
-			return fmt.Errorf("%d overflows uint", i64)
+			return emptyValue, fmt.Errorf("%d overflows uint", i64)
 		}
-		val.SetUint(uint64(i64))
+		return reflect.ValueOf(uint(i64)), nil
 
 	default:
-		return ValueDecoderError{
+		return emptyValue, ValueDecoderError{
 			Name: "IntDecodeValue",
 			Kinds: []reflect.Kind{
 				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
@@ -189,6 +177,23 @@ func (ic *intCodec) DecodeValue(_ *Registry, vr ValueReader, val reflect.Value) 
 			Received: reflect.Zero(t),
 		}
 	}
+}
 
+// DecodeValue is the ValueDecoder for uint types.
+func (ic *intCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
+	if !val.CanSet() {
+		return ValueDecoderError{
+			Name:     "IntDecodeValue",
+			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+			Received: val,
+		}
+	}
+
+	elem, err := ic.decodeType(reg, vr, val.Type())
+	if err != nil {
+		return err
+	}
+
+	val.Set(elem)
 	return nil
 }

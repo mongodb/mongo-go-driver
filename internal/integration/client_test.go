@@ -44,7 +44,7 @@ func (e *negateCodec) EncodeValue(_ bson.EncoderRegistry, vw bson.ValueWriter, v
 }
 
 // DecodeValue negates the value of ID when reading
-func (e *negateCodec) DecodeValue(_ bson.DecodeContext, vr bson.ValueReader, val reflect.Value) error {
+func (e *negateCodec) DecodeValue(_ bson.DecoderRegistry, vr bson.ValueReader, val reflect.Value) error {
 	i, err := vr.ReadInt64()
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func TestClient(t *testing.T) {
 
 	reg := bson.NewRegistryBuilder().
 		RegisterTypeEncoder(reflect.TypeOf(int64(0)), func() bson.ValueEncoder { return &negateCodec{} }).
-		RegisterTypeDecoder(reflect.TypeOf(int64(0)), &negateCodec{}).
+		RegisterTypeDecoder(reflect.TypeOf(int64(0)), func() bson.ValueDecoder { return &negateCodec{} }).
 		Build()
 	registryOpts := options.Client().
 		SetRegistry(reg)

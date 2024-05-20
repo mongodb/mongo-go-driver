@@ -19,9 +19,9 @@ import (
 func newTestRegistryBuilder() *RegistryBuilder {
 	return &RegistryBuilder{
 		typeEncoders:      make(map[reflect.Type]EncoderFactory),
-		typeDecoders:      new(typeDecoderCache),
+		typeDecoders:      make(map[reflect.Type]DecoderFactory),
 		interfaceEncoders: make(map[reflect.Type]EncoderFactory),
-		kindDecoders:      new(kindDecoderCache),
+		interfaceDecoders: make(map[reflect.Type]DecoderFactory),
 		typeMap:           make(map[Type]reflect.Type),
 	}
 }
@@ -376,6 +376,14 @@ func TestRegistryBuilder(t *testing.T) {
 			fmcEncFac := func() ValueEncoder { return fmc }
 			pcEncFac := func() ValueEncoder { return pc }
 
+			fc1DecFac := func() ValueDecoder { return fc1 }
+			fc2DecFac := func() ValueDecoder { return fc2 }
+			fc3DecFac := func() ValueDecoder { return fc3 }
+			fscDecFac := func() ValueDecoder { return fsc }
+			fslccDecFac := func() ValueDecoder { return fslcc }
+			fmcDecFac := func() ValueDecoder { return fmc }
+			pcDecFac := func() ValueDecoder { return pc }
+
 			reg := newTestRegistryBuilder().
 				RegisterTypeEncoder(ft1, fc1EncFac).
 				RegisterTypeEncoder(ft2, fc2EncFac).
@@ -385,18 +393,18 @@ func TestRegistryBuilder(t *testing.T) {
 				RegisterKindEncoder(reflect.Array, fslccEncFac).
 				RegisterKindEncoder(reflect.Map, fmcEncFac).
 				RegisterKindEncoder(reflect.Ptr, pcEncFac).
-				RegisterTypeDecoder(ft1, fc1).
-				RegisterTypeDecoder(ft2, fc2).
-				RegisterTypeDecoder(ti1, fc1). // values whose exact type is testInterface1 will use fc1 encoder
-				RegisterKindDecoder(reflect.Struct, fsc).
-				RegisterKindDecoder(reflect.Slice, fslcc).
-				RegisterKindDecoder(reflect.Array, fslcc).
-				RegisterKindDecoder(reflect.Map, fmc).
-				RegisterKindDecoder(reflect.Ptr, pc).
+				RegisterTypeDecoder(ft1, fc1DecFac).
+				RegisterTypeDecoder(ft2, fc2DecFac).
+				RegisterTypeDecoder(ti1, fc1DecFac). // values whose exact type is testInterface1 will use fc1 encoder
+				RegisterKindDecoder(reflect.Struct, fscDecFac).
+				RegisterKindDecoder(reflect.Slice, fslccDecFac).
+				RegisterKindDecoder(reflect.Array, fslccDecFac).
+				RegisterKindDecoder(reflect.Map, fmcDecFac).
+				RegisterKindDecoder(reflect.Ptr, pcDecFac).
 				RegisterInterfaceEncoder(ti2, fc2EncFac).
 				RegisterInterfaceEncoder(ti3, fc3EncFac).
-				RegisterInterfaceDecoder(ti2, fc2).
-				RegisterInterfaceDecoder(ti3, fc3).
+				RegisterInterfaceDecoder(ti2, fc2DecFac).
+				RegisterInterfaceDecoder(ti3, fc3DecFac).
 				Build()
 
 			testCases := []struct {
@@ -712,7 +720,7 @@ type fakeCodec struct {
 func (*fakeCodec) EncodeValue(EncoderRegistry, ValueWriter, reflect.Value) error {
 	return nil
 }
-func (*fakeCodec) DecodeValue(DecodeContext, ValueReader, reflect.Value) error {
+func (*fakeCodec) DecodeValue(DecoderRegistry, ValueReader, reflect.Value) error {
 	return nil
 }
 

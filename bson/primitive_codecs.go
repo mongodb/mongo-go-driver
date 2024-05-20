@@ -23,8 +23,8 @@ func registerPrimitiveCodecs(rb *RegistryBuilder) {
 
 	rb.RegisterTypeEncoder(tRawValue, func() ValueEncoder { return ValueEncoderFunc(rawValueEncodeValue) }).
 		RegisterTypeEncoder(tRaw, func() ValueEncoder { return ValueEncoderFunc(rawEncodeValue) }).
-		RegisterTypeDecoder(tRawValue, ValueDecoderFunc(rawValueDecodeValue)).
-		RegisterTypeDecoder(tRaw, ValueDecoderFunc(rawDecodeValue))
+		RegisterTypeDecoder(tRawValue, func() ValueDecoder { return ValueDecoderFunc(rawValueDecodeValue) }).
+		RegisterTypeDecoder(tRaw, func() ValueDecoder { return ValueDecoderFunc(rawDecodeValue) })
 }
 
 // rawValueEncodeValue is the ValueEncoderFunc for RawValue.
@@ -50,7 +50,7 @@ func rawValueEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) e
 }
 
 // rawValueDecodeValue is the ValueDecoderFunc for RawValue.
-func rawValueDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func rawValueDecodeValue(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tRawValue {
 		return ValueDecoderError{Name: "RawValueDecodeValue", Types: []reflect.Type{tRawValue}, Received: val}
 	}
@@ -76,7 +76,7 @@ func rawEncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error 
 }
 
 // rawDecodeValue is the ValueDecoderFunc for Reader.
-func rawDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func rawDecodeValue(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tRaw {
 		return ValueDecoderError{Name: "RawDecodeValue", Types: []reflect.Type{tRaw}, Received: val}
 	}

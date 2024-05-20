@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -36,89 +35,88 @@ func (d decodeBinaryError) Error() string {
 // There is no support for decoding map[string]interface{} because there is no decoder for
 // interface{}, so users must either register this decoder themselves or use the
 // EmptyInterfaceDecoder available in the bson package.
-func registerDefaultDecoders(reg *RegistryBuilder) {
-	if reg == nil {
+func registerDefaultDecoders(rb *RegistryBuilder) {
+	if rb == nil {
 		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
 	}
 
-	intDecoder := decodeAdapter{intDecodeValue, intDecodeType}
-	floatDecoder := decodeAdapter{floatDecodeValue, floatDecodeType}
-
-	reg.RegisterTypeDecoder(tD, ValueDecoderFunc(dDecodeValue))
-	reg.RegisterTypeDecoder(tBinary, decodeAdapter{binaryDecodeValue, binaryDecodeType})
-	reg.RegisterTypeDecoder(tUndefined, decodeAdapter{undefinedDecodeValue, undefinedDecodeType})
-	reg.RegisterTypeDecoder(tDateTime, decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType})
-	reg.RegisterTypeDecoder(tNull, decodeAdapter{nullDecodeValue, nullDecodeType})
-	reg.RegisterTypeDecoder(tRegex, decodeAdapter{regexDecodeValue, regexDecodeType})
-	reg.RegisterTypeDecoder(tDBPointer, decodeAdapter{dbPointerDecodeValue, dbPointerDecodeType})
-	reg.RegisterTypeDecoder(tTimestamp, decodeAdapter{timestampDecodeValue, timestampDecodeType})
-	reg.RegisterTypeDecoder(tMinKey, decodeAdapter{minKeyDecodeValue, minKeyDecodeType})
-	reg.RegisterTypeDecoder(tMaxKey, decodeAdapter{maxKeyDecodeValue, maxKeyDecodeType})
-	reg.RegisterTypeDecoder(tJavaScript, decodeAdapter{javaScriptDecodeValue, javaScriptDecodeType})
-	reg.RegisterTypeDecoder(tSymbol, decodeAdapter{symbolDecodeValue, symbolDecodeType})
-	reg.RegisterTypeDecoder(tByteSlice, defaultByteSliceCodec)
-	reg.RegisterTypeDecoder(tTime, defaultTimeCodec)
-	reg.RegisterTypeDecoder(tEmpty, defaultEmptyInterfaceCodec)
-	reg.RegisterTypeDecoder(tCoreArray, defaultArrayCodec)
-	reg.RegisterTypeDecoder(tOID, decodeAdapter{objectIDDecodeValue, objectIDDecodeType})
-	reg.RegisterTypeDecoder(tDecimal, decodeAdapter{decimal128DecodeValue, decimal128DecodeType})
-	reg.RegisterTypeDecoder(tJSONNumber, decodeAdapter{jsonNumberDecodeValue, jsonNumberDecodeType})
-	reg.RegisterTypeDecoder(tURL, decodeAdapter{urlDecodeValue, urlDecodeType})
-	reg.RegisterTypeDecoder(tCoreDocument, ValueDecoderFunc(coreDocumentDecodeValue))
-	reg.RegisterTypeDecoder(tCodeWithScope, decodeAdapter{codeWithScopeDecodeValue, codeWithScopeDecodeType})
-	reg.RegisterKindDecoder(reflect.Bool, decodeAdapter{booleanDecodeValue, booleanDecodeType})
-	reg.RegisterKindDecoder(reflect.Int, intDecoder)
-	reg.RegisterKindDecoder(reflect.Int8, intDecoder)
-	reg.RegisterKindDecoder(reflect.Int16, intDecoder)
-	reg.RegisterKindDecoder(reflect.Int32, intDecoder)
-	reg.RegisterKindDecoder(reflect.Int64, intDecoder)
-	reg.RegisterKindDecoder(reflect.Uint, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint8, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint16, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint32, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Uint64, defaultUIntCodec)
-	reg.RegisterKindDecoder(reflect.Float32, floatDecoder)
-	reg.RegisterKindDecoder(reflect.Float64, floatDecoder)
-	reg.RegisterKindDecoder(reflect.Array, ValueDecoderFunc(arrayDecodeValue))
-	reg.RegisterKindDecoder(reflect.Map, defaultMapCodec)
-	reg.RegisterKindDecoder(reflect.Slice, defaultSliceCodec)
-	reg.RegisterKindDecoder(reflect.String, defaultStringCodec)
-	reg.RegisterKindDecoder(reflect.Struct, defaultStructCodec)
-	reg.RegisterKindDecoder(reflect.Ptr, &pointerCodec{})
-	reg.RegisterTypeMapEntry(TypeDouble, tFloat64)
-	reg.RegisterTypeMapEntry(TypeString, tString)
-	reg.RegisterTypeMapEntry(TypeArray, tA)
-	reg.RegisterTypeMapEntry(TypeBinary, tBinary)
-	reg.RegisterTypeMapEntry(TypeUndefined, tUndefined)
-	reg.RegisterTypeMapEntry(TypeObjectID, tOID)
-	reg.RegisterTypeMapEntry(TypeBoolean, tBool)
-	reg.RegisterTypeMapEntry(TypeDateTime, tDateTime)
-	reg.RegisterTypeMapEntry(TypeRegex, tRegex)
-	reg.RegisterTypeMapEntry(TypeDBPointer, tDBPointer)
-	reg.RegisterTypeMapEntry(TypeJavaScript, tJavaScript)
-	reg.RegisterTypeMapEntry(TypeSymbol, tSymbol)
-	reg.RegisterTypeMapEntry(TypeCodeWithScope, tCodeWithScope)
-	reg.RegisterTypeMapEntry(TypeInt32, tInt32)
-	reg.RegisterTypeMapEntry(TypeInt64, tInt64)
-	reg.RegisterTypeMapEntry(TypeTimestamp, tTimestamp)
-	reg.RegisterTypeMapEntry(TypeDecimal128, tDecimal)
-	reg.RegisterTypeMapEntry(TypeMinKey, tMinKey)
-	reg.RegisterTypeMapEntry(TypeMaxKey, tMaxKey)
-	reg.RegisterTypeMapEntry(Type(0), tD)
-	reg.RegisterTypeMapEntry(TypeEmbeddedDocument, tD)
-	reg.RegisterInterfaceDecoder(tValueUnmarshaler, ValueDecoderFunc(valueUnmarshalerDecodeValue))
-	reg.RegisterInterfaceDecoder(tUnmarshaler, ValueDecoderFunc(unmarshalerDecodeValue))
+	intDecoder := func() ValueDecoder { return &intCodec{} }
+	floatDecoder := func() ValueDecoder { return &floatCodec{} }
+	rb.RegisterTypeDecoder(tD, func() ValueDecoder { return ValueDecoderFunc(dDecodeValue) }).
+		RegisterTypeDecoder(tBinary, func() ValueDecoder { return &decodeAdapter{binaryDecodeValue, binaryDecodeType} }).
+		RegisterTypeDecoder(tUndefined, func() ValueDecoder { return &decodeAdapter{undefinedDecodeValue, undefinedDecodeType} }).
+		RegisterTypeDecoder(tDateTime, func() ValueDecoder { return &decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType} }).
+		RegisterTypeDecoder(tNull, func() ValueDecoder { return &decodeAdapter{nullDecodeValue, nullDecodeType} }).
+		RegisterTypeDecoder(tRegex, func() ValueDecoder { return &decodeAdapter{regexDecodeValue, regexDecodeType} }).
+		RegisterTypeDecoder(tDBPointer, func() ValueDecoder { return &decodeAdapter{dbPointerDecodeValue, dbPointerDecodeType} }).
+		RegisterTypeDecoder(tTimestamp, func() ValueDecoder { return &decodeAdapter{timestampDecodeValue, timestampDecodeType} }).
+		RegisterTypeDecoder(tMinKey, func() ValueDecoder { return &decodeAdapter{minKeyDecodeValue, minKeyDecodeType} }).
+		RegisterTypeDecoder(tMaxKey, func() ValueDecoder { return &decodeAdapter{maxKeyDecodeValue, maxKeyDecodeType} }).
+		RegisterTypeDecoder(tJavaScript, func() ValueDecoder { return &decodeAdapter{javaScriptDecodeValue, javaScriptDecodeType} }).
+		RegisterTypeDecoder(tSymbol, func() ValueDecoder { return &decodeAdapter{symbolDecodeValue, symbolDecodeType} }).
+		RegisterTypeDecoder(tByteSlice, func() ValueDecoder { return &byteSliceCodec{} }).
+		RegisterTypeDecoder(tTime, func() ValueDecoder { return &timeCodec{} }).
+		RegisterTypeDecoder(tEmpty, func() ValueDecoder { return &emptyInterfaceCodec{} }).
+		RegisterTypeDecoder(tCoreArray, func() ValueDecoder { return &arrayCodec{} }).
+		RegisterTypeDecoder(tOID, func() ValueDecoder { return &decodeAdapter{objectIDDecodeValue, objectIDDecodeType} }).
+		RegisterTypeDecoder(tDecimal, func() ValueDecoder { return &decodeAdapter{decimal128DecodeValue, decimal128DecodeType} }).
+		RegisterTypeDecoder(tJSONNumber, func() ValueDecoder { return &decodeAdapter{jsonNumberDecodeValue, jsonNumberDecodeType} }).
+		RegisterTypeDecoder(tURL, func() ValueDecoder { return &decodeAdapter{urlDecodeValue, urlDecodeType} }).
+		RegisterTypeDecoder(tCoreDocument, func() ValueDecoder { return ValueDecoderFunc(coreDocumentDecodeValue) }).
+		RegisterTypeDecoder(tCodeWithScope, func() ValueDecoder { return &decodeAdapter{codeWithScopeDecodeValue, codeWithScopeDecodeType} }).
+		RegisterKindDecoder(reflect.Bool, func() ValueDecoder { return &decodeAdapter{booleanDecodeValue, booleanDecodeType} }).
+		RegisterKindDecoder(reflect.Int, intDecoder).
+		RegisterKindDecoder(reflect.Int8, intDecoder).
+		RegisterKindDecoder(reflect.Int16, intDecoder).
+		RegisterKindDecoder(reflect.Int32, intDecoder).
+		RegisterKindDecoder(reflect.Int64, intDecoder).
+		RegisterKindDecoder(reflect.Uint, intDecoder).
+		RegisterKindDecoder(reflect.Uint8, intDecoder).
+		RegisterKindDecoder(reflect.Uint16, intDecoder).
+		RegisterKindDecoder(reflect.Uint32, intDecoder).
+		RegisterKindDecoder(reflect.Uint64, intDecoder).
+		RegisterKindDecoder(reflect.Float32, floatDecoder).
+		RegisterKindDecoder(reflect.Float64, floatDecoder).
+		RegisterKindDecoder(reflect.Array, func() ValueDecoder { return ValueDecoderFunc(arrayDecodeValue) }).
+		RegisterKindDecoder(reflect.Map, func() ValueDecoder { return &mapCodec{} }).
+		RegisterKindDecoder(reflect.Slice, func() ValueDecoder { return &sliceCodec{} }).
+		RegisterKindDecoder(reflect.String, func() ValueDecoder { return &stringCodec{} }).
+		RegisterKindDecoder(reflect.Struct, func() ValueDecoder { return newStructCodec(DefaultStructTagParser) }).
+		RegisterKindDecoder(reflect.Ptr, func() ValueDecoder { return &pointerCodec{} }).
+		RegisterTypeMapEntry(TypeDouble, tFloat64).
+		RegisterTypeMapEntry(TypeString, tString).
+		RegisterTypeMapEntry(TypeArray, tA).
+		RegisterTypeMapEntry(TypeBinary, tBinary).
+		RegisterTypeMapEntry(TypeUndefined, tUndefined).
+		RegisterTypeMapEntry(TypeObjectID, tOID).
+		RegisterTypeMapEntry(TypeBoolean, tBool).
+		RegisterTypeMapEntry(TypeDateTime, tDateTime).
+		RegisterTypeMapEntry(TypeRegex, tRegex).
+		RegisterTypeMapEntry(TypeDBPointer, tDBPointer).
+		RegisterTypeMapEntry(TypeJavaScript, tJavaScript).
+		RegisterTypeMapEntry(TypeSymbol, tSymbol).
+		RegisterTypeMapEntry(TypeCodeWithScope, tCodeWithScope).
+		RegisterTypeMapEntry(TypeInt32, tInt32).
+		RegisterTypeMapEntry(TypeInt64, tInt64).
+		RegisterTypeMapEntry(TypeTimestamp, tTimestamp).
+		RegisterTypeMapEntry(TypeDecimal128, tDecimal).
+		RegisterTypeMapEntry(TypeMinKey, tMinKey).
+		RegisterTypeMapEntry(TypeMaxKey, tMaxKey).
+		RegisterTypeMapEntry(Type(0), tD).
+		RegisterTypeMapEntry(TypeEmbeddedDocument, tD).
+		RegisterInterfaceDecoder(tValueUnmarshaler, func() ValueDecoder { return ValueDecoderFunc(valueUnmarshalerDecodeValue) }).
+		RegisterInterfaceDecoder(tUnmarshaler, func() ValueDecoder { return ValueDecoderFunc(unmarshalerDecodeValue) })
 }
 
 // dDecodeValue is the ValueDecoderFunc for D instances.
-func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func dDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.IsValid() || !val.CanSet() || val.Type() != tD {
 		return ValueDecoderError{Name: "DDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
 	switch vrType := vr.Type(); vrType {
 	case Type(0), TypeEmbeddedDocument:
-		dc.ancestor = tD
+		break
 	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
@@ -131,7 +129,7 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 		return err
 	}
 
-	decoder, err := dc.LookupDecoder(tEmpty)
+	decoder, err := reg.LookupDecoder(tEmpty)
 	if err != nil {
 		return err
 	}
@@ -153,8 +151,7 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 			return err
 		}
 
-		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
-		elem, err := decodeTypeOrValueWithInfo(decoder, dc, elemVr, tEmpty, false)
+		elem, err := decodeTypeOrValueWithInfo(decoder, reg, elemVr, tEmpty)
 		if err != nil {
 			return err
 		}
@@ -166,7 +163,7 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	return nil
 }
 
-func booleanDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func booleanDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.Bool {
 		return emptyValue, ValueDecoderError{
 			Name:     "BooleanDecodeValue",
@@ -213,12 +210,12 @@ func booleanDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect
 }
 
 // booleanDecodeValue is the ValueDecoderFunc for bool types.
-func booleanDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+func booleanDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.IsValid() || !val.CanSet() || val.Kind() != reflect.Bool {
 		return ValueDecoderError{Name: "BooleanDecodeValue", Kinds: []reflect.Kind{reflect.Bool}, Received: val}
 	}
 
-	elem, err := booleanDecodeType(dctx, vr, val.Type())
+	elem, err := booleanDecodeType(reg, vr, val.Type())
 	if err != nil {
 		return err
 	}
@@ -227,187 +224,7 @@ func booleanDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) e
 	return nil
 }
 
-func intDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	var i64 int64
-	var err error
-	switch vrType := vr.Type(); vrType {
-	case TypeInt32:
-		i32, err := vr.ReadInt32()
-		if err != nil {
-			return emptyValue, err
-		}
-		i64 = int64(i32)
-	case TypeInt64:
-		i64, err = vr.ReadInt64()
-		if err != nil {
-			return emptyValue, err
-		}
-	case TypeDouble:
-		f64, err := vr.ReadDouble()
-		if err != nil {
-			return emptyValue, err
-		}
-		if !dc.truncate && math.Floor(f64) != f64 {
-			return emptyValue, errCannotTruncate
-		}
-		if f64 > float64(math.MaxInt64) {
-			return emptyValue, fmt.Errorf("%g overflows int64", f64)
-		}
-		i64 = int64(f64)
-	case TypeBoolean:
-		b, err := vr.ReadBoolean()
-		if err != nil {
-			return emptyValue, err
-		}
-		if b {
-			i64 = 1
-		}
-	case TypeNull:
-		if err = vr.ReadNull(); err != nil {
-			return emptyValue, err
-		}
-	case TypeUndefined:
-		if err = vr.ReadUndefined(); err != nil {
-			return emptyValue, err
-		}
-	default:
-		return emptyValue, fmt.Errorf("cannot decode %v into an integer type", vrType)
-	}
-
-	switch t.Kind() {
-	case reflect.Int8:
-		if i64 < math.MinInt8 || i64 > math.MaxInt8 {
-			return emptyValue, fmt.Errorf("%d overflows int8", i64)
-		}
-
-		return reflect.ValueOf(int8(i64)), nil
-	case reflect.Int16:
-		if i64 < math.MinInt16 || i64 > math.MaxInt16 {
-			return emptyValue, fmt.Errorf("%d overflows int16", i64)
-		}
-
-		return reflect.ValueOf(int16(i64)), nil
-	case reflect.Int32:
-		if i64 < math.MinInt32 || i64 > math.MaxInt32 {
-			return emptyValue, fmt.Errorf("%d overflows int32", i64)
-		}
-
-		return reflect.ValueOf(int32(i64)), nil
-	case reflect.Int64:
-		return reflect.ValueOf(i64), nil
-	case reflect.Int:
-		if int64(int(i64)) != i64 { // Can we fit this inside of an int
-			return emptyValue, fmt.Errorf("%d overflows int", i64)
-		}
-
-		return reflect.ValueOf(int(i64)), nil
-	default:
-		return emptyValue, ValueDecoderError{
-			Name:     "IntDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
-			Received: reflect.Zero(t),
-		}
-	}
-}
-
-// intDecodeValue is the ValueDecoderFunc for int types.
-func intDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-	if !val.CanSet() {
-		return ValueDecoderError{
-			Name:     "IntDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
-			Received: val,
-		}
-	}
-
-	elem, err := intDecodeType(dc, vr, val.Type())
-	if err != nil {
-		return err
-	}
-
-	val.SetInt(elem.Int())
-	return nil
-}
-
-func floatDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	var f float64
-	var err error
-	switch vrType := vr.Type(); vrType {
-	case TypeInt32:
-		i32, err := vr.ReadInt32()
-		if err != nil {
-			return emptyValue, err
-		}
-		f = float64(i32)
-	case TypeInt64:
-		i64, err := vr.ReadInt64()
-		if err != nil {
-			return emptyValue, err
-		}
-		f = float64(i64)
-	case TypeDouble:
-		f, err = vr.ReadDouble()
-		if err != nil {
-			return emptyValue, err
-		}
-	case TypeBoolean:
-		b, err := vr.ReadBoolean()
-		if err != nil {
-			return emptyValue, err
-		}
-		if b {
-			f = 1
-		}
-	case TypeNull:
-		if err = vr.ReadNull(); err != nil {
-			return emptyValue, err
-		}
-	case TypeUndefined:
-		if err = vr.ReadUndefined(); err != nil {
-			return emptyValue, err
-		}
-	default:
-		return emptyValue, fmt.Errorf("cannot decode %v into a float32 or float64 type", vrType)
-	}
-
-	switch t.Kind() {
-	case reflect.Float32:
-		if !dc.truncate && float64(float32(f)) != f {
-			return emptyValue, errCannotTruncate
-		}
-
-		return reflect.ValueOf(float32(f)), nil
-	case reflect.Float64:
-		return reflect.ValueOf(f), nil
-	default:
-		return emptyValue, ValueDecoderError{
-			Name:     "FloatDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Float32, reflect.Float64},
-			Received: reflect.Zero(t),
-		}
-	}
-}
-
-// floatDecodeValue is the ValueDecoderFunc for float types.
-func floatDecodeValue(ec DecodeContext, vr ValueReader, val reflect.Value) error {
-	if !val.CanSet() {
-		return ValueDecoderError{
-			Name:     "FloatDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Float32, reflect.Float64},
-			Received: val,
-		}
-	}
-
-	elem, err := floatDecodeType(ec, vr, val.Type())
-	if err != nil {
-		return err
-	}
-
-	val.SetFloat(elem.Float())
-	return nil
-}
-
-func javaScriptDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func javaScriptDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tJavaScript {
 		return emptyValue, ValueDecoderError{
 			Name:     "JavaScriptDecodeValue",
@@ -436,12 +253,12 @@ func javaScriptDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (refl
 }
 
 // javaScriptDecodeValue is the ValueDecoderFunc for the JavaScript type.
-func javaScriptDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+func javaScriptDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tJavaScript {
 		return ValueDecoderError{Name: "JavaScriptDecodeValue", Types: []reflect.Type{tJavaScript}, Received: val}
 	}
 
-	elem, err := javaScriptDecodeType(dctx, vr, tJavaScript)
+	elem, err := javaScriptDecodeType(reg, vr, tJavaScript)
 	if err != nil {
 		return err
 	}
@@ -450,7 +267,7 @@ func javaScriptDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value
 	return nil
 }
 
-func symbolDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func symbolDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tSymbol {
 		return emptyValue, ValueDecoderError{
 			Name:     "SymbolDecodeValue",
@@ -491,12 +308,12 @@ func symbolDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 }
 
 // symbolDecodeValue is the ValueDecoderFunc for the Symbol type.
-func symbolDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+func symbolDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tSymbol {
 		return ValueDecoderError{Name: "SymbolDecodeValue", Types: []reflect.Type{tSymbol}, Received: val}
 	}
 
-	elem, err := symbolDecodeType(dctx, vr, tSymbol)
+	elem, err := symbolDecodeType(reg, vr, tSymbol)
 	if err != nil {
 		return err
 	}
@@ -505,7 +322,7 @@ func symbolDecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) er
 	return nil
 }
 
-func binaryDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func binaryDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tBinary {
 		return emptyValue, ValueDecoderError{
 			Name:     "BinaryDecodeValue",
@@ -535,12 +352,12 @@ func binaryDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 }
 
 // binaryDecodeValue is the ValueDecoderFunc for Binary.
-func binaryDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func binaryDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tBinary {
 		return ValueDecoderError{Name: "BinaryDecodeValue", Types: []reflect.Type{tBinary}, Received: val}
 	}
 
-	elem, err := binaryDecodeType(dc, vr, tBinary)
+	elem, err := binaryDecodeType(reg, vr, tBinary)
 	if err != nil {
 		return err
 	}
@@ -549,7 +366,7 @@ func binaryDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) erro
 	return nil
 }
 
-func undefinedDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func undefinedDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tUndefined {
 		return emptyValue, ValueDecoderError{
 			Name:     "UndefinedDecodeValue",
@@ -575,12 +392,12 @@ func undefinedDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (refle
 }
 
 // undefinedDecodeValue is the ValueDecoderFunc for Undefined.
-func undefinedDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func undefinedDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tUndefined {
 		return ValueDecoderError{Name: "UndefinedDecodeValue", Types: []reflect.Type{tUndefined}, Received: val}
 	}
 
-	elem, err := undefinedDecodeType(dc, vr, tUndefined)
+	elem, err := undefinedDecodeType(reg, vr, tUndefined)
 	if err != nil {
 		return err
 	}
@@ -590,7 +407,7 @@ func undefinedDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) e
 }
 
 // Accept both 12-byte string and pretty-printed 24-byte hex string formats.
-func objectIDDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func objectIDDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tOID {
 		return emptyValue, ValueDecoderError{
 			Name:     "ObjectIDDecodeValue",
@@ -636,12 +453,12 @@ func objectIDDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflec
 }
 
 // objectIDDecodeValue is the ValueDecoderFunc for ObjectID.
-func objectIDDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func objectIDDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tOID {
 		return ValueDecoderError{Name: "ObjectIDDecodeValue", Types: []reflect.Type{tOID}, Received: val}
 	}
 
-	elem, err := objectIDDecodeType(dc, vr, tOID)
+	elem, err := objectIDDecodeType(reg, vr, tOID)
 	if err != nil {
 		return err
 	}
@@ -650,7 +467,7 @@ func objectIDDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) er
 	return nil
 }
 
-func dateTimeDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func dateTimeDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tDateTime {
 		return emptyValue, ValueDecoderError{
 			Name:     "DateTimeDecodeValue",
@@ -679,12 +496,12 @@ func dateTimeDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflec
 }
 
 // dateTimeDecodeValue is the ValueDecoderFunc for DateTime.
-func dateTimeDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func dateTimeDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tDateTime {
 		return ValueDecoderError{Name: "DateTimeDecodeValue", Types: []reflect.Type{tDateTime}, Received: val}
 	}
 
-	elem, err := dateTimeDecodeType(dc, vr, tDateTime)
+	elem, err := dateTimeDecodeType(reg, vr, tDateTime)
 	if err != nil {
 		return err
 	}
@@ -693,7 +510,7 @@ func dateTimeDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) er
 	return nil
 }
 
-func nullDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func nullDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tNull {
 		return emptyValue, ValueDecoderError{
 			Name:     "NullDecodeValue",
@@ -719,12 +536,12 @@ func nullDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Va
 }
 
 // nullDecodeValue is the ValueDecoderFunc for Null.
-func nullDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func nullDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tNull {
 		return ValueDecoderError{Name: "NullDecodeValue", Types: []reflect.Type{tNull}, Received: val}
 	}
 
-	elem, err := nullDecodeType(dc, vr, tNull)
+	elem, err := nullDecodeType(reg, vr, tNull)
 	if err != nil {
 		return err
 	}
@@ -733,7 +550,7 @@ func nullDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error 
 	return nil
 }
 
-func regexDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func regexDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tRegex {
 		return emptyValue, ValueDecoderError{
 			Name:     "RegexDecodeValue",
@@ -762,12 +579,12 @@ func regexDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.V
 }
 
 // regexDecodeValue is the ValueDecoderFunc for Regex.
-func regexDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func regexDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tRegex {
 		return ValueDecoderError{Name: "RegexDecodeValue", Types: []reflect.Type{tRegex}, Received: val}
 	}
 
-	elem, err := regexDecodeType(dc, vr, tRegex)
+	elem, err := regexDecodeType(reg, vr, tRegex)
 	if err != nil {
 		return err
 	}
@@ -776,7 +593,7 @@ func regexDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error
 	return nil
 }
 
-func dbPointerDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func dbPointerDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tDBPointer {
 		return emptyValue, ValueDecoderError{
 			Name:     "DBPointerDecodeValue",
@@ -806,12 +623,12 @@ func dbPointerDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (refle
 }
 
 // dbPointerDecodeValue is the ValueDecoderFunc for DBPointer.
-func dbPointerDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func dbPointerDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tDBPointer {
 		return ValueDecoderError{Name: "DBPointerDecodeValue", Types: []reflect.Type{tDBPointer}, Received: val}
 	}
 
-	elem, err := dbPointerDecodeType(dc, vr, tDBPointer)
+	elem, err := dbPointerDecodeType(reg, vr, tDBPointer)
 	if err != nil {
 		return err
 	}
@@ -820,7 +637,7 @@ func dbPointerDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) e
 	return nil
 }
 
-func timestampDecodeType(_ DecodeContext, vr ValueReader, reflectType reflect.Type) (reflect.Value, error) {
+func timestampDecodeType(_ DecoderRegistry, vr ValueReader, reflectType reflect.Type) (reflect.Value, error) {
 	if reflectType != tTimestamp {
 		return emptyValue, ValueDecoderError{
 			Name:     "TimestampDecodeValue",
@@ -849,12 +666,12 @@ func timestampDecodeType(_ DecodeContext, vr ValueReader, reflectType reflect.Ty
 }
 
 // timestampDecodeValue is the ValueDecoderFunc for Timestamp.
-func timestampDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func timestampDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tTimestamp {
 		return ValueDecoderError{Name: "TimestampDecodeValue", Types: []reflect.Type{tTimestamp}, Received: val}
 	}
 
-	elem, err := timestampDecodeType(dc, vr, tTimestamp)
+	elem, err := timestampDecodeType(reg, vr, tTimestamp)
 	if err != nil {
 		return err
 	}
@@ -863,7 +680,7 @@ func timestampDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) e
 	return nil
 }
 
-func minKeyDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func minKeyDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tMinKey {
 		return emptyValue, ValueDecoderError{
 			Name:     "MinKeyDecodeValue",
@@ -891,12 +708,12 @@ func minKeyDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 }
 
 // minKeyDecodeValue is the ValueDecoderFunc for MinKey.
-func minKeyDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func minKeyDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tMinKey {
 		return ValueDecoderError{Name: "MinKeyDecodeValue", Types: []reflect.Type{tMinKey}, Received: val}
 	}
 
-	elem, err := minKeyDecodeType(dc, vr, tMinKey)
+	elem, err := minKeyDecodeType(reg, vr, tMinKey)
 	if err != nil {
 		return err
 	}
@@ -905,7 +722,7 @@ func minKeyDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) erro
 	return nil
 }
 
-func maxKeyDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func maxKeyDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tMaxKey {
 		return emptyValue, ValueDecoderError{
 			Name:     "MaxKeyDecodeValue",
@@ -933,12 +750,12 @@ func maxKeyDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 }
 
 // maxKeyDecodeValue is the ValueDecoderFunc for MaxKey.
-func maxKeyDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func maxKeyDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tMaxKey {
 		return ValueDecoderError{Name: "MaxKeyDecodeValue", Types: []reflect.Type{tMaxKey}, Received: val}
 	}
 
-	elem, err := maxKeyDecodeType(dc, vr, tMaxKey)
+	elem, err := maxKeyDecodeType(reg, vr, tMaxKey)
 	if err != nil {
 		return err
 	}
@@ -947,7 +764,7 @@ func maxKeyDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) erro
 	return nil
 }
 
-func decimal128DecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func decimal128DecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tDecimal {
 		return emptyValue, ValueDecoderError{
 			Name:     "Decimal128DecodeValue",
@@ -976,12 +793,12 @@ func decimal128DecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (refl
 }
 
 // decimal128DecodeValue is the ValueDecoderFunc for Decimal128.
-func decimal128DecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value) error {
+func decimal128DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tDecimal {
 		return ValueDecoderError{Name: "Decimal128DecodeValue", Types: []reflect.Type{tDecimal}, Received: val}
 	}
 
-	elem, err := decimal128DecodeType(dctx, vr, tDecimal)
+	elem, err := decimal128DecodeType(reg, vr, tDecimal)
 	if err != nil {
 		return err
 	}
@@ -990,7 +807,7 @@ func decimal128DecodeValue(dctx DecodeContext, vr ValueReader, val reflect.Value
 	return nil
 }
 
-func jsonNumberDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func jsonNumberDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tJSONNumber {
 		return emptyValue, ValueDecoderError{
 			Name:     "JSONNumberDecodeValue",
@@ -1035,12 +852,12 @@ func jsonNumberDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (refl
 }
 
 // jsonNumberDecodeValue is the ValueDecoderFunc for json.Number.
-func jsonNumberDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func jsonNumberDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tJSONNumber {
 		return ValueDecoderError{Name: "JSONNumberDecodeValue", Types: []reflect.Type{tJSONNumber}, Received: val}
 	}
 
-	elem, err := jsonNumberDecodeType(dc, vr, tJSONNumber)
+	elem, err := jsonNumberDecodeType(reg, vr, tJSONNumber)
 	if err != nil {
 		return err
 	}
@@ -1049,7 +866,7 @@ func jsonNumberDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) 
 	return nil
 }
 
-func urlDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func urlDecodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tURL {
 		return emptyValue, ValueDecoderError{
 			Name:     "URLDecodeValue",
@@ -1084,12 +901,12 @@ func urlDecodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Val
 }
 
 // urlDecodeValue is the ValueDecoderFunc for url.URL.
-func urlDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func urlDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tURL {
 		return ValueDecoderError{Name: "URLDecodeValue", Types: []reflect.Type{tURL}, Received: val}
 	}
 
-	elem, err := urlDecodeType(dc, vr, tURL)
+	elem, err := urlDecodeType(reg, vr, tURL)
 	if err != nil {
 		return err
 	}
@@ -1099,7 +916,7 @@ func urlDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 }
 
 // arrayDecodeValue is the ValueDecoderFunc for array types.
-func arrayDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func arrayDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Array {
 		return ValueDecoderError{Name: "ArrayDecodeValue", Kinds: []reflect.Kind{reflect.Array}, Received: val}
 	}
@@ -1140,7 +957,7 @@ func arrayDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error
 		return fmt.Errorf("cannot decode %v into an array", vrType)
 	}
 
-	var elemsFunc func(DecodeContext, ValueReader, reflect.Value) ([]reflect.Value, error)
+	var elemsFunc func(DecoderRegistry, ValueReader, reflect.Value) ([]reflect.Value, error)
 	switch val.Type().Elem() {
 	case tE:
 		elemsFunc = decodeD
@@ -1148,7 +965,7 @@ func arrayDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error
 		elemsFunc = decodeDefault
 	}
 
-	elems, err := elemsFunc(dc, vr, val)
+	elems, err := elemsFunc(reg, vr, val)
 	if err != nil {
 		return err
 	}
@@ -1165,7 +982,7 @@ func arrayDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error
 }
 
 // valueUnmarshalerDecodeValue is the ValueDecoderFunc for ValueUnmarshaler implementations.
-func valueUnmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func valueUnmarshalerDecodeValue(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tValueUnmarshaler) && !reflect.PtrTo(val.Type()).Implements(tValueUnmarshaler)) {
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 	}
@@ -1198,7 +1015,7 @@ func valueUnmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Va
 }
 
 // unmarshalerDecodeValue is the ValueDecoderFunc for Unmarshaler implementations.
-func unmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func unmarshalerDecodeValue(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.IsValid() || (!val.Type().Implements(tUnmarshaler) && !reflect.PtrTo(val.Type()).Implements(tUnmarshaler)) {
 		return ValueDecoderError{Name: "UnmarshalerDecodeValue", Types: []reflect.Type{tUnmarshaler}, Received: val}
 	}
@@ -1243,7 +1060,7 @@ func unmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) 
 }
 
 // coreDocumentDecodeValue is the ValueDecoderFunc for bsoncore.Document.
-func coreDocumentDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
+func coreDocumentDecodeValue(_ DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCoreDocument {
 		return ValueDecoderError{Name: "CoreDocumentDecodeValue", Types: []reflect.Type{tCoreDocument}, Received: val}
 	}
@@ -1259,7 +1076,7 @@ func coreDocumentDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value)
 	return err
 }
 
-func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]reflect.Value, error) {
+func decodeDefault(reg DecoderRegistry, vr ValueReader, val reflect.Value) ([]reflect.Value, error) {
 	elems := make([]reflect.Value, 0)
 
 	ar, err := vr.ReadArray()
@@ -1269,7 +1086,7 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 
 	eType := val.Type().Elem()
 
-	decoder, err := dc.LookupDecoder(eType)
+	decoder, err := reg.LookupDecoder(eType)
 	if err != nil {
 		return nil, err
 	}
@@ -1284,7 +1101,7 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 			return nil, err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, dc, vr, eType, true)
+		elem, err := decodeTypeOrValueWithInfo(decoder, reg, vr, eType)
 		if err != nil {
 			return nil, newDecodeError(strconv.Itoa(idx), err)
 		}
@@ -1295,7 +1112,7 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 	return elems, nil
 }
 
-func codeWithScopeDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func codeWithScopeDecodeType(reg DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tCodeWithScope {
 		return emptyValue, ValueDecoderError{
 			Name:     "CodeWithScopeDecodeValue",
@@ -1314,7 +1131,7 @@ func codeWithScopeDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (
 		}
 
 		scope := reflect.New(tD).Elem()
-		elems, err := decodeElemsFromDocumentReader(dc, dr)
+		elems, err := decodeElemsFromDocumentReader(reg, dr, tEmpty)
 		if err != nil {
 			return emptyValue, err
 		}
@@ -1341,12 +1158,12 @@ func codeWithScopeDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (
 }
 
 // codeWithScopeDecodeValue is the ValueDecoderFunc for CodeWithScope.
-func codeWithScopeDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func codeWithScopeDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tCodeWithScope {
 		return ValueDecoderError{Name: "CodeWithScopeDecodeValue", Types: []reflect.Type{tCodeWithScope}, Received: val}
 	}
 
-	elem, err := codeWithScopeDecodeType(dc, vr, tCodeWithScope)
+	elem, err := codeWithScopeDecodeType(reg, vr, tCodeWithScope)
 	if err != nil {
 		return err
 	}
@@ -1355,7 +1172,7 @@ func codeWithScopeDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Valu
 	return nil
 }
 
-func decodeD(dc DecodeContext, vr ValueReader, _ reflect.Value) ([]reflect.Value, error) {
+func decodeD(reg DecoderRegistry, vr ValueReader, val reflect.Value) ([]reflect.Value, error) {
 	switch vr.Type() {
 	case Type(0), TypeEmbeddedDocument:
 	default:
@@ -1367,11 +1184,11 @@ func decodeD(dc DecodeContext, vr ValueReader, _ reflect.Value) ([]reflect.Value
 		return nil, err
 	}
 
-	return decodeElemsFromDocumentReader(dc, dr)
+	return decodeElemsFromDocumentReader(reg, dr, val.Type())
 }
 
-func decodeElemsFromDocumentReader(dc DecodeContext, dr DocumentReader) ([]reflect.Value, error) {
-	decoder, err := dc.LookupDecoder(tEmpty)
+func decodeElemsFromDocumentReader(reg DecoderRegistry, dr DocumentReader, t reflect.Type) ([]reflect.Value, error) {
+	decoder, err := reg.LookupDecoder(tEmpty)
 	if err != nil {
 		return nil, err
 	}
@@ -1386,8 +1203,8 @@ func decodeElemsFromDocumentReader(dc DecodeContext, dr DocumentReader) ([]refle
 			return nil, err
 		}
 
-		val := reflect.New(tEmpty).Elem()
-		err = decoder.DecodeValue(dc, vr, val)
+		var val reflect.Value
+		val, err = decodeTypeOrValueWithInfo(decoder, reg, vr, t)
 		if err != nil {
 			return nil, newDecodeError(key, err)
 		}
