@@ -60,6 +60,8 @@ tests:
     runOnRequirements:
       - minServerVersion: "5.0"
         serverless: "forbid"
+        # GODRIVER-3218
+        maxServerVersion: "7.99"
     operations:
       - object: *collection0
         name: aggregate
