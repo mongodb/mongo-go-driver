@@ -32,7 +32,7 @@ func TestBasicDecode(t *testing.T) {
 			reg := NewRegistryBuilder().Build()
 			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
 			noerr(t, err)
-			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
+			err = decoder.DecodeValue(reg, vr, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got.Addr().Interface(), "Results do not match.")
 		})
@@ -200,15 +200,13 @@ func TestDecoderv2(t *testing.T) {
 		t.Parallel()
 
 		r1, r2 := DefaultRegistry, NewRegistryBuilder().Build()
-		dc1 := DecodeContext{Registry: r1}
-		dc2 := DecodeContext{Registry: r2}
 		dec := NewDecoder(NewValueReader([]byte{}))
-		if !reflect.DeepEqual(dec.dc, dc1) {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
+		if !reflect.DeepEqual(dec.reg, r1) {
+			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.reg, r1)
 		}
 		dec.SetRegistry(r2)
-		if !reflect.DeepEqual(dec.dc, dc2) {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc2)
+		if !reflect.DeepEqual(dec.reg, r2) {
+			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.reg, r2)
 		}
 	})
 	t.Run("DecodeToNil", func(t *testing.T) {

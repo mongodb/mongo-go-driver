@@ -81,13 +81,13 @@ func (rv RawValue) UnmarshalWithRegistry(r *Registry, val interface{}) error {
 	if err != nil {
 		return err
 	}
-	return dec.DecodeValue(DecodeContext{Registry: r}, vr, rval)
+	return dec.DecodeValue(r, vr, rval)
 }
 
 // UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses the provided DecodeContext
 // instead of the one attached or the default registry.
-func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) error {
-	if dc == nil {
+func (rv RawValue) UnmarshalWithContext(reg *Registry, val interface{}) error {
+	if reg == nil {
 		return ErrNilContext
 	}
 
@@ -97,11 +97,11 @@ func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) erro
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
 	}
 	rval = rval.Elem()
-	dec, err := dc.LookupDecoder(rval.Type())
+	dec, err := reg.LookupDecoder(rval.Type())
 	if err != nil {
 		return err
 	}
-	return dec.DecodeValue(*dc, vr, rval)
+	return dec.DecodeValue(reg, vr, rval)
 }
 
 func convertFromCoreValue(v bsoncore.Value) RawValue {

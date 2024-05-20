@@ -78,7 +78,7 @@ func TestCondAddrCodec(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				err := condDecoder.DecodeValue(DecodeContext{}, rw, tc.val)
+				err := condDecoder.DecodeValue(nil, rw, tc.val)
 				assert.Nil(t, err, "CondAddrDecoder error: %v", err)
 
 				assert.Equal(t, invoked, tc.invoked, "Expected function %v to be called, called %v", tc.invoked, invoked)
@@ -87,7 +87,7 @@ func TestCondAddrCodec(t *testing.T) {
 
 		t.Run("error", func(t *testing.T) {
 			errDecoder := &condAddrDecoder{canAddrDec: decode1, elseDec: nil}
-			err := errDecoder.DecodeValue(DecodeContext{}, rw, unaddressable)
+			err := errDecoder.DecodeValue(nil, rw, unaddressable)
 			want := ErrNoDecoder{Type: unaddressable.Type()}
 			assert.Equal(t, err, want, "expected error %v, got %v", want, err)
 		})

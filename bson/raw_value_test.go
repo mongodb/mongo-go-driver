@@ -114,11 +114,11 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			dc := DecodeContext{Registry: newTestRegistryBuilder().Build()}
+			reg := newTestRegistryBuilder().Build()
 			var val RawValue
 			var s string
 			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
-			got := val.UnmarshalWithContext(&dc, &s)
+			got := val.UnmarshalWithContext(reg, &s)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
@@ -126,11 +126,11 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns DecodeValue error", func(t *testing.T) {
 			t.Parallel()
 
-			dc := DecodeContext{Registry: NewRegistryBuilder().Build()}
+			reg := NewRegistryBuilder().Build()
 			val := RawValue{Type: TypeDouble, Value: bsoncore.AppendDouble(nil, 3.14159)}
 			var s string
 			want := fmt.Errorf("cannot decode %v into a string type", TypeDouble)
-			got := val.UnmarshalWithContext(&dc, &s)
+			got := val.UnmarshalWithContext(reg, &s)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
 			}
@@ -138,11 +138,11 @@ func TestRawValue(t *testing.T) {
 		t.Run("Success", func(t *testing.T) {
 			t.Parallel()
 
-			dc := DecodeContext{Registry: NewRegistryBuilder().Build()}
+			reg := NewRegistryBuilder().Build()
 			want := float64(3.14159)
 			val := RawValue{Type: TypeDouble, Value: bsoncore.AppendDouble(nil, want)}
 			var got float64
-			err := val.UnmarshalWithContext(&dc, &got)
+			err := val.UnmarshalWithContext(reg, &got)
 			noerr(t, err)
 			if got != want {
 				t.Errorf("Expected results to match. got %g; want %g", got, want)

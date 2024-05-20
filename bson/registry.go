@@ -222,8 +222,7 @@ func (rb *RegistryBuilder) Build() *Registry {
 		interfaceDecoders: make([]interfaceValueDecoder, 0, len(rb.interfaceDecoders)),
 		typeMap:           make(map[Type]reflect.Type),
 
-		encoderTypeMap: make(map[reflect.Type][]ValueEncoder),
-		decoderTypeMap: make(map[reflect.Type][]ValueDecoder),
+		codecTypeMap: make(map[reflect.Type][]interface{}),
 	}
 
 	encoderCache := make(map[reflect.Value]ValueEncoder)
@@ -234,7 +233,7 @@ func (rb *RegistryBuilder) Build() *Registry {
 		encoder := encFac()
 		encoderCache[reflect.ValueOf(encFac)] = encoder
 		t := reflect.ValueOf(encoder).Type()
-		r.encoderTypeMap[t] = append(r.encoderTypeMap[t], encoder)
+		r.codecTypeMap[t] = append(r.codecTypeMap[t], encoder)
 		return encoder
 	}
 	for k, v := range rb.typeEncoders {
@@ -261,7 +260,7 @@ func (rb *RegistryBuilder) Build() *Registry {
 		decoder := decFac()
 		decoderCache[reflect.ValueOf(decFac)] = decoder
 		t := reflect.ValueOf(decoder).Type()
-		r.decoderTypeMap[t] = append(r.decoderTypeMap[t], decoder)
+		r.codecTypeMap[t] = append(r.codecTypeMap[t], decoder)
 		return decoder
 	}
 	for k, v := range rb.typeDecoders {
@@ -329,8 +328,7 @@ type Registry struct {
 	kindDecoders      [reflect.UnsafePointer + 1]ValueDecoder
 	typeMap           map[Type]reflect.Type
 
-	encoderTypeMap map[reflect.Type][]ValueEncoder
-	decoderTypeMap map[reflect.Type][]ValueDecoder
+	codecTypeMap map[reflect.Type][]interface{}
 }
 
 // LookupEncoder returns the first matching encoder in the Registry. It uses the following lookup

@@ -72,31 +72,6 @@ func (vde ValueDecoderError) Error() string {
 	return fmt.Sprintf("%s can only decode valid and settable %s, but got %s", vde.Name, strings.Join(typeKinds, ", "), received)
 }
 
-// DecodeContext is the contextual information required for a Codec to decode a
-// value.
-type DecodeContext struct {
-	*Registry
-
-	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
-	// usage for this field is restricted to data typed as "interface{}" or "map[string]interface{}". If DocumentType is
-	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
-	// error. DocumentType overrides the Ancestor field.
-	defaultDocumentType reflect.Type
-
-	// truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
-	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, int64,
-	// uint, uint8, uint16, uint32, or uint64) struct field. The truncation logic does not apply to
-	// BSON "decimal128" values.
-	truncate bool
-
-	binaryAsSlice       bool
-	decodeObjectIDAsHex bool
-	useJSONStructTags   bool
-	useLocalTimeZone    bool
-	zeroMaps            bool
-	zeroStructs         bool
-}
-
 // EncoderRegistry is an interface provides a ValueEncoder based on the given reflect.Type.
 type EncoderRegistry interface {
 	LookupEncoder(reflect.Type) (ValueEncoder, error)
@@ -166,8 +141,7 @@ var _ ValueDecoder = decodeAdapter{}
 var _ typeDecoder = decodeAdapter{}
 
 func decodeTypeOrValueWithInfo(vd ValueDecoder, reg DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
-	td, ok := vd.(typeDecoder)
-	if ok && td != nil {
+	if td, _ := vd.(typeDecoder); td != nil {
 		return td.decodeType(reg, vr, t)
 	}
 

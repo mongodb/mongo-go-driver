@@ -39,12 +39,12 @@ func TestTruncation(t *testing.T) {
 		assert.Nil(t, err)
 
 		var output outputArgs
-		dc := DecodeContext{
-			Registry: DefaultRegistry,
-			truncate: true,
-		}
+		// dc := DecodeContext{
+		// 	Registry: DefaultRegistry,
+		// 	truncate: true,
+		// }
 
-		err = UnmarshalWithContext(dc, buf.Bytes(), &output)
+		err = UnmarshalWithContext(DefaultRegistry, buf.Bytes(), &output)
 		assert.Nil(t, err)
 
 		assert.Equal(t, inputName, output.Name)
@@ -65,13 +65,13 @@ func TestTruncation(t *testing.T) {
 		assert.Nil(t, err)
 
 		var output outputArgs
-		dc := DecodeContext{
-			Registry: DefaultRegistry,
-			truncate: false,
-		}
+		// dc := DecodeContext{
+		// 	Registry: DefaultRegistry,
+		// 	truncate: false,
+		// }
 
 		// case throws an error when truncation is disabled
-		err = UnmarshalWithContext(dc, buf.Bytes(), &output)
+		err = UnmarshalWithContext(DefaultRegistry, buf.Bytes(), &output)
 		assert.NotNil(t, err)
 	})
 }

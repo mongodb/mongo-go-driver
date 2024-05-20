@@ -468,7 +468,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 	type subtest struct {
 		name   string
 		val    interface{}
-		dctx   *DecodeContext
+		reg    *Registry
 		llvrw  *valueReaderWriter
 		invoke invoked
 		err    error
@@ -563,23 +563,19 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			for _, rc := range tc.subtests {
 				t.Run(rc.name, func(t *testing.T) {
-					var dc DecodeContext
-					if rc.dctx != nil {
-						dc = *rc.dctx
-					}
 					llvrw := new(valueReaderWriter)
 					if rc.llvrw != nil {
 						llvrw = rc.llvrw
 					}
 					llvrw.T = t
 					if rc.val == cansetreflectiontest { // We're doing a CanSet reflection test
-						err := tc.vd.DecodeValue(dc, llvrw, reflect.Value{})
+						err := tc.vd.DecodeValue(rc.reg, llvrw, reflect.Value{})
 						if !assert.CompareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
 
 						val := reflect.New(reflect.TypeOf(rc.val)).Elem()
-						err = tc.vd.DecodeValue(dc, llvrw, val)
+						err = tc.vd.DecodeValue(rc.reg, llvrw, val)
 						if !assert.CompareErrors(err, rc.err) {
 							t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 						}
@@ -596,7 +592,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 							panic(err)
 						}
 					}()
-					err := tc.vd.DecodeValue(dc, llvrw, val)
+					err := tc.vd.DecodeValue(rc.reg, llvrw, val)
 					if !assert.CompareErrors(err, rc.err) {
 						t.Errorf("Errors do not match. got %v; want %v", err, rc.err)
 					}

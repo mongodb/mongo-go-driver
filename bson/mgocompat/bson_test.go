@@ -479,7 +479,7 @@ func (t *prefixPtr) SetBSON(raw bson.RawValue) error {
 		return err
 	}
 	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
-	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
+	err = decoder.DecodeValue(Registry, vr, rval)
 	if err != nil {
 		return err
 	}
@@ -506,7 +506,7 @@ func (t *prefixVal) SetBSON(raw bson.RawValue) error {
 		return err
 	}
 	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
-	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
+	err = decoder.DecodeValue(Registry, vr, rval)
 	if err != nil {
 		return err
 	}
@@ -930,7 +930,7 @@ func (o *setterType) SetBSON(raw bson.RawValue) error {
 		raw.Type = bson.TypeEmbeddedDocument
 	}
 	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
-	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
+	err = decoder.DecodeValue(Registry, vr, rval)
 	if err != nil {
 		return err
 	}
@@ -1289,7 +1289,7 @@ func (s *getterSetterD) SetBSON(raw bson.RawValue) error {
 		raw.Type = bson.TypeEmbeddedDocument
 	}
 	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
-	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
+	err = decoder.DecodeValue(Registry, vr, rval)
 	if err != nil {
 		return err
 	}
@@ -1315,7 +1315,7 @@ func (i *getterSetterInt) SetBSON(raw bson.RawValue) error {
 		raw.Type = bson.TypeEmbeddedDocument
 	}
 	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
-	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
+	err = decoder.DecodeValue(Registry, vr, rval)
 	if err != nil {
 		return err
 	}
@@ -1337,7 +1337,7 @@ func (s *ifaceSlice) SetBSON(raw bson.RawValue) error {
 		return err
 	}
 	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
-	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
+	err = decoder.DecodeValue(Registry, vr, rval)
 	if err != nil {
 		return err
 	}

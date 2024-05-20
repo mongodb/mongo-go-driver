@@ -69,9 +69,8 @@ func TestUnmarshalWithContext(t *testing.T) {
 			copy(data, tc.data)
 
 			// Assert that unmarshaling the input data results in the expected value.
-			dc := DecodeContext{Registry: DefaultRegistry}
 			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithContext(dc, data, got)
+			err := UnmarshalWithContext(DefaultRegistry, data, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 
@@ -199,8 +198,7 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			dc := DecodeContext{Registry: DefaultRegistry}
-			err := UnmarshalExtJSONWithContext(dc, data, true, got)
+			err := UnmarshalExtJSONWithContext(DefaultRegistry, data, true, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 

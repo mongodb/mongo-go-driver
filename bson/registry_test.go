@@ -93,8 +93,8 @@ func TestRegistryBuilder(t *testing.T) {
 			if !cmp.Equal(c4, 1) {
 				t.Errorf("ef4 is called %d time(s); expected 1", c4)
 			}
-			codecs, ok := reg.encoderTypeMap[reflect.TypeOf((*fakeCodec)(nil))]
-			if !cmp.Equal(len(reg.encoderTypeMap), 1) || !cmp.Equal(ok, true) || len(codecs) != 3 {
+			codecs, ok := reg.codecTypeMap[reflect.TypeOf((*fakeCodec)(nil))]
+			if !cmp.Equal(len(reg.codecTypeMap), 1) || !cmp.Equal(ok, true) || len(codecs) != 3 {
 				t.Errorf("codecs were not cached correctly")
 			}
 			got := make(map[reflect.Type]ValueEncoder)
@@ -172,8 +172,8 @@ func TestRegistryBuilder(t *testing.T) {
 			if !cmp.Equal(c4, 1) {
 				t.Errorf("ef4 is called %d time(s); expected 1", c4)
 			}
-			codecs, ok := reg.encoderTypeMap[reflect.TypeOf((*fakeCodec)(nil))]
-			if !cmp.Equal(len(reg.encoderTypeMap), 1) || !cmp.Equal(ok, true) || len(codecs) != 3 {
+			codecs, ok := reg.codecTypeMap[reflect.TypeOf((*fakeCodec)(nil))]
+			if !cmp.Equal(len(reg.codecTypeMap), 1) || !cmp.Equal(ok, true) || len(codecs) != 3 {
 				t.Errorf("codecs were not cached correctly")
 			}
 			got := reg.typeEncoders
@@ -246,8 +246,8 @@ func TestRegistryBuilder(t *testing.T) {
 			if !cmp.Equal(c4, 1) {
 				t.Errorf("ef4 is called %d time(s); expected 1", c4)
 			}
-			codecs, ok := reg.encoderTypeMap[reflect.TypeOf((*fakeCodec)(nil))]
-			if !cmp.Equal(len(reg.encoderTypeMap), 1) || !cmp.Equal(ok, true) || len(codecs) != 3 {
+			codecs, ok := reg.codecTypeMap[reflect.TypeOf((*fakeCodec)(nil))]
+			if !cmp.Equal(len(reg.codecTypeMap), 1) || !cmp.Equal(ok, true) || len(codecs) != 3 {
 				t.Errorf("codecs were not cached correctly")
 			}
 			got := reg.kindEncoders

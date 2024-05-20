@@ -56,7 +56,7 @@ func Unmarshal(data []byte, val interface{}) error {
 // See [Decoder] for more examples.
 func UnmarshalWithRegistry(r *Registry, data []byte, val interface{}) error {
 	vr := NewValueReader(data)
-	return unmarshalFromReader(DecodeContext{Registry: r}, vr, val)
+	return unmarshalFromReader(r, vr, val)
 }
 
 // UnmarshalWithContext parses the BSON-encoded data using DecodeContext dc and
@@ -73,9 +73,9 @@ func UnmarshalWithRegistry(r *Registry, data []byte, val interface{}) error {
 //	dec.DefaultDocumentM()
 //
 // See [Decoder] for more examples.
-func UnmarshalWithContext(dc DecodeContext, data []byte, val interface{}) error {
+func UnmarshalWithContext(reg *Registry, data []byte, val interface{}) error {
 	vr := NewValueReader(data)
-	return unmarshalFromReader(dc, vr, val)
+	return unmarshalFromReader(reg, vr, val)
 }
 
 // UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
@@ -93,7 +93,7 @@ func UnmarshalValue(t Type, data []byte, val interface{}) error {
 // Go Driver 2.0.
 func UnmarshalValueWithRegistry(r *Registry, t Type, data []byte, val interface{}) error {
 	vr := NewBSONValueReader(t, data)
-	return unmarshalFromReader(DecodeContext{Registry: r}, vr, val)
+	return unmarshalFromReader(r, vr, val)
 }
 
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
@@ -126,7 +126,7 @@ func UnmarshalExtJSONWithRegistry(r *Registry, data []byte, canonical bool, val 
 		return err
 	}
 
-	return unmarshalFromReader(DecodeContext{Registry: r}, ejvr, val)
+	return unmarshalFromReader(r, ejvr, val)
 }
 
 // UnmarshalExtJSONWithContext parses the extended JSON-encoded data using
@@ -147,21 +147,21 @@ func UnmarshalExtJSONWithRegistry(r *Registry, data []byte, canonical bool, val 
 //	dec.DefaultDocumentM()
 //
 // See [Decoder] for more examples.
-func UnmarshalExtJSONWithContext(dc DecodeContext, data []byte, canonical bool, val interface{}) error {
+func UnmarshalExtJSONWithContext(reg *Registry, data []byte, canonical bool, val interface{}) error {
 	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonical)
 	if err != nil {
 		return err
 	}
 
-	return unmarshalFromReader(dc, ejvr, val)
+	return unmarshalFromReader(reg, ejvr, val)
 }
 
-func unmarshalFromReader(dc DecodeContext, vr ValueReader, val interface{}) error {
+func unmarshalFromReader(reg *Registry, vr ValueReader, val interface{}) error {
 	dec := decPool.Get().(*Decoder)
 	defer decPool.Put(dec)
 
 	dec.Reset(vr)
-	dec.dc = dc
+	dec.reg = reg
 
 	return dec.Decode(val)
 }

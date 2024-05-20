@@ -71,7 +71,7 @@ func (e *Encoder) SetRegistry(r *Registry) {
 // the marshaled BSON when the "inline" struct tag option is set.
 func (e *Encoder) ErrorOnInlineDuplicates() {
 	t := reflect.TypeOf((*structCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*structCodec).overwriteDuplicatedInlinedFields = false
 		}
@@ -93,7 +93,7 @@ func (e *Encoder) IntMinSize() {
 	// 	}
 	// }
 	t := reflect.TypeOf((*intCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*intCodec).encodeToMinSize = true
 		}
@@ -104,7 +104,7 @@ func (e *Encoder) IntMinSize() {
 // strings using fmt.Sprint instead of the default string conversion logic.
 func (e *Encoder) StringifyMapKeysWithFmt() {
 	t := reflect.TypeOf((*mapCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*mapCodec).encodeKeysWithStringer = true
 		}
@@ -115,7 +115,7 @@ func (e *Encoder) StringifyMapKeysWithFmt() {
 // null.
 func (e *Encoder) NilMapAsEmpty() {
 	t := reflect.TypeOf((*mapCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*mapCodec).encodeNilAsEmpty = true
 		}
@@ -126,7 +126,7 @@ func (e *Encoder) NilMapAsEmpty() {
 // null.
 func (e *Encoder) NilSliceAsEmpty() {
 	t := reflect.TypeOf((*sliceCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*sliceCodec).encodeNilAsEmpty = true
 		}
@@ -142,7 +142,7 @@ func (e *Encoder) NilByteSliceAsEmpty() {
 	// 	}
 	// }
 	t := reflect.TypeOf((*byteSliceCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*byteSliceCodec).encodeNilAsEmpty = true
 		}
@@ -159,7 +159,7 @@ func (e *Encoder) NilByteSliceAsEmpty() {
 // zero value. It considers pointers to a zero struct value (e.g. &MyStruct{}) not empty.
 func (e *Encoder) OmitZeroStruct() {
 	t := reflect.TypeOf((*structCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*structCodec).encodeOmitDefaultStruct = true
 		}
@@ -170,7 +170,7 @@ func (e *Encoder) OmitZeroStruct() {
 // struct tag is not specified.
 func (e *Encoder) UseJSONStructTags() {
 	t := reflect.TypeOf((*structCodec)(nil))
-	if v, ok := e.reg.encoderTypeMap[t]; ok && v != nil {
+	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
 			v[i].(*structCodec).useJSONStructTags = true
 		}
