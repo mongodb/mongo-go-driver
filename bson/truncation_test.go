@@ -34,7 +34,7 @@ func TestTruncation(t *testing.T) {
 		vw := NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
-		enc.SetRegistry(DefaultRegistry)
+		enc.SetRegistry(NewRegistryBuilder().Build())
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
@@ -44,7 +44,7 @@ func TestTruncation(t *testing.T) {
 		// 	truncate: true,
 		// }
 
-		err = UnmarshalWithContext(DefaultRegistry, buf.Bytes(), &output)
+		err = UnmarshalWithContext(NewRegistryBuilder().Build(), buf.Bytes(), &output)
 		assert.Nil(t, err)
 
 		assert.Equal(t, inputName, output.Name)
@@ -60,7 +60,7 @@ func TestTruncation(t *testing.T) {
 		vw := NewValueWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
-		enc.SetRegistry(DefaultRegistry)
+		enc.SetRegistry(NewRegistryBuilder().Build())
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
@@ -71,7 +71,7 @@ func TestTruncation(t *testing.T) {
 		// }
 
 		// case throws an error when truncation is disabled
-		err = UnmarshalWithContext(DefaultRegistry, buf.Bytes(), &output)
+		err = UnmarshalWithContext(NewRegistryBuilder().Build(), buf.Bytes(), &output)
 		assert.NotNil(t, err)
 	})
 }

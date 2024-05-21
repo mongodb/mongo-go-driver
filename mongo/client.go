@@ -166,7 +166,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 		client.bsonOpts = clientOpt.BSONOptions
 	}
 	// Registry
-	client.registry = bson.DefaultRegistry
+	client.registry = bson.NewRegistryBuilder().Build()
 	if clientOpt.Registry != nil {
 		client.registry = clientOpt.Registry
 	}

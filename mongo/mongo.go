@@ -118,7 +118,7 @@ func marshal(
 	registry *bson.Registry,
 ) (bsoncore.Document, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = bson.NewRegistryBuilder().Build()
 	}
 	if val == nil {
 		return nil, ErrNilDocument
@@ -156,7 +156,7 @@ func ensureID(
 	reg *bson.Registry,
 ) (bsoncore.Document, interface{}, error) {
 	if reg == nil {
-		reg = bson.DefaultRegistry
+		reg = bson.NewRegistryBuilder().Build()
 	}
 
 	// Try to find the "_id" element. If it exists, try to unmarshal just the

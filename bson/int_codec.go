@@ -14,9 +14,14 @@ import (
 
 // intCodec is the Codec used for uint values.
 type intCodec struct {
-	// encodeToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
+	// minSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64,
+	// uint, uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits)
+	// that can represent the integer value.
+	minSize bool
+
+	// encodeUintToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
 	// minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
-	encodeToMinSize bool
+	encodeUintToMinSize bool
 
 	// truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
 	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, int64,
@@ -38,7 +43,7 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 		return vw.WriteInt64(i64)
 	case reflect.Int64:
 		i64 := val.Int()
-		if ic.encodeToMinSize && fitsIn32Bits(i64) {
+		if ic.minSize && fitsIn32Bits(i64) {
 			return vw.WriteInt32(int32(i64))
 		}
 		return vw.WriteInt64(i64)
@@ -48,8 +53,8 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 	case reflect.Uint, reflect.Uint32, reflect.Uint64:
 		u64 := val.Uint()
 
-		// If encodeToMinSize is true for a non-uint64 value we should write val as an int32
-		useMinSize := ic.encodeToMinSize && val.Kind() != reflect.Uint64
+		// If minSize or encodeToMinSize is true for a non-uint64 value we should write val as an int32
+		useMinSize := ic.minSize || (ic.encodeUintToMinSize && val.Kind() != reflect.Uint64)
 
 		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))
@@ -183,8 +188,11 @@ func (ic *intCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type
 func (ic *intCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() {
 		return ValueDecoderError{
-			Name:     "IntDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+			Name: "IntDecodeValue",
+			Kinds: []reflect.Kind{
+				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+				reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+			},
 			Received: val,
 		}
 	}
@@ -192,6 +200,10 @@ func (ic *intCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect
 	elem, err := ic.decodeType(reg, vr, val.Type())
 	if err != nil {
 		return err
+	}
+
+	if t := val.Type(); elem.Type() != t {
+		elem = elem.Convert(t)
 	}
 
 	val.Set(elem)

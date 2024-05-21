@@ -22,10 +22,10 @@ func TestSingleResult(t *testing.T) {
 	t.Run("Decode", func(t *testing.T) {
 		t.Run("decode twice", func(t *testing.T) {
 			// Test that Decode and Raw can be called more than once
-			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
+			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.NewRegistryBuilder().Build())
 			assert.Nil(t, err, "newCursor error: %v", err)
 
-			sr := &SingleResult{cur: c, reg: bson.DefaultRegistry}
+			sr := &SingleResult{cur: c, reg: c.registry}
 			var firstDecode, secondDecode bson.Raw
 			err = sr.Decode(&firstDecode)
 			assert.Nil(t, err, "Decode error: %v", err)
@@ -47,7 +47,7 @@ func TestSingleResult(t *testing.T) {
 			assert.Equal(t, sr.err, err, "expected error %v, got %v", sr.err, err)
 		})
 		t.Run("with BSONOptions", func(t *testing.T) {
-			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.DefaultRegistry)
+			c, err := newCursor(newTestBatchCursor(1, 1), nil, bson.NewRegistryBuilder().Build())
 			require.NoError(t, err, "newCursor error")
 
 			sr := &SingleResult{
@@ -55,7 +55,7 @@ func TestSingleResult(t *testing.T) {
 				bsonOpts: &options.BSONOptions{
 					UseJSONStructTags: true,
 				},
-				reg: bson.DefaultRegistry,
+				reg: c.registry,
 			}
 
 			type myDocument struct {

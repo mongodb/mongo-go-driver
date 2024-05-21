@@ -1105,6 +1105,9 @@ func decodeDefault(reg DecoderRegistry, vr ValueReader, val reflect.Value) ([]re
 		if err != nil {
 			return nil, newDecodeError(strconv.Itoa(idx), err)
 		}
+		if elem.Type() != eType {
+			elem = elem.Convert(eType)
+		}
 		elems = append(elems, elem)
 		idx++
 	}
@@ -1175,6 +1178,7 @@ func codeWithScopeDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.V
 func decodeD(reg DecoderRegistry, vr ValueReader, val reflect.Value) ([]reflect.Value, error) {
 	switch vr.Type() {
 	case Type(0), TypeEmbeddedDocument:
+		break
 	default:
 		return nil, fmt.Errorf("cannot decode %v into a D", vr.Type())
 	}

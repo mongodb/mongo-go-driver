@@ -99,7 +99,7 @@ type UploadOptions struct {
 
 // GridFSUpload creates a new UploadOptions instance.
 func GridFSUpload() *UploadOptions {
-	return &UploadOptions{Registry: bson.DefaultRegistry}
+	return &UploadOptions{Registry: bson.NewRegistryBuilder().Build()}
 }
 
 // SetChunkSizeBytes sets the value for the ChunkSize field.

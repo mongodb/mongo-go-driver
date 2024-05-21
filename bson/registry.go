@@ -12,10 +12,6 @@ import (
 	"sync"
 )
 
-// DefaultRegistry is the default Registry. It contains the default codecs and the
-// primitive codecs.
-var DefaultRegistry = NewRegistryBuilder().Build()
-
 // ErrNoEncoder is returned when there wasn't an encoder available for a type.
 //
 // Deprecated: ErrNoEncoder will not be supported in Go Driver 2.0.
@@ -38,7 +34,13 @@ type ErrNoDecoder struct {
 }
 
 func (end ErrNoDecoder) Error() string {
-	return "no decoder found for " + end.Type.String()
+	var typeStr string
+	if end.Type != nil {
+		typeStr = end.Type.String()
+	} else {
+		typeStr = "nil type"
+	}
+	return "no decoder found for " + typeStr
 }
 
 // ErrNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.

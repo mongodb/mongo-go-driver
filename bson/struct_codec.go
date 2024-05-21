@@ -83,6 +83,28 @@ func newStructCodec(p StructTagParser) *structCodec {
 	}
 }
 
+type localEncoderRegistry struct {
+	registry EncoderRegistry
+
+	minSize bool
+}
+
+func (r *localEncoderRegistry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
+	ve, err := r.registry.LookupEncoder(t)
+	if err != nil {
+		return ve, err
+	}
+	if r.minSize {
+		if ic, ok := ve.(*intCodec); ok {
+			ve = &intCodec{
+				minSize:  true,
+				truncate: ic.truncate,
+			}
+		}
+	}
+	return ve, nil
+}
+
 // EncodeValue handles encoding generic struct types.
 func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Struct {
@@ -107,6 +129,11 @@ func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val refl
 			if err != nil {
 				continue
 			}
+		}
+
+		reg = &localEncoderRegistry{
+			registry: reg,
+			minSize:  desc.minSize,
 		}
 
 		var encoder ValueEncoder
@@ -156,13 +183,6 @@ func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val refl
 		vw2, err := dw.WriteDocumentElement(desc.name)
 		if err != nil {
 			return err
-		}
-
-		// defaultUIntCodec.encodeToMinSize = desc.minSize
-		if v, ok := encoder.(*intCodec); ok {
-			encoder = &intCodec{
-				encodeToMinSize: v.encodeToMinSize || desc.minSize,
-			}
 		}
 
 		err = encoder.EncodeValue(reg, vw2, rv)

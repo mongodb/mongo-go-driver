@@ -40,7 +40,7 @@ func NewSingleResultFromDocument(document interface{}, err error, registry *bson
 		return &SingleResult{err: ErrNilDocument}
 	}
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = bson.NewRegistryBuilder().Build()
 	}
 
 	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)

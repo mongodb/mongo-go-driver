@@ -128,7 +128,7 @@ type ArrayFilters struct {
 func (af *ArrayFilters) ToArray() ([]bson.Raw, error) {
 	registry := af.Registry
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = bson.NewRegistryBuilder().Build()
 	}
 	filters := make([]bson.Raw, 0, len(af.Filters))
 	buf := new(bytes.Buffer)
@@ -154,7 +154,7 @@ func (af *ArrayFilters) ToArray() ([]bson.Raw, error) {
 func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
 	registry := af.Registry
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = bson.NewRegistryBuilder().Build()
 	}
 
 	idx, arr := bsoncore.AppendArrayStart(nil)

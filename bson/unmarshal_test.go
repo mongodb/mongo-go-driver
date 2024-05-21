@@ -48,7 +48,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithRegistry(DefaultRegistry, data, got)
+			err := UnmarshalWithRegistry(NewRegistryBuilder().Build(), data, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 
@@ -70,7 +70,7 @@ func TestUnmarshalWithContext(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithContext(DefaultRegistry, data, got)
+			err := UnmarshalWithContext(NewRegistryBuilder().Build(), data, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 
@@ -88,7 +88,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 		type teststruct struct{ Foo int }
 		var got teststruct
 		data := []byte("{\"foo\":1}")
-		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &got)
+		err := UnmarshalExtJSONWithRegistry(NewRegistryBuilder().Build(), data, true, &got)
 		noerr(t, err)
 		want := teststruct{1}
 		assert.Equal(t, want, got, "Did not unmarshal as expected.")
@@ -96,7 +96,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 
 	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
 		data := []byte("invalid")
-		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
+		err := UnmarshalExtJSONWithRegistry(NewRegistryBuilder().Build(), data, true, &M{})
 		if !errors.Is(err, ErrInvalidJSON) {
 			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
 		}
@@ -198,7 +198,7 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalExtJSONWithContext(DefaultRegistry, data, true, got)
+			err := UnmarshalExtJSONWithContext(NewRegistryBuilder().Build(), data, true, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 

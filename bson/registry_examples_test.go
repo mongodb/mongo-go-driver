@@ -135,7 +135,9 @@ func ExampleRegistry_customDecoder() {
 	reg := bson.NewRegistryBuilder()
 	reg.RegisterTypeDecoder(
 		lenientBoolType,
-		func() bson.ValueDecoder { return bson.ValueDecoderFunc(lenientBoolDecoder) },
+		func() bson.ValueDecoder {
+			return bson.ValueDecoderFunc(lenientBoolDecoder)
+		},
 	)
 
 	// Marshal a BSON document with a single field "isOK" that is a non-zero
@@ -280,7 +282,9 @@ func ExampleRegistryBuilder_RegisterKindDecoder() {
 	reg := bson.NewRegistryBuilder()
 	reg.RegisterKindDecoder(
 		reflect.Int64,
-		func() bson.ValueDecoder { return bson.ValueDecoderFunc(flexibleInt64KindDecoder) },
+		func() bson.ValueDecoder {
+			return bson.ValueDecoderFunc(flexibleInt64KindDecoder)
+		},
 	)
 
 	// Marshal a BSON document with fields that are mixed numeric types but all

@@ -38,7 +38,7 @@ type ValueUnmarshaler interface {
 // pointed to by val. If val is nil or not a pointer, Unmarshal returns
 // InvalidUnmarshalError.
 func Unmarshal(data []byte, val interface{}) error {
-	return UnmarshalWithRegistry(DefaultRegistry, data, val)
+	return UnmarshalWithRegistry(NewRegistryBuilder().Build(), data, val)
 }
 
 // UnmarshalWithRegistry parses the BSON-encoded data using Registry r and
@@ -78,11 +78,11 @@ func UnmarshalWithContext(reg *Registry, data []byte, val interface{}) error {
 	return unmarshalFromReader(reg, vr, val)
 }
 
-// UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
+// UnmarshalValue parses the BSON value of type t with default registry and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
 func UnmarshalValue(t Type, data []byte, val interface{}) error {
-	return UnmarshalValueWithRegistry(DefaultRegistry, t, data, val)
+	return UnmarshalValueWithRegistry(NewRegistryBuilder().Build(), t, data, val)
 }
 
 // UnmarshalValueWithRegistry parses the BSON value of type t with registry r and
@@ -100,7 +100,7 @@ func UnmarshalValueWithRegistry(r *Registry, t Type, data []byte, val interface{
 // in the value pointed to by val. If val is nil or not a pointer, Unmarshal
 // returns InvalidUnmarshalError.
 func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
-	return UnmarshalExtJSONWithRegistry(DefaultRegistry, data, canonical, val)
+	return UnmarshalExtJSONWithRegistry(NewRegistryBuilder().Build(), data, canonical, val)
 }
 
 // UnmarshalExtJSONWithRegistry parses the extended JSON-encoded data using

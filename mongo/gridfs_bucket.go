@@ -613,7 +613,7 @@ func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*uplo
 		upload.chunkSize = *uo.ChunkSizeBytes
 	}
 	if uo.Registry == nil {
-		uo.Registry = bson.DefaultRegistry
+		uo.Registry = bson.NewRegistryBuilder().Build()
 	}
 	if uo.Metadata != nil {
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the

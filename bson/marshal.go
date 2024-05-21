@@ -74,7 +74,7 @@ func Marshal(val interface{}) ([]byte, error) {
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
-	enc.SetRegistry(DefaultRegistry)
+	enc.SetRegistry(NewRegistryBuilder().Build())
 	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
@@ -85,10 +85,10 @@ func Marshal(val interface{}) ([]byte, error) {
 
 // MarshalValue returns the BSON encoding of val.
 //
-// MarshalValue will use bson.DefaultRegistry to transform val into a BSON value. If val is a struct, this function will
+// MarshalValue will use default registry to transform val into a BSON value. If val is a struct, this function will
 // inspect struct tags and alter the marshalling process accordingly.
 func MarshalValue(val interface{}) (Type, []byte, error) {
-	return MarshalValueWithRegistry(DefaultRegistry, val)
+	return MarshalValueWithRegistry(NewRegistryBuilder().Build(), val)
 }
 
 // MarshalValueWithRegistry returns the BSON encoding of val using Registry r.
@@ -127,7 +127,7 @@ func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error)
 	defer encPool.Put(enc)
 
 	enc.Reset(ejvw)
-	enc.SetRegistry(DefaultRegistry)
+	enc.SetRegistry(NewRegistryBuilder().Build())
 
 	err := enc.Encode(val)
 	if err != nil {

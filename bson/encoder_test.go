@@ -22,7 +22,7 @@ func TestBasicEncode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			got := make(SliceWriter, 0, 1024)
 			vw := NewValueWriter(&got)
-			reg := DefaultRegistry
+			reg := NewRegistryBuilder().Build()
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
 			noerr(t, err)
 			err = encoder.EncodeValue(reg, vw, reflect.ValueOf(tc.val))

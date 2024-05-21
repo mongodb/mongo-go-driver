@@ -34,7 +34,7 @@ func newMgoRegistryBuilder() *RegistryBuilder {
 		encodeNilAsEmpty:       true,
 		encodeKeysWithStringer: true,
 	}
-	intcodec := func() ValueEncoder { return &intCodec{encodeToMinSize: true} }
+	intcodec := func() ValueEncoder { return &intCodec{encodeUintToMinSize: true} }
 
 	return NewRegistryBuilder().
 		RegisterTypeDecoder(tEmpty, func() ValueDecoder { return &emptyInterfaceCodec{decodeBinaryAsSlice: true} }).

@@ -24,7 +24,7 @@ type emptyInterfaceCodec struct {
 }
 
 // EncodeValue is the ValueEncoderFunc for interface{}.
-func (eic emptyInterfaceCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
+func (eic *emptyInterfaceCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tEmpty {
 		return ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}
@@ -40,7 +40,7 @@ func (eic emptyInterfaceCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, 
 	return encoder.EncodeValue(reg, vw, val.Elem())
 }
 
-func (eic emptyInterfaceCodec) getEmptyInterfaceDecodeType(reg DecoderRegistry, valueType Type, ancestorType reflect.Type) (reflect.Type, error) {
+func (eic *emptyInterfaceCodec) getEmptyInterfaceDecodeType(reg DecoderRegistry, valueType Type, ancestorType reflect.Type) (reflect.Type, error) {
 	isDocument := valueType == Type(0) || valueType == TypeEmbeddedDocument
 	if isDocument {
 		if eic.defaultDocumentType != nil {
@@ -81,12 +81,12 @@ func (eic emptyInterfaceCodec) getEmptyInterfaceDecodeType(reg DecoderRegistry, 
 	return nil, err
 }
 
-func (eic emptyInterfaceCodec) decodeType(reg DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (eic *emptyInterfaceCodec) decodeType(reg DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	rtype, err := eic.getEmptyInterfaceDecodeType(reg, vr.Type(), t)
 	if err != nil {
 		switch vr.Type() {
 		case TypeNull:
-			return reflect.Zero(t), vr.ReadNull()
+			return reflect.Zero(tEmpty), vr.ReadNull()
 		default:
 			return emptyValue, err
 		}
@@ -116,7 +116,7 @@ func (eic emptyInterfaceCodec) decodeType(reg DecoderRegistry, vr ValueReader, t
 }
 
 // DecodeValue is the ValueDecoderFunc for interface{}.
-func (eic emptyInterfaceCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
+func (eic *emptyInterfaceCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tEmpty {
 		return ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}

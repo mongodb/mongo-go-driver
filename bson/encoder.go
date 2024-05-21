@@ -27,10 +27,10 @@ type Encoder struct {
 	vw  ValueWriter
 }
 
-// NewEncoder returns a new encoder that uses the DefaultRegistry to write to vw.
+// NewEncoder returns a new encoder that uses the default registry to write to vw.
 func NewEncoder(vw ValueWriter) *Encoder {
 	return &Encoder{
-		reg: DefaultRegistry,
+		reg: NewRegistryBuilder().Build(),
 		vw:  vw,
 	}
 }
@@ -95,7 +95,7 @@ func (e *Encoder) IntMinSize() {
 	t := reflect.TypeOf((*intCodec)(nil))
 	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
-			v[i].(*intCodec).encodeToMinSize = true
+			v[i].(*intCodec).minSize = true
 		}
 	}
 }

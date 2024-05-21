@@ -55,7 +55,7 @@ func newCursorWithSession(
 	clientSession *session.Client,
 ) (*Cursor, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = bson.NewRegistryBuilder().Build()
 	}
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
@@ -82,12 +82,12 @@ func newEmptyCursor() *Cursor {
 }
 
 // NewCursorFromDocuments creates a new Cursor pre-loaded with the provided documents, error and registry. If no registry is provided,
-// bson.DefaultRegistry will be used.
+// a default registry will be used.
 //
 // The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
 func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = bson.NewRegistryBuilder().Build()
 	}
 
 	buf := new(bytes.Buffer)

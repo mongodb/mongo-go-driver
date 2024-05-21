@@ -148,8 +148,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)},
 					readInt32,
 					ValueDecoderError{
-						Name:     "IntDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf(wrong),
 					},
 				},
@@ -214,8 +217,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"int8/fast path - nil", (*int8)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "IntDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*int8)(nil)),
 					},
 				},
@@ -223,8 +229,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"int16/fast path - nil", (*int16)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "IntDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*int16)(nil)),
 					},
 				},
@@ -232,8 +241,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"int32/fast path - nil", (*int32)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "IntDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*int32)(nil)),
 					},
 				},
@@ -241,8 +253,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"int64/fast path - nil", (*int64)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "IntDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*int64)(nil)),
 					},
 				},
@@ -250,8 +265,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"int/fast path - nil", (*int)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "IntDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*int)(nil)),
 					},
 				},
@@ -347,8 +365,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)},
 					nothing,
 					ValueDecoderError{
-						Name:  "IntDecodeValue",
-						Kinds: []reflect.Kind{reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 					},
 				},
 				{
@@ -380,8 +401,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)},
 					readInt32,
 					ValueDecoderError{
-						Name:     "UintDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf(wrong),
 					},
 				},
@@ -446,8 +470,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"uint8/fast path - nil", (*uint8)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "UintDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*uint8)(nil)),
 					},
 				},
@@ -455,8 +482,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"uint16/fast path - nil", (*uint16)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "UintDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*uint16)(nil)),
 					},
 				},
@@ -464,8 +494,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"uint32/fast path - nil", (*uint32)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "UintDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*uint32)(nil)),
 					},
 				},
@@ -473,8 +506,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"uint64/fast path - nil", (*uint64)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "UintDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*uint64)(nil)),
 					},
 				},
@@ -482,8 +518,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					"uint/fast path - nil", (*uint)(nil), nil,
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)}, readInt32,
 					ValueDecoderError{
-						Name:     "UintDecodeValue",
-						Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf((*uint)(nil)),
 					},
 				},
@@ -599,8 +638,11 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeInt32, Return: int32(0)},
 					nothing,
 					ValueDecoderError{
-						Name:  "UintDecodeValue",
-						Kinds: []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
+						Name: "IntDecodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 					},
 				},
 			},

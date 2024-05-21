@@ -28,7 +28,7 @@ func TestMarshalWithRegistry(t *testing.T) {
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
-				reg = DefaultRegistry
+				reg = NewRegistryBuilder().Build()
 			}
 			buf := new(bytes.Buffer)
 			vw := NewValueWriter(buf)
@@ -52,7 +52,7 @@ func TestMarshalWithContext(t *testing.T) {
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
-				reg = DefaultRegistry
+				reg = NewRegistryBuilder().Build()
 			}
 			buf := new(bytes.Buffer)
 			vw := NewValueWriter(buf)

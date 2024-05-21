@@ -32,10 +32,10 @@ type Decoder struct {
 	vr  ValueReader
 }
 
-// NewDecoder returns a new decoder that uses the DefaultRegistry to read from vr.
+// NewDecoder returns a new decoder that uses the default registry to read from vr.
 func NewDecoder(vr ValueReader) *Decoder {
 	return &Decoder{
-		reg: DefaultRegistry,
+		reg: NewRegistryBuilder().Build(),
 		vr:  vr,
 	}
 }

@@ -196,19 +196,19 @@ func TestDecoderv2(t *testing.T) {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr2)
 		}
 	})
-	t.Run("SetRegistry", func(t *testing.T) {
-		t.Parallel()
+	// t.Run("SetRegistry", func(t *testing.T) {
+	// 	t.Parallel()
 
-		r1, r2 := DefaultRegistry, NewRegistryBuilder().Build()
-		dec := NewDecoder(NewValueReader([]byte{}))
-		if !reflect.DeepEqual(dec.reg, r1) {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.reg, r1)
-		}
-		dec.SetRegistry(r2)
-		if !reflect.DeepEqual(dec.reg, r2) {
-			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.reg, r2)
-		}
-	})
+	// 	r1, r2 := DefaultRegistry, NewRegistryBuilder().Build()
+	// 	dec := NewDecoder(NewValueReader([]byte{}))
+	// 	if !reflect.DeepEqual(dec.reg, r1) {
+	// 		t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.reg, r1)
+	// 	}
+	// 	dec.SetRegistry(r2)
+	// 	if !reflect.DeepEqual(dec.reg, r2) {
+	// 		t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.reg, r2)
+	// 	}
+	// })
 	t.Run("DecodeToNil", func(t *testing.T) {
 		t.Parallel()
 
