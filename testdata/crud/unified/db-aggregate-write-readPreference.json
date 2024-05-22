@@ -65,7 +65,8 @@
       "runOnRequirements": [
         {
           "minServerVersion": "5.0",
-          "serverless": "forbid"
+          "serverless": "forbid",
+          "maxServerVersion": "7.99"
         }
       ],
       "operations": [

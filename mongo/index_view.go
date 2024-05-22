@@ -89,7 +89,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
 
@@ -403,7 +403,7 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropInd
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 
 	err = op.Execute(ctx)
 	if err != nil {

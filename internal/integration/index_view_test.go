@@ -33,20 +33,6 @@ func TestIndexView(t *testing.T) {
 	var pint32 = func(i int32) *int32 { return &i }
 
 	mt.Run("list", func(mt *mtest.T) {
-		createIndexes := func(mt *mtest.T, numIndexes int) {
-			mt.Helper()
-
-			models := make([]mongo.IndexModel, 0, numIndexes)
-			for i, key := 0, 'a'; i < numIndexes; i, key = i+1, key+1 {
-				models = append(models, mongo.IndexModel{
-					Keys: bson.M{string(key): 1},
-				})
-			}
-
-			_, err := mt.Coll.Indexes().CreateMany(context.Background(), models)
-			assert.Nil(mt, err, "CreateMany error: %v", err)
-		}
-
 		// For server versions below 3.0, we internally execute List() as a legacy OP_QUERY against the system.indexes
 		// collection. Command monitoring upconversions translate this to a "find" command rather than "listIndexes".
 		cmdName := "listIndexes"
@@ -61,13 +47,13 @@ func TestIndexView(t *testing.T) {
 			})
 		})
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
-			createIndexes(mt, 2)
+			createIndexes(mt, mt.Coll, 2)
 			assertGetMoreCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
 				return mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
 			})
 		})
 		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
-			createIndexes(mt, 2)
+			createIndexes(mt, mt.Coll, 2)
 			assertKillCursorsCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
 				return mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
 			})
@@ -725,4 +711,18 @@ func verifyIndexExists(mt *mtest.T, iv mongo.IndexView, expected index) {
 	}
 	assert.Nil(mt, cursor.Err(), "cursor error: %v", err)
 	assert.True(mt, found, "expected to find index %v but was not found", expected.Name)
+}
+
+func createIndexes(mt *mtest.T, coll *mongo.Collection, numIndexes int) {
+	mt.Helper()
+
+	models := make([]mongo.IndexModel, 0, numIndexes)
+	for i, key := 0, 'a'; i < numIndexes; i, key = i+1, key+1 {
+		models = append(models, mongo.IndexModel{
+			Keys: bson.M{string(key): 1},
+		})
+	}
+
+	_, err := coll.Indexes().CreateMany(context.Background(), models)
+	assert.Nil(mt, err, "CreateMany error: %v", err)
 }
