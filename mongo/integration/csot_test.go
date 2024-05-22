@@ -455,6 +455,46 @@ func TestCSOT(t *testing.T) {
 			bsoncore.ErrElementNotFound,
 			"expected maxTimeMS BSON value to be missing, but is present")
 	})
+
+	// TODO(GODRIVER-2944): Remove this test once the "timeoutMode" option is
+	// supported.
+	mt.RunOpts("Find always sends manually-specified maxTimeMS", csotOpts, func(mt *mtest.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Manually set a maxTimeMS on the Find and assert that it's sent with
+		// the command, even when CSOT is enabled.
+		cursor, err := mt.Coll.Find(
+			ctx,
+			bson.D{},
+			options.Find().SetMaxTime(5*time.Second))
+		require.NoError(mt, err, "Find error")
+		err = cursor.Close(context.Background())
+		require.NoError(mt, err, "Cursor.Close error")
+
+		evt := getStartedEvent(mt, "find")
+		assertMaxTimeMSIsSet(mt, evt.Command)
+	})
+
+	// TODO(GODRIVER-2944): Remove this test once the "timeoutMode" option is
+	// supported.
+	mt.RunOpts("Aggregate always sends manually-specified maxTimeMS", csotOpts, func(mt *mtest.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Manually set a maxTimeMS on the Aggregate and assert that it's sent with
+		// the command, even when CSOT is enabled.
+		cursor, err := mt.Coll.Aggregate(
+			ctx,
+			bson.D{},
+			options.Aggregate().SetMaxTime(5*time.Second))
+		require.NoError(mt, err, "Aggregate error")
+		err = cursor.Close(context.Background())
+		require.NoError(mt, err, "Cursor.Close error")
+
+		evt := getStartedEvent(mt, "aggregate")
+		assertMaxTimeMSIsSet(mt, evt.Command)
+	})
 }
 
 func TestCSOT_errors(t *testing.T) {

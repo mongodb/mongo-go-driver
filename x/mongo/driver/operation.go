@@ -1574,11 +1574,17 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, mon RTTMonitor) (uint64, error) {
-	if csot.IsTimeoutContext(ctx) {
-		if op.OmitCSOTMaxTimeMS {
-			return 0, nil
-		}
-
+	// If CSOT is enabled and we're not omitting the CSOT-calculated maxTimeMS
+	// value, then calculate maxTimeMS.
+	//
+	// This allows commands that do not currently send CSOT-calculated maxTimeMS
+	// (e.g. Find and Aggregate) to still use a manually-provided maxTimeMS
+	// value.
+	//
+	// TODO(GODRIVER-2944): Remove or refactor this logic when we add the
+	// "timeoutMode" option, which will allow users to opt-in to the
+	// CSOT-calculated maxTimeMS values if that's the behavior they want.
+	if csot.IsTimeoutContext(ctx) && !op.OmitCSOTMaxTimeMS {
 		if deadline, ok := ctx.Deadline(); ok {
 			remainingTimeout := time.Until(deadline)
 			rtt90 := mon.P90()
