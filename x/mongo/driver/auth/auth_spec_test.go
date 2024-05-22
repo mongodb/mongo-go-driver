@@ -13,6 +13,7 @@ import (
 	"path"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -59,35 +60,39 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 func runTest(t *testing.T, filename string, test testCase) {
 	t.Run(filename+":"+test.Description, func(t *testing.T) {
 		opts := options.Client().ApplyURI(test.URI)
+
+		args, _ := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+
 		if test.Valid {
 			require.NoError(t, opts.Validate())
 		} else {
 			require.Error(t, opts.Validate())
+
 			return
 		}
 
 		if test.Credential == nil {
-			require.Nil(t, opts.Auth)
+			require.Nil(t, args.Auth)
 			return
 		}
-		require.NotNil(t, opts.Auth)
-		require.Equal(t, test.Credential.Username, opts.Auth.Username)
+		require.NotNil(t, args.Auth)
+		require.Equal(t, test.Credential.Username, args.Auth.Username)
 
 		if test.Credential.Password == nil {
-			require.False(t, opts.Auth.PasswordSet)
+			require.False(t, args.Auth.PasswordSet)
 		} else {
-			require.True(t, opts.Auth.PasswordSet)
-			require.Equal(t, *test.Credential.Password, opts.Auth.Password)
+			require.True(t, args.Auth.PasswordSet)
+			require.Equal(t, *test.Credential.Password, args.Auth.Password)
 		}
 
-		require.Equal(t, test.Credential.Source, opts.Auth.AuthSource)
+		require.Equal(t, test.Credential.Source, args.Auth.AuthSource)
 
-		require.Equal(t, test.Credential.Mechanism, opts.Auth.AuthMechanism)
+		require.Equal(t, test.Credential.Mechanism, args.Auth.AuthMechanism)
 
 		if len(test.Credential.MechProps) > 0 {
-			require.Equal(t, mapInterfaceToString(test.Credential.MechProps), opts.Auth.AuthMechanismProperties)
+			require.Equal(t, mapInterfaceToString(test.Credential.MechProps), args.Auth.AuthMechanismProperties)
 		} else {
-			require.Equal(t, 0, len(opts.Auth.AuthMechanismProperties))
+			require.Equal(t, 0, len(args.Auth.AuthMechanismProperties))
 		}
 	})
 }

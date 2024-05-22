@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -121,13 +122,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		entity.logQueue = clientLogger.logQueue
 
 		// Update the client options to add the clientLogger.
-		clientOpts.LoggerOptions = options.Logger().
+		loggerOptions := options.Logger().
 			SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
 			SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
 			SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
 			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 			SetMaxDocumentLength(defaultMaxDocumentLen).
 			SetSink(clientLogger)
+
+		clientOpts.SetLoggerOptions(loggerOptions)
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
@@ -181,7 +184,12 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		if err := entityOptions.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+		args, err := mongoutil.NewArgsFromOptions[options.ServerAPIArgs](entityOptions.ServerAPIOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		}
+
+		if err := args.ServerAPIVersion.Validate(); err != nil {
 			return nil, err
 		}
 		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)

@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/handshake"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -39,9 +40,18 @@ func main() {
 			panic(fmt.Sprintf("error running test with TLS at index %d: %v", idx, err))
 		}
 
+		args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](clientOpts)
+		if err != nil {
+			panic(fmt.Sprintf("failed to construct args from options: %v", err))
+		}
+
+		tlsConfigSkipVerify := args.TLSConfig
+		tlsConfigSkipVerify.InsecureSkipVerify = true
+
 		// Run the connectivity test with InsecureSkipVerify to ensure SNI is done correctly even if verification is
 		// disabled.
-		clientOpts.TLSConfig.InsecureSkipVerify = true
+		clientOpts.SetTLSConfig(tlsConfigSkipVerify)
+
 		if err := runTest(ctx, clientOpts); err != nil {
 			panic(fmt.Sprintf("error running test with tlsInsecure at index %d: %v", idx, err))
 		}

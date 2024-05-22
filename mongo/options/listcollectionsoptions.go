@@ -6,8 +6,9 @@
 
 package options
 
-// ListCollectionsOptions represents options that can be used to configure a ListCollections operation.
-type ListCollectionsOptions struct {
+// ListCollectionsArgs represents arguments that can be used to configure a
+// ListCollections operation.
+type ListCollectionsArgs struct {
 	// If true, each collection document will only contain a field for the collection name. The default value is false.
 	NameOnly *bool
 
@@ -19,26 +20,53 @@ type ListCollectionsOptions struct {
 	AuthorizedCollections *bool
 }
 
+// ListCollectionsOptions contains options to configure list collection
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type ListCollectionsOptions struct {
+	Opts []func(*ListCollectionsArgs) error
+}
+
 // ListCollections creates a new ListCollectionsOptions instance.
 func ListCollections() *ListCollectionsOptions {
 	return &ListCollectionsOptions{}
 }
 
+// ArgsSetters returns a list of CountArgs setter functions.
+func (lc *ListCollectionsOptions) ArgsSetters() []func(*ListCollectionsArgs) error {
+	return lc.Opts
+}
+
 // SetNameOnly sets the value for the NameOnly field.
 func (lc *ListCollectionsOptions) SetNameOnly(b bool) *ListCollectionsOptions {
-	lc.NameOnly = &b
+	lc.Opts = append(lc.Opts, func(args *ListCollectionsArgs) error {
+		args.NameOnly = &b
+
+		return nil
+	})
+
 	return lc
 }
 
 // SetBatchSize sets the value for the BatchSize field.
 func (lc *ListCollectionsOptions) SetBatchSize(size int32) *ListCollectionsOptions {
-	lc.BatchSize = &size
+	lc.Opts = append(lc.Opts, func(args *ListCollectionsArgs) error {
+		args.BatchSize = &size
+
+		return nil
+	})
+
 	return lc
 }
 
 // SetAuthorizedCollections sets the value for the AuthorizedCollections field. This option is only valid for MongoDB server versions >= 4.0. Server
 // versions < 4.0 ignore this option.
 func (lc *ListCollectionsOptions) SetAuthorizedCollections(b bool) *ListCollectionsOptions {
-	lc.AuthorizedCollections = &b
+	lc.Opts = append(lc.Opts, func(args *ListCollectionsArgs) error {
+		args.AuthorizedCollections = &b
+
+		return nil
+	})
+
 	return lc
 }

@@ -8,8 +8,9 @@ package options
 
 import "time"
 
-// DistinctOptions represents options that can be used to configure a Distinct operation.
-type DistinctOptions struct {
+// DistinctArgs represents arguments that can be used to configure a Distinct
+// operation.
+type DistinctArgs struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
@@ -28,20 +29,42 @@ type DistinctOptions struct {
 	MaxTime *time.Duration
 }
 
+// DistinctOptions contains options to configure distinct operations. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DistinctOptions struct {
+	Opts []func(*DistinctArgs) error
+}
+
 // Distinct creates a new DistinctOptions instance.
 func Distinct() *DistinctOptions {
 	return &DistinctOptions{}
 }
 
+// ArgsSetters returns a list of DistinctArg setter functions.
+func (do *DistinctOptions) ArgsSetters() []func(*DistinctArgs) error {
+	return do.Opts
+}
+
 // SetCollation sets the value for the Collation field.
 func (do *DistinctOptions) SetCollation(c *Collation) *DistinctOptions {
-	do.Collation = c
+	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
+		args.Collation = c
+
+		return nil
+	})
+
 	return do
 }
 
 // SetComment sets the value for the Comment field.
 func (do *DistinctOptions) SetComment(comment interface{}) *DistinctOptions {
-	do.Comment = comment
+	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
+		args.Comment = comment
+
+		return nil
+	})
+
 	return do
 }
 
@@ -51,6 +74,11 @@ func (do *DistinctOptions) SetComment(comment interface{}) *DistinctOptions {
 // option may be used in its place to control the amount of time that a single operation can
 // run before returning an error. MaxTime is ignored if Timeout is set on the client.
 func (do *DistinctOptions) SetMaxTime(d time.Duration) *DistinctOptions {
-	do.MaxTime = &d
+	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
+		args.MaxTime = &d
+
+		return nil
+	})
+
 	return do
 }

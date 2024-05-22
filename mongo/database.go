@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	defaultRunCmdOpts = []*options.RunCmdOptions{options.RunCmd().SetReadPreference(readpref.Primary())}
+	defaultRunCmdOpts = []Options[options.RunCmdArgs]{options.RunCmd().SetReadPreference(readpref.Primary())}
 )
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
@@ -42,49 +42,32 @@ type Database struct {
 	registry       *bson.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) *Database {
-	dbOpt := options.Database()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			dbOpt.ReadConcern = opt.ReadConcern
-		}
-		if opt.WriteConcern != nil {
-			dbOpt.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadPreference != nil {
-			dbOpt.ReadPreference = opt.ReadPreference
-		}
-		if opt.Registry != nil {
-			dbOpt.Registry = opt.Registry
-		}
-	}
+func newDatabase(client *Client, name string, opts ...Options[options.DatabaseArgs]) *Database {
+	args, _ := newArgsFromOptions[options.DatabaseArgs](opts...)
 
 	rc := client.readConcern
-	if dbOpt.ReadConcern != nil {
-		rc = dbOpt.ReadConcern
+	if args.ReadConcern != nil {
+		rc = args.ReadConcern
 	}
 
 	rp := client.readPreference
-	if dbOpt.ReadPreference != nil {
-		rp = dbOpt.ReadPreference
+	if args.ReadPreference != nil {
+		rp = args.ReadPreference
 	}
 
 	wc := client.writeConcern
-	if dbOpt.WriteConcern != nil {
-		wc = dbOpt.WriteConcern
+	if args.WriteConcern != nil {
+		wc = args.WriteConcern
 	}
 
 	bsonOpts := client.bsonOpts
-	if dbOpt.BSONOptions != nil {
-		bsonOpts = dbOpt.BSONOptions
+	if args.BSONOptions != nil {
+		bsonOpts = args.BSONOptions
 	}
 
 	reg := client.registry
-	if dbOpt.Registry != nil {
-		reg = dbOpt.Registry
+	if args.Registry != nil {
+		reg = args.Registry
 	}
 
 	db := &Database{
@@ -121,7 +104,7 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
-func (db *Database) Collection(name string, opts ...*options.CollectionOptions) *Collection {
+func (db *Database) Collection(name string, opts ...Options[options.CollectionArgs]) *Collection {
 	return newCollection(db, name, opts...)
 }
 
@@ -137,8 +120,11 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 // The opts parameter can be used to specify options for this operation (see the options.AggregateOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/aggregate/.
-func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
-	opts ...*options.AggregateOptions) (*Cursor, error) {
+func (db *Database) Aggregate(
+	ctx context.Context,
+	pipeline interface{},
+	opts ...Options[options.AggregateArgs],
+) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
 		pipeline:       pipeline,
@@ -151,33 +137,32 @@ func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
 		readSelector:   db.readSelector,
 		writeSelector:  db.writeSelector,
 		readPreference: db.readPreference,
-		opts:           opts,
 	}
-	return aggregate(a)
+
+	return aggregate(a, opts...)
 }
 
-func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
-	cursorCommand bool, opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
+func (db *Database) processRunCommand(
+	ctx context.Context,
+	cmd interface{},
+	cursorCommand bool,
+	opts ...Options[options.RunCmdArgs],
+) (*operation.Command, *session.Client, error) {
+	args, err := newArgsFromOptions[options.RunCmdArgs](append(defaultRunCmdOpts, opts...)...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.sessionPool != nil {
 		sess = session.NewImplicitClientSession(db.client.sessionPool, db.client.id)
 	}
 
-	err := db.client.validSession(sess)
-	if err != nil {
+	if err := db.client.validSession(sess); err != nil {
 		return nil, sess, err
 	}
 
-	ro := options.RunCmd()
-	for _, opt := range append(defaultRunCmdOpts, opts...) {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadPreference != nil {
-			ro.ReadPreference = opt.ReadPreference
-		}
-	}
-	if sess != nil && sess.TransactionRunning() && ro.ReadPreference != nil && ro.ReadPreference.Mode() != readpref.PrimaryMode {
+	if sess != nil && sess.TransactionRunning() && args.ReadPreference != nil && args.ReadPreference.Mode() != readpref.PrimaryMode {
 		return nil, sess, errors.New("read preference in a transaction must be primary")
 	}
 
@@ -190,7 +175,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 		return nil, sess, err
 	}
 	readSelect := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(ro.ReadPreference),
+		description.ReadPrefSelector(args.ReadPreference),
 		description.LatencySelector(db.client.localThreshold),
 	})
 	if sess != nil && sess.PinnedServer != nil {
@@ -212,7 +197,7 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	return op.Session(sess).CommandMonitor(db.client.monitor).
 		ServerSelector(readSelect).ClusterClock(db.client.clock).
 		Database(db.name).Deployment(db.client.deployment).
-		Crypt(db.client.cryptFLE).ReadPreference(ro.ReadPreference).ServerAPI(db.client.serverAPI).
+		Crypt(db.client.cryptFLE).ReadPreference(args.ReadPreference).ServerAPI(db.client.serverAPI).
 		Timeout(db.client.timeout).Logger(db.client.logger), sess, nil
 }
 
@@ -234,7 +219,11 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) *SingleResult {
+func (db *Database) RunCommand(
+	ctx context.Context,
+	runCommand interface{},
+	opts ...Options[options.RunCmdArgs],
+) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -271,7 +260,11 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 // - A session ID or any transaction-specific fields
 // - API versioning options when an API version is already declared on the Client
 // - maxTimeMS when Timeout is set on the Client
-func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}, opts ...*options.RunCmdOptions) (*Cursor, error) {
+func (db *Database) RunCommandCursor(
+	ctx context.Context,
+	runCommand interface{},
+	opts ...Options[options.RunCmdArgs],
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -354,9 +347,11 @@ func (db *Database) Drop(ctx context.Context) error {
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
-func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
-	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
-
+func (db *Database) ListCollectionSpecifications(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.ListCollectionsArgs],
+) ([]*CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -415,9 +410,18 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 //
 // BUG(benjirewis): ListCollections prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
-func (db *Database) ListCollections(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) (*Cursor, error) {
+func (db *Database) ListCollections(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.ListCollectionsArgs],
+) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
+	}
+
+	args, err := newArgsFromOptions[options.ListCollectionsArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
 
 	filterDoc, err := marshal(filter, db.bsonOpts, db.registry)
@@ -442,21 +446,6 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 	})
 	selector = makeReadPrefSelector(sess, selector, db.client.localThreshold)
 
-	lco := options.ListCollections()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.NameOnly != nil {
-			lco.NameOnly = opt.NameOnly
-		}
-		if opt.BatchSize != nil {
-			lco.BatchSize = opt.BatchSize
-		}
-		if opt.AuthorizedCollections != nil {
-			lco.AuthorizedCollections = opt.AuthorizedCollections
-		}
-	}
 	op := operation.NewListCollections(filterDoc).
 		Session(sess).ReadPreference(db.readPreference).CommandMonitor(db.client.monitor).
 		ServerSelector(selector).ClusterClock(db.client.clock).
@@ -467,15 +456,15 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(db.bsonOpts, db.registry)
 
-	if lco.NameOnly != nil {
-		op = op.NameOnly(*lco.NameOnly)
+	if args.NameOnly != nil {
+		op = op.NameOnly(*args.NameOnly)
 	}
-	if lco.BatchSize != nil {
-		cursorOpts.BatchSize = *lco.BatchSize
-		op = op.BatchSize(*lco.BatchSize)
+	if args.BatchSize != nil {
+		cursorOpts.BatchSize = *args.BatchSize
+		op = op.BatchSize(*args.BatchSize)
 	}
-	if lco.AuthorizedCollections != nil {
-		op = op.AuthorizedCollections(*lco.AuthorizedCollections)
+	if args.AuthorizedCollections != nil {
+		op = op.AuthorizedCollections(*args.AuthorizedCollections)
 	}
 
 	retry := driver.RetryNone
@@ -513,7 +502,11 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 //
 // BUG(benjirewis): ListCollectionNames prevents listing more than 100 collections per database when running against
 // MongoDB version 2.6.
-func (db *Database) ListCollectionNames(ctx context.Context, filter interface{}, opts ...*options.ListCollectionsOptions) ([]string, error) {
+func (db *Database) ListCollectionNames(
+	ctx context.Context,
+	filter interface{},
+	opts ...Options[options.ListCollectionsArgs],
+) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
 	res, err := db.ListCollections(ctx, filter, opts...)
@@ -556,7 +549,7 @@ func (db *Database) ListCollectionNames(ctx context.Context, filter interface{},
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...Options[options.ChangeStreamArgs]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,
@@ -570,63 +563,6 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }
 
-// mergeCreateCollectionOptions combines the given CreateCollectionOptions instances into a single
-// CreateCollectionOptions in a last-property-wins fashion.
-func mergeCreateCollectionOptions(opts ...*options.CreateCollectionOptions) *options.CreateCollectionOptions {
-	cc := options.CreateCollection()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.Capped != nil {
-			cc.Capped = opt.Capped
-		}
-		if opt.Collation != nil {
-			cc.Collation = opt.Collation
-		}
-		if opt.ChangeStreamPreAndPostImages != nil {
-			cc.ChangeStreamPreAndPostImages = opt.ChangeStreamPreAndPostImages
-		}
-		if opt.DefaultIndexOptions != nil {
-			cc.DefaultIndexOptions = opt.DefaultIndexOptions
-		}
-		if opt.MaxDocuments != nil {
-			cc.MaxDocuments = opt.MaxDocuments
-		}
-		if opt.SizeInBytes != nil {
-			cc.SizeInBytes = opt.SizeInBytes
-		}
-		if opt.StorageEngine != nil {
-			cc.StorageEngine = opt.StorageEngine
-		}
-		if opt.ValidationAction != nil {
-			cc.ValidationAction = opt.ValidationAction
-		}
-		if opt.ValidationLevel != nil {
-			cc.ValidationLevel = opt.ValidationLevel
-		}
-		if opt.Validator != nil {
-			cc.Validator = opt.Validator
-		}
-		if opt.ExpireAfterSeconds != nil {
-			cc.ExpireAfterSeconds = opt.ExpireAfterSeconds
-		}
-		if opt.TimeSeriesOptions != nil {
-			cc.TimeSeriesOptions = opt.TimeSeriesOptions
-		}
-		if opt.EncryptedFields != nil {
-			cc.EncryptedFields = opt.EncryptedFields
-		}
-		if opt.ClusteredIndex != nil {
-			cc.ClusteredIndex = opt.ClusteredIndex
-		}
-	}
-
-	return cc
-}
-
 // CreateCollection executes a create command to explicitly create a new collection with the specified name on the
 // server. If the collection being created already exists, this method will return a mongo.CommandError. This method
 // requires driver version 1.4.0 or higher.
@@ -635,11 +571,15 @@ func mergeCreateCollectionOptions(opts ...*options.CreateCollectionOptions) *opt
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
-func (db *Database) CreateCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
-	cco := mergeCreateCollectionOptions(opts...)
+func (db *Database) CreateCollection(ctx context.Context, name string, opts ...Options[options.CreateCollectionArgs]) error {
+	args, err := newArgsFromOptions(opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	// Follow Client-Side Encryption specification to check for encryptedFields.
 	// Check for encryptedFields from create options.
-	ef := cco.EncryptedFields
+	ef := args.EncryptedFields
 	// Check for encryptedFields from the client EncryptedFieldsMap.
 	if ef == nil {
 		ef = db.getEncryptedFieldsFromMap(name)
@@ -700,7 +640,12 @@ func (db *Database) getEncryptedFieldsFromMap(collectionName string) interface{}
 }
 
 // createCollectionWithEncryptedFields creates a collection with an EncryptedFields.
-func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, name string, ef interface{}, opts ...*options.CreateCollectionOptions) error {
+func (db *Database) createCollectionWithEncryptedFields(
+	ctx context.Context,
+	name string,
+	ef interface{},
+	opts ...Options[options.CreateCollectionArgs],
+) error {
 	efBSON, err := marshal(ef, db.bsonOpts, db.registry)
 	if err != nil {
 		return fmt.Errorf("error transforming document: %w", err)
@@ -770,7 +715,11 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 }
 
 // createCollection creates a collection without EncryptedFields.
-func (db *Database) createCollection(ctx context.Context, name string, opts ...*options.CreateCollectionOptions) error {
+func (db *Database) createCollection(
+	ctx context.Context,
+	name string,
+	opts ...Options[options.CreateCollectionArgs],
+) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
 		return err
@@ -778,101 +727,119 @@ func (db *Database) createCollection(ctx context.Context, name string, opts ...*
 	return db.executeCreateOperation(ctx, op)
 }
 
-func (db *Database) createCollectionOperation(name string, opts ...*options.CreateCollectionOptions) (*operation.Create, error) {
-	cco := mergeCreateCollectionOptions(opts...)
+func (db *Database) createCollectionOperation(
+	name string,
+	opts ...Options[options.CreateCollectionArgs],
+) (*operation.Create, error) {
+	args, err := newArgsFromOptions[options.CreateCollectionArgs](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
 
-	if cco.Capped != nil {
-		op.Capped(*cco.Capped)
+	if args.Capped != nil {
+		op.Capped(*args.Capped)
 	}
-	if cco.Collation != nil {
-		op.Collation(bsoncore.Document(cco.Collation.ToDocument()))
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
-	if cco.ChangeStreamPreAndPostImages != nil {
-		csppi, err := marshal(cco.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
+	if args.ChangeStreamPreAndPostImages != nil {
+		csppi, err := marshal(args.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.ChangeStreamPreAndPostImages(csppi)
 	}
-	if cco.DefaultIndexOptions != nil {
+	if args.DefaultIndexOptions != nil {
+		defaultIndexArgs, err := newArgsFromOptions[options.DefaultIndexArgs](args.DefaultIndexOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
+		}
+
 		idx, doc := bsoncore.AppendDocumentStart(nil)
-		if cco.DefaultIndexOptions.StorageEngine != nil {
-			storageEngine, err := marshal(cco.DefaultIndexOptions.StorageEngine, db.bsonOpts, db.registry)
+		if defaultIndexArgs.StorageEngine != nil {
+			storageEngine, err := marshal(defaultIndexArgs.StorageEngine, db.bsonOpts, db.registry)
 			if err != nil {
 				return nil, err
 			}
 
 			doc = bsoncore.AppendDocumentElement(doc, "storageEngine", storageEngine)
 		}
-		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+
+		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
 			return nil, err
 		}
 
 		op.IndexOptionDefaults(doc)
 	}
-	if cco.MaxDocuments != nil {
-		op.Max(*cco.MaxDocuments)
+	if args.MaxDocuments != nil {
+		op.Max(*args.MaxDocuments)
 	}
-	if cco.SizeInBytes != nil {
-		op.Size(*cco.SizeInBytes)
+	if args.SizeInBytes != nil {
+		op.Size(*args.SizeInBytes)
 	}
-	if cco.StorageEngine != nil {
-		storageEngine, err := marshal(cco.StorageEngine, db.bsonOpts, db.registry)
+	if args.StorageEngine != nil {
+		storageEngine, err := marshal(args.StorageEngine, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.StorageEngine(storageEngine)
 	}
-	if cco.ValidationAction != nil {
-		op.ValidationAction(*cco.ValidationAction)
+	if args.ValidationAction != nil {
+		op.ValidationAction(*args.ValidationAction)
 	}
-	if cco.ValidationLevel != nil {
-		op.ValidationLevel(*cco.ValidationLevel)
+	if args.ValidationLevel != nil {
+		op.ValidationLevel(*args.ValidationLevel)
 	}
-	if cco.Validator != nil {
-		validator, err := marshal(cco.Validator, db.bsonOpts, db.registry)
+	if args.Validator != nil {
+		validator, err := marshal(args.Validator, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
 		op.Validator(validator)
 	}
-	if cco.ExpireAfterSeconds != nil {
-		op.ExpireAfterSeconds(*cco.ExpireAfterSeconds)
+	if args.ExpireAfterSeconds != nil {
+		op.ExpireAfterSeconds(*args.ExpireAfterSeconds)
 	}
-	if cco.TimeSeriesOptions != nil {
+	if args.TimeSeriesOptions != nil {
+		timeSeriesArgs, err := newArgsFromOptions[options.TimeSeriesArgs](args.TimeSeriesOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
+		}
+
 		idx, doc := bsoncore.AppendDocumentStart(nil)
-		doc = bsoncore.AppendStringElement(doc, "timeField", cco.TimeSeriesOptions.TimeField)
+		doc = bsoncore.AppendStringElement(doc, "timeField", timeSeriesArgs.TimeField)
 
-		if cco.TimeSeriesOptions.MetaField != nil {
-			doc = bsoncore.AppendStringElement(doc, "metaField", *cco.TimeSeriesOptions.MetaField)
+		if timeSeriesArgs.MetaField != nil {
+			doc = bsoncore.AppendStringElement(doc, "metaField", *timeSeriesArgs.MetaField)
 		}
-		if cco.TimeSeriesOptions.Granularity != nil {
-			doc = bsoncore.AppendStringElement(doc, "granularity", *cco.TimeSeriesOptions.Granularity)
+		if timeSeriesArgs.Granularity != nil {
+			doc = bsoncore.AppendStringElement(doc, "granularity", *timeSeriesArgs.Granularity)
 		}
 
-		if cco.TimeSeriesOptions.BucketMaxSpan != nil {
-			bmss := int64(*cco.TimeSeriesOptions.BucketMaxSpan / time.Second)
+		if timeSeriesArgs.BucketMaxSpan != nil {
+			bmss := int64(*timeSeriesArgs.BucketMaxSpan / time.Second)
 
 			doc = bsoncore.AppendInt64Element(doc, "bucketMaxSpanSeconds", bmss)
 		}
 
-		if cco.TimeSeriesOptions.BucketRounding != nil {
-			brs := int64(*cco.TimeSeriesOptions.BucketRounding / time.Second)
+		if timeSeriesArgs.BucketRounding != nil {
+			brs := int64(*timeSeriesArgs.BucketRounding / time.Second)
 
 			doc = bsoncore.AppendInt64Element(doc, "bucketRoundingSeconds", brs)
 		}
 
-		doc, err := bsoncore.AppendDocumentEnd(doc, idx)
+		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		if err != nil {
 			return nil, err
 		}
 
 		op.TimeSeries(doc)
 	}
-	if cco.ClusteredIndex != nil {
-		clusteredIndex, err := marshal(cco.ClusteredIndex, db.bsonOpts, db.registry)
+	if args.ClusteredIndex != nil {
+		clusteredIndex, err := marshal(args.ClusteredIndex, db.bsonOpts, db.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -880,24 +847,6 @@ func (db *Database) createCollectionOperation(name string, opts ...*options.Crea
 	}
 
 	return op, nil
-}
-
-// mergeCreateViewOptions combines the given CreateViewOptions instances into a single CreateViewOptions in a
-// last-property-wins fashion.
-func mergeCreateViewOptions(opts ...*options.CreateViewOptions) *options.CreateViewOptions {
-	cv := options.CreateView()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.Collation != nil {
-			cv.Collation = opt.Collation
-		}
-	}
-
-	return cv
 }
 
 // CreateView executes a create command to explicitly create a view on the server. See
@@ -914,7 +863,7 @@ func mergeCreateViewOptions(opts ...*options.CreateViewOptions) *options.CreateV
 // The opts parameter can be used to specify options for the operation (see the options.CreateViewOptions
 // documentation).
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
-	opts ...*options.CreateViewOptions) error {
+	opts ...Options[options.CreateViewArgs]) error {
 
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)
 	if err != nil {
@@ -925,9 +874,13 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		ViewOn(viewOn).
 		Pipeline(pipelineArray).
 		ServerAPI(db.client.serverAPI)
-	cvo := mergeCreateViewOptions(opts...)
-	if cvo.Collation != nil {
-		op.Collation(bsoncore.Document(cvo.Collation.ToDocument()))
+	args, err := newArgsFromOptions(opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
+	if args.Collation != nil {
+		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
 
 	return db.executeCreateOperation(ctx, op)
@@ -968,34 +921,14 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
 // container for files.
-func (db *Database) GridFSBucket(opts ...*options.BucketOptions) *GridFSBucket {
+func (db *Database) GridFSBucket(opts ...Options[options.BucketArgs]) *GridFSBucket {
 	b := &GridFSBucket{
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
 		db:        db,
 	}
 
-	bo := options.GridFSBucket()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Name != nil {
-			bo.Name = opt.Name
-		}
-		if opt.ChunkSizeBytes != nil {
-			bo.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.WriteConcern != nil {
-			bo.WriteConcern = opt.WriteConcern
-		}
-		if opt.ReadConcern != nil {
-			bo.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			bo.ReadPreference = opt.ReadPreference
-		}
-	}
+	bo, _ := newArgsFromOptions[options.BucketArgs](opts...)
 	if bo.Name != nil {
 		b.name = *bo.Name
 	}

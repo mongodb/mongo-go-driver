@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -23,7 +24,7 @@ import (
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
+		Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateArgs]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -318,7 +319,9 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 			}
 			model.Definition = m.Definition
 			model.Options = options.SearchIndexes()
-			model.Options.Name = m.Name
+			if m.Name != nil {
+				model.Options.SetName(*m.Name)
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized createSearchIndex option %q", key)
 		}
@@ -363,7 +366,9 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 					Definition: m.Definition,
 					Options:    options.SearchIndexes(),
 				}
-				model.Options.Name = m.Name
+				if m.Name != nil {
+					model.Options.SetName(*m.Name)
+				}
 				models = append(models, model)
 			}
 		default:
@@ -1121,7 +1126,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []*options.ListSearchIndexesOptions
+	var opts []*mongoutil.ArgOptions[options.ListSearchIndexesArgs]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1135,20 +1140,28 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		case "name":
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
-			var opt options.AggregateOptions
-			err = bson.Unmarshal(val.Document(), &opt)
-			if err != nil {
-				return nil, err
+			// Unmarshal the document into the AggregateArgs embedded object.
+			opt := &mongoutil.ArgOptions[options.ListSearchIndexesArgs]{
+				Args: &options.ListSearchIndexesArgs{},
+				Callback: func(args *options.ListSearchIndexesArgs) error {
+					args.AggregateArgs = &options.AggregateArgs{}
+
+					return bson.Unmarshal(val.Document(), args.AggregateArgs)
+				},
 			}
-			opts = append(opts, &options.ListSearchIndexesOptions{
-				AggregateOpts: &opt,
-			})
+
+			opts = append(opts, opt)
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}
 	}
 
-	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, opts...)
+	aggregateOpts := make([]mongo.Options[options.ListSearchIndexesArgs], len(opts))
+	for idx, opt := range opts {
+		aggregateOpts[idx] = opt
+	}
+
+	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, aggregateOpts...)
 	return newValueResult(bson.TypeNull, nil, err), nil
 }
 

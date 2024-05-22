@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -43,24 +44,31 @@ type SearchIndexModel struct {
 // documentation).
 func (siv SearchIndexView) List(
 	ctx context.Context,
-	searchIdxOpts *options.SearchIndexesOptions,
-	opts ...*options.ListSearchIndexesOptions,
+	searchIdxOpts Options[options.SearchIndexesArgs],
+	opts ...Options[options.ListSearchIndexesArgs],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
+	searchIdxArgs, err := newArgsFromOptions[options.SearchIndexesArgs](searchIdxOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	index := bson.D{}
-	if searchIdxOpts != nil && searchIdxOpts.Name != nil {
-		index = bson.D{{"name", *searchIdxOpts.Name}}
+	if searchIdxArgs != nil && searchIdxArgs.Name != nil {
+		index = bson.D{{"name", *searchIdxArgs.Name}}
 	}
 
-	aggregateOpts := make([]*options.AggregateOptions, len(opts))
-	for i, opt := range opts {
-		aggregateOpts[i] = opt.AggregateOpts
+	args, err := newArgsFromOptions[options.ListSearchIndexesArgs](opts...)
+	if err != nil {
+		return nil, err
 	}
 
-	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts...)
+	aggregateOpts := &mongoutil.ArgOptions[options.AggregateArgs]{Args: args.AggregateArgs}
+
+	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts)
 }
 
 // CreateOne executes a createSearchIndexes command to create a search index on the collection and returns the name of the new
@@ -68,7 +76,7 @@ func (siv SearchIndexView) List(
 func (siv SearchIndexView) CreateOne(
 	ctx context.Context,
 	model SearchIndexModel,
-	opts ...*options.CreateSearchIndexesOptions,
+	opts ...Options[options.CreateSearchIndexesArgs],
 ) (string, error) {
 	names, err := siv.CreateMany(ctx, []SearchIndexModel{model}, opts...)
 	if err != nil {
@@ -88,7 +96,7 @@ func (siv SearchIndexView) CreateOne(
 func (siv SearchIndexView) CreateMany(
 	ctx context.Context,
 	models []SearchIndexModel,
-	_ ...*options.CreateSearchIndexesOptions,
+	_ ...Options[options.CreateSearchIndexesArgs],
 ) ([]string, error) {
 	var indexes bsoncore.Document
 	aidx, indexes := bsoncore.AppendArrayStart(indexes)
@@ -104,10 +112,18 @@ func (siv SearchIndexView) CreateMany(
 		}
 
 		var iidx int32
-		iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
-		if model.Options != nil && model.Options.Name != nil {
-			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Options.Name)
+		if model.Options != nil {
+			searchIndexArgs, err := newArgsFromOptions[options.SearchIndexesArgs](model.Options)
+			if err != nil {
+				return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+			}
+
+			iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))
+			if searchIndexArgs.Name != nil {
+				indexes = bsoncore.AppendStringElement(indexes, "name", *searchIndexArgs.Name)
+			}
 		}
+
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)
 
 		indexes, err = bsoncore.AppendDocumentEnd(indexes, iidx)
@@ -167,7 +183,7 @@ func (siv SearchIndexView) CreateMany(
 func (siv SearchIndexView) DropOne(
 	ctx context.Context,
 	name string,
-	_ ...*options.DropSearchIndexOptions,
+	_ ...Options[options.DropSearchIndexArgs],
 ) error {
 	if name == "*" {
 		return ErrMultipleIndexDrop
@@ -216,7 +232,7 @@ func (siv SearchIndexView) UpdateOne(
 	ctx context.Context,
 	name string,
 	definition interface{},
-	_ ...*options.UpdateSearchIndexOptions,
+	_ ...Options[options.UpdateSearchIndexArgs],
 ) error {
 	if definition == nil {
 		return fmt.Errorf("search index definition cannot be nil")

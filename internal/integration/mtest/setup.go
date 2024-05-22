@@ -18,6 +18,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -58,14 +59,19 @@ var testContext struct {
 }
 
 func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
+	args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+	}
+
 	wcMajority := writeconcern.Majority()
 	// set ServerAPIOptions to latest version if required
-	if opts.ServerAPIOptions == nil && testContext.requireAPIVersion {
+	if args.ServerAPIOptions == nil && testContext.requireAPIVersion {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}
 	// for sharded clusters, pin to one host. Due to how the cache is implemented on 4.0 and 4.2, behavior
 	// can be inconsistent when multiple mongoses are used
-	return mongo.Connect(opts.SetWriteConcern(wcMajority).SetHosts(opts.Hosts[:1]))
+	return mongo.Connect(opts.SetWriteConcern(wcMajority).SetHosts(args.Hosts[:1]))
 }
 
 // Setup initializes the current testing context.

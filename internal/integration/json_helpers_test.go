@@ -20,6 +20,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -292,17 +293,23 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 			sessOpts = sessOpts.SetCausalConsistency(opt.Boolean())
 		case "defaultTransactionOptions":
 			txnOpts := createTransactionOptions(t, opt.Document())
-			if txnOpts.ReadConcern != nil {
-				sessOpts.SetDefaultReadConcern(txnOpts.ReadConcern)
+
+			txnArgs, err := mongoutil.NewArgsFromOptions[options.TransactionArgs](txnOpts)
+			if err != nil {
+				t.Fatalf("failed to construct arguments from options: %v", err)
 			}
-			if txnOpts.ReadPreference != nil {
-				sessOpts.SetDefaultReadPreference(txnOpts.ReadPreference)
+
+			if txnArgs.ReadConcern != nil {
+				sessOpts.SetDefaultReadConcern(txnArgs.ReadConcern)
 			}
-			if txnOpts.WriteConcern != nil {
-				sessOpts.SetDefaultWriteConcern(txnOpts.WriteConcern)
+			if txnArgs.ReadPreference != nil {
+				sessOpts.SetDefaultReadPreference(txnArgs.ReadPreference)
 			}
-			if txnOpts.MaxCommitTime != nil {
-				sessOpts.SetDefaultMaxCommitTime(txnOpts.MaxCommitTime)
+			if txnArgs.WriteConcern != nil {
+				sessOpts.SetDefaultWriteConcern(txnArgs.WriteConcern)
+			}
+			if txnArgs.MaxCommitTime != nil {
+				sessOpts.SetDefaultMaxCommitTime(txnArgs.MaxCommitTime)
 			}
 		default:
 			t.Fatalf("unrecognized session option: %v", name)

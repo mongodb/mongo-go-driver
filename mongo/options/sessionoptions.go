@@ -17,8 +17,8 @@ import (
 // DefaultCausalConsistency is the default value for the CausalConsistency option.
 var DefaultCausalConsistency = true
 
-// SessionOptions represents options that can be used to configure a Session.
-type SessionOptions struct {
+// SessionArgs represents arguments that can be used to configure a Session.
+type SessionArgs struct {
 	// If true, causal consistency will be enabled for the session. This option cannot be set to true if Snapshot is
 	// set to true. The default value is true unless Snapshot is set to true. See
 	// https://www.mongodb.com/docs/manual/core/read-isolation-consistency-recency/#sessions for more information.
@@ -50,32 +50,54 @@ type SessionOptions struct {
 	Snapshot *bool
 }
 
+// SessionOptions represents functional options that configure a SessionArgs.
+type SessionOptions struct {
+	Opts []func(*SessionArgs) error
+}
+
 // Session creates a new SessionOptions instance.
 func Session() *SessionOptions {
 	return &SessionOptions{}
 }
 
+// ArgsSetters returns a list of SessionArgs setter functions.
+func (s *SessionOptions) ArgsSetters() []func(*SessionArgs) error {
+	return s.Opts
+}
+
 // SetCausalConsistency sets the value for the CausalConsistency field.
 func (s *SessionOptions) SetCausalConsistency(b bool) *SessionOptions {
-	s.CausalConsistency = &b
+	s.Opts = append(s.Opts, func(args *SessionArgs) error {
+		args.CausalConsistency = &b
+		return nil
+	})
 	return s
 }
 
 // SetDefaultReadConcern sets the value for the DefaultReadConcern field.
 func (s *SessionOptions) SetDefaultReadConcern(rc *readconcern.ReadConcern) *SessionOptions {
-	s.DefaultReadConcern = rc
+	s.Opts = append(s.Opts, func(args *SessionArgs) error {
+		args.DefaultReadConcern = rc
+		return nil
+	})
 	return s
 }
 
 // SetDefaultReadPreference sets the value for the DefaultReadPreference field.
 func (s *SessionOptions) SetDefaultReadPreference(rp *readpref.ReadPref) *SessionOptions {
-	s.DefaultReadPreference = rp
+	s.Opts = append(s.Opts, func(args *SessionArgs) error {
+		args.DefaultReadPreference = rp
+		return nil
+	})
 	return s
 }
 
 // SetDefaultWriteConcern sets the value for the DefaultWriteConcern field.
 func (s *SessionOptions) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *SessionOptions {
-	s.DefaultWriteConcern = wc
+	s.Opts = append(s.Opts, func(args *SessionArgs) error {
+		args.DefaultWriteConcern = wc
+		return nil
+	})
 	return s
 }
 
@@ -86,12 +108,18 @@ func (s *SessionOptions) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *
 // single operation can run before returning an error. DefaultMaxCommitTime is ignored if
 // Timeout is set on the client.
 func (s *SessionOptions) SetDefaultMaxCommitTime(mct *time.Duration) *SessionOptions {
-	s.DefaultMaxCommitTime = mct
+	s.Opts = append(s.Opts, func(args *SessionArgs) error {
+		args.DefaultMaxCommitTime = mct
+		return nil
+	})
 	return s
 }
 
 // SetSnapshot sets the value for the Snapshot field.
 func (s *SessionOptions) SetSnapshot(b bool) *SessionOptions {
-	s.Snapshot = &b
+	s.Opts = append(s.Opts, func(args *SessionArgs) error {
+		args.Snapshot = &b
+		return nil
+	})
 	return s
 }

@@ -6,8 +6,8 @@
 
 package options
 
-// DataKeyOptions represents all possible options used to create a new data key.
-type DataKeyOptions struct {
+// DataKeyArgs represents all possible options used to create a new data key.
+type DataKeyArgs struct {
 	MasterKey   interface{}
 	KeyAltNames []string
 
@@ -16,9 +16,21 @@ type DataKeyOptions struct {
 	KeyMaterial []byte
 }
 
+// DataKeyOptions contains options to configure DataKey operations. Each option
+// can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DataKeyOptions struct {
+	Opts []func(*DataKeyArgs) error
+}
+
 // DataKey creates a new DataKeyOptions instance.
 func DataKey() *DataKeyOptions {
 	return &DataKeyOptions{}
+}
+
+// ArgsSetters returns a list of DataKey setter functions.
+func (dk *DataKeyOptions) ArgsSetters() []func(*DataKeyArgs) error {
+	return dk.Opts
 }
 
 // SetMasterKey specifies a KMS-specific key used to encrypt the new data key.
@@ -61,19 +73,34 @@ func DataKey() *DataKeyOptions {
 //
 // If unset, "keyVersion" defaults to the key's primary version and "endpoint" defaults to "cloudkms.googleapis.com".
 func (dk *DataKeyOptions) SetMasterKey(masterKey interface{}) *DataKeyOptions {
-	dk.MasterKey = masterKey
+	dk.Opts = append(dk.Opts, func(args *DataKeyArgs) error {
+		args.MasterKey = masterKey
+
+		return nil
+	})
+
 	return dk
 }
 
 // SetKeyAltNames specifies an optional list of string alternate names used to reference a key. If a key is created'
 // with alternate names, encryption may refer to the key by a unique alternate name instead of by _id.
 func (dk *DataKeyOptions) SetKeyAltNames(keyAltNames []string) *DataKeyOptions {
-	dk.KeyAltNames = keyAltNames
+	dk.Opts = append(dk.Opts, func(args *DataKeyArgs) error {
+		args.KeyAltNames = keyAltNames
+
+		return nil
+	})
+
 	return dk
 }
 
 // SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data.
 func (dk *DataKeyOptions) SetKeyMaterial(keyMaterial []byte) *DataKeyOptions {
-	dk.KeyMaterial = keyMaterial
+	dk.Opts = append(dk.Opts, func(args *DataKeyArgs) error {
+		args.KeyMaterial = keyMaterial
+
+		return nil
+	})
+
 	return dk
 }

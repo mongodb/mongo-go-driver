@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -103,7 +104,10 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
 		for _, model := range models {
-			require.Contains(mt, indexes, *model.Options.Name)
+			args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](model.Options)
+			require.NoError(mt, err, "failed to construct arguments from options")
+
+			require.Contains(mt, indexes, *args.Name)
 		}
 
 		getDocument := func(opts *options.SearchIndexesOptions) bson.Raw {
@@ -116,7 +120,11 @@ func TestSearchIndexProse(t *testing.T) {
 				}
 				name := cursor.Current.Lookup("name").StringValue()
 				queryable := cursor.Current.Lookup("queryable").Boolean()
-				if name == *opts.Name && queryable {
+
+				args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](opts)
+				require.NoError(mt, err, "failed to construct arguments from options")
+
+				if name == *args.Name && queryable {
 					return cursor.Current
 				}
 				t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
@@ -132,6 +140,12 @@ func TestSearchIndexProse(t *testing.T) {
 
 				doc := getDocument(opts)
 				require.NotNil(mt, doc, "got empty document")
+
+				args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](opts)
+				require.NoError(mt, err, "failed to construct arguments from options")
+
+				assert.Equal(mt, *args.Name, doc.Lookup("name").StringValue(), "unmatched name")
+
 				expected, err := bson.Marshal(definition)
 				require.NoError(mt, err, "failed to marshal definition")
 				actual := doc.Lookup("latestDefinition").Value
