@@ -422,10 +422,14 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts)
 
 	rr, err := processWriteError(err)
-	if rr&rrOne == 0 {
+	if rr&rrOne == 0 && rr.isAcknowledged() {
 		return nil, err
 	}
-	return &InsertOneResult{InsertedID: res[0]}, err
+
+	return &InsertOneResult{
+		InsertedID:   res[0],
+		Acknowledged: rr.isAcknowledged(),
+	}, err
 }
 
 // InsertMany executes an insert command to insert multiple documents into the collection. If write errors occur
@@ -461,7 +465,10 @@ func (coll *Collection) InsertMany(ctx context.Context, documents interface{},
 		return nil, err
 	}
 
-	imResult := &InsertManyResult{InsertedIDs: result}
+	imResult := &InsertManyResult{
+		InsertedIDs:  result,
+		Acknowledged: rr.isAcknowledged(),
+	}
 	var writeException WriteException
 	if !errors.As(err, &writeException) {
 		return imResult, err
@@ -593,7 +600,10 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
-	return &DeleteResult{DeletedCount: op.Result().N}, err
+	return &DeleteResult{
+		DeletedCount: op.Result().N,
+		Acknowledged: rr.isAcknowledged(),
+	}, err
 }
 
 // DeleteOne executes a delete command to delete at most one document from the collection.
@@ -744,6 +754,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		MatchedCount:  opRes.N,
 		ModifiedCount: opRes.NModified,
 		UpsertedCount: int64(len(opRes.Upserted)),
+		Acknowledged:  rr.isAcknowledged(),
 	}
 	if len(opRes.Upserted) > 0 {
 		res.UpsertedID = opRes.Upserted[0].ID
@@ -1732,16 +1743,17 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		Retry(retry).
 		Crypt(coll.client.cryptFLE)
 
-	_, err = processWriteError(op.Execute(ctx))
+	rr, err := processWriteError(op.Execute(ctx))
 	if err != nil {
 		return &SingleResult{err: err}
 	}
 
 	return &SingleResult{
-		ctx:      ctx,
-		rdr:      bson.Raw(op.Result().Value),
-		bsonOpts: coll.bsonOpts,
-		reg:      coll.registry,
+		ctx:          ctx,
+		rdr:          bson.Raw(op.Result().Value),
+		bsonOpts:     coll.bsonOpts,
+		reg:          coll.registry,
+		Acknowledged: rr.isAcknowledged(),
 	}
 }
 

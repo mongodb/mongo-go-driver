@@ -617,9 +617,14 @@ const (
 	rrNone returnResult = 1 << iota // None means do not return the result ever.
 	rrOne                           // One means return the result if this was called by a *One method.
 	rrMany                          // Many means return the result is this was called by a *Many method.
+	rrUnacknowledgedWrite
 
 	rrAll returnResult = rrOne | rrMany // All means always return the result.
 )
+
+func (rr returnResult) isAcknowledged() bool {
+	return rr != rrUnacknowledgedWrite
+}
 
 // processWriteError handles processing the result of a write operation. If the retrunResult matches
 // the calling method's type, it should return the result object in addition to the error.
@@ -629,7 +634,7 @@ const (
 func processWriteError(err error) (returnResult, error) {
 	switch {
 	case errors.Is(err, driver.ErrUnacknowledgedWrite):
-		return rrAll, ErrUnacknowledgedWrite
+		return rrUnacknowledgedWrite, nil
 	case err != nil:
 		switch tt := err.(type) {
 		case driver.WriteCommandError:

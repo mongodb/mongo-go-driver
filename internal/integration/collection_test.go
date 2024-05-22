@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -1698,12 +1697,10 @@ func TestCollection(t *testing.T) {
 			models := []mongo.WriteModel{
 				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
 			}
-			_, err := mt.Coll.BulkWrite(context.Background(), models)
-			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
-				// so the assertion would succeed even if the error had not been wrapped.
-				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
-			}
+
+			res, err := mt.Coll.BulkWrite(context.Background(), models)
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
 		})
 		mt.RunOpts("insert and delete with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// grouped together because delete requires the documents to be inserted
