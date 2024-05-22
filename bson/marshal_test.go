@@ -32,33 +32,7 @@ func TestMarshalWithRegistry(t *testing.T) {
 			}
 			buf := new(bytes.Buffer)
 			vw := NewValueWriter(buf)
-			enc := NewEncoder(vw)
-			enc.SetRegistry(reg)
-			err := enc.Encode(tc.val)
-			noerr(t, err)
-
-			if got := buf.Bytes(); !bytes.Equal(got, tc.want) {
-				t.Errorf("Bytes are not equal. got %v; want %v", got, tc.want)
-				t.Errorf("Bytes:\n%v\n%v", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestMarshalWithContext(t *testing.T) {
-	for _, tc := range marshalingTestCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var reg *Registry
-			if tc.reg != nil {
-				reg = tc.reg
-			} else {
-				reg = NewRegistryBuilder().Build()
-			}
-			buf := new(bytes.Buffer)
-			vw := NewValueWriter(buf)
-			enc := NewEncoder(vw)
-			enc.IntMinSize()
-			enc.SetRegistry(reg)
+			enc := NewEncoderWithRegistry(reg, vw)
 			err := enc.Encode(tc.val)
 			noerr(t, err)
 
@@ -175,8 +149,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 
 		buf := new(bytes.Buffer)
 		vw := NewValueWriter(buf)
-		enc := NewEncoder(vw)
-		enc.SetRegistry(customReg)
+		enc := NewEncoderWithRegistry(customReg, vw)
 		err = enc.Encode(original)
 		assert.Nil(t, err, "Encode error: %v", err)
 		second := buf.Bytes()

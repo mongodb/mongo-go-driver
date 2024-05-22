@@ -32,9 +32,8 @@ func TestTruncation(t *testing.T) {
 
 		buf := new(bytes.Buffer)
 		vw := NewValueWriter(buf)
-		enc := NewEncoder(vw)
+		enc := NewEncoderWithRegistry(NewRegistryBuilder().Build(), vw)
 		enc.IntMinSize()
-		enc.SetRegistry(NewRegistryBuilder().Build())
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
@@ -58,9 +57,8 @@ func TestTruncation(t *testing.T) {
 
 		buf := new(bytes.Buffer)
 		vw := NewValueWriter(buf)
-		enc := NewEncoder(vw)
+		enc := NewEncoderWithRegistry(NewRegistryBuilder().Build(), vw)
 		enc.IntMinSize()
-		enc.SetRegistry(NewRegistryBuilder().Build())
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 

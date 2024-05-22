@@ -620,8 +620,7 @@ func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*uplo
 		// TODO gridfs package is merged into the mongo package.
 		buf := new(bytes.Buffer)
 		vw := bson.NewValueWriter(buf)
-		enc := bson.NewEncoder(vw)
-		enc.SetRegistry(uo.Registry)
+		enc := bson.NewEncoderWithRegistry(uo.Registry, vw)
 		err := enc.Encode(uo.Metadata)
 		if err != nil {
 			return nil, err

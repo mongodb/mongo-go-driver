@@ -300,12 +300,19 @@ func (sc *structCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val refl
 				continue
 			}
 
+			inlineT := inlineMap.Type()
+
 			if inlineMap.IsNil() {
-				inlineMap.Set(reflect.MakeMap(inlineMap.Type()))
+				inlineMap.Set(reflect.MakeMap(inlineT))
 			}
 
-			elem := reflect.New(inlineMap.Type().Elem()).Elem()
-			err = decoder.DecodeValue(reg, vr, elem)
+			var elem reflect.Value
+			if elemT := inlineT.Elem(); elemT == tEmpty {
+				elem, err = decodeTypeOrValueWithInfo(decoder, reg, vr, inlineT)
+			} else {
+				elem = reflect.New(elemT).Elem()
+				err = decoder.DecodeValue(reg, vr, elem)
+			}
 			if err != nil {
 				return err
 			}

@@ -10,20 +10,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sync"
 )
 
 // ErrDecodeToNil is the error returned when trying to decode to a nil value
 var ErrDecodeToNil = errors.New("cannot Decode to nil value")
-
-// This pool is used to keep the allocations of Decoders down. This is only used for the Marshal*
-// methods and is not consumable from outside of this package. The Decoders retrieved from this pool
-// must have both Reset and SetRegistry called on them.
-var decPool = sync.Pool{
-	New: func() interface{} {
-		return new(Decoder)
-	},
-}
 
 // A Decoder reads and decodes BSON documents from a stream. It reads from a ValueReader as
 // the source of BSON data.
@@ -34,8 +24,17 @@ type Decoder struct {
 
 // NewDecoder returns a new decoder that uses the default registry to read from vr.
 func NewDecoder(vr ValueReader) *Decoder {
+	r := NewRegistryBuilder().Build()
 	return &Decoder{
-		reg: NewRegistryBuilder().Build(),
+		reg: r,
+		vr:  vr,
+	}
+}
+
+// NewDecoderWithRegistry returns a new decoder that uses the given registry to read from vr.
+func NewDecoderWithRegistry(r *Registry, vr ValueReader) *Decoder {
+	return &Decoder{
+		reg: r,
 		vr:  vr,
 	}
 }
@@ -74,17 +73,6 @@ func (d *Decoder) Decode(val interface{}) error {
 	}
 
 	return decoder.DecodeValue(d.reg, d.vr, rval)
-}
-
-// Reset will reset the state of the decoder, using the same *DecodeContext used in
-// the original construction but using vr for reading.
-func (d *Decoder) Reset(vr ValueReader) {
-	d.vr = vr
-}
-
-// SetRegistry replaces the current registry of the decoder with r.
-func (d *Decoder) SetRegistry(r *Registry) {
-	d.reg = r
 }
 
 // DefaultDocumentM causes the Decoder to always unmarshal documents into the primitive.M type. This

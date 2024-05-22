@@ -8,17 +8,7 @@ package bson
 
 import (
 	"reflect"
-	"sync"
 )
-
-// This pool is used to keep the allocations of Encoders down. This is only used for the Marshal*
-// methods and is not consumable from outside of this package. The Encoders retrieved from this pool
-// must have both Reset and SetRegistry called on them.
-var encPool = sync.Pool{
-	New: func() interface{} {
-		return new(Encoder)
-	},
-}
 
 // An Encoder writes a serialization format to an output stream. It writes to a ValueWriter
 // as the destination of BSON data.
@@ -31,6 +21,14 @@ type Encoder struct {
 func NewEncoder(vw ValueWriter) *Encoder {
 	return &Encoder{
 		reg: NewRegistryBuilder().Build(),
+		vw:  vw,
+	}
+}
+
+// NewEncoderWithRegistry returns a new encoder that uses the given registry to write to vw.
+func NewEncoderWithRegistry(r *Registry, vw ValueWriter) *Encoder {
+	return &Encoder{
+		reg: r,
 		vw:  vw,
 	}
 }
@@ -54,17 +52,6 @@ func (e *Encoder) Encode(val interface{}) error {
 	}
 
 	return encoder.EncodeValue(e.reg, e.vw, reflect.ValueOf(val))
-}
-
-// Reset will reset the state of the Encoder, using the same *EncodeContext used in
-// the original construction but using vw.
-func (e *Encoder) Reset(vw ValueWriter) {
-	e.vw = vw
-}
-
-// SetRegistry replaces the current registry of the Encoder with r.
-func (e *Encoder) SetRegistry(r *Registry) {
-	e.reg = r
 }
 
 // ErrorOnInlineDuplicates causes the Encoder to return an error if there is a duplicate field in
@@ -172,7 +159,9 @@ func (e *Encoder) UseJSONStructTags() {
 	t := reflect.TypeOf((*structCodec)(nil))
 	if v, ok := e.reg.codecTypeMap[t]; ok && v != nil {
 		for i := range v {
-			v[i].(*structCodec).useJSONStructTags = true
+			if enc, ok := v[i].(*structCodec); ok {
+				enc.useJSONStructTags = true
+			}
 		}
 	}
 }

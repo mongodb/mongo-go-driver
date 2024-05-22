@@ -157,11 +157,5 @@ func UnmarshalExtJSONWithContext(reg *Registry, data []byte, canonical bool, val
 }
 
 func unmarshalFromReader(reg *Registry, vr ValueReader, val interface{}) error {
-	dec := decPool.Get().(*Decoder)
-	defer decPool.Put(dec)
-
-	dec.Reset(vr)
-	dec.reg = reg
-
-	return dec.Decode(val)
+	return NewDecoderWithRegistry(reg, vr).Decode(val)
 }

@@ -63,7 +63,12 @@ func getEncoder(
 	reg *bson.Registry,
 ) (*bson.Encoder, error) {
 	vw := bvwPool.Get(w)
-	enc := bson.NewEncoder(vw)
+	var enc *bson.Encoder
+	if reg != nil {
+		enc = bson.NewEncoderWithRegistry(reg, vw)
+	} else {
+		enc = bson.NewEncoder(vw)
+	}
 
 	if opts != nil {
 		if opts.ErrorOnInlineDuplicates {
@@ -90,10 +95,6 @@ func getEncoder(
 		if opts.UseJSONStructTags {
 			enc.UseJSONStructTags()
 		}
-	}
-
-	if reg != nil {
-		enc.SetRegistry(reg)
 	}
 
 	return enc, nil

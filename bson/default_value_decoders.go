@@ -151,7 +151,7 @@ func dDecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error 
 			return err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, reg, elemVr, tEmpty)
+		elem, err := decodeTypeOrValueWithInfo(decoder, reg, elemVr, tD)
 		if err != nil {
 			return err
 		}

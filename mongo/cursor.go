@@ -91,7 +91,6 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 	}
 
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 
 	values := make([]bsoncore.Value, len(documents))
 	for i, doc := range documents {
@@ -104,9 +103,7 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 		}
 
 		vw := bson.NewValueWriter(buf)
-		enc.Reset(vw)
-		enc.SetRegistry(registry)
-
+		enc := bson.NewEncoderWithRegistry(registry, vw)
 		if err := enc.Encode(doc); err != nil {
 			return nil, err
 		}
@@ -238,7 +235,13 @@ func getDecoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) *bson.Decoder {
-	dec := bson.NewDecoder(bson.NewValueReader(data))
+	vr := bson.NewValueReader(data)
+	var dec *bson.Decoder
+	if reg != nil {
+		dec = bson.NewDecoderWithRegistry(reg, vr)
+	} else {
+		dec = bson.NewDecoder(vr)
+	}
 
 	if opts != nil {
 		if opts.AllowTruncatingDoubles {
@@ -265,10 +268,6 @@ func getDecoder(
 		if opts.ZeroStructs {
 			dec.ZeroStructs()
 		}
-	}
-
-	if reg != nil {
-		dec.SetRegistry(reg)
 	}
 
 	return dec

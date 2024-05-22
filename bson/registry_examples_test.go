@@ -46,13 +46,14 @@ func ExampleRegistry_customEncoder() {
 		return vw.WriteInt64(negatedVal)
 	}
 
-	reg := bson.NewRegistryBuilder()
-	reg.RegisterTypeEncoder(
-		negatedIntType,
-		func() bson.ValueEncoder {
-			return bson.ValueEncoderFunc(negatedIntEncoder)
-		},
-	)
+	reg := bson.NewRegistryBuilder().
+		RegisterTypeEncoder(
+			negatedIntType,
+			func() bson.ValueEncoder {
+				return bson.ValueEncoderFunc(negatedIntEncoder)
+			},
+		).
+		Build()
 
 	// Define a document that includes both int and negatedInt fields with the
 	// same value.
@@ -69,8 +70,7 @@ func ExampleRegistry_customEncoder() {
 	// same value and that the negatedInt field is encoded as the negated value.
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(reg.Build())
+	enc := bson.NewEncoderWithRegistry(reg, vw)
 	err := enc.Encode(doc)
 	if err != nil {
 		panic(err)
@@ -185,15 +185,16 @@ func ExampleRegistryBuilder_RegisterKindEncoder() {
 		return vw.WriteInt64(val.Int())
 	}
 
-	// Create a default registry and register our int32-to-int64 encoder for
+	// Create a registry with our int32-to-int64 register encoder for
 	// kind reflect.Int32.
-	reg := bson.NewRegistryBuilder()
-	reg.RegisterKindEncoder(
-		reflect.Int32,
-		func() bson.ValueEncoder {
-			return bson.ValueEncoderFunc(int32To64Encoder)
-		},
-	)
+	reg := bson.NewRegistryBuilder().
+		RegisterKindEncoder(
+			reflect.Int32,
+			func() bson.ValueEncoder {
+				return bson.ValueEncoderFunc(int32To64Encoder)
+			},
+		).
+		Build()
 
 	// Define a document that includes an int32, an int64, and a user-defined
 	// type "myInt" that has underlying type int32.
@@ -213,8 +214,7 @@ func ExampleRegistryBuilder_RegisterKindEncoder() {
 	// int64 (represented as "$numberLong" when encoded as Extended JSON).
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(reg.Build())
+	enc := bson.NewEncoderWithRegistry(reg, vw)
 	err := enc.Encode(doc)
 	if err != nil {
 		panic(err)

@@ -79,23 +79,6 @@ var sampleItems = []testItemType{
 		"\x13\x00\x00\x00\x05slice\x00\x02\x00\x00\x00\x00\x01\x02\x00"},
 }
 
-func TestMarshalSampleItems(t *testing.T) {
-	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
-	for i, item := range sampleItems {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			buf.Reset()
-			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
-			err := enc.Encode(item.obj)
-			assert.Nil(t, err, "expected nil error, got: %v", err)
-			str := buf.String()
-			assert.Equal(t, str, item.data, "expected: %v, got: %v", item.data, str)
-		})
-	}
-}
-
 func TestUnmarshalSampleItems(t *testing.T) {
 	for i, item := range sampleItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
@@ -164,23 +147,6 @@ var allItems = []testItemType{
 		"\xFF_\x00"},
 }
 
-func TestMarshalAllItems(t *testing.T) {
-	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
-	for i, item := range allItems {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			buf.Reset()
-			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
-			err := enc.Encode(item.obj)
-			assert.Nil(t, err, "expected nil error, got: %v", err)
-			str := buf.String()
-			assert.Equal(t, str, wrapInDoc(item.data), "expected: %v, got: %v", wrapInDoc(item.data), str)
-		})
-	}
-}
-
 func TestUnmarshalAllItems(t *testing.T) {
 	for i, item := range allItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
@@ -220,8 +186,7 @@ func TestUnmarshalRawIncompatible(t *testing.T) {
 func TestUnmarshalZeroesStruct(t *testing.T) {
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(bson.M{"b": 2})
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	type T struct{ A, B int }
@@ -235,8 +200,7 @@ func TestUnmarshalZeroesStruct(t *testing.T) {
 func TestUnmarshalZeroesMap(t *testing.T) {
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(bson.M{"b": 2})
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	m := bson.M{"a": 1}
@@ -250,8 +214,7 @@ func TestUnmarshalZeroesMap(t *testing.T) {
 func TestUnmarshalNonNilInterface(t *testing.T) {
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(bson.M{"b": 2})
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	m := bson.M{"a": 1}
@@ -288,13 +251,11 @@ func TestPtrInline(t *testing.T) {
 	}
 
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, cs := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			buf.Reset()
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(cs.In)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			var dataBSON bson.M
@@ -377,13 +338,11 @@ var oneWayMarshalItems = []testItemType{
 
 func TestOneWayMarshalItems(t *testing.T) {
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, item := range oneWayMarshalItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			buf.Reset()
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(item.obj)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 
@@ -414,13 +373,11 @@ var structSampleItems = []testItemType{
 
 func TestMarshalStructSampleItems(t *testing.T) {
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, item := range structSampleItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			buf.Reset()
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(item.obj)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			assert.Equal(t, item.data, buf.String(), "expected: %v, got: %v", item.data, buf.String())
@@ -441,8 +398,7 @@ func Test64bitInt(t *testing.T) {
 	if int(i) > 0 {
 		buf := new(bytes.Buffer)
 		vw := bson.NewValueWriter(buf)
-		enc := bson.NewEncoder(vw)
-		enc.SetRegistry(Registry)
+		enc := bson.NewEncoderWithRegistry(Registry, vw)
 		err := enc.Encode(bson.M{"i": int(i)})
 		assert.Nil(t, err, "expected nil error, got: %v", err)
 		want := wrapInDoc("\x12i\x00\x00\x00\x00\x80\x00\x00\x00\x00")
@@ -580,13 +536,11 @@ var structItems = []testItemType{
 
 func TestMarshalStructItems(t *testing.T) {
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, item := range structItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			buf.Reset()
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(item.obj)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			assert.Equal(t, wrapInDoc(item.data), buf.String(), "expected: %v, got: %v", wrapInDoc(item.data), buf.String())
@@ -656,13 +610,11 @@ var marshalItems = []testItemType{
 
 func TestMarshalOneWayItems(t *testing.T) {
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, item := range marshalItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			buf.Reset()
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(item.obj)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			assert.Equal(t, wrapInDoc(item.data), buf.String(), "expected: %v, got: %v", wrapInDoc(item.data), buf.String())
@@ -765,13 +717,11 @@ var marshalErrorItems = []testItemType{
 
 func TestMarshalErrorItems(t *testing.T) {
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, item := range marshalErrorItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			buf.Reset()
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(item.obj)
 
 			assert.NotNil(t, err, "expected error")
@@ -1031,8 +981,7 @@ func TestUnmarshalSetterErrSetZero(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(bson.M{"field": "foo"})
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
@@ -1066,7 +1015,6 @@ type docWithGetterField struct {
 
 func TestMarshalAllItemsWithGetter(t *testing.T) {
 	buf := new(bytes.Buffer)
-	enc := new(bson.Encoder)
 	for i, item := range allItems {
 		if item.data == "" {
 			continue
@@ -1076,8 +1024,7 @@ func TestMarshalAllItemsWithGetter(t *testing.T) {
 			obj := &docWithGetterField{}
 			obj.Field = &typeWithGetter{result: item.obj.(bson.M)["_"]}
 			vw := bson.NewValueWriter(buf)
-			enc.Reset(vw)
-			enc.SetRegistry(Registry)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
 			err := enc.Encode(obj)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			assert.Equal(t, wrapInDoc(item.data), buf.String(),
@@ -1090,8 +1037,7 @@ func TestMarshalWholeDocumentWithGetter(t *testing.T) {
 	obj := &typeWithGetter{result: sampleItems[0].obj}
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(obj)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	assert.Equal(t, sampleItems[0].data, buf.String(),
@@ -1105,8 +1051,7 @@ func TestGetterErrors(t *testing.T) {
 	obj1.Field = &typeWithGetter{sampleItems[0].obj, e}
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(obj1)
 	assert.Equal(t, e, err, "expected error: %v, got: %v", e, err)
 	assert.Nil(t, buf.Bytes(), "expected nil data, got: %v", buf.Bytes())
@@ -1114,8 +1059,7 @@ func TestGetterErrors(t *testing.T) {
 	obj2 := &typeWithGetter{sampleItems[0].obj, e}
 	buf.Reset()
 	vw = bson.NewValueWriter(buf)
-	enc = bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc = bson.NewEncoderWithRegistry(Registry, vw)
 	err = enc.Encode(obj2)
 	assert.Equal(t, e, err, "expected error: %v, got: %v", e, err)
 	assert.Nil(t, buf.Bytes(), "expected nil data, got: %v", buf.Bytes())
@@ -1135,8 +1079,7 @@ func TestMarshalShortWithGetter(t *testing.T) {
 	obj := typeWithIntGetter{42}
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(obj)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	m := bson.M{}
@@ -1149,8 +1092,7 @@ func TestMarshalWithGetterNil(t *testing.T) {
 	obj := docWithGetterField{}
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(obj)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	m := bson.M{}
@@ -1594,8 +1536,7 @@ func testCrossPair(t *testing.T, dump interface{}, load interface{}) {
 	zero := makeZeroDoc(load)
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(dump)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 	err = bson.UnmarshalWithRegistry(Registry, buf.Bytes(), zero)
@@ -1708,8 +1649,7 @@ func TestMarshalNotRespectNil(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(testStruct1)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
@@ -1741,8 +1681,7 @@ func TestMarshalRespectNil(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(testStruct1)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
@@ -1770,8 +1709,7 @@ func TestMarshalRespectNil(t *testing.T) {
 
 	buf.Reset()
 	vw = bson.NewValueWriter(buf)
-	enc = bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc = bson.NewEncoderWithRegistry(Registry, vw)
 	err = enc.Encode(testStruct1)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 
@@ -1806,8 +1744,7 @@ func TestInlineWithPointerToSelf(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
-	enc := bson.NewEncoder(vw)
-	enc.SetRegistry(Registry)
+	enc := bson.NewEncoderWithRegistry(Registry, vw)
 	err := enc.Encode(x1)
 	assert.Nil(t, err, "expected nil error, got: %v", err)
 

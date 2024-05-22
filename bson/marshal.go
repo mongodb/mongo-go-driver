@@ -70,11 +70,7 @@ func Marshal(val interface{}) ([]byte, error) {
 		}
 	}()
 	sw.Reset()
-	vw := NewValueWriter(sw)
-	enc := encPool.Get().(*Encoder)
-	defer encPool.Put(enc)
-	enc.Reset(vw)
-	enc.SetRegistry(NewRegistryBuilder().Build())
+	enc := NewEncoderWithRegistry(NewRegistryBuilder().Build(), NewValueWriter(sw))
 	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
@@ -100,10 +96,7 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 	vwFlusher := bvwPool.GetAtModeElement(&sw)
 
 	// get an Encoder and encode the value
-	enc := encPool.Get().(*Encoder)
-	defer encPool.Put(enc)
-	enc.Reset(vwFlusher)
-	enc.SetRegistry(r)
+	enc := NewEncoderWithRegistry(r, vwFlusher)
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -123,12 +116,7 @@ func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error)
 	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
 	defer extjPool.Put(ejvw)
 
-	enc := encPool.Get().(*Encoder)
-	defer encPool.Put(enc)
-
-	enc.Reset(ejvw)
-	enc.SetRegistry(NewRegistryBuilder().Build())
-
+	enc := NewEncoderWithRegistry(NewRegistryBuilder().Build(), ejvw)
 	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
