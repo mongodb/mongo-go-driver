@@ -95,8 +95,8 @@ func (r *localEncoderRegistry) LookupEncoder(t reflect.Type) (ValueEncoder, erro
 		return ve, err
 	}
 	if r.minSize {
-		if ic, ok := ve.(*intCodec); ok {
-			ve = &intCodec{
+		if ic, ok := ve.(*numCodec); ok {
+			ve = &numCodec{
 				minSize:  true,
 				truncate: ic.truncate,
 			}
@@ -309,6 +309,9 @@ func (sc *structCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val refl
 			var elem reflect.Value
 			if elemT := inlineT.Elem(); elemT == tEmpty {
 				elem, err = decodeTypeOrValueWithInfo(decoder, reg, vr, inlineT)
+				if elem.Type() != elemT {
+					elem = elem.Convert(elemT)
+				}
 			} else {
 				elem = reflect.New(elemT).Elem()
 				err = decoder.DecodeValue(reg, vr, elem)

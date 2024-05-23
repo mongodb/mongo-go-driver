@@ -48,7 +48,7 @@ func ExampleDecoder() {
 	// Output: {Name:Cereal Rounds SKU:AB12345 Price:399}
 }
 
-func ExampleDecoder_DefaultDocumentM() {
+func ExampleDecoder_SetBehavior_defaultDocumentM() {
 	// Marshal a BSON document that contains a city name and a nested document
 	// with various city properties.
 	doc := bson.D{
@@ -77,7 +77,7 @@ func ExampleDecoder_DefaultDocumentM() {
 	// type if the decode destination has no type information. The Properties
 	// field in the City struct will be decoded as a "M" (i.e. map) instead
 	// of the default "D".
-	decoder.DefaultDocumentM()
+	decoder.SetBehavior(bson.DefaultDocumentM)
 
 	var res City
 	err = decoder.Decode(&res)
@@ -89,7 +89,7 @@ func ExampleDecoder_DefaultDocumentM() {
 	// Output: {Name:New York Properties:map[elevation:10 population:8804190 state:NY]}
 }
 
-func ExampleDecoder_UseJSONStructTags() {
+func ExampleDecoder_SetBehavior_useJSONStructTags() {
 	// Marshal a BSON document that contains the name, SKU, and price (in cents)
 	// of a product.
 	doc := bson.D{
@@ -114,7 +114,7 @@ func ExampleDecoder_UseJSONStructTags() {
 
 	// Configure the Decoder to use "json" struct tags when decoding if "bson"
 	// struct tags are not present.
-	decoder.UseJSONStructTags()
+	decoder.SetBehavior(bson.UseJSONStructTags)
 
 	var res Product
 	err = decoder.Decode(&res)

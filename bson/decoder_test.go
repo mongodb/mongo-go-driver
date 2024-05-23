@@ -253,7 +253,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "AllowTruncatingDoubles",
 			configure: func(dec *Decoder) {
-				dec.AllowTruncatingDoubles()
+				dec.SetBehavior(AllowTruncatingDoubles)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDouble("myInt", 1.999).
@@ -286,7 +286,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "BinaryAsSlice",
 			configure: func(dec *Decoder) {
-				dec.BinaryAsSlice()
+				dec.SetBehavior(BinaryAsSlice)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendBinary("myBinary", TypeBinaryGeneric, []byte{}).
@@ -299,7 +299,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "DefaultDocumentD nested",
 			configure: func(dec *Decoder) {
-				dec.DefaultDocumentD()
+				dec.SetBehavior(DefaultDocumentD)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
@@ -316,7 +316,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "DefaultDocumentM nested",
 			configure: func(dec *Decoder) {
-				dec.DefaultDocumentM()
+				dec.SetBehavior(DefaultDocumentM)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
@@ -333,7 +333,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "UseJSONStructTags",
 			configure: func(dec *Decoder) {
-				dec.UseJSONStructTags()
+				dec.SetBehavior(UseJSONStructTags)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendString("jsonFieldName", "test value").
@@ -346,7 +346,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "UseLocalTimeZone",
 			configure: func(dec *Decoder) {
-				dec.UseLocalTimeZone()
+				dec.SetBehavior(UseLocalTimeZone)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDateTime("myTime", 1684349179939).
@@ -359,7 +359,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "ZeroMaps",
 			configure: func(dec *Decoder) {
-				dec.ZeroMaps()
+				dec.SetBehavior(ZeroMaps)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDocument("myMap", bsoncore.NewDocumentBuilder().
@@ -376,7 +376,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		{
 			description: "ZeroStructs",
 			configure: func(dec *Decoder) {
-				dec.ZeroStructs()
+				dec.SetBehavior(ZeroStructs)
 			},
 			input: bsoncore.NewDocumentBuilder().
 				AppendString("myString", "test value").
@@ -417,7 +417,7 @@ func TestDecoderConfiguration(t *testing.T) {
 
 		dec := NewDecoder(NewValueReader(input))
 
-		dec.DefaultDocumentM()
+		dec.SetBehavior(DefaultDocumentM)
 
 		var got interface{}
 		err := dec.Decode(&got)
@@ -441,7 +441,7 @@ func TestDecoderConfiguration(t *testing.T) {
 
 		dec := NewDecoder(NewValueReader(input))
 
-		dec.DefaultDocumentD()
+		dec.SetBehavior(DefaultDocumentD)
 
 		var got interface{}
 		err := dec.Decode(&got)

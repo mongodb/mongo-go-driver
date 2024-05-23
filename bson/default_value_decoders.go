@@ -40,8 +40,7 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
 	}
 
-	intDecoder := func() ValueDecoder { return &intCodec{} }
-	floatDecoder := func() ValueDecoder { return &floatCodec{} }
+	numDecoder := func() ValueDecoder { return &numCodec{} }
 	rb.RegisterTypeDecoder(tD, func() ValueDecoder { return ValueDecoderFunc(dDecodeValue) }).
 		RegisterTypeDecoder(tBinary, func() ValueDecoder { return &decodeAdapter{binaryDecodeValue, binaryDecodeType} }).
 		RegisterTypeDecoder(tUndefined, func() ValueDecoder { return &decodeAdapter{undefinedDecodeValue, undefinedDecodeType} }).
@@ -65,18 +64,18 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeDecoder(tCoreDocument, func() ValueDecoder { return ValueDecoderFunc(coreDocumentDecodeValue) }).
 		RegisterTypeDecoder(tCodeWithScope, func() ValueDecoder { return &decodeAdapter{codeWithScopeDecodeValue, codeWithScopeDecodeType} }).
 		RegisterKindDecoder(reflect.Bool, func() ValueDecoder { return &decodeAdapter{booleanDecodeValue, booleanDecodeType} }).
-		RegisterKindDecoder(reflect.Int, intDecoder).
-		RegisterKindDecoder(reflect.Int8, intDecoder).
-		RegisterKindDecoder(reflect.Int16, intDecoder).
-		RegisterKindDecoder(reflect.Int32, intDecoder).
-		RegisterKindDecoder(reflect.Int64, intDecoder).
-		RegisterKindDecoder(reflect.Uint, intDecoder).
-		RegisterKindDecoder(reflect.Uint8, intDecoder).
-		RegisterKindDecoder(reflect.Uint16, intDecoder).
-		RegisterKindDecoder(reflect.Uint32, intDecoder).
-		RegisterKindDecoder(reflect.Uint64, intDecoder).
-		RegisterKindDecoder(reflect.Float32, floatDecoder).
-		RegisterKindDecoder(reflect.Float64, floatDecoder).
+		RegisterKindDecoder(reflect.Int, numDecoder).
+		RegisterKindDecoder(reflect.Int8, numDecoder).
+		RegisterKindDecoder(reflect.Int16, numDecoder).
+		RegisterKindDecoder(reflect.Int32, numDecoder).
+		RegisterKindDecoder(reflect.Int64, numDecoder).
+		RegisterKindDecoder(reflect.Uint, numDecoder).
+		RegisterKindDecoder(reflect.Uint8, numDecoder).
+		RegisterKindDecoder(reflect.Uint16, numDecoder).
+		RegisterKindDecoder(reflect.Uint32, numDecoder).
+		RegisterKindDecoder(reflect.Uint64, numDecoder).
+		RegisterKindDecoder(reflect.Float32, numDecoder).
+		RegisterKindDecoder(reflect.Float64, numDecoder).
 		RegisterKindDecoder(reflect.Array, func() ValueDecoder { return ValueDecoderFunc(arrayDecodeValue) }).
 		RegisterKindDecoder(reflect.Map, func() ValueDecoder { return &mapCodec{} }).
 		RegisterKindDecoder(reflect.Slice, func() ValueDecoder { return &sliceCodec{} }).

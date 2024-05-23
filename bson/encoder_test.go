@@ -160,7 +160,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "ErrorOnInlineDuplicates",
 			configure: func(enc *Encoder) {
-				enc.ErrorOnInlineDuplicates()
+				enc.SetBehavior(ErrorOnInlineDuplicates)
 			},
 			input: inlineDuplicateOuter{
 				Inline:    inlineDuplicateInner{Duplicate: "inner"},
@@ -173,7 +173,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "IntMinSize",
 			configure: func(enc *Encoder) {
-				enc.IntMinSize()
+				enc.SetBehavior(IntMinSize)
 			},
 			input: D{
 				{Key: "myInt", Value: int(1)},
@@ -194,7 +194,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "StringifyMapKeysWithFmt",
 			configure: func(enc *Encoder) {
-				enc.StringifyMapKeysWithFmt()
+				enc.SetBehavior(StringifyMapKeysWithFmt)
 			},
 			input: map[stringerTest]string{
 				{}: "test value",
@@ -207,7 +207,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "NilMapAsEmpty",
 			configure: func(enc *Encoder) {
-				enc.NilMapAsEmpty()
+				enc.SetBehavior(NilMapAsEmpty)
 			},
 			input: D{{Key: "myMap", Value: map[string]string(nil)}},
 			want: bsoncore.NewDocumentBuilder().
@@ -218,7 +218,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "NilSliceAsEmpty",
 			configure: func(enc *Encoder) {
-				enc.NilSliceAsEmpty()
+				enc.SetBehavior(NilSliceAsEmpty)
 			},
 			input: D{{Key: "mySlice", Value: []string(nil)}},
 			want: bsoncore.NewDocumentBuilder().
@@ -229,7 +229,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "NilByteSliceAsEmpty",
 			configure: func(enc *Encoder) {
-				enc.NilByteSliceAsEmpty()
+				enc.SetBehavior(NilByteSliceAsEmpty)
 			},
 			input: D{{Key: "myBytes", Value: []byte(nil)}},
 			want: bsoncore.NewDocumentBuilder().
@@ -241,7 +241,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "OmitZeroStruct",
 			configure: func(enc *Encoder) {
-				enc.OmitZeroStruct()
+				enc.SetBehavior(OmitZeroStruct)
 			},
 			input: struct {
 				Zero zeroStruct `bson:",omitempty"`
@@ -253,7 +253,7 @@ func TestEncoderConfiguration(t *testing.T) {
 		{
 			description: "UseJSONStructTags",
 			configure: func(enc *Encoder) {
-				enc.UseJSONStructTags()
+				enc.SetBehavior(UseJSONStructTags)
 			},
 			input: struct {
 				StructFieldName string `json:"jsonFieldName"`

@@ -95,7 +95,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"IntEncodeValue",
-			&intCodec{},
+			&numCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -104,8 +104,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nothing,
 					ValueEncoderError{
-						Name: "IntEncodeValue",
+						Name: "NumEncodeValue",
 						Kinds: []reflect.Kind{
+							reflect.Float32, reflect.Float64,
 							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 						},
@@ -138,7 +139,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UintEncodeValue",
-			&intCodec{},
+			&numCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -147,8 +148,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nothing,
 					ValueEncoderError{
-						Name: "IntEncodeValue",
+						Name: "NumEncodeValue",
 						Kinds: []reflect.Kind{
+							reflect.Float32, reflect.Float64,
 							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 						},
@@ -182,7 +184,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"FloatEncodeValue",
-			&floatCodec{},
+			&numCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -191,8 +193,12 @@ func TestDefaultValueEncoders(t *testing.T) {
 					nil,
 					nothing,
 					ValueEncoderError{
-						Name:     "FloatEncodeValue",
-						Kinds:    []reflect.Kind{reflect.Float32, reflect.Float64},
+						Name: "NumEncodeValue",
+						Kinds: []reflect.Kind{
+							reflect.Float32, reflect.Float64,
+							reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+						},
 						Received: reflect.ValueOf(wrong),
 					},
 				},

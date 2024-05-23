@@ -72,28 +72,28 @@ func getEncoder(
 
 	if opts != nil {
 		if opts.ErrorOnInlineDuplicates {
-			enc.ErrorOnInlineDuplicates()
+			enc.SetBehavior(bson.ErrorOnInlineDuplicates)
 		}
 		if opts.IntMinSize {
-			enc.IntMinSize()
+			enc.SetBehavior(bson.IntMinSize)
 		}
 		if opts.NilByteSliceAsEmpty {
-			enc.NilByteSliceAsEmpty()
+			enc.SetBehavior(bson.NilByteSliceAsEmpty)
 		}
 		if opts.NilMapAsEmpty {
-			enc.NilMapAsEmpty()
+			enc.SetBehavior(bson.NilMapAsEmpty)
 		}
 		if opts.NilSliceAsEmpty {
-			enc.NilSliceAsEmpty()
+			enc.SetBehavior(bson.NilSliceAsEmpty)
 		}
 		if opts.OmitZeroStruct {
-			enc.OmitZeroStruct()
+			enc.SetBehavior(bson.OmitZeroStruct)
 		}
 		if opts.StringifyMapKeysWithFmt {
-			enc.StringifyMapKeysWithFmt()
+			enc.SetBehavior(bson.StringifyMapKeysWithFmt)
 		}
 		if opts.UseJSONStructTags {
-			enc.UseJSONStructTags()
+			enc.SetBehavior(bson.UseJSONStructTags)
 		}
 	}
 
@@ -154,10 +154,10 @@ func ensureID(
 	doc bsoncore.Document,
 	oid bson.ObjectID,
 	bsonOpts *options.BSONOptions,
-	reg *bson.Registry,
+	registry *bson.Registry,
 ) (bsoncore.Document, interface{}, error) {
-	if reg == nil {
-		reg = bson.NewRegistryBuilder().Build()
+	if registry == nil {
+		registry = bson.NewRegistryBuilder().Build()
 	}
 
 	// Try to find the "_id" element. If it exists, try to unmarshal just the
@@ -167,7 +167,7 @@ func ensureID(
 		var id struct {
 			ID interface{} `bson:"_id"`
 		}
-		dec := getDecoder(doc, bsonOpts, reg)
+		dec := getDecoder(doc, bsonOpts, registry)
 		err = dec.Decode(&id)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error unmarshaling BSON document: %w", err)

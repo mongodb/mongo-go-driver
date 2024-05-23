@@ -227,13 +227,14 @@ func (rb *RegistryBuilder) Build() *Registry {
 		codecTypeMap: make(map[reflect.Type][]interface{}),
 	}
 
-	encoderCache := make(map[reflect.Value]ValueEncoder)
+	codecCache := make(map[reflect.Value]interface{})
+
 	getEncoder := func(encFac EncoderFactory) ValueEncoder {
-		if enc, ok := encoderCache[reflect.ValueOf(encFac)]; ok {
-			return enc
+		if enc, ok := codecCache[reflect.ValueOf(encFac)]; ok {
+			return enc.(ValueEncoder)
 		}
 		encoder := encFac()
-		encoderCache[reflect.ValueOf(encFac)] = encoder
+		codecCache[reflect.ValueOf(encFac)] = encoder
 		t := reflect.ValueOf(encoder).Type()
 		r.codecTypeMap[t] = append(r.codecTypeMap[t], encoder)
 		return encoder
@@ -254,13 +255,12 @@ func (rb *RegistryBuilder) Build() *Registry {
 		r.kindEncoders[i] = encoder
 	}
 
-	decoderCache := make(map[reflect.Value]ValueDecoder)
 	getDecoder := func(decFac DecoderFactory) ValueDecoder {
-		if dec, ok := decoderCache[reflect.ValueOf(decFac)]; ok {
-			return dec
+		if dec, ok := codecCache[reflect.ValueOf(decFac)]; ok {
+			return dec.(ValueDecoder)
 		}
 		decoder := decFac()
-		decoderCache[reflect.ValueOf(decFac)] = decoder
+		codecCache[reflect.ValueOf(decFac)] = decoder
 		t := reflect.ValueOf(decoder).Type()
 		r.codecTypeMap[t] = append(r.codecTypeMap[t], decoder)
 		return decoder
@@ -331,6 +331,18 @@ type Registry struct {
 	typeMap           map[Type]reflect.Type
 
 	codecTypeMap map[reflect.Type][]interface{}
+}
+
+// SetCodecOptions configures Registry using a *RegistryOpt.
+func (r *Registry) SetCodecOptions(opts ...*RegistryOpt) {
+	for _, opt := range opts {
+		v, ok := r.codecTypeMap[opt.typ]
+		if ok && v != nil {
+			for i := range v {
+				_ = opt.fn.Call([]reflect.Value{reflect.ValueOf(v[i])})
+			}
+		}
+	}
 }
 
 // LookupEncoder returns the first matching encoder in the Registry. It uses the following lookup

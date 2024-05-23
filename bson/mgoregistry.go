@@ -34,7 +34,7 @@ func newMgoRegistryBuilder() *RegistryBuilder {
 		encodeNilAsEmpty:       true,
 		encodeKeysWithStringer: true,
 	}
-	intcodec := func() ValueEncoder { return &intCodec{encodeUintToMinSize: true} }
+	numcodec := func() ValueEncoder { return &numCodec{encodeUintToMinSize: true} }
 
 	return NewRegistryBuilder().
 		RegisterTypeDecoder(tEmpty, func() ValueDecoder { return &emptyInterfaceCodec{decodeBinaryAsSlice: true} }).
@@ -45,11 +45,11 @@ func newMgoRegistryBuilder() *RegistryBuilder {
 		RegisterKindEncoder(reflect.Struct, func() ValueEncoder { return structcodec }).
 		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{encodeNilAsEmpty: true} }).
 		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return mapCodec }).
-		RegisterKindEncoder(reflect.Uint, intcodec).
-		RegisterKindEncoder(reflect.Uint8, intcodec).
-		RegisterKindEncoder(reflect.Uint16, intcodec).
-		RegisterKindEncoder(reflect.Uint32, intcodec).
-		RegisterKindEncoder(reflect.Uint64, intcodec).
+		RegisterKindEncoder(reflect.Uint, numcodec).
+		RegisterKindEncoder(reflect.Uint8, numcodec).
+		RegisterKindEncoder(reflect.Uint16, numcodec).
+		RegisterKindEncoder(reflect.Uint32, numcodec).
+		RegisterKindEncoder(reflect.Uint64, numcodec).
 		RegisterTypeMapEntry(TypeInt32, tInt).
 		RegisterTypeMapEntry(TypeDateTime, tTime).
 		RegisterTypeMapEntry(TypeArray, tInterfaceSlice).

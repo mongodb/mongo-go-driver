@@ -55,8 +55,7 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
 	}
 
-	intEncoder := func() ValueEncoder { return &intCodec{} }
-	floatEncoder := func() ValueEncoder { return &floatCodec{} }
+	numEncoder := func() ValueEncoder { return &numCodec{} }
 	rb.RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{} }).
 		RegisterTypeEncoder(tTime, func() ValueEncoder { return &timeCodec{} }).
 		RegisterTypeEncoder(tEmpty, func() ValueEncoder { return &emptyInterfaceCodec{} }).
@@ -79,18 +78,18 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 		RegisterTypeEncoder(tCoreDocument, func() ValueEncoder { return ValueEncoderFunc(coreDocumentEncodeValue) }).
 		RegisterTypeEncoder(tCodeWithScope, func() ValueEncoder { return ValueEncoderFunc(codeWithScopeEncodeValue) }).
 		RegisterKindEncoder(reflect.Bool, func() ValueEncoder { return ValueEncoderFunc(booleanEncodeValue) }).
-		RegisterKindEncoder(reflect.Int, intEncoder).
-		RegisterKindEncoder(reflect.Int8, intEncoder).
-		RegisterKindEncoder(reflect.Int16, intEncoder).
-		RegisterKindEncoder(reflect.Int32, intEncoder).
-		RegisterKindEncoder(reflect.Int64, intEncoder).
-		RegisterKindEncoder(reflect.Uint, intEncoder).
-		RegisterKindEncoder(reflect.Uint8, intEncoder).
-		RegisterKindEncoder(reflect.Uint16, intEncoder).
-		RegisterKindEncoder(reflect.Uint32, intEncoder).
-		RegisterKindEncoder(reflect.Uint64, intEncoder).
-		RegisterKindEncoder(reflect.Float32, floatEncoder).
-		RegisterKindEncoder(reflect.Float64, floatEncoder).
+		RegisterKindEncoder(reflect.Int, numEncoder).
+		RegisterKindEncoder(reflect.Int8, numEncoder).
+		RegisterKindEncoder(reflect.Int16, numEncoder).
+		RegisterKindEncoder(reflect.Int32, numEncoder).
+		RegisterKindEncoder(reflect.Int64, numEncoder).
+		RegisterKindEncoder(reflect.Uint, numEncoder).
+		RegisterKindEncoder(reflect.Uint8, numEncoder).
+		RegisterKindEncoder(reflect.Uint16, numEncoder).
+		RegisterKindEncoder(reflect.Uint32, numEncoder).
+		RegisterKindEncoder(reflect.Uint64, numEncoder).
+		RegisterKindEncoder(reflect.Float32, numEncoder).
+		RegisterKindEncoder(reflect.Float64, numEncoder).
 		RegisterKindEncoder(reflect.Array, func() ValueEncoder { return ValueEncoderFunc(arrayEncodeValue) }).
 		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return &mapCodec{} }).
 		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{} }).
@@ -151,7 +150,7 @@ func jsonNumberEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Valu
 		return err
 	}
 
-	return (&floatCodec{}).EncodeValue(reg, vw, reflect.ValueOf(f64))
+	return (&numCodec{}).EncodeValue(reg, vw, reflect.ValueOf(f64))
 }
 
 // urlEncodeValue is the ValueEncoderFunc for url.URL.

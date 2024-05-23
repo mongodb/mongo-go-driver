@@ -245,28 +245,28 @@ func getDecoder(
 
 	if opts != nil {
 		if opts.AllowTruncatingDoubles {
-			dec.AllowTruncatingDoubles()
+			dec.SetBehavior(bson.AllowTruncatingDoubles)
 		}
 		if opts.BinaryAsSlice {
-			dec.BinaryAsSlice()
+			dec.SetBehavior(bson.BinaryAsSlice)
 		}
 		if opts.DefaultDocumentD {
-			dec.DefaultDocumentD()
+			dec.SetBehavior(bson.DefaultDocumentD)
 		}
 		if opts.DefaultDocumentM {
-			dec.DefaultDocumentM()
+			dec.SetBehavior(bson.DefaultDocumentM)
 		}
 		if opts.UseJSONStructTags {
-			dec.UseJSONStructTags()
+			dec.SetBehavior(bson.UseJSONStructTags)
 		}
 		if opts.UseLocalTimeZone {
-			dec.UseLocalTimeZone()
+			dec.SetBehavior(bson.UseLocalTimeZone)
 		}
 		if opts.ZeroMaps {
-			dec.ZeroMaps()
+			dec.SetBehavior(bson.ZeroMaps)
 		}
 		if opts.ZeroStructs {
-			dec.ZeroStructs()
+			dec.SetBehavior(bson.ZeroStructs)
 		}
 	}
 

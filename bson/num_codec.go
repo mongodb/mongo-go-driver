@@ -12,8 +12,8 @@ import (
 	"reflect"
 )
 
-// intCodec is the Codec used for uint values.
-type intCodec struct {
+// numCodec is the Codec used for numeric values.
+type numCodec struct {
 	// minSize causes the Encoder to marshal Go integer values (int, int8, int16, int32, int64,
 	// uint, uint8, uint16, uint32, or uint64) as the minimum BSON int size (either 32 or 64 bits)
 	// that can represent the integer value.
@@ -30,9 +30,12 @@ type intCodec struct {
 	truncate bool
 }
 
-// EncodeValue is the ValueEncoder for uint types.
-func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
+// EncodeValue is the ValueEncoder for numeric types.
+func (nc *numCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
+	case reflect.Float32, reflect.Float64:
+		return vw.WriteDouble(val.Float())
+
 	case reflect.Int8, reflect.Int16, reflect.Int32:
 		return vw.WriteInt32(int32(val.Int()))
 	case reflect.Int:
@@ -43,7 +46,7 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 		return vw.WriteInt64(i64)
 	case reflect.Int64:
 		i64 := val.Int()
-		if ic.minSize && fitsIn32Bits(i64) {
+		if nc.minSize && fitsIn32Bits(i64) {
 			return vw.WriteInt32(int32(i64))
 		}
 		return vw.WriteInt64(i64)
@@ -54,7 +57,7 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 		u64 := val.Uint()
 
 		// If minSize or encodeToMinSize is true for a non-uint64 value we should write val as an int32
-		useMinSize := ic.minSize || (ic.encodeUintToMinSize && val.Kind() != reflect.Uint64)
+		useMinSize := nc.minSize || (nc.encodeUintToMinSize && val.Kind() != reflect.Uint64)
 
 		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))
@@ -66,8 +69,9 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 	}
 
 	return ValueEncoderError{
-		Name: "IntEncodeValue",
+		Name: "NumEncodeValue",
 		Kinds: []reflect.Kind{
+			reflect.Float32, reflect.Float64,
 			reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 			reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 		},
@@ -75,7 +79,7 @@ func (ic *intCodec) EncodeValue(_ EncoderRegistry, vw ValueWriter, val reflect.V
 	}
 }
 
-func (ic *intCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (nc *numCodec) decodeTypeInt(vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	var i64 int64
 	switch vrType := vr.Type(); vrType {
 	case TypeInt32:
@@ -95,7 +99,7 @@ func (ic *intCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type
 		if err != nil {
 			return emptyValue, err
 		}
-		if !ic.truncate && math.Floor(f64) != f64 {
+		if !nc.truncate && math.Floor(f64) != f64 {
 			return emptyValue, errCannotTruncate
 		}
 		if f64 > float64(math.MaxInt64) {
@@ -174,8 +178,9 @@ func (ic *intCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type
 
 	default:
 		return emptyValue, ValueDecoderError{
-			Name: "IntDecodeValue",
+			Name: "NumDecodeValue",
 			Kinds: []reflect.Kind{
+				reflect.Float32, reflect.Float64,
 				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 				reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 			},
@@ -184,12 +189,97 @@ func (ic *intCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type
 	}
 }
 
-// DecodeValue is the ValueDecoder for uint types.
-func (ic *intCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
+func (nc *numCodec) decodeTypeFloat(vr ValueReader, t reflect.Type) (reflect.Value, error) {
+	var f float64
+	var err error
+	switch vrType := vr.Type(); vrType {
+	case TypeInt32:
+		i32, err := vr.ReadInt32()
+		if err != nil {
+			return emptyValue, err
+		}
+		f = float64(i32)
+	case TypeInt64:
+		i64, err := vr.ReadInt64()
+		if err != nil {
+			return emptyValue, err
+		}
+		f = float64(i64)
+	case TypeDouble:
+		f, err = vr.ReadDouble()
+		if err != nil {
+			return emptyValue, err
+		}
+	case TypeBoolean:
+		b, err := vr.ReadBoolean()
+		if err != nil {
+			return emptyValue, err
+		}
+		if b {
+			f = 1
+		}
+	case TypeNull:
+		if err = vr.ReadNull(); err != nil {
+			return emptyValue, err
+		}
+	case TypeUndefined:
+		if err = vr.ReadUndefined(); err != nil {
+			return emptyValue, err
+		}
+	default:
+		return emptyValue, fmt.Errorf("cannot decode %v into a float32 or float64 type", vrType)
+	}
+
+	switch t.Kind() {
+	case reflect.Float32:
+		if !nc.truncate && float64(float32(f)) != f {
+			return emptyValue, errCannotTruncate
+		}
+
+		return reflect.ValueOf(float32(f)), nil
+	case reflect.Float64:
+		return reflect.ValueOf(f), nil
+
+	default:
+		return emptyValue, ValueDecoderError{
+			Name: "NumDecodeValue",
+			Kinds: []reflect.Kind{
+				reflect.Float32, reflect.Float64,
+				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+				reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+			},
+			Received: reflect.Zero(t),
+		}
+	}
+}
+
+func (nc *numCodec) decodeType(_ DecoderRegistry, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+	switch t.Kind() {
+	case reflect.Float32, reflect.Float64:
+		return nc.decodeTypeFloat(vr, t)
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		return nc.decodeTypeInt(vr, t)
+	default:
+		return emptyValue, ValueDecoderError{
+			Name: "NumDecodeValue",
+			Kinds: []reflect.Kind{
+				reflect.Float32, reflect.Float64,
+				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+				reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
+			},
+			Received: reflect.Zero(t),
+		}
+	}
+}
+
+// DecodeValue is the ValueDecoder for numeric types.
+func (nc *numCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() {
 		return ValueDecoderError{
-			Name: "IntDecodeValue",
+			Name: "NumDecodeValue",
 			Kinds: []reflect.Kind{
+				reflect.Float32, reflect.Float64,
 				reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
 				reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 			},
@@ -197,7 +287,7 @@ func (ic *intCodec) DecodeValue(reg DecoderRegistry, vr ValueReader, val reflect
 		}
 	}
 
-	elem, err := ic.decodeType(reg, vr, val.Type())
+	elem, err := nc.decodeType(reg, vr, val.Type())
 	if err != nil {
 		return err
 	}

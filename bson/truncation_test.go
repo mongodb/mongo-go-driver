@@ -33,17 +33,18 @@ func TestTruncation(t *testing.T) {
 		buf := new(bytes.Buffer)
 		vw := NewValueWriter(buf)
 		enc := NewEncoderWithRegistry(NewRegistryBuilder().Build(), vw)
-		enc.IntMinSize()
+		enc.SetBehavior(IntMinSize)
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
-		// dc := DecodeContext{
-		// 	Registry: DefaultRegistry,
-		// 	truncate: true,
-		// }
+		opt := NewRegistryOpt(func(c *numCodec) {
+			c.truncate = true
+		})
+		reg := NewRegistryBuilder().Build()
+		reg.SetCodecOptions(opt)
 
-		err = UnmarshalWithContext(NewRegistryBuilder().Build(), buf.Bytes(), &output)
+		err = UnmarshalWithContext(reg, buf.Bytes(), &output)
 		assert.Nil(t, err)
 
 		assert.Equal(t, inputName, output.Name)
@@ -58,18 +59,19 @@ func TestTruncation(t *testing.T) {
 		buf := new(bytes.Buffer)
 		vw := NewValueWriter(buf)
 		enc := NewEncoderWithRegistry(NewRegistryBuilder().Build(), vw)
-		enc.IntMinSize()
+		enc.SetBehavior(IntMinSize)
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
-		// dc := DecodeContext{
-		// 	Registry: DefaultRegistry,
-		// 	truncate: false,
-		// }
+		opt := NewRegistryOpt(func(c *numCodec) {
+			c.truncate = false
+		})
+		reg := NewRegistryBuilder().Build()
+		reg.SetCodecOptions(opt)
 
 		// case throws an error when truncation is disabled
-		err = UnmarshalWithContext(NewRegistryBuilder().Build(), buf.Bytes(), &output)
+		err = UnmarshalWithContext(reg, buf.Bytes(), &output)
 		assert.NotNil(t, err)
 	})
 }

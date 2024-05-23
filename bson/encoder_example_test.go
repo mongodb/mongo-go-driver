@@ -53,7 +53,30 @@ func (k CityState) String() string {
 	return fmt.Sprintf("%s, %s", k.City, k.State)
 }
 
-func ExampleEncoder_StringifyMapKeysWithFmt() {
+func ExampleEncoder_SetBehavior_intMinSize() {
+	// Create an encoder that will marshal integers as the minimum BSON int size
+	// (either 32 or 64 bits) that can represent the integer value.
+	type foo struct {
+		Bar uint32
+	}
+
+	buf := new(bytes.Buffer)
+	vw := bson.NewValueWriter(buf)
+
+	enc := bson.NewEncoder(vw)
+	enc.SetBehavior(bson.IntMinSize)
+
+	err := enc.Encode(foo{2})
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(bson.Raw(buf.Bytes()).String())
+	// Output:
+	// {"bar": {"$numberInt":"2"}}
+}
+
+func ExampleEncoder_SetBehavior_stringifyMapKeysWithFmt() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
@@ -61,7 +84,7 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
 	// using fmt.Sprintf instead of the default string conversion logic.
-	encoder.StringifyMapKeysWithFmt()
+	encoder.SetBehavior(bson.StringifyMapKeysWithFmt)
 
 	// Use the Encoder to marshal a BSON document that contains is a map of
 	// city and state to a list of zip codes in that city.
@@ -78,7 +101,7 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 	// Output: {"New York, NY": [{"$numberInt":"10001"},{"$numberInt":"10301"},{"$numberInt":"10451"}]}
 }
 
-func ExampleEncoder_UseJSONStructTags() {
+func ExampleEncoder_SetBehavior_useJSONStructTags() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
 	vw := bson.NewValueWriter(buf)
@@ -92,7 +115,7 @@ func ExampleEncoder_UseJSONStructTags() {
 
 	// Configure the Encoder to use "json" struct tags when decoding if "bson"
 	// struct tags are not present.
-	encoder.UseJSONStructTags()
+	encoder.SetBehavior(bson.UseJSONStructTags)
 
 	// Use the Encoder to marshal a BSON document that contains the name, SKU,
 	// and price (in cents) of a product.
@@ -214,27 +237,4 @@ func ExampleEncoder_multipleExtendedJSONDocuments() {
 	// {"x":{"$numberInt":"2"},"y":{"$numberInt":"3"}}
 	// {"x":{"$numberInt":"3"},"y":{"$numberInt":"4"}}
 	// {"x":{"$numberInt":"4"},"y":{"$numberInt":"5"}}
-}
-
-func ExampleEncoder_IntMinSize() {
-	// Create an encoder that will marshal integers as the minimum BSON int size
-	// (either 32 or 64 bits) that can represent the integer value.
-	type foo struct {
-		Bar uint32
-	}
-
-	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
-
-	enc := bson.NewEncoder(vw)
-	enc.IntMinSize()
-
-	err := enc.Encode(foo{2})
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(bson.Raw(buf.Bytes()).String())
-	// Output:
-	// {"bar": {"$numberInt":"2"}}
 }
