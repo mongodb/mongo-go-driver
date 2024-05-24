@@ -23,6 +23,12 @@ func (sio *SearchIndexesOptions) SetName(name string) *SearchIndexesOptions {
 	return sio
 }
 
+// SetType sets the value for the Type field.
+func (sio *SearchIndexesOptions) SetType(ty string) *SearchIndexesOptions {
+	sio.Type = &ty
+	return sio
+}
+
 // CreateSearchIndexesOptions represents options that can be used to configure a SearchIndexView.CreateOne or
 // SearchIndexView.CreateMany operation.
 type CreateSearchIndexesOptions struct {
