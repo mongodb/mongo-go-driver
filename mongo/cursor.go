@@ -234,7 +234,7 @@ func getDecoder(
 	data []byte,
 	opts *options.BSONOptions,
 	reg *bson.Registry,
-) *bson.Decoder {
+) (*bson.Decoder, error) {
 	vr := bson.NewValueReader(data)
 	var dec *bson.Decoder
 	if reg != nil {
@@ -244,39 +244,49 @@ func getDecoder(
 	}
 
 	if opts != nil {
+		regOpts := []*bson.RegistryOpt{}
 		if opts.AllowTruncatingDoubles {
-			dec.SetBehavior(bson.AllowTruncatingDoubles)
+			regOpts = append(regOpts, bson.AllowTruncatingDoubles)
 		}
 		if opts.BinaryAsSlice {
-			dec.SetBehavior(bson.BinaryAsSlice)
+			regOpts = append(regOpts, bson.BinaryAsSlice)
 		}
 		if opts.DefaultDocumentD {
-			dec.SetBehavior(bson.DefaultDocumentD)
+			regOpts = append(regOpts, bson.DefaultDocumentD)
 		}
 		if opts.DefaultDocumentM {
-			dec.SetBehavior(bson.DefaultDocumentM)
+			regOpts = append(regOpts, bson.DefaultDocumentM)
 		}
 		if opts.UseJSONStructTags {
-			dec.SetBehavior(bson.UseJSONStructTags)
+			regOpts = append(regOpts, bson.UseJSONStructTags)
 		}
 		if opts.UseLocalTimeZone {
-			dec.SetBehavior(bson.UseLocalTimeZone)
+			regOpts = append(regOpts, bson.UseLocalTimeZone)
 		}
 		if opts.ZeroMaps {
-			dec.SetBehavior(bson.ZeroMaps)
+			regOpts = append(regOpts, bson.ZeroMaps)
 		}
 		if opts.ZeroStructs {
-			dec.SetBehavior(bson.ZeroStructs)
+			regOpts = append(regOpts, bson.ZeroStructs)
+		}
+		for _, opt := range regOpts {
+			err := dec.SetBehavior(opt)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return dec
+	return dec, nil
 }
 
 // Decode will unmarshal the current document into val and return any errors from the unmarshalling process without any
 // modification. If val is nil or is a typed nil, an error will be returned.
 func (c *Cursor) Decode(val interface{}) error {
-	dec := getDecoder(c.Current, c.bsonOpts, c.registry)
+	dec, err := getDecoder(c.Current, c.bsonOpts, c.registry)
+	if err != nil {
+		return err
+	}
 
 	return dec.Decode(val)
 }
@@ -367,7 +377,11 @@ func (c *Cursor) addFromBatch(sliceVal reflect.Value, elemType reflect.Type, bat
 		}
 
 		currElem := sliceVal.Index(index).Addr().Interface()
-		dec := getDecoder(doc, c.bsonOpts, c.registry)
+		var dec *bson.Decoder
+		dec, err = getDecoder(doc, c.bsonOpts, c.registry)
+		if err != nil {
+			return sliceVal, index, err
+		}
 		err = dec.Decode(currElem)
 		if err != nil {
 			return sliceVal, index, err

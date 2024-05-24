@@ -18,7 +18,7 @@ var ErrDecodeToNil = errors.New("cannot Decode to nil value")
 // ConfigurableDecoderRegistry refers a DecoderRegistry that is configurable with *RegistryOpt.
 type ConfigurableDecoderRegistry interface {
 	DecoderRegistry
-	SetCodecOptions(opts ...*RegistryOpt)
+	SetCodecOption(opt *RegistryOpt) error
 }
 
 // A Decoder reads and decodes BSON documents from a stream. It reads from a ValueReader as
@@ -82,6 +82,6 @@ func (d *Decoder) Decode(val interface{}) error {
 }
 
 // SetBehavior set the decoder behavior with *RegistryOpt.
-func (d *Decoder) SetBehavior(opts ...*RegistryOpt) {
-	d.reg.SetCodecOptions(opts...)
+func (d *Decoder) SetBehavior(opt *RegistryOpt) error {
+	return d.reg.SetCodecOption(opt)
 }

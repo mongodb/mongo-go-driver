@@ -64,9 +64,12 @@ func ExampleEncoder_SetBehavior_intMinSize() {
 	vw := bson.NewValueWriter(buf)
 
 	enc := bson.NewEncoder(vw)
-	enc.SetBehavior(bson.IntMinSize)
+	err := enc.SetBehavior(bson.IntMinSize)
+	if err != nil {
+		panic(err)
+	}
 
-	err := enc.Encode(foo{2})
+	err = enc.Encode(foo{2})
 	if err != nil {
 		panic(err)
 	}
@@ -84,14 +87,17 @@ func ExampleEncoder_SetBehavior_stringifyMapKeysWithFmt() {
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
 	// using fmt.Sprintf instead of the default string conversion logic.
-	encoder.SetBehavior(bson.StringifyMapKeysWithFmt)
+	err := encoder.SetBehavior(bson.StringifyMapKeysWithFmt)
+	if err != nil {
+		panic(err)
+	}
 
 	// Use the Encoder to marshal a BSON document that contains is a map of
 	// city and state to a list of zip codes in that city.
 	zipCodes := map[CityState][]int{
 		{City: "New York", State: "NY"}: {10001, 10301, 10451},
 	}
-	err := encoder.Encode(zipCodes)
+	err = encoder.Encode(zipCodes)
 	if err != nil {
 		panic(err)
 	}
@@ -115,7 +121,10 @@ func ExampleEncoder_SetBehavior_useJSONStructTags() {
 
 	// Configure the Encoder to use "json" struct tags when decoding if "bson"
 	// struct tags are not present.
-	encoder.SetBehavior(bson.UseJSONStructTags)
+	err := encoder.SetBehavior(bson.UseJSONStructTags)
+	if err != nil {
+		panic(err)
+	}
 
 	// Use the Encoder to marshal a BSON document that contains the name, SKU,
 	// and price (in cents) of a product.
@@ -124,7 +133,7 @@ func ExampleEncoder_SetBehavior_useJSONStructTags() {
 		SKU:   "AB12345",
 		Price: 399,
 	}
-	err := encoder.Encode(product)
+	err = encoder.Encode(product)
 	if err != nil {
 		panic(err)
 	}

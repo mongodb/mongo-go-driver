@@ -11,25 +11,57 @@ import (
 	"strings"
 )
 
-// StructTagParser returns the struct tags for a given struct field.
-//
-// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
-type StructTagParser interface {
-	ParseStructTags(reflect.StructField) (StructTags, error)
+// structTagParser returns the struct tags for a given reflect.StructField.
+type structTagParser interface {
+	parseStructTags(reflect.StructField) (*structTags, error)
+	parseJSONStructTags(reflect.StructField) (*structTags, error)
 }
 
-// StructTagParserFunc is an adapter that allows a generic function to be used
-// as a StructTagParser.
-//
-// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
-type StructTagParserFunc func(reflect.StructField) (StructTags, error)
-
-// ParseStructTags implements the StructTagParser interface.
-func (stpf StructTagParserFunc) ParseStructTags(sf reflect.StructField) (StructTags, error) {
-	return stpf(sf)
+// DefaultStructTagParser is the StructTagParser used by the StructCodec by default.
+var DefaultStructTagParser = &StructTagParser{
+	LookupEncoderOnMinSize:  retrieverOnMinSize{},
+	LookupEncoderOnTruncate: retrieverOnTruncate{},
 }
 
-// StructTags represents the struct tag fields that the StructCodec uses during
+type retrieverOnMinSize struct{}
+
+func (retrieverOnMinSize) LookupEncoder(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+	enc, err := reg.LookupEncoder(t)
+	if err != nil {
+		return enc, err
+	}
+	switch t.Kind() {
+	case reflect.Int64, reflect.Uint, reflect.Uint32, reflect.Uint64:
+		if codec, ok := enc.(*numCodec); ok {
+			c := *codec
+			c.minSize = true
+			return &c, nil
+		}
+	}
+	return enc, nil
+}
+
+type retrieverOnTruncate struct{}
+
+func (retrieverOnTruncate) LookupEncoder(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+	enc, err := reg.LookupEncoder(t)
+	if err != nil {
+		return enc, err
+	}
+	switch t.Kind() {
+	case reflect.Float32,
+		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		if codec, ok := enc.(*numCodec); ok {
+			c := *codec
+			c.truncate = true
+			return &c, nil
+		}
+	}
+	return enc, nil
+}
+
+// structTags represents the struct tag fields that the StructCodec uses during
 // the encoding and decoding process.
 //
 // In the case of a struct, the lowercased field name is used as the key for each exported
@@ -38,34 +70,37 @@ func (stpf StructTagParserFunc) ParseStructTags(sf reflect.StructField) (StructT
 //
 // The properties are defined below:
 //
-//	OmitEmpty  Only include the field if it's not set to the zero value for the type or to
-//	           empty slices or maps.
-//
-//	MinSize    Marshal an integer of a type larger than 32 bits value as an int32, if that's
-//	           feasible while preserving the numeric value.
-//
-//	Truncate   When unmarshaling a BSON double, it is permitted to lose precision to fit within
-//	           a float32.
-//
-//	Inline     Inline the field, which must be a struct or a map, causing all of its fields
+//	inline     Inline the field, which must be a struct or a map, causing all of its fields
 //	           or keys to be processed as if they were part of the outer struct. For maps,
 //	           keys must not conflict with the bson keys of other struct fields.
 //
-//	Skip       This struct field should be skipped. This is usually denoted by parsing a "-"
-//	           for the name.
+//	omitEmpty  Only include the field if it's not set to the zero value for the type or to
+//	           empty slices or maps.
 //
-// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
-type StructTags struct {
+//	skip       This struct field should be skipped. This is usually denoted by parsing a "-"
+//	           for the name.
+type structTags struct {
 	Name      string
-	OmitEmpty bool
-	MinSize   bool
-	Truncate  bool
 	Inline    bool
+	OmitEmpty bool
 	Skip      bool
+
+	LookupEncoderOnMinSize  EncoderRetriever
+	LookupEncoderOnTruncate EncoderRetriever
 }
 
-// DefaultStructTagParser is the StructTagParser used by the StructCodec by default.
-// It will handle the bson struct tag. See the documentation for StructTags to see
+// EncoderRetriever is used to look up ValueEncoder with given EncoderRegistry and reflect.Type.
+type EncoderRetriever interface {
+	LookupEncoder(EncoderRegistry, reflect.Type) (ValueEncoder, error)
+}
+
+// StructTagParser defines the encoder lookup bahavior when minSize and truncate tags are set.
+type StructTagParser struct {
+	LookupEncoderOnMinSize  EncoderRetriever
+	LookupEncoderOnTruncate EncoderRetriever
+}
+
+// parseStructTags handles the bson struct tag. See the documentation for StructTags to see
 // what each of the returned fields means.
 //
 // If there is no name in the struct tag fields, the struct field name is lowercased.
@@ -89,22 +124,20 @@ type StructTags struct {
 // A struct tag either consisting entirely of '-' or with a bson key with a
 // value consisting entirely of '-' will return a StructTags with Skip true and
 // the remaining fields will be their default values.
-//
-// Deprecated: DefaultStructTagParser will be removed in Go Driver 2.0.
-var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
+func (p *StructTagParser) parseStructTags(sf reflect.StructField) (*structTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
 	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
 		tag = string(sf.Tag)
 	}
-	return parseTags(key, tag)
+	return p.parseTags(key, tag)
 }
 
-func parseTags(key string, tag string) (StructTags, error) {
-	var st StructTags
+func (p *StructTagParser) parseTags(key string, tag string) (*structTags, error) {
+	var st structTags
 	if tag == "-" {
 		st.Skip = true
-		return st, nil
+		return &st, nil
 	}
 
 	for idx, str := range strings.Split(tag, ",") {
@@ -112,29 +145,25 @@ func parseTags(key string, tag string) (StructTags, error) {
 			key = str
 		}
 		switch str {
+		case "inline":
+			st.Inline = true
 		case "omitempty":
 			st.OmitEmpty = true
 		case "minsize":
-			st.MinSize = true
+			st.LookupEncoderOnMinSize = p.LookupEncoderOnMinSize
 		case "truncate":
-			st.Truncate = true
-		case "inline":
-			st.Inline = true
+			st.LookupEncoderOnTruncate = p.LookupEncoderOnTruncate
 		}
 	}
 
 	st.Name = key
 
-	return st, nil
+	return &st, nil
 }
 
-// JSONFallbackStructTagParser has the same behavior as DefaultStructTagParser
-// but will also fallback to parsing the json tag instead on a field where the
+// parseJSONStructTags parses the json tag instead on a field where the
 // bson tag isn't available.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.UseJSONStructTags] and
-// [go.mongodb.org/mongo-driver/bson.Decoder.UseJSONStructTags] instead.
-var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
+func (p *StructTagParser) parseJSONStructTags(sf reflect.StructField) (*structTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
 	if !ok {
@@ -144,5 +173,5 @@ var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructFiel
 		tag = string(sf.Tag)
 	}
 
-	return parseTags(key, tag)
+	return p.parseTags(key, tag)
 }

@@ -13,7 +13,7 @@ import (
 // ConfigurableEncoderRegistry refers a EncoderRegistry that is configurable with *RegistryOpt.
 type ConfigurableEncoderRegistry interface {
 	EncoderRegistry
-	SetCodecOptions(opts ...*RegistryOpt)
+	SetCodecOption(opt *RegistryOpt) error
 }
 
 // An Encoder writes a serialization format to an output stream. It writes to a ValueWriter
@@ -61,6 +61,6 @@ func (e *Encoder) Encode(val interface{}) error {
 }
 
 // SetBehavior set the encoder behavior with *RegistryOpt.
-func (e *Encoder) SetBehavior(opts ...*RegistryOpt) {
-	e.reg.SetCodecOptions(opts...)
+func (e *Encoder) SetBehavior(opt *RegistryOpt) error {
+	return e.reg.SetCodecOption(opt)
 }

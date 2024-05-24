@@ -50,7 +50,7 @@ func (de *DecodeError) Keys() []string {
 // structCodec is the Codec used for struct values.
 type structCodec struct {
 	cache  sync.Map // map[reflect.Type]*structDescription
-	parser StructTagParser
+	parser structTagParser
 
 	// decodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
 	decodeZeroStruct bool
@@ -76,7 +76,7 @@ type structCodec struct {
 }
 
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.
-func newStructCodec(p StructTagParser) *structCodec {
+func newStructCodec(p structTagParser) *structCodec {
 	return &structCodec{
 		parser:                           p,
 		overwriteDuplicatedInlinedFields: true,
@@ -84,25 +84,12 @@ func newStructCodec(p StructTagParser) *structCodec {
 }
 
 type localEncoderRegistry struct {
-	registry EncoderRegistry
-
-	minSize bool
+	registry      EncoderRegistry
+	encoderLookup func(EncoderRegistry, reflect.Type) (ValueEncoder, error)
 }
 
 func (r *localEncoderRegistry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
-	ve, err := r.registry.LookupEncoder(t)
-	if err != nil {
-		return ve, err
-	}
-	if r.minSize {
-		if ic, ok := ve.(*numCodec); ok {
-			ve = &numCodec{
-				minSize:  true,
-				truncate: ic.truncate,
-			}
-		}
-	}
-	return ve, nil
+	return r.encoderLookup(r.registry, t)
 }
 
 // EncodeValue handles encoding generic struct types.
@@ -132,8 +119,8 @@ func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val refl
 		}
 
 		reg = &localEncoderRegistry{
-			registry: reg,
-			minSize:  desc.minSize,
+			registry:      reg,
+			encoderLookup: desc.encoderLookup,
 		}
 
 		var encoder ValueEncoder
@@ -395,14 +382,13 @@ type structDescription struct {
 }
 
 type fieldDescription struct {
-	name      string // BSON key name
-	fieldName string // struct field name
-	idx       int
-	omitEmpty bool
-	minSize   bool
-	truncate  bool
-	inline    []int
-	fieldType reflect.Type
+	name          string // BSON key name
+	fieldName     string // struct field name
+	idx           int
+	inline        []int
+	omitEmpty     bool
+	fieldType     reflect.Type
+	encoderLookup func(EncoderRegistry, reflect.Type) (ValueEncoder, error)
 }
 
 type byIndex []fieldDescription
@@ -484,14 +470,14 @@ func (sc *structCodec) describeStructSlow(
 			fieldType: sfType,
 		}
 
-		var stags StructTags
+		var stags *structTags
 		var err error
 		// If the caller requested that we use JSON struct tags, use the JSONFallbackStructTagParser
 		// instead of the parser defined on the codec.
 		if useJSONStructTags {
-			stags, err = JSONFallbackStructTagParser.ParseStructTags(sf)
+			stags, err = sc.parser.parseJSONStructTags(sf)
 		} else {
-			stags, err = sc.parser.ParseStructTags(sf)
+			stags, err = sc.parser.parseStructTags(sf)
 		}
 		if err != nil {
 			return nil, err
@@ -501,8 +487,21 @@ func (sc *structCodec) describeStructSlow(
 		}
 		description.name = stags.Name
 		description.omitEmpty = stags.OmitEmpty
-		description.minSize = stags.MinSize
-		description.truncate = stags.Truncate
+		description.encoderLookup = func(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+			if stags.LookupEncoderOnMinSize != nil {
+				reg = &localEncoderRegistry{
+					registry:      reg,
+					encoderLookup: stags.LookupEncoderOnMinSize.LookupEncoder,
+				}
+			}
+			if stags.LookupEncoderOnTruncate != nil {
+				reg = &localEncoderRegistry{
+					registry:      reg,
+					encoderLookup: stags.LookupEncoderOnTruncate.LookupEncoder,
+				}
+			}
+			return reg.LookupEncoder(t)
+		}
 
 		if stags.Inline {
 			sd.inline = true

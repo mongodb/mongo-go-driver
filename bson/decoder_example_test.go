@@ -77,7 +77,10 @@ func ExampleDecoder_SetBehavior_defaultDocumentM() {
 	// type if the decode destination has no type information. The Properties
 	// field in the City struct will be decoded as a "M" (i.e. map) instead
 	// of the default "D".
-	decoder.SetBehavior(bson.DefaultDocumentM)
+	err = decoder.SetBehavior(bson.DefaultDocumentM)
+	if err != nil {
+		panic(err)
+	}
 
 	var res City
 	err = decoder.Decode(&res)
@@ -114,7 +117,10 @@ func ExampleDecoder_SetBehavior_useJSONStructTags() {
 
 	// Configure the Decoder to use "json" struct tags when decoding if "bson"
 	// struct tags are not present.
-	decoder.SetBehavior(bson.UseJSONStructTags)
+	err = decoder.SetBehavior(bson.UseJSONStructTags)
+	if err != nil {
+		panic(err)
+	}
 
 	var res Product
 	err = decoder.Decode(&res)

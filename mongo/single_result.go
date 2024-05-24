@@ -73,7 +73,10 @@ func (sr *SingleResult) Decode(v interface{}) error {
 		return sr.err
 	}
 
-	dec := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
+	dec, err := getDecoder(sr.rdr, sr.bsonOpts, sr.reg)
+	if err != nil {
+		return err
+	}
 
 	return dec.Decode(v)
 }

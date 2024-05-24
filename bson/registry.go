@@ -333,16 +333,21 @@ type Registry struct {
 	codecTypeMap map[reflect.Type][]interface{}
 }
 
-// SetCodecOptions configures Registry using a *RegistryOpt.
-func (r *Registry) SetCodecOptions(opts ...*RegistryOpt) {
-	for _, opt := range opts {
-		v, ok := r.codecTypeMap[opt.typ]
-		if ok && v != nil {
-			for i := range v {
-				_ = opt.fn.Call([]reflect.Value{reflect.ValueOf(v[i])})
+// SetCodecOption configures Registry using a *RegistryOpt.
+func (r *Registry) SetCodecOption(opt *RegistryOpt) error {
+	v, ok := r.codecTypeMap[opt.typ]
+	if !ok || len(v) == 0 {
+		return fmt.Errorf("could not find codec %s", opt.typ.String())
+	}
+	for i := range v {
+		rtns := opt.fn.Call([]reflect.Value{reflect.ValueOf(v[i])})
+		for _, r := range rtns {
+			if !r.IsNil() {
+				return r.Interface().(error)
 			}
 		}
 	}
+	return nil
 }
 
 // LookupEncoder returns the first matching encoder in the Registry. It uses the following lookup

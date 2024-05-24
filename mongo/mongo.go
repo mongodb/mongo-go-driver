@@ -71,29 +71,36 @@ func getEncoder(
 	}
 
 	if opts != nil {
+		regOpts := []*bson.RegistryOpt{}
 		if opts.ErrorOnInlineDuplicates {
-			enc.SetBehavior(bson.ErrorOnInlineDuplicates)
+			regOpts = append(regOpts, bson.ErrorOnInlineDuplicates)
 		}
 		if opts.IntMinSize {
-			enc.SetBehavior(bson.IntMinSize)
+			regOpts = append(regOpts, bson.IntMinSize)
 		}
 		if opts.NilByteSliceAsEmpty {
-			enc.SetBehavior(bson.NilByteSliceAsEmpty)
+			regOpts = append(regOpts, bson.NilByteSliceAsEmpty)
 		}
 		if opts.NilMapAsEmpty {
-			enc.SetBehavior(bson.NilMapAsEmpty)
+			regOpts = append(regOpts, bson.NilMapAsEmpty)
 		}
 		if opts.NilSliceAsEmpty {
-			enc.SetBehavior(bson.NilSliceAsEmpty)
+			regOpts = append(regOpts, bson.NilSliceAsEmpty)
 		}
 		if opts.OmitZeroStruct {
-			enc.SetBehavior(bson.OmitZeroStruct)
+			regOpts = append(regOpts, bson.OmitZeroStruct)
 		}
 		if opts.StringifyMapKeysWithFmt {
-			enc.SetBehavior(bson.StringifyMapKeysWithFmt)
+			regOpts = append(regOpts, bson.StringifyMapKeysWithFmt)
 		}
 		if opts.UseJSONStructTags {
-			enc.SetBehavior(bson.UseJSONStructTags)
+			regOpts = append(regOpts, bson.UseJSONStructTags)
+		}
+		for _, opt := range regOpts {
+			err := enc.SetBehavior(opt)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -167,7 +174,11 @@ func ensureID(
 		var id struct {
 			ID interface{} `bson:"_id"`
 		}
-		dec := getDecoder(doc, bsonOpts, registry)
+		var dec *bson.Decoder
+		dec, err = getDecoder(doc, bsonOpts, registry)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error unmarshaling BSON document: %w", err)
+		}
 		err = dec.Decode(&id)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error unmarshaling BSON document: %w", err)
