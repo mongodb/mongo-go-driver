@@ -9,6 +9,7 @@ package options
 // SearchIndexesOptions represents options that can be used to configure a SearchIndexView.
 type SearchIndexesOptions struct {
 	Name *string
+	Type *string
 }
 
 // SearchIndexes creates a new SearchIndexesOptions instance.

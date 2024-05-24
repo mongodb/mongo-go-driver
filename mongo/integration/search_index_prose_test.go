@@ -98,10 +98,14 @@ func TestSearchIndexProse(t *testing.T) {
 				Definition: definition,
 				Options:    options.SearchIndexes().SetName("test-search-index-2"),
 			},
+			{
+				Definition: definition,
+				Options:    options.SearchIndexes().SetName("test-vector-search-index-1"),
+			},
 		}
 		indexes, err := view.CreateMany(ctx, models)
 		require.NoError(mt, err, "failed to create index")
-		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
+		require.Equal(mt, len(indexes), 3, "expected 3 indexes")
 		for _, model := range models {
 			require.Contains(mt, indexes, *model.Options.Name)
 		}
@@ -136,6 +140,10 @@ func TestSearchIndexProse(t *testing.T) {
 				require.NoError(mt, err, "failed to marshal definition")
 				actual := doc.Lookup("latestDefinition").Value
 				assert.Equal(mt, expected, actual, "unmatched definition")
+
+				expectedType := opts.Type
+				actualType := doc.Lookup("type").Value
+				assert.Equal(mt, expectedType, actualType, "unmatched type")
 			}(models[i].Options)
 		}
 		wg.Wait()
