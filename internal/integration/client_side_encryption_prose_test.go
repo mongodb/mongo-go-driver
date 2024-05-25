@@ -1628,8 +1628,16 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				_, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.name, dkOpts)
 
 				assert.NotNil(mt, err, "expected error, got nil")
-				assert.True(mt, strings.Contains(err.Error(), "certificate signed by unknown authority"),
-					"expected error '%s' to contain '%s'", err.Error(), "certificate signed by unknown authority")
+
+				possibleErrors := []string{
+					"x509: certificate signed by unknown authority",                   // Windows
+					"x509: “valid.testing.golang.invalid” certificate is not trusted", // MacOS
+					"x509: certificate is not authorized to sign other certificates",  // All others
+				}
+
+				assert.True(t, containsSubstring(possibleErrors, err.Error()),
+					"expected possibleErrors=%v to contain %v, but it didn't",
+					possibleErrors, err.Error())
 
 				// call CreateDataKey with CEO & TLS with each provider and corresponding master key
 				cpt = setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithTLS)

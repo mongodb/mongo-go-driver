@@ -460,3 +460,36 @@ func TestBsoncoreArray(t *testing.T) {
 	v := doc.Lookup("array")
 	assert.Equal(t, bsoncore.TypeArray, v.Type, "expected type array, got %v", v.Type)
 }
+
+var baseTime = time.Date(2024, 10, 11, 12, 13, 14, 12345678, time.UTC)
+
+func BenchmarkDateTimeMarshalJSON(b *testing.B) {
+	t := NewDateTimeFromTime(baseTime)
+	data, err := t.MarshalJSON()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.SetBytes(int64(len(data)))
+	for i := 0; i < b.N; i++ {
+		if _, err := t.MarshalJSON(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkDateTimeUnmarshalJSON(b *testing.B) {
+	t := NewDateTimeFromTime(baseTime)
+	data, err := t.MarshalJSON()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.SetBytes(int64(len(data)))
+	for i := 0; i < b.N; i++ {
+		var dt DateTime
+		if err := dt.UnmarshalJSON(data); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

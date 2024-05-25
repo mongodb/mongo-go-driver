@@ -98,6 +98,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// cause an event to occur so the resume token is updated
 		generateEvents(mt, 1)
 		assert.True(mt, cs.Next(context.Background()), "expected next to return true, got false")
+		assert.Equal(mt, 0, cs.RemainingBatchLength())
 		firstToken := cs.ResumeToken()
 
 		// cause an event on a different collection than the one being watched so the server's PBRT is updated
@@ -373,6 +374,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 						// Iterate over one event to get resume token
 						assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
+						assert.Equal(mt, numEvents-1, cs.RemainingBatchLength())
 						token := cs.ResumeToken()
 						closeStream(cs)
 

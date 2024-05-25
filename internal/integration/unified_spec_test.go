@@ -257,8 +257,8 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		if mtest.ClusterTopologyKind() == mtest.Sharded && test.Description == "distinct" {
 			err := runCommandOnAllServers(func(mongosClient *mongo.Client) error {
 				coll := mongosClient.Database(mt.DB.Name()).Collection(mt.Coll.Name())
-				_, err := coll.Distinct(context.Background(), "x", bson.D{})
-				return err
+
+				return coll.Distinct(context.Background(), "x", bson.D{}).Err()
 			})
 			assert.Nil(mt, err, "error running distinct against all mongoses: %v", err)
 		}
@@ -361,12 +361,12 @@ func createBucket(mt *mtest.T, testFile testFile, testCase *testCase) {
 	testCase.bucket = mt.DB.GridFSBucket(bucketOpts)
 }
 
-func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 mongo.Session) error {
+func runOperation(mt *mtest.T, testCase *testCase, op *operation, sess0, sess1 *mongo.Session) error {
 	if op.Name == "count" {
 		mt.Skip("count has been deprecated")
 	}
 
-	var sess mongo.Session
+	var sess *mongo.Session
 	if sessVal, err := op.Arguments.LookupErr("session"); err == nil {
 		sessStr := sessVal.StringValue()
 		switch sessStr {
@@ -437,14 +437,10 @@ func executeGridFSOperation(mt *mtest.T, bucket *mongo.GridFSBucket, op *operati
 	return nil
 }
 
-func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, sess mongo.Session) error {
+func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, sess *mongo.Session) error {
 	var clientSession *session.Client
 	if sess != nil {
-		xsess, ok := sess.(mongo.XSession)
-		if !ok {
-			return fmt.Errorf("expected session type %T to implement mongo.XSession", sess)
-		}
-		clientSession = xsess.ClientSession()
+		clientSession = sess.ClientSession()
 	}
 
 	switch op.Name {
@@ -630,7 +626,7 @@ func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
 	return first, second
 }
 
-func executeSessionOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
+func executeSessionOperation(mt *mtest.T, op *operation, sess *mongo.Session) error {
 	switch op.Name {
 	case "startTransaction":
 		var txnOpts *options.TransactionOptions
@@ -649,7 +645,7 @@ func executeSessionOperation(mt *mtest.T, op *operation, sess mongo.Session) err
 	}
 }
 
-func executeCollectionOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
+func executeCollectionOperation(mt *mtest.T, op *operation, sess *mongo.Session) error {
 	switch op.Name {
 	case "countDocuments":
 		// no results to verify with count
@@ -793,7 +789,7 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess mongo.Session) 
 	return nil
 }
 
-func executeDatabaseOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
+func executeDatabaseOperation(mt *mtest.T, op *operation, sess *mongo.Session) error {
 	switch op.Name {
 	case "runCommand":
 		res := executeRunCommand(mt, sess, op.Arguments)
@@ -848,7 +844,7 @@ func executeDatabaseOperation(mt *mtest.T, op *operation, sess mongo.Session) er
 	return nil
 }
 
-func executeClientOperation(mt *mtest.T, op *operation, sess mongo.Session) error {
+func executeClientOperation(mt *mtest.T, op *operation, sess *mongo.Session) error {
 	switch op.Name {
 	case "listDatabaseNames":
 		_, err := executeListDatabaseNames(mt, sess, op.Arguments)
@@ -877,7 +873,7 @@ func executeClientOperation(mt *mtest.T, op *operation, sess mongo.Session) erro
 	return nil
 }
 
-func setupSessions(mt *mtest.T, test *testCase) (mongo.Session, mongo.Session) {
+func setupSessions(mt *mtest.T, test *testCase) (*mongo.Session, *mongo.Session) {
 	mt.Helper()
 
 	var sess0Opts, sess1Opts *options.SessionOptions

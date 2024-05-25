@@ -372,8 +372,7 @@ func TestClient(t *testing.T) {
 				sess, err := mt.Client.StartSession(tc.opts)
 				assert.Nil(mt, err, "StartSession error: %v", err)
 				defer sess.EndSession(context.Background())
-				xs := sess.(mongo.XSession)
-				consistent := xs.ClientSession().Consistent
+				consistent := sess.ClientSession().Consistent
 				assert.Equal(mt, tc.consistent, consistent, "expected consistent to be %v, got %v", tc.consistent, consistent)
 			})
 		}
