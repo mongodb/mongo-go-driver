@@ -21,7 +21,8 @@ func registerPrimitiveCodecs(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterPrimitiveCodecs must not be nil"))
 	}
 
-	rb.RegisterTypeEncoder(tRawValue, func() ValueEncoder { return ValueEncoderFunc(rawValueEncodeValue) }).
+	rb.
+		RegisterTypeEncoder(tRawValue, func() ValueEncoder { return ValueEncoderFunc(rawValueEncodeValue) }).
 		RegisterTypeEncoder(tRaw, func() ValueEncoder { return ValueEncoderFunc(rawEncodeValue) }).
 		RegisterTypeDecoder(tRawValue, func() ValueDecoder { return ValueDecoderFunc(rawValueDecodeValue) }).
 		RegisterTypeDecoder(tRaw, func() ValueDecoder { return ValueDecoderFunc(rawDecodeValue) })

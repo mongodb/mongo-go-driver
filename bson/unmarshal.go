@@ -38,7 +38,7 @@ type ValueUnmarshaler interface {
 // pointed to by val. If val is nil or not a pointer, Unmarshal returns
 // InvalidUnmarshalError.
 func Unmarshal(data []byte, val interface{}) error {
-	return UnmarshalWithRegistry(NewRegistryBuilder().Build(), data, val)
+	return UnmarshalWithRegistry(defaultRegistry, data, val)
 }
 
 // UnmarshalWithRegistry parses the BSON-encoded data using Registry r and
@@ -58,30 +58,11 @@ func UnmarshalWithRegistry(reg *Registry, data []byte, val interface{}) error {
 	return NewDecoderWithRegistry(reg, vr).Decode(val)
 }
 
-// UnmarshalWithContext parses the BSON-encoded data using DecodeContext dc and
-// stores the result in the value pointed to by val. If val is nil or not
-// a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
-//
-// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
-// behavior instead:
-//
-//	dec, err := bson.NewDecoder(NewBSONDocumentReader(data))
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec.DefaultDocumentM()
-//
-// See [Decoder] for more examples.
-func UnmarshalWithContext(reg *Registry, data []byte, val interface{}) error {
-	vr := NewValueReader(data)
-	return NewDecoderWithRegistry(reg, vr).Decode(val)
-}
-
 // UnmarshalValue parses the BSON value of type t with default registry and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
 func UnmarshalValue(t Type, data []byte, val interface{}) error {
-	return UnmarshalValueWithRegistry(NewRegistryBuilder().Build(), t, data, val)
+	return UnmarshalValueWithRegistry(defaultRegistry, t, data, val)
 }
 
 // UnmarshalValueWithRegistry parses the BSON value of type t with registry r and
@@ -99,7 +80,7 @@ func UnmarshalValueWithRegistry(reg *Registry, t Type, data []byte, val interfac
 // in the value pointed to by val. If val is nil or not a pointer, Unmarshal
 // returns InvalidUnmarshalError.
 func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
-	return UnmarshalExtJSONWithRegistry(NewRegistryBuilder().Build(), data, canonical, val)
+	return UnmarshalExtJSONWithRegistry(defaultRegistry, data, canonical, val)
 }
 
 // UnmarshalExtJSONWithRegistry parses the extended JSON-encoded data using

@@ -41,7 +41,8 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 	}
 
 	numDecoder := func() ValueDecoder { return &numCodec{} }
-	rb.RegisterTypeDecoder(tD, func() ValueDecoder { return ValueDecoderFunc(dDecodeValue) }).
+	rb.
+		RegisterTypeDecoder(tD, func() ValueDecoder { return ValueDecoderFunc(dDecodeValue) }).
 		RegisterTypeDecoder(tBinary, func() ValueDecoder { return &decodeAdapter{binaryDecodeValue, binaryDecodeType} }).
 		RegisterTypeDecoder(tUndefined, func() ValueDecoder { return &decodeAdapter{undefinedDecodeValue, undefinedDecodeType} }).
 		RegisterTypeDecoder(tDateTime, func() ValueDecoder { return &decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType} }).
@@ -80,7 +81,7 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 		RegisterKindDecoder(reflect.Map, func() ValueDecoder { return &mapCodec{} }).
 		RegisterKindDecoder(reflect.Slice, func() ValueDecoder { return &sliceCodec{} }).
 		RegisterKindDecoder(reflect.String, func() ValueDecoder { return &stringCodec{} }).
-		RegisterKindDecoder(reflect.Struct, func() ValueDecoder { return newStructCodec(DefaultStructTagParser) }).
+		RegisterKindDecoder(reflect.Struct, func() ValueDecoder { return newStructCodec(rb.StructTagHandler()) }).
 		RegisterKindDecoder(reflect.Ptr, func() ValueDecoder { return &pointerCodec{} }).
 		RegisterTypeMapEntry(TypeDouble, tFloat64).
 		RegisterTypeMapEntry(TypeString, tString).

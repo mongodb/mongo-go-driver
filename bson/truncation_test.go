@@ -47,7 +47,7 @@ func TestTruncation(t *testing.T) {
 		err = reg.SetCodecOption(opt)
 		assert.Nil(t, err)
 
-		err = UnmarshalWithContext(reg, buf.Bytes(), &output)
+		err = UnmarshalWithRegistry(reg, buf.Bytes(), &output)
 		assert.Nil(t, err)
 
 		assert.Equal(t, inputName, output.Name)
@@ -77,7 +77,7 @@ func TestTruncation(t *testing.T) {
 		assert.Nil(t, err)
 
 		// case throws an error when truncation is disabled
-		err = UnmarshalWithContext(reg, buf.Bytes(), &output)
+		err = UnmarshalWithRegistry(reg, buf.Bytes(), &output)
 		assert.NotNil(t, err)
 	})
 }

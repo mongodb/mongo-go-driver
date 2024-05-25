@@ -46,7 +46,7 @@ func TestUnmarshalValue(t *testing.T) {
 				t.Parallel()
 
 				gotValue := reflect.New(reflect.TypeOf(tc.val))
-				err := UnmarshalValueWithRegistry(NewRegistryBuilder().Build(), tc.bsontype, tc.bytes, gotValue.Interface())
+				err := UnmarshalValueWithRegistry(defaultRegistry, tc.bsontype, tc.bytes, gotValue.Interface())
 				assert.Nil(t, err, "UnmarshalValueWithRegistry error: %v", err)
 				assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
 			})

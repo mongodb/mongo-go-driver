@@ -18,6 +18,7 @@ import (
 // newTestRegistryBuilder creates a new empty RegistryBuilder.
 func newTestRegistryBuilder() *RegistryBuilder {
 	return &RegistryBuilder{
+		StructTagHandler:  DefaultStructTagHandler,
 		typeEncoders:      make(map[reflect.Type]EncoderFactory),
 		typeDecoders:      make(map[reflect.Type]DecoderFactory),
 		interfaceEncoders: make(map[reflect.Type]EncoderFactory),

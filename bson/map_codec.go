@@ -68,7 +68,11 @@ func (mc *mapCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect
 		return err
 	}
 
-	return mc.mapEncodeValue(reg, dw, val, nil)
+	err = mc.mapEncodeValue(reg, dw, val, nil)
+	if err != nil {
+		return err
+	}
+	return dw.WriteDocumentEnd()
 }
 
 // mapEncodeValue handles encoding of the values of a map. The collisionFn returns
@@ -117,7 +121,7 @@ func (mc *mapCodec) mapEncodeValue(reg EncoderRegistry, dw DocumentWriter, val r
 		}
 	}
 
-	return dw.WriteDocumentEnd()
+	return nil
 }
 
 // DecodeValue is the ValueDecoder for map[string/decimal]* types.

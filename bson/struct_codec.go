@@ -47,10 +47,17 @@ func (de *DecodeError) Keys() []string {
 	return reversedKeys
 }
 
+// StructTagHandler defines the struct encoder bahavior when inline, minSize and truncate tags are set.
+type StructTagHandler struct {
+	InlineEncoder           func(EncoderRegistry, DocumentWriter, reflect.Value, func(string) bool) error
+	LookupEncoderOnMinSize  func(EncoderRegistry, reflect.Type) (ValueEncoder, error)
+	LookupEncoderOnTruncate func(EncoderRegistry, reflect.Type) (ValueEncoder, error)
+}
+
 // structCodec is the Codec used for struct values.
 type structCodec struct {
-	cache  sync.Map // map[reflect.Type]*structDescription
-	parser structTagParser
+	cache   sync.Map // map[reflect.Type]*structDescription
+	tagHndl StructTagHandler
 
 	// decodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
 	decodeZeroStruct bool
@@ -76,9 +83,9 @@ type structCodec struct {
 }
 
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.
-func newStructCodec(p structTagParser) *structCodec {
+func newStructCodec(hndl StructTagHandler) *structCodec {
 	return &structCodec{
-		parser:                           p,
+		tagHndl:                          hndl,
 		overwriteDuplicatedInlinedFields: true,
 	}
 }
@@ -185,7 +192,13 @@ func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val refl
 			return exists
 		}
 
-		return (&mapCodec{}).mapEncodeValue(reg, dw, rv, collisionFn)
+		if sc.tagHndl.InlineEncoder == nil {
+			return errors.New("inline map encoder is not defined")
+		}
+		err = sc.tagHndl.InlineEncoder(reg, dw, rv, collisionFn)
+		if err != nil {
+			return err
+		}
 	}
 
 	return dw.WriteDocumentEnd()
@@ -475,9 +488,9 @@ func (sc *structCodec) describeStructSlow(
 		// If the caller requested that we use JSON struct tags, use the JSONFallbackStructTagParser
 		// instead of the parser defined on the codec.
 		if useJSONStructTags {
-			stags, err = sc.parser.parseJSONStructTags(sf)
+			stags, err = parseJSONStructTags(sf)
 		} else {
-			stags, err = sc.parser.parseStructTags(sf)
+			stags, err = parseStructTags(sf)
 		}
 		if err != nil {
 			return nil, err
@@ -488,16 +501,16 @@ func (sc *structCodec) describeStructSlow(
 		description.name = stags.Name
 		description.omitEmpty = stags.OmitEmpty
 		description.encoderLookup = func(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
-			if stags.LookupEncoderOnMinSize != nil {
+			if stags.MinSize && sc.tagHndl.LookupEncoderOnMinSize != nil {
 				reg = &localEncoderRegistry{
 					registry:      reg,
-					encoderLookup: stags.LookupEncoderOnMinSize.LookupEncoder,
+					encoderLookup: sc.tagHndl.LookupEncoderOnMinSize,
 				}
 			}
-			if stags.LookupEncoderOnTruncate != nil {
+			if stags.Truncate && sc.tagHndl.LookupEncoderOnTruncate != nil {
 				reg = &localEncoderRegistry{
 					registry:      reg,
-					encoderLookup: stags.LookupEncoderOnTruncate.LookupEncoder,
+					encoderLookup: sc.tagHndl.LookupEncoderOnTruncate,
 				}
 			}
 			return reg.LookupEncoder(t)

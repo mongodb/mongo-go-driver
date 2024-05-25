@@ -56,7 +56,8 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 	}
 
 	numEncoder := func() ValueEncoder { return &numCodec{} }
-	rb.RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{} }).
+	rb.
+		RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{} }).
 		RegisterTypeEncoder(tTime, func() ValueEncoder { return &timeCodec{} }).
 		RegisterTypeEncoder(tEmpty, func() ValueEncoder { return &emptyInterfaceCodec{} }).
 		RegisterTypeEncoder(tCoreArray, func() ValueEncoder { return &arrayCodec{} }).
@@ -94,7 +95,7 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return &mapCodec{} }).
 		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{} }).
 		RegisterKindEncoder(reflect.String, func() ValueEncoder { return &stringCodec{} }).
-		RegisterKindEncoder(reflect.Struct, func() ValueEncoder { return newStructCodec(DefaultStructTagParser) }).
+		RegisterKindEncoder(reflect.Struct, func() ValueEncoder { return newStructCodec(rb.StructTagHandler()) }).
 		RegisterKindEncoder(reflect.Ptr, func() ValueEncoder { return &pointerCodec{} }).
 		RegisterInterfaceEncoder(tValueMarshaler, func() ValueEncoder { return ValueEncoderFunc(valueMarshalerEncodeValue) }).
 		RegisterInterfaceEncoder(tMarshaler, func() ValueEncoder { return ValueEncoderFunc(marshalerEncodeValue) }).
@@ -150,7 +151,13 @@ func jsonNumberEncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect.Valu
 		return err
 	}
 
-	return (&numCodec{}).EncodeValue(reg, vw, reflect.ValueOf(f64))
+	var encoder ValueEncoder
+	encoder, err = reg.LookupEncoder(reflect.TypeOf(f64))
+	if err != nil {
+		return err
+	}
+
+	return encoder.EncodeValue(reg, vw, reflect.ValueOf(f64))
 }
 
 // urlEncodeValue is the ValueEncoderFunc for url.URL.

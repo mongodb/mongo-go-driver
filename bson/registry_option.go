@@ -107,8 +107,8 @@ var NilSliceAsEmpty = NewRegistryOpt(func(c *sliceCodec) error {
 	return nil
 })
 
-// DecodeObjectIDAsHex causes the Decoder to unmarshal BSON ObjectID as a hexadecimal string.
-var DecodeObjectIDAsHex = NewRegistryOpt(func(c *stringCodec) error {
+// ObjectIDAsHex causes the Decoder to unmarshal BSON ObjectID as a hexadecimal string.
+var ObjectIDAsHex = NewRegistryOpt(func(c *stringCodec) error {
 	c.decodeObjectIDAsHex = true
 	return nil
 })

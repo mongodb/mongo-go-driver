@@ -24,7 +24,7 @@ var (
 
 func newMgoRegistryBuilder() *RegistryBuilder {
 	structcodec := &structCodec{
-		parser:                  DefaultStructTagParser,
+		tagHndl:                 DefaultStructTagHandler(),
 		decodeZeroStruct:        true,
 		encodeOmitDefaultStruct: true,
 		allowUnexportedFields:   true,

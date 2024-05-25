@@ -12,6 +12,8 @@ import (
 	"sync"
 )
 
+var defaultRegistry = NewRegistryBuilder().Build()
+
 // ErrNoEncoder is returned when there wasn't an encoder available for a type.
 //
 // Deprecated: ErrNoEncoder will not be supported in Go Driver 2.0.
@@ -60,9 +62,57 @@ type EncoderFactory func() ValueEncoder
 // DecoderFactory is a factory function that generates a new ValueDecoder.
 type DecoderFactory func() ValueDecoder
 
+func inlineEncoder(reg EncoderRegistry, w DocumentWriter, v reflect.Value, collisionFn func(string) bool) error {
+	enc, err := reg.LookupEncoder(v.Type())
+	if err != nil {
+		return err
+	}
+	codec, ok := enc.(*mapCodec)
+	if !ok {
+		return fmt.Errorf("failed to find an encoder for inline map")
+	}
+	return codec.mapEncodeValue(reg, w, v, collisionFn)
+}
+
+func retrieverOnMinSize(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+	enc, err := reg.LookupEncoder(t)
+	if err != nil {
+		return enc, err
+	}
+	switch t.Kind() {
+	case reflect.Int64, reflect.Uint, reflect.Uint32, reflect.Uint64:
+		if codec, ok := enc.(*numCodec); ok {
+			c := *codec
+			c.minSize = true
+			return &c, nil
+		}
+	}
+	return enc, nil
+}
+
+func retrieverOnTruncate(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+	enc, err := reg.LookupEncoder(t)
+	if err != nil {
+		return enc, err
+	}
+	switch t.Kind() {
+	case reflect.Float32,
+		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		if codec, ok := enc.(*numCodec); ok {
+			c := *codec
+			c.truncate = true
+			return &c, nil
+		}
+	}
+	return enc, nil
+}
+
 // A RegistryBuilder is used to build a Registry. This type is not goroutine
 // safe.
 type RegistryBuilder struct {
+	StructTagHandler func() StructTagHandler
+
 	typeEncoders      map[reflect.Type]EncoderFactory
 	typeDecoders      map[reflect.Type]DecoderFactory
 	interfaceEncoders map[reflect.Type]EncoderFactory
@@ -72,9 +122,19 @@ type RegistryBuilder struct {
 	typeMap           map[Type]reflect.Type
 }
 
+// DefaultStructTagHandler generates a new *StructTagHandler to initialize the struct codec.
+func DefaultStructTagHandler() StructTagHandler {
+	return StructTagHandler{
+		InlineEncoder:           inlineEncoder,
+		LookupEncoderOnMinSize:  retrieverOnMinSize,
+		LookupEncoderOnTruncate: retrieverOnTruncate,
+	}
+}
+
 // NewRegistryBuilder creates a new empty RegistryBuilder.
 func NewRegistryBuilder() *RegistryBuilder {
 	rb := &RegistryBuilder{
+		StructTagHandler:  DefaultStructTagHandler,
 		typeEncoders:      make(map[reflect.Type]EncoderFactory),
 		typeDecoders:      make(map[reflect.Type]DecoderFactory),
 		interfaceEncoders: make(map[reflect.Type]EncoderFactory),
@@ -207,7 +267,7 @@ func (rb *RegistryBuilder) RegisterInterfaceDecoder(iface reflect.Type, decFac D
 // documents, a type map entry for TypeEmbeddedDocument should be registered. For example, to force BSON documents
 // to decode to bson.Raw, use the following code:
 //
-//	reg.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
+//	rb.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
 //
 // RegisterTypeMapEntry should not be called concurrently with any other Registry method.
 func (rb *RegistryBuilder) RegisterTypeMapEntry(bt Type, rt reflect.Type) *RegistryBuilder {

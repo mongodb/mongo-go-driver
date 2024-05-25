@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	defaultTestStructCodec = newStructCodec(DefaultStructTagParser)
+	defaultTestStructCodec = newStructCodec(DefaultStructTagHandler())
 )
 
 func TestDefaultValueDecoders(t *testing.T) {
@@ -194,11 +194,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.00)}, readDouble,
 					nil,
 				},
-				// {
-				// 	"ReadDouble (truncate)", int64(3), &DecodeContext{truncate: true},
-				// 	&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
-				// 	nil,
-				// },
 				{
 					"ReadDouble (no truncate)", int64(0), nil,
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
@@ -454,11 +449,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.00)}, readDouble,
 					nil,
 				},
-				// {
-				// 	"ReadDouble (truncate)", uint64(3), &DecodeContext{truncate: true},
-				// 	&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
-				// 	nil,
-				// },
 				{
 					"ReadDouble (no truncate)", uint64(0), nil,
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
@@ -733,11 +723,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14159)}, readDouble,
 					nil,
 				},
-				// {
-				// 	"float32/fast path (truncate)", float32(3.14), &DecodeContext{truncate: true},
-				// 	&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
-				// 	nil,
-				// },
 				{
 					"float32/fast path (no truncate)", float32(0), nil,
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
@@ -779,11 +764,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14159)}, readDouble,
 					nil,
 				},
-				// {
-				// 	"float32/reflection path (truncate)", myfloat32(3.14), &DecodeContext{truncate: true},
-				// 	&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
-				// 	nil,
-				// },
 				{
 					"float32/reflection path (no truncate)", myfloat32(0), nil,
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
@@ -803,6 +783,32 @@ func TestDefaultValueDecoders(t *testing.T) {
 							reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint,
 						},
 					},
+				},
+			},
+		},
+		{
+			"NumDecodeValue (truncate)",
+			&numCodec{truncate: true},
+			[]subtest{
+				{
+					"int ReadDouble (truncate)", int64(3), nil,
+					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
+					nil,
+				},
+				{
+					"uint ReadDouble (truncate)", uint64(3), nil,
+					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
+					nil,
+				},
+				{
+					"float32/fast path (truncate)", float32(3.14), nil,
+					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
+					nil,
+				},
+				{
+					"float32/reflection path (truncate)", myfloat32(3.14), nil,
+					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
+					nil,
 				},
 			},
 		},
@@ -2463,7 +2469,6 @@ func TestDefaultValueDecoders(t *testing.T) {
 					want := rc.val
 					defer func() {
 						if err := recover(); err != nil {
-							fmt.Println(t.Name())
 							panic(err)
 						}
 					}()
@@ -2532,6 +2537,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 		val := reflect.ValueOf(testValueUnmarshaler{})
 		want := ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 		got := valueUnmarshalerDecodeValue(nil, llvrw, val)
+		if !assert.CompareErrors(got, want) {
+			t.Errorf("Errors do not match. got %v; want %v", got, want)
+		}
+	})
+	t.Run("SliceCodec/DecodeValue/can't set slice", func(t *testing.T) {
+		var val []string
+		want := ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: reflect.ValueOf(val)}
+		got := (&sliceCodec{}).DecodeValue(nil, nil, reflect.ValueOf(val))
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}

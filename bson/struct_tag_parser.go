@@ -11,56 +11,6 @@ import (
 	"strings"
 )
 
-// structTagParser returns the struct tags for a given reflect.StructField.
-type structTagParser interface {
-	parseStructTags(reflect.StructField) (*structTags, error)
-	parseJSONStructTags(reflect.StructField) (*structTags, error)
-}
-
-// DefaultStructTagParser is the StructTagParser used by the StructCodec by default.
-var DefaultStructTagParser = &StructTagParser{
-	LookupEncoderOnMinSize:  retrieverOnMinSize{},
-	LookupEncoderOnTruncate: retrieverOnTruncate{},
-}
-
-type retrieverOnMinSize struct{}
-
-func (retrieverOnMinSize) LookupEncoder(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
-	enc, err := reg.LookupEncoder(t)
-	if err != nil {
-		return enc, err
-	}
-	switch t.Kind() {
-	case reflect.Int64, reflect.Uint, reflect.Uint32, reflect.Uint64:
-		if codec, ok := enc.(*numCodec); ok {
-			c := *codec
-			c.minSize = true
-			return &c, nil
-		}
-	}
-	return enc, nil
-}
-
-type retrieverOnTruncate struct{}
-
-func (retrieverOnTruncate) LookupEncoder(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
-	enc, err := reg.LookupEncoder(t)
-	if err != nil {
-		return enc, err
-	}
-	switch t.Kind() {
-	case reflect.Float32,
-		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
-		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		if codec, ok := enc.(*numCodec); ok {
-			c := *codec
-			c.truncate = true
-			return &c, nil
-		}
-	}
-	return enc, nil
-}
-
 // structTags represents the struct tag fields that the StructCodec uses during
 // the encoding and decoding process.
 //
@@ -82,22 +32,10 @@ func (retrieverOnTruncate) LookupEncoder(reg EncoderRegistry, t reflect.Type) (V
 type structTags struct {
 	Name      string
 	Inline    bool
+	MinSize   bool
 	OmitEmpty bool
 	Skip      bool
-
-	LookupEncoderOnMinSize  EncoderRetriever
-	LookupEncoderOnTruncate EncoderRetriever
-}
-
-// EncoderRetriever is used to look up ValueEncoder with given EncoderRegistry and reflect.Type.
-type EncoderRetriever interface {
-	LookupEncoder(EncoderRegistry, reflect.Type) (ValueEncoder, error)
-}
-
-// StructTagParser defines the encoder lookup bahavior when minSize and truncate tags are set.
-type StructTagParser struct {
-	LookupEncoderOnMinSize  EncoderRetriever
-	LookupEncoderOnTruncate EncoderRetriever
+	Truncate  bool
 }
 
 // parseStructTags handles the bson struct tag. See the documentation for StructTags to see
@@ -124,16 +62,31 @@ type StructTagParser struct {
 // A struct tag either consisting entirely of '-' or with a bson key with a
 // value consisting entirely of '-' will return a StructTags with Skip true and
 // the remaining fields will be their default values.
-func (p *StructTagParser) parseStructTags(sf reflect.StructField) (*structTags, error) {
+func parseStructTags(sf reflect.StructField) (*structTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
 	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
 		tag = string(sf.Tag)
 	}
-	return p.parseTags(key, tag)
+	return parseTags(key, tag)
 }
 
-func (p *StructTagParser) parseTags(key string, tag string) (*structTags, error) {
+// parseJSONStructTags parses the json tag instead on a field where the
+// bson tag isn't available.
+func parseJSONStructTags(sf reflect.StructField) (*structTags, error) {
+	key := strings.ToLower(sf.Name)
+	tag, ok := sf.Tag.Lookup("bson")
+	if !ok {
+		tag, ok = sf.Tag.Lookup("json")
+	}
+	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
+		tag = string(sf.Tag)
+	}
+
+	return parseTags(key, tag)
+}
+
+func parseTags(key string, tag string) (*structTags, error) {
 	var st structTags
 	if tag == "-" {
 		st.Skip = true
@@ -147,31 +100,16 @@ func (p *StructTagParser) parseTags(key string, tag string) (*structTags, error)
 		switch str {
 		case "inline":
 			st.Inline = true
+		case "minsize":
+			st.MinSize = true
 		case "omitempty":
 			st.OmitEmpty = true
-		case "minsize":
-			st.LookupEncoderOnMinSize = p.LookupEncoderOnMinSize
 		case "truncate":
-			st.LookupEncoderOnTruncate = p.LookupEncoderOnTruncate
+			st.Truncate = true
 		}
 	}
 
 	st.Name = key
 
 	return &st, nil
-}
-
-// parseJSONStructTags parses the json tag instead on a field where the
-// bson tag isn't available.
-func (p *StructTagParser) parseJSONStructTags(sf reflect.StructField) (*structTags, error) {
-	key := strings.ToLower(sf.Name)
-	tag, ok := sf.Tag.Lookup("bson")
-	if !ok {
-		tag, ok = sf.Tag.Lookup("json")
-	}
-	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
-		tag = string(sf.Tag)
-	}
-
-	return p.parseTags(key, tag)
 }

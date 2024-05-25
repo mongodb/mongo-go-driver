@@ -48,29 +48,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithRegistry(NewRegistryBuilder().Build(), data, got)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
-
-			// Fill the input data slice with random bytes and then assert that the result still
-			// matches the expected value.
-			_, err = rand.Read(data)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
-		})
-	}
-}
-
-func TestUnmarshalWithContext(t *testing.T) {
-	for _, tc := range unmarshalingTestCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
-
-			// Assert that unmarshaling the input data results in the expected value.
-			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithContext(NewRegistryBuilder().Build(), data, got)
+			err := UnmarshalWithRegistry(defaultRegistry, data, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 
@@ -88,7 +66,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 		type teststruct struct{ Foo int }
 		var got teststruct
 		data := []byte("{\"foo\":1}")
-		err := UnmarshalExtJSONWithRegistry(NewRegistryBuilder().Build(), data, true, &got)
+		err := UnmarshalExtJSONWithRegistry(defaultRegistry, data, true, &got)
 		noerr(t, err)
 		want := teststruct{1}
 		assert.Equal(t, want, got, "Did not unmarshal as expected.")
@@ -96,7 +74,7 @@ func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
 
 	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
 		data := []byte("invalid")
-		err := UnmarshalExtJSONWithRegistry(NewRegistryBuilder().Build(), data, true, &M{})
+		err := UnmarshalExtJSONWithRegistry(defaultRegistry, data, true, &M{})
 		if !errors.Is(err, ErrInvalidJSON) {
 			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
 		}
@@ -198,7 +176,7 @@ func TestUnmarshalExtJSONWithContext(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalExtJSONWithContext(NewRegistryBuilder().Build(), data, true, got)
+			err := UnmarshalExtJSONWithContext(defaultRegistry, data, true, got)
 			noerr(t, err)
 			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
 

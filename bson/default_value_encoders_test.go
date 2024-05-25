@@ -47,7 +47,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	type myuint16 uint16
 	type myuint32 uint32
 	type myuint64 uint64
-	// type myuint uint
+	type myuint uint
 	type myfloat32 float32
 	type myfloat64 float64
 
@@ -117,9 +117,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"int16/fast path", int16(32767), nil, nil, writeInt32, nil},
 				{"int32/fast path", int32(2147483647), nil, nil, writeInt32, nil},
 				{"int64/fast path", int64(1234567890987), nil, nil, writeInt64, nil},
-				// {"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-				// {"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"int/fast path - positive int32", int(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
 				{"int/fast path - negative int32", int(math.MinInt32 + 1), nil, nil, writeInt32, nil},
 				{"int/fast path - MaxInt32", int(math.MaxInt32), nil, nil, writeInt32, nil},
@@ -128,9 +125,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"int16/reflection path", myint16(32767), nil, nil, writeInt32, nil},
 				{"int32/reflection path", myint32(2147483647), nil, nil, writeInt32, nil},
 				{"int64/reflection path", myint64(1234567890987), nil, nil, writeInt64, nil},
-				// {"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-				// {"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"int/reflection path - positive int32", myint(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
 				{"int/reflection path - negative int32", myint(math.MinInt32 + 1), nil, nil, writeInt32, nil},
 				{"int/reflection path - MaxInt32", myint(math.MaxInt32), nil, nil, writeInt32, nil},
@@ -162,24 +156,36 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"uint32/fast path", uint32(2147483647), nil, nil, writeInt64, nil},
 				{"uint64/fast path", uint64(1234567890987), nil, nil, writeInt64, nil},
 				{"uint/fast path", uint(1234567), nil, nil, writeInt64, nil},
-				// {"uint32/fast path - minsize", uint32(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"uint64/fast path - minsize", uint64(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"uint/fast path - minsize", uint(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"uint32/fast path - minsize too large", uint32(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-				// {"uint64/fast path - minsize too large", uint64(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-				// {"uint/fast path - minsize too large", uint(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"uint64/fast path - overflow", uint64(1 << 63), nil, nil, nothing, fmt.Errorf("%d overflows int64", uint64(1<<63))},
 				{"uint8/reflection path", myuint8(127), nil, nil, writeInt32, nil},
 				{"uint16/reflection path", myuint16(32767), nil, nil, writeInt32, nil},
 				{"uint32/reflection path", myuint32(2147483647), nil, nil, writeInt64, nil},
 				{"uint64/reflection path", myuint64(1234567890987), nil, nil, writeInt64, nil},
-				// {"uint32/reflection path - minsize", myuint32(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"uint64/reflection path - minsize", myuint64(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"uint/reflection path - minsize", myuint(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
-				// {"uint32/reflection path - minsize too large", myuint(1 << 31), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-				// {"uint64/reflection path - minsize too large", myuint64(1 << 31), &EncodeContext{minSize: true}, nil, writeInt64, nil},
-				// {"uint/reflection path - minsize too large", myuint(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"uint64/reflection path - overflow", myuint64(1 << 63), nil, nil, nothing, fmt.Errorf("%d overflows int64", uint64(1<<63))},
+			},
+		},
+		{
+			"NumEncodeValue (minSize)",
+			&numCodec{minSize: true},
+			[]subtest{
+				{"int64/fast path - minsize", int64(math.MaxInt32), nil, nil, writeInt32, nil},
+				{"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), nil, nil, writeInt64, nil},
+				{"int64/fast path - minsize too small", int64(math.MinInt32 - 1), nil, nil, writeInt64, nil},
+				{"int64/reflection path - minsize", myint64(math.MaxInt32), nil, nil, writeInt32, nil},
+				{"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), nil, nil, writeInt64, nil},
+				{"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), nil, nil, writeInt64, nil},
+				{"uint32/fast path - minsize", uint32(2147483647), nil, nil, writeInt32, nil},
+				{"uint64/fast path - minsize", uint64(2147483647), nil, nil, writeInt32, nil},
+				{"uint/fast path - minsize", uint(2147483647), nil, nil, writeInt32, nil},
+				{"uint32/fast path - minsize too large", uint32(2147483648), nil, nil, writeInt64, nil},
+				{"uint64/fast path - minsize too large", uint64(2147483648), nil, nil, writeInt64, nil},
+				{"uint/fast path - minsize too large", uint(2147483648), nil, nil, writeInt64, nil},
+				{"uint32/reflection path - minsize", myuint32(2147483647), nil, nil, writeInt32, nil},
+				{"uint64/reflection path - minsize", myuint64(2147483647), nil, nil, writeInt32, nil},
+				{"uint/reflection path - minsize", myuint(2147483647), nil, nil, writeInt32, nil},
+				{"uint32/reflection path - minsize too large", myuint(1 << 31), nil, nil, writeInt64, nil},
+				{"uint64/reflection path - minsize too large", myuint64(1 << 31), nil, nil, writeInt64, nil},
+				{"uint/reflection path - minsize too large", myuint(2147483648), nil, nil, writeInt64, nil},
 			},
 		},
 		{
@@ -526,7 +532,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"json.Number/float64/success",
 					json.Number("3.14159"),
-					nil, nil, writeDouble, nil,
+					buildDefaultRegistry(), nil, writeDouble, nil,
 				},
 			},
 		},
@@ -1080,6 +1086,28 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&valueReaderWriter{},
 					writeDocumentElement,
 					errors.New("not enough bytes available to read type. bytes=3 type=double"),
+				},
+			},
+		},
+		{
+			"StructEncodeValue",
+			defaultTestStructCodec,
+			[]subtest{
+				{
+					"interface value",
+					struct{ Foo myInterface }{Foo: myStruct{1}},
+					buildDefaultRegistry(),
+					nil,
+					writeDocumentEnd,
+					nil,
+				},
+				{
+					"nil interface value",
+					struct{ Foo myInterface }{Foo: nil},
+					buildDefaultRegistry(),
+					nil,
+					writeDocumentEnd,
+					nil,
 				},
 			},
 		},
@@ -1811,6 +1839,27 @@ func TestDefaultValueEncoders(t *testing.T) {
 					t.Errorf("Did not receive expected error. got %v; want %v", err, tc.err)
 				}
 			})
+		}
+	})
+
+	t.Run("EmptyInterfaceEncodeValue/nil", func(t *testing.T) {
+		val := reflect.New(tEmpty).Elem()
+		llvrw := new(valueReaderWriter)
+		err := (&emptyInterfaceCodec{}).EncodeValue(newTestRegistryBuilder().Build(), llvrw, val)
+		noerr(t, err)
+		if llvrw.invoked != writeNull {
+			t.Errorf("Incorrect method called. got %v; want %v", llvrw.invoked, writeNull)
+		}
+	})
+
+	t.Run("EmptyInterfaceEncodeValue/LookupEncoder error", func(t *testing.T) {
+		val := reflect.New(tEmpty).Elem()
+		val.Set(reflect.ValueOf(int64(1234567890)))
+		llvrw := new(valueReaderWriter)
+		got := (&emptyInterfaceCodec{}).EncodeValue(newTestRegistryBuilder().Build(), llvrw, val)
+		want := ErrNoEncoder{Type: tInt64}
+		if !assert.CompareErrors(got, want) {
+			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 		}
 	})
 }

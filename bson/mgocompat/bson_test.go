@@ -79,11 +79,28 @@ var sampleItems = []testItemType{
 		"\x13\x00\x00\x00\x05slice\x00\x02\x00\x00\x00\x00\x01\x02\x00"},
 }
 
-func TestUnmarshalSampleItems(t *testing.T) {
+func TestEncodeSampleItems(t *testing.T) {
+	buf := new(bytes.Buffer)
+	for i, item := range sampleItems {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			buf.Reset()
+			vw := bson.NewValueWriter(buf)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
+			err := enc.Encode(item.obj)
+			assert.Nil(t, err, "expected nil error, got: %v", err)
+			str := buf.String()
+			assert.Equal(t, str, item.data, "expected: %v, got: %v", item.data, str)
+		})
+	}
+}
+
+func TestDecodeSampleItems(t *testing.T) {
 	for i, item := range sampleItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			value := bson.M{}
-			err := bson.UnmarshalWithRegistry(Registry, []byte(item.data), &value)
+			vr := bson.NewValueReader([]byte(item.data))
+			dec := bson.NewDecoderWithRegistry(Registry, vr)
+			err := dec.Decode(&value)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			assert.True(t, reflect.DeepEqual(value, item.obj), "expected: %v, got: %v", item.obj, value)
 		})
@@ -147,11 +164,28 @@ var allItems = []testItemType{
 		"\xFF_\x00"},
 }
 
-func TestUnmarshalAllItems(t *testing.T) {
+func TestEncodeAllItems(t *testing.T) {
+	buf := new(bytes.Buffer)
+	for i, item := range allItems {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			buf.Reset()
+			vw := bson.NewValueWriter(buf)
+			enc := bson.NewEncoderWithRegistry(Registry, vw)
+			err := enc.Encode(item.obj)
+			assert.Nil(t, err, "expected nil error, got: %v", err)
+			str := buf.String()
+			assert.Equal(t, str, wrapInDoc(item.data), "expected: %v, got: %v", wrapInDoc(item.data), str)
+		})
+	}
+}
+
+func TestDecodeAllItems(t *testing.T) {
 	for i, item := range allItems {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			value := bson.M{}
-			err := bson.UnmarshalWithRegistry(Registry, []byte(wrapInDoc(item.data)), &value)
+			vr := bson.NewValueReader([]byte(wrapInDoc(item.data)))
+			dec := bson.NewDecoderWithRegistry(Registry, vr)
+			err := dec.Decode(&value)
 			assert.Nil(t, err, "expected nil error, got: %v", err)
 			assert.True(t, reflect.DeepEqual(value, item.obj), "expected: %v, got: %v", item.obj, value)
 		})
