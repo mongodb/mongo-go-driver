@@ -40,31 +40,31 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterDefaultDecoders must not be nil"))
 	}
 
-	numDecoder := func() ValueDecoder { return &numCodec{} }
+	numDecoder := func(*Registry) ValueDecoder { return &numCodec{} }
 	rb.
-		RegisterTypeDecoder(tD, func() ValueDecoder { return ValueDecoderFunc(dDecodeValue) }).
-		RegisterTypeDecoder(tBinary, func() ValueDecoder { return &decodeAdapter{binaryDecodeValue, binaryDecodeType} }).
-		RegisterTypeDecoder(tUndefined, func() ValueDecoder { return &decodeAdapter{undefinedDecodeValue, undefinedDecodeType} }).
-		RegisterTypeDecoder(tDateTime, func() ValueDecoder { return &decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType} }).
-		RegisterTypeDecoder(tNull, func() ValueDecoder { return &decodeAdapter{nullDecodeValue, nullDecodeType} }).
-		RegisterTypeDecoder(tRegex, func() ValueDecoder { return &decodeAdapter{regexDecodeValue, regexDecodeType} }).
-		RegisterTypeDecoder(tDBPointer, func() ValueDecoder { return &decodeAdapter{dbPointerDecodeValue, dbPointerDecodeType} }).
-		RegisterTypeDecoder(tTimestamp, func() ValueDecoder { return &decodeAdapter{timestampDecodeValue, timestampDecodeType} }).
-		RegisterTypeDecoder(tMinKey, func() ValueDecoder { return &decodeAdapter{minKeyDecodeValue, minKeyDecodeType} }).
-		RegisterTypeDecoder(tMaxKey, func() ValueDecoder { return &decodeAdapter{maxKeyDecodeValue, maxKeyDecodeType} }).
-		RegisterTypeDecoder(tJavaScript, func() ValueDecoder { return &decodeAdapter{javaScriptDecodeValue, javaScriptDecodeType} }).
-		RegisterTypeDecoder(tSymbol, func() ValueDecoder { return &decodeAdapter{symbolDecodeValue, symbolDecodeType} }).
-		RegisterTypeDecoder(tByteSlice, func() ValueDecoder { return &byteSliceCodec{} }).
-		RegisterTypeDecoder(tTime, func() ValueDecoder { return &timeCodec{} }).
-		RegisterTypeDecoder(tEmpty, func() ValueDecoder { return &emptyInterfaceCodec{} }).
-		RegisterTypeDecoder(tCoreArray, func() ValueDecoder { return &arrayCodec{} }).
-		RegisterTypeDecoder(tOID, func() ValueDecoder { return &decodeAdapter{objectIDDecodeValue, objectIDDecodeType} }).
-		RegisterTypeDecoder(tDecimal, func() ValueDecoder { return &decodeAdapter{decimal128DecodeValue, decimal128DecodeType} }).
-		RegisterTypeDecoder(tJSONNumber, func() ValueDecoder { return &decodeAdapter{jsonNumberDecodeValue, jsonNumberDecodeType} }).
-		RegisterTypeDecoder(tURL, func() ValueDecoder { return &decodeAdapter{urlDecodeValue, urlDecodeType} }).
-		RegisterTypeDecoder(tCoreDocument, func() ValueDecoder { return ValueDecoderFunc(coreDocumentDecodeValue) }).
-		RegisterTypeDecoder(tCodeWithScope, func() ValueDecoder { return &decodeAdapter{codeWithScopeDecodeValue, codeWithScopeDecodeType} }).
-		RegisterKindDecoder(reflect.Bool, func() ValueDecoder { return &decodeAdapter{booleanDecodeValue, booleanDecodeType} }).
+		RegisterTypeDecoder(tD, func(*Registry) ValueDecoder { return ValueDecoderFunc(dDecodeValue) }).
+		RegisterTypeDecoder(tBinary, func(*Registry) ValueDecoder { return &decodeAdapter{binaryDecodeValue, binaryDecodeType} }).
+		RegisterTypeDecoder(tUndefined, func(*Registry) ValueDecoder { return &decodeAdapter{undefinedDecodeValue, undefinedDecodeType} }).
+		RegisterTypeDecoder(tDateTime, func(*Registry) ValueDecoder { return &decodeAdapter{dateTimeDecodeValue, dateTimeDecodeType} }).
+		RegisterTypeDecoder(tNull, func(*Registry) ValueDecoder { return &decodeAdapter{nullDecodeValue, nullDecodeType} }).
+		RegisterTypeDecoder(tRegex, func(*Registry) ValueDecoder { return &decodeAdapter{regexDecodeValue, regexDecodeType} }).
+		RegisterTypeDecoder(tDBPointer, func(*Registry) ValueDecoder { return &decodeAdapter{dbPointerDecodeValue, dbPointerDecodeType} }).
+		RegisterTypeDecoder(tTimestamp, func(*Registry) ValueDecoder { return &decodeAdapter{timestampDecodeValue, timestampDecodeType} }).
+		RegisterTypeDecoder(tMinKey, func(*Registry) ValueDecoder { return &decodeAdapter{minKeyDecodeValue, minKeyDecodeType} }).
+		RegisterTypeDecoder(tMaxKey, func(*Registry) ValueDecoder { return &decodeAdapter{maxKeyDecodeValue, maxKeyDecodeType} }).
+		RegisterTypeDecoder(tJavaScript, func(*Registry) ValueDecoder { return &decodeAdapter{javaScriptDecodeValue, javaScriptDecodeType} }).
+		RegisterTypeDecoder(tSymbol, func(*Registry) ValueDecoder { return &decodeAdapter{symbolDecodeValue, symbolDecodeType} }).
+		RegisterTypeDecoder(tByteSlice, func(*Registry) ValueDecoder { return &byteSliceCodec{} }).
+		RegisterTypeDecoder(tTime, func(*Registry) ValueDecoder { return &timeCodec{} }).
+		RegisterTypeDecoder(tEmpty, func(*Registry) ValueDecoder { return &emptyInterfaceCodec{} }).
+		RegisterTypeDecoder(tCoreArray, func(*Registry) ValueDecoder { return &arrayCodec{} }).
+		RegisterTypeDecoder(tOID, func(*Registry) ValueDecoder { return &decodeAdapter{objectIDDecodeValue, objectIDDecodeType} }).
+		RegisterTypeDecoder(tDecimal, func(*Registry) ValueDecoder { return &decodeAdapter{decimal128DecodeValue, decimal128DecodeType} }).
+		RegisterTypeDecoder(tJSONNumber, func(*Registry) ValueDecoder { return &decodeAdapter{jsonNumberDecodeValue, jsonNumberDecodeType} }).
+		RegisterTypeDecoder(tURL, func(*Registry) ValueDecoder { return &decodeAdapter{urlDecodeValue, urlDecodeType} }).
+		RegisterTypeDecoder(tCoreDocument, func(*Registry) ValueDecoder { return ValueDecoderFunc(coreDocumentDecodeValue) }).
+		RegisterTypeDecoder(tCodeWithScope, func(*Registry) ValueDecoder { return &decodeAdapter{codeWithScopeDecodeValue, codeWithScopeDecodeType} }).
+		RegisterKindDecoder(reflect.Bool, func(*Registry) ValueDecoder { return &decodeAdapter{booleanDecodeValue, booleanDecodeType} }).
 		RegisterKindDecoder(reflect.Int, numDecoder).
 		RegisterKindDecoder(reflect.Int8, numDecoder).
 		RegisterKindDecoder(reflect.Int16, numDecoder).
@@ -77,12 +77,12 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 		RegisterKindDecoder(reflect.Uint64, numDecoder).
 		RegisterKindDecoder(reflect.Float32, numDecoder).
 		RegisterKindDecoder(reflect.Float64, numDecoder).
-		RegisterKindDecoder(reflect.Array, func() ValueDecoder { return ValueDecoderFunc(arrayDecodeValue) }).
-		RegisterKindDecoder(reflect.Map, func() ValueDecoder { return &mapCodec{} }).
-		RegisterKindDecoder(reflect.Slice, func() ValueDecoder { return &sliceCodec{} }).
-		RegisterKindDecoder(reflect.String, func() ValueDecoder { return &stringCodec{} }).
-		RegisterKindDecoder(reflect.Struct, func() ValueDecoder { return newStructCodec(rb.StructTagHandler()) }).
-		RegisterKindDecoder(reflect.Ptr, func() ValueDecoder { return &pointerCodec{} }).
+		RegisterKindDecoder(reflect.Array, func(*Registry) ValueDecoder { return ValueDecoderFunc(arrayDecodeValue) }).
+		RegisterKindDecoder(reflect.Map, func(*Registry) ValueDecoder { return &mapCodec{} }).
+		RegisterKindDecoder(reflect.Slice, func(*Registry) ValueDecoder { return &sliceCodec{} }).
+		RegisterKindDecoder(reflect.String, func(*Registry) ValueDecoder { return &stringCodec{} }).
+		RegisterKindDecoder(reflect.Struct, func(*Registry) ValueDecoder { return newStructCodec(nil) }).
+		RegisterKindDecoder(reflect.Ptr, func(*Registry) ValueDecoder { return &pointerCodec{} }).
 		RegisterTypeMapEntry(TypeDouble, tFloat64).
 		RegisterTypeMapEntry(TypeString, tString).
 		RegisterTypeMapEntry(TypeArray, tA).
@@ -104,8 +104,8 @@ func registerDefaultDecoders(rb *RegistryBuilder) {
 		RegisterTypeMapEntry(TypeMaxKey, tMaxKey).
 		RegisterTypeMapEntry(Type(0), tD).
 		RegisterTypeMapEntry(TypeEmbeddedDocument, tD).
-		RegisterInterfaceDecoder(tValueUnmarshaler, func() ValueDecoder { return ValueDecoderFunc(valueUnmarshalerDecodeValue) }).
-		RegisterInterfaceDecoder(tUnmarshaler, func() ValueDecoder { return ValueDecoderFunc(unmarshalerDecodeValue) })
+		RegisterInterfaceDecoder(tValueUnmarshaler, func(*Registry) ValueDecoder { return ValueDecoderFunc(valueUnmarshalerDecodeValue) }).
+		RegisterInterfaceDecoder(tUnmarshaler, func(*Registry) ValueDecoder { return ValueDecoderFunc(unmarshalerDecodeValue) })
 }
 
 // dDecodeValue is the ValueDecoderFunc for D instances.

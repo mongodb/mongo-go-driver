@@ -22,10 +22,10 @@ func registerPrimitiveCodecs(rb *RegistryBuilder) {
 	}
 
 	rb.
-		RegisterTypeEncoder(tRawValue, func() ValueEncoder { return ValueEncoderFunc(rawValueEncodeValue) }).
-		RegisterTypeEncoder(tRaw, func() ValueEncoder { return ValueEncoderFunc(rawEncodeValue) }).
-		RegisterTypeDecoder(tRawValue, func() ValueDecoder { return ValueDecoderFunc(rawValueDecodeValue) }).
-		RegisterTypeDecoder(tRaw, func() ValueDecoder { return ValueDecoderFunc(rawDecodeValue) })
+		RegisterTypeEncoder(tRawValue, func(*Registry) ValueEncoder { return ValueEncoderFunc(rawValueEncodeValue) }).
+		RegisterTypeEncoder(tRaw, func(*Registry) ValueEncoder { return ValueEncoderFunc(rawEncodeValue) }).
+		RegisterTypeDecoder(tRawValue, func(*Registry) ValueDecoder { return ValueDecoderFunc(rawValueDecodeValue) }).
+		RegisterTypeDecoder(tRaw, func(*Registry) ValueDecoder { return ValueDecoderFunc(rawDecodeValue) })
 }
 
 // rawValueEncodeValue is the ValueEncoderFunc for RawValue.

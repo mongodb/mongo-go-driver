@@ -47,17 +47,15 @@ func (de *DecodeError) Keys() []string {
 	return reversedKeys
 }
 
-// StructTagHandler defines the struct encoder bahavior when inline, minSize and truncate tags are set.
-type StructTagHandler struct {
-	InlineEncoder           func(EncoderRegistry, DocumentWriter, reflect.Value, func(string) bool) error
-	LookupEncoderOnMinSize  func(EncoderRegistry, reflect.Type) (ValueEncoder, error)
-	LookupEncoderOnTruncate func(EncoderRegistry, reflect.Type) (ValueEncoder, error)
+// mapElementsEncoder handles encoding of the values of an inline  map.
+type mapElementsEncoder interface {
+	encodeMapElements(EncoderRegistry, DocumentWriter, reflect.Value, func(string) bool) error
 }
 
 // structCodec is the Codec used for struct values.
 type structCodec struct {
-	cache   sync.Map // map[reflect.Type]*structDescription
-	tagHndl StructTagHandler
+	cache       sync.Map // map[reflect.Type]*structDescription
+	elemEncoder mapElementsEncoder
 
 	// decodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
 	decodeZeroStruct bool
@@ -83,9 +81,9 @@ type structCodec struct {
 }
 
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.
-func newStructCodec(hndl StructTagHandler) *structCodec {
+func newStructCodec(elemEncoder mapElementsEncoder) *structCodec {
 	return &structCodec{
-		tagHndl:                          hndl,
+		elemEncoder:                      elemEncoder,
 		overwriteDuplicatedInlinedFields: true,
 	}
 }
@@ -97,6 +95,40 @@ type localEncoderRegistry struct {
 
 func (r *localEncoderRegistry) LookupEncoder(t reflect.Type) (ValueEncoder, error) {
 	return r.encoderLookup(r.registry, t)
+}
+
+func onMinSize(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+	enc, err := reg.LookupEncoder(t)
+	if err != nil {
+		return enc, err
+	}
+	switch t.Kind() {
+	case reflect.Int64, reflect.Uint, reflect.Uint32, reflect.Uint64:
+		if codec, ok := enc.(*numCodec); ok {
+			c := *codec
+			c.minSize = true
+			return &c, nil
+		}
+	}
+	return enc, nil
+}
+
+func onTruncate(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
+	enc, err := reg.LookupEncoder(t)
+	if err != nil {
+		return enc, err
+	}
+	switch t.Kind() {
+	case reflect.Float32,
+		reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int,
+		reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+		if codec, ok := enc.(*numCodec); ok {
+			c := *codec
+			c.truncate = true
+			return &c, nil
+		}
+	}
+	return enc, nil
 }
 
 // EncodeValue handles encoding generic struct types.
@@ -192,10 +224,7 @@ func (sc *structCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val refl
 			return exists
 		}
 
-		if sc.tagHndl.InlineEncoder == nil {
-			return errors.New("inline map encoder is not defined")
-		}
-		err = sc.tagHndl.InlineEncoder(reg, dw, rv, collisionFn)
+		err = sc.elemEncoder.encodeMapElements(reg, dw, rv, collisionFn)
 		if err != nil {
 			return err
 		}
@@ -501,16 +530,16 @@ func (sc *structCodec) describeStructSlow(
 		description.name = stags.Name
 		description.omitEmpty = stags.OmitEmpty
 		description.encoderLookup = func(reg EncoderRegistry, t reflect.Type) (ValueEncoder, error) {
-			if stags.MinSize && sc.tagHndl.LookupEncoderOnMinSize != nil {
+			if stags.MinSize {
 				reg = &localEncoderRegistry{
 					registry:      reg,
-					encoderLookup: sc.tagHndl.LookupEncoderOnMinSize,
+					encoderLookup: onMinSize,
 				}
 			}
-			if stags.Truncate && sc.tagHndl.LookupEncoderOnTruncate != nil {
+			if stags.Truncate {
 				reg = &localEncoderRegistry{
 					registry:      reg,
-					encoderLookup: sc.tagHndl.LookupEncoderOnTruncate,
+					encoderLookup: onTruncate,
 				}
 			}
 			return reg.LookupEncoder(t)

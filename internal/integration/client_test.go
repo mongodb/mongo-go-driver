@@ -101,8 +101,8 @@ func TestClient(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
 
 	reg := bson.NewRegistryBuilder().
-		RegisterTypeEncoder(reflect.TypeOf(int64(0)), func() bson.ValueEncoder { return &negateCodec{} }).
-		RegisterTypeDecoder(reflect.TypeOf(int64(0)), func() bson.ValueDecoder { return &negateCodec{} }).
+		RegisterTypeEncoder(reflect.TypeOf(int64(0)), func(*bson.Registry) bson.ValueEncoder { return &negateCodec{} }).
+		RegisterTypeDecoder(reflect.TypeOf(int64(0)), func(*bson.Registry) bson.ValueDecoder { return &negateCodec{} }).
 		Build()
 	registryOpts := options.Client().
 		SetRegistry(reg)

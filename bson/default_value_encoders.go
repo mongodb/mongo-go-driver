@@ -55,30 +55,30 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 		panic(errors.New("argument to RegisterDefaultEncoders must not be nil"))
 	}
 
-	numEncoder := func() ValueEncoder { return &numCodec{} }
+	numEncoder := func(*Registry) ValueEncoder { return &numCodec{} }
 	rb.
-		RegisterTypeEncoder(tByteSlice, func() ValueEncoder { return &byteSliceCodec{} }).
-		RegisterTypeEncoder(tTime, func() ValueEncoder { return &timeCodec{} }).
-		RegisterTypeEncoder(tEmpty, func() ValueEncoder { return &emptyInterfaceCodec{} }).
-		RegisterTypeEncoder(tCoreArray, func() ValueEncoder { return &arrayCodec{} }).
-		RegisterTypeEncoder(tOID, func() ValueEncoder { return ValueEncoderFunc(objectIDEncodeValue) }).
-		RegisterTypeEncoder(tDecimal, func() ValueEncoder { return ValueEncoderFunc(decimal128EncodeValue) }).
-		RegisterTypeEncoder(tJSONNumber, func() ValueEncoder { return ValueEncoderFunc(jsonNumberEncodeValue) }).
-		RegisterTypeEncoder(tURL, func() ValueEncoder { return ValueEncoderFunc(urlEncodeValue) }).
-		RegisterTypeEncoder(tJavaScript, func() ValueEncoder { return ValueEncoderFunc(javaScriptEncodeValue) }).
-		RegisterTypeEncoder(tSymbol, func() ValueEncoder { return ValueEncoderFunc(symbolEncodeValue) }).
-		RegisterTypeEncoder(tBinary, func() ValueEncoder { return ValueEncoderFunc(binaryEncodeValue) }).
-		RegisterTypeEncoder(tUndefined, func() ValueEncoder { return ValueEncoderFunc(undefinedEncodeValue) }).
-		RegisterTypeEncoder(tDateTime, func() ValueEncoder { return ValueEncoderFunc(dateTimeEncodeValue) }).
-		RegisterTypeEncoder(tNull, func() ValueEncoder { return ValueEncoderFunc(nullEncodeValue) }).
-		RegisterTypeEncoder(tRegex, func() ValueEncoder { return ValueEncoderFunc(regexEncodeValue) }).
-		RegisterTypeEncoder(tDBPointer, func() ValueEncoder { return ValueEncoderFunc(dbPointerEncodeValue) }).
-		RegisterTypeEncoder(tTimestamp, func() ValueEncoder { return ValueEncoderFunc(timestampEncodeValue) }).
-		RegisterTypeEncoder(tMinKey, func() ValueEncoder { return ValueEncoderFunc(minKeyEncodeValue) }).
-		RegisterTypeEncoder(tMaxKey, func() ValueEncoder { return ValueEncoderFunc(maxKeyEncodeValue) }).
-		RegisterTypeEncoder(tCoreDocument, func() ValueEncoder { return ValueEncoderFunc(coreDocumentEncodeValue) }).
-		RegisterTypeEncoder(tCodeWithScope, func() ValueEncoder { return ValueEncoderFunc(codeWithScopeEncodeValue) }).
-		RegisterKindEncoder(reflect.Bool, func() ValueEncoder { return ValueEncoderFunc(booleanEncodeValue) }).
+		RegisterTypeEncoder(tByteSlice, func(*Registry) ValueEncoder { return &byteSliceCodec{} }).
+		RegisterTypeEncoder(tTime, func(*Registry) ValueEncoder { return &timeCodec{} }).
+		RegisterTypeEncoder(tEmpty, func(*Registry) ValueEncoder { return &emptyInterfaceCodec{} }).
+		RegisterTypeEncoder(tCoreArray, func(*Registry) ValueEncoder { return &arrayCodec{} }).
+		RegisterTypeEncoder(tOID, func(*Registry) ValueEncoder { return ValueEncoderFunc(objectIDEncodeValue) }).
+		RegisterTypeEncoder(tDecimal, func(*Registry) ValueEncoder { return ValueEncoderFunc(decimal128EncodeValue) }).
+		RegisterTypeEncoder(tJSONNumber, func(*Registry) ValueEncoder { return ValueEncoderFunc(jsonNumberEncodeValue) }).
+		RegisterTypeEncoder(tURL, func(*Registry) ValueEncoder { return ValueEncoderFunc(urlEncodeValue) }).
+		RegisterTypeEncoder(tJavaScript, func(*Registry) ValueEncoder { return ValueEncoderFunc(javaScriptEncodeValue) }).
+		RegisterTypeEncoder(tSymbol, func(*Registry) ValueEncoder { return ValueEncoderFunc(symbolEncodeValue) }).
+		RegisterTypeEncoder(tBinary, func(*Registry) ValueEncoder { return ValueEncoderFunc(binaryEncodeValue) }).
+		RegisterTypeEncoder(tUndefined, func(*Registry) ValueEncoder { return ValueEncoderFunc(undefinedEncodeValue) }).
+		RegisterTypeEncoder(tDateTime, func(*Registry) ValueEncoder { return ValueEncoderFunc(dateTimeEncodeValue) }).
+		RegisterTypeEncoder(tNull, func(*Registry) ValueEncoder { return ValueEncoderFunc(nullEncodeValue) }).
+		RegisterTypeEncoder(tRegex, func(*Registry) ValueEncoder { return ValueEncoderFunc(regexEncodeValue) }).
+		RegisterTypeEncoder(tDBPointer, func(*Registry) ValueEncoder { return ValueEncoderFunc(dbPointerEncodeValue) }).
+		RegisterTypeEncoder(tTimestamp, func(*Registry) ValueEncoder { return ValueEncoderFunc(timestampEncodeValue) }).
+		RegisterTypeEncoder(tMinKey, func(*Registry) ValueEncoder { return ValueEncoderFunc(minKeyEncodeValue) }).
+		RegisterTypeEncoder(tMaxKey, func(*Registry) ValueEncoder { return ValueEncoderFunc(maxKeyEncodeValue) }).
+		RegisterTypeEncoder(tCoreDocument, func(*Registry) ValueEncoder { return ValueEncoderFunc(coreDocumentEncodeValue) }).
+		RegisterTypeEncoder(tCodeWithScope, func(*Registry) ValueEncoder { return ValueEncoderFunc(codeWithScopeEncodeValue) }).
+		RegisterKindEncoder(reflect.Bool, func(*Registry) ValueEncoder { return ValueEncoderFunc(booleanEncodeValue) }).
 		RegisterKindEncoder(reflect.Int, numEncoder).
 		RegisterKindEncoder(reflect.Int8, numEncoder).
 		RegisterKindEncoder(reflect.Int16, numEncoder).
@@ -91,15 +91,20 @@ func registerDefaultEncoders(rb *RegistryBuilder) {
 		RegisterKindEncoder(reflect.Uint64, numEncoder).
 		RegisterKindEncoder(reflect.Float32, numEncoder).
 		RegisterKindEncoder(reflect.Float64, numEncoder).
-		RegisterKindEncoder(reflect.Array, func() ValueEncoder { return ValueEncoderFunc(arrayEncodeValue) }).
-		RegisterKindEncoder(reflect.Map, func() ValueEncoder { return &mapCodec{} }).
-		RegisterKindEncoder(reflect.Slice, func() ValueEncoder { return &sliceCodec{} }).
-		RegisterKindEncoder(reflect.String, func() ValueEncoder { return &stringCodec{} }).
-		RegisterKindEncoder(reflect.Struct, func() ValueEncoder { return newStructCodec(rb.StructTagHandler()) }).
-		RegisterKindEncoder(reflect.Ptr, func() ValueEncoder { return &pointerCodec{} }).
-		RegisterInterfaceEncoder(tValueMarshaler, func() ValueEncoder { return ValueEncoderFunc(valueMarshalerEncodeValue) }).
-		RegisterInterfaceEncoder(tMarshaler, func() ValueEncoder { return ValueEncoderFunc(marshalerEncodeValue) }).
-		RegisterInterfaceEncoder(tProxy, func() ValueEncoder { return ValueEncoderFunc(proxyEncodeValue) })
+		RegisterKindEncoder(reflect.Array, func(*Registry) ValueEncoder { return ValueEncoderFunc(arrayEncodeValue) }).
+		RegisterKindEncoder(reflect.Map, func(*Registry) ValueEncoder { return &mapCodec{} }).
+		RegisterKindEncoder(reflect.Slice, func(*Registry) ValueEncoder { return &sliceCodec{} }).
+		RegisterKindEncoder(reflect.String, func(*Registry) ValueEncoder { return &stringCodec{} }).
+		RegisterKindEncoder(reflect.Struct, func(reg *Registry) ValueEncoder {
+			// reflect.Struct is 25 that is bigger than reflect.Map, 21, in the kind array,
+			// so Map will be registered earlier than Struct.
+			enc, _ := reg.lookupKindEncoder(reflect.Map)
+			return newStructCodec(enc.(mapElementsEncoder))
+		}).
+		RegisterKindEncoder(reflect.Ptr, func(*Registry) ValueEncoder { return &pointerCodec{} }).
+		RegisterInterfaceEncoder(tValueMarshaler, func(*Registry) ValueEncoder { return ValueEncoderFunc(valueMarshalerEncodeValue) }).
+		RegisterInterfaceEncoder(tMarshaler, func(*Registry) ValueEncoder { return ValueEncoderFunc(marshalerEncodeValue) }).
+		RegisterInterfaceEncoder(tProxy, func(*Registry) ValueEncoder { return ValueEncoderFunc(proxyEncodeValue) })
 }
 
 // booleanEncodeValue is the ValueEncoderFunc for bool types.

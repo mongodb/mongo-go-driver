@@ -359,7 +359,7 @@ func TestMapCodec(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				mapRegistry := NewRegistryBuilder()
-				mapRegistry.RegisterKindEncoder(reflect.Map, func() ValueEncoder { return tc.codec })
+				mapRegistry.RegisterKindEncoder(reflect.Map, func(*Registry) ValueEncoder { return tc.codec })
 				buf := new(bytes.Buffer)
 				vw := NewValueWriter(buf)
 				enc := NewEncoderWithRegistry(mapRegistry.Build(), vw)

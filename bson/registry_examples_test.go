@@ -49,7 +49,7 @@ func ExampleRegistry_customEncoder() {
 	reg := bson.NewRegistryBuilder().
 		RegisterTypeEncoder(
 			negatedIntType,
-			func() bson.ValueEncoder {
+			func(*bson.Registry) bson.ValueEncoder {
 				return bson.ValueEncoderFunc(negatedIntEncoder)
 			},
 		).
@@ -135,7 +135,7 @@ func ExampleRegistry_customDecoder() {
 	rb := bson.NewRegistryBuilder()
 	rb.RegisterTypeDecoder(
 		lenientBoolType,
-		func() bson.ValueDecoder {
+		func(*bson.Registry) bson.ValueDecoder {
 			return bson.ValueDecoderFunc(lenientBoolDecoder)
 		},
 	)
@@ -190,7 +190,7 @@ func ExampleRegistryBuilder_RegisterKindEncoder() {
 	reg := bson.NewRegistryBuilder().
 		RegisterKindEncoder(
 			reflect.Int32,
-			func() bson.ValueEncoder {
+			func(*bson.Registry) bson.ValueEncoder {
 				return bson.ValueEncoderFunc(int32To64Encoder)
 			},
 		).
@@ -282,7 +282,7 @@ func ExampleRegistryBuilder_RegisterKindDecoder() {
 	rb := bson.NewRegistryBuilder()
 	rb.RegisterKindDecoder(
 		reflect.Int64,
-		func() bson.ValueDecoder {
+		func(*bson.Registry) bson.ValueDecoder {
 			return bson.ValueDecoderFunc(flexibleInt64KindDecoder)
 		},
 	)

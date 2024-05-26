@@ -183,7 +183,7 @@ var directories = []string{
 var checkOutcomeOpts = options.Collection().SetReadPreference(readpref.Primary()).SetReadConcern(readconcern.Local())
 var specTestRegistry = bson.NewRegistryBuilder().
 	RegisterTypeMapEntry(bson.TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{})).
-	RegisterTypeDecoder(reflect.TypeOf(testData{}), func() bson.ValueDecoder { return bson.ValueDecoderFunc(decodeTestData) }).
+	RegisterTypeDecoder(reflect.TypeOf(testData{}), func(*bson.Registry) bson.ValueDecoder { return bson.ValueDecoderFunc(decodeTestData) }).
 	Build()
 
 func TestUnifiedSpecs(t *testing.T) {

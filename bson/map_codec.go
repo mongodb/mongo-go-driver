@@ -68,17 +68,17 @@ func (mc *mapCodec) EncodeValue(reg EncoderRegistry, vw ValueWriter, val reflect
 		return err
 	}
 
-	err = mc.mapEncodeValue(reg, dw, val, nil)
+	err = mc.encodeMapElements(reg, dw, val, nil)
 	if err != nil {
 		return err
 	}
 	return dw.WriteDocumentEnd()
 }
 
-// mapEncodeValue handles encoding of the values of a map. The collisionFn returns
+// encodeMapElements handles encoding of the values of a map. The collisionFn returns
 // true if the provided key exists, this is mainly used for inline maps in the
 // struct codec.
-func (mc *mapCodec) mapEncodeValue(reg EncoderRegistry, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
+func (mc *mapCodec) encodeMapElements(reg EncoderRegistry, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
 
 	elemType := val.Type().Elem()
 	encoder, err := reg.LookupEncoder(elemType)

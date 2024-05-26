@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	defaultTestStructCodec = newStructCodec(DefaultStructTagHandler())
+	defaultTestStructCodec = newStructCodec(nil)
 )
 
 func TestDefaultValueDecoders(t *testing.T) {
@@ -3417,7 +3417,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 							t.Skip()
 						}
 						want := errors.New("DecodeValue failure error")
-						llc := func() ValueDecoder { return &llCodec{t: t, err: want} }
+						llc := func(*Registry) ValueDecoder { return &llCodec{t: t, err: want} }
 						reg := newTestRegistryBuilder().
 							RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
 							RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
@@ -3430,7 +3430,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 					t.Run("Success", func(t *testing.T) {
 						want := tc.val
-						llc := func() ValueDecoder { return &llCodec{t: t, decodeval: tc.val} }
+						llc := func(*Registry) ValueDecoder { return &llCodec{t: t, decodeval: tc.val} }
 						reg := newTestRegistryBuilder().
 							RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
 							RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
@@ -3575,7 +3575,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			return decodeValueError
 		}
 		emptyInterfaceErrorRegistry := newTestRegistryBuilder().
-			RegisterTypeDecoder(tEmpty, func() ValueDecoder { return ValueDecoderFunc(emptyInterfaceErrorDecode) }).
+			RegisterTypeDecoder(tEmpty, func(*Registry) ValueDecoder { return ValueDecoderFunc(emptyInterfaceErrorDecode) }).
 			Build()
 
 		// Set up a document {foo: 10} and an error that would happen if the value were decoded into interface{}
@@ -3630,7 +3630,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
 		nestedRegistryBuilder := newTestRegistryBuilder()
 		registerDefaultDecoders(nestedRegistryBuilder)
-		nestedRegistryBuilder.RegisterTypeDecoder(tEmpty, func() ValueDecoder { return ValueDecoderFunc(emptyInterfaceErrorDecode) })
+		nestedRegistryBuilder.RegisterTypeDecoder(tEmpty, func(*Registry) ValueDecoder { return ValueDecoderFunc(emptyInterfaceErrorDecode) })
 		nestedErr := &DecodeError{
 			keys:    []string{"fourth", "1", "third", "randomKey", "second", "first"},
 			wrapped: decodeValueError,

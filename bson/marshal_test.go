@@ -131,7 +131,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		return vw.WriteInt32(int32(val.Int()) * -1)
 	}
 	customReg := NewRegistryBuilder().
-		RegisterTypeEncoder(tInt32, func() ValueEncoder { return encodeInt32 }).
+		RegisterTypeEncoder(tInt32, func(*Registry) ValueEncoder { return encodeInt32 }).
 		Build()
 
 	// Helper function to run the test and make assertions. The provided original value should result in the document
