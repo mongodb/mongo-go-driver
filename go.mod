@@ -38,3 +38,5 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
+
+replace golang.org/x/net/http2 => golang.org/x/net/http2 v0.23.0 // GODRIVER-3225
