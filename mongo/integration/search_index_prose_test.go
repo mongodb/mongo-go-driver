@@ -379,7 +379,7 @@ func TestSearchIndexProse(t *testing.T) {
 
 		indexName = "test-search-index-case7-vector"
 		definition = bson.D{{"fields", bson.A{bson.D{{"type", "vector"}, {"path", "plot_embedding"}, {"numDimensions", 1536}, {"similarity", "euclidean"}}}}}
-		opts = options.SearchIndexes().SetName(indexName).SetType("vector")
+		opts = options.SearchIndexes().SetName(indexName).SetType("vectorSearch")
 		index, err = view.CreateOne(ctx, mongo.SearchIndexModel{
 			Definition: definition,
 			Options:    opts,
@@ -422,6 +422,6 @@ func TestSearchIndexProse(t *testing.T) {
 			Definition: definition,
 			Options:    opts,
 		})
-		require.NoError(mt, err, "failed to create index")
+		assert.ErrorContains(mt, err, "Attribute mappings missing")
 	})
 }
