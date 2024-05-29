@@ -98,14 +98,10 @@ func TestSearchIndexProse(t *testing.T) {
 				Definition: definition,
 				Options:    options.SearchIndexes().SetName("test-search-index-2"),
 			},
-			{
-				Definition: definition,
-				Options:    options.SearchIndexes().SetName("test-vector-search-index-1"),
-			},
 		}
 		indexes, err := view.CreateMany(ctx, models)
 		require.NoError(mt, err, "failed to create index")
-		require.Equal(mt, len(indexes), 3, "expected 3 indexes")
+		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
 		for _, model := range models {
 			require.Contains(mt, indexes, *model.Options.Name)
 		}
@@ -140,10 +136,6 @@ func TestSearchIndexProse(t *testing.T) {
 				require.NoError(mt, err, "failed to marshal definition")
 				actual := doc.Lookup("latestDefinition").Value
 				assert.Equal(mt, expected, actual, "unmatched definition")
-
-				expectedType := opts.Type
-				actualType := doc.Lookup("type").Value
-				assert.Equal(mt, expectedType, actualType, "unmatched type")
 			}(models[i].Options)
 		}
 		wg.Wait()
@@ -319,4 +311,133 @@ func TestSearchIndexProse(t *testing.T) {
 			actual := doc.Lookup("latestDefinition").Value
 			assert.Equal(mt, expected, actual, "unmatched definition")
 		})
+
+	mt.RunOpts("case 7: Driver can successfully handle search index types when creating indexes",
+		func(mt *mtest.T) {
+			ctx := context.Background()
+
+			_, err := mt.Coll.InsertOne(ctx, bson.D{})
+			require.NoError(mt, err, "failed to insert")
+
+			view := mt.Coll.SearchIndexes()
+
+			definition := bson.D{{"mappings", bson.D{{"dynamic", false}}}}
+			indexName := "test-search-index-case7-implicit"
+			opts := options.SearchIndexes().SetName(indexName)
+			index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+				Definition: definition,
+				Options:    opts,
+			})
+			require.NoError(mt, err, "failed to create index")
+			require.Equal(mt, indexName, index, "unmatched name")
+			var doc bson.Raw
+			for doc == nil {
+				cursor, err := view.List(ctx, opts)
+				require.NoError(mt, err, "failed to list")
+
+				if !cursor.Next(ctx) {
+					break
+				}
+				name := cursor.Current.Lookup("name").StringValue()
+				queryable := cursor.Current.Lookup("queryable").Boolean()
+				indexType := cursor.Current.Lookup("type").StringValue()
+				if name == indexName && queryable {
+					doc = cursor.Current
+				} else {
+					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					time.Sleep(5 * time.Second)
+				}
+			}
+			require.NotNil(mt, doc, "got empty document")
+			expected, err := bson.Marshal(definition)
+			require.NoError(mt, err, "failed to marshal definition")
+			actual := doc.Lookup("latestDefinition").Value
+			assert.Equal(mt, expected, actual, "unmatched definition")
+			assert.Equal(mt, indexType, "search")
+
+			indexName = "test-search-index-case7-explicit"
+			opts = options.SearchIndexes().SetName(indexName).setType("search")
+			index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+				Definition: definition,
+				Options:    opts,
+			})
+			require.NoError(mt, err, "failed to create index")
+			require.Equal(mt, indexName, index, "unmatched name")
+			var doc bson.Raw
+			for doc == nil {
+				cursor, err := view.List(ctx, opts)
+				require.NoError(mt, err, "failed to list")
+
+				if !cursor.Next(ctx) {
+					break
+				}
+				name := cursor.Current.Lookup("name").StringValue()
+				queryable := cursor.Current.Lookup("queryable").Boolean()
+				indexType := cursor.Current.Lookup("type").StringValue()
+				if name == indexName && queryable {
+					doc = cursor.Current
+				} else {
+					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					time.Sleep(5 * time.Second)
+				}
+			}
+			require.NotNil(mt, doc, "got empty document")
+			expected, err := bson.Marshal(definition)
+			require.NoError(mt, err, "failed to marshal definition")
+			actual := doc.Lookup("latestDefinition").Value
+			assert.Equal(mt, expected, actual, "unmatched definition")
+			assert.Equal(mt, indexType, "search")
+
+			indexName = "test-search-index-case7-vector"
+			definition = bson.D{{"fields", bson.A{bson.D{{"type", "vector"}, {"path", "plot_embedding"}, {"numDimensions", 1536}, {"similarity", "euclidean"}}}}}
+			opts = options.SearchIndexes().SetName(indexName).setType("vector")
+			index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+				Definition: definition,
+				Options:    opts,
+			})
+			require.NoError(mt, err, "failed to create index")
+			require.Equal(mt, indexName, index, "unmatched name")
+			var doc bson.Raw
+			for doc == nil {
+				cursor, err := view.List(ctx, opts)
+				require.NoError(mt, err, "failed to list")
+
+				if !cursor.Next(ctx) {
+					break
+				}
+				name := cursor.Current.Lookup("name").StringValue()
+				queryable := cursor.Current.Lookup("queryable").Boolean()
+				indexType := cursor.Current.Lookup("type").StringValue()
+				if name == indexName && queryable {
+					doc = cursor.Current
+				} else {
+					t.Logf("cursor: %s, sleep 5 seconds...", cursor.Current.String())
+					time.Sleep(5 * time.Second)
+				}
+			}
+			require.NotNil(mt, doc, "got empty document")
+			expected, err := bson.Marshal(definition)
+			require.NoError(mt, err, "failed to marshal definition")
+			actual := doc.Lookup("latestDefinition").Value
+			assert.Equal(mt, expected, actual, "unmatched definition")
+			assert.Equal(mt, indexType, "vectorSearch")
+		})
+
+	mt.Run("case 8: Driver requires explicit type to create a vector search index", func(mt *mtest.T) {
+		ctx := context.Background()
+
+		_, err := mt.Coll.InsertOne(ctx, bson.D{})
+		require.NoError(mt, err, "failed to insert")
+
+		view := mt.Coll.SearchIndexes()
+
+		indexName := "test-search-index-case7-vector"
+		definition = bson.D{{"fields", bson.A{bson.D{{"type", "vector"}, {"path", "plot_embedding"}, {"numDimensions", 1536}, {"similarity", "euclidean"}}}}}
+		opts := options.SearchIndexes().SetName(indexName)
+		index, err := view.CreateOne(ctx, mongo.SearchIndexModel{
+			Definition: definition,
+			Options:    opts,
+		})
+		require.NoError(mt, err, "failed to create index")
+	})
 }
