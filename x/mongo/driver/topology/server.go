@@ -112,19 +112,12 @@ type Server struct {
 	currentSubscriberID uint64
 	subscriptionsClosed bool
 
-	// heartbeat and cancellation related fields
-	// globalCtx should be created in NewServer and cancelled in Disconnect to signal that the server is shutting down.
-	// heartbeatCtx should be used for individual heartbeats and should be a child of globalCtx so that it will be
-	// cancelled automatically during shutdown.
-	heartbeatLock   sync.Mutex
-	conn            *connection
-	globalCtx       context.Context
-	globalCtxCancel context.CancelFunc
+	conn *connection
 
-	// Data required to cancel blocking operations while checking the status of
-	// the server during heartbeat monitoring.
-	cancelCheckSig chan struct{}
-	checkCanceled  atomic.Value
+	// Calling StopListening on the heartbeatListner will cancel the context
+	// passed to the heartbeat check. This will result in the current connection
+	// being closed.
+	heartbeatListener contextListener
 
 	processErrorLock sync.Mutex
 	rttMonitor       *rttMonitor
@@ -162,7 +155,7 @@ func NewServer(
 	opts ...ServerOption,
 ) *Server {
 	cfg := newServerConfig(connectTimeout, opts...)
-	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
+
 	s := &Server{
 		state: serverDisconnected,
 
@@ -175,9 +168,8 @@ func NewServer(
 
 		topologyID: topologyID,
 
-		subscribers:     make(map[uint64]chan description.Server),
-		globalCtx:       globalCtx,
-		globalCtxCancel: globalCtxCancel,
+		subscribers:       make(map[uint64]chan description.Server),
+		heartbeatListener: newNonBlockingContextDoneListener(),
 	}
 	s.desc.Store(description.NewDefaultServer(addr))
 	rttCfg := &rttConfig{
@@ -289,13 +281,9 @@ func (s *Server) Disconnect(ctx context.Context) error {
 
 	s.updateTopologyCallback.Store((updateTopologyCallback)(nil))
 
-	// Cancel the global context so any new contexts created from it will be automatically cancelled. Close the done
-	// channel so the update() routine will know that it can stop. Cancel any in-progress monitoring checks at the end.
-	// The done channel is closed before cancelling the check so the update routine() will immediately detect that it
-	// can stop rather than trying to create new connections until the read from done succeeds.
-	s.globalCtxCancel()
 	close(s.done)
-	s.cancelCheck()
+
+	s.heartbeatListener.StopListening()
 
 	s.pool.close(ctx)
 
@@ -370,7 +358,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// checking logic above has already determined that this description is not stale.
 	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
 	s.pool.clear(err, serviceID)
-	s.cancelCheck()
+	s.heartbeatListener.StopListening()
 }
 
 // Description returns a description of the server as of the last heartbeat.
@@ -549,17 +537,8 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// updateDescription.
 	s.updateDescription(description.NewServerFromError(s.address, err, nil))
 	s.pool.clear(err, serviceID)
-	s.cancelCheck()
+	s.heartbeatListener.StopListening()
 	return driver.ConnectionPoolCleared
-}
-
-// resetCheck will re-initialize data used to perform a check.
-func (s *Server) resetCheck() {
-	s.heartbeatLock.Lock()
-	s.cancelCheckSig = make(chan struct{}, 1)
-	s.heartbeatLock.Unlock()
-
-	s.checkCanceled.Store(false)
 }
 
 type serverChecker interface {
@@ -570,7 +549,11 @@ var _ serverChecker = &Server{}
 
 // checkServerWithSignal will run the server heartbeat check, canceling if the
 // sig channel's buffer is emptied or is closed.
-func checkServerWithSignal(checker serverChecker, sig <-chan struct{}) (description.Server, error) {
+func checkServerWithSignal(
+	checker serverChecker,
+	conn *connection,
+	listener contextListener,
+) (description.Server, error) {
 	// Create a context for the blocking operations associated with checking the
 	// status of a server.
 	//
@@ -579,13 +562,36 @@ func checkServerWithSignal(checker serverChecker, sig <-chan struct{}) (descript
 	// used in monitoring threads, so we rely on that to time out commands
 	// rather than adding complexity to the behavior of timeoutMS.
 	ctx, cancel := context.WithCancel(context.Background())
+
+	defer listener.StopListening()
 	defer cancel()
 
-	go func() {
+	go func(conn *connection) {
 		defer cancel()
 
-		<-sig
-	}()
+		var aborted bool
+		listener.Listen(ctx, func() {
+			aborted = true
+		})
+
+		// Close the connection if the listener was stopped before
+		// checkServerWithSignal terminates.
+		if !aborted {
+			if conn == nil {
+				return
+			}
+
+			// If the connection exists, we need to wait for it to be connected
+			// because conn.connect() and conn.close() cannot be called concurrently.
+			// If the connection wasn't successfully opened, its state was set back
+			// to disconnected, so calling conn.close() will be a no-op.
+			conn.closeConnectContext()
+			conn.wait()
+			conn.prevCanceled.Store(true)
+			_ = conn.close()
+		}
+
+	}(conn)
 
 	return checker.check(ctx)
 }
@@ -614,8 +620,6 @@ func (s *Server) update() {
 		s.subscriptionsClosed = true
 		s.subLock.Unlock()
 
-		// We don't need to take s.heartbeatLock here because closeServer is called synchronously when the select checks
-		// below detect that the server is being closed, so we can be sure that the connection isn't being used.
 		if s.conn != nil {
 			_ = s.conn.close()
 		}
@@ -651,11 +655,9 @@ func (s *Server) update() {
 		default:
 		}
 
-		s.resetCheck()
-
 		previousDescription := s.Description()
 
-		desc, err := checkServerWithSignal(s, s.cancelCheckSig)
+		desc, err := checkServerWithSignal(s, s.conn, s.heartbeatListener)
 		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
@@ -802,10 +804,6 @@ func copyConnectionOpts(opts []ConnectionOption) []ConnectionOption {
 func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 	conn := s.createConnection()
 
-	// Take the lock when assigning the connection because they're accessed by
-	// cancelCheck.
-	s.heartbeatLock.Lock()
-
 	s.conn = conn
 
 	if s.cfg.connectTimeout != 0 {
@@ -815,39 +813,7 @@ func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 		defer cancelFn()
 	}
 
-	s.heartbeatLock.Unlock()
-
 	return s.conn.connect(ctx)
-}
-
-// cancelCheck cancels in-progress connection dials and reads. It does not set
-// any fields on the server.
-func (s *Server) cancelCheck() {
-	var conn *connection
-
-	// Take heartbeatLock for mutual exclusion with the checks in the update
-	// function.
-	s.heartbeatLock.Lock()
-	select {
-	case s.cancelCheckSig <- struct{}{}:
-		s.checkCanceled.Store(true)
-	default:
-		// Drop the signal, either the channel has already been sent to or has been
-		// closed.
-	}
-	conn = s.conn
-	s.heartbeatLock.Unlock()
-
-	if conn == nil {
-		return
-	}
-
-	// If the connection exists, we need to wait for it to be connected because conn.connect() and
-	// conn.close() cannot be called concurrently. If the connection wasn't successfully opened, its
-	// state was set back to disconnected, so calling conn.close() will be a no-op.
-	conn.closeConnectContext()
-	conn.wait()
-	_ = conn.close()
 }
 
 func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
@@ -970,11 +936,14 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 
 	start := time.Now()
 
-	checkCanceled := s.checkCanceled.Load()
+	var previousCanceled bool
+	if s.conn != nil {
+		previousCanceled = s.conn.previousCanceled()
+	}
 
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
-	if s.conn == nil || s.conn.closed() || checkCanceled != nil && checkCanceled.(bool) {
+	if s.conn == nil || s.conn.closed() || previousCanceled {
 		connID := "0"
 		if s.conn != nil {
 			connID = s.conn.ID()
@@ -1038,7 +1007,7 @@ func (s *Server) check(ctx context.Context) (description.Server, error) {
 		return desc, nil
 	}
 
-	if checkCanceled != nil && checkCanceled.(bool) {
+	if previousCanceled {
 		// If the previous check was cancelled, we don't want to clear the pool. Return a sentinel error so the caller
 		// will know that an actual error didn't occur.
 		return emptyDescription, errCheckCancelled

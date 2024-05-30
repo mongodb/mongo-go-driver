@@ -1360,26 +1360,26 @@ func (checker *mockServerChecker) check(ctx context.Context) (description.Server
 
 func TestCheckServerWithSignal(t *testing.T) {
 	t.Run("check finishes before signal", func(t *testing.T) {
-		sig := make(chan struct{}, 1)
+		listener := newNonBlockingContextDoneListener()
 		go func() {
-			defer close(sig)
+			defer listener.StopListening()
 
 			time.Sleep(105 * time.Millisecond)
 		}()
 
-		_, err := checkServerWithSignal(&mockServerChecker{sleep: 100 * time.Millisecond}, sig)
+		_, err := checkServerWithSignal(&mockServerChecker{sleep: 100 * time.Millisecond}, &connection{}, listener)
 		assert.NoError(t, err)
 	})
 
 	t.Run("check finishes after signal", func(t *testing.T) {
-		sig := make(chan struct{}, 1)
+		listener := newNonBlockingContextDoneListener()
 		go func() {
-			defer close(sig)
+			defer listener.StopListening()
 
 			time.Sleep(100 * time.Millisecond)
 		}()
 
-		_, err := checkServerWithSignal(&mockServerChecker{sleep: 1 * time.Second}, sig)
+		_, err := checkServerWithSignal(&mockServerChecker{sleep: 1 * time.Second}, &connection{}, listener)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, context.Canceled)
 	})

@@ -1048,7 +1048,7 @@ func (d *dialer) lenclosed() int {
 }
 
 type testCancellationListener struct {
-	listener         *cancellListener
+	listener         *contextDoneListener
 	numListen        int
 	numStopListening int
 	aborted          bool
@@ -1058,7 +1058,7 @@ type testCancellationListener struct {
 // returned by the StopListening method.
 func newTestCancellationListener(aborted bool) *testCancellationListener {
 	return &testCancellationListener{
-		listener: newCancellListener(),
+		listener: newContextDoneListener(),
 		aborted:  aborted,
 	}
 }

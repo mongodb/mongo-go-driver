@@ -24,20 +24,16 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
-// ServerSelectionTimeoutGetter returns a timeout that should be used to set a
-// deadline for server selection. This logic is not handleded internally by the
-// ServerSelector, as a resulting deadline may be applicable by follow-up
-// operations, such as checking out a connection.
-type ServerSelectionTimeoutGetter interface {
-	GetServerSelectionTimeout() time.Duration
-}
-
 // Deployment is implemented by types that can select a server from a deployment.
 type Deployment interface {
-	ServerSelectionTimeoutGetter
-
 	SelectServer(context.Context, description.ServerSelector) (Server, error)
 	Kind() description.TopologyKind
+
+	// GetServerSelectionTimeout returns a timeout that should be used to set a
+	// deadline for server selection. This logic is not handleded internally by
+	// the ServerSelector, as a resulting deadline may be applicable by follow-up
+	// operations such as checking out a connection.
+	GetServerSelectionTimeout() time.Duration
 }
 
 // Connector represents a type that can connect to a server.

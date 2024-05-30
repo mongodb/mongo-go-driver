@@ -65,9 +65,10 @@ type connection struct {
 	connectContextMade   chan struct{}
 	canStream            bool
 	currentlyStreaming   bool
-	cancellationListener cancellationListener
+	cancellationListener contextListener
 	serverConnectionID   *int64 // the server's ID for this client's connection
 	cancelConnSig        chan struct{}
+	prevCanceled         atomic.Value
 
 	// pool related fields
 	pool *pool
@@ -89,7 +90,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		connectDone:          make(chan struct{}),
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
-		cancellationListener: newCancellListener(),
+		cancellationListener: newContextDoneListener(),
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -527,6 +528,14 @@ func (c *connection) ServerConnectionID() *int64 {
 	return c.serverConnectionID
 }
 
+func (c *connection) previousCanceled() bool {
+	if val := c.prevCanceled.Load(); val != nil {
+		return val.(bool)
+	}
+
+	return false
+}
+
 // initConnection is an adapter used during connection initialization. It has the minimum
 // functionality necessary to implement the driver.Connection interface, which is required to pass a
 // *connection to a Handshaker.
@@ -829,48 +838,4 @@ func configureTLS(ctx context.Context,
 		}
 	}
 	return client, nil
-}
-
-// TODO: Naming?
-
-// cancellListener listens for context cancellation and notifies listeners via a
-// callback function.
-type cancellListener struct {
-	aborted bool
-	done    chan struct{}
-}
-
-// newCancellListener constructs a cancellListener.
-func newCancellListener() *cancellListener {
-	return &cancellListener{
-		done: make(chan struct{}),
-	}
-}
-
-// Listen blocks until the provided context is cancelled or listening is aborted
-// via the StopListening function. If this detects that the context has been
-// cancelled (i.e. errors.Is(ctx.Err(), context.Canceled), the provided callback is
-// called to abort in-progress work. Even if the context expires, this function
-// will block until StopListening is called.
-func (c *cancellListener) Listen(ctx context.Context, abortFn func()) {
-	c.aborted = false
-
-	select {
-	case <-ctx.Done():
-		if errors.Is(ctx.Err(), context.Canceled) {
-			c.aborted = true
-			abortFn()
-		}
-
-		<-c.done
-	case <-c.done:
-	}
-}
-
-// StopListening stops the in-progress Listen call. This blocks if there is no
-// in-progress Listen call. This function will return true if the provided abort
-// callback was called when listening for cancellation on the previous context.
-func (c *cancellListener) StopListening() bool {
-	c.done <- struct{}{}
-	return c.aborted
 }
