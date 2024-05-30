@@ -863,6 +863,15 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		Timeout(a.client.timeout).
 		MaxTime(ao.MaxTime)
 
+	// Omit "maxTimeMS" from operations that return a user-managed cursor to
+	// prevent confusing "cursor not found" errors. To maintain existing
+	// behavior for users who set "timeoutMS" with no context deadline, only
+	// omit "maxTimeMS" when a context deadline is set.
+	//
+	// See DRIVERS-2722 for more detail.
+	_, deadlineSet := a.ctx.Deadline()
+	op.OmitCSOTMaxTimeMS(deadlineSet)
+
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
 	}
@@ -1196,6 +1205,23 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
+	// Omit "maxTimeMS" from operations that return a user-managed cursor to
+	// prevent confusing "cursor not found" errors. To maintain existing
+	// behavior for users who set "timeoutMS" with no context deadline, only
+	// omit "maxTimeMS" when a context deadline is set.
+	//
+	// See DRIVERS-2722 for more detail.
+	_, deadlineSet := ctx.Deadline()
+	return coll.find(ctx, filter, deadlineSet, opts...)
+}
+
+func (coll *Collection) find(
+	ctx context.Context,
+	filter interface{},
+	omitCSOTMaxTimeMS bool,
+	opts ...*options.FindOptions,
+) (cur *Cursor, err error) {
+
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return nil, err
@@ -1230,7 +1256,8 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger).
+		OmitCSOTMaxTimeMS(omitCSOTMaxTimeMS)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1408,7 +1435,7 @@ func (coll *Collection) FindOne(ctx context.Context, filter interface{},
 	// by the server.
 	findOpts = append(findOpts, options.Find().SetLimit(-1))
 
-	cursor, err := coll.Find(ctx, filter, findOpts...)
+	cursor, err := coll.find(ctx, filter, false, findOpts...)
 	return &SingleResult{
 		ctx:      ctx,
 		cur:      cursor,
@@ -1775,8 +1802,11 @@ func (coll *Collection) Indexes() IndexView {
 
 // SearchIndexes returns a SearchIndexView instance that can be used to perform operations on the search indexes for the collection.
 func (coll *Collection) SearchIndexes() SearchIndexView {
+	c, _ := coll.Clone() // Clone() always return a nil error.
+	c.readConcern = nil
+	c.writeConcern = nil
 	return SearchIndexView{
-		coll: coll,
+		coll: c,
 	}
 }
 

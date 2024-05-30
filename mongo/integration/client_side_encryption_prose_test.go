@@ -1628,8 +1628,16 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				_, err := cpt.clientEnc.CreateDataKey(context.Background(), tc.name, dkOpts)
 
 				assert.NotNil(mt, err, "expected error, got nil")
-				assert.True(mt, strings.Contains(err.Error(), "certificate signed by unknown authority"),
-					"expected error '%s' to contain '%s'", err.Error(), "certificate signed by unknown authority")
+
+				possibleErrors := []string{
+					"x509: certificate signed by unknown authority",                   // Windows
+					"x509: “valid.testing.golang.invalid” certificate is not trusted", // MacOS
+					"x509: certificate is not authorized to sign other certificates",  // All others
+				}
+
+				assert.True(t, containsSubstring(possibleErrors, err.Error()),
+					"expected possibleErrors=%v to contain %v, but it didn't",
+					possibleErrors, err.Error())
 
 				// call CreateDataKey with CEO & TLS with each provider and corresponding master key
 				cpt = setup(mt, nil, defaultKvClientOptions, validClientEncryptionOptionsWithTLS)
@@ -2457,9 +2465,9 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		}
 	})
 
-	// Only test MongoDB Server 7.0+. MongoDB Server 7.0 introduced a backwards breaking change to the Queryable Encryption (QE) protocol: QEv2.
-	// libmongocrypt is configured to use the QEv2 protocol.
-	mt.RunOpts("22. range explicit encryption", qeRunOpts, func(mt *mtest.T) {
+	// GODRIVER-3123.  When we implement this feature, lower the min server version to 8.0.1
+	qeRunOpts22 := qeRunOpts.MaxServerVersion("7.99.99")
+	mt.RunOpts("22. range explicit encryption", qeRunOpts22, func(mt *mtest.T) {
 		type testcase struct {
 			typeStr       string
 			field         string

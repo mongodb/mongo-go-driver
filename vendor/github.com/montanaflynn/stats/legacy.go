@@ -34,3 +34,16 @@ func ExpReg(s []Coordinate) (regressions []Coordinate, err error) {
 func LogReg(s []Coordinate) (regressions []Coordinate, err error) {
 	return LogarithmicRegression(s)
 }
+
+// Legacy error names that didn't start with Err
+var (
+	EmptyInputErr = ErrEmptyInput
+	NaNErr        = ErrNaN
+	NegativeErr   = ErrNegative
+	ZeroErr       = ErrZero
+	BoundsErr     = ErrBounds
+	SizeErr       = ErrSize
+	InfValue      = ErrInfValue
+	YCoordErr     = ErrYCoord
+	EmptyInput    = ErrEmptyInput
+)

@@ -14,11 +14,11 @@ func Median(input Float64Data) (median float64, err error) {
 	// For odd numbers we just use the middle number
 	l := len(c)
 	if l == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	} else if l%2 == 0 {
 		median, _ = Mean(c[l/2-1 : l/2+1])
 	} else {
-		median = float64(c[l/2])
+		median = c[l/2]
 	}
 
 	return median, nil

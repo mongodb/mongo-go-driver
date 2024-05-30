@@ -6,7 +6,7 @@ import "math"
 func Mean(input Float64Data) (float64, error) {
 
 	if input.Len() == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	sum, _ := input.Sum()
@@ -19,7 +19,7 @@ func GeometricMean(input Float64Data) (float64, error) {
 
 	l := input.Len()
 	if l == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Get the product of all the numbers
@@ -41,7 +41,7 @@ func HarmonicMean(input Float64Data) (float64, error) {
 
 	l := input.Len()
 	if l == 0 {
-		return math.NaN(), EmptyInput
+		return math.NaN(), EmptyInputErr
 	}
 
 	// Get the sum of all the numbers reciprocals and return an
