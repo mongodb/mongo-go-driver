@@ -30,7 +30,11 @@ type CompressionOpts struct {
 // destination writer. It panics on any errors and should only be used at
 // package initialization time.
 func mustZstdNewWriter(lvl zstd.EncoderLevel) *zstd.Encoder {
-	enc, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(lvl))
+	enc, err := zstd.NewWriter(
+		nil,
+		zstd.WithWindowSize(8<<20), // Set window size to 8MB.
+		zstd.WithEncoderLevel(lvl),
+	)
 	if err != nil {
 		panic(err)
 	}
