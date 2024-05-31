@@ -383,12 +383,25 @@ func TestSearchIndexProse(t *testing.T) {
 		}
 
 		indexName = "test-search-index-case7-vector"
-		definition = bson.D{{"fields", bson.A{bson.D{{"type", "vector"}, {"path", "plot_embedding"}, {"numDimensions", 1536}, {"similarity", "euclidean"}}}}}
-		opts = options.SearchIndexes().SetName(indexName).SetType("vectorSearch")
-		index, err = view.CreateOne(ctx, mongo.SearchIndexModel{
-			Definition: definition,
-			Options:    opts,
-		})
+		    type vectorDefinitionField struct {
+		    	Type          string `bson:"type"`
+		    	Path          string `bson:"path"`
+		    	NumDimensions int    `bson:"numDimensions"`
+		    	Similarity    string `bson:"similarity"`
+		    }
+
+		    type vectorDefinition struct {
+		    	Fields []vectorDefinitionField `bson:"fields"`
+		    }
+
+		    indexName = "test-search-index-case7-vector"
+		    opts = options.SearchIndexes().SetName(indexName).SetType("vectorSearch")
+		    index, err = view.CreateOne(ctx, mongo.SearchIndexModel{
+		    	Definition: vectorDefinition{
+		    		Fields: []vectorDefinitionField{{"vector", "path", 1536, "euclidean"}},
+		    	},
+		    	Options: opts,
+		    })
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, indexName, index, "unmatched name")
 		doc = nil
