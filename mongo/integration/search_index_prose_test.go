@@ -425,7 +425,12 @@ func TestSearchIndexProse(t *testing.T) {
 		}
 	})
 
-	mt.Run("case 8: Driver requires explicit type to create a vector search index", func(mt *mtest.T) {
+	case8CollName, err := uuid.New()
+	assert.NoError(mt, err, "failed to create random collection name for case #8")
+
+	mt.RunOpts("case 8: Driver requires explicit type to create a vector search index",
+		mtest.NewOptions().CollectionName(case8CollName.String()),
+		func(mt *mtest.T) {
 		ctx := context.Background()
 
 		_, err := mt.Coll.InsertOne(ctx, bson.D{})
