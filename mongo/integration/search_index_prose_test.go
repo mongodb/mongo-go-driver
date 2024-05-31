@@ -438,13 +438,25 @@ func TestSearchIndexProse(t *testing.T) {
 
 		view := mt.Coll.SearchIndexes()
 
-		indexName := "test-search-index-case7-vector"
-		definition := bson.D{{"fields", bson.A{bson.D{{"type", "vector"}, {"path", "plot_embedding"}, {"numDimensions", 1536}, {"similarity", "euclidean"}}}}}
-		opts := options.SearchIndexes().SetName(indexName)
-		_, err = view.CreateOne(ctx, mongo.SearchIndexModel{
-			Definition: definition,
-			Options:    opts,
-		})
+			type vectorDefinitionField struct {
+				Type          string `bson:"type"`
+				Path          string `bson:"path"`
+				NumDimensions int    `bson:"numDimensions"`
+				Similarity    string `bson:"similarity"`
+			}
+
+			type vectorDefinition struct {
+				Fields []vectorDefinitionField `bson:"fields"`
+			}
+
+			const indexName = "test-search-index-case7-vector"
+			opts := options.SearchIndexes().SetName(indexName)
+			_, err = view.CreateOne(ctx, mongo.SearchIndexModel{
+				Definition: vectorDefinition{
+					Fields: []vectorDefinitionField{{"vector", "plot_embedding", 1536, "euclidean"}},
+				},
+				Options: opts,
+			})
 		assert.ErrorContains(mt, err, "Attribute mappings missing")
 	})
 }
