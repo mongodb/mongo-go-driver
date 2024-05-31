@@ -832,7 +832,7 @@ func equalTopologies(topo1, topo2 description.Topology) bool {
 		topoServers[s.Addr.String()] = s
 	}
 
-	otherServers := make(map[string]description.Server)
+	otherServers := make(map[string]description.Server, len(topo2.Servers))
 	for _, s := range topo2.Servers {
 		otherServers[s.Addr.String()] = s
 	}
