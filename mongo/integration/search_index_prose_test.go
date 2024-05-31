@@ -312,7 +312,12 @@ func TestSearchIndexProse(t *testing.T) {
 			assert.Equal(mt, expected, actual, "unmatched definition")
 		})
 
-	mt.Run("case 7: Driver can successfully handle search index types when creating indexes", func(mt *mtest.T) {
+	case7CollName, err := uuid.New()
+	assert.NoError(mt, err, "failed to create random collection name for case #7")
+
+	mt.RunOpts("case 7: Driver can successfully handle search index types when creating indexes",
+		mtest.NewOptions().CollectionName(case7CollName.String()),
+		func(mt *mtest.T) {
 		ctx := context.Background()
 
 		_, err := mt.Coll.InsertOne(ctx, bson.D{})
