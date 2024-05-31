@@ -162,7 +162,7 @@ func (coll *Collection) copy() *Collection {
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
-func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, error) {
+func (coll *Collection) Clone(opts ...*options.CollectionOptions) *Collection {
 	copyColl := coll.copy()
 	optsColl := mergeCollectionOptions(opts...)
 
@@ -187,7 +187,7 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 		description.LatencySelector(copyColl.client.localThreshold),
 	})
 
-	return copyColl, nil
+	return copyColl
 }
 
 // Name returns the name of the collection.
@@ -2169,7 +2169,7 @@ func (coll *Collection) Indexes() IndexView {
 
 // SearchIndexes returns a SearchIndexView instance that can be used to perform operations on the search indexes for the collection.
 func (coll *Collection) SearchIndexes() SearchIndexView {
-	c, _ := coll.Clone() // Clone() always return a nil error.
+	c := coll.Clone() // Clone() always return a nil error.
 	c.readConcern = nil
 	c.writeConcern = nil
 	return SearchIndexView{
