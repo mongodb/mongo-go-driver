@@ -238,13 +238,21 @@ func (d D) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON decodes D from JSON.
 func (d *D) UnmarshalJSON(b []byte) error {
-	dec, err := newJSONObjDecoder[D](b)
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
 	if err != nil {
 		return err
 	}
-	if dec == nil {
+	if t == nil {
 		*d = nil
 		return nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '{' {
+		return &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf(D(nil)),
+			Offset: dec.InputOffset(),
+		}
 	}
 	*d, err = jsonDecodeD(dec)
 	return err
@@ -265,69 +273,12 @@ type E struct {
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 type M map[string]interface{}
 
-// UnmarshalJSON decodes M from JSON.
-func (m *M) UnmarshalJSON(b []byte) error {
-	dec, err := newJSONObjDecoder[M](b)
-	if err != nil {
-		return err
-	}
-	if dec == nil {
-		*m = nil
-		return nil
-	}
-	*m, err = jsonDecodeM(dec)
-	return err
-}
-
 // An A is an ordered representation of a BSON array.
 //
 // Example usage:
 //
 //	bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
 type A []interface{}
-
-// UnmarshalJSON decodes A from JSON.
-func (a *A) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	t, err := dec.Token()
-	if err != nil {
-		return err
-	}
-	if t == nil {
-		*a = nil
-		return nil
-	}
-	if v, ok := t.(json.Delim); !ok || v != '[' {
-		return &json.UnmarshalTypeError{
-			Value:  tokenString(t),
-			Type:   reflect.TypeOf(*a),
-			Offset: dec.InputOffset(),
-		}
-	}
-	*a, err = jsonDecodeA(dec, func(dec *json.Decoder) (interface{}, error) {
-		return jsonDecodeD(dec)
-	})
-	return err
-}
-
-func newJSONObjDecoder[T D | M](b []byte) (*json.Decoder, error) {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	t, err := dec.Token()
-	if err != nil {
-		return nil, err
-	}
-	if t == nil {
-		return nil, nil
-	}
-	if v, ok := t.(json.Delim); !ok || v != '{' {
-		return nil, &json.UnmarshalTypeError{
-			Value:  tokenString(t),
-			Type:   reflect.TypeOf((T)(nil)),
-			Offset: dec.InputOffset(),
-		}
-	}
-	return dec, nil
-}
 
 func jsonDecodeD(dec *json.Decoder) (D, error) {
 	res := D{}
@@ -352,9 +303,7 @@ func jsonDecodeD(dec *json.Decoder) (D, error) {
 		case json.Delim:
 			switch v {
 			case '[':
-				e.Value, err = jsonDecodeA(dec, func(dec *json.Decoder) (interface{}, error) {
-					return jsonDecodeD(dec)
-				})
+				e.Value, err = jsonDecodeSlice(dec)
 				if err != nil {
 					return nil, err
 				}
@@ -373,47 +322,8 @@ func jsonDecodeD(dec *json.Decoder) (D, error) {
 	return res, nil
 }
 
-func jsonDecodeM(dec *json.Decoder) (M, error) {
-	res := make(M)
-	for {
-		t, err := dec.Token()
-		if err != nil {
-			return nil, err
-		}
-		key, ok := t.(string)
-		if !ok {
-			break
-		}
-
-		t, err = dec.Token()
-		if err != nil {
-			return nil, err
-		}
-		switch v := t.(type) {
-		case json.Delim:
-			switch v {
-			case '[':
-				res[key], err = jsonDecodeA(dec, func(dec *json.Decoder) (interface{}, error) {
-					return jsonDecodeM(dec)
-				})
-				if err != nil {
-					return nil, err
-				}
-			case '{':
-				res[key], err = jsonDecodeM(dec)
-				if err != nil {
-					return nil, err
-				}
-			}
-		default:
-			res[key] = t
-		}
-	}
-	return res, nil
-}
-
-func jsonDecodeA(dec *json.Decoder, objectDecoder func(*json.Decoder) (interface{}, error)) (A, error) {
-	res := A{}
+func jsonDecodeSlice(dec *json.Decoder) ([]interface{}, error) {
+	var res []interface{}
 	done := false
 	for !done {
 		t, err := dec.Token()
@@ -424,13 +334,13 @@ func jsonDecodeA(dec *json.Decoder, objectDecoder func(*json.Decoder) (interface
 		case json.Delim:
 			switch v {
 			case '[':
-				a, err := jsonDecodeA(dec, objectDecoder)
+				a, err := jsonDecodeSlice(dec)
 				if err != nil {
 					return nil, err
 				}
 				res = append(res, a)
 			case '{':
-				d, err := objectDecoder(dec)
+				d, err := jsonDecodeD(dec)
 				if err != nil {
 					return nil, err
 				}

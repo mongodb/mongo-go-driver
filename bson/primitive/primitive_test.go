@@ -201,13 +201,13 @@ func TestDateTime(t *testing.T) {
 	})
 }
 
-func TestMarshalingD(t *testing.T) {
+func TestD_MarshalJSON(t *testing.T) {
 	t.Parallel()
 
 	testcases := []struct {
 		name     string
 		test     D
-		expected M
+		expected interface{}
 	}{
 		{
 			"nil",
@@ -217,7 +217,7 @@ func TestMarshalingD(t *testing.T) {
 		{
 			"empty",
 			D{},
-			M{},
+			struct{}{},
 		},
 		{
 			"non-empty",
@@ -230,20 +230,28 @@ func TestMarshalingD(t *testing.T) {
 				{"f", A{42, true, "answer", nil, 2.71828}},
 				{"g", D{{"foo", "bar"}}},
 			},
-			M{
-				"a": 42,
-				"b": true,
-				"c": "answer",
-				"d": nil,
-				"e": 2.71828,
-				"f": A{42, true, "answer", nil, 2.71828},
-				"g": D{{"foo", "bar"}},
+			struct {
+				A int                    `json:"a"`
+				B bool                   `json:"b"`
+				C string                 `json:"c"`
+				D interface{}            `json:"d"`
+				E float32                `json:"e"`
+				F []interface{}          `json:"f"`
+				G map[string]interface{} `json:"g"`
+			}{
+				A: 42,
+				B: true,
+				C: "answer",
+				D: nil,
+				E: 2.71828,
+				F: []interface{}{42, true, "answer", nil, 2.71828},
+				G: map[string]interface{}{"foo": "bar"},
 			},
 		},
 	}
 	for _, tc := range testcases {
 		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run("json.Marshal "+tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, err := json.Marshal(tc.test)
@@ -254,7 +262,7 @@ func TestMarshalingD(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		tc := tc
-		t.Run(tc.name+" Indent", func(t *testing.T) {
+		t.Run("json.MarshalIndent "+tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			got, err := json.MarshalIndent(tc.test, "<prefix>", "<indent>")
@@ -265,269 +273,102 @@ func TestMarshalingD(t *testing.T) {
 	}
 }
 
-func TestUnmarshalingA(t *testing.T) {
+func TestD_UnmarshalJSON(t *testing.T) {
 	t.Parallel()
 
-	for _, tc := range []struct {
-		name string
-		test A
-	}{
-		{
-			"nil",
-			nil,
-		},
-		{
-			"empty",
-			A{},
-		},
-		{
-			"non-empty",
-			A{
-				"hello world",
-				3.14159,
-				true,
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		for _, tc := range []struct {
+			name     string
+			test     []byte
+			expected D
+		}{
+			{
+				"nil",
+				[]byte(`null`),
 				nil,
-				A{2.71828, "Lorem ipsum", nil, false, D{{"Lorem", "ipsum"}}},
-				D{{"foo", "bar"}},
 			},
-		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			b, _ := json.Marshal(tc.test)
-			var got A
-			err := json.Unmarshal(b, &got)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.test, got)
-		})
-	}
-
-	for _, tc := range []struct {
-		name string
-		test string
-	}{
-		{
-			"illegal",
-			`nil`,
-		},
-		{
-			"invalid",
-			`[null, 3.142ipsum]`,
-		},
-		{
-			"malformatted",
-			`[null, 3.142,]`,
-		},
-		{
-			"truncated",
-			`[2.71828, "Lorem ipsum", null,`,
-		},
-		{
-			"object type",
-			`{"pi": 3.142}`,
-		},
-		{
-			"number type",
-			`3.142`,
-		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			var a []interface{}
-			want := json.Unmarshal([]byte(tc.test), &a)
-			var b A
-			got := json.Unmarshal([]byte(tc.test), &b)
-			switch w := want.(type) {
-			case *json.UnmarshalTypeError:
-				w.Type = reflect.TypeOf(b)
-				require.IsType(t, want, got)
-				g := got.(*json.UnmarshalTypeError)
-				assert.Equal(t, w, g)
-			default:
-				assert.Equal(t, want, got)
-			}
-		})
-	}
-}
-
-func TestUnmarshalingM(t *testing.T) {
-	t.Parallel()
-
-	for _, tc := range []struct {
-		name string
-		test M
-	}{
-		{
-			"nil",
-			nil,
-		},
-		{
-			"empty",
-			M{},
-		},
-		{
-			"non-empty",
-			M{
-				"a": "Lorem ipsum",
-				"b": 3.142,
-				"c": true,
-				"d": nil,
-				"f": A{"Lorem ipsum", 3.142, true, nil, M{"Lorem": "ipsum"}},
-				"g": M{"foo": "bar"},
+			{
+				"empty",
+				[]byte(`{}`),
+				D{},
 			},
-		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			b, _ := json.Marshal(tc.test)
-			var got M
-			err := json.Unmarshal(b, &got)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.test, got)
-		})
-	}
-
-	for _, tc := range []struct {
-		name string
-		test string
-	}{
-		{
-			"illegal",
-			`nil`,
-		},
-		{
-			"invalid",
-			`{"pi": 3.142ipsum}`,
-		},
-		{
-			"malformatted",
-			`{"pi", 3.142}`,
-		},
-		{
-			"truncated",
-			`{"pi": 3.142`,
-		},
-		{
-			"array type",
-			`["pi", 3.142]`,
-		},
-		{
-			"string type",
-			`"pi"`,
-		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			var a map[string]interface{}
-			want := json.Unmarshal([]byte(tc.test), &a)
-			var b M
-			got := json.Unmarshal([]byte(tc.test), &b)
-			switch w := want.(type) {
-			case *json.UnmarshalTypeError:
-				w.Type = reflect.TypeOf(b)
-				require.IsType(t, want, got)
-				g := got.(*json.UnmarshalTypeError)
-				assert.Equal(t, w, g)
-			default:
-				assert.Equal(t, want, got)
-			}
-		})
-	}
-}
-
-func TestUnmarshalingD(t *testing.T) {
-	t.Parallel()
-
-	for _, tc := range []struct {
-		name string
-		test D
-	}{
-		{
-			"nil",
-			nil,
-		},
-		{
-			"empty",
-			D{},
-		},
-		{
-			"non-empty",
-			D{
-				{"hello", "world"},
-				{"pi", 3.142},
-				{"boolean", true},
-				{"nothing", nil},
-				{"list", A{"hello world", 3.142, false, nil, D{{"Lorem", "ipsum"}}}},
-				{"document", D{{"foo", "bar"}}},
+			{
+				"non-empty",
+				[]byte(`{"hello":"world","pi":3.142,"boolean":true,"nothing":null,"list":["hello world",3.142,false,null,{"Lorem":"ipsum"}],"document":{"foo":"bar"}}`),
+				D{
+					{"hello", "world"},
+					{"pi", 3.142},
+					{"boolean", true},
+					{"nothing", nil},
+					{"list", []interface{}{"hello world", 3.142, false, nil, D{{"Lorem", "ipsum"}}}},
+					{"document", D{{"foo", "bar"}}},
+				},
 			},
-		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+		} {
+			tc := tc
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
 
-			b, _ := json.Marshal(tc.test)
-			var got D
-			err := json.Unmarshal(b, &got)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.test, got)
-		})
-	}
+				var got D
+				err := json.Unmarshal(tc.test, &got)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, got)
+			})
+		}
+	})
 
-	for _, tc := range []struct {
-		name string
-		test string
-	}{
-		{
-			"illegal",
-			`nil`,
-		},
-		{
-			"invalid",
-			`{"pi": 3.142ipsum}`,
-		},
-		{
-			"malformatted",
-			`{"pi", 3.142}`,
-		},
-		{
-			"truncated",
-			`{"pi": 3.142`,
-		},
-		{
-			"array type",
-			`["pi", 3.142]`,
-		},
-		{
-			"boolean type",
-			`true`,
-		},
-	} {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	t.Run("failure", func(t *testing.T) {
+		t.Parallel()
 
-			var a map[string]interface{}
-			want := json.Unmarshal([]byte(tc.test), &a)
-			var b D
-			got := json.Unmarshal([]byte(tc.test), &b)
-			switch w := want.(type) {
-			case *json.UnmarshalTypeError:
-				w.Type = reflect.TypeOf(b)
-				require.IsType(t, want, got)
-				g := got.(*json.UnmarshalTypeError)
-				assert.Equal(t, w, g)
-			default:
-				assert.Equal(t, want, got)
-			}
-		})
-	}
+		for _, tc := range []struct {
+			name string
+			test string
+		}{
+			{
+				"illegal",
+				`nil`,
+			},
+			{
+				"invalid",
+				`{"pi": 3.142ipsum}`,
+			},
+			{
+				"malformatted",
+				`{"pi", 3.142}`,
+			},
+			{
+				"truncated",
+				`{"pi": 3.142`,
+			},
+			{
+				"array type",
+				`["pi", 3.142]`,
+			},
+			{
+				"boolean type",
+				`true`,
+			},
+		} {
+			tc := tc
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+
+				var a map[string]interface{}
+				want := json.Unmarshal([]byte(tc.test), &a)
+				var b D
+				got := json.Unmarshal([]byte(tc.test), &b)
+				switch w := want.(type) {
+				case *json.UnmarshalTypeError:
+					w.Type = reflect.TypeOf(b)
+					require.IsType(t, want, got)
+					g := got.(*json.UnmarshalTypeError)
+					assert.Equal(t, w, g)
+				default:
+					assert.Equal(t, want, got)
+				}
+			})
+		}
+	})
 }
