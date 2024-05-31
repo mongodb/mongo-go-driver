@@ -15,8 +15,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -82,11 +80,11 @@ type ChangeStream struct {
 	sess            *session.Client
 	client          *Client
 	bsonOpts        *options.BSONOptions
-	registry        *bsoncodec.Registry
+	registry        *bson.Registry
 	streamType      StreamType
 	options         *options.ChangeStreamOptions
 	selector        description.ServerSelector
-	operationTime   *primitive.Timestamp
+	operationTime   *bson.Timestamp
 	wireVersion     *description.VersionRange
 }
 
@@ -95,7 +93,7 @@ type changeStreamConfig struct {
 	readPreference *readpref.ReadPref
 	client         *Client
 	bsonOpts       *options.BSONOptions
-	registry       *bsoncodec.Registry
+	registry       *bson.Registry
 	streamType     StreamType
 	collectionName string
 	databaseName   string
@@ -219,7 +217,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		cs.aggregate.CustomOptions(customOptions)
@@ -235,7 +233,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			cs.pipelineOptions[optionName] = optionValueBSON
 		}
 	}
@@ -579,6 +577,12 @@ func (cs *ChangeStream) ID() int64 {
 		return 0
 	}
 	return cs.cursor.ID()
+}
+
+// RemainingBatchLength returns the number of documents left in the current batch. If this returns zero, the subsequent
+// call to Next or TryNext will do a network request to fetch the next batch.
+func (cs *ChangeStream) RemainingBatchLength() int {
+	return len(cs.batch)
 }
 
 // SetBatchSize sets the number of documents to fetch from the database with

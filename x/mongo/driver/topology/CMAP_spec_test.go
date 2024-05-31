@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
@@ -208,7 +208,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		}
 	}))
 
-	s := NewServer("mongodb://fake", primitive.NewObjectID(), sOpts...)
+	s := NewServer("mongodb://fake", bson.NewObjectID(), sOpts...)
 	s.state = serverConnected
 	require.NoError(t, err, "error connecting connection pool")
 	defer s.pool.close(context.Background())

@@ -14,8 +14,6 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
@@ -29,7 +27,7 @@ import (
 
 // createDataKeyAndEncrypt creates a data key with the alternate name @keyName.
 // Returns a ciphertext encrypted with the data key as test data.
-func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
+func createDataKeyAndEncrypt(mt *mtest.T, keyName string) bson.Binary {
 	mt.Helper()
 
 	kvClientOpts := options.Client().
@@ -61,7 +59,7 @@ func createDataKeyAndEncrypt(mt *mtest.T, keyName string) primitive.Binary {
 	_, err = ce.CreateDataKey(context.Background(), "local", dkOpts)
 	assert.Nil(mt, err, "CreateDataKey error: %v", err)
 
-	in := bson.RawValue{Type: bsontype.String, Value: bsoncore.AppendString(nil, "test")}
+	in := bson.RawValue{Type: bson.TypeString, Value: bsoncore.AppendString(nil, "test")}
 	eOpts := options.Encrypt().
 		SetAlgorithm("AEAD_AES_256_CBC_HMAC_SHA_512-Random").
 		SetKeyAltName(keyName)
@@ -499,8 +497,8 @@ func TestFLE2DocsExample(t *testing.T) {
 			"local": {"key": localMasterKey},
 		}
 
-		var key1ID primitive.Binary
-		var key2ID primitive.Binary
+		var key1ID bson.Binary
+		var key2ID bson.Binary
 
 		// Create two data keys.
 		{
@@ -591,9 +589,9 @@ func TestFLE2DocsExample(t *testing.T) {
 			assert.Nil(mt, err, "error in Raw: %v", err)
 
 			val := resBSON.Lookup("encryptedIndexed")
-			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedIndexed to be Binary, got %v", val.Type)
+			assert.Equal(mt, val.Type, bson.TypeBinary, "expected encryptedIndexed to be Binary, got %v", val.Type)
 			val = resBSON.Lookup("encryptedUnindexed")
-			assert.Equal(mt, val.Type, bsontype.Binary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
+			assert.Equal(mt, val.Type, bson.TypeBinary, "expected encryptedUnindexed to be Binary, got %v", val.Type)
 		}
 	})
 }
@@ -662,12 +660,82 @@ func TestFLE2CreateCollectionWithAutoEncryption(t *testing.T) {
 		encryptedClient.Database("db").CreateCollection(context.Background(), "coll", options.CreateCollection().SetEncryptedFields(encryptedFields))
 
 		// Check resulting events sent.
-		assert.Equal(mt, startedCommands, []string{
+		assert.Equal(mt, []string{
 			"create",          // Create ESC collection.
 			"create",          // Create ECOC collection.
 			"create",          // Create 'coll' collection.
 			"listCollections", // Run listCollections when processing `createIndexes` command for automatic encryption.
 			"createIndexes",
-		})
+		}, startedCommands)
+	})
+}
+
+func TestFLEIndexView(t *testing.T) {
+	verifyClientSideEncryptionVarsSet(t)
+
+	mt := mtest.New(t, mtest.NewOptions().MinServerVersion("4.2").Enterprise(true).CreateClient(false))
+
+	opts := options.Client().ApplyURI(mtest.ClusterURI()).SetWriteConcern(mtest.MajorityWc).
+		SetReadPreference(mtest.PrimaryRp)
+
+	cc := &customCrypt{}
+	opts.Crypt = cc
+
+	integtest.AddTestServerAPIVersion(opts)
+
+	client, err := mongo.Connect(opts)
+	assert.NoError(mt, err)
+
+	mt.Cleanup(func() { client.Disconnect(context.Background()) })
+
+	coll := client.Database("db").Collection("coll")
+
+	err = coll.Drop(context.Background())
+	assert.Nil(mt, err, "Drop error: %v", err)
+
+	mt.Run("create many", func(mt *mtest.T) {
+		createIndexes(mt, coll, 2)
+
+		assert.Equal(mt, cc.numEncryptCalls, 2, "expected 2 calls to Encrypt, got %v", cc.numEncryptCalls)
+	})
+
+	mt.Run("list", func(mt *mtest.T) {
+		cc.numEncryptCalls = 0 // Reset Encrypt calls from createIndexes
+
+		_, err := coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
+		assert.NoError(mt, err, "error creating list cursor: %v", err)
+
+		assert.Equal(mt, cc.numEncryptCalls, 1, "expected 1 call to Encrypt, got %v", cc.numEncryptCalls)
+	})
+
+	mt.Run("list specifications", func(mt *mtest.T) {
+		cc.numEncryptCalls = 0 // Reset Encrypt calls from createIndexes
+
+		_, err := coll.Indexes().ListSpecifications(context.Background())
+		assert.NoError(mt, err, "error listing specifications : %v", err)
+
+		assert.Equal(mt, cc.numEncryptCalls, 1, "expected 1 call to Encrypt, got %v", cc.numEncryptCalls)
+	})
+
+	mt.Run("drop one", func(mt *mtest.T) {
+		createIndexes(mt, coll, 1)
+
+		cc.numEncryptCalls = 0 // Reset Encrypt calls from createIndexes
+
+		_, err := coll.Indexes().DropOne(context.Background(), "a_1")
+		assert.NoError(mt, err, "error dropping one index: %v", err)
+
+		assert.Equal(mt, cc.numEncryptCalls, 1, "expected 1 call to Encrypt, got %v", cc.numEncryptCalls)
+	})
+
+	mt.Run("drop all", func(mt *mtest.T) {
+		createIndexes(mt, coll, 2)
+
+		cc.numEncryptCalls = 0 // Reset Encrypt calls from createIndexes
+
+		err := coll.Indexes().DropAll(context.Background())
+		assert.NoError(mt, err, "error dropping all indexes: %v", err)
+
+		assert.Equal(mt, cc.numEncryptCalls, 1, "expected 1 call to Encrypt, got %v", cc.numEncryptCalls)
 	})
 }

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
@@ -38,7 +37,7 @@ type Server struct {
 	AverageRTTSet         bool
 	Compression           []string // compression methods returned by server
 	CanonicalAddr         address.Address
-	ElectionID            primitive.ObjectID
+	ElectionID            bson.ObjectID
 	HeartbeatInterval     time.Duration
 	HelloOK               bool
 	Hosts                 []string
@@ -54,7 +53,7 @@ type Server struct {
 	Passive               bool
 	Primary               address.Address
 	ReadOnly              bool
-	ServiceID             *primitive.ObjectID // Only set for servers that are deployed behind a load balancer.
+	ServiceID             *bson.ObjectID // Only set for servers that are deployed behind a load balancer.
 	SessionTimeoutMinutes *int64
 	SetName               string
 	SetVersion            uint32

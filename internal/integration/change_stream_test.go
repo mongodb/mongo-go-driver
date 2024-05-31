@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
@@ -71,7 +70,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.NotNil(mt, started, "expected started event for aggregate, got nil")
 
 		// pipeline is array of documents. first value of first element in array is the first stage document
-		firstStage := started.Command.Lookup("pipeline").Array().Index(0).Value().Document()
+		firstStage := started.Command.Lookup("pipeline").Array().Index(0).Document()
 		elems, _ := firstStage.Elements()
 		assert.Equal(mt, 1, len(elems), "expected first stage document to have 1 element, got %v", len(elems))
 		firstKey := elems[0].Key()
@@ -99,6 +98,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		// cause an event to occur so the resume token is updated
 		generateEvents(mt, 1)
 		assert.True(mt, cs.Next(context.Background()), "expected next to return true, got false")
+		assert.Equal(mt, 0, cs.RemainingBatchLength())
 		firstToken := cs.ResumeToken()
 
 		// cause an event on a different collection than the one being watched so the server's PBRT is updated
@@ -282,7 +282,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 		assert.Equal(mt, "aggregate", aggEvent.CommandName, "expected command name 'aggregate', got '%v'", aggEvent.CommandName)
 
 		// check for startAtOperationTime in pipeline
-		csStage := aggEvent.Command.Lookup("pipeline").Array().Index(0).Value().Document() // $changeStream stage
+		csStage := aggEvent.Command.Lookup("pipeline").Array().Index(0).Document() // $changeStream stage
 		_, err = csStage.Lookup("$changeStream").Document().LookupErr("startAtOperationTime")
 		assert.Nil(mt, err, "startAtOperationTime not included in aggregate command")
 	})
@@ -374,6 +374,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 						// Iterate over one event to get resume token
 						assert.True(mt, cs.Next(context.Background()), "expected Next to return true, got false")
+						assert.Equal(mt, numEvents-1, cs.RemainingBatchLength())
 						token := cs.ResumeToken()
 						closeStream(cs)
 
@@ -836,7 +837,7 @@ func killChangeStreamCursor(mt *mtest.T, cs *mongo.ChangeStream) {
 }
 
 // returns pbrt, operationTime from aggregate command response
-func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
+func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, bson.Timestamp) {
 	mt.Helper()
 
 	succeeded := mt.GetSucceededEvent()
@@ -845,7 +846,7 @@ func getAggregateResponseInfo(mt *mtest.T) (bson.Raw, primitive.Timestamp) {
 
 	pbrt := succeeded.Reply.Lookup("cursor", "postBatchResumeToken").Document()
 	optimeT, optimeI := succeeded.Reply.Lookup("operationTime").Timestamp()
-	return pbrt, primitive.Timestamp{T: optimeT, I: optimeI}
+	return pbrt, bson.Timestamp{T: optimeT, I: optimeI}
 }
 
 func compareResumeTokens(mt *mtest.T, cs *mongo.ChangeStream, expected bson.Raw) {

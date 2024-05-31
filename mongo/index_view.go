@@ -14,7 +14,6 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -90,7 +89,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
 
@@ -419,7 +418,7 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime)
+		Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime).Crypt(iv.coll.client.cryptFLE)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -500,11 +499,11 @@ func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel)
 
 		bsonValue := elem.Value()
 		switch bsonValue.Type {
-		case bsontype.Int32:
+		case bsoncore.TypeInt32:
 			value = fmt.Sprintf("%d", bsonValue.Int32())
-		case bsontype.Int64:
+		case bsoncore.TypeInt64:
 			value = fmt.Sprintf("%d", bsonValue.Int64())
-		case bsontype.String:
+		case bsoncore.TypeString:
 			value = bsonValue.StringValue()
 		default:
 			return "", ErrInvalidIndexValue

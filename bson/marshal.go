@@ -10,16 +10,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"sync"
-
-	"go.mongodb.org/mongo-driver/bson/bsoncodec"
-	"go.mongodb.org/mongo-driver/bson/bsonrw"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 const defaultDstCap = 256
 
-var bvwPool = bsonrw.NewBSONValueWriterPool()
-var extjPool = bsonrw.NewExtJSONValueWriterPool()
+var extjPool = NewExtJSONValueWriterPool()
 
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a valid BSON document.
@@ -39,7 +34,7 @@ type Marshaler interface {
 // create custom BSON marshaling behavior for an entire BSON document, implement
 // the Marshaler interface instead.
 type ValueMarshaler interface {
-	MarshalBSONValue() (bsontype.Type, []byte, error)
+	MarshalBSONValue() (Type, []byte, error)
 }
 
 // Pool of buffers for marshalling BSON.
@@ -75,7 +70,7 @@ func Marshal(val interface{}) ([]byte, error) {
 		}
 	}()
 	sw.Reset()
-	vw := bsonrw.NewValueWriter(sw)
+	vw := NewValueWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
@@ -92,7 +87,7 @@ func Marshal(val interface{}) ([]byte, error) {
 //
 // MarshalValue will use bson.DefaultRegistry to transform val into a BSON value. If val is a struct, this function will
 // inspect struct tags and alter the marshalling process accordingly.
-func MarshalValue(val interface{}) (bsontype.Type, []byte, error) {
+func MarshalValue(val interface{}) (Type, []byte, error) {
 	return MarshalValueWithRegistry(DefaultRegistry, val)
 }
 
@@ -100,15 +95,15 @@ func MarshalValue(val interface{}) (bsontype.Type, []byte, error) {
 //
 // Deprecated: Using a custom registry to marshal individual BSON values will not be supported in Go
 // Driver 2.0.
-func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.Type, []byte, error) {
-	sw := bsonrw.SliceWriter(make([]byte, 0))
+func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error) {
+	sw := SliceWriter(make([]byte, 0))
 	vwFlusher := bvwPool.GetAtModeElement(&sw)
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vwFlusher)
-	enc.ec = bsoncodec.EncodeContext{Registry: r}
+	enc.ec = EncodeContext{Registry: r}
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -119,12 +114,12 @@ func MarshalValueWithRegistry(r *bsoncodec.Registry, val interface{}) (bsontype.
 	if err := vwFlusher.Flush(); err != nil {
 		return 0, nil, err
 	}
-	return bsontype.Type(sw[0]), sw[2:], nil
+	return Type(sw[0]), sw[2:], nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	sw := bsonrw.SliceWriter(make([]byte, 0, defaultDstCap))
+	sw := SliceWriter(make([]byte, 0, defaultDstCap))
 	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
 	defer extjPool.Put(ejvw)
 
@@ -132,7 +127,7 @@ func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error)
 	defer encPool.Put(enc)
 
 	enc.Reset(ejvw)
-	enc.ec = bsoncodec.EncodeContext{Registry: DefaultRegistry}
+	enc.ec = EncodeContext{Registry: DefaultRegistry}
 
 	err := enc.Encode(val)
 	if err != nil {

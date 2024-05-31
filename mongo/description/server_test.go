@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
@@ -34,7 +34,7 @@ func TestServer(t *testing.T) {
 			{"rtt", Server{AverageRTT: time.Second}, true},
 			{"compression", Server{Compression: []string{"foo"}}, true},
 			{"canonicalAddr", Server{CanonicalAddr: address.Address("foo")}, false},
-			{"electionID", Server{ElectionID: primitive.NewObjectID()}, false},
+			{"electionID", Server{ElectionID: bson.NewObjectID()}, false},
 			{"heartbeatInterval", Server{HeartbeatInterval: time.Second}, true},
 			{"hosts", Server{Hosts: []string{"foo"}}, false},
 			{"lastError", Server{LastError: errors.New("foo")}, false},
@@ -58,7 +58,7 @@ func TestServer(t *testing.T) {
 			{"setName", Server{SetName: "foo"}, false},
 			{"setVersion", Server{SetVersion: 1}, false},
 			{"tags", Server{Tags: tag.Set{tag.Tag{"foo", "bar"}}}, false},
-			{"topologyVersion", Server{TopologyVersion: &TopologyVersion{primitive.NewObjectID(), 0}}, false},
+			{"topologyVersion", Server{TopologyVersion: &TopologyVersion{bson.NewObjectID(), 0}}, false},
 			{"kind", Server{Kind: Standalone}, false},
 			{"wireVersion", Server{WireVersion: &VersionRange{1, 2}}, false},
 		}

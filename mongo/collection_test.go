@@ -110,7 +110,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.CountDocuments(bgCtx, doc)
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
-		_, err = coll.Distinct(bgCtx, "x", doc)
+		err = coll.Distinct(bgCtx, "x", doc).Err()
 		assert.Equal(t, ErrClientDisconnected, err, "expected error %v, got %v", ErrClientDisconnected, err)
 
 		_, err = coll.Find(bgCtx, doc)
@@ -176,7 +176,7 @@ func TestCollection(t *testing.T) {
 		_, err = coll.CountDocuments(bgCtx, nil)
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
-		_, err = coll.Distinct(bgCtx, "x", nil)
+		err = coll.Distinct(bgCtx, "x", nil).Err()
 		assert.Equal(t, ErrNilDocument, err, "expected error %v, got %v", ErrNilDocument, err)
 
 		_, err = coll.Find(bgCtx, nil)

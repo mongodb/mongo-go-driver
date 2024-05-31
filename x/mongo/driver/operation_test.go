@@ -14,8 +14,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsontype"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/handshake"
@@ -80,7 +79,7 @@ func TestOperation(t *testing.T) {
 			_, err := op.selectServer(context.Background(), 1, nil)
 			noerr(t, err)
 
-			// Assert the the selector is an operation selector wrapper.
+			// Assert the selector is an operation selector wrapper.
 			oss, ok := d.params.selector.(*opServerSelector)
 			require.True(t, ok)
 
@@ -386,7 +385,7 @@ func TestOperation(t *testing.T) {
 		Operation{}.updateClusterTimes(bsoncore.BuildDocumentFromElements(nil)) // should do nothing
 	})
 	t.Run("updateOperationTime", func(t *testing.T) {
-		want := primitive.Timestamp{T: 1234, I: 4567}
+		want := bson.Timestamp{T: 1234, I: 4567}
 
 		sessPool := session.NewPool(nil)
 		id, err := uuid.New()
@@ -417,7 +416,7 @@ func TestOperation(t *testing.T) {
 		rpWithTags := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
 			bsoncore.BuildArrayElement(nil, "tags",
-				bsoncore.Value{Type: bsontype.EmbeddedDocument,
+				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument,
 					Data: bsoncore.BuildDocumentFromElements(nil,
 						bsoncore.AppendStringElement(nil, "disk", "ssd"),
 						bsoncore.AppendStringElement(nil, "use", "reporting"),
@@ -439,7 +438,7 @@ func TestOperation(t *testing.T) {
 		rpWithAllOptions := bsoncore.BuildDocumentFromElements(nil,
 			bsoncore.AppendStringElement(nil, "mode", "secondaryPreferred"),
 			bsoncore.BuildArrayElement(nil, "tags",
-				bsoncore.Value{Type: bsontype.EmbeddedDocument,
+				bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument,
 					Data: bsoncore.BuildDocumentFromElements(nil,
 						bsoncore.AppendStringElement(nil, "disk", "ssd"),
 						bsoncore.AppendStringElement(nil, "use", "reporting"),
