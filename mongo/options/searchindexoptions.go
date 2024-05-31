@@ -24,8 +24,8 @@ func (sio *SearchIndexesOptions) SetName(name string) *SearchIndexesOptions {
 }
 
 // SetType sets the value for the Type field.
-func (sio *SearchIndexesOptions) SetType(ty string) *SearchIndexesOptions {
-	sio.Type = &ty
+func (sio *SearchIndexesOptions) SetType(typ string) *SearchIndexesOptions {
+	sio.Type = &typ
 	return sio
 }
 
