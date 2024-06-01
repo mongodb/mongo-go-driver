@@ -586,6 +586,11 @@ func (t *T) TrackFailPoint(fpName string) {
 
 // ClearFailPoints disables all previously set failpoints for this test.
 func (t *T) ClearFailPoints() {
+	if t.clientOpts != nil && t.clientOpts.AutoEncryptionOptions != nil && len(t.failPointNames) > 0 {
+		t.Logf("configureFailPoint is not supported for auto encryption, skipping ClearFailPoints()")
+		t.failPointNames = t.failPointNames[:0]
+		return
+	}
 	db := t.Client.Database("admin")
 	for _, fp := range t.failPointNames {
 		cmd := bson.D{
