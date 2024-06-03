@@ -14,7 +14,6 @@ import (
 	"net/url"
 	"reflect"
 	"strconv"
-	"time"
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
@@ -162,7 +161,6 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr ValueReader, v
 	if err != nil {
 		return err
 	}
-	tEmptyTypeDecoder, _ := decoder.(typeDecoder)
 
 	// Use the elements in the provided value if it's non nil. Otherwise, allocate a new D instance.
 	var elems D
@@ -181,13 +179,13 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr ValueReader, v
 			return err
 		}
 
-		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
-		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, tEmpty, false)
+		var v interface{}
+		err = decoder.DecodeValue(dc, elemVr, reflect.ValueOf(&v).Elem())
 		if err != nil {
 			return err
 		}
 
-		elems = append(elems, E{Key: key, Value: elem.Interface()})
+		elems = append(elems, E{Key: key, Value: v})
 	}
 
 	val.Set(reflect.ValueOf(elems))
@@ -363,89 +361,6 @@ func (dvd DefaultValueDecoders) IntDecodeValue(dc DecodeContext, vr ValueReader,
 	return nil
 }
 
-// UintDecodeValue is the ValueDecoderFunc for uint types.
-//
-// Deprecated: UintDecodeValue is not registered by default. Use UintCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) UintDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-	var i64 int64
-	var err error
-	switch vr.Type() {
-	case TypeInt32:
-		i32, err := vr.ReadInt32()
-		if err != nil {
-			return err
-		}
-		i64 = int64(i32)
-	case TypeInt64:
-		i64, err = vr.ReadInt64()
-		if err != nil {
-			return err
-		}
-	case TypeDouble:
-		f64, err := vr.ReadDouble()
-		if err != nil {
-			return err
-		}
-		if !dc.Truncate && math.Floor(f64) != f64 {
-			return errors.New("UintDecodeValue can only truncate float64 to an integer type when truncation is enabled")
-		}
-		if f64 > float64(math.MaxInt64) {
-			return fmt.Errorf("%g overflows int64", f64)
-		}
-		i64 = int64(f64)
-	case TypeBoolean:
-		b, err := vr.ReadBoolean()
-		if err != nil {
-			return err
-		}
-		if b {
-			i64 = 1
-		}
-	default:
-		return fmt.Errorf("cannot decode %v into an integer type", vr.Type())
-	}
-
-	if !val.CanSet() {
-		return ValueDecoderError{
-			Name:     "UintDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
-			Received: val,
-		}
-	}
-
-	switch val.Kind() {
-	case reflect.Uint8:
-		if i64 < 0 || i64 > math.MaxUint8 {
-			return fmt.Errorf("%d overflows uint8", i64)
-		}
-	case reflect.Uint16:
-		if i64 < 0 || i64 > math.MaxUint16 {
-			return fmt.Errorf("%d overflows uint16", i64)
-		}
-	case reflect.Uint32:
-		if i64 < 0 || i64 > math.MaxUint32 {
-			return fmt.Errorf("%d overflows uint32", i64)
-		}
-	case reflect.Uint64:
-		if i64 < 0 {
-			return fmt.Errorf("%d overflows uint64", i64)
-		}
-	case reflect.Uint:
-		if i64 < 0 || int64(uint(i64)) != i64 { // Can we fit this inside of an uint
-			return fmt.Errorf("%d overflows uint", i64)
-		}
-	default:
-		return ValueDecoderError{
-			Name:     "UintDecodeValue",
-			Kinds:    []reflect.Kind{reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint},
-			Received: val,
-		}
-	}
-
-	val.SetUint(uint64(i64))
-	return nil
-}
-
 func (dvd DefaultValueDecoders) floatDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	var f float64
 	var err error
@@ -524,30 +439,6 @@ func (dvd DefaultValueDecoders) FloatDecodeValue(ec DecodeContext, vr ValueReade
 	}
 
 	val.SetFloat(elem.Float())
-	return nil
-}
-
-// StringDecodeValue is the ValueDecoderFunc for string types.
-//
-// Deprecated: StringDecodeValue is not registered by default. Use StringCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) StringDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
-	var str string
-	var err error
-	switch vr.Type() {
-	// TODO(GODRIVER-577): Handle JavaScript and Symbol BSON types when allowed.
-	case TypeString:
-		str, err = vr.ReadString()
-		if err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("cannot decode %v into a string type", vr.Type())
-	}
-	if !val.CanSet() || val.Kind() != reflect.String {
-		return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
-	}
-
-	val.SetString(str)
 	return nil
 }
 
@@ -1287,114 +1178,6 @@ func (dvd DefaultValueDecoders) URLDecodeValue(dc DecodeContext, vr ValueReader,
 	return nil
 }
 
-// TimeDecodeValue is the ValueDecoderFunc for time.Time.
-//
-// Deprecated: TimeDecodeValue is not registered by default. Use TimeCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) TimeDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
-	if vr.Type() != TypeDateTime {
-		return fmt.Errorf("cannot decode %v into a time.Time", vr.Type())
-	}
-
-	dt, err := vr.ReadDateTime()
-	if err != nil {
-		return err
-	}
-
-	if !val.CanSet() || val.Type() != tTime {
-		return ValueDecoderError{Name: "TimeDecodeValue", Types: []reflect.Type{tTime}, Received: val}
-	}
-
-	val.Set(reflect.ValueOf(time.Unix(dt/1000, dt%1000*1000000).UTC()))
-	return nil
-}
-
-// ByteSliceDecodeValue is the ValueDecoderFunc for []byte.
-//
-// Deprecated: ByteSliceDecodeValue is not registered by default. Use ByteSliceCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) ByteSliceDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error {
-	if vr.Type() != TypeBinary && vr.Type() != TypeNull {
-		return fmt.Errorf("cannot decode %v into a []byte", vr.Type())
-	}
-
-	if !val.CanSet() || val.Type() != tByteSlice {
-		return ValueDecoderError{Name: "ByteSliceDecodeValue", Types: []reflect.Type{tByteSlice}, Received: val}
-	}
-
-	if vr.Type() == TypeNull {
-		val.Set(reflect.Zero(val.Type()))
-		return vr.ReadNull()
-	}
-
-	data, subtype, err := vr.ReadBinary()
-	if err != nil {
-		return err
-	}
-	if subtype != 0x00 {
-		return fmt.Errorf("ByteSliceDecodeValue can only be used to decode subtype 0x00 for %s, got %v", TypeBinary, subtype)
-	}
-
-	val.Set(reflect.ValueOf(data))
-	return nil
-}
-
-// MapDecodeValue is the ValueDecoderFunc for map[string]* types.
-//
-// Deprecated: MapDecodeValue is not registered by default. Use MapCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) MapDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-	if !val.CanSet() || val.Kind() != reflect.Map || val.Type().Key().Kind() != reflect.String {
-		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
-	}
-
-	switch vr.Type() {
-	case Type(0), TypeEmbeddedDocument:
-	case TypeNull:
-		val.Set(reflect.Zero(val.Type()))
-		return vr.ReadNull()
-	default:
-		return fmt.Errorf("cannot decode %v into a %s", vr.Type(), val.Type())
-	}
-
-	dr, err := vr.ReadDocument()
-	if err != nil {
-		return err
-	}
-
-	if val.IsNil() {
-		val.Set(reflect.MakeMap(val.Type()))
-	}
-
-	eType := val.Type().Elem()
-	decoder, err := dc.LookupDecoder(eType)
-	if err != nil {
-		return err
-	}
-
-	if eType == tEmpty {
-		dc.Ancestor = val.Type()
-	}
-
-	keyType := val.Type().Key()
-	for {
-		key, vr, err := dr.ReadElement()
-		if errors.Is(err, ErrEOD) {
-			break
-		}
-		if err != nil {
-			return err
-		}
-
-		elem := reflect.New(eType).Elem()
-
-		err = decoder.DecodeValue(dc, vr, elem)
-		if err != nil {
-			return err
-		}
-
-		val.SetMapIndex(reflect.ValueOf(key).Convert(keyType), elem)
-	}
-	return nil
-}
-
 // ArrayDecodeValue is the ValueDecoderFunc for array types.
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
@@ -1460,51 +1243,6 @@ func (dvd DefaultValueDecoders) ArrayDecodeValue(dc DecodeContext, vr ValueReade
 	for idx, elem := range elems {
 		val.Index(idx).Set(elem)
 	}
-
-	return nil
-}
-
-// SliceDecodeValue is the ValueDecoderFunc for slice types.
-//
-// Deprecated: SliceDecodeValue is not registered by default. Use SliceCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) SliceDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-	if !val.CanSet() || val.Kind() != reflect.Slice {
-		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
-	}
-
-	switch vr.Type() {
-	case TypeArray:
-	case TypeNull:
-		val.Set(reflect.Zero(val.Type()))
-		return vr.ReadNull()
-	case Type(0), TypeEmbeddedDocument:
-		if val.Type().Elem() != tE {
-			return fmt.Errorf("cannot decode document into %s", val.Type())
-		}
-	default:
-		return fmt.Errorf("cannot decode %v into a slice", vr.Type())
-	}
-
-	var elemsFunc func(DecodeContext, ValueReader, reflect.Value) ([]reflect.Value, error)
-	switch val.Type().Elem() {
-	case tE:
-		dc.Ancestor = val.Type()
-		elemsFunc = dvd.decodeD
-	default:
-		elemsFunc = dvd.decodeDefault
-	}
-
-	elems, err := elemsFunc(dc, vr, val)
-	if err != nil {
-		return err
-	}
-
-	if val.IsNil() {
-		val.Set(reflect.MakeSlice(val.Type(), 0, len(elems)))
-	}
-
-	val.SetLen(0)
-	val.Set(reflect.Append(val, elems...))
 
 	return nil
 }
@@ -1593,46 +1331,6 @@ func (dvd DefaultValueDecoders) UnmarshalerDecodeValue(_ DecodeContext, vr Value
 	return m.UnmarshalBSON(src)
 }
 
-// EmptyInterfaceDecodeValue is the ValueDecoderFunc for interface{}.
-//
-// Deprecated: EmptyInterfaceDecodeValue is not registered by default. Use EmptyInterfaceCodec.DecodeValue instead.
-func (dvd DefaultValueDecoders) EmptyInterfaceDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
-	if !val.CanSet() || val.Type() != tEmpty {
-		return ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: val}
-	}
-
-	rtype, err := dc.LookupTypeMapEntry(vr.Type())
-	if err != nil {
-		switch vr.Type() {
-		case TypeEmbeddedDocument:
-			if dc.Ancestor != nil {
-				rtype = dc.Ancestor
-				break
-			}
-			rtype = tD
-		case TypeNull:
-			val.Set(reflect.Zero(val.Type()))
-			return vr.ReadNull()
-		default:
-			return err
-		}
-	}
-
-	decoder, err := dc.LookupDecoder(rtype)
-	if err != nil {
-		return err
-	}
-
-	elem := reflect.New(rtype).Elem()
-	err = decoder.DecodeValue(dc, vr, elem)
-	if err != nil {
-		return err
-	}
-
-	val.Set(elem)
-	return nil
-}
-
 // CoreDocumentDecodeValue is the ValueDecoderFunc for bsoncore.Document.
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
@@ -1663,11 +1361,13 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr ValueReader, 
 
 	eType := val.Type().Elem()
 
-	decoder, err := dc.LookupDecoder(eType)
-	if err != nil {
-		return nil, err
+	var vDecoder ValueDecoder
+	if !(eType.Kind() == reflect.Interface && val.Len() > 0) {
+		vDecoder, err = dc.LookupDecoder(eType)
+		if err != nil {
+			return nil, err
+		}
 	}
-	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	idx := 0
 	for {
@@ -1679,10 +1379,41 @@ func (dvd DefaultValueDecoders) decodeDefault(dc DecodeContext, vr ValueReader, 
 			return nil, err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
-		if err != nil {
-			return nil, newDecodeError(strconv.Itoa(idx), err)
+		var elem reflect.Value
+		if vDecoder == nil {
+			elem = val.Index(idx).Elem()
+			if elem.Kind() != reflect.Ptr || elem.IsNil() {
+				valueDecoder, err := dc.LookupDecoder(elem.Type())
+				if err != nil {
+					return nil, err
+				}
+				err = valueDecoder.DecodeValue(dc, vr, elem)
+				if err != nil {
+					return nil, newDecodeError(strconv.Itoa(idx), err)
+				}
+			} else if vr.Type() == TypeNull {
+				if err = vr.ReadNull(); err != nil {
+					return nil, err
+				}
+				elem = reflect.Zero(val.Index(idx).Type())
+			} else {
+				e := elem.Elem()
+				valueDecoder, err := dc.LookupDecoder(e.Type())
+				if err != nil {
+					return nil, err
+				}
+				err = valueDecoder.DecodeValue(dc, vr, e)
+				if err != nil {
+					return nil, newDecodeError(strconv.Itoa(idx), err)
+				}
+			}
+		} else {
+			elem, err = decodeTypeOrValueWithInfo(vDecoder, dc, vr, eType)
+			if err != nil {
+				return nil, newDecodeError(strconv.Itoa(idx), err)
+			}
 		}
+
 		elems = append(elems, elem)
 		idx++
 	}
