@@ -1083,7 +1083,7 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 ) {
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        driverutil.NewEventServerDescription(desc),
+		Reply:        newEventServerDescription(desc),
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}

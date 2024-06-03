@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -166,10 +167,10 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		registry:   config.registry,
 		streamType: config.streamType,
 		options:    mergeChangeStreamOptions(opts...),
-		selector: &driverutil.CompositeServerSelector{
+		selector: &serverselector.Composite{
 			Selectors: []description.ServerSelector{
-				&driverutil.ReadPrefServerSelector{ReadPref: config.readPreference},
-				&driverutil.LatencyServerSelector{Latency: config.client.localThreshold},
+				&serverselector.ReadPref{ReadPref: config.readPreference},
+				&serverselector.Latency{Latency: config.client.localThreshold},
 			},
 		},
 		cursorOptions: cursorOpts,

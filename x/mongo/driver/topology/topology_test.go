@@ -19,8 +19,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -56,17 +56,17 @@ func compareErrors(err1, err2 error) bool {
 }
 
 func TestServerSelection(t *testing.T) {
-	var selectFirst driverutil.ServerSelectorFunc = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
+	var selectFirst serverselector.Func = func(_ description.Topology, candidates []description.Server) ([]description.Server, error) {
 		if len(candidates) == 0 {
 			return []description.Server{}, nil
 		}
 		return candidates[0:1], nil
 	}
-	var selectNone driverutil.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	var selectNone serverselector.Func = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return []description.Server{}, nil
 	}
 	var errSelectionError = errors.New("encountered an error in the selector")
-	var selectError driverutil.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+	var selectError serverselector.Func = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return nil, errSelectionError
 	}
 
@@ -348,7 +348,7 @@ func TestServerSelection(t *testing.T) {
 
 		go func() {
 			// server selection should discover the new topology
-			state := newServerSelectionState(&driverutil.WriteServerSelector{}, nil)
+			state := newServerSelectionState(&serverselector.Write{}, nil)
 			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
 			noerr(t, err)
 			resp <- srvs
@@ -392,7 +392,7 @@ func TestServerSelection(t *testing.T) {
 		topo.subscriptionsClosed = true
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		selectedServer, err := topo.SelectServer(ctx, &driverutil.WriteServerSelector{})
+		selectedServer, err := topo.SelectServer(ctx, &serverselector.Write{})
 		noerr(t, err)
 		selectedAddr := selectedServer.(*SelectedServer).address
 		assert.Equal(t, primaryAddr, selectedAddr, "expected address %v, got %v", primaryAddr, selectedAddr)
@@ -408,7 +408,7 @@ func TestServerSelection(t *testing.T) {
 		topo.desc.Store(desc)
 
 		topo.subscriptionsClosed = true
-		_, err = topo.SelectServer(context.Background(), &driverutil.WriteServerSelector{})
+		_, err = topo.SelectServer(context.Background(), &serverselector.Write{})
 		assert.Equal(t, ErrSubscribeAfterClosed, err, "expected error %v, got %v", ErrSubscribeAfterClosed, err)
 	})
 }
@@ -1027,7 +1027,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 	for i := 0; i < test.Iterations; i++ {
 		selected, err := topology.SelectServer(
 			context.Background(),
-			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Nearest()})
+			&serverselector.ReadPref{ReadPref: readpref.Nearest()})
 		require.NoError(t, err, "error selecting server")
 		counts[string(selected.(*SelectedServer).address)]++
 	}

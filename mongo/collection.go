@@ -16,7 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -120,17 +120,17 @@ func newCollection(db *Database, name string, opts ...*options.CollectionOptions
 		reg = collOpt.Registry
 	}
 
-	readSelector := &driverutil.CompositeServerSelector{
+	readSelector := &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: rp},
-			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+			&serverselector.ReadPref{ReadPref: rp},
+			&serverselector.Latency{Latency: db.client.localThreshold},
 		},
 	}
 
-	writeSelector := &driverutil.CompositeServerSelector{
+	writeSelector := &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.WriteServerSelector{},
-			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+			&serverselector.Write{},
+			&serverselector.Latency{Latency: db.client.localThreshold},
 		},
 	}
 
@@ -187,10 +187,10 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 		copyColl.registry = optsColl.Registry
 	}
 
-	copyColl.readSelector = &driverutil.CompositeServerSelector{
+	copyColl.readSelector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: copyColl.readPreference},
-			&driverutil.LatencyServerSelector{Latency: copyColl.client.localThreshold},
+			&serverselector.ReadPref{ReadPref: copyColl.readPreference},
+			&serverselector.Latency{Latency: copyColl.client.localThreshold},
 		},
 	}
 
@@ -2334,10 +2334,10 @@ func makeReadPrefSelector(
 	localThreshold time.Duration,
 ) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
-		selector = &driverutil.CompositeServerSelector{
+		selector = &serverselector.Composite{
 			Selectors: []description.ServerSelector{
-				&driverutil.ReadPrefServerSelector{ReadPref: sess.CurrentRp},
-				&driverutil.LatencyServerSelector{Latency: localThreshold},
+				&serverselector.ReadPref{ReadPref: sess.CurrentRp},
+				&serverselector.Latency{Latency: localThreshold},
 			},
 		}
 	}
@@ -2355,10 +2355,10 @@ func makeOutputAggregateSelector(
 		rp = sess.CurrentRp
 	}
 
-	selector := &driverutil.CompositeServerSelector{
+	selector := &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: rp, IsOutputAggregate: true},
-			&driverutil.LatencyServerSelector{Latency: localThreshold},
+			&serverselector.ReadPref{ReadPref: rp, IsOutputAggregate: true},
+			&serverselector.Latency{Latency: localThreshold},
 		},
 	}
 

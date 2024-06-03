@@ -23,6 +23,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -382,10 +383,10 @@ func (op Operation) selectServer(
 			rp = readpref.Primary()
 		}
 
-		selector = &driverutil.CompositeServerSelector{
+		selector = &serverselector.Composite{
 			Selectors: []description.ServerSelector{
-				&driverutil.ReadPrefServerSelector{ReadPref: rp},
-				&driverutil.LatencyServerSelector{Latency: defaultLocalThreshold},
+				&serverselector.ReadPref{ReadPref: rp},
+				&serverselector.Latency{Latency: defaultLocalThreshold},
 			},
 		}
 	}

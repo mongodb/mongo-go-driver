@@ -14,7 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -98,17 +98,17 @@ func newDatabase(client *Client, name string, opts ...*options.DatabaseOptions) 
 		registry:       reg,
 	}
 
-	db.readSelector = &driverutil.CompositeServerSelector{
+	db.readSelector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: db.readPreference},
-			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+			&serverselector.ReadPref{ReadPref: db.readPreference},
+			&serverselector.Latency{Latency: db.client.localThreshold},
 		},
 	}
 
-	db.writeSelector = &driverutil.CompositeServerSelector{
+	db.writeSelector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.WriteServerSelector{},
-			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+			&serverselector.Write{},
+			&serverselector.Latency{Latency: db.client.localThreshold},
 		},
 	}
 
@@ -197,10 +197,10 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 
 	var readSelect description.ServerSelector
 
-	readSelect = &driverutil.CompositeServerSelector{
+	readSelect = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: ro.ReadPreference},
-			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+			&serverselector.ReadPref{ReadPref: ro.ReadPreference},
+			&serverselector.Latency{Latency: db.client.localThreshold},
 		},
 	}
 
@@ -449,10 +449,10 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 
 	var selector description.ServerSelector
 
-	selector = &driverutil.CompositeServerSelector{
+	selector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Primary()},
-			&driverutil.LatencyServerSelector{Latency: db.client.localThreshold},
+			&serverselector.ReadPref{ReadPref: readpref.Primary()},
+			&serverselector.Latency{Latency: db.client.localThreshold},
 		},
 	}
 
@@ -727,7 +727,7 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	// That is OK. This wire version check is a best effort to inform users earlier if using a QEv2 driver with a QEv1 server.
 	{
 		const QEv2WireVersion = 21
-		server, err := db.client.deployment.SelectServer(ctx, &driverutil.WriteServerSelector{})
+		server, err := db.client.deployment.SelectServer(ctx, &serverselector.Write{})
 		if err != nil {
 			return fmt.Errorf("error selecting server to check maxWireVersion: %w", err)
 		}

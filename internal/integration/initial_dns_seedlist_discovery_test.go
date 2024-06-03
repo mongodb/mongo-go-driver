@@ -19,8 +19,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -249,7 +249,7 @@ func getSSLSettings(mt *mtest.T, test seedlistTest) *tls.Config {
 }
 
 func getServerByAddress(address string, topo *topology.Topology) (description.Server, error) {
-	selectByName := driverutil.ServerSelectorFunc(
+	selectByName := serverselector.Func(
 		func(_ description.Topology, servers []description.Server) ([]description.Server, error) {
 			for _, s := range servers {
 				if s.Addr.String() == address {

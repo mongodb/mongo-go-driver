@@ -15,9 +15,9 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -453,7 +453,7 @@ func (c *Client) endSessions(ctx context.Context) {
 
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
-		ServerSelector(&driverutil.ReadPrefServerSelector{ReadPref: readpref.PrimaryPreferred()}).
+		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
 		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
 
 	totalNumIDs := len(sessionIDs)
@@ -707,10 +707,10 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	var selector description.ServerSelector
 
-	selector = &driverutil.CompositeServerSelector{
+	selector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Primary()},
-			&driverutil.LatencyServerSelector{Latency: c.localThreshold},
+			&serverselector.ReadPref{ReadPref: readpref.Primary()},
+			&serverselector.Latency{Latency: c.localThreshold},
 		},
 	}
 

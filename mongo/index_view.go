@@ -14,7 +14,7 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -81,10 +81,10 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 	}
 	var selector description.ServerSelector
 
-	selector = &driverutil.CompositeServerSelector{
+	selector = &serverselector.Composite{
 		Selectors: []description.ServerSelector{
-			&driverutil.ReadPrefServerSelector{ReadPref: readpref.Primary()},
-			&driverutil.LatencyServerSelector{Latency: iv.coll.client.localThreshold},
+			&serverselector.ReadPref{ReadPref: readpref.Primary()},
+			&serverselector.Latency{Latency: iv.coll.client.localThreshold},
 		},
 	}
 

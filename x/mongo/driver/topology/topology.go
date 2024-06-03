@@ -1020,8 +1020,8 @@ func (t *Topology) publishServerDescriptionChangedEvent(prev description.Server,
 	serverDescriptionChanged := &event.ServerDescriptionChangedEvent{
 		Address:             current.Addr,
 		TopologyID:          t.id,
-		PreviousDescription: driverutil.NewEventServerDescription(prev),
-		NewDescription:      driverutil.NewEventServerDescription(current),
+		PreviousDescription: newEventServerDescription(prev),
+		NewDescription:      newEventServerDescription(current),
 	}
 
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.ServerDescriptionChanged != nil {
@@ -1059,8 +1059,8 @@ func (t *Topology) publishServerClosedEvent(addr address.Address) {
 func (t *Topology) publishTopologyDescriptionChangedEvent(prev description.Topology, current description.Topology) {
 	topologyDescriptionChanged := &event.TopologyDescriptionChangedEvent{
 		TopologyID:          t.id,
-		PreviousDescription: driverutil.NewEventServerTopology(prev),
-		NewDescription:      driverutil.NewEventServerTopology(current),
+		PreviousDescription: newEventServerTopology(prev),
+		NewDescription:      newEventServerTopology(current),
 	}
 
 	if t.cfg.ServerMonitor != nil && t.cfg.ServerMonitor.TopologyDescriptionChanged != nil {
@@ -1102,4 +1102,61 @@ func (t *Topology) publishTopologyClosedEvent() {
 	if mustLogTopologyMessage(t, logger.LevelDebug) {
 		logTopologyMessage(t, logger.LevelDebug, logger.TopologyClosed)
 	}
+}
+
+func newEventServerDescription(srv description.Server) event.ServerDescription {
+	evtSrv := event.ServerDescription{
+		Addr:                  srv.Addr,
+		Arbiters:              srv.Arbiters,
+		Compression:           srv.Compression,
+		CanonicalAddr:         srv.CanonicalAddr,
+		ElectionID:            srv.ElectionID,
+		IsCryptd:              srv.IsCryptd,
+		HelloOK:               srv.HelloOK,
+		Hosts:                 srv.Hosts,
+		Kind:                  srv.Kind.String(),
+		LastWriteTime:         srv.LastWriteTime,
+		MaxBatchCount:         srv.MaxBatchCount,
+		MaxDocumentSize:       srv.MaxDocumentSize,
+		MaxMessageSize:        srv.MaxMessageSize,
+		Members:               srv.Members,
+		Passive:               srv.Passive,
+		Passives:              srv.Passives,
+		Primary:               srv.Primary,
+		ReadOnly:              srv.ReadOnly,
+		ServiceID:             srv.ServiceID,
+		SessionTimeoutMinutes: srv.SessionTimeoutMinutes,
+		SetName:               srv.SetName,
+		SetVersion:            srv.SetVersion,
+		Tags:                  srv.Tags,
+	}
+
+	if srv.WireVersion != nil {
+		evtSrv.MaxWireVersion = srv.WireVersion.Max
+		evtSrv.MinWireVersion = srv.WireVersion.Min
+	}
+
+	if srv.TopologyVersion != nil {
+		evtSrv.TopologyVersionProcessID = srv.TopologyVersion.ProcessID
+		evtSrv.TopologyVersionCounter = srv.TopologyVersion.Counter
+	}
+
+	return evtSrv
+}
+
+func newEventServerTopology(topo description.Topology) event.TopologyDescription {
+	evtSrvs := make([]event.ServerDescription, len(topo.Servers))
+	for idx, srv := range topo.Servers {
+		evtSrvs[idx] = newEventServerDescription(srv)
+	}
+
+	evtTopo := event.TopologyDescription{
+		Servers:               evtSrvs,
+		SetName:               topo.SetName,
+		Kind:                  topo.Kind.String(),
+		SessionTimeoutMinutes: topo.SessionTimeoutMinutes,
+		CompatibilityErr:      topo.CompatibilityErr,
+	}
+
+	return evtTopo
 }

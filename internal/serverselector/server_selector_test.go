@@ -1,17 +1,22 @@
-package driverutil
+// Copyright (C) MongoDB, Inc. 2024-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+package serverselector
 
 import (
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"path"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
@@ -20,43 +25,38 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-// TODO(GODRIVER-33): Use proper extended JSON parsing to eliminate the need for this struct.
-type lastWriteDateInner struct {
-	Value string `json:"$numberLong"`
-}
-
 type lastWriteDate struct {
-	LastWriteDate lastWriteDateInner `json:"lastWriteDate"`
+	LastWriteDate int64 `bson:"lastWriteDate"`
 }
 
 type serverDesc struct {
-	Address        string            `json:"address"`
-	AverageRTTMS   *int              `json:"avg_rtt_ms"`
-	MaxWireVersion *int32            `json:"maxWireVersion"`
-	LastUpdateTime *int              `json:"lastUpdateTime"`
-	LastWrite      *lastWriteDate    `json:"lastWrite"`
-	Type           string            `json:"type"`
-	Tags           map[string]string `json:"tags"`
+	Address        string            `bson:"address"`
+	AverageRTTMS   *int              `bson:"avg_rtt_ms"`
+	MaxWireVersion *int32            `bson:"maxWireVersion"`
+	LastUpdateTime *int              `bson:"lastUpdateTime"`
+	LastWrite      *lastWriteDate    `bson:"lastWrite"`
+	Type           string            `bson:"type"`
+	Tags           map[string]string `bson:"tags"`
 }
 
 type topDesc struct {
-	Type    string        `json:"type"`
-	Servers []*serverDesc `json:"servers"`
+	Type    string        `bson:"type"`
+	Servers []*serverDesc `bson:"servers"`
 }
 
 type readPref struct {
-	MaxStaleness *int                `json:"maxStalenessSeconds"`
-	Mode         string              `json:"mode"`
-	TagSets      []map[string]string `json:"tag_sets"`
+	MaxStaleness *int                `bson:"maxStalenessSeconds"`
+	Mode         string              `bson:"mode"`
+	TagSets      []map[string]string `bson:"tag_sets"`
 }
 
 type testCase struct {
-	TopologyDescription  topDesc       `json:"topology_description"`
-	Operation            string        `json:"operation"`
-	ReadPreference       readPref      `json:"read_preference"`
-	SuitableServers      []*serverDesc `json:"suitable_servers"`
-	InLatencyWindow      []*serverDesc `json:"in_latency_window"`
-	HeartbeatFrequencyMS *int          `json:"heartbeatFrequencyMS"`
+	TopologyDescription  topDesc       `bson:"topology_description"`
+	Operation            string        `bson:"operation"`
+	ReadPreference       readPref      `bson:"read_preference"`
+	SuitableServers      []*serverDesc `bson:"suitable_servers"`
+	InLatencyWindow      []*serverDesc `bson:"in_latency_window"`
+	HeartbeatFrequencyMS *int          `bson:"heartbeatFrequencyMS"`
 	Error                *bool
 }
 
@@ -157,6 +157,27 @@ func compareServers(t *testing.T, expected []*serverDesc, actual []description.S
 	}
 }
 
+const maxStalenessTestsDir = "../../testdata/max-staleness"
+
+// Test case for all max staleness spec tests.
+func TestMaxStalenessSpec(t *testing.T) {
+	for _, topology := range [...]string{
+		"ReplicaSetNoPrimary",
+		"ReplicaSetWithPrimary",
+		"Sharded",
+		"Single",
+		"Unknown",
+	} {
+		for _, file := range spectest.FindJSONFilesInDir(t,
+			path.Join(maxStalenessTestsDir, topology)) {
+
+			runTest(t, maxStalenessTestsDir, topology, file)
+		}
+	}
+}
+
+const selectorTestsDir = "../../testdata/server-selection/server_selection"
+
 func selectServers(t *testing.T, test *testCase) error {
 	servers := make([]description.Server, 0, len(test.TopologyDescription.Servers))
 
@@ -186,18 +207,14 @@ func selectServers(t *testing.T, test *testCase) error {
 		}
 
 		if serverDescription.LastWrite != nil {
-			i, err := strconv.ParseInt(serverDescription.LastWrite.LastWriteDate.Value, 10, 64)
-
-			if err != nil {
-				return err
-			}
+			i := serverDescription.LastWrite.LastWriteDate
 
 			timeWithOffset := baseTime.Add(time.Duration(i) * time.Millisecond)
 			server.LastWriteTime = timeWithOffset
 		}
 
 		if serverDescription.MaxWireVersion != nil {
-			versionRange := NewVersionRange(0, *serverDescription.MaxWireVersion)
+			versionRange := driverutil.NewVersionRange(0, *serverDescription.MaxWireVersion)
 			server.WireVersion = &versionRange
 		}
 
@@ -245,10 +262,10 @@ func selectServers(t *testing.T, test *testCase) error {
 
 	var selector description.ServerSelector
 
-	selector = &ReadPrefServerSelector{ReadPref: rp}
+	selector = &ReadPref{ReadPref: rp}
 	if test.Operation == "write" {
-		selector = &CompositeServerSelector{
-			Selectors: []description.ServerSelector{&WriteServerSelector{}, selector},
+		selector = &Composite{
+			Selectors: []description.ServerSelector{&Write{}, selector},
 		}
 	}
 
@@ -259,8 +276,8 @@ func selectServers(t *testing.T, test *testCase) error {
 
 	compareServers(t, test.SuitableServers, result)
 
-	latencySelector := &LatencyServerSelector{Latency: time.Duration(15) * time.Millisecond}
-	selector = &CompositeServerSelector{
+	latencySelector := &Latency{Latency: time.Duration(15) * time.Millisecond}
+	selector = &Composite{
 		Selectors: []description.ServerSelector{selector, latencySelector},
 	}
 
@@ -285,7 +302,7 @@ func runTest(t *testing.T, testsDir string, directory string, filename string) {
 
 	t.Run(testName, func(t *testing.T) {
 		var test testCase
-		require.NoError(t, json.Unmarshal(content, &test))
+		require.NoError(t, bson.UnmarshalExtJSON(content, true, &test))
 
 		err := selectServers(t, &test)
 
@@ -296,27 +313,6 @@ func runTest(t *testing.T, testsDir string, directory string, filename string) {
 		}
 	})
 }
-
-const maxStalenessTestsDir = "../../testdata/max-staleness"
-
-// Test case for all max staleness spec tests.
-func TestMaxStalenessSpec(t *testing.T) {
-	for _, topology := range [...]string{
-		"ReplicaSetNoPrimary",
-		"ReplicaSetWithPrimary",
-		"Sharded",
-		"Single",
-		"Unknown",
-	} {
-		for _, file := range spectest.FindJSONFilesInDir(t,
-			path.Join(maxStalenessTestsDir, topology)) {
-
-			runTest(t, maxStalenessTestsDir, topology, file)
-		}
-	}
-}
-
-const selectorTestsDir = "../../testdata/server-selection/server_selection"
 
 // Test case for all SDAM spec tests.
 func TestServerSelectionSpec(t *testing.T) {
@@ -407,7 +403,7 @@ func TestServerSelection(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				result, err := (&WriteServerSelector{}).SelectServer(tc.desc, tc.desc.Servers)
+				result, err := (&Write{}).SelectServer(tc.desc, tc.desc.Servers)
 				noerr(t, err)
 				if len(result) != tc.end-tc.start {
 					t.Errorf("Incorrect number of servers selected. got %d; want %d", len(result), tc.end-tc.start)
@@ -481,7 +477,7 @@ func TestServerSelection(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				result, err := (&LatencyServerSelector{Latency: 20 * time.Second}).SelectServer(tc.desc, tc.desc.Servers)
+				result, err := (&Latency{Latency: 20 * time.Second}).SelectServer(tc.desc, tc.desc.Servers)
 				noerr(t, err)
 				if len(result) != tc.end-tc.start {
 					t.Errorf("Incorrect number of servers selected. got %d; want %d", len(result), tc.end-tc.start)
@@ -544,7 +540,7 @@ func TestSelector_Sharded(t *testing.T) {
 		Servers: []description.Server{s},
 	}
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(c, c.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(c, c.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -613,7 +609,7 @@ func BenchmarkLatencySelector(b *testing.B) {
 			b.RunParallel(func(p *testing.PB) {
 				b.ReportAllocs()
 				for p.Next() {
-					_, _ = (&LatencyServerSelector{Latency: time.Second}).SelectServer(c, c.Servers)
+					_, _ = (&Latency{Latency: time.Second}).SelectServer(c, c.Servers)
 				}
 			})
 		})
@@ -679,7 +675,7 @@ func BenchmarkSelector_Sharded(b *testing.B) {
 			b.RunParallel(func(p *testing.PB) {
 				b.ReportAllocs()
 				for p.Next() {
-					_, _ = (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(c, c.Servers)
+					_, _ = (&ReadPref{ReadPref: subject}).SelectServer(c, c.Servers)
 				}
 			})
 		})
@@ -694,7 +690,7 @@ func Benchmark_SelectServer_SelectServer(b *testing.B) {
 		{Kind: description.ServerKindStandalone},
 	}
 
-	selector := &WriteServerSelector{} // Assuming this is the receiver type
+	selector := &Write{} // Assuming this is the receiver type
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -725,7 +721,7 @@ func TestSelector_Single(t *testing.T) {
 		Servers: []description.Server{s},
 	}
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(c, c.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(c, c.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -737,7 +733,7 @@ func TestSelector_Primary(t *testing.T) {
 
 	subject := readpref.Primary()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -749,7 +745,7 @@ func TestSelector_Primary_with_no_primary(t *testing.T) {
 
 	subject := readpref.Primary()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
@@ -761,7 +757,7 @@ func TestSelector_PrimaryPreferred(t *testing.T) {
 
 	subject := readpref.PrimaryPreferred()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
@@ -776,7 +772,7 @@ func TestSelector_PrimaryPreferred_ignores_tags(t *testing.T) {
 		readpref.WithTags("a", "2"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
@@ -789,7 +785,7 @@ func TestSelector_PrimaryPreferred_with_no_primary(t *testing.T) {
 
 	subject := readpref.PrimaryPreferred()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
@@ -804,7 +800,7 @@ func TestSelector_PrimaryPreferred_with_no_primary_and_tags(t *testing.T) {
 		readpref.WithTags("a", "2"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
@@ -819,7 +815,7 @@ func TestSelector_PrimaryPreferred_with_maxStaleness(t *testing.T) {
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
@@ -834,7 +830,7 @@ func TestSelector_PrimaryPreferred_with_maxStaleness_and_no_primary(t *testing.T
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).
+	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
@@ -847,7 +843,7 @@ func TestSelector_SecondaryPreferred(t *testing.T) {
 
 	subject := readpref.SecondaryPreferred()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -861,7 +857,7 @@ func TestSelector_SecondaryPreferred_with_tags(t *testing.T) {
 		readpref.WithTags("a", "2"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -875,7 +871,7 @@ func TestSelector_SecondaryPreferred_with_tags_that_do_not_match(t *testing.T) {
 		readpref.WithTags("a", "3"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -889,7 +885,7 @@ func TestSelector_SecondaryPreferred_with_tags_that_do_not_match_and_no_primary(
 		readpref.WithTags("a", "3"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)
@@ -900,7 +896,7 @@ func TestSelector_SecondaryPreferred_with_no_secondaries(t *testing.T) {
 
 	subject := readpref.SecondaryPreferred()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -912,7 +908,7 @@ func TestSelector_SecondaryPreferred_with_no_secondaries_or_primary(t *testing.T
 
 	subject := readpref.SecondaryPreferred()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{})
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)
@@ -925,7 +921,7 @@ func TestSelector_SecondaryPreferred_with_maxStaleness(t *testing.T) {
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -939,7 +935,7 @@ func TestSelector_SecondaryPreferred_with_maxStaleness_and_no_primary(t *testing
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -951,7 +947,7 @@ func TestSelector_Secondary(t *testing.T) {
 
 	subject := readpref.Secondary()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -965,7 +961,7 @@ func TestSelector_Secondary_with_tags(t *testing.T) {
 		readpref.WithTags("a", "2"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -1003,7 +999,7 @@ func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
 		readpref.WithTagSets(nonMatchingSet, emptyTagSet),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: rp}).SelectServer(topologyNoTags, topologyNoTags.Servers)
+	result, err := (&ReadPref{ReadPref: rp}).SelectServer(topologyNoTags, topologyNoTags.Servers)
 	assert.Nil(t, err, "SelectServer error: %v", err)
 	expectedResult := []description.Server{firstSecondaryNoTags, secondSecondaryNoTags}
 	assert.Equal(t, expectedResult, result, "expected result %v, got %v", expectedResult, result)
@@ -1016,7 +1012,7 @@ func TestSelector_Secondary_with_tags_that_do_not_match(t *testing.T) {
 		readpref.WithTags("a", "3"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)
@@ -1027,7 +1023,7 @@ func TestSelector_Secondary_with_no_secondaries(t *testing.T) {
 
 	subject := readpref.Secondary()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)
@@ -1040,7 +1036,7 @@ func TestSelector_Secondary_with_maxStaleness(t *testing.T) {
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -1054,7 +1050,7 @@ func TestSelector_Secondary_with_maxStaleness_and_no_primary(t *testing.T) {
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -1066,7 +1062,7 @@ func TestSelector_Nearest(t *testing.T) {
 
 	subject := readpref.Nearest()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 3)
@@ -1080,7 +1076,7 @@ func TestSelector_Nearest_with_tags(t *testing.T) {
 		readpref.WithTags("a", "1"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -1094,7 +1090,7 @@ func TestSelector_Nearest_with_tags_that_do_not_match(t *testing.T) {
 		readpref.WithTags("a", "3"),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 0)
@@ -1105,7 +1101,7 @@ func TestSelector_Nearest_with_no_primary(t *testing.T) {
 
 	subject := readpref.Nearest()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -1117,7 +1113,7 @@ func TestSelector_Nearest_with_no_secondaries(t *testing.T) {
 
 	subject := readpref.Nearest()
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -1131,7 +1127,7 @@ func TestSelector_Nearest_with_maxStaleness(t *testing.T) {
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
 	require.NoError(t, err)
 	require.Len(t, result, 2)
@@ -1145,7 +1141,7 @@ func TestSelector_Nearest_with_maxStaleness_and_no_primary(t *testing.T) {
 		readpref.WithMaxStaleness(time.Duration(90) * time.Second),
 	)
 
-	result, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
+	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
@@ -1172,7 +1168,7 @@ func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 		Servers: []description.Server{s},
 	}
 
-	_, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(c, c.Servers)
+	_, err := (&ReadPref{ReadPref: subject}).SelectServer(c, c.Servers)
 
 	require.Error(t, err)
 }
@@ -1197,7 +1193,7 @@ func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 		Servers: []description.Server{s},
 	}
 
-	_, err := (&ReadPrefServerSelector{ReadPref: subject}).SelectServer(c, c.Servers)
+	_, err := (&ReadPref{ReadPref: subject}).SelectServer(c, c.Servers)
 
 	require.Error(t, err)
 }
@@ -1249,7 +1245,7 @@ func TestEqualServers(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				actual := EqualServers(defaultServer, tc.server)
+				actual := driverutil.EqualServers(defaultServer, tc.server)
 				assert.Equal(t, actual, tc.equal, "expected %v, got %v", tc.equal, actual)
 			})
 		}
@@ -1259,7 +1255,7 @@ func TestEqualServers(t *testing.T) {
 func TestVersionRangeIncludes(t *testing.T) {
 	t.Parallel()
 
-	subject := NewVersionRange(1, 3)
+	subject := driverutil.NewVersionRange(1, 3)
 
 	tests := []struct {
 		n        int32
@@ -1274,7 +1270,7 @@ func TestVersionRangeIncludes(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual := VersionRangeIncludes(subject, test.n)
+		actual := driverutil.VersionRangeIncludes(subject, test.n)
 		if actual != test.expected {
 			t.Fatalf("expected %v to be %t", test.n, test.expected)
 		}
