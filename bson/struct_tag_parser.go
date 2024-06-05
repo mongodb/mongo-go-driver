@@ -11,25 +11,7 @@ import (
 	"strings"
 )
 
-// StructTagParser returns the struct tags for a given struct field.
-//
-// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
-type StructTagParser interface {
-	ParseStructTags(reflect.StructField) (StructTags, error)
-}
-
-// StructTagParserFunc is an adapter that allows a generic function to be used
-// as a StructTagParser.
-//
-// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
-type StructTagParserFunc func(reflect.StructField) (StructTags, error)
-
-// ParseStructTags implements the StructTagParser interface.
-func (stpf StructTagParserFunc) ParseStructTags(sf reflect.StructField) (StructTags, error) {
-	return stpf(sf)
-}
-
-// StructTags represents the struct tag fields that the StructCodec uses during
+// structTags represents the struct tag fields that the StructCodec uses during
 // the encoding and decoding process.
 //
 // In the case of a struct, the lowercased field name is used as the key for each exported
@@ -55,7 +37,7 @@ func (stpf StructTagParserFunc) ParseStructTags(sf reflect.StructField) (StructT
 //	           for the name.
 //
 // Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
-type StructTags struct {
+type structTags struct {
 	Name      string
 	OmitEmpty bool
 	MinSize   bool
@@ -89,9 +71,7 @@ type StructTags struct {
 // A struct tag either consisting entirely of '-' or with a bson key with a
 // value consisting entirely of '-' will return a StructTags with Skip true and
 // the remaining fields will be their default values.
-//
-// Deprecated: DefaultStructTagParser will be removed in Go Driver 2.0.
-var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
+func parseStructTags(sf reflect.StructField) (*structTags, error) {
 	key := strings.ToLower(sf.Name)
 	tag, ok := sf.Tag.Lookup("bson")
 	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
@@ -100,11 +80,27 @@ var DefaultStructTagParser StructTagParserFunc = func(sf reflect.StructField) (S
 	return parseTags(key, tag)
 }
 
-func parseTags(key string, tag string) (StructTags, error) {
-	var st StructTags
+// jsonStructTagParser has the same behavior as DefaultStructTagParser
+// but will also fallback to parsing the json tag instead on a field where the
+// bson tag isn't available.
+func parseJSONStructTags(sf reflect.StructField) (*structTags, error) {
+	key := strings.ToLower(sf.Name)
+	tag, ok := sf.Tag.Lookup("bson")
+	if !ok {
+		tag, ok = sf.Tag.Lookup("json")
+	}
+	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
+		tag = string(sf.Tag)
+	}
+
+	return parseTags(key, tag)
+}
+
+func parseTags(key string, tag string) (*structTags, error) {
+	var st structTags
 	if tag == "-" {
 		st.Skip = true
-		return st, nil
+		return &st, nil
 	}
 
 	for idx, str := range strings.Split(tag, ",") {
@@ -125,24 +121,5 @@ func parseTags(key string, tag string) (StructTags, error) {
 
 	st.Name = key
 
-	return st, nil
-}
-
-// JSONFallbackStructTagParser has the same behavior as DefaultStructTagParser
-// but will also fallback to parsing the json tag instead on a field where the
-// bson tag isn't available.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.UseJSONStructTags] and
-// [go.mongodb.org/mongo-driver/bson.Decoder.UseJSONStructTags] instead.
-var JSONFallbackStructTagParser StructTagParserFunc = func(sf reflect.StructField) (StructTags, error) {
-	key := strings.ToLower(sf.Name)
-	tag, ok := sf.Tag.Lookup("bson")
-	if !ok {
-		tag, ok = sf.Tag.Lookup("json")
-	}
-	if !ok && !strings.Contains(string(sf.Tag), ":") && len(sf.Tag) > 0 {
-		tag = string(sf.Tag)
-	}
-
-	return parseTags(key, tag)
+	return &st, nil
 }

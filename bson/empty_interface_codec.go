@@ -8,47 +8,24 @@ package bson
 
 import (
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
-// EmptyInterfaceCodec is the Codec used for interface{} values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// EmptyInterfaceCodec registered.
-type EmptyInterfaceCodec struct {
-	// DecodeBinaryAsSlice causes DecodeValue to unmarshal BSON binary field values that are the
+// emptyInterfaceCodec is the Codec used for interface{} values.
+type emptyInterfaceCodec struct {
+	// decodeBinaryAsSlice causes DecodeValue to unmarshal BSON binary field values that are the
 	// "Generic" or "Old" BSON binary subtype as a Go byte slice instead of a Binary.
-	//
-	// Deprecated: Use bson.Decoder.BinaryAsSlice instead.
-	DecodeBinaryAsSlice bool
+	decodeBinaryAsSlice bool
 }
 
 var (
-	defaultEmptyInterfaceCodec = NewEmptyInterfaceCodec()
-
-	// Assert that defaultEmptyInterfaceCodec satisfies the typeDecoder interface, which allows it
+	// Assert that emptyInterfaceCodec satisfies the typeDecoder interface, which allows it
 	// to be used by collection type decoders (e.g. map, slice, etc) to set individual values in a
 	// collection.
-	_ typeDecoder = defaultEmptyInterfaceCodec
+	_ typeDecoder = (*emptyInterfaceCodec)(nil)
 )
 
-// NewEmptyInterfaceCodec returns a EmptyInterfaceCodec with options opts.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// EmptyInterfaceCodec registered.
-func NewEmptyInterfaceCodec(opts ...*bsonoptions.EmptyInterfaceCodecOptions) *EmptyInterfaceCodec {
-	interfaceOpt := bsonoptions.MergeEmptyInterfaceCodecOptions(opts...)
-
-	codec := EmptyInterfaceCodec{}
-	if interfaceOpt.DecodeBinaryAsSlice != nil {
-		codec.DecodeBinaryAsSlice = *interfaceOpt.DecodeBinaryAsSlice
-	}
-	return &codec
-}
-
 // EncodeValue is the ValueEncoderFunc for interface{}.
-func (eic EmptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (eic *emptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tEmpty {
 		return ValueEncoderError{Name: "EmptyInterfaceEncodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}
@@ -64,7 +41,7 @@ func (eic EmptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val
 	return encoder.EncodeValue(ec, vw, val.Elem())
 }
 
-func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType Type) (reflect.Type, error) {
+func (eic *emptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, valueType Type) (reflect.Type, error) {
 	isDocument := valueType == Type(0) || valueType == TypeEmbeddedDocument
 	if isDocument {
 		if dc.defaultDocumentType != nil {
@@ -105,7 +82,7 @@ func (eic EmptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, val
 	return nil, err
 }
 
-func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (eic *emptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tEmpty {
 		return emptyValue, ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.Zero(t)}
 	}
@@ -130,7 +107,7 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t re
 		return emptyValue, err
 	}
 
-	if (eic.DecodeBinaryAsSlice || dc.binaryAsSlice) && rtype == tBinary {
+	if (eic.decodeBinaryAsSlice || dc.binaryAsSlice) && rtype == tBinary {
 		binElem := elem.Interface().(Binary)
 		if binElem.Subtype == TypeBinaryGeneric || binElem.Subtype == TypeBinaryBinaryOld {
 			elem = reflect.ValueOf(binElem.Data)
@@ -141,7 +118,7 @@ func (eic EmptyInterfaceCodec) decodeType(dc DecodeContext, vr ValueReader, t re
 }
 
 // DecodeValue is the ValueDecoderFunc for interface{}.
-func (eic EmptyInterfaceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (eic *emptyInterfaceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Type() != tEmpty {
 		return ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: val}
 	}

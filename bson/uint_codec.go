@@ -10,46 +10,23 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
-// UIntCodec is the Codec used for uint values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// UIntCodec registered.
-type UIntCodec struct {
-	// EncodeToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
+// uintCodec is the Codec used for uint values.
+type uintCodec struct {
+	// encodeToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
 	// minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
-	//
-	// Deprecated: Use bson.Encoder.IntMinSize instead.
-	EncodeToMinSize bool
+	encodeToMinSize bool
 }
 
 var (
-	defaultUIntCodec = NewUIntCodec()
-
-	// Assert that defaultUIntCodec satisfies the typeDecoder interface, which allows it to be used
+	// Assert that uintCodec satisfies the typeDecoder interface, which allows it to be used
 	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
-	_ typeDecoder = defaultUIntCodec
+	_ typeDecoder = (*uintCodec)(nil)
 )
 
-// NewUIntCodec returns a UIntCodec with options opts.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// UIntCodec registered.
-func NewUIntCodec(opts ...*bsonoptions.UIntCodecOptions) *UIntCodec {
-	uintOpt := bsonoptions.MergeUIntCodecOptions(opts...)
-
-	codec := UIntCodec{}
-	if uintOpt.EncodeToMinSize != nil {
-		codec.EncodeToMinSize = *uintOpt.EncodeToMinSize
-	}
-	return &codec
-}
-
 // EncodeValue is the ValueEncoder for uint types.
-func (uic *UIntCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (uic *uintCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	switch val.Kind() {
 	case reflect.Uint8, reflect.Uint16:
 		return vw.WriteInt32(int32(val.Uint()))
@@ -57,7 +34,7 @@ func (uic *UIntCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 		u64 := val.Uint()
 
 		// If ec.MinSize or if encodeToMinSize is true for a non-uint64 value we should write val as an int32
-		useMinSize := ec.MinSize || (uic.EncodeToMinSize && val.Kind() != reflect.Uint64)
+		useMinSize := ec.MinSize || (uic.encodeToMinSize && val.Kind() != reflect.Uint64)
 
 		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))
@@ -75,7 +52,7 @@ func (uic *UIntCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 	}
 }
 
-func (uic *UIntCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (uic *uintCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	var i64 int64
 	var err error
 	switch vrType := vr.Type(); vrType {
@@ -163,7 +140,7 @@ func (uic *UIntCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Typ
 }
 
 // DecodeValue is the ValueDecoder for uint types.
-func (uic *UIntCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (uic *uintCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() {
 		return ValueDecoderError{
 			Name:     "UintDecodeValue",
