@@ -86,6 +86,9 @@ func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.Collect
 		if opt.Registry != nil {
 			c.Registry = opt.Registry
 		}
+		if opt.BSONOptions != nil {
+			c.BSONOptions = opt.BSONOptions
+		}
 	}
 
 	return c
@@ -1304,7 +1307,6 @@ func (coll *Collection) Distinct(
 	filter interface{},
 	opts ...*options.DistinctOptions,
 ) *DistinctResult {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1384,8 +1386,9 @@ func (coll *Collection) Distinct(
 	}
 
 	return &DistinctResult{
-		reg: coll.registry,
-		arr: bson.RawArray(arr),
+		reg:      coll.registry,
+		arr:      bson.RawArray(arr),
+		bsonOpts: coll.bsonOpts,
 	}
 }
 
