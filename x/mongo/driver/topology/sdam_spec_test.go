@@ -19,12 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/spectest"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 type response struct {
@@ -255,7 +256,7 @@ func applyResponses(t *testing.T, topo *Topology, responses []response, sub *dri
 		assert.Nil(t, err, "Marshal error: %v", err)
 
 		addr := address.Address(response.Host)
-		desc := description.NewServer(addr, doc)
+		desc := driverutil.NewServerDescription(addr, doc)
 		server, ok := topo.servers[addr]
 		if ok {
 			server.updateDescription(desc)
@@ -312,7 +313,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 		assert.True(t, ok, "server not found: %v", appErr.Address)
 
 		desc := server.Description()
-		versionRange := description.NewVersionRange(0, *appErr.MaxWireVersion)
+		versionRange := driverutil.NewVersionRange(0, *appErr.MaxWireVersion)
 		desc.WireVersion = &versionRange
 
 		generation, _ := server.pool.generation.getGeneration(nil)
@@ -339,7 +340,7 @@ func applyErrors(t *testing.T, topo *Topology, errors []applicationError) {
 }
 
 func compareServerDescriptions(t *testing.T,
-	expected serverDescription, actual description.Server, idx int) {
+	expected serverDescription, actual event.ServerDescription, idx int) {
 	t.Helper()
 
 	assert.Equal(t, expected.Address, actual.Addr.String(),
@@ -368,16 +369,16 @@ func compareServerDescriptions(t *testing.T,
 	if expected.Type == "PossiblePrimary" {
 		expected.Type = "Unknown"
 	}
-	assert.Equal(t, expected.Type, actual.Kind.String(),
-		"%v: expected server kind %s, got %s", idx, expected.Type, actual.Kind.String())
+	assert.Equal(t, expected.Type, actual.Kind,
+		"%v: expected server kind %s, got %s", idx, expected.Type, actual.Kind)
 }
 
 func compareTopologyDescriptions(t *testing.T,
-	expected topologyDescription, actual description.Topology, idx int) {
+	expected topologyDescription, actual event.TopologyDescription, idx int) {
 	t.Helper()
 
-	assert.Equal(t, expected.TopologyType, actual.Kind.String(),
-		"%v: expected topology kind %s, got %s", idx, expected.TopologyType, actual.Kind.String())
+	assert.Equal(t, expected.TopologyType, actual.Kind,
+		"%v: expected topology kind %s, got %s", idx, expected.TopologyType, actual.Kind)
 	assert.Equal(t, len(expected.Servers), len(actual.Servers),
 		"%v: expected %d servers, got %d", idx, len(expected.Servers), len(actual.Servers))
 

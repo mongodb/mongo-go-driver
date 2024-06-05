@@ -20,7 +20,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -102,7 +102,7 @@ func MonitoredTopology(t *testing.T, dbName string, monitor *event.CommandMonito
 		_ = monitoredTopology.Connect()
 
 		err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-			Database(dbName).ServerSelector(description.WriteSelector()).Deployment(monitoredTopology).Execute(context.Background())
+			Database(dbName).ServerSelector(&serverselector.Write{}).Deployment(monitoredTopology).Execute(context.Background())
 
 		require.NoError(t, err)
 	}
@@ -126,7 +126,8 @@ func Topology(t *testing.T) *topology.Topology {
 			_ = liveTopology.Connect()
 
 			err = operation.NewCommand(bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "dropDatabase", 1))).
-				Database(DBName(t)).ServerSelector(description.WriteSelector()).Deployment(liveTopology).Execute(context.Background())
+				Database(DBName(t)).ServerSelector(&serverselector.Write{}).
+				Deployment(liveTopology).Execute(context.Background())
 			require.NoError(t, err)
 		}
 	})

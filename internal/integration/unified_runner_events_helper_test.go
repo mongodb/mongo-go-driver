@@ -14,9 +14,10 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -50,7 +51,7 @@ func newUnifiedRunnerEventMonitor() *unifiedRunnerEventMonitor {
 
 			// Spec tests only ever handle ServerMarkedUnknown ServerDescriptionChangedEvents
 			// for the time being.
-			if e.NewDescription.Kind == description.Unknown {
+			if e.NewDescription.Kind == description.UnknownStr {
 				urem.serverMarkedUnknownCount++
 			}
 		}),
@@ -164,7 +165,7 @@ func getPrimaryAddress(mt *mtest.T, topo *topology.Topology, failFast bool) addr
 		cancel()
 	}
 
-	primary, err := topo.SelectServer(ctx, description.ReadPrefSelector(readpref.Primary()))
+	primary, err := topo.SelectServer(ctx, &serverselector.ReadPref{ReadPref: readpref.Primary()})
 	assert.Nil(mt, err, "SelectServer error: %v", err)
 	return primary.(*topology.SelectedServer).Description().Addr
 }
