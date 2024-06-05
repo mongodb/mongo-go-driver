@@ -18,8 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 type saturatedConnections map[int64]bool
@@ -159,7 +159,9 @@ func TestServerSelectionProse(t *testing.T) {
 			}))
 		for evt := range topologyEvents {
 			servers := evt.NewDescription.Servers
-			if len(servers) == 2 && servers[0].Kind == description.Mongos && servers[1].Kind == description.Mongos {
+			if len(servers) == 2 && servers[0].Kind == description.ServerKindMongos.String() &&
+				servers[1].Kind == description.ServerKindMongos.String() {
+
 				break
 			}
 		}
@@ -209,7 +211,9 @@ func TestServerSelectionProse(t *testing.T) {
 			}))
 		for evt := range topologyEvents {
 			servers := evt.NewDescription.Servers
-			if len(servers) == 2 && servers[0].Kind == description.Mongos && servers[1].Kind == description.Mongos {
+			if len(servers) == 2 && servers[0].Kind == description.ServerKindMongos.String() &&
+				servers[1].Kind == description.ServerKindMongos.String() {
+
 				break
 			}
 		}

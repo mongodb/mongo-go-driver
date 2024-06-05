@@ -20,9 +20,9 @@ import (
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -50,6 +50,27 @@ func serverStateString(state int64) string {
 	return ""
 }
 
+// newServerDescriptionFromError creates a new unknown server description with
+// the given parameters.
+func newServerDescriptionFromError(
+	addr address.Address,
+	err error,
+	tv *description.TopologyVersion,
+) description.Server {
+	return description.Server{
+		Addr:            addr,
+		LastError:       err,
+		Kind:            description.Unknown,
+		TopologyVersion: tv,
+	}
+}
+
+// newDefaultServerDescription creates a new unknown server description with the
+// given address.
+func newDefaultServerDescription(addr address.Address) description.Server {
+	return newServerDescriptionFromError(addr, nil, nil)
+}
+
 var (
 	// ErrServerClosed occurs when an attempt to Get a connection is made after
 	// the server has been closed.
@@ -59,7 +80,7 @@ var (
 	ErrServerConnected = errors.New("server is connected")
 
 	errCheckCancelled = errors.New("server check cancelled")
-	emptyDescription  = description.NewDefaultServer("")
+	emptyDescription  = newDefaultServerDescription("")
 )
 
 // SelectedServer represents a specific server that was selected during server selection.
@@ -170,7 +191,7 @@ func NewServer(addr address.Address, topologyID bson.ObjectID, opts ...ServerOpt
 		globalCtx:       globalCtx,
 		globalCtxCancel: globalCtxCancel,
 	}
-	s.desc.Store(description.NewDefaultServer(addr))
+	s.desc.Store(newDefaultServerDescription(addr))
 	rttCfg := &rttConfig{
 		interval:           cfg.heartbeatInterval,
 		minRTTWindow:       5 * time.Minute,
@@ -239,10 +260,10 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 		return ErrServerConnected
 	}
 
-	desc := description.NewDefaultServer(s.address)
+	desc := newDefaultServerDescription(s.address)
 	if s.cfg.loadBalanced {
 		// LBs automatically start off with kind LoadBalancer because there is no monitoring routine for state changes.
-		desc.Kind = description.LoadBalancer
+		desc.Kind = description.ServerKindLoadBalancer
 	}
 	s.desc.Store(desc)
 	s.updateTopologyCallback.Store(updateCallback)
@@ -357,7 +378,7 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
-	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
+	s.updateDescription(newServerDescriptionFromError(s.address, wrappedConnErr, nil))
 	s.pool.clear(err, serviceID)
 	s.cancelCheck()
 }
@@ -374,7 +395,7 @@ func (s *Server) SelectedDescription() description.SelectedServer {
 	sdesc := s.Description()
 	return description.SelectedServer{
 		Server: sdesc,
-		Kind:   description.Single,
+		Kind:   description.TopologyKindSingle,
 	}
 }
 
@@ -476,7 +497,7 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// TODO(GODRIVER-2841): Remove this logic once we set the Server description when we create
 	// TODO application connections because then the Server's topology version will always be the
 	// TODO latest known.
-	if tv := connDesc.TopologyVersion; tv != nil && topologyVersion.CompareToIncoming(tv) < 0 {
+	if tv := connDesc.TopologyVersion; tv != nil && driverutil.CompareTopologyVersions(topologyVersion, tv) < 0 {
 		topologyVersion = tv
 	}
 
@@ -484,12 +505,12 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// These errors can be reported as a command error or a write concern error.
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotPrimary()) {
 		// Ignore errors that came from when the database was on a previous topology version.
-		if topologyVersion.CompareToIncoming(cerr.TopologyVersion) >= 0 {
+		if driverutil.CompareTopologyVersions(topologyVersion, cerr.TopologyVersion) >= 0 {
 			return driver.NoChange
 		}
 
 		// updates description to unknown
-		s.updateDescription(description.NewServerFromError(s.address, err, cerr.TopologyVersion))
+		s.updateDescription(newServerDescriptionFromError(s.address, err, cerr.TopologyVersion))
 		s.RequestImmediateCheck()
 
 		res := driver.ServerMarkedUnknown
@@ -503,12 +524,12 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	}
 	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// Ignore errors that came from when the database was on a previous topology version.
-		if topologyVersion.CompareToIncoming(wcerr.TopologyVersion) >= 0 {
+		if driverutil.CompareTopologyVersions(topologyVersion, wcerr.TopologyVersion) >= 0 {
 			return driver.NoChange
 		}
 
 		// updates description to unknown
-		s.updateDescription(description.NewServerFromError(s.address, err, wcerr.TopologyVersion))
+		s.updateDescription(newServerDescriptionFromError(s.address, err, wcerr.TopologyVersion))
 		s.RequestImmediateCheck()
 
 		res := driver.ServerMarkedUnknown
@@ -536,7 +557,7 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// For a non-timeout network error, we clear the pool, set the description to Unknown, and cancel the in-progress
 	// monitoring check. The check is cancelled last to avoid a post-cancellation reconnect racing with
 	// updateDescription.
-	s.updateDescription(description.NewServerFromError(s.address, err, nil))
+	s.updateDescription(newServerDescriptionFromError(s.address, err, nil))
 	s.pool.clear(err, serviceID)
 	s.cancelCheck()
 	return driver.ConnectionPoolCleared
@@ -923,8 +944,10 @@ func (s *Server) check() (description.Server, error) {
 	if descPtr != nil {
 		// The check was successful. Set the average RTT and the 90th percentile RTT and return.
 		desc := *descPtr
-		desc = desc.SetAverageRTT(s.rttMonitor.EWMA())
+		desc.AverageRTT = s.rttMonitor.EWMA()
+		desc.AverageRTTSet = true
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
+
 		return desc, nil
 	}
 
@@ -938,7 +961,7 @@ func (s *Server) check() (description.Server, error) {
 	// be cleared, but only after the description has already been updated, so that is handled by the caller.
 	topologyVersion := extractTopologyVersion(err)
 	s.rttMonitor.reset()
-	return description.NewServerFromError(s.address, err, topologyVersion), nil
+	return newServerDescriptionFromError(s.address, err, topologyVersion), nil
 }
 
 func extractTopologyVersion(err error) *description.TopologyVersion {
@@ -1060,7 +1083,7 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 ) {
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        desc,
+		Reply:        newEventServerDescription(desc),
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}

@@ -523,7 +523,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				wantPrevDesc = *prevDesc.Type
 			}
 
-			gotPrevDesc := got.PreviousDescription.Kind.String()
+			gotPrevDesc := got.PreviousDescription.Kind
 			if gotPrevDesc != wantPrevDesc {
 				return newEventVerificationError(idx, client,
 					"expected previous server description %q, got %q", wantPrevDesc, gotPrevDesc)
@@ -536,7 +536,7 @@ func verifySDAMEvents(client *clientEntity, expectedEvents *expectedEvents) erro
 				wantNewDesc = *newDesc.Type
 			}
 
-			gotNewDesc := got.NewDescription.Kind.String()
+			gotNewDesc := got.NewDescription.Kind
 			if gotNewDesc != wantNewDesc {
 				return newEventVerificationError(idx, client,
 					"expected new server description %q, got %q", wantNewDesc, gotNewDesc)
