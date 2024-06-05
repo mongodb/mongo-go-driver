@@ -1,10 +1,10 @@
-// Copyright (C) MongoDB, Inc. 2017-present.
+// Copyright (C) MongoDB, Inc. 2024-present.
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package description
+package driverutil
 
 import (
 	"errors"
@@ -17,55 +17,192 @@ import (
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-// SelectedServer augments the Server type by also including the TopologyKind of the topology that includes the server.
-// This type should be used to track the state of a server that was selected to perform an operation.
-type SelectedServer struct {
-	Server
-	Kind TopologyKind
+func equalWireVersion(wv1, wv2 *description.VersionRange) bool {
+	if wv1 == nil && wv2 == nil {
+		return true
+	}
+
+	if wv1 == nil || wv2 == nil {
+		return false
+	}
+
+	return wv1.Min == wv2.Min && wv1.Max == wv2.Max
 }
 
-// Server contains information about a node in a cluster. This is created from hello command responses. If the value
-// of the Kind field is LoadBalancer, only the Addr and Kind fields will be set. All other fields will be set to the
-// zero value of the field's type.
-type Server struct {
-	Addr address.Address
+// EqualServers compares two server descriptions and returns true if they are
+// equal.
+func EqualServers(srv1, srv2 description.Server) bool {
+	if srv1.CanonicalAddr.String() != srv2.CanonicalAddr.String() {
+		return false
+	}
 
-	Arbiters              []string
-	AverageRTT            time.Duration
-	AverageRTTSet         bool
-	Compression           []string // compression methods returned by server
-	CanonicalAddr         address.Address
-	ElectionID            bson.ObjectID
-	HeartbeatInterval     time.Duration
-	HelloOK               bool
-	Hosts                 []string
-	IsCryptd              bool
-	LastError             error
-	LastUpdateTime        time.Time
-	LastWriteTime         time.Time
-	MaxBatchCount         uint32
-	MaxDocumentSize       uint32
-	MaxMessageSize        uint32
-	Members               []address.Address
-	Passives              []string
-	Passive               bool
-	Primary               address.Address
-	ReadOnly              bool
-	ServiceID             *bson.ObjectID // Only set for servers that are deployed behind a load balancer.
-	SessionTimeoutMinutes *int64
-	SetName               string
-	SetVersion            uint32
-	Tags                  tag.Set
-	TopologyVersion       *TopologyVersion
-	Kind                  ServerKind
-	WireVersion           *VersionRange
+	if !sliceStringEqual(srv1.Arbiters, srv2.Arbiters) {
+		return false
+	}
+
+	if !sliceStringEqual(srv1.Hosts, srv2.Hosts) {
+		return false
+	}
+
+	if !sliceStringEqual(srv1.Passives, srv2.Passives) {
+		return false
+	}
+
+	if srv1.Primary != srv2.Primary {
+		return false
+	}
+
+	if srv1.SetName != srv2.SetName {
+		return false
+	}
+
+	if srv1.Kind != srv2.Kind {
+		return false
+	}
+
+	if srv1.LastError != nil || srv2.LastError != nil {
+		if srv1.LastError == nil || srv2.LastError == nil {
+			return false
+		}
+		if srv1.LastError.Error() != srv2.LastError.Error() {
+			return false
+		}
+	}
+
+	//if !s.WireVersion.Equals(other.WireVersion) {
+	if !equalWireVersion(srv1.WireVersion, srv2.WireVersion) {
+		return false
+	}
+
+	if len(srv1.Tags) != len(srv2.Tags) || !srv1.Tags.ContainsAll(srv2.Tags) {
+		return false
+	}
+
+	if srv1.SetVersion != srv2.SetVersion {
+		return false
+	}
+
+	if srv1.ElectionID != srv2.ElectionID {
+		return false
+	}
+
+	if ptrutil.CompareInt64(srv1.SessionTimeoutMinutes, srv2.SessionTimeoutMinutes) != 0 {
+		return false
+	}
+
+	// If TopologyVersion is nil for both servers, CompareToIncoming will return -1 because it assumes that the
+	// incoming response is newer. We want the descriptions to be considered equal in this case, though, so an
+	// explicit check is required.
+	if srv1.TopologyVersion == nil && srv2.TopologyVersion == nil {
+		return true
+	}
+
+	//return s.TopologyVersion.CompareToIncoming(other.TopologyVersion) == 0
+
+	return CompareTopologyVersions(srv1.TopologyVersion, srv2.TopologyVersion) == 0
 }
 
-// NewServer creates a new server description from the given hello command response.
-func NewServer(addr address.Address, response bson.Raw) Server {
-	desc := Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
+// IsServerLoadBalanced checks if a description.Server describes a server that
+// is load balanced.
+func IsServerLoadBalanced(srv description.Server) bool {
+	return srv.Kind == description.ServerKindLoadBalancer || srv.ServiceID != nil
+}
+
+// stringSliceFromRawElement decodes the provided BSON element into a []string.
+// This internally calls StringSliceFromRawValue on the element's value. The
+// error conditions outlined in that function's documentation apply for this
+// function as well.
+func stringSliceFromRawElement(element bson.RawElement) ([]string, error) {
+	return bsonutil.StringSliceFromRawValue(element.Key(), element.Value())
+}
+
+func decodeStringMap(element bson.RawElement, name string) (map[string]string, error) {
+	doc, ok := element.Value().DocumentOK()
+	if !ok {
+		return nil, fmt.Errorf("expected '%s' to be a document but it's a BSON %s", name, element.Value().Type)
+	}
+	elements, err := doc.Elements()
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]string)
+	for _, element := range elements {
+		key := element.Key()
+		value, ok := element.Value().StringValueOK()
+		if !ok {
+			return nil, fmt.Errorf("expected '%s' to be a document of strings, but found a BSON %s", name, element.Value().Type)
+		}
+		m[key] = value
+	}
+	return m, nil
+}
+
+// NewTopologyVersion creates a TopologyVersion based on doc
+func NewTopologyVersion(doc bson.Raw) (*description.TopologyVersion, error) {
+	elements, err := doc.Elements()
+	if err != nil {
+		return nil, err
+	}
+	var tv description.TopologyVersion
+	var ok bool
+	for _, element := range elements {
+		switch element.Key() {
+		case "processId":
+			tv.ProcessID, ok = element.Value().ObjectIDOK()
+			if !ok {
+				return nil, fmt.Errorf("expected 'processId' to be a objectID but it's a BSON %s", element.Value().Type)
+			}
+		case "counter":
+			tv.Counter, ok = element.Value().Int64OK()
+			if !ok {
+				return nil, fmt.Errorf("expected 'counter' to be an int64 but it's a BSON %s", element.Value().Type)
+			}
+		}
+	}
+	return &tv, nil
+}
+
+// NewVersionRange creates a new VersionRange given a min and a max.
+func NewVersionRange(min, max int32) description.VersionRange {
+	return description.VersionRange{Min: min, Max: max}
+}
+
+// VersionRangeIncludes returns a bool indicating whether the supplied integer
+// is included in the range.
+func VersionRangeIncludes(versionRange description.VersionRange, v int32) bool {
+	return v >= versionRange.Min && v <= versionRange.Max
+}
+
+// CompareTopologyVersions compares the receiver, which represents the currently
+// known TopologyVersion for a server, to an incoming TopologyVersion extracted
+// from a server command response.
+//
+// This returns -1 if the receiver version is less than the response, 0 if the
+// versions are equal, and 1 if the receiver version is greater than the
+// response. This comparison is not commutative.
+func CompareTopologyVersions(receiver, response *description.TopologyVersion) int {
+	if receiver == nil || response == nil {
+		return -1
+	}
+	if receiver.ProcessID != response.ProcessID {
+		return -1
+	}
+	if receiver.Counter == response.Counter {
+		return 0
+	}
+	if receiver.Counter < response.Counter {
+		return -1
+	}
+	return 1
+}
+
+// NewServerDescription creates a new server description from the given hello
+// command response.
+func NewServerDescription(addr address.Address, response bson.Raw) description.Server {
+	desc := description.Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := response.Elements()
 	if err != nil {
 		desc.LastError = err
@@ -74,7 +211,7 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 	var ok bool
 	var isReplicaSet, isWritablePrimary, hidden, secondary, arbiterOnly bool
 	var msg string
-	var versionRange VersionRange
+	var versionRange description.VersionRange
 	for _, element := range elements {
 		switch element.Key() {
 		case "arbiters":
@@ -312,24 +449,24 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 		desc.Members = append(desc.Members, address.Address(arbiter).Canonicalize())
 	}
 
-	desc.Kind = Standalone
+	desc.Kind = description.ServerKindStandalone
 
 	if isReplicaSet {
-		desc.Kind = RSGhost
+		desc.Kind = description.ServerKindRSGhost
 	} else if desc.SetName != "" {
 		if isWritablePrimary {
-			desc.Kind = RSPrimary
+			desc.Kind = description.ServerKindRSPrimary
 		} else if hidden {
-			desc.Kind = RSMember
+			desc.Kind = description.ServerKindRSMember
 		} else if secondary {
-			desc.Kind = RSSecondary
+			desc.Kind = description.ServerKindRSSecondary
 		} else if arbiterOnly {
-			desc.Kind = RSArbiter
+			desc.Kind = description.ServerKindRSArbiter
 		} else {
-			desc.Kind = RSMember
+			desc.Kind = description.ServerKindRSMember
 		}
 	} else if msg == "isdbgrid" {
-		desc.Kind = Mongos
+		desc.Kind = description.ServerKindMongos
 	}
 
 	desc.WireVersion = &versionRange
@@ -337,164 +474,16 @@ func NewServer(addr address.Address, response bson.Raw) Server {
 	return desc
 }
 
-// NewDefaultServer creates a new unknown server description with the given address.
-func NewDefaultServer(addr address.Address) Server {
-	return NewServerFromError(addr, nil, nil)
-}
-
-// NewServerFromError creates a new unknown server description with the given parameters.
-func NewServerFromError(addr address.Address, err error, tv *TopologyVersion) Server {
-	return Server{
-		Addr:            addr,
-		LastError:       err,
-		Kind:            Unknown,
-		TopologyVersion: tv,
-	}
-}
-
-// SetAverageRTT sets the average round trip time for this server description.
-func (s Server) SetAverageRTT(rtt time.Duration) Server {
-	s.AverageRTT = rtt
-	s.AverageRTTSet = true
-	return s
-}
-
-// DataBearing returns true if the server is a data bearing server.
-func (s Server) DataBearing() bool {
-	return s.Kind == RSPrimary ||
-		s.Kind == RSSecondary ||
-		s.Kind == Mongos ||
-		s.Kind == Standalone
-}
-
-// LoadBalanced returns true if the server is a load balancer or is behind a load balancer.
-func (s Server) LoadBalanced() bool {
-	return s.Kind == LoadBalancer || s.ServiceID != nil
-}
-
-// String implements the Stringer interface
-func (s Server) String() string {
-	str := fmt.Sprintf("Addr: %s, Type: %s",
-		s.Addr, s.Kind)
-	if len(s.Tags) != 0 {
-		str += fmt.Sprintf(", Tag sets: %s", s.Tags)
-	}
-
-	if s.AverageRTTSet {
-		str += fmt.Sprintf(", Average RTT: %d", s.AverageRTT)
-	}
-
-	if s.LastError != nil {
-		str += fmt.Sprintf(", Last error: %s", s.LastError)
-	}
-	return str
-}
-
-func decodeStringMap(element bson.RawElement, name string) (map[string]string, error) {
-	doc, ok := element.Value().DocumentOK()
-	if !ok {
-		return nil, fmt.Errorf("expected '%s' to be a document but it's a BSON %s", name, element.Value().Type)
-	}
-	elements, err := doc.Elements()
-	if err != nil {
-		return nil, err
-	}
-	m := make(map[string]string)
-	for _, element := range elements {
-		key := element.Key()
-		value, ok := element.Value().StringValueOK()
-		if !ok {
-			return nil, fmt.Errorf("expected '%s' to be a document of strings, but found a BSON %s", name, element.Value().Type)
-		}
-		m[key] = value
-	}
-	return m, nil
-}
-
-// Equal compares two server descriptions and returns true if they are equal
-func (s Server) Equal(other Server) bool {
-	if s.CanonicalAddr.String() != other.CanonicalAddr.String() {
-		return false
-	}
-
-	if !sliceStringEqual(s.Arbiters, other.Arbiters) {
-		return false
-	}
-
-	if !sliceStringEqual(s.Hosts, other.Hosts) {
-		return false
-	}
-
-	if !sliceStringEqual(s.Passives, other.Passives) {
-		return false
-	}
-
-	if s.Primary != other.Primary {
-		return false
-	}
-
-	if s.SetName != other.SetName {
-		return false
-	}
-
-	if s.Kind != other.Kind {
-		return false
-	}
-
-	if s.LastError != nil || other.LastError != nil {
-		if s.LastError == nil || other.LastError == nil {
-			return false
-		}
-		if s.LastError.Error() != other.LastError.Error() {
-			return false
-		}
-	}
-
-	if !s.WireVersion.Equals(other.WireVersion) {
-		return false
-	}
-
-	if len(s.Tags) != len(other.Tags) || !s.Tags.ContainsAll(other.Tags) {
-		return false
-	}
-
-	if s.SetVersion != other.SetVersion {
-		return false
-	}
-
-	if s.ElectionID != other.ElectionID {
-		return false
-	}
-
-	if ptrutil.CompareInt64(s.SessionTimeoutMinutes, other.SessionTimeoutMinutes) != 0 {
-		return false
-	}
-
-	// If TopologyVersion is nil for both servers, CompareToIncoming will return -1 because it assumes that the
-	// incoming response is newer. We want the descriptions to be considered equal in this case, though, so an
-	// explicit check is required.
-	if s.TopologyVersion == nil && other.TopologyVersion == nil {
-		return true
-	}
-	return s.TopologyVersion.CompareToIncoming(other.TopologyVersion) == 0
-}
-
 func sliceStringEqual(a []string, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	for i, v := range a {
 		if v != b[i] {
 			return false
 		}
 	}
-	return true
-}
 
-// stringSliceFromRawElement decodes the provided BSON element into a []string.
-// This internally calls StringSliceFromRawValue on the element's value. The
-// error conditions outlined in that function's documentation apply for this
-// function as well.
-func stringSliceFromRawElement(element bson.RawElement) ([]string, error) {
-	return bsonutil.StringSliceFromRawValue(element.Key(), element.Value())
+	return true
 }

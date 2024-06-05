@@ -19,8 +19,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
@@ -141,8 +141,8 @@ func (ssd SingleServerDeployment) SelectServer(context.Context, description.Serv
 	return ssd.Server, nil
 }
 
-// Kind implements the Deployment interface. It always returns description.Single.
-func (SingleServerDeployment) Kind() description.TopologyKind { return description.Single }
+// Kind implements the Deployment interface. It always returns description.TopologyKindSingle.
+func (SingleServerDeployment) Kind() description.TopologyKind { return description.TopologyKindSingle }
 
 // SingleConnectionDeployment is an implementation of Deployment that always returns the same Connection. This
 // implementation should only be used for connection handshakes and server heartbeats as it does not implement
@@ -159,8 +159,10 @@ func (scd SingleConnectionDeployment) SelectServer(context.Context, description.
 	return scd, nil
 }
 
-// Kind implements the Deployment interface. It always returns description.Single.
-func (SingleConnectionDeployment) Kind() description.TopologyKind { return description.Single }
+// Kind implements the Deployment interface. It always returns description.TopologyKindSingle.
+func (SingleConnectionDeployment) Kind() description.TopologyKind {
+	return description.TopologyKindSingle
+}
 
 // Connection implements the Server interface. It always returns the embedded connection.
 func (scd SingleConnectionDeployment) Connection(context.Context) (*mnet.Connection, error) {

@@ -12,11 +12,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
@@ -116,7 +117,7 @@ type Client struct {
 
 	pool             *Pool
 	TransactionState TransactionState
-	PinnedServer     *description.Server
+	PinnedServerAddr *address.Address
 	RecoveryToken    bson.Raw
 	PinnedConnection LoadBalancedTransactionConnection
 	SnapshotTime     *bson.Timestamp
@@ -305,7 +306,7 @@ func (c *Client) ClearPinnedResources() error {
 		return nil
 	}
 
-	c.PinnedServer = nil
+	c.PinnedServerAddr = nil
 	if c.PinnedConnection != nil {
 		if err := c.PinnedConnection.UnpinFromTransaction(); err != nil {
 			return err
@@ -514,8 +515,8 @@ func (c *Client) ApplyCommand(desc description.Server) error {
 	if c.TransactionState == Starting {
 		c.TransactionState = InProgress
 		// If this is in a transaction and the server is a mongos, pin it
-		if desc.Kind == description.Mongos {
-			c.PinnedServer = &desc
+		if desc.Kind == description.ServerKindMongos {
+			c.PinnedServerAddr = &desc.Addr
 		}
 	} else if c.TransactionState == Committed || c.TransactionState == Aborted {
 		c.TransactionState = None

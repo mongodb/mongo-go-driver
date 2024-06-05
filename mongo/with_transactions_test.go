@@ -21,11 +21,11 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -586,11 +586,11 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 	version, err := getServerVersion(client.Database("admin"))
 	assert.Nil(t, err, "getServerVersion error: %v", err)
 	topoKind := client.deployment.(*topology.Topology).Kind()
-	if compareVersions(version, "4.1") < 0 || topoKind == description.Single {
+	if compareVersions(version, "4.1") < 0 || topoKind == description.TopologyKindSingle {
 		t.Skip("skipping standalones and versions < 4.1")
 	}
 
-	if topoKind != description.Sharded {
+	if topoKind != description.TopologyKindSharded {
 		return client
 	}
 
