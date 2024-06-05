@@ -16,12 +16,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -165,10 +167,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		registry:   config.registry,
 		streamType: config.streamType,
 		options:    mergeChangeStreamOptions(opts...),
-		selector: description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(config.readPreference),
-			description.LatencySelector(config.client.localThreshold),
-		}),
+		selector: &serverselector.Composite{
+			Selectors: []description.ServerSelector{
+				&serverselector.ReadPref{ReadPref: config.readPreference},
+				&serverselector.Latency{Latency: config.client.localThreshold},
+			},
+		},
 		cursorOptions: cursorOpts,
 	}
 
@@ -751,7 +755,7 @@ func (cs *ChangeStream) isResumableError() bool {
 	}
 
 	// For wire versions 9 and above, a server error is resumable if it has the ResumableChangeStreamError label.
-	if cs.wireVersion != nil && cs.wireVersion.Includes(minResumableLabelWireVersion) {
+	if cs.wireVersion != nil && driverutil.VersionRangeIncludes(*cs.wireVersion, minResumableLabelWireVersion) {
 		return commandErr.HasErrorLabel(resumableErrorLabel)
 	}
 

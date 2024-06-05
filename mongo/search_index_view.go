@@ -108,6 +108,9 @@ func (siv SearchIndexView) CreateMany(
 		if model.Options != nil && model.Options.Name != nil {
 			indexes = bsoncore.AppendStringElement(indexes, "name", *model.Options.Name)
 		}
+		if model.Options != nil && model.Options.Type != nil {
+			indexes = bsoncore.AppendStringElement(indexes, "type", *model.Options.Type)
+		}
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)
 
 		indexes, err = bsoncore.AppendDocumentEnd(indexes, iidx)

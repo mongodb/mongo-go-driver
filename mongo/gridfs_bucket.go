@@ -538,14 +538,11 @@ func createNumericalIndexIfNotExists(ctx context.Context, iv IndexView, model In
 // create indexes on the files and chunks collection if needed
 func (b *GridFSBucket) createIndexes(ctx context.Context) error {
 	// must use primary read pref mode to check if files coll empty
-	cloned, err := b.filesColl.Clone(options.Collection().SetReadPreference(readpref.Primary()))
-	if err != nil {
-		return err
-	}
+	cloned := b.filesColl.Clone(options.Collection().SetReadPreference(readpref.Primary()))
 
 	docRes := cloned.FindOne(ctx, bson.D{}, options.FindOne().SetProjection(bson.D{{"_id", 1}}))
 
-	_, err = docRes.Raw()
+	_, err := docRes.Raw()
 	if !errors.Is(err, ErrNoDocuments) {
 		// nil, or error that occurred during the FindOne operation
 		return err

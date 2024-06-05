@@ -18,8 +18,8 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
 )
 
@@ -181,7 +181,7 @@ func TestPollSRVRecords(t *testing.T) {
 		err = topo.Connect()
 		require.NoError(t, err, "Could not Connect to the topology: %v", err)
 		topo.serversLock.Lock()
-		topo.fsm.Kind = description.Single
+		topo.fsm.Kind = description.TopologyKindSingle
 		topo.desc.Store(description.Topology{
 			Kind:                  topo.fsm.Kind,
 			Servers:               topo.fsm.Servers,
