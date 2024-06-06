@@ -55,6 +55,15 @@ func replaceErrors(err error) error {
 		return nil
 	}
 
+	// Do not propagate the acknowledgement sentinel error. For DDL commands,
+	// (creating indexes, dropping collections, etc) acknowledgement should be
+	// ignored. For non-DDL write commands (insert, update, etc), acknowledgement
+	// should be be propagated at the result-level: e.g.,
+	// SingleResult.Acknowledged.
+	if err == driver.ErrUnacknowledgedWrite {
+		return nil
+	}
+
 	if errors.Is(err, topology.ErrTopologyClosed) {
 		return ErrClientDisconnected
 	}
@@ -617,13 +626,14 @@ const (
 	rrNone returnResult = 1 << iota // None means do not return the result ever.
 	rrOne                           // One means return the result if this was called by a *One method.
 	rrMany                          // Many means return the result is this was called by a *Many method.
-	rrUnacknowledgedWrite
+	rrUnacknowledged
 
-	rrAll returnResult = rrOne | rrMany // All means always return the result.
+	rrAll               returnResult = rrOne | rrMany           // All means always return the result.
+	rrAllUnacknowledged returnResult = rrAll | rrUnacknowledged // All + unacknowledged write
 )
 
 func (rr returnResult) isAcknowledged() bool {
-	return rr != rrUnacknowledgedWrite
+	return rr&rrUnacknowledged == 0
 }
 
 // processWriteError handles processing the result of a write operation. If the retrunResult matches
@@ -632,23 +642,28 @@ func (rr returnResult) isAcknowledged() bool {
 //
 // WriteConcernError will be returned over WriteErrors if both are present.
 func processWriteError(err error) (returnResult, error) {
-	switch {
-	case errors.Is(err, driver.ErrUnacknowledgedWrite):
-		return rrUnacknowledgedWrite, nil
-	case err != nil:
-		switch tt := err.(type) {
-		case driver.WriteCommandError:
-			return rrMany, WriteException{
-				WriteConcernError: convertDriverWriteConcernError(tt.WriteConcernError),
-				WriteErrors:       writeErrorsFromDriverWriteErrors(tt.WriteErrors),
-				Labels:            tt.Labels,
-				Raw:               bson.Raw(tt.Raw),
-			}
-		default:
-			return rrNone, replaceErrors(err)
-		}
-	default:
+	if err == nil {
 		return rrAll, nil
+	}
+	// Do not propagate the acknowledgement sentinel error. For DDL commands,
+	// (creating indexes, dropping collections, etc) acknowledgement should be
+	// ignored. For non-DDL write commands (insert, update, etc), acknowledgement
+	// should be be propagated at the result-level: e.g.,
+	// SingleResult.Acknowledged.
+	if err == driver.ErrUnacknowledgedWrite {
+		return rrAllUnacknowledged, nil
+	}
+
+	wce, ok := err.(driver.WriteCommandError)
+	if !ok {
+		return rrNone, replaceErrors(err)
+	}
+
+	return rrMany, WriteException{
+		WriteConcernError: convertDriverWriteConcernError(wce.WriteConcernError),
+		WriteErrors:       writeErrorsFromDriverWriteErrors(wce.WriteErrors),
+		Labels:            wce.Labels,
+		Raw:               bson.Raw(wce.Raw),
 	}
 }
 

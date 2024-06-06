@@ -299,8 +299,6 @@ func (iv IndexView) CreateMany(
 		op.CommitQuorum(commitQuorum)
 	}
 
-	// Checking for unacknowledged writes when creating indexes appear unnecessary
-	// for DDL operations.
 	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
 		return nil, err
