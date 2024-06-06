@@ -415,8 +415,7 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Eventually(t,
 			func() bool {
 				// Create context to manually cancel callback after function.
-				callbackCtx, cancel := context.WithCancel(context.Background())
-				defer cancel()
+				callbackCtx, _ := context.WithCancel(context.Background())
 
 				done := make(chan struct{})
 				fullCallback := func() {
