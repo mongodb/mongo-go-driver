@@ -411,7 +411,31 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction is canceled within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		// assert.Soon(t, callback, 500*time.Millisecond)
+		assert.Eventually(t,
+			func() bool {
+				// Create context to manually cancel callback after function.
+				callbackCtx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				done := make(chan struct{})
+				fullCallback := func() {
+					callback(callbackCtx)
+					done <- struct{}{}
+				}
+
+				go fullCallback()
+
+				select {
+				case <-done:
+					return true
+				default:
+					return false
+				}
+			},
+			500*time.Millisecond,
+			10*time.Millisecond,
+			"expected transaction to be canceled within 500ms")
 
 		// Assert that AbortTransaction was started once and succeeded.
 		assert.Equal(t, 1, len(abortStarted), "expected 1 abortTransaction started event, got %d", len(abortStarted))
@@ -471,7 +495,31 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		// assert.Soon(t, callback, 500*time.Millisecond)
+		assert.Eventually(t,
+			func() bool {
+				// Create context to manually cancel callback after function.
+				callbackCtx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				done := make(chan struct{})
+				fullCallback := func() {
+					callback(callbackCtx)
+					done <- struct{}{}
+				}
+
+				go fullCallback()
+
+				select {
+				case <-done:
+					return true
+				default:
+					return false
+				}
+			},
+			500*time.Millisecond,
+			10*time.Millisecond,
+			"expected transaction to fail within 500ms")
 	})
 	t.Run("canceled context before callback does not retry", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
@@ -501,7 +549,31 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		// assert.Soon(t, callback, 500*time.Millisecond)
+		assert.Eventually(t,
+			func() bool {
+				// Create context to manually cancel callback after function.
+				callbackCtx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				done := make(chan struct{})
+				fullCallback := func() {
+					callback(callbackCtx)
+					done <- struct{}{}
+				}
+
+				go fullCallback()
+
+				select {
+				case <-done:
+					return true
+				default:
+					return false
+				}
+			},
+			500*time.Millisecond,
+			10*time.Millisecond,
+			"expected transaction to fail within 500ms")
 	})
 	t.Run("slow operation in callback retries", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
@@ -554,7 +626,32 @@ func TestConvenientTransactions(t *testing.T) {
 		}
 
 		// Assert that transaction passes within 2 seconds.
-		assert.Soon(t, callback, 2*time.Second)
+		// assert.Soon(t, callback, 2*time.Second)
+		assert.Eventually(t,
+			func() bool {
+				// Create context to manually cancel callback after function.
+				callbackCtx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
+				done := make(chan struct{})
+				fullCallback := func() {
+					callback(callbackCtx)
+					done <- struct{}{}
+				}
+
+				go fullCallback()
+
+				select {
+				case <-done:
+					return true
+				default:
+					return false
+				}
+			},
+			2*time.Second,
+			10*time.Millisecond,
+			"expected transaction to be passed within 2s")
+
 	})
 }
 
