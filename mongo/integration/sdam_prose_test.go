@@ -145,7 +145,30 @@ func TestSDAMProse(t *testing.T) {
 					time.Sleep(500 * time.Millisecond)
 				}
 			}
-			assert.Soon(t, callback, defaultCallbackTimeout)
+			// assert.Soon(t, callback, defaultCallbackTimeout)
+			assert.Eventually(t,
+				func() bool {
+					// Create context to manually cancel callback after function.
+					callbackCtx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					done := make(chan struct{})
+					fullCallback := func() {
+						callback(callbackCtx)
+						done <- struct{}{}
+					}
+
+					go fullCallback()
+
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				},
+				defaultCallbackTimeout,
+				10*time.Millisecond)
 		})
 	})
 

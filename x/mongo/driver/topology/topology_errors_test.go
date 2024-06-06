@@ -54,7 +54,32 @@ func TestTopologyErrors(t *testing.T) {
 				subCh := make(<-chan description.Topology)
 				_, serverSelectionErr = topo.selectServerFromSubscription(selectServerCtx, subCh, state)
 			}
-			assert.Soon(t, callback, 150*time.Millisecond)
+			// assert.Soon(t, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				func() bool {
+					// Create context to manually cancel callback after function.
+					callbackCtx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					done := make(chan struct{})
+					fullCallback := func() {
+						callback(callbackCtx)
+						done <- struct{}{}
+					}
+
+					go fullCallback()
+
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				},
+				150*time.Millisecond,
+				10*time.Millisecond,
+				"expected context deadline to fail within 150ms")
+
 			assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, received %v",
 				context.DeadlineExceeded, serverSelectionErr)
 		})

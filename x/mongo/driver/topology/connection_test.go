@@ -242,7 +242,30 @@ func TestConnection(t *testing.T) {
 
 							connectErr = conn.connect(connectCtx)
 						}
-						assert.Soon(t, callback, tc.maxConnectTime)
+						// assert.Soon(t, callback, tc.maxConnectTime)
+						assert.Eventually(t,
+							func() bool {
+								// Create context to manually cancel callback after function.
+								callbackCtx, cancel := context.WithCancel(context.Background())
+								defer cancel()
+
+								done := make(chan struct{})
+								fullCallback := func() {
+									callback(callbackCtx)
+									done <- struct{}{}
+								}
+
+								go fullCallback()
+
+								select {
+								case <-done:
+									return true
+								default:
+									return false
+								}
+							},
+							tc.maxConnectTime,
+							10*time.Millisecond)
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
@@ -277,7 +300,30 @@ func TestConnection(t *testing.T) {
 
 							connectErr = conn.connect(connectCtx)
 						}
-						assert.Soon(t, callback, tc.maxConnectTime)
+						// assert.Soon(t, callback, tc.maxConnectTime)
+						assert.Eventually(t,
+							func() bool {
+								// Create context to manually cancel callback after function.
+								callbackCtx, cancel := context.WithCancel(context.Background())
+								defer cancel()
+
+								done := make(chan struct{})
+								fullCallback := func() {
+									callback(callbackCtx)
+									done <- struct{}{}
+								}
+
+								go fullCallback()
+
+								select {
+								case <-done:
+									return true
+								default:
+									return false
+								}
+							},
+							tc.maxConnectTime,
+							10*time.Millisecond)
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})

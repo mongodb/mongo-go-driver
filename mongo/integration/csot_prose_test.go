@@ -95,7 +95,31 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			// assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				func() bool {
+					// Create context to manually cancel callback after function.
+					callbackCtx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					done := make(chan struct{})
+					fullCallback := func() {
+						callback(callbackCtx)
+						done <- struct{}{}
+					}
+
+					go fullCallback()
+
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				},
+				150*time.Millisecond,
+				10*time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
@@ -109,7 +133,31 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			// assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				func() bool {
+					// Create context to manually cancel callback after function.
+					callbackCtx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					done := make(chan struct{})
+					fullCallback := func() {
+						callback(callbackCtx)
+						done <- struct{}{}
+					}
+
+					go fullCallback()
+
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				},
+				150*time.Millisecond,
+				10*time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
@@ -123,7 +171,31 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			// assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				func() bool {
+					// Create context to manually cancel callback after function.
+					callbackCtx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					done := make(chan struct{})
+					fullCallback := func() {
+						callback(callbackCtx)
+						done <- struct{}{}
+					}
+
+					go fullCallback()
+
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				},
+				150*time.Millisecond,
+				10*time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
@@ -137,7 +209,31 @@ func TestCSOTProse(t *testing.T) {
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			// assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				func() bool {
+					// Create context to manually cancel callback after function.
+					callbackCtx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					done := make(chan struct{})
+					fullCallback := func() {
+						callback(callbackCtx)
+						done <- struct{}{}
+					}
+
+					go fullCallback()
+
+					select {
+					case <-done:
+						return true
+					default:
+						return false
+					}
+				},
+				150*time.Millisecond,
+				10*time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 	})
 }
