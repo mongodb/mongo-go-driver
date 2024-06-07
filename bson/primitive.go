@@ -204,16 +204,12 @@ type MaxKey struct{}
 //	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 type D []E
 
-// Map creates a map from the elements of the D.
-//
-// Deprecated: Converting directly from a D to an M will not be supported in Go Driver 2.0. Instead,
-// users should marshal the D to BSON using bson.Marshal and unmarshal it to M using bson.Unmarshal.
-func (d D) Map() M {
-	m := make(M, len(d))
-	for _, e := range d {
-		m[e.Key] = e.Value
+func (d D) String() string {
+	b, err := MarshalExtJSON(d, true, false)
+	if err != nil {
+		panic(err)
 	}
-	return m
+	return string(b)
 }
 
 // E represents a BSON element for a D. It is usually used inside a D.
@@ -230,6 +226,14 @@ type E struct {
 //
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 type M map[string]interface{}
+
+func (m M) String() string {
+	b, err := MarshalExtJSON(m, true, false)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
 
 // An A is an ordered representation of a BSON array.
 //
