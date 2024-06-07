@@ -119,7 +119,7 @@ func TestCSOTProse(t *testing.T) {
 			assert.Eventually(t,
 				func() bool {
 					callback()
-					return assert.True()
+					return true
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,
