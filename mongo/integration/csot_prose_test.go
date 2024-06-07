@@ -89,33 +89,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored if timeoutMS is not set", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
+			callback := func() {
+				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			// assert.Soon(mt, callback, 150*time.Millisecond)
 			assert.Eventually(t,
 				func() bool {
-					// Create context to manually cancel callback after function.
-					callbackCtx, cancel := context.WithCancel(context.Background())
-					defer cancel()
-
-					done := make(chan struct{})
-					fullCallback := func() {
-						callback(callbackCtx)
-						done <- struct{}{}
-					}
-
-					go fullCallback()
-
-					select {
-					case <-done:
-						return true
-					default:
-						return false
-					}
+					callback()
+					return true
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,
@@ -127,33 +110,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("timeoutMS honored for server selection if it's lower than serverSelectionTimeoutMS", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
+			callback := func() {
+				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
-			// assert.Soon(mt, callback, 150*time.Millisecond)
 			assert.Eventually(t,
 				func() bool {
-					// Create context to manually cancel callback after function.
-					callbackCtx, cancel := context.WithCancel(context.Background())
-					defer cancel()
-
-					done := make(chan struct{})
-					fullCallback := func() {
-						callback(callbackCtx)
-						done <- struct{}{}
-					}
-
-					go fullCallback()
-
-					select {
-					case <-done:
-						return true
-					default:
-						return false
-					}
+					callback()
+					return assert.True()
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,
@@ -165,36 +131,19 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if it's lower than timeoutMS", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
+			callback := func() {
+				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			// assert.Soon(mt, callback, 150*time.Millisecond)
 			assert.Eventually(t,
 				func() bool {
-					// Create context to manually cancel callback after function.
-					callbackCtx, cancel := context.WithCancel(context.Background())
-					defer cancel()
-
-					done := make(chan struct{})
-					fullCallback := func() {
-						callback(callbackCtx)
-						done <- struct{}{}
-					}
-
-					go fullCallback()
-
-					select {
-					case <-done:
-						return true
-					default:
-						return false
-					}
+					callback()
+					return true
 				},
 				150*time.Millisecond,
-				10*time.Millisecond,
+				20*time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
 
@@ -203,33 +152,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if timeoutMS=0", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
+			callback := func() {
+				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			// assert.Soon(mt, callback, 150*time.Millisecond)
 			assert.Eventually(t,
 				func() bool {
-					// Create context to manually cancel callback after function.
-					callbackCtx, cancel := context.WithCancel(context.Background())
-					defer cancel()
-
-					done := make(chan struct{})
-					fullCallback := func() {
-						callback(callbackCtx)
-						done <- struct{}{}
-					}
-
-					go fullCallback()
-
-					select {
-					case <-done:
-						return true
-					default:
-						return false
-					}
+					callback()
+					return true
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,

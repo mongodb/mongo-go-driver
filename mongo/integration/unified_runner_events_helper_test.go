@@ -87,11 +87,11 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 	eventType := op.Arguments.Lookup("event").StringValue()
 	expectedCount := int(op.Arguments.Lookup("count").Int32())
 
-	callback := func(ctx context.Context) {
+	callback := func() {
 		for {
 			// Stop loop if callback has been canceled.
 			select {
-			case <-ctx.Done():
+			case <-context.Background().Done():
 				return
 			default:
 			}
@@ -111,30 +111,13 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 		}
 	}
 
-	// assert.Soon(mt, callback, defaultCallbackTimeout)
 	assert.Eventually(mt,
 		func() bool {
-			// Create context to manually cancel callback after function.
-			callbackCtx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			done := make(chan struct{})
-			fullCallback := func() {
-				callback(callbackCtx)
-				done <- struct{}{}
-			}
-
-			go fullCallback()
-
-			select {
-			case <-done:
-				return true
-			default:
-				return false
-			}
+			callback()
+			return true
 		},
 		defaultCallbackTimeout,
-		10*time.Millisecond)
+		100*time.Millisecond)
 }
 
 func assertEventCount(mt *mtest.T, testCase *testCase, op *operation) {
@@ -157,11 +140,11 @@ func recordPrimary(mt *mtest.T, testCase *testCase) {
 }
 
 func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
-	callback := func(ctx context.Context) {
+	callback := func() {
 		for {
 			// Stop loop if callback has been canceled.
 			select {
-			case <-ctx.Done():
+			case <-context.Background().Done():
 				return
 			default:
 			}
@@ -173,30 +156,13 @@ func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
 	}
 
 	timeout := convertValueToMilliseconds(mt, op.Arguments.Lookup("timeoutMS"))
-	// assert.Soon(mt, callback, timeout)
 	assert.Eventually(mt,
 		func() bool {
-			// Create context to manually cancel callback after function.
-			callbackCtx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			done := make(chan struct{})
-			fullCallback := func() {
-				callback(callbackCtx)
-				done <- struct{}{}
-			}
-
-			go fullCallback()
-
-			select {
-			case <-done:
-				return true
-			default:
-				return false
-			}
+			callback()
+			return true
 		},
 		timeout,
-		10*time.Millisecond)
+		100*time.Millisecond)
 }
 
 // getPrimaryAddress returns the address of the current primary. If failFast is true, the server selection fast path

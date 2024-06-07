@@ -526,11 +526,11 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func(ctx context.Context) {
+		callback := func() {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
-				case <-ctx.Done():
+				case <-context.Background().Done():
 					return
 				default:
 				}
@@ -551,56 +551,13 @@ func TestClient(t *testing.T) {
 				}
 			}
 		}
-		/*
-			assert.Soon(mt, func(ctx context.Context) {
-				for {
-					// Stop loop if callback has been canceled.
-					select {
-					case <-ctx.Done():
-						return
-					default:
-					}
-
-					time.Sleep(100 * time.Millisecond)
-
-					// Wait for all of the server's minimum RTTs to be >250ms.
-					done := true
-					for _, desc := range topo.Description().Servers {
-						server, err := topo.FindServer(desc)
-						assert.Nil(mt, err, "FindServer error: %v", err)
-						if server.RTTMonitor().Min() <= 250*time.Millisecond {
-							done = false
-						}
-					}
-					if done {
-						return
-					}
-				}
-			}, 10*time.Second)
-		*/
 		assert.Eventually(t,
 			func() bool {
-				// Create context to manually cancel callback after function.
-				callbackCtx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-
-				done := make(chan struct{})
-				fullCallback := func() {
-					callback(callbackCtx)
-					done <- struct{}{}
-				}
-
-				go fullCallback()
-
-				select {
-				case <-done:
-					return true
-				default:
-					return false
-				}
+				callback()
+				return true
 			},
 			10*time.Second,
-			200*time.Millisecond,
+			250*time.Millisecond,
 			"expected that the minimum RTT is eventually >250ms")
 	})
 
@@ -625,11 +582,11 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func(ctx context.Context) {
+		callback := func() {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
-				case <-ctx.Done():
+				case <-context.Background().Done():
 					return
 				default:
 				}
@@ -650,56 +607,13 @@ func TestClient(t *testing.T) {
 				}
 			}
 		}
-		/*
-			assert.Soon(mt, func(ctx context.Context) {
-				for {
-					// Stop loop if callback has been canceled.
-					select {
-					case <-ctx.Done():
-						return
-					default:
-					}
-
-					time.Sleep(100 * time.Millisecond)
-
-					// Wait for all of the server's minimum RTTs to be >250ms.
-					done := true
-					for _, desc := range topo.Description().Servers {
-						server, err := topo.FindServer(desc)
-						assert.Nil(mt, err, "FindServer error: %v", err)
-						if server.RTTMonitor().Min() <= 250*time.Millisecond {
-							done = false
-						}
-					}
-					if done {
-						return
-					}
-				}
-			}, 10*time.Second)
-		*/
 		assert.Eventually(t,
 			func() bool {
-				// Create context to manually cancel callback after function.
-				callbackCtx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-
-				done := make(chan struct{})
-				fullCallback := func() {
-					callback(callbackCtx)
-					done <- struct{}{}
-				}
-
-				go fullCallback()
-
-				select {
-				case <-done:
-					return true
-				default:
-					return false
-				}
+				callback()
+				return true
 			},
 			10*time.Second,
-			200*time.Millisecond,
+			250*time.Millisecond,
 			"expected that the minimum RTT is eventually >250ms")
 
 		// Once we've waited for the minimum RTT for the single server to be >250ms, run a bunch of
@@ -727,11 +641,11 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func(ctx context.Context) {
+		callback := func() {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
-				case <-ctx.Done():
+				case <-context.Background().Done():
 					return
 				default:
 				}
@@ -752,56 +666,13 @@ func TestClient(t *testing.T) {
 				}
 			}
 		}
-		/*
-			assert.Soon(mt, func(ctx context.Context) {
-				for {
-					// Stop loop if callback has been canceled.
-					select {
-					case <-ctx.Done():
-						return
-					default:
-					}
-
-					time.Sleep(100 * time.Millisecond)
-
-					// Wait for all of the server's RTT90s to be >300ms.
-					done := true
-					for _, desc := range topo.Description().Servers {
-						server, err := topo.FindServer(desc)
-						assert.Nil(mt, err, "FindServer error: %v", err)
-						if server.RTTMonitor().P90() <= 300*time.Millisecond {
-							done = false
-						}
-					}
-					if done {
-						return
-					}
-				}
-			}, 10*time.Second)
-		*/
 		assert.Eventually(t,
 			func() bool {
-				// Create context to manually cancel callback after function.
-				callbackCtx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-
-				done := make(chan struct{})
-				fullCallback := func() {
-					callback(callbackCtx)
-					done <- struct{}{}
-				}
-
-				go fullCallback()
-
-				select {
-				case <-done:
-					return true
-				default:
-					return false
-				}
+				callback()
+				return true
 			},
 			10*time.Second,
-			200*time.Millisecond,
+			300*time.Millisecond,
 			"expected that the RTT90s are eventually >300ms")
 	})
 
@@ -829,11 +700,11 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >275ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func(ctx context.Context) {
+		callback := func() {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
-				case <-ctx.Done():
+				case <-context.Background().Done():
 					return
 				default:
 				}
@@ -854,56 +725,13 @@ func TestClient(t *testing.T) {
 				}
 			}
 		}
-		/*
-			assert.Soon(mt, func(ctx context.Context) {
-				for {
-					// Stop loop if callback has been canceled.
-					select {
-					case <-ctx.Done():
-						return
-					default:
-					}
-
-					time.Sleep(100 * time.Millisecond)
-
-					// Wait for all of the server's RTT90s to be >275ms.
-					done := true
-					for _, desc := range topo.Description().Servers {
-						server, err := topo.FindServer(desc)
-						assert.Nil(mt, err, "FindServer error: %v", err)
-						if server.RTTMonitor().P90() <= 275*time.Millisecond {
-							done = false
-						}
-					}
-					if done {
-						return
-					}
-				}
-			}, 10*time.Second)
-		*/
 		assert.Eventually(t,
 			func() bool {
-				// Create context to manually cancel callback after function.
-				callbackCtx, cancel := context.WithCancel(context.Background())
-				defer cancel()
-
-				done := make(chan struct{})
-				fullCallback := func() {
-					callback(callbackCtx)
-					done <- struct{}{}
-				}
-
-				go fullCallback()
-
-				select {
-				case <-done:
-					return true
-				default:
-					return false
-				}
+				callback()
+				return true
 			},
 			10*time.Second,
-			200*time.Millisecond,
+			275*time.Millisecond,
 			"expected that the RTT90s are eventually >275ms")
 
 		// Once we've waited for the RTT90 for the servers to be >275ms, run 10 Ping operations
