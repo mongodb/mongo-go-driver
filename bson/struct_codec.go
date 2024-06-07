@@ -181,7 +181,9 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 		encoder := desc.encoder
 
 		var empty bool
-		if cz, ok := encoder.(CodecZeroer); ok {
+		if cz, ok := encoder.(interface {
+			IsTypeZero(interface{}) bool
+		}); ok {
 			empty = cz.IsTypeZero(rv.Interface())
 		} else if rv.Kind() == reflect.Interface {
 			// isEmpty will not treat an interface rv as an interface, so we need to check for the
@@ -398,7 +400,7 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 func isEmpty(v reflect.Value, omitZeroStruct bool) bool {
 	kind := v.Kind()
 	if (kind != reflect.Ptr || !v.IsNil()) && v.Type().Implements(tZeroer) {
-		return v.Interface().(Zeroer).IsZero()
+		return v.Interface().(zeroer).IsZero()
 	}
 	switch kind {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:

@@ -16,10 +16,10 @@ import (
 	"time"
 )
 
-// Zeroer allows custom struct types to implement a report of zero
-// state. All struct types that don't implement Zeroer or where IsZero
+// zeroer allows custom struct types to implement a report of zero
+// state. All struct types that don't implement zeroer or where IsZero
 // returns false are considered to be not zero.
-type Zeroer interface {
+type zeroer interface {
 	IsZero() bool
 }
 

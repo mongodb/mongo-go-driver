@@ -1555,7 +1555,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC Decimal128
 					AD *time.Time
 					AE testValueMarshaler
-					AF Proxy
+					AF proxy
 					AG testProxy
 					AH map[string]interface{}
 					AI CodeWithScope
@@ -1650,7 +1650,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC []Decimal128
 					AD []*time.Time
 					AE []testValueMarshaler
-					AF []Proxy
+					AF []proxy
 					AG []testProxy
 				}{
 					A: []bool{true},
@@ -1685,7 +1685,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 						{t: TypeString, buf: bsoncore.AppendString(nil, "hello")},
 						{t: TypeString, buf: bsoncore.AppendString(nil, "world")},
 					},
-					AF: []Proxy{
+					AF: []proxy{
 						testProxy{ret: struct{ Hello string }{Hello: "world!"}},
 						testProxy{ret: struct{ Foo string }{Foo: "bar"}},
 					},

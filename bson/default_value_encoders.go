@@ -623,7 +623,7 @@ func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw ValueWrite
 		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
 	}
 
-	m, ok := val.Interface().(Proxy)
+	m, ok := val.Interface().(proxy)
 	if !ok {
 		return vw.WriteNull()
 	}

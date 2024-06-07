@@ -58,13 +58,11 @@ type ValueWriterFlusher interface {
 	Flush() error
 }
 
-// BytesWriter is the interface used to write BSON bytes to a ValueWriter.
+// bytesWriter is the interface used to write BSON bytes to a ValueWriter.
 // This interface is meant to be a superset of ValueWriter, so that types that
 // implement ValueWriter may also implement this interface.
-//
-// Deprecated: BytesWriter will not be supported in Go Driver 2.0.
-type BytesWriter interface {
-	WriteValueBytes(t Type, b []byte) error
+type bytesWriter interface {
+	writeValueBytes(t Type, b []byte) error
 }
 
 // SliceWriter allows a pointer to a slice of bytes to be used as an io.Writer.
