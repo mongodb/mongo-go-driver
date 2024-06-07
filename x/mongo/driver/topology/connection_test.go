@@ -236,20 +236,21 @@ func TestConnection(t *testing.T) {
 						conn := newConnection("", connOpts...)
 
 						var connectErr error
-						callback := func() {
-							connectCtx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
+						callback := func(ctx context.Context) {
+							connectCtx, cancel := context.WithTimeout(ctx, tc.contextTimeout)
 							defer cancel()
 
 							connectErr = conn.connect(connectCtx)
 						}
-						assert.Eventually(t,
-							func() bool {
-								callback()
-								return true
-							},
-							tc.maxConnectTime,
-							100*time.Millisecond,
-							"expected timeout to apply to socket establishment after maximum connect time")
+						assert.Soon(t, callback, tc.maxConnectTime)
+						/*assert.Eventually(t,
+						func() bool {
+							callback()
+							return true
+						},
+						tc.maxConnectTime,
+						100*time.Millisecond,
+						"expected timeout to apply to socket establishment after maximum connect time")*/
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
@@ -278,20 +279,21 @@ func TestConnection(t *testing.T) {
 						conn := newConnection(address.Address(l.Addr().String()), connOpts...)
 
 						var connectErr error
-						callback := func() {
-							connectCtx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
+						callback := func(ctx context.Context) {
+							connectCtx, cancel := context.WithTimeout(ctx, tc.contextTimeout)
 							defer cancel()
 
 							connectErr = conn.connect(connectCtx)
 						}
-						assert.Eventually(t,
-							func() bool {
-								callback()
-								return true
-							},
-							tc.maxConnectTime,
-							100*time.Millisecond,
-							"expected timeout to apply to TLS handshake after maximum connect time")
+						assert.Soon(t, callback, tc.maxConnectTime)
+						/*assert.Eventually(t,
+						func() bool {
+							callback()
+							return true
+						},
+						tc.maxConnectTime,
+						100*time.Millisecond,
+						"expected timeout to apply to TLS handshake after maximum connect time")*/
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
