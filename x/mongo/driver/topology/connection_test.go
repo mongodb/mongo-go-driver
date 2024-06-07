@@ -248,7 +248,8 @@ func TestConnection(t *testing.T) {
 								return true
 							},
 							tc.maxConnectTime,
-							100*time.Millisecond)
+							100*time.Millisecond,
+							"expected timeout to apply to socket establishment after maximum connect time")
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
@@ -289,7 +290,8 @@ func TestConnection(t *testing.T) {
 								return true
 							},
 							tc.maxConnectTime,
-							100*time.Millisecond)
+							100*time.Millisecond,
+							"expected timeout to apply to TLS handshake after maximum connect time")
 
 						ce, ok := connectErr.(ConnectionError)
 						assert.True(t, ok, "expected error %v to be of type %T", connectErr, ConnectionError{})
