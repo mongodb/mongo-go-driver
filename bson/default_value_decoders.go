@@ -1280,7 +1280,7 @@ func (dvd DefaultValueDecoders) ValueUnmarshalerDecodeValue(_ DecodeContext, vr 
 		// NB: this error should be unreachable due to the above checks
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 	}
-	return m.UnmarshalBSONValue(t, src)
+	return m.UnmarshalBSONValue(byte(t), src)
 }
 
 // UnmarshalerDecodeValue is the ValueDecoderFunc for Unmarshaler implementations.

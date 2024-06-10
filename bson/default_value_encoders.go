@@ -569,7 +569,7 @@ func (dve DefaultValueEncoders) ValueMarshalerEncodeValue(_ EncodeContext, vw Va
 	if err != nil {
 		return err
 	}
-	return copyValueFromBytes(vw, t, data)
+	return copyValueFromBytes(vw, Type(t), data)
 }
 
 // MarshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
