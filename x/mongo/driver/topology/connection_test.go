@@ -236,16 +236,16 @@ func TestConnection(t *testing.T) {
 						conn := newConnection("", connOpts...)
 
 						var connectErr error
-						callback := func() {
+						callback := func() bool {
 							connectCtx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
 							defer cancel()
 
 							connectErr = conn.connect(connectCtx)
+							return true
 						}
 						assert.Eventually(t,
 							func() bool {
-								callback()
-								return true
+								return callback()
 							},
 							tc.maxConnectTime,
 							time.Millisecond,
@@ -278,16 +278,16 @@ func TestConnection(t *testing.T) {
 						conn := newConnection(address.Address(l.Addr().String()), connOpts...)
 
 						var connectErr error
-						callback := func() {
+						callback := func() bool {
 							connectCtx, cancel := context.WithTimeout(context.Background(), tc.contextTimeout)
 							defer cancel()
 
 							connectErr = conn.connect(connectCtx)
+							return true
 						}
 						assert.Eventually(t,
 							func() bool {
-								callback()
-								return true
+								return callback()
 							},
 							tc.maxConnectTime,
 							time.Millisecond,

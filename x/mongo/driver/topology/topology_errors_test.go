@@ -46,18 +46,18 @@ func TestTopologyErrors(t *testing.T) {
 			assert.Nil(t, err, "error creating topology: %v", err)
 
 			var serverSelectionErr error
-			callback := func() {
+			callback := func() bool {
 				selectServerCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 				defer cancel()
 
 				state := newServerSelectionState(selectNone, make(<-chan time.Time))
 				subCh := make(<-chan description.Topology)
 				_, serverSelectionErr = topo.selectServerFromSubscription(selectServerCtx, subCh, state)
+				return true
 			}
 			assert.Eventually(t,
 				func() bool {
-					callback()
-					return true
+					return callback()
 				},
 				150*time.Millisecond,
 				20*time.Millisecond,

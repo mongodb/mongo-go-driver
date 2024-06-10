@@ -399,7 +399,7 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Insert a document within a session and manually cancel context before
 		// "commitTransaction" can be sent.
-		callback := func() {
+		callback := func() bool {
 			transactionCtx, cancel := context.WithCancel(context.Background())
 			_, _ = sess.WithTransaction(transactionCtx, func(ctx SessionContext) (interface{}, error) {
 				_, err := coll.InsertOne(ctx, bson.M{"x": 1})
@@ -407,13 +407,13 @@ func TestConvenientTransactions(t *testing.T) {
 				cancel()
 				return nil, nil
 			})
+			return true
 		}
 
 		// Assert that transaction is canceled within 500ms and not 2 seconds.
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			500*time.Millisecond,
 			100*time.Millisecond,
@@ -465,7 +465,7 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		callback := func() {
+		callback := func() bool {
 			// Create transaction context with short timeout.
 			withTransactionContext, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 			defer cancel()
@@ -474,13 +474,13 @@ func TestConvenientTransactions(t *testing.T) {
 				_, err := coll.InsertOne(ctx, bson.D{{}})
 				return nil, err
 			})
+			return true
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			500*time.Millisecond,
 			100*time.Millisecond,
@@ -502,7 +502,7 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		callback := func() {
+		callback := func() bool {
 			// Create transaction context and cancel it immediately.
 			withTransactionContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			cancel()
@@ -511,13 +511,13 @@ func TestConvenientTransactions(t *testing.T) {
 				_, err := coll.InsertOne(ctx, bson.D{{}})
 				return nil, err
 			})
+			return true
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			500*time.Millisecond,
 			100*time.Millisecond,
@@ -560,7 +560,7 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		callback := func() {
+		callback := func() bool {
 			_, err = sess.WithTransaction(context.Background(), func(ctx SessionContext) (interface{}, error) {
 				// Set a timeout of 300ms to cause a timeout on first insertOne
 				// and force a retry.
@@ -571,13 +571,13 @@ func TestConvenientTransactions(t *testing.T) {
 				return nil, err
 			})
 			assert.Nil(t, err, "WithTransaction error: %v", err)
+			return true
 		}
 
 		// Assert that transaction passes within 2 seconds.
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			withTransactionTimeout,
 			300*time.Millisecond,

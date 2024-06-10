@@ -86,7 +86,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
 				// Assert that the pool is cleared within 2 seconds.
-				callback := func() {
+				callback := func() bool {
 					ticker := time.NewTicker(100 * time.Millisecond)
 					defer ticker.Stop()
 
@@ -94,19 +94,18 @@ func TestSDAMErrorHandling(t *testing.T) {
 						select {
 						case <-ticker.C:
 						case <-context.Background().Done():
-							return
+							return true
 						}
 
 						if tpm.IsPoolCleared() {
-							return
+							return true
 						}
 					}
 				}
 
 				assert.Eventually(t,
 					func() bool {
-						callback()
-						return true
+						return callback()
 					},
 					2*time.Second,
 					100*time.Millisecond,
@@ -140,7 +139,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 						SetMinPoolSize(5))
 
 					// Assert that the pool is cleared within 2 seconds.
-					callback := func() {
+					callback := func() bool {
 						ticker := time.NewTicker(100 * time.Millisecond)
 						defer ticker.Stop()
 
@@ -148,19 +147,18 @@ func TestSDAMErrorHandling(t *testing.T) {
 							select {
 							case <-ticker.C:
 							case <-context.Background().Done():
-								return
+								return true
 							}
 
 							if tpm.IsPoolCleared() {
-								return
+								return true
 							}
 						}
 					}
 
 					assert.Eventually(t,
 						func() bool {
-							callback()
-							return true
+							return callback()
 						},
 						2*time.Second,
 						100*time.Millisecond,
@@ -193,7 +191,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 
 					// Assert that the pool is cleared within 2 seconds.
-					callback := func() {
+					callback := func() bool {
 						ticker := time.NewTicker(100 * time.Millisecond)
 						defer ticker.Stop()
 
@@ -201,19 +199,18 @@ func TestSDAMErrorHandling(t *testing.T) {
 							select {
 							case <-ticker.C:
 							case <-context.Background().Done():
-								return
+								return true
 							}
 
 							if tpm.IsPoolCleared() {
-								return
+								return true
 							}
 						}
 					}
 
 					assert.Eventually(t,
 						func() bool {
-							callback()
-							return true
+							return callback()
 						},
 						2*time.Second,
 						100*time.Millisecond,

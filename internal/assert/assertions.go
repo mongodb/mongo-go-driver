@@ -1043,6 +1043,7 @@ func Eventually(t TestingT, condition func() bool, waitFor time.Duration, tick t
 
 	ticker := time.NewTicker(tick)
 	defer ticker.Stop()
+
 	for tick := ticker.C; ; {
 		select {
 		case <-timer.C:

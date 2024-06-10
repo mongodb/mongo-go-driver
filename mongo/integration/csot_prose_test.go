@@ -89,16 +89,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored if timeoutMS is not set", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func() {
+			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
 			assert.Eventually(t,
 				func() bool {
-					callback()
-					return true
+					return callback()
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,
@@ -110,16 +110,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("timeoutMS honored for server selection if it's lower than serverSelectionTimeoutMS", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func() {
+			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
 			assert.Eventually(t,
 				func() bool {
-					callback()
-					return true
+					return callback()
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,
@@ -131,16 +131,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if it's lower than timeoutMS", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func() {
+			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
 			assert.Eventually(t,
 				func() bool {
-					callback()
-					return true
+					return callback()
 				},
 				150*time.Millisecond,
 				20*time.Millisecond,
@@ -152,16 +152,16 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if timeoutMS=0", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func() {
+			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
 				assert.NotNil(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
 			assert.Eventually(t,
 				func() bool {
-					callback()
-					return true
+					return callback()
 				},
 				150*time.Millisecond,
 				10*time.Millisecond,

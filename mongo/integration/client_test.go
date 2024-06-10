@@ -526,35 +526,25 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func() {
+		callback := func() bool {
 			for {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-context.Background().Done():
-					return
-				default:
-				}
-
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's minimum RTTs to be >250ms.
-				done := true
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
 					if server.RTTMonitor().Min() <= 250*time.Millisecond {
-						done = false
+						return false // the tick should wait for 100ms in this case
 					}
 				}
-				if done {
-					return
-				}
+
+				return true
 			}
 		}
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			10*time.Second,
 			250*time.Millisecond,
@@ -582,35 +572,31 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func() {
+		callback := func() bool {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
 				case <-context.Background().Done():
-					return
+					return true
 				default:
 				}
 
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's minimum RTTs to be >250ms.
-				done := true
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
 					if server.RTTMonitor().Min() <= 250*time.Millisecond {
-						done = false
+						return false
 					}
 				}
-				if done {
-					return
-				}
+				return true
 			}
 		}
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			10*time.Second,
 			250*time.Millisecond,
@@ -641,35 +627,31 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func() {
+		callback := func() bool {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
 				case <-context.Background().Done():
-					return
+					return true
 				default:
 				}
 
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's RTT90s to be >300ms.
-				done := true
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
 					if server.RTTMonitor().P90() <= 300*time.Millisecond {
-						done = false
+						return false
 					}
 				}
-				if done {
-					return
-				}
+				return true
 			}
 		}
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			10*time.Second,
 			300*time.Millisecond,
@@ -700,35 +682,31 @@ func TestClient(t *testing.T) {
 
 		// Assert that RTT90s are eventually >275ms.
 		topo := getTopologyFromClient(mt.Client)
-		callback := func() {
+		callback := func() bool {
 			for {
 				// Stop loop if callback has been canceled.
 				select {
 				case <-context.Background().Done():
-					return
+					return true
 				default:
 				}
 
 				time.Sleep(100 * time.Millisecond)
 
 				// Wait for all of the server's RTT90s to be >275ms.
-				done := true
 				for _, desc := range topo.Description().Servers {
 					server, err := topo.FindServer(desc)
 					assert.Nil(mt, err, "FindServer error: %v", err)
 					if server.RTTMonitor().P90() <= 275*time.Millisecond {
-						done = false
+						return false
 					}
 				}
-				if done {
-					return
-				}
+				return true
 			}
 		}
 		assert.Eventually(t,
 			func() bool {
-				callback()
-				return true
+				return callback()
 			},
 			10*time.Second,
 			275*time.Millisecond,

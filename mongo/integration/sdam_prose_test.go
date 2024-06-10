@@ -124,12 +124,12 @@ func TestSDAMProse(t *testing.T) {
 					AppName:         "streamingRttTest",
 				},
 			})
-			callback := func() {
+			callback := func() bool {
 				for {
 					// Stop loop if callback has been canceled.
 					select {
 					case <-context.Background().Done():
-						return
+						return true
 					default:
 					}
 
@@ -137,7 +137,7 @@ func TestSDAMProse(t *testing.T) {
 					// RTTs cross the threshold.
 					for _, serverDesc := range testTopology.Description().Servers {
 						if serverDesc.AverageRTT > 250*time.Millisecond {
-							return
+							return true
 						}
 					}
 
@@ -147,8 +147,7 @@ func TestSDAMProse(t *testing.T) {
 			}
 			assert.Eventually(t,
 				func() bool {
-					callback()
-					return true
+					return callback()
 				},
 				defaultCallbackTimeout,
 				100*time.Millisecond)
