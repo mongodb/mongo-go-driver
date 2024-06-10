@@ -990,7 +990,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				if len(tc.errorSubstring) > 0 {
 					assert.NotNil(mt, err, "expected error, got nil")
 
-					assert.True(t, containsSubstring(tc.errorSubstring, err.Error()),
+					assert.True(t, containsPattern(tc.errorSubstring, err.Error()),
 						"expected tc.errorSubstring=%v to contain %v, but it didn't", tc.errorSubstring, err.Error())
 
 					return
@@ -1020,7 +1020,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				_, err = invalidClientEncryption.CreateDataKey(context.Background(), tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
 
-				assert.True(t, containsSubstring(tc.invalidClientEncryptionErrorSubstring, err.Error()),
+				assert.True(t, containsPattern(tc.invalidClientEncryptionErrorSubstring, err.Error()),
 					"expected tc.invalidClientEncryptionErrorSubstring=%v to contain %v, but it didn't",
 					tc.invalidClientEncryptionErrorSubstring, err.Error())
 			})
@@ -1624,7 +1624,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					"x509: certificate is not authorized to sign other certificates",  // All others
 				}
 
-				assert.True(t, containsSubstring(possibleErrors, err.Error()),
+				assert.True(t, containsPattern(possibleErrors, err.Error()),
 					"expected possibleErrors=%v to contain %v, but it didn't",
 					possibleErrors, err.Error())
 
@@ -2242,7 +2242,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"Client.Timeout or context cancellation while reading body", // > 1.20 on all OS
 			}
 
-			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+			assert.True(t, containsPattern(possibleErrors, err.Error()),
 				"expected possibleErrors=%v to contain %v, but it didn't",
 				possibleErrors, err.Error())
 		})

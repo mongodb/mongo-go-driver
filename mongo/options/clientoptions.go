@@ -318,6 +318,10 @@ func (c *ClientOptions) validate() error {
 		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
 	}
 
+	if to := c.Timeout; to != nil && *to < 0 {
+		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
+	}
+
 	return nil
 }
 

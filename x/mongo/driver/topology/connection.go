@@ -66,8 +66,8 @@ type connection struct {
 	canStream            bool
 	currentlyStreaming   bool
 	cancellationListener contextListener
-	serverConnectionID   *int64 // the server's ID for this client's connection
-	cancelConnSig        chan struct{}
+	connectListener      contextListener // Cancels blocking ops during connect
+	serverConnectionID   *int64          // the server's ID for this client's connection
 	prevCanceled         atomic.Value
 
 	// pool related fields
@@ -91,6 +91,7 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
 		cancellationListener: newContextDoneListener(),
+		connectListener:      newNonBlockingContextDoneListener(),
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -128,39 +129,6 @@ func (c *connection) hasGenerationNumber() bool {
 	return c.desc.LoadBalanced()
 }
 
-// getServerSelectionTimeout will determine the value of the CSOT and return the
-// minimum of that value and serverSelectionTimeoutMS.
-
-// getNewConnTimeout will determine the value of the CSOT to use for
-// establishing a connection with the server. Particullarly, if a new connection
-// is required then this function will return the minumim of the time on the
-// context and the connectTimeoutMS value defined at the client-level.
-func getNewConnTimeout(ctx context.Context, conn *connection) time.Duration {
-	var connTO time.Duration
-
-	if conn.pool != nil {
-		connTO = conn.pool.connectTimeout
-	}
-
-	deadline, ok := ctx.Deadline()
-	if !ok || connTO != 0 && connTO > time.Until(deadline) {
-		return connTO
-	}
-
-	return time.Until(deadline)
-}
-
-// contextWithNewConnTimeout will apply the appropriate connection establishment
-// timeout to the parent context for establishing a connection.
-func contextWithNewConnTimeout(parent context.Context, conn *connection) (context.Context, context.CancelFunc) {
-	timeout := getNewConnTimeout(parent, conn)
-	if timeout == 0 {
-		return parent, func() {}
-	}
-
-	return context.WithTimeout(parent, timeout)
-}
-
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform initialization
 // handshakes. All errors returned by connect are considered "before the handshake completes" and
 // must be handled by calling the appropriate SDAM handshake error handler.
@@ -169,6 +137,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		return nil
 	}
 
+	defer c.closeConnectContext()
 	defer close(c.connectDone)
 
 	// If connect returns an error, set the connection status as disconnected and close the
@@ -193,13 +162,13 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// cancellation still applies but with an added timeout to ensure the connectTimeoutMS option is applied to socket
 	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
 	// holding the lock longer than necessary.
-	ctx, cancel := contextWithNewConnTimeout(ctx, c)
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	go func() {
 		defer cancel()
 
-		<-c.cancelConnSig
+		c.connectListener.Listen(ctx, func() {})
 	}()
 
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
@@ -309,11 +278,8 @@ func (c *connection) wait() {
 }
 
 func (c *connection) closeConnectContext() {
-	select {
-	case c.cancelConnSig <- struct{}{}:
-	default:
-		// Drop the signal, either the channel has already been sent to or has been
-		// closed.
+	if c.connectListener != nil {
+		c.connectListener.StopListening()
 	}
 }
 
@@ -469,6 +435,9 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 }
 
 func (c *connection) close() error {
+	// Stop any blocking operations occurring in connect()
+	c.closeConnectContext()
+
 	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
 		return nil

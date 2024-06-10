@@ -179,10 +179,6 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	if clientOpt.RetryReads != nil {
 		client.retryReads = *clientOpt.RetryReads
 	}
-	// Timeout
-	if to := clientOpt.Timeout; to != nil && *to < 0 {
-		return nil, fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
-	}
 	client.timeout = clientOpt.Timeout
 	client.httpClient = clientOpt.HTTPClient
 	// WriteConcern

@@ -233,7 +233,6 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
-		fmt.Println("max await time: ", cs.options.MaxAwaitTime)
 		cs.cursorOptions.SetMaxAwaitTime(*cs.options.MaxAwaitTime)
 	}
 	if cs.options.Custom != nil {

@@ -15,7 +15,7 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strings"
+	"regexp"
 	"testing"
 	"time"
 
@@ -47,9 +47,10 @@ func (n netErr) Temporary() bool {
 
 var _ net.Error = (*netErr)(nil)
 
-func containsSubstring(possibleSubstrings []string, str string) bool {
-	for _, possibleSubstring := range possibleSubstrings {
-		if strings.Contains(str, possibleSubstring) {
+func containsPattern(patterns []string, str string) bool {
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		if re.MatchString(str) {
 			return true
 		}
 	}
@@ -110,14 +111,16 @@ func TestErrors(t *testing.T) {
 
 			_, err = mt.Coll.Find(timeoutCtx, filter)
 
-			possibleErrors := []string{
+			assert.Error(mt, err)
+
+			errPatterns := []string{
 				context.DeadlineExceeded.Error(),
-				"(MaxTimeMSExpired) Executor error during find command :: caused by :: operation exceeded time limit",
+				`^\(MaxTimeMSExpired\) Executor error during find command.*:: caused by :: operation exceeded time limit$`,
 			}
 
-			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+			assert.True(t, containsPattern(errPatterns, err.Error()),
 				"expected possibleErrors=%v to contain %v, but it didn't",
-				possibleErrors, err.Error())
+				errPatterns, err.Error())
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
