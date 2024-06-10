@@ -17,10 +17,11 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
-var selectNone description.ServerSelectorFunc = func(description.Topology, []description.Server) ([]description.Server, error) {
+var selectNone serverselector.Func = func(description.Topology, []description.Server) ([]description.Server, error) {
 	return []description.Server{}, nil
 }
 
@@ -38,7 +39,7 @@ func TestTopologyErrors(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			_, err = topo.SelectServer(ctx, description.WriteSelector())
+			_, err = topo.SelectServer(ctx, &serverselector.Write{})
 			assert.True(t, errors.Is(err, context.Canceled), "expected error %v, got %v", context.Canceled, err)
 		})
 		t.Run("context deadline error", func(t *testing.T) {

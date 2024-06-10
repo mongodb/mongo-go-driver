@@ -30,11 +30,11 @@ import (
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -519,7 +519,7 @@ func TestServer(t *testing.T) {
 							return driver.HandshakeInformation{}, tc.getInfoErr
 						}
 
-						desc := description.NewDefaultServer(addr)
+						desc := newServerDescriptionFromError(addr, nil, nil)
 						if tc.loadBalanced {
 							desc.ServiceID = &serviceID
 						}
@@ -832,27 +832,27 @@ func TestServer_ProcessError(t *testing.T) {
 		{
 			name: "nil error",
 			startDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			inputErr:       nil,
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 		},
 		// Test that errors that occur on stale connections are ignored.
 		{
 			name: "stale connection",
 			startDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			inputErr:       errors.New("foo"),
 			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, true),
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 		},
 		// Test that errors that do not indicate a database state change or connection error are
@@ -860,7 +860,7 @@ func TestServer_ProcessError(t *testing.T) {
 		{
 			name: "non state change error",
 			startDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			inputErr: driver.Error{
 				Code: 1,
@@ -869,13 +869,13 @@ func TestServer_ProcessError(t *testing.T) {
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 		},
 		// Test that a "not writable primary" error with an old topology version is ignored.
 		{
 			name:             "stale not writable primary error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -886,13 +886,13 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 		},
 		// Test that a "not writable primary" error with an newer topology version marks the Server
 		// as "unknown" and updates its topology version.
 		{
 			name:             "new not writable primary error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -915,7 +915,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// "unknown" and updates its topology version.
 		{
 			name:             "new process ID not writable primary error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -939,7 +939,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// TODO(GODRIVER-2841): Remove this test case.
 		{
 			name:             "newer connection topology version",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -959,13 +959,13 @@ func TestServer_ProcessError(t *testing.T) {
 			}),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 		},
 		// Test that a "node is shutting down" error with a newer topology version clears the
 		// connection pool, marks the Server as "unknown", and updates its topology version.
 		{
 			name:             "new shutdown error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 11600, // InterruptedAtShutdown
 				TopologyVersion: &description.TopologyVersion{
@@ -987,7 +987,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// Test that a "not writable primary" error with a stale topology version is ignored.
 		{
 			name:             "stale not writable primary write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 10107, // NotWritablePrimary
@@ -1000,13 +1000,13 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 		},
 		// Test that a "not writable primary" error with a newer topology version marks the Server
 		// as "unknown" and updates its topology version.
 		{
 			name:             "new not writable primary write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 10107, // NotWritablePrimary
@@ -1033,7 +1033,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// local Server topology version mark the Server as "unknown" and clear the connection pool.
 		{
 			name:             "new shutdown write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 11600, // InterruptedAtShutdown
@@ -1061,7 +1061,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// servers before 4.2 mark the Server as "unknown" and clear the connection pool.
 		{
 			name:             "older than 4.2 write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 10107, // NotWritablePrimary
@@ -1087,7 +1087,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// Test that a network timeout error, such as a DNS lookup timeout error, is ignored.
 		{
 			name:             "network timeout error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Labels: []string{driver.NetworkError},
 				Wrapped: ConnectionError{
@@ -1100,12 +1100,12 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 		},
 		// Test that a context canceled error is ignored.
 		{
 			name:             "context canceled error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Labels: []string{driver.NetworkError},
 				Wrapped: ConnectionError{
@@ -1115,13 +1115,13 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 		},
 		// Test that a non-timeout network error, such as an address lookup error, marks the server
 		// as "unknown" and sets its topology version to nil.
 		{
 			name:             "non-timeout network error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Labels: []string{driver.NetworkError},
 				Wrapped: ConnectionError{
@@ -1237,7 +1237,7 @@ func TestServer_getSocketTimeout(t *testing.T) {
 			}
 
 			srv.desc.Store(description.Server{
-				Kind:            description.ServerKind(description.ReplicaSet),
+				Kind:            description.ServerKind(description.TopologyKindReplicaSet),
 				TopologyVersion: &description.TopologyVersion{},
 			})
 

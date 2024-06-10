@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -238,7 +238,7 @@ func (s *Session) AbortTransaction(ctx context.Context) error {
 		return s.clientSession.AbortTransaction()
 	}
 
-	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
+	selector := makePinnedSelector(s.clientSession, &serverselector.Write{})
 
 	s.clientSession.Aborting = true
 	_ = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
@@ -271,7 +271,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		s.clientSession.RetryingCommit = true
 	}
 
-	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
+	selector := makePinnedSelector(s.clientSession, &serverselector.Write{})
 
 	s.clientSession.Committing = true
 	op := operation.NewCommitTransaction().

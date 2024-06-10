@@ -18,10 +18,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -126,7 +127,7 @@ func (c *connection) hasGenerationNumber() bool {
 
 	// For LB clusters, we set the generation after the initial handshake, so we know it's set if the connection
 	// description has been updated to reflect that it's behind an LB.
-	return c.desc.LoadBalanced()
+	return driverutil.IsServerLoadBalanced(c.desc)
 }
 
 // connect handles the I/O for a connection. It will dial, configure TLS, and perform initialization

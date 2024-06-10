@@ -23,12 +23,13 @@ import (
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -333,7 +334,7 @@ func filterDeprioritizedServers(candidates, deprioritized []description.Server) 
 	// Iterate over the candidates and append them to the allowdIndexes slice if
 	// they are not in the deprioritizedServers list.
 	for _, candidate := range candidates {
-		if srv, ok := dpaSet[candidate.Addr]; !ok || !srv.Equal(candidate) {
+		if srv, ok := dpaSet[candidate.Addr]; !ok || !driverutil.EqualServers(*srv, candidate) {
 			allowed = append(allowed, candidate)
 		}
 	}
@@ -388,10 +389,13 @@ func (op Operation) selectServer(
 		if rp == nil {
 			rp = readpref.Primary()
 		}
-		selector = description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(rp),
-			description.LatencySelector(defaultLocalThreshold),
-		})
+
+		selector = &serverselector.Composite{
+			Selectors: []description.ServerSelector{
+				&serverselector.ReadPref{ReadPref: rp},
+				&serverselector.Latency{Latency: defaultLocalThreshold},
+			},
+		}
 	}
 
 	oss := &opServerSelector{
@@ -441,7 +445,7 @@ func (op Operation) getServerAndConnection(
 	}
 
 	// If we're in load balanced mode and this is the first operation in a transaction, pin the session to a connection.
-	if conn.Description().LoadBalanced() && op.Client != nil && op.Client.TransactionStarting() {
+	if driverutil.IsServerLoadBalanced(conn.Description()) && op.Client != nil && op.Client.TransactionStarting() {
 		if conn.Pinner == nil {
 			// Close the original connection to avoid a leak.
 			_ = conn.Close()
@@ -575,7 +579,7 @@ func (op Operation) Execute(ctx context.Context) error {
 		if conn != nil {
 			// If we are dealing with a sharded cluster, then mark the failed server
 			// as "deprioritized".
-			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.Sharded {
+			if desc := conn.Description; desc != nil && op.Deployment.Kind() == description.TopologyKindSharded {
 				deprioritizedServers = []description.Server{conn.Description()}
 			}
 
@@ -687,7 +691,10 @@ func (op Operation) Execute(ctx context.Context) error {
 			maxTimeMS = 0
 		}
 
-		desc := description.SelectedServer{Server: conn.Description(), Kind: op.Deployment.Kind()}
+		desc := description.SelectedServer{
+			Server: conn.Description(),
+			Kind:   op.Deployment.Kind(),
+		}
 
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
@@ -1419,7 +1426,9 @@ func (op Operation) addServerAPI(dst []byte) []byte {
 }
 
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
-	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumReadConcernWireVersion)) {
+	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil ||
+		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumReadConcernWireVersion)) {
+
 		return dst, nil
 	}
 	rc := op.ReadConcern
@@ -1512,7 +1521,9 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 }
 
 func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
-	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil || !desc.WireVersion.Includes(op.MinimumWriteConcernWireVersion)) {
+	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil ||
+		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumWriteConcernWireVersion)) {
+
 		return dst, nil
 	}
 	wc := op.WriteConcern
@@ -1698,7 +1709,9 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 
 	// TODO(GODRIVER-2231): Instead of checking if isOutputAggregate and desc.Server.WireVersion.Max < 13, somehow check
 	// TODO if supplied readPreference was "overwritten" with primary in description.selectForReplicaSet.
-	if desc.Server.Kind == description.Standalone || (isOpQuery && desc.Server.Kind != description.Mongos) ||
+	if desc.Server.Kind == description.ServerKindStandalone || (isOpQuery &&
+		desc.Server.Kind != description.ServerKindMongos) ||
+
 		op.Type == Write || (op.IsOutputAggregate && desc.Server.WireVersion.Max < 13) {
 		// Don't send read preference for:
 		// 1. all standalones
@@ -1716,7 +1729,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	}
 
 	if rp == nil {
-		if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
+		if desc.Kind == description.TopologyKindSingle && desc.Server.Kind != description.ServerKindMongos {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
@@ -1726,10 +1739,10 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 
 	switch rp.Mode() {
 	case readpref.PrimaryMode:
-		if desc.Server.Kind == description.Mongos {
+		if desc.Server.Kind == description.ServerKindMongos {
 			return nil, nil
 		}
-		if desc.Kind == description.Single {
+		if desc.Kind == description.TopologyKindSingle {
 			doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 			doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
 			return doc, nil
@@ -1746,7 +1759,9 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
 		_, ok := rp.MaxStaleness()
-		if desc.Server.Kind == description.Mongos && isOpQuery && !ok && len(rp.TagSets()) == 0 && rp.HedgeEnabled() == nil {
+		if desc.Server.Kind == description.ServerKindMongos && isOpQuery && !ok && len(rp.TagSets()) == 0 &&
+			rp.HedgeEnabled() == nil {
+
 			return nil, nil
 		}
 		doc = bsoncore.AppendStringElement(doc, "mode", "secondaryPreferred")
@@ -1793,7 +1808,7 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 }
 
 func (op Operation) secondaryOK(desc description.SelectedServer) wiremessage.QueryFlag {
-	if desc.Kind == description.Single && desc.Server.Kind != description.Mongos {
+	if desc.Kind == description.TopologyKindSingle && desc.Server.Kind != description.ServerKindMongos {
 		return wiremessage.SecondaryOK
 	}
 
@@ -2098,5 +2113,5 @@ func sessionsSupported(wireVersion *description.VersionRange) bool {
 
 // retryWritesSupported returns true if this description represents a server that supports retryable writes.
 func retryWritesSupported(s description.Server) bool {
-	return s.SessionTimeoutMinutes != nil && s.Kind != description.Standalone
+	return s.SessionTimeoutMinutes != nil && s.Kind != description.ServerKindStandalone
 }

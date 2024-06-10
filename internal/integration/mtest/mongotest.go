@@ -600,9 +600,7 @@ func (t *T) CloneDatabase(opts *options.DatabaseOptions) {
 
 // CloneCollection modifies the default collection for this test to match the given options.
 func (t *T) CloneCollection(opts *options.CollectionOptions) {
-	var err error
-	t.Coll, err = t.Coll.Clone(opts)
-	assert.Nil(t, err, "error cloning collection: %v", err)
+	t.Coll = t.Coll.Clone(opts)
 }
 
 func sanitizeCollectionName(db string, coll string) string {

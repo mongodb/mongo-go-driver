@@ -113,11 +113,11 @@ func executeTestRunnerOperation(ctx context.Context, op *operation, loopDone <-c
 		}
 
 		clientSession := extractClientSession(sess)
-		if clientSession.PinnedServer == nil {
+		if clientSession.PinnedServerAddr == nil {
 			return fmt.Errorf("session is not pinned to a server")
 		}
 
-		targetHost := clientSession.PinnedServer.Addr.String()
+		targetHost := clientSession.PinnedServerAddr.String()
 		fpDoc := args.Lookup("failPoint").Document()
 		commandFn := func(ctx context.Context, client *mongo.Client) error {
 			return mtest.SetRawFailPoint(fpDoc, client)
@@ -452,7 +452,7 @@ func verifySessionPinnedState(ctx context.Context, sessionID string, expectedPin
 		return err
 	}
 
-	if isPinned := extractClientSession(sess).PinnedServer != nil; expectedPinned != isPinned {
+	if isPinned := extractClientSession(sess).PinnedServerAddr != nil; expectedPinned != isPinned {
 		return fmt.Errorf("session pinned state mismatch; expected to be pinned: %v, is pinned: %v", expectedPinned, isPinned)
 	}
 	return nil

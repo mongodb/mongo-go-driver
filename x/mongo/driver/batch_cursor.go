@@ -18,8 +18,9 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -133,7 +134,7 @@ func NewCursorResponse(info ResponseInfo) (CursorResponse, error) {
 
 	// If the deployment is behind a load balancer and the cursor has a non-zero ID, pin the cursor to a connection and
 	// use the same connection to execute getMore and killCursors commands.
-	if curresp.Desc.LoadBalanced() && curresp.ID != 0 {
+	if driverutil.IsServerLoadBalanced(curresp.Desc) && curresp.ID != 0 {
 		// Cache the server as an ErrorProcessor to use when constructing deployments for cursor commands.
 		ep, ok := curresp.Server.(ErrorProcessor)
 		if !ok {
@@ -526,7 +527,7 @@ func (lbcd *loadBalancedCursorDeployment) SelectServer(context.Context, descript
 }
 
 func (lbcd *loadBalancedCursorDeployment) Kind() description.TopologyKind {
-	return description.LoadBalanced
+	return description.TopologyKindLoadBalanced
 }
 
 func (lbcd *loadBalancedCursorDeployment) Connection(context.Context) (*mnet.Connection, error) {

@@ -19,10 +19,10 @@ import (
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -124,7 +124,7 @@ func (h *Hello) LoadBalanced(lb bool) *Hello {
 
 // Result returns the result of executing this operation.
 func (h *Hello) Result(addr address.Address) description.Server {
-	return description.NewServer(addr, bson.Raw(h.res))
+	return driverutil.NewServerDescription(addr, bson.Raw(h.res))
 }
 
 const dockerEnvPath = "/.dockerenv"
