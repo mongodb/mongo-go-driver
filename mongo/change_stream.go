@@ -743,7 +743,7 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 	if !validChangeStreamTimeouts(ctx, cs) {
-		cs.err = fmt.Errorf("maxAwaitTimeMS cannot be greater than or equal to timeoutMS")
+		cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
 
 		return
 	}
