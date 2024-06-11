@@ -19,9 +19,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
-// LegacyHello is the legacy version of the hello command.
-var LegacyHello = "isMaster"
-
 // LegacyHelloLowercase is the lowercase, legacy version of the hello command.
 var LegacyHelloLowercase = "ismaster"
 
