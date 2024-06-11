@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/require"
+	"github.com/stretchr/testify/require"
 )
 
 const (
