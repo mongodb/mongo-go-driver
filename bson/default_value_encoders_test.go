@@ -1857,8 +1857,8 @@ type testValueMarshalPtr struct {
 	err error
 }
 
-func (tvm *testValueMarshalPtr) MarshalBSONValue() (Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
+func (tvm *testValueMarshalPtr) MarshalBSONValue() (byte, []byte, error) {
+	return byte(tvm.t), tvm.buf, tvm.err
 }
 
 type testMarshalPtr struct {
