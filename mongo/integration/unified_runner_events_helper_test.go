@@ -88,27 +88,25 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 	expectedCount := int(op.Arguments.Lookup("count").Int32())
 
 	callback := func() bool {
-		for {
-			// Stop loop if callback has been canceled.
-			select {
-			case <-context.Background().Done():
-				return true
-			default:
-			}
-
-			var count int
-			// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
-			if eventType == "ServerMarkedUnknownEvent" {
-				count = test.monitor.getServerMarkedUnknownCount()
-			} else {
-				count = test.monitor.getPoolEventCount(eventType)
-			}
-
-			if count >= expectedCount {
-				return true
-			}
-			time.Sleep(100 * time.Millisecond)
+		// Stop loop if callback has been canceled.
+		select {
+		case <-context.Background().Done():
+			return true
+		default:
 		}
+
+		var count int
+		// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
+		if eventType == "ServerMarkedUnknownEvent" {
+			count = test.monitor.getServerMarkedUnknownCount()
+		} else {
+			count = test.monitor.getPoolEventCount(eventType)
+		}
+
+		if count >= expectedCount {
+			return true
+		}
+		return false
 	}
 
 	assert.Eventually(mt,
@@ -140,18 +138,14 @@ func recordPrimary(mt *mtest.T, testCase *testCase) {
 
 func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
 	callback := func() bool {
-		for {
-			// Stop loop if callback has been canceled.
-			select {
-			case <-context.Background().Done():
-				return true
-			default:
-			}
-
-			if getPrimaryAddress(mt, testCase.testTopology, false) != testCase.recordedPrimary {
-				return true
-			}
+		// Stop loop if callback has been canceled.
+		select {
+		case <-context.Background().Done():
+			return true
+		default:
 		}
+
+		return getPrimaryAddress(mt, testCase.testTopology, false) != testCase.recordedPrimary
 	}
 
 	timeout := convertValueToMilliseconds(mt, op.Arguments.Lookup("timeoutMS"))
