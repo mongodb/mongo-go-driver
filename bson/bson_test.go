@@ -297,6 +297,31 @@ func TestD(t *testing.T) {
 	})
 }
 
+func TestDStringer(t *testing.T) {
+	got := D{{"a", 1}, {"b", 2}}.String()
+	want := `{"a":{"$numberInt":"1"},"b":{"$numberInt":"2"}}`
+	assert.Equal(t, want, got, "expected: %s, got: %s", want, got)
+}
+
+func TestMStringer(t *testing.T) {
+	type msg struct {
+		A json.RawMessage `json:"a"`
+		B json.RawMessage `json:"b"`
+	}
+
+	var res msg
+	got := M{"a": 1, "b": 2}.String()
+	err := json.Unmarshal([]byte(got), &res)
+	require.NoError(t, err, "Unmarshal error")
+
+	want := msg{
+		A: json.RawMessage(`{"$numberInt":"1"}`),
+		B: json.RawMessage(`{"$numberInt":"2"}`),
+	}
+
+	assert.Equal(t, want, res, "returned string did not unmarshal to the expected document, returned string: %s", got)
+}
+
 type stringerString string
 
 func (ss stringerString) String() string {

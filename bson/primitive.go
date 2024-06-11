@@ -207,7 +207,7 @@ type D []E
 func (d D) String() string {
 	b, err := MarshalExtJSON(d, true, false)
 	if err != nil {
-		panic(err)
+		return ""
 	}
 	return string(b)
 }
@@ -230,7 +230,7 @@ type M map[string]interface{}
 func (m M) String() string {
 	b, err := MarshalExtJSON(m, true, false)
 	if err != nil {
-		panic(err)
+		return ""
 	}
 	return string(b)
 }

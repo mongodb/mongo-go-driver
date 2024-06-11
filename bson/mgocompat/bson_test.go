@@ -16,7 +16,6 @@ import (
 	"errors"
 	"net/url"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -1018,28 +1017,6 @@ func TestUnmarshalSetterErrors(t *testing.T) {
 	assert.Nil(t, m["ghi"], "expected value to be nil, got: %v", m["ghi"])
 
 	assert.Equal(t, "1", m["abc"].Received, "expected m[\"abc\"].Received to be: %v, got: %v", "1", m["abc"].Received)
-}
-
-func TestDStringer(t *testing.T) {
-	got := bson.D{{"a", 1}, {"b", 2}}.String()
-	want := `{"a":{"$numberInt":"1"},"b":{"$numberInt":"2"}}`
-	assert.True(t, reflect.DeepEqual(want, got), "expected: %v, got: %v", want, got)
-}
-
-func TestMStringer(t *testing.T) {
-	got := bson.M{"a": 1, "b": 2}.String()
-	m := regexp.MustCompile(`^{(.*),(.*)}$`).FindStringSubmatch(got)
-	assert.Equal(t, 3, len(m), "failed to match %s", got)
-	assert.Equal(t, got, m[0], "expected to match %s, got: %s", got, m[0])
-	wants := map[string]bool{
-		`"a":{"$numberInt":"1"}`: true,
-		`"b":{"$numberInt":"2"}`: true,
-	}
-	for i, k := range m[1:] {
-		s, ok := wants[k]
-		assert.True(t, ok && s, "failed to match %v[%d]", m[1:], i)
-		wants[k] = false
-	}
 }
 
 func TestUnmarshalSetterErrSetZero(t *testing.T) {
