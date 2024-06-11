@@ -103,10 +103,7 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 			count = test.monitor.getPoolEventCount(eventType)
 		}
 
-		if count >= expectedCount {
-			return true
-		}
-		return false
+		return count >= expectedCount
 	}
 
 	assert.Eventually(mt,
