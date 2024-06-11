@@ -1893,7 +1893,6 @@ func (op Operation) decodeResult(ctx context.Context, opcode wiremessage.OpCode,
 					return nil, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
-				// TODO(GODRIVER-617): Implement document sequence returns.
 				_, _, wm, ok = wiremessage.ReadMsgSectionDocumentSequence(wm)
 				if !ok {
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
