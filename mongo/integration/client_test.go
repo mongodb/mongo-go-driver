@@ -527,27 +527,23 @@ func TestClient(t *testing.T) {
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
 		callback := func() bool {
-			for {
-				time.Sleep(100 * time.Millisecond)
-
-				// Wait for all of the server's minimum RTTs to be >250ms.
-				for _, desc := range topo.Description().Servers {
-					server, err := topo.FindServer(desc)
-					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTTMonitor().Min() <= 250*time.Millisecond {
-						return false // the tick should wait for 100ms in this case
-					}
+			// Wait for all of the server's minimum RTTs to be >250ms.
+			for _, desc := range topo.Description().Servers {
+				server, err := topo.FindServer(desc)
+				assert.Nil(mt, err, "FindServer error: %v", err)
+				if server.RTTMonitor().Min() <= 250*time.Millisecond {
+					return false // the tick should wait for 100ms in this case
 				}
-
-				return true
 			}
+
+			return true
 		}
 		assert.Eventually(t,
 			func() bool {
 				return callback()
 			},
 			10*time.Second,
-			250*time.Millisecond,
+			100*time.Millisecond,
 			"expected that the minimum RTT is eventually >250ms")
 	})
 
@@ -573,33 +569,23 @@ func TestClient(t *testing.T) {
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
 		callback := func() bool {
-			for {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-context.Background().Done():
-					return true
-				default:
+			// Wait for all of the server's minimum RTTs to be >250ms.
+			for _, desc := range topo.Description().Servers {
+				server, err := topo.FindServer(desc)
+				assert.Nil(mt, err, "FindServer error: %v", err)
+				if server.RTTMonitor().Min() <= 250*time.Millisecond {
+					return false
 				}
-
-				time.Sleep(100 * time.Millisecond)
-
-				// Wait for all of the server's minimum RTTs to be >250ms.
-				for _, desc := range topo.Description().Servers {
-					server, err := topo.FindServer(desc)
-					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTTMonitor().Min() <= 250*time.Millisecond {
-						return false
-					}
-				}
-				return true
 			}
+
+			return true
 		}
 		assert.Eventually(t,
 			func() bool {
 				return callback()
 			},
 			10*time.Second,
-			250*time.Millisecond,
+			100*time.Millisecond,
 			"expected that the minimum RTT is eventually >250ms")
 
 		// Once we've waited for the minimum RTT for the single server to be >250ms, run a bunch of
@@ -628,33 +614,23 @@ func TestClient(t *testing.T) {
 		// Assert that RTT90s are eventually >300ms.
 		topo := getTopologyFromClient(mt.Client)
 		callback := func() bool {
-			for {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-context.Background().Done():
-					return true
-				default:
+			// Wait for all of the server's RTT90s to be >300ms.
+			for _, desc := range topo.Description().Servers {
+				server, err := topo.FindServer(desc)
+				assert.Nil(mt, err, "FindServer error: %v", err)
+				if server.RTTMonitor().P90() <= 300*time.Millisecond {
+					return false
 				}
-
-				time.Sleep(100 * time.Millisecond)
-
-				// Wait for all of the server's RTT90s to be >300ms.
-				for _, desc := range topo.Description().Servers {
-					server, err := topo.FindServer(desc)
-					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTTMonitor().P90() <= 300*time.Millisecond {
-						return false
-					}
-				}
-				return true
 			}
+
+			return true
 		}
 		assert.Eventually(t,
 			func() bool {
 				return callback()
 			},
 			10*time.Second,
-			300*time.Millisecond,
+			100*time.Millisecond,
 			"expected that the RTT90s are eventually >300ms")
 	})
 
@@ -683,33 +659,23 @@ func TestClient(t *testing.T) {
 		// Assert that RTT90s are eventually >275ms.
 		topo := getTopologyFromClient(mt.Client)
 		callback := func() bool {
-			for {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-context.Background().Done():
-					return true
-				default:
+			// Wait for all of the server's RTT90s to be >275ms.
+			for _, desc := range topo.Description().Servers {
+				server, err := topo.FindServer(desc)
+				assert.Nil(mt, err, "FindServer error: %v", err)
+				if server.RTTMonitor().P90() <= 275*time.Millisecond {
+					return false
 				}
-
-				time.Sleep(100 * time.Millisecond)
-
-				// Wait for all of the server's RTT90s to be >275ms.
-				for _, desc := range topo.Description().Servers {
-					server, err := topo.FindServer(desc)
-					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTTMonitor().P90() <= 275*time.Millisecond {
-						return false
-					}
-				}
-				return true
 			}
+
+			return true
 		}
 		assert.Eventually(t,
 			func() bool {
 				return callback()
 			},
 			10*time.Second,
-			275*time.Millisecond,
+			100*time.Millisecond,
 			"expected that the RTT90s are eventually >275ms")
 
 		// Once we've waited for the RTT90 for the servers to be >275ms, run 10 Ping operations
