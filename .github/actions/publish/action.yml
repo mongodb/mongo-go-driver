@@ -25,13 +25,12 @@ runs:
       run: |
         echo "Creating draft release"
         cd ${{ github.action_path }}
-        export NOTES=$(cat github.md)
         export VERSION=${{inputs.version}}
-        rm github.md
         if [ "${{ inputs.push_changes }}" == "true" ]; then
-          gh release create ${VERSION} --draft --verify-tag --title ${VERSION} --notes $NOTES
+          gh release create ${VERSION} --draft --verify-tag --title ${VERSION} -F github.md
           gh release view ${VERSION} >> $GITHUB_STEP_SUMMARY
         else
           echo "## Skipping draft release with notes:" >> $GITHUB_STEP_SUMMARY
-          echo $NOTES >> $GITHUB_STEP_SUMMARY
+          cat github.md >> $GITHUB_STEP_SUMMARY
         fi
+        rm github.md
