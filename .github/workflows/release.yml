@@ -24,7 +24,7 @@ jobs:
       id-token: write
       contents: write
     steps:
-      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+      - uses: actions/create-github-app-token@v1
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
