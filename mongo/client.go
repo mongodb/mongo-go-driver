@@ -79,6 +79,7 @@ type Client struct {
 	metadataClientFLE  *Client
 	internalClientFLE  *Client
 	encryptedFieldsMap map[string]interface{}
+	authenticator      driver.Authenticator
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling

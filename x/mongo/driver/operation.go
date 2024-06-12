@@ -916,8 +916,13 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Labels = tt.Labels
 			operationErr.Raw = tt.Raw
 		case Error:
+			// TODO: actually make sure this Reauths
 			if tt.Code == 391 {
-				op.Authenticator.Reauth(ctx)
+				if op.Authenticator != nil {
+					if err := op.Authenticator.Reauth(ctx); err != nil {
+						return err
+					}
+				}
 			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				if err := op.Client.ClearPinnedResources(); err != nil {

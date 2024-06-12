@@ -38,6 +38,7 @@ type Command struct {
 	cursorOpts     driver.CursorOptions
 	timeout        *time.Duration
 	logger         *logger.Logger
+	authenticator  driver.Authenticator
 }
 
 // NewCommand constructs and returns a new Command. Once the operation is executed, the result may only be accessed via
