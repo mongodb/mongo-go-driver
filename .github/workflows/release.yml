@@ -79,14 +79,14 @@ jobs:
           product_name: mongo-go-driver
           release_version: ${{ inputs.version }}
           token: ${{ github.token }}
-      - uses: mongodb-labs/drivers-github-tools/sbom@v2
-        with:
-          silk_asset_group: mongodb-go-driver-v1
-      - name: Generate Sarif Report
-        uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
-        with:
-          ref: ${{ inputs.version }}
-          output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
+      # - uses: mongodb-labs/drivers-github-tools/sbom@v2
+      #   with:
+      #     silk_asset_group: mongodb-go-driver-v1
+      # - name: Generate Sarif Report
+      #   uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
+      #   with:
+      #     ref: ${{ inputs.version }}
+      #     output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
       - name: Generate Compliance Report
         uses: mongodb-labs/drivers-github-tools/compliance-report@v2
         with: 
