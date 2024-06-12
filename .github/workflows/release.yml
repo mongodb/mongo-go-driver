@@ -35,7 +35,6 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
-      # Todo: extract previous version and write it to a global variable
       - name: Get previous version
         id: prev-version
         run: |
@@ -75,11 +74,34 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
-      # TODO: generate reports here
+      - uses: mongodb-labs/drivers-github-tools/authorized-pub@v2
+        with:
+          product_name: mongo-go-driver
+          release_version: ${{ inputs.version }}
+          token: ${{ github.token }}
+      - uses: mongodb-labs/drivers-github-tools/sbom@v2
+        with:
+          silk_asset_group: mongodb-go-driver-v1
+      - name: Generate Sarif Report
+        uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
+        with:
+          ref: ${{ inputs.version }}
+          output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
+      - name: Generate Compliance Report
+        uses: mongodb-labs/drivers-github-tools/compliance-report@v2
+        with: 
+            token: ${{ github.token }}
+      - name: Upload S3 assets
+        uses: mongodb-labs/drivers-github-tools/upload-s3-assets@v2
+        with:
+            version: ${{ inputs.version }}
+            product_name: mongo-go-driver
+            dry_run: ${{ inputs.push_changes == 'true' && 'false' || 'true' }}
       - uses: ./.github/actions/publish
         with:
           version: ${{ inputs.version }}
           prev_version: ${{ needs.bump-and-tag.outputs.prev_version }}
+          product_name: mongo-go-driver
           push_changes: ${{ inputs.push_changes }}
       - uses: mongodb-labs/drivers-github-tools/bump-version@v2
         with:
