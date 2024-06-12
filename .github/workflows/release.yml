@@ -91,7 +91,7 @@ jobs:
         run: |
           if [ "${{ inputs.push_changes }}" != "true" ]; then
             export DRY_RUN=true
-          else:
+          else
             export DRY_RUN=false
           fi
           export "DRY_RUN=$DRY_RUN" >> $GITHUB_ENV
