@@ -40,7 +40,7 @@ jobs:
         id: prev-version
         run: |
           export PREV_VERSION=$(cat version/version.go | grep "var Driver" | awk -F'"' '{print $2}')
-          echo "prev_version=$PREV_VERSION" >> $GITHUB_ENV
+          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
       - uses: mongodb-labs/drivers-github-tools/bump-version@v2
         with:
           version: ${{ inputs.version }}
