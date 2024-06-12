@@ -87,6 +87,14 @@ jobs:
       #   with:
       #     ref: ${{ inputs.version }}
       #     output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
+      - name: Handle Dry Run
+        run: |
+          if [ "${{ inputs.push_changes }}"" != 'true' ]; then
+            export DRY_RUN=true
+          else:
+            export DRY_RUN=false
+          fi
+          export "DRY_RUN=$DRY_RUN" >> $GITHUB_ENV
       - name: Generate Compliance Report
         uses: mongodb-labs/drivers-github-tools/compliance-report@v2
         with: 
@@ -96,7 +104,7 @@ jobs:
         with:
             version: ${{ inputs.version }}
             product_name: mongo-go-driver
-            dry_run: ${{ inputs.push_changes != 'true' }}
+            dry_run: ${{ env.DRY_RUN }}
       - uses: ./.github/actions/publish
         with:
           version: ${{ inputs.version }}
