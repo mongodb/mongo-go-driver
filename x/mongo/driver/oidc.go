@@ -95,40 +95,42 @@ func principalStepRequest(principal string) []byte {
 	return doc.Build()
 }
 
-//// OIDC Sasl
+// OIDC Sasl. This is almost a verbatim copy of auth/sasl introduced to remove the dependency on auth package
+// which causes a circular dependency when attempting to do Reauthentication in driver/operation.go.
+// This could be removed with a larger refactor.
 
 func newError(err error, mechanism string) error {
 	return fmt.Errorf("error during %s SASL conversation: %w", oidcMech, err)
 }
 
-// SaslClient is the client piece of a sasl conversation.
-type SaslClient interface {
+// oidcSaslClient is the client piece of a sasl conversation.
+type oidcSaslClient interface {
 	Start() (string, []byte, error)
 	Next(challenge []byte) ([]byte, error)
 	Completed() bool
 }
 
-// SaslClientCloser is a SaslClient that has resources to clean up.
-type SaslClientCloser interface {
-	SaslClient
+// oidcSaslClientCloser is a oidcSaslClient that has resources to clean up.
+type oidcSaslClientCloser interface {
+	oidcSaslClient
 	Close()
 }
 
-// ExtraOptionsSaslClient is a SaslClient that appends options to the saslStart command.
-type ExtraOptionsSaslClient interface {
+// extraOptionsOIDCSaslClient is a SaslClient that appends options to the saslStart command.
+type extraOptionsOIDCSaslClient interface {
 	StartCommandOptions() bsoncore.Document
 }
 
 // saslConversation represents a SASL conversation. This type implements the SpeculativeConversation interface so the
 // conversation can be executed in multi-step speculative fashion.
 type saslConversation struct {
-	client      SaslClient
+	client      oidcSaslClient
 	source      string
 	mechanism   string
 	speculative bool
 }
 
-func newSaslConversation(client SaslClient, source string, speculative bool) *saslConversation {
+func newSaslConversation(client oidcSaslClient, source string, speculative bool) *saslConversation {
 	authSource := source
 	if authSource == "" {
 		authSource = defaultAuthDB
@@ -161,7 +163,7 @@ func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
 		// will be executed against the auth source.
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendStringElement(nil, "db", sc.source))
 	}
-	if extraOptionsClient, ok := sc.client.(ExtraOptionsSaslClient); ok {
+	if extraOptionsClient, ok := sc.client.(extraOptionsOIDCSaslClient); ok {
 		optionsDoc := extraOptionsClient.StartCommandOptions()
 		saslCmdElements = append(saslCmdElements, bsoncore.AppendDocumentElement(nil, "options", optionsDoc))
 	}
@@ -177,6 +179,8 @@ type saslResponse struct {
 }
 
 // AuthConfig holds the information necessary to perform an authentication attempt.
+// this was moved from the auth package to avoid a circular dependency. The auth package
+// reexports this under the old name to avoid breaking the public api.
 type AuthConfig struct {
 	Description   description.Server
 	Connection    Connection
@@ -188,7 +192,7 @@ type AuthConfig struct {
 
 // finish completes the conversation based on the first server response to authenticate the given connection.
 func (sc *saslConversation) finish(ctx context.Context, cfg *AuthConfig, firstResponse bsoncore.Document) error {
-	if closer, ok := sc.client.(SaslClientCloser); ok {
+	if closer, ok := sc.client.(oidcSaslClientCloser); ok {
 		defer closer.Close()
 	}
 
@@ -251,7 +255,7 @@ func (sc *saslConversation) finish(ctx context.Context, cfg *AuthConfig, firstRe
 }
 
 // conductOIDCSaslConversation runs a full SASL conversation to authenticate the given connection.
-func conductOIDCSaslConversation(ctx context.Context, cfg *AuthConfig, authSource string, client SaslClient) error {
+func conductOIDCSaslConversation(ctx context.Context, cfg *AuthConfig, authSource string, client oidcSaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
 
