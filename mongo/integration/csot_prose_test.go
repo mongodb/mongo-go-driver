@@ -91,7 +91,7 @@ func TestCSOTProse(t *testing.T) {
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+				assert.Error(mt, err, "expected Ping error, got nil")
 				return true
 			}
 
@@ -110,7 +110,7 @@ func TestCSOTProse(t *testing.T) {
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+				assert.Error(mt, err, "expected Ping error, got nil")
 				return true
 			}
 
@@ -129,7 +129,7 @@ func TestCSOTProse(t *testing.T) {
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+				assert.Error(mt, err, "expected Ping error, got nil")
 				return true
 			}
 
@@ -148,7 +148,7 @@ func TestCSOTProse(t *testing.T) {
 
 			callback := func() bool {
 				err := mt.Client.Ping(context.Background(), nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+				assert.Error(mt, err, "expected Ping error, got nil")
 				return true
 			}
 

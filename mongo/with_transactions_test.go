@@ -403,7 +403,7 @@ func TestConvenientTransactions(t *testing.T) {
 			transactionCtx, cancel := context.WithCancel(context.Background())
 			_, _ = sess.WithTransaction(transactionCtx, func(ctx SessionContext) (interface{}, error) {
 				_, err := coll.InsertOne(ctx, bson.M{"x": 1})
-				assert.Nil(t, err, "InsertOne error: %v", err)
+				assert.NoError(t, err, "InsertOne error: %v", err)
 				cancel()
 				return nil, nil
 			})
@@ -564,7 +564,7 @@ func TestConvenientTransactions(t *testing.T) {
 				_, err := coll.InsertOne(c, bson.D{{}})
 				return nil, err
 			})
-			assert.Nil(t, err, "WithTransaction error: %v", err)
+			assert.NoError(t, err, "WithTransaction error: %v", err)
 			return true
 		}
 
