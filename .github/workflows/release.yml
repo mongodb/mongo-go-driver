@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The new version to set"
+      following_version:
+        description: "The post (dev) version to set"
+      dry_run:
+        description: "Dry Run?"
+        default: false
+        type: boolean
+
+defaults:
+  run:
+    shell: bash -eux {0}
+
+jobs:
+  bump-and-tag:
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+        with:
+          app_id: ${{ vars.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: mongodb-labs/drivers-github-tools/setup@v2
+        with:
+          aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws_region_name: ${{ vars.AWS_REGION_NAME }}
+          aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+      - uses: mongodb-labs/drivers-github-tools/bump-version@v2
+        with:
+          version: ${{ inputs.version }}
+          version_bump_script: "go run ./.github/scripts/bump-version.go"
+          dry_run: ${{ inputs.dry_run }}
+      - uses: mongodb-labs/drivers-github-tools/tag-version@v2
+        with:
+          version: ${{ inputs.version }}
+          dry_run: ${{ inputs.dry_run }}
+
+  # static-scan:
+  #   needs: [bump-and-tag]
+  #   uses: ./.github/workflows/codeql.yml
+  #   with:
+  #     ref: ${{ inputs.version }}
+
+  publish-and-bump:
+    needs: [bump-and-tag]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+      security-events: write
+    steps:
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+        with:
+          app_id: ${{ vars.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: mongodb-labs/drivers-github-tools/setup@v2
+        with:
+          aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws_region_name: ${{ vars.AWS_REGION_NAME }}
+          aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+      # TODO: generate reports here
+      # TODO: create draft github release here
+      - uses: mongodb-labs/drivers-github-tools/bump-version@v2
+        with:
+          version: ${{ inputs.version }}
+          version_bump_script: "go run ./.github/scripts/bump-version.go"
+          dry_run: ${{ inputs.dry_run }}
