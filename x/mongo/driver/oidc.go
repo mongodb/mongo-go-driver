@@ -99,6 +99,18 @@ func principalStepRequest(principal string) []byte {
 // which causes a circular dependency when attempting to do Reauthentication in driver/operation.go.
 // This could be removed with a larger refactor.
 
+// AuthConfig holds the information necessary to perform an authentication attempt.
+// this was moved from the auth package to avoid a circular dependency. The auth package
+// reexports this under the old name to avoid breaking the public api.
+type AuthConfig struct {
+	Description   description.Server
+	Connection    Connection
+	ClusterClock  *session.ClusterClock
+	HandshakeInfo HandshakeInformation
+	ServerAPI     *ServerAPIOptions
+	HTTPClient    *http.Client
+}
+
 func newError(err error, mechanism string) error {
 	return fmt.Errorf("error during %s SASL conversation: %w", oidcMech, err)
 }
@@ -142,9 +154,9 @@ func newSaslConversation(client oidcSaslClient, source string, speculative bool)
 	}
 }
 
-// FirstMessage returns the first message to be sent to the server. This message contains a "db" field so it can be used
+// firstMessage returns the first message to be sent to the server. This message contains a "db" field so it can be used
 // for speculative authentication.
-func (sc *saslConversation) FirstMessage() (bsoncore.Document, error) {
+func (sc *saslConversation) firstMessage() (bsoncore.Document, error) {
 	var payload []byte
 	var err error
 	sc.mechanism, payload, err = sc.client.Start()
@@ -176,18 +188,6 @@ type saslResponse struct {
 	Code           int    `bson:"code"`
 	Done           bool   `bson:"done"`
 	Payload        []byte `bson:"payload"`
-}
-
-// AuthConfig holds the information necessary to perform an authentication attempt.
-// this was moved from the auth package to avoid a circular dependency. The auth package
-// reexports this under the old name to avoid breaking the public api.
-type AuthConfig struct {
-	Description   description.Server
-	Connection    Connection
-	ClusterClock  *session.ClusterClock
-	HandshakeInfo HandshakeInformation
-	ServerAPI     *ServerAPIOptions
-	HTTPClient    *http.Client
 }
 
 // finish completes the conversation based on the first server response to authenticate the given connection.
@@ -262,7 +262,7 @@ func conductOIDCSaslConversation(ctx context.Context, cfg *AuthConfig, authSourc
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
 
-	doc, err := conversation.FirstMessage()
+	doc, err := conversation.firstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
