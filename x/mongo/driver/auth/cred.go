@@ -9,4 +9,4 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
-type Cred = driver.AuthCred
+type Cred = driver.Cred

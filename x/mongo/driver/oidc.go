@@ -28,8 +28,8 @@ type Authenticator interface {
 	Auth(context.Context, *AuthConfig) error
 }
 
-// AuthCred is a user's credential.
-type AuthCred struct {
+// Cred is a user's credential.
+type Cred struct {
 	Source      string
 	Username    string
 	Password    string
@@ -50,7 +50,7 @@ type OIDCAuthenticator struct {
 	idpInfo      *IDPInfo
 }
 
-func NewOIDCAuthenticator(cred *AuthCred) (Authenticator, error) {
+func NewOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 	oa := &OIDCAuthenticator{
 		AuthMechanismProperties: cred.Props,
 	}
