@@ -6,9 +6,6 @@ import (
 	"log"
 	"os"
 	"text/template"
-
-	"github.com/coreos/go-semver/semver"
-	"github.com/fatih/color"
 )
 
 //go:embed github.md.tmpl
@@ -21,26 +18,26 @@ var forumTmpl string
 // for a Github release and writes it to a file named "github.md". It
 // also prints the gh command to create a new draft release with those release
 // notes.
-func generateGithubNotes(release, previous *semver.Version) {
+func generateGithubNotes(release, previous string) {
 	filename := fmt.Sprintf("github.md", release)
 
 	writeTemplate(
 		filename,
 		githubTmpl,
 		map[string]any{
-			"ReleaseVersion":  release.String(),
-			"PreviousVersion": previous.String(),
+			"ReleaseVersion":  release,
+			"PreviousVersion": previous,
 		})
 
 	fmt.Println()
 	fmt.Print(
-		color.BlueString(`Wrote Github notes template to "`),
-		color.GreenString(filename),
-		color.BlueString(`".`),
+		`Wrote Github notes template to "`,
+		filename,
+		`".`,
 		"\n")
-	color.Blue("Fill out any missing information and run the following command to create the Github release:")
+	fmt.Println("Fill out any missing information and run the following command to create the Github release:")
 	fmt.Println()
-	color.Green(
+	fmt.Println(
 		"\tgh auth refresh && gh release create v%[1]s --verify-tag --draft -R 'mongodb/mongo-go-driver' -t 'MongoDB Go Driver %[1]s' -F '%[2]s'",
 		release,
 		filename)
@@ -49,9 +46,9 @@ func generateGithubNotes(release, previous *semver.Version) {
 // generateForumNotes generates a partially filled out release notes template
 // for a MongoDB community forum release post and writes it to a file named
 // "forum.md".
-func generateForumNotes(version *semver.Version) {
+func generateForumNotes(version string) {
 	data := map[string]any{
-		"ReleaseVersion": version.String(),
+		"ReleaseVersion": version,
 	}
 
 	forumFilename := fmt.Sprintf("forum.md", version)
@@ -62,12 +59,12 @@ func generateForumNotes(version *semver.Version) {
 
 	fmt.Println()
 	fmt.Print(
-		color.BlueString(`Wrote MongoDB community forum notes template to "`),
-		color.GreenString(forumFilename),
-		color.BlueString(`".`),
+		`Wrote MongoDB community forum notes template to "`,
+		forumFilename,
+		`".`,
 		"\n")
-	color.Blue("Fill out any missing information and paste the contents into a new MongoDB community forum post in section:")
-	color.Blue("https://www.mongodb.com/community/forums/c/announcements/driver-releases/110")
+	fmt.Println("Fill out any missing information and paste the contents into a new MongoDB community forum post in section:")
+	fmt.Println("https://www.mongodb.com/community/forums/c/announcements/driver-releases/110")
 }
 
 func writeTemplate(filename, tmplText string, data any) {
