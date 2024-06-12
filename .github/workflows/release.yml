@@ -71,6 +71,6 @@ jobs:
       # TODO: create draft github release here
       - uses: mongodb-labs/drivers-github-tools/bump-version@v2
         with:
-          version: ${{ inputs.version }}
+          version: ${{ inputs.following_version }}
           version_bump_script: "go run ./.github/scripts/bump-version.go"
           push_commit: ${{ inputs.push_changes }}
