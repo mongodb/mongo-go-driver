@@ -26,6 +26,7 @@ runs:
         echo "Creating draft release"
         cd ${{ github.action_path }}
         export NOTES=$(cat github.md)
+        export VERSION=${{inputs.version}}
         rm github.md
         if [ "${{ inputs.push_changes }}" == "true" ]; then
           gh release create ${VERSION} --draft --verify-tag --title ${VERSION} --notes $NOTES
