@@ -205,7 +205,7 @@ func (sc *saslConversation) finish(ctx context.Context, cfg *AuthConfig, firstRe
 
 	cid := saslResp.ConversationID
 	var payload []byte
-	var rdr bsoncore.Document
+	var result bsoncore.Document
 	for {
 		if saslResp.Code != 0 {
 			return newError(err, sc.mechanism)
@@ -230,27 +230,30 @@ func (sc *saslConversation) finish(ctx context.Context, cfg *AuthConfig, firstRe
 			bsoncore.AppendBinaryElement(nil, "payload", 0x00, payload),
 		)
 
-		fmt.Println(rdr)
-		fmt.Println(doc)
+		saslOp := Operation{
+			CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+				return append(dst, doc[4:len(doc)-1]...), nil
+			},
+			ProcessResponseFn: func(info ResponseInfo) error {
+				result = info.ServerResponse
+				return nil
+			},
+			Deployment: Deployment(SingleConnectionDeployment{cfg.Connection}),
+			Database:   sc.source,
+			Clock:      cfg.ClusterClock,
+			ServerAPI:  cfg.ServerAPI,
+		}
 
+		err = saslOp.Execute(ctx)
+		if err != nil {
+			return newError(err, sc.mechanism)
+		}
+		err = bson.Unmarshal(result, &saslResp)
+		if err != nil {
+			fullErr := fmt.Errorf("unmarshal error: %w", err)
+			return newError(fullErr, sc.mechanism)
+		}
 		return nil
-		//saslContinueCmd := NewCommand(doc).
-		//	Database(sc.source).
-		//	Deployment(SingleConnectionDeployment{cfg.Connection}).
-		//	ClusterClock(cfg.ClusterClock).
-		//	ServerAPI(cfg.ServerAPI)
-
-		//		err = saslContinueCmd.Execute(ctx)
-		//		if err != nil {
-		//			return newError(err, sc.mechanism)
-		//		}
-		//		rdr = saslContinueCmd.Result()
-		//
-		//		err = bson.Unmarshal(rdr, &saslResp)
-		//		if err != nil {
-		//			fullErr := fmt.Errorf("unmarshal error: %w", err)
-		//			return newError(fullErr, sc.mechanism)
-		//		}
 	}
 }
 
@@ -259,22 +262,27 @@ func conductOIDCSaslConversation(ctx context.Context, cfg *AuthConfig, authSourc
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
 
-	saslStartDoc, err := conversation.FirstMessage()
+	doc, err := conversation.FirstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
-	fmt.Println(saslStartDoc)
-	return nil
-	// saslStartCmd := NewCommand(saslStartDoc).
-	//
-	//	Database(authSource).
-	//	Deployment(SingleConnectionDeployment{cfg.Connection}).
-	//	ClusterClock(cfg.ClusterClock).
-	//	ServerAPI(cfg.ServerAPI)
-	//
-	//	if err := saslStartCmd.Execute(ctx); err != nil {
-	//		return newError(err, conversation.mechanism)
-	//	}
-	//
-	// return conversation.finish(ctx, cfg, saslStartCmd.Result())
+	var result bsoncore.Document
+	saslOp := Operation{
+		CommandFn: func(dst []byte, desc description.SelectedServer) ([]byte, error) {
+			return append(dst, doc[4:len(doc)-1]...), nil
+		},
+		ProcessResponseFn: func(info ResponseInfo) error {
+			result = info.ServerResponse
+			return nil
+		},
+		Deployment: Deployment(SingleConnectionDeployment{cfg.Connection}),
+		Database:   authSource,
+		Clock:      cfg.ClusterClock,
+		ServerAPI:  cfg.ServerAPI,
+	}
+	if err := saslOp.Execute(ctx); err != nil {
+		return newError(err, conversation.mechanism)
+	}
+
+	return conversation.finish(ctx, cfg, result)
 }
