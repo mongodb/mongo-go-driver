@@ -27,7 +27,7 @@ runs:
         cd ${{ github.action_path }}
         export NOTES=$(cat github.md)
         rm github.md
-        if [ "${{ inputs.push_changes }}"" == "true"]; then
+        if [ "${{ inputs.push_changes }}" == "true"]; then
           gh release create ${VERSION} --draft --verify-tag --title ${VERSION} --notes $NOTES
           gh release view ${VERSION} >> $GITHUB_STEP_SUMMARY
         else
