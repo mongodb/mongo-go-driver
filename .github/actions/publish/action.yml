@@ -1,0 +1,33 @@
+name: Publish
+description: Publish Draft GitHub Release
+inputs:
+  version:
+    description: The published version
+    required: true
+  push_changes:
+    description: Whether to push the changes
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Generate the notes
+      shell: bash -eux {0}
+      run: |
+        cd ${{ github.actions_path }}
+        go run notes.go ${{ inputs.version }} $PREV_VERSION
+        cat forum.md >> $GITHUB_STEP_SUMMARY
+        rm forum.md
+    - name: Create GitHub Release
+      shell: bash -eux {0}
+      run: |
+        echo "Creating draft release"
+        cd ${{ github.actions_path }}
+        export NOTES=$(cat github.md)
+        rm github.md
+        if [ "${{ inputs.push_changes }}"" == "true"]; then
+          gh release create ${VERSION} --draft --verify-tag --title ${VERSION} --notes $NOTES
+          gh release view ${VERSION} >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## Skipping draft release with notes:" >> $GITHUB_STEP_SUMMARY
+          echo $NOTES >> $GITHUB_STEP_SUMMARY
+        fi

@@ -33,6 +33,10 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+      # Todo: extract previous version and write it to a global variable
+      - run: |
+          export PREV_VERSION=$(cat version/version.go | grep "var Driver" | awk -F'"' '{print $2}')
+          echo "PREV_VERSION=$PREV_VERSION" >> $GITHUB_ENV
       - uses: mongodb-labs/drivers-github-tools/bump-version@v2
         with:
           version: ${{ inputs.version }}
@@ -68,7 +72,10 @@ jobs:
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
       # TODO: generate reports here
-      # TODO: create draft github release here
+      - uses: ./.github/actions/publish
+        with:
+          version: ${{ inputs.version }}
+          push_changes: ${{ inputs.push_changes }}
       - uses: mongodb-labs/drivers-github-tools/bump-version@v2
         with:
           version: ${{ inputs.following_version }}
