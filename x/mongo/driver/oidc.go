@@ -1,7 +1,8 @@
-package authutil
+package driver
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -29,15 +30,21 @@ type OIDCAuthenticator struct {
 	idpInfo      *IDPInfo
 }
 
+func NewOIDCAuthenticator() *OIDCAuthenticator {
+	return &OIDCAuthenticator{
+		AuthMechanismProperties: make(map[string]string),
+	}
+}
+
 type IDPInfo struct {
 	Issuer        string   `bson:"issuer"`
 	ClientID      string   `bson:"clientId"`
 	RequestScopes []string `bson:"requestScopes"`
 }
 
-type OIDCCallback func(context.Context, *OIDCAargs) (*OIDCCredential, error)
+type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
 
-type OIDCAargs struct {
+type OIDCArgs struct {
 	Version      int
 	IDPInfo      *IDPInfo
 	RefreshToken *string
@@ -55,6 +62,10 @@ type oidcOneStep struct {
 
 func (oos *oidcOneStep) Start() (string, []byte, error) {
 	return oidcMech, jwtStepRequest(oos.accessToken), nil
+}
+
+func newAuthError(msg string, err error) error {
+	return fmt.Errorf("authentication error: %s: %w", msg, err)
 }
 
 func (oos *oidcOneStep) Next(context.Context, []byte) ([]byte, error) {
