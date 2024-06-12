@@ -7,8 +7,8 @@ on:
         description: "The new version to set"
       following_version:
         description: "The post (dev) version to set"
-      dry_run:
-        description: "Dry Run?"
+      push_changes:
+        description: "Push changes?"
         default: false
         type: boolean
 
@@ -24,7 +24,7 @@ jobs:
       id-token: write
       contents: write
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
         with:
           app_id: ${{ vars.APP_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
@@ -37,11 +37,11 @@ jobs:
         with:
           version: ${{ inputs.version }}
           version_bump_script: "go run ./.github/scripts/bump-version.go"
-          dry_run: ${{ inputs.dry_run }}
+          push_commit: ${{ inputs.push_changes }}
       - uses: mongodb-labs/drivers-github-tools/tag-version@v2
         with:
           version: ${{ inputs.version }}
-          dry_run: ${{ inputs.dry_run }}
+          push_tag: ${{ inputs.push_changes }}
 
   # static-scan:
   #   needs: [bump-and-tag]
@@ -73,4 +73,4 @@ jobs:
         with:
           version: ${{ inputs.version }}
           version_bump_script: "go run ./.github/scripts/bump-version.go"
-          dry_run: ${{ inputs.dry_run }}
+          push_commit: ${{ inputs.push_changes }}
