@@ -97,11 +97,9 @@ func TestCSOTProse(t *testing.T) {
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
 			assert.Eventually(t,
-				func() bool {
-					return callback()
-				},
+				callback,
 				150*time.Millisecond,
-				10*time.Millisecond,
+				time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
 
@@ -118,11 +116,9 @@ func TestCSOTProse(t *testing.T) {
 
 			// Assert that Ping fails within 150ms due to timeout.
 			assert.Eventually(t,
-				func() bool {
-					return callback()
-				},
+				callback,
 				150*time.Millisecond,
-				10*time.Millisecond,
+				time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
 
@@ -139,11 +135,9 @@ func TestCSOTProse(t *testing.T) {
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
 			assert.Eventually(t,
-				func() bool {
-					return callback()
-				},
+				callback,
 				150*time.Millisecond,
-				20*time.Millisecond,
+				time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
 
@@ -160,11 +154,9 @@ func TestCSOTProse(t *testing.T) {
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
 			assert.Eventually(t,
-				func() bool {
-					return callback()
-				},
+				callback,
 				150*time.Millisecond,
-				10*time.Millisecond,
+				time.Millisecond,
 				"expected ping to fail within 150ms")
 		})
 	})

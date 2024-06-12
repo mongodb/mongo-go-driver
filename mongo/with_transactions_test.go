@@ -412,11 +412,9 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Assert that transaction is canceled within 500ms and not 2 seconds.
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			500*time.Millisecond,
-			100*time.Millisecond,
+			time.Millisecond,
 			"expected transaction to be canceled within 500ms")
 
 		// Assert that AbortTransaction was started once and succeeded.
@@ -479,11 +477,9 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			500*time.Millisecond,
-			100*time.Millisecond,
+			time.Millisecond,
 			"expected transaction to fail within 500ms")
 	})
 	t.Run("canceled context before callback does not retry", func(t *testing.T) {
@@ -516,11 +512,9 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			500*time.Millisecond,
-			100*time.Millisecond,
+			time.Millisecond,
 			"expected transaction to fail within 500ms")
 	})
 	t.Run("slow operation in callback retries", func(t *testing.T) {
@@ -576,11 +570,9 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Assert that transaction passes within 2 seconds.
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			withTransactionTimeout,
-			300*time.Millisecond,
+			time.Millisecond,
 			"expected transaction to be passed within 2s")
 
 	})

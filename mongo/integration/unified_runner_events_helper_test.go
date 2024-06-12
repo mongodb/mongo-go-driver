@@ -88,13 +88,6 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 	expectedCount := int(op.Arguments.Lookup("count").Int32())
 
 	callback := func() bool {
-		// Stop loop if callback has been canceled.
-		select {
-		case <-context.Background().Done():
-			return true
-		default:
-		}
-
 		var count int
 		// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
 		if eventType == "ServerMarkedUnknownEvent" {
@@ -107,11 +100,10 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 	}
 
 	assert.Eventually(mt,
-		func() bool {
-			return callback()
-		},
+		callback,
 		defaultCallbackTimeout,
-		100*time.Millisecond)
+		100*time.Millisecond,
+		"expected spec tests to only wait for Server Marked Unknown SDAM events")
 }
 
 func assertEventCount(mt *mtest.T, testCase *testCase, op *operation) {
@@ -134,24 +126,14 @@ func recordPrimary(mt *mtest.T, testCase *testCase) {
 }
 
 func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
-	callback := func() bool {
-		// Stop loop if callback has been canceled.
-		select {
-		case <-context.Background().Done():
-			return true
-		default:
-		}
-
-		return getPrimaryAddress(mt, testCase.testTopology, false) != testCase.recordedPrimary
-	}
-
 	timeout := convertValueToMilliseconds(mt, op.Arguments.Lookup("timeoutMS"))
 	assert.Eventually(mt,
 		func() bool {
-			return callback()
+			return getPrimaryAddress(mt, testCase.testTopology, false) != testCase.recordedPrimary
 		},
 		timeout,
-		100*time.Millisecond)
+		100*time.Millisecond,
+		"expected primary address to be different within the timeout period")
 }
 
 // getPrimaryAddress returns the address of the current primary. If failFast is true, the server selection fast path

@@ -539,9 +539,7 @@ func TestClient(t *testing.T) {
 			return true
 		}
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			10*time.Second,
 			100*time.Millisecond,
 			"expected that the minimum RTT is eventually >250ms")
@@ -581,9 +579,7 @@ func TestClient(t *testing.T) {
 			return true
 		}
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			10*time.Second,
 			100*time.Millisecond,
 			"expected that the minimum RTT is eventually >250ms")
@@ -626,9 +622,7 @@ func TestClient(t *testing.T) {
 			return true
 		}
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			10*time.Second,
 			100*time.Millisecond,
 			"expected that the RTT90s are eventually >300ms")
@@ -671,9 +665,7 @@ func TestClient(t *testing.T) {
 			return true
 		}
 		assert.Eventually(t,
-			func() bool {
-				return callback()
-			},
+			callback,
 			10*time.Second,
 			100*time.Millisecond,
 			"expected that the RTT90s are eventually >275ms")

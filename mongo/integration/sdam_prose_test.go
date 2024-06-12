@@ -125,13 +125,6 @@ func TestSDAMProse(t *testing.T) {
 				},
 			})
 			callback := func() bool {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-context.Background().Done():
-					return true
-				default:
-				}
-
 				// We don't know which server received the failpoint command, so we wait until any of the server
 				// RTTs cross the threshold.
 				for _, serverDesc := range testTopology.Description().Servers {
@@ -144,11 +137,10 @@ func TestSDAMProse(t *testing.T) {
 				return false
 			}
 			assert.Eventually(t,
-				func() bool {
-					return callback()
-				},
+				callback,
 				defaultCallbackTimeout,
-				500*time.Millisecond)
+				500*time.Millisecond,
+				"expected average rtt heartbeats at least within every 500 ms period")
 		})
 	})
 

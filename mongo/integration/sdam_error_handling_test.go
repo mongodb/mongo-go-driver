@@ -85,27 +85,11 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
+
 				// Assert that the pool is cleared within 2 seconds.
-				callback := func() bool {
-					ticker := time.NewTicker(100 * time.Millisecond)
-					defer ticker.Stop()
-
-					for {
-						select {
-						case <-ticker.C:
-						case <-context.Background().Done():
-							return true
-						}
-
-						if tpm.IsPoolCleared() {
-							return true
-						}
-					}
-				}
-
 				assert.Eventually(t,
 					func() bool {
-						return callback()
+						return tpm.IsPoolCleared()
 					},
 					2*time.Second,
 					100*time.Millisecond,
@@ -139,26 +123,9 @@ func TestSDAMErrorHandling(t *testing.T) {
 						SetMinPoolSize(5))
 
 					// Assert that the pool is cleared within 2 seconds.
-					callback := func() bool {
-						ticker := time.NewTicker(100 * time.Millisecond)
-						defer ticker.Stop()
-
-						for {
-							select {
-							case <-ticker.C:
-							case <-context.Background().Done():
-								return true
-							}
-
-							if tpm.IsPoolCleared() {
-								return true
-							}
-						}
-					}
-
 					assert.Eventually(t,
 						func() bool {
-							return callback()
+							return tpm.IsPoolCleared()
 						},
 						2*time.Second,
 						100*time.Millisecond,
@@ -191,26 +158,9 @@ func TestSDAMErrorHandling(t *testing.T) {
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 
 					// Assert that the pool is cleared within 2 seconds.
-					callback := func() bool {
-						ticker := time.NewTicker(100 * time.Millisecond)
-						defer ticker.Stop()
-
-						for {
-							select {
-							case <-ticker.C:
-							case <-context.Background().Done():
-								return true
-							}
-
-							if tpm.IsPoolCleared() {
-								return true
-							}
-						}
-					}
-
 					assert.Eventually(t,
 						func() bool {
-							return callback()
+							return tpm.IsPoolCleared()
 						},
 						2*time.Second,
 						100*time.Millisecond,

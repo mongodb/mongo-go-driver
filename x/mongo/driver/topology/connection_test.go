@@ -244,9 +244,7 @@ func TestConnection(t *testing.T) {
 							return true
 						}
 						assert.Eventually(t,
-							func() bool {
-								return callback()
-							},
+							callback,
 							tc.maxConnectTime,
 							time.Millisecond,
 							"expected timeout to apply to socket establishment after maximum connect time")
@@ -286,9 +284,7 @@ func TestConnection(t *testing.T) {
 							return true
 						}
 						assert.Eventually(t,
-							func() bool {
-								return callback()
-							},
+							callback,
 							tc.maxConnectTime,
 							time.Millisecond,
 							"expected timeout to apply to TLS handshake after maximum connect time")
