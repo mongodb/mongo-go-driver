@@ -25,7 +25,7 @@ func main() {
 	repoDir, err := os.Getwd()
 	versionFilePath := path.Join(repoDir, versionFile)
 
-	writeFile, err := os.OpenFile(versionFilePath, os.O_WRONLY, 0644)
+	writeFile, err := os.OpenFile(versionFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Println(err)
 	}
