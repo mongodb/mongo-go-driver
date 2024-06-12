@@ -16,7 +16,7 @@ runs:
     - name: Generate the notes
       shell: bash -eux {0}
       run: |
-        cd ${{ github.actions_path }}
+        cd ${{ github.action_path }}
         go run notes.go ${{ inputs.version }} ${{ inputs.prev_version }}
         cat forum.md >> $GITHUB_STEP_SUMMARY
         rm forum.md
@@ -24,7 +24,7 @@ runs:
       shell: bash -eux {0}
       run: |
         echo "Creating draft release"
-        cd ${{ github.actions_path }}
+        cd ${{ github.action_path }}
         export NOTES=$(cat github.md)
         rm github.md
         if [ "${{ inputs.push_changes }}"" == "true"]; then
