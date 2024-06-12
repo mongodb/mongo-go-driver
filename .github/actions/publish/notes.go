@@ -19,7 +19,7 @@ var forumTmpl string
 // also prints the gh command to create a new draft release with those release
 // notes.
 func generateGithubNotes(release, previous string) {
-	filename := fmt.Sprintf("github.md", release)
+	filename := "github.md"
 
 	writeTemplate(
 		filename,
@@ -51,7 +51,7 @@ func generateForumNotes(version string) {
 		"ReleaseVersion": version,
 	}
 
-	forumFilename := fmt.Sprintf("forum.md", version)
+	forumFilename := "forum.md"
 	writeTemplate(
 		forumFilename,
 		forumTmpl,
