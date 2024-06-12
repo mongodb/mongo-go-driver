@@ -114,6 +114,8 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 	return ah.handshakeInfo, nil
 }
 
+type Config = driver.AuthConfig
+
 // FinishHandshake performs authentication for conn if necessary.
 func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
 	performAuth := ah.options.PerformAuthentication
@@ -168,16 +170,6 @@ func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshake
 		wrapped: h,
 		options: options,
 	}
-}
-
-// Config holds the information necessary to perform an authentication attempt.
-type Config struct {
-	Description   description.Server
-	Connection    driver.Connection
-	ClusterClock  *session.ClusterClock
-	HandshakeInfo driver.HandshakeInformation
-	ServerAPI     *driver.ServerAPIOptions
-	HTTPClient    *http.Client
 }
 
 // Authenticator handles authenticating a connection.
