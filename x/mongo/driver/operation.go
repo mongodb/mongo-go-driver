@@ -315,6 +315,10 @@ type Operation struct {
 	// [Operation.MaxTime].
 	OmitCSOTMaxTimeMS bool
 
+	// Authenticator is the authenticator to use for this operation when a reauthentication is
+	// required.
+	Authenticator Authenticator
+
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
 	// where a default read preference is used when the operation
@@ -913,8 +917,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Raw = tt.Raw
 		case Error:
 			if tt.Code == 391 {
-				x, _ := NewOIDCAuthenticator(nil)
-				fmt.Println(x)
+				op.Authenticator.Reauth(ctx)
 			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				if err := op.Client.ClearPinnedResources(); err != nil {

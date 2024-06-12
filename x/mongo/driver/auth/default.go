@@ -66,6 +66,11 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return actual.Auth(ctx, cfg)
 }
 
+// Reauth reauthenticates the connection.
+func (a *DefaultAuthenticator) Reauth(ctx context.Context) error {
+	return newAuthError("DefaultAuthenticator does not support reauthentication", nil)
+}
+
 // If a server provides a list of supported mechanisms, we choose
 // SCRAM-SHA-256 if it exists or else MUST use SCRAM-SHA-1.
 // Otherwise, we decide based on what is supported.

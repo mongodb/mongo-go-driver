@@ -97,6 +97,11 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
+// Reauth reauthenticates the connection.
+func (a *MongoDBCRAuthenticator) Reauth(ctx context.Context) error {
+	return newAuthError("MONGODB-CR does not support reauthentication", nil)
+}
+
 func (a *MongoDBCRAuthenticator) createKey(nonce string) string {
 	// Ignore gosec warning "Use of weak cryptographic primitive". We need to use MD5 here to
 	// implement the MONGODB-CR specification.

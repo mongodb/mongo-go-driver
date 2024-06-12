@@ -84,6 +84,11 @@ func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return nil
 }
 
+// Reauth reauthenticates the connection.
+func (a *ScramAuthenticator) Reauth(ctx context.Context) error {
+	return newAuthError("SCRAM does not support reauthentication", nil)
+}
+
 // CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
 func (a *ScramAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
 	return newSaslConversation(a.createSaslClient(), a.source, true), nil

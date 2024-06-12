@@ -16,16 +16,17 @@ import (
 const OIDC = "MONGODB-OIDC"
 const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
-const principalProp = "PRINCIPAL"
 const allowedHostsProp = "ALLOWED_HOSTS"
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
 const defaultAuthDB = "admin"
+const machineSleepTime = 100 * time.Millisecond
 
 // Authenticator handles authenticating a connection.
 type Authenticator interface {
 	// Auth authenticates the connection.
 	Auth(context.Context, *AuthConfig) error
+	Reauth(context.Context) error
 }
 
 // Cred is a user's credential.
@@ -45,6 +46,7 @@ type OIDCAuthenticator struct {
 
 	AuthMechanismProperties map[string]string
 
+	cfg          *AuthConfig
 	accessToken  string
 	refreshToken *string
 	idpInfo      *IDPInfo
@@ -55,10 +57,6 @@ func NewOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 		AuthMechanismProperties: cred.Props,
 	}
 	return oa, nil
-}
-
-func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *AuthConfig) error {
-	return nil
 }
 
 type IDPInfo struct {
@@ -79,7 +77,7 @@ type OIDCArgs struct {
 
 type OIDCCredential struct {
 	AccessToken  string
-	ExpiresAt    time.Time
+	ExpiresAt    *time.Time
 	RefreshToken *string
 }
 
@@ -87,21 +85,7 @@ type oidcOneStep struct {
 	accessToken string
 }
 
-func (oos *oidcOneStep) Start() (string, []byte, error) {
-	return OIDC, jwtStepRequest(oos.accessToken), nil
-}
-
-func newAuthError(msg string, err error) error {
-	return fmt.Errorf("authentication error: %s: %w", msg, err)
-}
-
-func (oos *oidcOneStep) Next(context.Context, []byte) ([]byte, error) {
-	return nil, newAuthError("unexpected step in OIDC machine authentication", nil)
-}
-
-func (*oidcOneStep) Completed() bool {
-	return true
-}
+var _ oidcSaslClient = (*oidcOneStep)(nil)
 
 func jwtStepRequest(accessToken string) []byte {
 	return bsoncore.NewDocumentBuilder().
@@ -117,6 +101,155 @@ func principalStepRequest(principal string) []byte {
 	return doc.Build()
 }
 
+func (oos *oidcOneStep) Start() (string, []byte, error) {
+	return OIDC, jwtStepRequest(oos.accessToken), nil
+}
+
+func (oos *oidcOneStep) Next([]byte) ([]byte, error) {
+	return nil, fmt.Errorf("unexpected step in OIDC machine authentication")
+}
+
+func (*oidcOneStep) Completed() bool {
+	return true
+}
+
+func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
+	env, ok := oa.AuthMechanismProperties[environmentProp]
+	if !ok {
+		return nil, nil
+	}
+
+	switch env {
+	// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
+	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
+	}
+
+	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
+}
+
+// This should only be called with the Mutex held.
+func (oa *OIDCAuthenticator) getAccessToken(
+	ctx context.Context,
+	args *OIDCArgs,
+	callback OIDCCallback,
+) (string, error) {
+	if oa.accessToken != "" {
+		return oa.accessToken, nil
+	}
+
+	cred, err := callback(ctx, args)
+	if err != nil {
+		return "", err
+	}
+
+	oa.accessToken = cred.AccessToken
+	if cred.RefreshToken != nil {
+		oa.refreshToken = cred.RefreshToken
+	}
+	return cred.AccessToken, nil
+}
+
+// This should only be called with the Mutex held.
+func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
+	ctx context.Context,
+	callback OIDCCallback,
+	refreshToken string,
+) (string, error) {
+
+	cred, err := callback(ctx, &OIDCArgs{
+		Version:      1,
+		IDPInfo:      oa.idpInfo,
+		RefreshToken: &refreshToken,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	oa.accessToken = cred.AccessToken
+	return cred.AccessToken, nil
+}
+
+// TODO: add invalidation algorithm from rust driver
+func (oa *OIDCAuthenticator) invalidateAccessToken() {
+	oa.accessToken = ""
+}
+
+func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
+	oa.invalidateAccessToken()
+	return oa.Auth(ctx, oa.cfg)
+}
+
+// Auth authenticates the connection.
+func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *AuthConfig) error {
+	// the Mutex must be held during the entire Auth call so that multiple racing attempts
+	// to authenticate will not result in multiple callbacks. The losers on the Mutex will
+	// retrieve the access token from the Authenticator cache.
+	oa.mu.Lock()
+	defer oa.mu.Unlock()
+
+	oa.cfg = cfg
+
+	if oa.accessToken != "" {
+		err := conductOIDCSaslConversation(ctx, cfg, "$external", &oidcOneStep{
+			accessToken: oa.accessToken,
+		})
+		if err == nil {
+			return nil
+		}
+		// TODO: Check error type and raise if it's not a server-side error.
+		oa.invalidateAccessToken()
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	if cfg.OIDCMachineCallback != nil {
+		accessToken, err := oa.getAccessToken(ctx, nil, cfg.OIDCMachineCallback)
+		if err != nil {
+			return err
+		}
+
+		err = conductOIDCSaslConversation(ctx, cfg, "$external", &oidcOneStep{
+			accessToken: accessToken,
+		})
+		if err == nil {
+			return nil
+		}
+		// Clear the access token if authentication failed.
+		oa.invalidateAccessToken()
+
+		time.Sleep(machineSleepTime)
+		accessToken, err = oa.getAccessToken(ctx, &OIDCArgs{Version: 1}, cfg.OIDCMachineCallback)
+		if err != nil {
+			return err
+		}
+		return conductOIDCSaslConversation(ctx, cfg, "$external", &oidcOneStep{
+			accessToken: accessToken,
+		})
+	}
+
+	// TODO GODRIVER-3246: Handle Human callback here.
+
+	callback, err := oa.providerCallback()
+	if err != nil {
+		return fmt.Errorf("error getting build-in OIDC provider: %w", err)
+	}
+
+	accessToken, err := oa.getAccessToken(ctx, &OIDCArgs{Version: 1}, callback)
+	if err != nil {
+		return fmt.Errorf("error getting access token from built-in OIDC provider: %w", err)
+	}
+
+	err = conductOIDCSaslConversation(ctx, cfg, "$external", &oidcOneStep{
+		accessToken: accessToken,
+	})
+	// TODO: Check error type and raise if it's not a server-side error.
+	if err == nil {
+		return nil
+	}
+	oa.invalidateAccessToken()
+
+	return err
+}
+
 // OIDC Sasl. This is almost a verbatim copy of auth/sasl introduced to remove the dependency on auth package
 // which causes a circular dependency when attempting to do Reauthentication in driver/operation.go.
 // This could be removed with a larger refactor.
@@ -125,12 +258,14 @@ func principalStepRequest(principal string) []byte {
 // this was moved from the auth package to avoid a circular dependency. The auth package
 // reexports this under the old name to avoid breaking the public api.
 type AuthConfig struct {
-	Description   description.Server
-	Connection    Connection
-	ClusterClock  *session.ClusterClock
-	HandshakeInfo HandshakeInformation
-	ServerAPI     *ServerAPIOptions
-	HTTPClient    *http.Client
+	Description         description.Server
+	Connection          Connection
+	ClusterClock        *session.ClusterClock
+	HandshakeInfo       HandshakeInformation
+	ServerAPI           *ServerAPIOptions
+	HTTPClient          *http.Client
+	OIDCMachineCallback OIDCCallback
+	OIDCHumanCallback   OIDCCallback
 }
 
 func newError(err error, mechanism string) error {
