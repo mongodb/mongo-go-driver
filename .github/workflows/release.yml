@@ -89,7 +89,7 @@ jobs:
       #     output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
       - name: Handle Dry Run
         run: |
-          if [ "${{ inputs.push_changes }}"" != 'true' ]; then
+          if [ "${{ inputs.push_changes }}" != "true" ]; then
             export DRY_RUN=true
           else:
             export DRY_RUN=false
