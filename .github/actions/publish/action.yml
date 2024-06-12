@@ -4,6 +4,9 @@ inputs:
   version:
     description: The published version
     required: true
+  prev_version:
+    description: The previous version
+    required: true
   push_changes:
     description: Whether to push the changes
     default: "false"
@@ -14,7 +17,7 @@ runs:
       shell: bash -eux {0}
       run: |
         cd ${{ github.actions_path }}
-        go run notes.go ${{ inputs.version }} $PREV_VERSION
+        go run notes.go ${{ inputs.version }} ${{ inputs.prev_version }}
         cat forum.md >> $GITHUB_STEP_SUMMARY
         rm forum.md
     - name: Create GitHub Release
