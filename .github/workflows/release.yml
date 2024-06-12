@@ -9,7 +9,7 @@ on:
         description: "The post (dev) version to set"
       push_changes:
         description: "Push changes?"
-        default: false
+        default: true
         type: boolean
 
 defaults:
