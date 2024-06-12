@@ -33,6 +33,7 @@ func init() {
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
 	RegisterAuthenticatorFactory(MongoDBAWS, newMongoDBAWSAuthenticator)
+	RegisterAuthenticatorFactory(driver.OIDC, driver.NewOIDCAuthenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
@@ -173,10 +174,7 @@ func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshake
 }
 
 // Authenticator handles authenticating a connection.
-type Authenticator interface {
-	// Auth authenticates the connection.
-	Auth(context.Context, *Config) error
-}
+type Authenticator = driver.Authenticator
 
 func newAuthError(msg string, inner error) error {
 	return &Error{

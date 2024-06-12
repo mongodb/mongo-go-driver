@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-const oidcMech = "MONGODB-OIDC"
+const OIDC = "MONGODB-OIDC"
 const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
 const principalProp = "PRINCIPAL"
@@ -21,6 +21,21 @@ const allowedHostsProp = "ALLOWED_HOSTS"
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
 const defaultAuthDB = "admin"
+
+// Authenticator handles authenticating a connection.
+type Authenticator interface {
+	// Auth authenticates the connection.
+	Auth(context.Context, *AuthConfig) error
+}
+
+// AuthCred is a user's credential.
+type AuthCred struct {
+	Source      string
+	Username    string
+	Password    string
+	PasswordSet bool
+	Props       map[string]string
+}
 
 // OIDCAuthenticator is synchronized and handles caching of the access token, refreshToken,
 // and IDPInfo. It also provides a mechanism to refresh the access token, but this functionality
@@ -35,10 +50,15 @@ type OIDCAuthenticator struct {
 	idpInfo      *IDPInfo
 }
 
-func NewOIDCAuthenticator() *OIDCAuthenticator {
-	return &OIDCAuthenticator{
-		AuthMechanismProperties: make(map[string]string),
+func NewOIDCAuthenticator(cred *AuthCred) (Authenticator, error) {
+	oa := &OIDCAuthenticator{
+		AuthMechanismProperties: cred.Props,
 	}
+	return oa, nil
+}
+
+func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *AuthConfig) error {
+	return nil
 }
 
 type IDPInfo struct {
@@ -47,6 +67,8 @@ type IDPInfo struct {
 	RequestScopes []string `bson:"requestScopes"`
 }
 
+// OIDCCallback is the type for both Human and Machine Callback flows. RefreshToken will always be
+// nil in the OIDCArgs for the Machine flow.
 type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
 
 type OIDCArgs struct {
@@ -66,7 +88,7 @@ type oidcOneStep struct {
 }
 
 func (oos *oidcOneStep) Start() (string, []byte, error) {
-	return oidcMech, jwtStepRequest(oos.accessToken), nil
+	return OIDC, jwtStepRequest(oos.accessToken), nil
 }
 
 func newAuthError(msg string, err error) error {
@@ -112,7 +134,7 @@ type AuthConfig struct {
 }
 
 func newError(err error, mechanism string) error {
-	return fmt.Errorf("error during %s SASL conversation: %w", oidcMech, err)
+	return fmt.Errorf("error during %s SASL conversation: %w", OIDC, err)
 }
 
 // oidcSaslClient is the client piece of a sasl conversation.

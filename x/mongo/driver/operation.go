@@ -913,7 +913,7 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Raw = tt.Raw
 		case Error:
 			if tt.Code == 391 {
-				x := NewOIDCAuthenticator()
+				x, _ := NewOIDCAuthenticator(nil)
 				fmt.Println(x)
 			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
