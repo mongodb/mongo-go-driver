@@ -59,7 +59,7 @@ jobs:
       ref: ${{ inputs.version }}
 
   publish-and-bump:
-    needs: [bump-and-tag]
+    needs: [bump-and-tag, static-scan]
     runs-on: ubuntu-latest
     environment: release
     permissions:
