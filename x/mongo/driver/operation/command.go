@@ -181,6 +181,16 @@ func (c *Command) ServerSelector(selector description.ServerSelector) *Command {
 	return c
 }
 
+// Authenticator sets the authenticator to use for this operation.
+func (c *Command) Authenticator(authenticator driver.Authenticator) *Command {
+	if c == nil {
+		c = new(Command)
+	}
+
+	c.authenticator = authenticator
+	return c
+}
+
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
 func (c *Command) Crypt(crypt driver.Crypt) *Command {
 	if c == nil {

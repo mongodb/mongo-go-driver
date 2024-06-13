@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -232,6 +233,15 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
+
+	// Create an authenticator for the client
+	client.authenticator, err = auth.CreateAuthenticator(clientOpt.Auth.AuthMechanism, &auth.Cred{
+		Source:      clientOpt.Auth.AuthSource,
+		Username:    clientOpt.Auth.Username,
+		Password:    clientOpt.Auth.Password,
+		PasswordSet: clientOpt.Auth.PasswordSet,
+		Props:       clientOpt.Auth.AuthMechanismProperties,
+	})
 
 	return client, nil
 }
