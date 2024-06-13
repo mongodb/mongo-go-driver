@@ -88,9 +88,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 				// Assert that the pool is cleared within 2 seconds.
 				assert.Eventually(t,
-					func() bool {
-						return tpm.IsPoolCleared()
-					},
+					tpm.IsPoolCleared,
 					2*time.Second,
 					100*time.Millisecond,
 					"expected pool is cleared within 2 seconds")
@@ -124,9 +122,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 					// Assert that the pool is cleared within 2 seconds.
 					assert.Eventually(t,
-						func() bool {
-							return tpm.IsPoolCleared()
-						},
+						tpm.IsPoolCleared,
 						2*time.Second,
 						100*time.Millisecond,
 						"expected pool is cleared within 2 seconds")
@@ -159,9 +155,7 @@ func TestSDAMErrorHandling(t *testing.T) {
 
 					// Assert that the pool is cleared within 2 seconds.
 					assert.Eventually(t,
-						func() bool {
-							return tpm.IsPoolCleared()
-						},
+						tpm.IsPoolCleared,
 						2*time.Second,
 						100*time.Millisecond,
 						"expected pool is cleared within 2 seconds")

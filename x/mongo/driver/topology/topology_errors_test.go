@@ -58,7 +58,7 @@ func TestTopologyErrors(t *testing.T) {
 			assert.Eventually(t,
 				callback,
 				150*time.Millisecond,
-				10*time.Millisecond,
+				time.Millisecond,
 				"expected context deadline to fail within 150ms")
 
 			assert.True(t, errors.Is(serverSelectionErr, context.DeadlineExceeded), "expected %v, received %v",
