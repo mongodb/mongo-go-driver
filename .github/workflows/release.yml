@@ -50,11 +50,11 @@ jobs:
           version: ${{ inputs.version }}
           push_tag: ${{ inputs.push_changes }}
 
-  # static-scan:
-  #   needs: [bump-and-tag]
-  #   uses: ./.github/workflows/codeql.yml
-  #   with:
-  #     ref: ${{ inputs.version }}
+  static-scan:
+    needs: [bump-and-tag]
+    uses: ./.github/workflows/codeql.yml
+    with:
+      ref: ${{ inputs.version }}
 
   publish-and-bump:
     needs: [bump-and-tag]
@@ -82,11 +82,11 @@ jobs:
       - uses: mongodb-labs/drivers-github-tools/sbom@v2
         with:
           silk_asset_group: mongodb-go-driver-v1
-      # - name: Generate Sarif Report
-      #   uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
-      #   with:
-      #     ref: ${{ inputs.version }}
-      #     output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
+      - name: Generate Sarif Report
+        uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
+        with:
+          ref: ${{ inputs.version }}
+          output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
       - name: Handle Dry Run
         run: |
           if [ "${{ inputs.push_changes }}" != "true" ]; then
