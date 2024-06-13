@@ -76,19 +76,12 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
-      - uses: mongodb-labs/drivers-github-tools/authorized-pub@v2
+      - uses: blink1073/drivers-github-tools/full-report@full-report
         with:
           product_name: mongo-go-driver
           release_version: ${{ inputs.version }}
-          token: ${{ github.token }}
-      - uses: mongodb-labs/drivers-github-tools/sbom@v2
-        with:
           silk_asset_group: mongodb-go-driver-v1
-      - name: Generate Sarif Report
-        uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
-        with:
-          ref: ${{ inputs.version }}
-          output-file: ${{ env.S3_ASSETS }}/code-scanning-alerts.json
+          token: ${{ github.token }}
       - name: Handle Dry Run
         run: |
           if [ "${{ inputs.push_changes }}" != "true" ]; then
@@ -97,10 +90,6 @@ jobs:
             export DRY_RUN=false
           fi
           echo "DRY_RUN=$DRY_RUN" >> $GITHUB_ENV
-      - name: Generate Compliance Report
-        uses: mongodb-labs/drivers-github-tools/compliance-report@v2
-        with: 
-            token: ${{ github.token }}
       - name: Upload S3 assets
         uses: mongodb-labs/drivers-github-tools/upload-s3-assets@v2
         with:
