@@ -108,6 +108,7 @@ func (c *Command) Execute(ctx context.Context) error {
 		ServerAPI:      c.serverAPI,
 		Timeout:        c.timeout,
 		Logger:         c.logger,
+		Authenticator:  c.authenticator,
 	}.Execute(ctx)
 }
 
