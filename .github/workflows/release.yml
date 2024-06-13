@@ -65,6 +65,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
+      security-events: read
     steps:
       - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
         with:
