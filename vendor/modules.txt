@@ -47,3 +47,4 @@ golang.org/x/sync/singleflight
 ## explicit; go 1.18
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
+# golang.org/x/net/http2 => golang.org/x/net/http2 v0.23.0
