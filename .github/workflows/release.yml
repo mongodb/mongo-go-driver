@@ -52,6 +52,8 @@ jobs:
 
   static-scan:
     needs: [bump-and-tag]
+    permissions:
+      security-events: write
     uses: ./.github/workflows/codeql.yml
     with:
       ref: ${{ inputs.version }}
@@ -63,7 +65,6 @@ jobs:
     permissions:
       id-token: write
       contents: write
-      security-events: write
     steps:
       - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
         with:
