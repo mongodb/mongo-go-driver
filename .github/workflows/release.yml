@@ -79,9 +79,9 @@ jobs:
           product_name: mongo-go-driver
           release_version: ${{ inputs.version }}
           token: ${{ github.token }}
-      # - uses: mongodb-labs/drivers-github-tools/sbom@v2
-      #   with:
-      #     silk_asset_group: mongodb-go-driver-v1
+      - uses: mongodb-labs/drivers-github-tools/sbom@v2
+        with:
+          silk_asset_group: mongodb-go-driver-v1
       # - name: Generate Sarif Report
       #   uses: mongodb-labs/drivers-github-tools/code-scanning-export@v2
       #   with:
