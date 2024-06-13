@@ -22,6 +22,7 @@ import (
 
 // ListCollections performs a listCollections operation.
 type ListCollections struct {
+	authenticator         driver.Authenticator
 	filter                bsoncore.Document
 	nameOnly              *bool
 	authorizedCollections *bool
@@ -83,6 +84,7 @@ func (lc *ListCollections) Execute(ctx context.Context) error {
 		ServerAPI:         lc.serverAPI,
 		Timeout:           lc.timeout,
 		Name:              driverutil.ListCollectionsOp,
+		Authenticator:     lc.authenticator,
 	}.Execute(ctx)
 
 }
@@ -258,4 +260,14 @@ func (lc *ListCollections) Timeout(timeout *time.Duration) *ListCollections {
 
 	lc.timeout = timeout
 	return lc
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (l *ListCollections) Authenticator(authenticator driver.Authenticator) *ListCollections {
+	if l == nil {
+		l = new(ListCollections)
+	}
+
+	l.authenticator = authenticator
+	return l
 }

@@ -25,6 +25,7 @@ import (
 
 // Count represents a count operation.
 type Count struct {
+	authenticator driver.Authenticator
 	maxTime        *time.Duration
 	query          bsoncore.Document
 	session        *session.Client
@@ -46,6 +47,7 @@ type Count struct {
 
 // CountResult represents a count result returned by the server.
 type CountResult struct {
+	authenticator driver.Authenticator
 	// The number of documents found
 	N int64
 }
@@ -128,6 +130,7 @@ func (c *Count) Execute(ctx context.Context) error {
 		ServerAPI:         c.serverAPI,
 		Timeout:           c.timeout,
 		Name:              driverutil.CountOp,
+		Authenticator:  c.authenticator,
 	}.Execute(ctx)
 
 	// Swallow error if NamespaceNotFound(26) is returned from aggregate on non-existent namespace
@@ -311,3 +314,25 @@ func (c *Count) Timeout(timeout *time.Duration) *Count {
 	c.timeout = timeout
 	return c
 }
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *Count) Authenticator(authenticator driver.Authenticator) *Count {
+	if c == nil {
+		c = new(Count)
+	}
+
+	c.authenticator = authenticator
+	return c
+}
+
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *CountResult) Authenticator(authenticator driver.Authenticator) *CountResult {
+	if c == nil {
+		c = new(CountResult)
+	}
+
+	c.authenticator = authenticator
+	return c
+}
+

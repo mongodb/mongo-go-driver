@@ -24,6 +24,7 @@ import (
 
 // ListDatabases performs a listDatabases operation.
 type ListDatabases struct {
+	authenticator       driver.Authenticator
 	filter              bsoncore.Document
 	authorizedDatabases *bool
 	nameOnly            *bool
@@ -44,6 +45,7 @@ type ListDatabases struct {
 
 // ListDatabasesResult represents a listDatabases result returned by the server.
 type ListDatabasesResult struct {
+	authenticator driver.Authenticator
 	// An array of documents, one document for each database
 	Databases []databaseRecord
 	// The sum of the size of all the database files on disk in bytes.
@@ -51,9 +53,10 @@ type ListDatabasesResult struct {
 }
 
 type databaseRecord struct {
-	Name       string
-	SizeOnDisk int64 `bson:"sizeOnDisk"`
-	Empty      bool
+	authenticator driver.Authenticator
+	Name          string
+	SizeOnDisk    int64 `bson:"sizeOnDisk"`
+	Empty         bool
 }
 
 func buildListDatabasesResult(response bsoncore.Document) (ListDatabasesResult, error) {
@@ -165,6 +168,7 @@ func (ld *ListDatabases) Execute(ctx context.Context) error {
 		ServerAPI:      ld.serverAPI,
 		Timeout:        ld.timeout,
 		Name:           driverutil.ListDatabasesOp,
+		Authenticator:  ld.authenticator,
 	}.Execute(ctx)
 
 }
@@ -326,4 +330,34 @@ func (ld *ListDatabases) Timeout(timeout *time.Duration) *ListDatabases {
 
 	ld.timeout = timeout
 	return ld
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (l *ListDatabases) Authenticator(authenticator driver.Authenticator) *ListDatabases {
+	if l == nil {
+		l = new(ListDatabases)
+	}
+
+	l.authenticator = authenticator
+	return l
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (l *ListDatabasesResult) Authenticator(authenticator driver.Authenticator) *ListDatabasesResult {
+	if l == nil {
+		l = new(ListDatabasesResult)
+	}
+
+	l.authenticator = authenticator
+	return l
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (d *databaseRecord) Authenticator(authenticator driver.Authenticator) *databaseRecord {
+	if d == nil {
+		d = new(databaseRecord)
+	}
+
+	d.authenticator = authenticator
+	return d
 }

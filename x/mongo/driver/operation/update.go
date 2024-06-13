@@ -26,6 +26,7 @@ import (
 
 // Update performs an update operation.
 type Update struct {
+	authenticator            driver.Authenticator
 	bypassDocumentValidation *bool
 	comment                  bsoncore.Value
 	ordered                  *bool
@@ -51,12 +52,14 @@ type Update struct {
 
 // Upsert contains the information for an upsert in an Update operation.
 type Upsert struct {
-	Index int64
-	ID    interface{} `bson:"_id"`
+	authenticator driver.Authenticator
+	Index         int64
+	ID            interface{} `bson:"_id"`
 }
 
 // UpdateResult contains information for the result of an Update operation.
 type UpdateResult struct {
+	authenticator driver.Authenticator
 	// Number of documents matched.
 	N int64
 	// Number of documents modified.
@@ -167,6 +170,7 @@ func (u *Update) Execute(ctx context.Context) error {
 		Timeout:           u.timeout,
 		Logger:            u.logger,
 		Name:              driverutil.UpdateOp,
+		Authenticator:     u.authenticator,
 	}.Execute(ctx)
 
 }
@@ -412,5 +416,35 @@ func (u *Update) Logger(logger *logger.Logger) *Update {
 	}
 
 	u.logger = logger
+	return u
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (u *Update) Authenticator(authenticator driver.Authenticator) *Update {
+	if u == nil {
+		u = new(Update)
+	}
+
+	u.authenticator = authenticator
+	return u
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (u *Upsert) Authenticator(authenticator driver.Authenticator) *Upsert {
+	if u == nil {
+		u = new(Upsert)
+	}
+
+	u.authenticator = authenticator
+	return u
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (u *UpdateResult) Authenticator(authenticator driver.Authenticator) *UpdateResult {
+	if u == nil {
+		u = new(UpdateResult)
+	}
+
+	u.authenticator = authenticator
 	return u
 }

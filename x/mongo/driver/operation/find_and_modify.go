@@ -25,6 +25,7 @@ import (
 
 // FindAndModify performs a findAndModify operation.
 type FindAndModify struct {
+	authenticator            driver.Authenticator
 	arrayFilters             bsoncore.Array
 	bypassDocumentValidation *bool
 	collation                bsoncore.Document
@@ -57,6 +58,7 @@ type FindAndModify struct {
 
 // LastErrorObject represents information about updates and upserts returned by the server.
 type LastErrorObject struct {
+	authenticator driver.Authenticator
 	// True if an update modified an existing document
 	UpdatedExisting bool
 	// Object ID of the upserted document.
@@ -65,6 +67,7 @@ type LastErrorObject struct {
 
 // FindAndModifyResult represents a findAndModify result returned by the server.
 type FindAndModifyResult struct {
+	authenticator driver.Authenticator
 	// Either the old or modified document, depending on the value of the new parameter.
 	Value bsoncore.Document
 	// Contains information about updates and upserts.
@@ -145,6 +148,7 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		ServerAPI:      fam.serverAPI,
 		Timeout:        fam.timeout,
 		Name:           driverutil.FindAndModifyOp,
+		Authenticator:  fam.authenticator,
 	}.Execute(ctx)
 
 }
@@ -476,4 +480,34 @@ func (fam *FindAndModify) Timeout(timeout *time.Duration) *FindAndModify {
 
 	fam.timeout = timeout
 	return fam
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (f *FindAndModify) Authenticator(authenticator driver.Authenticator) *FindAndModify {
+	if f == nil {
+		f = new(FindAndModify)
+	}
+
+	f.authenticator = authenticator
+	return f
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (l *LastErrorObject) Authenticator(authenticator driver.Authenticator) *LastErrorObject {
+	if l == nil {
+		l = new(LastErrorObject)
+	}
+
+	l.authenticator = authenticator
+	return l
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (f *FindAndModifyResult) Authenticator(authenticator driver.Authenticator) *FindAndModifyResult {
+	if f == nil {
+		f = new(FindAndModifyResult)
+	}
+
+	f.authenticator = authenticator
+	return f
 }

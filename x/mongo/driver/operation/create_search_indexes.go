@@ -22,27 +22,30 @@ import (
 
 // CreateSearchIndexes performs a createSearchIndexes operation.
 type CreateSearchIndexes struct {
-	indexes    bsoncore.Document
-	session    *session.Client
-	clock      *session.ClusterClock
-	collection string
-	monitor    *event.CommandMonitor
-	crypt      driver.Crypt
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	result     CreateSearchIndexesResult
-	serverAPI  *driver.ServerAPIOptions
-	timeout    *time.Duration
+	authenticator driver.Authenticator
+	indexes       bsoncore.Document
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	result        CreateSearchIndexesResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
 }
 
 // CreateSearchIndexResult represents a single search index result in CreateSearchIndexesResult.
 type CreateSearchIndexResult struct {
-	Name string
+	authenticator driver.Authenticator
+	Name          string
 }
 
 // CreateSearchIndexesResult represents a createSearchIndexes result returned by the server.
 type CreateSearchIndexesResult struct {
+	authenticator  driver.Authenticator
 	IndexesCreated []CreateSearchIndexResult
 }
 
@@ -116,6 +119,7 @@ func (csi *CreateSearchIndexes) Execute(ctx context.Context) error {
 		Selector:          csi.selector,
 		ServerAPI:         csi.serverAPI,
 		Timeout:           csi.timeout,
+		Authenticator:     csi.authenticator,
 	}.Execute(ctx)
 
 }
@@ -236,4 +240,34 @@ func (csi *CreateSearchIndexes) Timeout(timeout *time.Duration) *CreateSearchInd
 
 	csi.timeout = timeout
 	return csi
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *CreateSearchIndexes) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexes {
+	if c == nil {
+		c = new(CreateSearchIndexes)
+	}
+
+	c.authenticator = authenticator
+	return c
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *CreateSearchIndexResult) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexResult {
+	if c == nil {
+		c = new(CreateSearchIndexResult)
+	}
+
+	c.authenticator = authenticator
+	return c
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *CreateSearchIndexesResult) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexesResult {
+	if c == nil {
+		c = new(CreateSearchIndexesResult)
+	}
+
+	c.authenticator = authenticator
+	return c
 }

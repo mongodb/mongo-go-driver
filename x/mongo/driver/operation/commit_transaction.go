@@ -22,6 +22,7 @@ import (
 
 // CommitTransaction attempts to commit a transaction.
 type CommitTransaction struct {
+	authenticator driver.Authenticator
 	maxTime       *time.Duration
 	recoveryToken bsoncore.Document
 	session       *session.Client
@@ -68,6 +69,7 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		WriteConcern:      ct.writeConcern,
 		ServerAPI:         ct.serverAPI,
 		Name:              driverutil.CommitTransactionOp,
+		Authenticator:     ct.authenticator,
 	}.Execute(ctx)
 
 }
@@ -200,4 +202,14 @@ func (ct *CommitTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *Comm
 
 	ct.serverAPI = serverAPI
 	return ct
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (c *CommitTransaction) Authenticator(authenticator driver.Authenticator) *CommitTransaction {
+	if c == nil {
+		c = new(CommitTransaction)
+	}
+
+	c.authenticator = authenticator
+	return c
 }
