@@ -72,8 +72,30 @@ func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 }
 
 // NewConfig will translate data from client options into a topology config for building non-default deployments.
-// Server and topology options are not honored if a custom deployment is used.
 func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
+	// Auth & Database & Password & Username
+	if co.Auth != nil {
+		cred := &auth.Cred{
+			Username:    co.Auth.Username,
+			Password:    co.Auth.Password,
+			PasswordSet: co.Auth.PasswordSet,
+			Props:       co.Auth.AuthMechanismProperties,
+			Source:      co.Auth.AuthSource,
+		}
+		mechanism := co.Auth.AuthMechanism
+		authenticator, err := auth.CreateAuthenticator(mechanism, cred)
+		if err != nil {
+			return nil, err
+		}
+		return NewConfigWithAuthenticator(co, clock, authenticator)
+	}
+	return NewConfigWithAuthenticator(co, clock, nil)
+}
+
+// NewConfigWithAuthenticator will translate data from client options into a topology config for building non-default deployments.
+// Server and topology options are not honored if a custom deployment is used. It uses a passed in
+// authenticator to authenticate the connection.
+func NewConfigWithAuthenticator(co *options.ClientOptions, clock *session.ClusterClock, authenticator driver.Authenticator) (*Config, error) {
 	var serverAPI *driver.ServerAPIOptions
 
 	if err := co.Validate(); err != nil {

@@ -215,7 +215,16 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	cfg, err := topology.NewConfig(clientOpt, client.clock)
+	// Create an authenticator for the client
+	client.authenticator, err = auth.CreateAuthenticator(clientOpt.Auth.AuthMechanism, &auth.Cred{
+		Source:      clientOpt.Auth.AuthSource,
+		Username:    clientOpt.Auth.Username,
+		Password:    clientOpt.Auth.Password,
+		PasswordSet: clientOpt.Auth.PasswordSet,
+		Props:       clientOpt.Auth.AuthMechanismProperties,
+	})
+
+	cfg, err := topology.NewConfigWithAuthenticator(clientOpt, client.clock, client.authenticator)
 	if err != nil {
 		return nil, err
 	}
@@ -233,15 +242,6 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
-
-	// Create an authenticator for the client
-	client.authenticator, err = auth.CreateAuthenticator(clientOpt.Auth.AuthMechanism, &auth.Cred{
-		Source:      clientOpt.Auth.AuthSource,
-		Username:    clientOpt.Auth.Username,
-		Password:    clientOpt.Auth.Password,
-		PasswordSet: clientOpt.Auth.PasswordSet,
-		Props:       clientOpt.Auth.AuthMechanismProperties,
-	})
 
 	return client, nil
 }
