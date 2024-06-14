@@ -1,8 +1,6 @@
 module go.mongodb.go/mongo-driver/internal/cmd/benchmark
 
-go 1.22
-
-toolchain go1.22.3
+go 1.20
 
 replace go.mongodb.org/mongo-driver => ../../../
 
