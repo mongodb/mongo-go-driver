@@ -82,6 +82,10 @@ type connection struct {
 	// awaitingResponse indicates that the server response was not completely
 	// read before returning the connection to the pool.
 	awaitingResponse bool
+
+	// oidcTokenGenID is the monotonic generation ID for OIDC tokens, used to invalidate
+	// accessTokens in the OIDC authenticator cache.
+	oidcTokenGenID uint64
 }
 
 // newConnection handles the creation of a connection. It does not connect the connection.
@@ -606,6 +610,8 @@ type Connection struct {
 	refCount      int
 	cleanupPoolFn func()
 
+	oidcTokenGenID uint64
+
 	// cleanupServerFn resets the server state when a connection is returned to the connection pool
 	// via Close() or expired via Expire().
 	cleanupServerFn func()
@@ -860,6 +866,14 @@ func configureTLS(ctx context.Context,
 	return client, nil
 }
 
+func (c *Connection) OIDCTokenGenID() uint64 {
+	return c.oidcTokenGenID
+}
+
+func (c *Connection) SetOIDCTokenGenID(genId uint64) {
+	c.oidcTokenGenID = genId
+}
+
 // TODO: Naming?
 
 // cancellListener listens for context cancellation and notifies listeners via a
@@ -902,4 +916,12 @@ func (c *cancellListener) Listen(ctx context.Context, abortFn func()) {
 func (c *cancellListener) StopListening() bool {
 	c.done <- struct{}{}
 	return c.aborted
+}
+
+func (c *connection) OIDCTokenGenID() uint64 {
+	return c.oidcTokenGenID
+}
+
+func (c *connection) SetOIDCTokenGenID(genId uint64) {
+	c.oidcTokenGenID = genId
 }

@@ -136,6 +136,8 @@ type Connection interface {
 	DriverConnectionID() uint64 // TODO(GODRIVER-2824): change type to int64.
 	Address() address.Address
 	Stale() bool
+	OIDCTokenGenID() uint64
+	SetOIDCTokenGenID(uint64)
 }
 
 // RTTMonitor represents a round-trip-time monitor.
