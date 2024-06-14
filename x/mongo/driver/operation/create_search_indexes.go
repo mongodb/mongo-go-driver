@@ -39,13 +39,11 @@ type CreateSearchIndexes struct {
 
 // CreateSearchIndexResult represents a single search index result in CreateSearchIndexesResult.
 type CreateSearchIndexResult struct {
-	authenticator driver.Authenticator
-	Name          string
+	Name string
 }
 
 // CreateSearchIndexesResult represents a createSearchIndexes result returned by the server.
 type CreateSearchIndexesResult struct {
-	authenticator  driver.Authenticator
 	IndexesCreated []CreateSearchIndexResult
 }
 
@@ -243,31 +241,11 @@ func (csi *CreateSearchIndexes) Timeout(timeout *time.Duration) *CreateSearchInd
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (c *CreateSearchIndexes) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexes {
-	if c == nil {
-		c = new(CreateSearchIndexes)
+func (csi *CreateSearchIndexes) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexes {
+	if csi == nil {
+		csi = new(CreateSearchIndexes)
 	}
 
-	c.authenticator = authenticator
-	return c
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (c *CreateSearchIndexResult) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexResult {
-	if c == nil {
-		c = new(CreateSearchIndexResult)
-	}
-
-	c.authenticator = authenticator
-	return c
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (c *CreateSearchIndexesResult) Authenticator(authenticator driver.Authenticator) *CreateSearchIndexesResult {
-	if c == nil {
-		c = new(CreateSearchIndexesResult)
-	}
-
-	c.authenticator = authenticator
-	return c
+	csi.authenticator = authenticator
+	return csi
 }

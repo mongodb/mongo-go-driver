@@ -40,7 +40,6 @@ type DropCollection struct {
 
 // DropCollectionResult represents a dropCollection result returned by the server.
 type DropCollectionResult struct {
-	authenticator driver.Authenticator
 	// The number of indexes in the dropped collection.
 	NIndexesWas int32
 	// The namespace of the dropped collection.
@@ -227,21 +226,11 @@ func (dc *DropCollection) Timeout(timeout *time.Duration) *DropCollection {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (d *DropCollection) Authenticator(authenticator driver.Authenticator) *DropCollection {
-	if d == nil {
-		d = new(DropCollection)
+func (dc *DropCollection) Authenticator(authenticator driver.Authenticator) *DropCollection {
+	if dc == nil {
+		dc = new(DropCollection)
 	}
 
-	d.authenticator = authenticator
-	return d
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (d *DropCollectionResult) Authenticator(authenticator driver.Authenticator) *DropCollectionResult {
-	if d == nil {
-		d = new(DropCollectionResult)
-	}
-
-	d.authenticator = authenticator
-	return d
+	dc.authenticator = authenticator
+	return dc
 }

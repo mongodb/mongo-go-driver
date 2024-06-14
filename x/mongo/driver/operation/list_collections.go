@@ -263,11 +263,11 @@ func (lc *ListCollections) Timeout(timeout *time.Duration) *ListCollections {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (l *ListCollections) Authenticator(authenticator driver.Authenticator) *ListCollections {
-	if l == nil {
-		l = new(ListCollections)
+func (lc *ListCollections) Authenticator(authenticator driver.Authenticator) *ListCollections {
+	if lc == nil {
+		lc = new(ListCollections)
 	}
 
-	l.authenticator = authenticator
-	return l
+	lc.authenticator = authenticator
+	return lc
 }

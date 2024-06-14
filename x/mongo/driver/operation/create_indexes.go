@@ -44,7 +44,6 @@ type CreateIndexes struct {
 
 // CreateIndexesResult represents a createIndexes result returned by the server.
 type CreateIndexesResult struct {
-	authenticator driver.Authenticator
 	// If the collection was created automatically.
 	CreatedCollectionAutomatically bool
 	// The number of indexes existing after this command.
@@ -283,21 +282,11 @@ func (ci *CreateIndexes) Timeout(timeout *time.Duration) *CreateIndexes {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (c *CreateIndexes) Authenticator(authenticator driver.Authenticator) *CreateIndexes {
-	if c == nil {
-		c = new(CreateIndexes)
+func (ci *CreateIndexes) Authenticator(authenticator driver.Authenticator) *CreateIndexes {
+	if ci == nil {
+		ci = new(CreateIndexes)
 	}
 
-	c.authenticator = authenticator
-	return c
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (c *CreateIndexesResult) Authenticator(authenticator driver.Authenticator) *CreateIndexesResult {
-	if c == nil {
-		c = new(CreateIndexesResult)
-	}
-
-	c.authenticator = authenticator
-	return c
+	ci.authenticator = authenticator
+	return ci
 }

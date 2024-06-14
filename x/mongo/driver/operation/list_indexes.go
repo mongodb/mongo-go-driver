@@ -237,11 +237,11 @@ func (li *ListIndexes) Timeout(timeout *time.Duration) *ListIndexes {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (l *ListIndexes) Authenticator(authenticator driver.Authenticator) *ListIndexes {
-	if l == nil {
-		l = new(ListIndexes)
+func (li *ListIndexes) Authenticator(authenticator driver.Authenticator) *ListIndexes {
+	if li == nil {
+		li = new(ListIndexes)
 	}
 
-	l.authenticator = authenticator
-	return l
+	li.authenticator = authenticator
+	return li
 }

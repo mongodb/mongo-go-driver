@@ -129,7 +129,7 @@ func (oa *OIDCAuthenticator) getAccessToken(
 	}
 
 	oa.accessToken = cred.AccessToken
-	oa.tokenGenID += 1
+	oa.tokenGenID++
 	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
 	if cred.RefreshToken != nil {
 		oa.refreshToken = cred.RefreshToken
@@ -154,7 +154,7 @@ func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
 	}
 
 	oa.accessToken = cred.AccessToken
-	oa.tokenGenID += 1
+	oa.tokenGenID++
 	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
 	return cred.AccessToken, nil
 }

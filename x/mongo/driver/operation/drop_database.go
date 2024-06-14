@@ -158,11 +158,11 @@ func (dd *DropDatabase) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropDatab
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (d *DropDatabase) Authenticator(authenticator driver.Authenticator) *DropDatabase {
-	if d == nil {
-		d = new(DropDatabase)
+func (dd *DropDatabase) Authenticator(authenticator driver.Authenticator) *DropDatabase {
+	if dd == nil {
+		dd = new(DropDatabase)
 	}
 
-	d.authenticator = authenticator
-	return d
+	dd.authenticator = authenticator
+	return dd
 }

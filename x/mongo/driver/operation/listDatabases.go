@@ -53,10 +53,9 @@ type ListDatabasesResult struct {
 }
 
 type databaseRecord struct {
-	authenticator driver.Authenticator
-	Name          string
-	SizeOnDisk    int64 `bson:"sizeOnDisk"`
-	Empty         bool
+	Name       string
+	SizeOnDisk int64 `bson:"sizeOnDisk"`
+	Empty      bool
 }
 
 func buildListDatabasesResult(response bsoncore.Document) (ListDatabasesResult, error) {
@@ -350,14 +349,4 @@ func (l *ListDatabasesResult) Authenticator(authenticator driver.Authenticator) 
 
 	l.authenticator = authenticator
 	return l
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (d *databaseRecord) Authenticator(authenticator driver.Authenticator) *databaseRecord {
-	if d == nil {
-		d = new(databaseRecord)
-	}
-
-	d.authenticator = authenticator
-	return d
 }

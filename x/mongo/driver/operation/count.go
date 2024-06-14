@@ -47,7 +47,6 @@ type Count struct {
 
 // CountResult represents a count result returned by the server.
 type CountResult struct {
-	authenticator driver.Authenticator
 	// The number of documents found
 	N int64
 }
@@ -319,16 +318,6 @@ func (c *Count) Timeout(timeout *time.Duration) *Count {
 func (c *Count) Authenticator(authenticator driver.Authenticator) *Count {
 	if c == nil {
 		c = new(Count)
-	}
-
-	c.authenticator = authenticator
-	return c
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (c *CountResult) Authenticator(authenticator driver.Authenticator) *CountResult {
-	if c == nil {
-		c = new(CountResult)
 	}
 
 	c.authenticator = authenticator

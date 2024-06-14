@@ -49,7 +49,6 @@ type Delete struct {
 
 // DeleteResult represents a delete result returned by the server.
 type DeleteResult struct {
-	authenticator driver.Authenticator
 	// Number of documents successfully deleted.
 	N int64
 }
@@ -336,16 +335,6 @@ func (d *Delete) Logger(logger *logger.Logger) *Delete {
 func (d *Delete) Authenticator(authenticator driver.Authenticator) *Delete {
 	if d == nil {
 		d = new(Delete)
-	}
-
-	d.authenticator = authenticator
-	return d
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (d *DeleteResult) Authenticator(authenticator driver.Authenticator) *DeleteResult {
-	if d == nil {
-		d = new(DeleteResult)
 	}
 
 	d.authenticator = authenticator

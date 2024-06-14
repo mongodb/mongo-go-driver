@@ -42,7 +42,6 @@ type DropIndexes struct {
 
 // DropIndexesResult represents a dropIndexes result returned by the server.
 type DropIndexesResult struct {
-	authenticator driver.Authenticator
 	// Number of indexes that existed before the drop was executed.
 	NIndexesWas int32
 }
@@ -250,16 +249,6 @@ func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
 func (d *DropIndexes) Authenticator(authenticator driver.Authenticator) *DropIndexes {
 	if d == nil {
 		d = new(DropIndexes)
-	}
-
-	d.authenticator = authenticator
-	return d
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (d *DropIndexesResult) Authenticator(authenticator driver.Authenticator) *DropIndexesResult {
-	if d == nil {
-		d = new(DropIndexesResult)
 	}
 
 	d.authenticator = authenticator

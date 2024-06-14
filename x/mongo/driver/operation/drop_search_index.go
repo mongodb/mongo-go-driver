@@ -38,8 +38,7 @@ type DropSearchIndex struct {
 
 // DropSearchIndexResult represents a dropSearchIndex result returned by the server.
 type DropSearchIndexResult struct {
-	authenticator driver.Authenticator
-	Ok            int32
+	Ok int32
 }
 
 func buildDropSearchIndexResult(response bsoncore.Document) (DropSearchIndexResult, error) {
@@ -217,21 +216,11 @@ func (dsi *DropSearchIndex) Timeout(timeout *time.Duration) *DropSearchIndex {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (d *DropSearchIndex) Authenticator(authenticator driver.Authenticator) *DropSearchIndex {
-	if d == nil {
-		d = new(DropSearchIndex)
+func (dsi *DropSearchIndex) Authenticator(authenticator driver.Authenticator) *DropSearchIndex {
+	if dsi == nil {
+		dsi = new(DropSearchIndex)
 	}
 
-	d.authenticator = authenticator
-	return d
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (d *DropSearchIndexResult) Authenticator(authenticator driver.Authenticator) *DropSearchIndexResult {
-	if d == nil {
-		d = new(DropSearchIndexResult)
-	}
-
-	d.authenticator = authenticator
-	return d
+	dsi.authenticator = authenticator
+	return dsi
 }

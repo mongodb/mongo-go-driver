@@ -58,7 +58,6 @@ type FindAndModify struct {
 
 // LastErrorObject represents information about updates and upserts returned by the server.
 type LastErrorObject struct {
-	authenticator driver.Authenticator
 	// True if an update modified an existing document
 	UpdatedExisting bool
 	// Object ID of the upserted document.
@@ -67,7 +66,6 @@ type LastErrorObject struct {
 
 // FindAndModifyResult represents a findAndModify result returned by the server.
 type FindAndModifyResult struct {
-	authenticator driver.Authenticator
 	// Either the old or modified document, depending on the value of the new parameter.
 	Value bsoncore.Document
 	// Contains information about updates and upserts.
@@ -483,31 +481,11 @@ func (fam *FindAndModify) Timeout(timeout *time.Duration) *FindAndModify {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (f *FindAndModify) Authenticator(authenticator driver.Authenticator) *FindAndModify {
-	if f == nil {
-		f = new(FindAndModify)
+func (fam *FindAndModify) Authenticator(authenticator driver.Authenticator) *FindAndModify {
+	if fam == nil {
+		fam = new(FindAndModify)
 	}
 
-	f.authenticator = authenticator
-	return f
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (l *LastErrorObject) Authenticator(authenticator driver.Authenticator) *LastErrorObject {
-	if l == nil {
-		l = new(LastErrorObject)
-	}
-
-	l.authenticator = authenticator
-	return l
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (f *FindAndModifyResult) Authenticator(authenticator driver.Authenticator) *FindAndModifyResult {
-	if f == nil {
-		f = new(FindAndModifyResult)
-	}
-
-	f.authenticator = authenticator
-	return f
+	fam.authenticator = authenticator
+	return fam
 }

@@ -205,11 +205,11 @@ func (ct *CommitTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *Comm
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (c *CommitTransaction) Authenticator(authenticator driver.Authenticator) *CommitTransaction {
-	if c == nil {
-		c = new(CommitTransaction)
+func (ct *CommitTransaction) Authenticator(authenticator driver.Authenticator) *CommitTransaction {
+	if ct == nil {
+		ct = new(CommitTransaction)
 	}
 
-	c.authenticator = authenticator
-	return c
+	ct.authenticator = authenticator
+	return ct
 }

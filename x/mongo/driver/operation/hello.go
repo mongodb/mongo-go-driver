@@ -202,9 +202,8 @@ func getFaasEnvName() string {
 }
 
 type containerInfo struct {
-	authenticator driver.Authenticator
-	runtime       string
-	orchestrator  string
+	runtime      string
+	orchestrator string
 }
 
 // getContainerEnvInfo returns runtime and orchestrator of a container.
@@ -660,14 +659,4 @@ func (h *Hello) Authenticator(authenticator driver.Authenticator) *Hello {
 
 	h.authenticator = authenticator
 	return h
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (c *containerInfo) Authenticator(authenticator driver.Authenticator) *containerInfo {
-	if c == nil {
-		c = new(containerInfo)
-	}
-
-	c.authenticator = authenticator
-	return c
 }

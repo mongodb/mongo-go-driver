@@ -39,8 +39,7 @@ type UpdateSearchIndex struct {
 
 // UpdateSearchIndexResult represents a single index in the updateSearchIndexResult result.
 type UpdateSearchIndexResult struct {
-	authenticator driver.Authenticator
-	Ok            int32
+	Ok int32
 }
 
 func buildUpdateSearchIndexResult(response bsoncore.Document) (UpdateSearchIndexResult, error) {
@@ -230,21 +229,11 @@ func (usi *UpdateSearchIndex) Timeout(timeout *time.Duration) *UpdateSearchIndex
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (u *UpdateSearchIndex) Authenticator(authenticator driver.Authenticator) *UpdateSearchIndex {
-	if u == nil {
-		u = new(UpdateSearchIndex)
+func (usi *UpdateSearchIndex) Authenticator(authenticator driver.Authenticator) *UpdateSearchIndex {
+	if usi == nil {
+		usi = new(UpdateSearchIndex)
 	}
 
-	u.authenticator = authenticator
-	return u
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (u *UpdateSearchIndexResult) Authenticator(authenticator driver.Authenticator) *UpdateSearchIndexResult {
-	if u == nil {
-		u = new(UpdateSearchIndexResult)
-	}
-
-	u.authenticator = authenticator
-	return u
+	usi.authenticator = authenticator
+	return usi
 }

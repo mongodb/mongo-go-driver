@@ -165,11 +165,11 @@ func (es *EndSessions) ServerAPI(serverAPI *driver.ServerAPIOptions) *EndSession
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (e *EndSessions) Authenticator(authenticator driver.Authenticator) *EndSessions {
-	if e == nil {
-		e = new(EndSessions)
+func (es *EndSessions) Authenticator(authenticator driver.Authenticator) *EndSessions {
+	if es == nil {
+		es = new(EndSessions)
 	}
 
-	e.authenticator = authenticator
-	return e
+	es.authenticator = authenticator
+	return es
 }

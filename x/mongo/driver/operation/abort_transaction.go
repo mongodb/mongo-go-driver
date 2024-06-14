@@ -203,11 +203,11 @@ func (at *AbortTransaction) ServerAPI(serverAPI *driver.ServerAPIOptions) *Abort
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (a *AbortTransaction) Authenticator(authenticator driver.Authenticator) *AbortTransaction {
-	if a == nil {
-		a = new(AbortTransaction)
+func (at *AbortTransaction) Authenticator(authenticator driver.Authenticator) *AbortTransaction {
+	if at == nil {
+		at = new(AbortTransaction)
 	}
 
-	a.authenticator = authenticator
-	return a
+	at.authenticator = authenticator
+	return at
 }
