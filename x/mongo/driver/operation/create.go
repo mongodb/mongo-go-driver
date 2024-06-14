@@ -20,7 +20,7 @@ import (
 
 // Create represents a create operation.
 type Create struct {
-	authenticator driver.Authenticator
+	authenticator                driver.Authenticator
 	capped                       *bool
 	collation                    bsoncore.Document
 	changeStreamPreAndPostImages bsoncore.Document
@@ -78,7 +78,7 @@ func (c *Create) Execute(ctx context.Context) error {
 		Selector:          c.selector,
 		WriteConcern:      c.writeConcern,
 		ServerAPI:         c.serverAPI,
-		Authenticator:  c.authenticator,
+		Authenticator:     c.authenticator,
 	}.Execute(ctx)
 }
 
@@ -411,4 +411,3 @@ func (c *Create) Authenticator(authenticator driver.Authenticator) *Create {
 	c.authenticator = authenticator
 	return c
 }
-

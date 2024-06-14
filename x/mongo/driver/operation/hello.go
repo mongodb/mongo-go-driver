@@ -36,7 +36,7 @@ const driverName = "mongo-go-driver"
 
 // Hello is used to run the handshake operation.
 type Hello struct {
-	authenticator driver.Authenticator
+	authenticator      driver.Authenticator
 	appname            string
 	compressors        []string
 	saslSupportedMechs string
@@ -203,8 +203,8 @@ func getFaasEnvName() string {
 
 type containerInfo struct {
 	authenticator driver.Authenticator
-	runtime      string
-	orchestrator string
+	runtime       string
+	orchestrator  string
 }
 
 // getContainerEnvInfo returns runtime and orchestrator of a container.
@@ -662,7 +662,6 @@ func (h *Hello) Authenticator(authenticator driver.Authenticator) *Hello {
 	return h
 }
 
-
 // Authenticator sets the authenticator to use for this operation.
 func (c *containerInfo) Authenticator(authenticator driver.Authenticator) *containerInfo {
 	if c == nil {
@@ -672,4 +671,3 @@ func (c *containerInfo) Authenticator(authenticator driver.Authenticator) *conta
 	c.authenticator = authenticator
 	return c
 }
-

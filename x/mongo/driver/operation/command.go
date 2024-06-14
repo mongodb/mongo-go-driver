@@ -22,7 +22,7 @@ import (
 
 // Command is used to run a generic operation.
 type Command struct {
-	authenticator driver.Authenticator
+	authenticator  driver.Authenticator
 	command        bsoncore.Document
 	database       string
 	deployment     driver.Deployment
@@ -231,4 +231,3 @@ func (c *Command) Authenticator(authenticator driver.Authenticator) *Command {
 	c.authenticator = authenticator
 	return c
 }
-
