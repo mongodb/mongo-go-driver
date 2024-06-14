@@ -62,7 +62,9 @@ type IDPInfo struct {
 }
 
 // Authenticator handles authenticating a connection. The implementors of this interface
-// are all in the auth package.
+// are all in the auth package. Most authentication mechanisms to not allow for Reauth,
+// but this is included in the interface so that whenever a new mechanism is added, it
+// must be explicitly considered.
 type Authenticator interface {
 	// Auth authenticates the connection.
 	Auth(context.Context, *AuthConfig) error
