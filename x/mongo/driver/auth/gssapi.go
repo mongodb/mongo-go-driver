@@ -59,6 +59,6 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *GSSAPIAuthenticator) Reauth(ctx context.Context, cfg *Config) error {
+func (a *GSSAPIAuthenticator) Reauth(ctx context.Context) error {
 	return newAuthError("GSSAPI does not support reauthentication", nil)
 }
