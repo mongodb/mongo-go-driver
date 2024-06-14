@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -eux {0}
+
+jobs:
+  release:
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    steps:
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+        with:
+          app_id: ${{ vars.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: mongodb-labs/drivers-github-tools/setup@v2
+        with:
+          aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws_region_name: ${{ vars.AWS_REGION_NAME }}
+          aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+      - name: Get current version
+        run: |
+          export VERSION=$(cat version/version.go | grep "var Driver" | awk -F'"' '{print $2}')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - uses: mongodb-labs/drivers-github-tools/tag-version@v2
+        with:
+          version: ${{ env.VERSION }}
+      - uses: mongodb-labs/drivers-github-tools/sbom@v2
+        with:
+          silk_asset_group: mongodb-go-driver-cloud-1.12.0
+      - name: Draft GitHub Release
+        run: |
+          gh release create ${VERSION} --draft --verify-tag --title ${VERSION} --notes ""
+          gh release upload ${VERSION} $RELEASE_ASSETS/*.*
