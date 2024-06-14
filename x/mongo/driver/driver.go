@@ -45,6 +45,7 @@ type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
 
 type OIDCArgs struct {
 	Version      int
+	Timeout      time.Time
 	IDPInfo      *IDPInfo
 	RefreshToken *string
 }

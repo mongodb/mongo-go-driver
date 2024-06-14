@@ -916,12 +916,20 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Labels = tt.Labels
 			operationErr.Raw = tt.Raw
 		case Error:
-			// TODO: actually make sure this Reauths
+			// 391 is the reauthentication required error code, so we will attempt a reauth and
+			// retry the operation, if it is successful.
 			if tt.Code == 391 {
 				if op.Authenticator != nil {
 					if err := op.Authenticator.Reauth(ctx); err != nil {
-						return err
+						return fmt.Errorf("error reauthenticating: %w", err)
 					}
+					if op.Client != nil && op.Client.Committing {
+						// Apply majority write concern for retries
+						op.Client.UpdateCommitTransactionWriteConcern()
+						op.WriteConcern = op.Client.CurrentWc
+					}
+					resetForRetry(tt)
+					continue
 				}
 			}
 			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {

@@ -35,7 +35,7 @@ func init() {
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
 	RegisterAuthenticatorFactory(MongoDBAWS, newMongoDBAWSAuthenticator)
-	RegisterAuthenticatorFactory(OIDC, newOIDCAuthenticator)
+	RegisterAuthenticatorFactory(MongoDBOIDC, newOIDCAuthenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
