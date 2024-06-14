@@ -19,6 +19,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+type Config = driver.AuthConfig
+
 // AuthenticatorFactory constructs an authenticator.
 type AuthenticatorFactory func(cred *Cred) (Authenticator, error)
 
@@ -114,8 +116,6 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 	}
 	return ah.handshakeInfo, nil
 }
-
-type Config = driver.AuthConfig
 
 // FinishHandshake performs authentication for conn if necessary.
 func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Connection) error {
