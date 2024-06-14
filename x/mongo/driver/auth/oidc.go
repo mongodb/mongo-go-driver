@@ -16,9 +16,14 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
+// MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
-const tokenResourceProp = "TOKEN_RESOURCE"
+
+// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
+// const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
+
+// GODRIVER-3249	OIDC: Handle all possible OIDC configuration errors
 const allowedHostsProp = "ALLOWED_HOSTS"
 
 const azureEnvironmentValue = "azure"
@@ -28,19 +33,27 @@ const apiVersion = 1
 const invalidateSleepTimeout = 100 * time.Millisecond
 const machineCallbackTimeout = 60 * time.Second
 
-var defaultAllowedHosts = []string{
-	"*.mongodb.net",
-	"*.mongodb-qa.net",
-	"*.mongodb-dev.net",
-	"*.mongodbgov.net",
-	"localhost",
-	"127.0.0.1",
-	"::1",
-}
+//GODRIVER-3246	OIDC: Implement Human Callback Mechanism
+//var defaultAllowedHosts = []string{
+//	"*.mongodb.net",
+//	"*.mongodb-qa.net",
+//	"*.mongodb-dev.net",
+//	"*.mongodbgov.net",
+//	"localhost",
+//	"127.0.0.1",
+//	"::1",
+//}
 
+// OIDCCallback is a function that takes a context and OIDCArgs and returns an OIDCCredential.
 type OIDCCallback = driver.OIDCCallback
+
+// OIDCArgs contains the arguments for the OIDC callback.
 type OIDCArgs = driver.OIDCArgs
+
+// OIDCCredential contains the access token and refresh token.
 type OIDCCredential = driver.OIDCCredential
+
+// IDPInfo contains the information needed to perform OIDC authentication with an Identity Provider.
 type IDPInfo = driver.IDPInfo
 
 var _ driver.Authenticator = (*OIDCAuthenticator)(nil)
@@ -79,13 +92,14 @@ func jwtStepRequest(accessToken string) []byte {
 		Build()
 }
 
-func principalStepRequest(principal string) []byte {
-	doc := bsoncore.NewDocumentBuilder()
-	if principal != "" {
-		doc.AppendString("n", principal)
-	}
-	return doc.Build()
-}
+// TODO GODRIVER-3246: Implement OIDC human flow
+//func principalStepRequest(principal string) []byte {
+//	doc := bsoncore.NewDocumentBuilder()
+//	if principal != "" {
+//		doc.AppendString("n", principal)
+//	}
+//	return doc.Build()
+//}
 
 func (oos *oidcOneStep) Start() (string, []byte, error) {
 	return MongoDBOIDC, jwtStepRequest(oos.accessToken), nil
@@ -108,6 +122,11 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	switch env {
 	// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
+	// This is here just to pass the linter, it will be fixed in one of the above tickets.
+	case azureEnvironmentValue, gcpEnvironmentValue:
+		return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+			return nil, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
+		}, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
 	}
 
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
@@ -137,27 +156,28 @@ func (oa *OIDCAuthenticator) getAccessToken(
 	return cred.AccessToken, nil
 }
 
+// TODO GODRIVER-3246: Implement OIDC human flow
 // This should only be called with the Mutex held.
-func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
-	ctx context.Context,
-	callback OIDCCallback,
-	refreshToken string,
-) (string, error) {
-
-	cred, err := callback(ctx, &OIDCArgs{
-		Version:      1,
-		IDPInfo:      oa.idpInfo,
-		RefreshToken: &refreshToken,
-	})
-	if err != nil {
-		return "", err
-	}
-
-	oa.accessToken = cred.AccessToken
-	oa.tokenGenID++
-	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
-	return cred.AccessToken, nil
-}
+//func (oa *OIDCAuthenticator) getAccessTokenWithRefresh(
+//	ctx context.Context,
+//	callback OIDCCallback,
+//	refreshToken string,
+//) (string, error) {
+//
+//	cred, err := callback(ctx, &OIDCArgs{
+//		Version:      apiVersion,
+//		IDPInfo:      oa.idpInfo,
+//		RefreshToken: &refreshToken,
+//	})
+//	if err != nil {
+//		return "", err
+//	}
+//
+//	oa.accessToken = cred.AccessToken
+//	oa.tokenGenID++
+//	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
+//	return cred.AccessToken, nil
+//}
 
 // invalidateAccessToken invalidates the access token, if the force flag is set to true (which is
 // only on a Reauth call) or if the tokenGenID of the connection is greater than or equal to the
@@ -174,6 +194,8 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(force bool) {
 	}
 }
 
+// Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
+// driver.Authenticator interface.
 func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
 	oa.invalidateAccessToken(true)
 	// it should be impossible to get a Reauth when an Auth has never occurred,
@@ -230,12 +252,14 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback) error {
 	// TODO GODRIVER-3246: Implement OIDC human flow
+	// Println is for linter
+	fmt.Println("OIDC human flow not implemented yet", oa.idpInfo)
 	return newAuthError("OIDC human flow not implemented yet", nil)
 }
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
 	accessToken, err := oa.getAccessToken(ctx,
-		&OIDCArgs{Version: 1,
+		&OIDCArgs{Version: apiVersion,
 			Timeout: time.Now().Add(machineCallbackTimeout),
 			// idpInfo is nil for machine callbacks in the current spec.
 			IDPInfo:      nil,

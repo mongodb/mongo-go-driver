@@ -67,7 +67,7 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *DefaultAuthenticator) Reauth(ctx context.Context) error {
+func (a *DefaultAuthenticator) Reauth(_ context.Context) error {
 	return newAuthError("DefaultAuthenticator does not support reauthentication", nil)
 }
 

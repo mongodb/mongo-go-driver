@@ -98,7 +98,7 @@ func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *MongoDBCRAuthenticator) Reauth(ctx context.Context) error {
+func (a *MongoDBCRAuthenticator) Reauth(_ context.Context) error {
 	return newAuthError("MONGODB-CR does not support reauthentication", nil)
 }
 

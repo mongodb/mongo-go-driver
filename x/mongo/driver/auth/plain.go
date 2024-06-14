@@ -35,7 +35,7 @@ func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *PlainAuthenticator) Reauth(ctx context.Context) error {
+func (a *PlainAuthenticator) Reauth(_ context.Context) error {
 	return newAuthError("Plain authentication does not support reauthentication", nil)
 }
 

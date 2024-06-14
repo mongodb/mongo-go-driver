@@ -202,11 +202,6 @@ func NewConfigWithAuthenticator(co *options.ClientOptions, clock *session.Cluste
 			}
 		}
 
-		authenticator, err := auth.CreateAuthenticator(mechanism, cred)
-		if err != nil {
-			return nil, err
-		}
-
 		handshakeOpts := &auth.HandshakeOptions{
 			AppName:       appName,
 			Authenticator: authenticator,

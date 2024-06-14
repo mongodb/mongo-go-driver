@@ -224,6 +224,9 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			PasswordSet: clientOpt.Auth.PasswordSet,
 			Props:       clientOpt.Auth.AuthMechanismProperties,
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cfg, err := topology.NewConfigWithAuthenticator(clientOpt, client.clock, client.authenticator)

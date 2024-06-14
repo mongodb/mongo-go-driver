@@ -866,12 +866,14 @@ func configureTLS(ctx context.Context,
 	return client, nil
 }
 
+// OIDCTokenGenID returns the OIDC token generation ID.
 func (c *Connection) OIDCTokenGenID() uint64 {
 	return c.oidcTokenGenID
 }
 
-func (c *Connection) SetOIDCTokenGenID(genId uint64) {
-	c.oidcTokenGenID = genId
+// SetOIDCTokenGenID sets the OIDC token generation ID.
+func (c *Connection) SetOIDCTokenGenID(genID uint64) {
+	c.oidcTokenGenID = genID
 }
 
 // TODO: Naming?
@@ -922,6 +924,6 @@ func (c *connection) OIDCTokenGenID() uint64 {
 	return c.oidcTokenGenID
 }
 
-func (c *connection) SetOIDCTokenGenID(genId uint64) {
-	c.oidcTokenGenID = genId
+func (c *connection) SetOIDCTokenGenID(genID uint64) {
+	c.oidcTokenGenID = genID
 }

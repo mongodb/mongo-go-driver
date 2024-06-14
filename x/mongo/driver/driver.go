@@ -43,6 +43,7 @@ type AuthConfig struct {
 // nil in the OIDCArgs for the Machine flow.
 type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
 
+// OIDCArgs contains the arguments for the OIDC callback.
 type OIDCArgs struct {
 	Version      int
 	Timeout      time.Time
@@ -50,12 +51,14 @@ type OIDCArgs struct {
 	RefreshToken *string
 }
 
+// OIDCCredential contains the access token and refresh token.
 type OIDCCredential struct {
 	AccessToken  string
 	ExpiresAt    *time.Time
 	RefreshToken *string
 }
 
+// IDPInfo contains the information needed to perform OIDC authentication with an Identity Provider.
 type IDPInfo struct {
 	Issuer        string   `bson:"issuer"`
 	ClientID      string   `bson:"clientId"`
