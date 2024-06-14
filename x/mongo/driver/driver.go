@@ -15,6 +15,7 @@ package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/csot"
@@ -23,6 +24,59 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
+
+// AuthConfig holds the information necessary to perform an authentication attempt.
+// this was moved from the auth package to avoid a circular dependency. The auth package
+// reexports this under the old name to avoid breaking the public api.
+type AuthConfig struct {
+	Description         description.Server
+	Connection          Connection
+	ClusterClock        *session.ClusterClock
+	HandshakeInfo       HandshakeInformation
+	ServerAPI           *ServerAPIOptions
+	HTTPClient          *http.Client
+	OIDCMachineCallback OIDCCallback
+	OIDCHumanCallback   OIDCCallback
+}
+
+// OIDCCallback is the type for both Human and Machine Callback flows. RefreshToken will always be
+// nil in the OIDCArgs for the Machine flow.
+type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
+
+type OIDCArgs struct {
+	Version      int
+	IDPInfo      *IDPInfo
+	RefreshToken *string
+}
+
+type OIDCCredential struct {
+	AccessToken  string
+	ExpiresAt    *time.Time
+	RefreshToken *string
+}
+
+type IDPInfo struct {
+	Issuer        string   `bson:"issuer"`
+	ClientID      string   `bson:"clientId"`
+	RequestScopes []string `bson:"requestScopes"`
+}
+
+// Authenticator handles authenticating a connection. The implementors of this interface
+// are all in the auth package.
+type Authenticator interface {
+	// Auth authenticates the connection.
+	Auth(context.Context, *AuthConfig) error
+	Reauth(context.Context) error
+}
+
+// Cred is a user's credential.
+type Cred struct {
+	Source      string
+	Username    string
+	Password    string
+	PasswordSet bool
+	Props       map[string]string
+}
 
 // Deployment is implemented by types that can select a server from a deployment.
 type Deployment interface {
