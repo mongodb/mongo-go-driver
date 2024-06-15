@@ -24,7 +24,7 @@ const MongoDBOIDC = "MONGODB-OIDC"
 const environmentProp = "ENVIRONMENT"
 
 // GODRIVER-3249	OIDC: Handle all possible OIDC configuration errors
-const allowedHostsProp = "ALLOWED_HOSTS"
+//const allowedHostsProp = "ALLOWED_HOSTS"
 
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
@@ -250,7 +250,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return newAuthError("no OIDC callback provided", nil)
 }
 
-func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback) error {
+func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *Config, _ OIDCCallback) error {
 	// TODO GODRIVER-3246: Implement OIDC human flow
 	// Println is for linter
 	fmt.Println("OIDC human flow not implemented yet", oa.idpInfo)

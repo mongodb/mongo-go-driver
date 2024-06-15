@@ -246,11 +246,11 @@ func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
 }
 
 // Authenticator sets the authenticator to use for this operation.
-func (d *DropIndexes) Authenticator(authenticator driver.Authenticator) *DropIndexes {
-	if d == nil {
-		d = new(DropIndexes)
+func (di *DropIndexes) Authenticator(authenticator driver.Authenticator) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
 	}
 
-	d.authenticator = authenticator
-	return d
+	di.authenticator = authenticator
+	return di
 }

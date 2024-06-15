@@ -78,6 +78,6 @@ func (a *MongoDBX509Authenticator) Auth(ctx context.Context, cfg *Config) error 
 }
 
 // Reauth reauthenticates the connection.
-func (a *MongoDBX509Authenticator) Reauth(ctx context.Context) error {
+func (a *MongoDBX509Authenticator) Reauth(_ context.Context) error {
 	return newAuthError("X509 does not support reauthentication", nil)
 }

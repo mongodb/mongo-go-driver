@@ -32,7 +32,7 @@ func (c *ChannelConn) OIDCTokenGenID() uint64 {
 	return 0
 }
 
-// OIDCTokenGenID implements the driver.Connection interface by setting the OIDCToken generation
+// SetOIDCTokenGenID implements the driver.Connection interface by setting the OIDCToken generation
 // (which is always 0)
 func (c *ChannelConn) SetOIDCTokenGenID(uint64) {}
 

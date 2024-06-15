@@ -61,7 +61,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *MongoDBAWSAuthenticator) Reauth(ctx context.Context) error {
+func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context) error {
 	return newAuthError("AWS authentication does not support reauthentication", nil)
 }
 

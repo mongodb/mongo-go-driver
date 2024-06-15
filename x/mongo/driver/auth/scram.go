@@ -85,7 +85,7 @@ func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *ScramAuthenticator) Reauth(ctx context.Context) error {
+func (a *ScramAuthenticator) Reauth(_ context.Context) error {
 	return newAuthError("SCRAM does not support reauthentication", nil)
 }
 
