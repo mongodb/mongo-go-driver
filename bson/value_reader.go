@@ -91,18 +91,19 @@ func (vr *valueReader) prepload(length int32) (int32, error) {
 		return 0, vr.readerErr
 	}
 
-	var size int32 = chunckSize
-	if length > size {
-		size = length
+	size := len(vr.d)
+	var need int64 = chunckSize
+	if l := int64(length) + vr.offset - int64(size); l > need {
+		need = l
 	}
-	buf := make([]byte, size)
+	buf := make([]byte, need)
 	n, err := vr.r.Read(buf)
 	if err != nil {
 		vr.readerErr = err
 	}
 	vr.d = append(vr.d, buf[0:n]...)
-	if l := int32(n); l < length {
-		length = l
+	if l := int64(n+size) - vr.offset; l < int64(length) {
+		length = int32(l)
 	}
 	return length, err
 }
@@ -206,9 +207,9 @@ func (vr *valueReader) pop() {
 		vr.frame -= 2 // we pop twice to jump over the vrElement: vrDocument -> vrElement -> vrDocument/TopLevel/etc...
 	}
 	if vr.frame < 0 {
-		vr.d = vr.d[:0]
-		vr.offset = 0
-	} else if vr.frame == 0 && (vr.stack[vr.frame].end <= vr.offset) {
+		vr.frame = 0
+	}
+	if vr.frame == 0 && (vr.stack[vr.frame].end <= vr.offset) {
 		vr.d = vr.d[vr.stack[vr.frame].end:]
 		vr.offset -= vr.stack[vr.frame].end
 		vr.stack[vr.frame].end = 0
