@@ -238,7 +238,7 @@ func getDecoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) *bson.Decoder {
-	dec := bson.NewDecoder(bson.NewValueReader(data))
+	dec := bson.NewDecoder(bson.NewValueReader(bytes.NewReader(data)))
 
 	if opts != nil {
 		if opts.AllowTruncatingDoubles {

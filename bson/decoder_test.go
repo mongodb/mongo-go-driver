@@ -28,7 +28,7 @@ func TestBasicDecode(t *testing.T) {
 			t.Parallel()
 
 			got := reflect.New(tc.sType).Elem()
-			vr := NewValueReader(tc.data)
+			vr := NewValueReader(bytes.NewReader(tc.data))
 			reg := DefaultRegistry
 			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
 			noerr(t, err)
@@ -184,7 +184,7 @@ func TestDecodingInterfaces(t *testing.T) {
 
 			data, receiver, check := tc.stub()
 			got := reflect.ValueOf(receiver).Elem()
-			vr := NewValueReader(data)
+			vr := NewValueReader(bytes.NewReader(data))
 			reg := DefaultRegistry
 			decoder, err := reg.LookupDecoder(got.Type())
 			noerr(t, err)
@@ -208,7 +208,7 @@ func TestDecoderv2(t *testing.T) {
 				t.Parallel()
 
 				got := reflect.New(tc.sType).Interface()
-				vr := NewValueReader(tc.data)
+				vr := NewValueReader(bytes.NewReader(tc.data))
 				dec := NewDecoder(vr)
 				err := dec.Decode(got)
 				noerr(t, err)
@@ -223,7 +223,7 @@ func TestDecoderv2(t *testing.T) {
 			_ = certainlydoesntexistelsewhereihope(func(string, string) string { return "" })
 
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
-			dec := NewDecoder(NewValueReader([]byte{}))
+			dec := NewDecoder(NewValueReader(bytes.NewReader([]byte{})))
 			want := ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
 			assert.Equal(t, want, got, "Received unexpected error.")
@@ -285,7 +285,7 @@ func TestDecoderv2(t *testing.T) {
 
 				want := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
 				unmarshaler := &testUnmarshaler{}
-				vr := NewValueReader(want)
+				vr := NewValueReader(bytes.NewReader(want))
 				dec := NewDecoder(vr)
 				err := dec.Decode(unmarshaler)
 				noerr(t, err)
@@ -302,7 +302,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			got := NewDecoder(NewValueReader([]byte{}))
+			got := NewDecoder(NewValueReader(bytes.NewReader([]byte{})))
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
@@ -314,7 +314,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Run("success", func(t *testing.T) {
 			t.Parallel()
 
-			got := NewDecoder(NewValueReader([]byte{}))
+			got := NewDecoder(NewValueReader(bytes.NewReader([]byte{})))
 			if got == nil {
 				t.Errorf("Was expecting a non-nil Decoder, but got <nil>")
 			}
@@ -332,7 +332,7 @@ func TestDecoderv2(t *testing.T) {
 		got.Item = "apple"
 		got.Bonus = 2
 		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
-		vr := NewValueReader(data)
+		vr := NewValueReader(bytes.NewReader(data))
 		dec := NewDecoder(vr)
 		err := dec.Decode(&got)
 		noerr(t, err)
@@ -342,7 +342,7 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("Reset", func(t *testing.T) {
 		t.Parallel()
 
-		vr1, vr2 := NewValueReader([]byte{}), NewValueReader([]byte{})
+		vr1, vr2 := NewValueReader(bytes.NewReader([]byte{})), NewValueReader(bytes.NewReader([]byte{}))
 		dec := NewDecoder(vr1)
 		if dec.vr != vr1 {
 			t.Errorf("Decoder should use the value reader provided. got %v; want %v", dec.vr, vr1)
@@ -358,7 +358,7 @@ func TestDecoderv2(t *testing.T) {
 		r1, r2 := DefaultRegistry, NewRegistry()
 		dc1 := DecodeContext{Registry: r1}
 		dc2 := DecodeContext{Registry: r2}
-		dec := NewDecoder(NewValueReader([]byte{}))
+		dec := NewDecoder(NewValueReader(bytes.NewReader([]byte{})))
 		if !reflect.DeepEqual(dec.dc, dc1) {
 			t.Errorf("Decoder should use the Registry provided. got %v; want %v", dec.dc, dc1)
 		}
@@ -371,7 +371,7 @@ func TestDecoderv2(t *testing.T) {
 		t.Parallel()
 
 		data := docToBytes(D{{"item", "canvas"}, {"qty", 4}})
-		vr := NewValueReader(data)
+		vr := NewValueReader(bytes.NewReader(data))
 		dec := NewDecoder(vr)
 
 		var got *D
@@ -578,7 +578,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 
-			dec := NewDecoder(NewValueReader(tc.input))
+			dec := NewDecoder(NewValueReader(bytes.NewReader(tc.input)))
 
 			tc.configure(dec)
 
@@ -599,7 +599,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build()).
 			Build()
 
-		dec := NewDecoder(NewValueReader(input))
+		dec := NewDecoder(NewValueReader(bytes.NewReader(input)))
 
 		dec.DefaultDocumentM()
 
@@ -623,7 +623,7 @@ func TestDecoderConfiguration(t *testing.T) {
 				Build()).
 			Build()
 
-		dec := NewDecoder(NewValueReader(input))
+		dec := NewDecoder(NewValueReader(bytes.NewReader(input)))
 
 		dec.DefaultDocumentD()
 

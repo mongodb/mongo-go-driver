@@ -22,18 +22,16 @@ import (
 func TestValueReader(t *testing.T) {
 	t.Run("ReadBinary", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			btype  byte
-			b      []byte
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			btype byte
+			b     []byte
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				0,
 				nil,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeBinary),
@@ -43,7 +41,6 @@ func TestValueReader(t *testing.T) {
 				"length too short",
 				[]byte{},
 				0,
-				0,
 				nil,
 				io.EOF,
 				TypeBinary,
@@ -51,7 +48,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"no byte available",
 				[]byte{0x00, 0x00, 0x00, 0x00},
-				0,
 				0,
 				nil,
 				io.EOF,
@@ -61,7 +57,6 @@ func TestValueReader(t *testing.T) {
 				"not enough bytes for binary",
 				[]byte{0x05, 0x00, 0x00, 0x00, 0x00},
 				0,
-				0,
 				nil,
 				io.EOF,
 				TypeBinary,
@@ -69,7 +64,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"success",
 				[]byte{0x03, 0x00, 0x00, 0x00, 0xEA, 0x01, 0x02, 0x03},
-				0,
 				0xEA,
 				[]byte{0x01, 0x02, 0x03},
 				nil,
@@ -80,8 +74,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -109,7 +102,6 @@ func TestValueReader(t *testing.T) {
 		testCases := []struct {
 			name    string
 			data    []byte
-			offset  int64
 			boolean bool
 			err     error
 			vType   Type
@@ -117,7 +109,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				false,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeBoolean),
 				TypeEmbeddedDocument,
@@ -125,7 +116,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"no byte available",
 				[]byte{},
-				0,
 				false,
 				io.EOF,
 				TypeBoolean,
@@ -133,7 +123,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"invalid byte for boolean",
 				[]byte{0x03},
-				0,
 				false,
 				fmt.Errorf("invalid byte for boolean, %b", 0x03),
 				TypeBoolean,
@@ -141,7 +130,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"success",
 				[]byte{0x01},
-				0,
 				true,
 				nil,
 				TypeBoolean,
@@ -151,8 +139,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -177,19 +164,23 @@ func TestValueReader(t *testing.T) {
 		t.Run("TopLevel", func(t *testing.T) {
 			doc := []byte{0x05, 0x00, 0x00, 0x00, 0x00}
 			vr := &valueReader{
-				offset: 0,
-				stack:  []vrState{{mode: mTopLevel}},
-				frame:  0,
+				stack: []vrState{{mode: mTopLevel}},
+				frame: 0,
 			}
 
 			// invalid length
-			vr.d = []byte{0x00, 0x00}
+			vr.r = bytes.NewReader([]byte{0x00, 0x00})
 			_, err := vr.ReadDocument()
 			if !errors.Is(err, io.EOF) {
 				t.Errorf("Expected io.EOF with document length too small. got %v; want %v", err, io.EOF)
 			}
+			if vr.offset != 0 {
+				t.Errorf("Expected 0 offset. got %d", vr.offset)
+			}
 
-			vr.d = doc
+			vr.r = bytes.NewReader(doc)
+			vr.d = vr.d[:0]
+			vr.readerErr = nil
 			_, err = vr.ReadDocument()
 			noerr(t, err)
 			if vr.stack[vr.frame].end != 5 {
@@ -198,7 +189,6 @@ func TestValueReader(t *testing.T) {
 		})
 		t.Run("EmbeddedDocument", func(t *testing.T) {
 			vr := &valueReader{
-				offset: 0,
 				stack: []vrState{
 					{mode: mTopLevel},
 					{mode: mElement, vType: TypeBoolean},
@@ -222,6 +212,7 @@ func TestValueReader(t *testing.T) {
 			vr.stack[1].mode, vr.stack[1].vType = mElement, TypeEmbeddedDocument
 			vr.d = []byte{0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00}
 			vr.offset = 4
+			vr.r = bytes.NewReader([]byte{})
 			_, err = vr.ReadDocument()
 			noerr(t, err)
 			if len(vr.stack) != 3 {
@@ -265,58 +256,50 @@ func TestValueReader(t *testing.T) {
 			0x05, 0x00, 0x00, 0x00, 0x00, // document
 		}
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeCodeWithScope),
 				TypeEmbeddedDocument,
 			},
 			{
 				"total length not enough bytes",
 				[]byte{},
-				0,
 				io.EOF,
 				TypeCodeWithScope,
 			},
 			{
 				"string length not enough bytes",
 				codeWithScope[:4],
-				0,
 				io.EOF,
 				TypeCodeWithScope,
 			},
 			{
 				"not enough string bytes",
 				codeWithScope[:8],
-				0,
 				io.EOF,
 				TypeCodeWithScope,
 			},
 			{
 				"document length not enough bytes",
 				codeWithScope[:12],
-				0,
 				io.EOF,
 				TypeCodeWithScope,
 			},
 			{
 				"length mismatch",
 				mismatchCodeWithScope,
-				0,
 				fmt.Errorf("length of CodeWithScope does not match lengths of components; total: %d; components: %d", 17, 19),
 				TypeCodeWithScope,
 			},
 			{
 				"invalid strLength",
 				invalidCodeWithScope,
-				0,
 				fmt.Errorf("invalid string length: %d", 0),
 				TypeCodeWithScope,
 			},
@@ -325,8 +308,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -379,18 +361,16 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadDBPointer", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			ns     string
-			oid    ObjectID
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			ns    string
+			oid   ObjectID
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				"",
 				ObjectID{},
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeDBPointer),
@@ -399,7 +379,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"length too short",
 				[]byte{},
-				0,
 				"",
 				ObjectID{},
 				io.EOF,
@@ -408,7 +387,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"not enough bytes for namespace",
 				[]byte{0x04, 0x00, 0x00, 0x00},
-				0,
 				"",
 				ObjectID{},
 				io.EOF,
@@ -417,7 +395,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"not enough bytes for objectID",
 				[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				0,
 				"",
 				ObjectID{},
 				io.EOF,
@@ -429,7 +406,6 @@ func TestValueReader(t *testing.T) {
 					0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00,
 					0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 				},
-				0,
 				"foo",
 				ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil,
@@ -440,8 +416,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -467,17 +442,15 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadDateTime", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			dt     int64
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			dt    int64
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				0,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeDateTime),
 				TypeEmbeddedDocument,
@@ -486,14 +459,12 @@ func TestValueReader(t *testing.T) {
 				"length too short",
 				[]byte{},
 				0,
-				0,
 				io.EOF,
 				TypeDateTime,
 			},
 			{
 				"success",
 				[]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-				0,
 				255,
 				nil,
 				TypeDateTime,
@@ -503,8 +474,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -527,17 +497,15 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadDecimal128", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			dc128  Decimal128
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			dc128 Decimal128
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				Decimal128{},
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeDecimal128),
 				TypeEmbeddedDocument,
@@ -545,7 +513,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"length too short",
 				[]byte{},
-				0,
 				Decimal128{},
 				io.EOF,
 				TypeDecimal128,
@@ -556,7 +523,6 @@ func TestValueReader(t *testing.T) {
 					0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Low
 					0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // High
 				},
-				0,
 				NewDecimal128(65280, 255),
 				nil,
 				TypeDecimal128,
@@ -566,8 +532,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -597,7 +562,6 @@ func TestValueReader(t *testing.T) {
 		testCases := []struct {
 			name   string
 			data   []byte
-			offset int64
 			double float64
 			err    error
 			vType  Type
@@ -606,7 +570,6 @@ func TestValueReader(t *testing.T) {
 				"incorrect type",
 				[]byte{},
 				0,
-				0,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeDouble),
 				TypeEmbeddedDocument,
 			},
@@ -614,14 +577,12 @@ func TestValueReader(t *testing.T) {
 				"length too short",
 				[]byte{},
 				0,
-				0,
 				io.EOF,
 				TypeDouble,
 			},
 			{
 				"success",
 				[]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-				0,
 				math.Float64frombits(255),
 				nil,
 				TypeDouble,
@@ -631,8 +592,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -655,17 +615,15 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadInt32", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			i32    int32
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			i32   int32
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				0,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeInt32),
 				TypeEmbeddedDocument,
@@ -674,14 +632,12 @@ func TestValueReader(t *testing.T) {
 				"length too short",
 				[]byte{},
 				0,
-				0,
 				io.EOF,
 				TypeInt32,
 			},
 			{
 				"success",
 				[]byte{0xFF, 0x00, 0x00, 0x00},
-				0,
 				255,
 				nil,
 				TypeInt32,
@@ -691,8 +647,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -713,19 +668,17 @@ func TestValueReader(t *testing.T) {
 			})
 		}
 	})
-	t.Run("ReadInt32", func(t *testing.T) {
+	t.Run("ReadInt64", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			i64    int64
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			i64   int64
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				0,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeInt64),
 				TypeEmbeddedDocument,
@@ -734,14 +687,12 @@ func TestValueReader(t *testing.T) {
 				"length too short",
 				[]byte{},
 				0,
-				0,
 				io.EOF,
 				TypeInt64,
 			},
 			{
 				"success",
 				[]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-				0,
 				255,
 				nil,
 				TypeInt64,
@@ -751,8 +702,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -775,18 +725,16 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadJavascript/ReadString/ReadSymbol", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			fn     func(*valueReader) (string, error)
-			css    string // code, string, symbol :P
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			fn    func(*valueReader) (string, error)
+			css   string // code, string, symbol :P
+			err   error
+			vType Type
 		}{
 			{
 				"ReadJavascript/incorrect type",
 				[]byte{},
-				0,
 				(*valueReader).ReadJavascript,
 				"",
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeJavaScript),
@@ -795,7 +743,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadString/incorrect type",
 				[]byte{},
-				0,
 				(*valueReader).ReadString,
 				"",
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeString),
@@ -804,7 +751,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadSymbol/incorrect type",
 				[]byte{},
-				0,
 				(*valueReader).ReadSymbol,
 				"",
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeSymbol),
@@ -813,7 +759,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadJavascript/length too short",
 				[]byte{},
-				0,
 				(*valueReader).ReadJavascript,
 				"",
 				io.EOF,
@@ -822,7 +767,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadString/length too short",
 				[]byte{},
-				0,
 				(*valueReader).ReadString,
 				"",
 				io.EOF,
@@ -831,7 +775,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadSymbol/length too short",
 				[]byte{},
-				0,
 				(*valueReader).ReadSymbol,
 				"",
 				io.EOF,
@@ -840,7 +783,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadJavascript/incorrect end byte",
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x05},
-				0,
 				(*valueReader).ReadJavascript,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
@@ -849,7 +791,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadString/incorrect end byte",
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x05},
-				0,
 				(*valueReader).ReadString,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
@@ -858,7 +799,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadSymbol/incorrect end byte",
 				[]byte{0x01, 0x00, 0x00, 0x00, 0x05},
-				0,
 				(*valueReader).ReadSymbol,
 				"",
 				fmt.Errorf("string does not end with null byte, but with %v", 0x05),
@@ -867,7 +807,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadJavascript/success",
 				[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				0,
 				(*valueReader).ReadJavascript,
 				"foo",
 				nil,
@@ -876,7 +815,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadString/success",
 				[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				0,
 				(*valueReader).ReadString,
 				"foo",
 				nil,
@@ -885,7 +823,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"ReadSymbol/success",
 				[]byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00},
-				0,
 				(*valueReader).ReadSymbol,
 				"foo",
 				nil,
@@ -896,8 +833,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -997,17 +933,15 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadObjectID", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			oid    ObjectID
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			oid   ObjectID
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				ObjectID{},
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeObjectID),
 				TypeEmbeddedDocument,
@@ -1015,7 +949,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"not enough bytes for objectID",
 				[]byte{},
-				0,
 				ObjectID{},
 				io.EOF,
 				TypeObjectID,
@@ -1023,7 +956,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"success",
 				[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
-				0,
 				ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C},
 				nil,
 				TypeObjectID,
@@ -1033,8 +965,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1059,7 +990,6 @@ func TestValueReader(t *testing.T) {
 		testCases := []struct {
 			name    string
 			data    []byte
-			offset  int64
 			pattern string
 			options string
 			err     error
@@ -1068,7 +998,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				"",
 				"",
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeRegex),
@@ -1077,7 +1006,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"length too short",
 				[]byte{},
-				0,
 				"",
 				"",
 				io.EOF,
@@ -1086,7 +1014,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"not enough bytes for options",
 				[]byte{'f', 'o', 'o', 0x00},
-				0,
 				"",
 				"",
 				io.EOF,
@@ -1095,7 +1022,6 @@ func TestValueReader(t *testing.T) {
 			{
 				"success",
 				[]byte{'f', 'o', 'o', 0x00, 'b', 'a', 'r', 0x00},
-				0,
 				"foo",
 				"bar",
 				nil,
@@ -1106,8 +1032,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1133,18 +1058,16 @@ func TestValueReader(t *testing.T) {
 	})
 	t.Run("ReadTimestamp", func(t *testing.T) {
 		testCases := []struct {
-			name   string
-			data   []byte
-			offset int64
-			ts     uint32
-			incr   uint32
-			err    error
-			vType  Type
+			name  string
+			data  []byte
+			ts    uint32
+			incr  uint32
+			err   error
+			vType Type
 		}{
 			{
 				"incorrect type",
 				[]byte{},
-				0,
 				0,
 				0,
 				(&valueReader{stack: []vrState{{vType: TypeEmbeddedDocument}}, frame: 0}).typeError(TypeTimestamp),
@@ -1155,7 +1078,6 @@ func TestValueReader(t *testing.T) {
 				[]byte{},
 				0,
 				0,
-				0,
 				io.EOF,
 				TypeTimestamp,
 			},
@@ -1164,14 +1086,12 @@ func TestValueReader(t *testing.T) {
 				[]byte{0x01, 0x02, 0x03, 0x04},
 				0,
 				0,
-				0,
 				io.EOF,
 				TypeTimestamp,
 			},
 			{
 				"success",
 				[]byte{0xFF, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00},
-				0,
 				256,
 				255,
 				nil,
@@ -1182,8 +1102,7 @@ func TestValueReader(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				vr := &valueReader{
-					offset: tc.offset,
-					d:      tc.data,
+					r: bytes.NewReader(tc.data),
 					stack: []vrState{
 						{mode: mTopLevel},
 						{
@@ -1402,7 +1321,8 @@ func TestValueReader(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Run("Skip", func(t *testing.T) {
 					vr := &valueReader{
-						d: tc.data,
+						r: bytes.NewReader(tc.data[tc.offset:]),
+						d: tc.data[:tc.offset],
 						stack: []vrState{
 							{mode: mTopLevel},
 							{mode: mElement, vType: tc.t},
@@ -1421,6 +1341,7 @@ func TestValueReader(t *testing.T) {
 				})
 				t.Run("ReadBytes", func(t *testing.T) {
 					vr := &valueReader{
+						r: bytes.NewReader([]byte{}),
 						d: tc.data,
 						stack: []vrState{
 							{mode: mTopLevel},
@@ -1475,7 +1396,7 @@ func TestValueReader(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
 					vr := &valueReader{
-						d: tc.want,
+						r: bytes.NewReader(tc.want),
 						stack: []vrState{
 							{mode: mTopLevel},
 						},
