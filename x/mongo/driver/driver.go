@@ -65,7 +65,7 @@ type IDPInfo struct {
 	RequestScopes []string `bson:"requestScopes"`
 }
 
-// Authenticator handles authenticating a connection. The implementors of this interface
+// Authenticator handles authenticating a connection. The implementers of this interface
 // are all in the auth package. Most authentication mechanisms do not allow for Reauth,
 // but this is included in the interface so that whenever a new mechanism is added, it
 // must be explicitly considered.
