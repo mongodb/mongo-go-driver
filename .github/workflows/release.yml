@@ -5,8 +5,10 @@ on:
     inputs:
       version:
         description: "The new version to set"
-      following_version:
-        description: "The post (dev) version to set"
+        required: true
+      prev_version:
+        description: "The previous tagged version"
+        required: true
       push_changes:
         description: "Push changes?"
         default: true
@@ -79,7 +81,6 @@ jobs:
         with:
           version: ${{ inputs.version }}
           silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
-          prev_version: ${{ needs.pre-publish.outputs.prev_version }}
-          following_version: ${{ inputs.following_version }}
+          prev_version: ${{ inputs.prev_version }}
           push_changes: ${{ inputs.push_changes }}
           token: ${{ env.GH_TOKEN }}
