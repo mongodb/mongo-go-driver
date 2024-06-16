@@ -71,8 +71,8 @@ jobs:
       - name: Publish
         uses: blink1073/drivers-github-tools/golang/publish/@go-driver-actions
         with:
-          product_name: mongo-go-driver
           version: ${{ inputs.version }}
           silk_asset_group: mongodb-go-driver-v1
           prev_version: ${{ needs.pre-publish.outputs.prev_version }}
           push_changes: ${{ inputs.push_changes }}
+          token: ${{ env.GH_TOKEN }}
