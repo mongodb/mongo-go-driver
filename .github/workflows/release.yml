@@ -39,6 +39,7 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+          artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
       - name: Pre Publish
         id: pre-publish
         uses: blink1073/drivers-github-tools/golang/pre-publish@go-driver-actions
@@ -72,6 +73,7 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+          artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
       - name: Publish
         uses: blink1073/drivers-github-tools/golang/publish/@go-driver-actions
         with:
