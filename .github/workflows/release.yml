@@ -78,5 +78,6 @@ jobs:
           version: ${{ inputs.version }}
           silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
           prev_version: ${{ needs.pre-publish.outputs.prev_version }}
+          following_version: ${{ inputs.following_version }}
           push_changes: ${{ inputs.push_changes }}
           token: ${{ env.GH_TOKEN }}
