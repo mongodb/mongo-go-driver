@@ -16,6 +16,10 @@ defaults:
   run:
     shell: bash -eux {0}
 
+env:
+  # Changes per branch
+  SILK_ASSET_GROUP: mongodb-go-driver-v1
+
 jobs:
   pre-publish:
     environment: release
@@ -72,7 +76,7 @@ jobs:
         uses: blink1073/drivers-github-tools/golang/publish/@go-driver-actions
         with:
           version: ${{ inputs.version }}
-          silk_asset_group: mongodb-go-driver-v1
+          silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
           prev_version: ${{ needs.pre-publish.outputs.prev_version }}
           push_changes: ${{ inputs.push_changes }}
           token: ${{ env.GH_TOKEN }}
