@@ -40,7 +40,7 @@ jobs:
         uses: blink1073/drivers-github-tools/golang/pre-publish@go-driver-actions
         with:
           version: ${{ inputs.version }}
-          push_commit: ${{ inputs.push_changes }}
+          push_changes: ${{ inputs.push_changes }}
 
   static-scan:
     needs: [pre-publish]
