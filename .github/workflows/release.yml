@@ -17,14 +17,14 @@ defaults:
     shell: bash -eux {0}
 
 jobs:
-  bump-and-tag:
+  pre-publish:
     environment: release
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: write
     outputs:
-      prev_version: ${{ steps.prev-version.outputs.prev_version }}
+      prev_version: ${{ steps.pre-publish.outputs.prev_version }}
     steps:
       - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
         with:
@@ -35,31 +35,23 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
-      - name: Get previous version
-        id: prev-version
-        run: |
-          export PREV_VERSION=$(cat version/version.go | grep "var Driver" | awk -F'"' '{print $2}')
-          echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
-      - uses: mongodb-labs/drivers-github-tools/bump-version@v2
+      - name: Pre Publish
+        id: pre-publish
+        uses: blink1073/drivers-github-tools/golang/pre-publish@go-driver-actions
         with:
           version: ${{ inputs.version }}
-          version_bump_script: "go run ./.github/scripts/bump-version.go"
           push_commit: ${{ inputs.push_changes }}
-      - uses: mongodb-labs/drivers-github-tools/tag-version@v2
-        with:
-          version: ${{ inputs.version }}
-          push_tag: ${{ inputs.push_changes }}
 
   static-scan:
-    needs: [bump-and-tag]
+    needs: [pre-publish]
     permissions:
       security-events: write
     uses: ./.github/workflows/codeql.yml
     with:
       ref: ${{ inputs.version }}
 
-  publish-and-bump:
-    needs: [bump-and-tag, static-scan]
+  publish:
+    needs: [pre-publish, static-scan]
     runs-on: ubuntu-latest
     environment: release
     permissions:
@@ -76,33 +68,11 @@ jobs:
           aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
           aws_region_name: ${{ vars.AWS_REGION_NAME }}
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
-      - uses: blink1073/drivers-github-tools/full-report@full-report
+      - name: Publish
+        uses: blink1073/drivers-github-tools/golang/publish/@go-driver-actions
         with:
           product_name: mongo-go-driver
-          release_version: ${{ inputs.version }}
-          silk_asset_group: mongodb-go-driver-v1
-          token: ${{ github.token }}
-      - name: Handle Dry Run
-        run: |
-          if [ "${{ inputs.push_changes }}" != "true" ]; then
-            export DRY_RUN=true
-          else
-            export DRY_RUN=false
-          fi
-          echo "DRY_RUN=$DRY_RUN" >> $GITHUB_ENV
-      - name: Upload S3 assets
-        uses: mongodb-labs/drivers-github-tools/upload-s3-assets@v2
-        with:
-            version: ${{ inputs.version }}
-            product_name: mongo-go-driver
-            dry_run: ${{ env.DRY_RUN }}
-      - uses: ./.github/actions/publish
-        with:
           version: ${{ inputs.version }}
-          prev_version: ${{ needs.bump-and-tag.outputs.prev_version }}
+          silk_asset_group: mongodb-go-driver-v1
+          prev_version: ${{ needs.pre-publish.outputs.prev_version }}
           push_changes: ${{ inputs.push_changes }}
-      - uses: mongodb-labs/drivers-github-tools/bump-version@v2
-        with:
-          version: ${{ inputs.following_version }}
-          version_bump_script: "go run ./.github/scripts/bump-version.go"
-          push_commit: ${{ inputs.push_changes }}
