@@ -22,11 +22,9 @@ type timeCodec struct {
 	useLocalTimeZone bool
 }
 
-var (
-	// Assert that timeCodec satisfies the typeDecoder interface, which allows it to be used
-	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
-	_ typeDecoder = (*timeCodec)(nil)
-)
+// Assert that timeCodec satisfies the typeDecoder interface, which allows it to be used
+// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
+var _ typeDecoder = &timeCodec{}
 
 func (tc *timeCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t != tTime {

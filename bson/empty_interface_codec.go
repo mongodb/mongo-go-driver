@@ -17,12 +17,10 @@ type emptyInterfaceCodec struct {
 	decodeBinaryAsSlice bool
 }
 
-var (
-	// Assert that emptyInterfaceCodec satisfies the typeDecoder interface, which allows it
-	// to be used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-	// collection.
-	_ typeDecoder = (*emptyInterfaceCodec)(nil)
-)
+// Assert that emptyInterfaceCodec satisfies the typeDecoder interface, which allows it
+// to be used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+// collection.
+var _ typeDecoder = &emptyInterfaceCodec{}
 
 // EncodeValue is the ValueEncoderFunc for interface{}.
 func (eic *emptyInterfaceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {

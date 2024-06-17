@@ -19,11 +19,9 @@ type uintCodec struct {
 	encodeToMinSize bool
 }
 
-var (
-	// Assert that uintCodec satisfies the typeDecoder interface, which allows it to be used
-	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
-	_ typeDecoder = (*uintCodec)(nil)
-)
+// Assert that uintCodec satisfies the typeDecoder interface, which allows it to be used
+// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
+var _ typeDecoder = &uintCodec{}
 
 // EncodeValue is the ValueEncoder for uint types.
 func (uic *uintCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {

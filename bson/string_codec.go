@@ -18,12 +18,10 @@ type stringCodec struct {
 	decodeObjectIDAsHex bool
 }
 
-var (
-	// Assert that stringCodec satisfies the typeDecoder interface, which allows it to be
-	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-	// collection.
-	_ typeDecoder = (*stringCodec)(nil)
-)
+// Assert that stringCodec satisfies the typeDecoder interface, which allows it to be
+// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+// collection.
+var _ typeDecoder = &stringCodec{}
 
 // EncodeValue is the ValueEncoder for string types.
 func (sc *stringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {

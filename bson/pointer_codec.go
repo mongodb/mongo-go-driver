@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	_ ValueEncoder = (*pointerCodec)(nil)
-	_ ValueDecoder = (*pointerCodec)(nil)
+	_ ValueEncoder = &pointerCodec{}
+	_ ValueDecoder = &pointerCodec{}
 )
 
 // pointerCodec is the Codec used for pointers.

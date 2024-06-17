@@ -18,9 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-var (
-	errCannotTruncate = errors.New("float64 can only be truncated to a lower precision type when truncation is enabled")
-)
+var errCannotTruncate = errors.New("float64 can only be truncated to a lower precision type when truncation is enabled")
 
 type decodeBinaryError struct {
 	subtype  byte

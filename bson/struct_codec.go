@@ -80,8 +80,8 @@ type structCodec struct {
 }
 
 var (
-	_ ValueEncoder = (*structCodec)(nil)
-	_ ValueDecoder = (*structCodec)(nil)
+	_ ValueEncoder = &structCodec{}
+	_ ValueDecoder = &structCodec{}
 )
 
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.

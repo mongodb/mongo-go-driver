@@ -18,12 +18,10 @@ type byteSliceCodec struct {
 	encodeNilAsEmpty bool
 }
 
-var (
-	// Assert that byteSliceCodec satisfies the typeDecoder interface, which allows it to be
-	// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
-	// collection.
-	_ typeDecoder = (*byteSliceCodec)(nil)
-)
+// Assert that byteSliceCodec satisfies the typeDecoder interface, which allows it to be
+// used by collection type decoders (e.g. map, slice, etc) to set individual values in a
+// collection.
+var _ typeDecoder = &byteSliceCodec{}
 
 // EncodeValue is the ValueEncoder for []byte.
 func (bsc *byteSliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
