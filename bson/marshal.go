@@ -34,7 +34,7 @@ type Marshaler interface {
 // create custom BSON marshaling behavior for an entire BSON document, implement
 // the Marshaler interface instead.
 type ValueMarshaler interface {
-	MarshalBSONValue() (byte, []byte, error)
+	MarshalBSONValue() (typ byte, data []byte, err error)
 }
 
 // Pool of buffers for marshalling BSON.
