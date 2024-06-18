@@ -25,6 +25,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+// ErrInvalidSearchParam is returned if the search param in dropIndex was not a valid key or name
+var ErrInvalidSearchParam = errors.New("invalid search param")
+
+// ErrInvalidIndexValue is returned if there is invalid key value
+var ErrInvalidKeyValue = errors.New("invalid key value")
+
 // ErrInvalidIndexValue is returned if an index is created with a keys document that has a value that is not a number
 // or string.
 var ErrInvalidIndexValue = errors.New("invalid index value")
@@ -416,6 +422,15 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 	return res, nil
 }
 
+func (iv IndexView) dropFromKeys(ctx context.Context, keySpecDocument bsoncore.Document, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	model := IndexModel{nil, nil}
+	name, err := getOrGenerateIndexName(keySpecDocument, model)
+	if err != nil {
+		return nil, ErrInvalidKeyValue
+	}
+	return iv.drop(ctx, name, opts...)
+}
+
 // DropOne executes a dropIndexes operation to drop an index on the collection. If the operation succeeds, this returns
 // a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
 // indexes that existed prior to the drop.
@@ -427,12 +442,18 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
-func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
-	if name == "*" {
-		return nil, ErrMultipleIndexDrop
+func (iv IndexView) DropOne(ctx context.Context, searchParam interface{}, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	if name, stringCheck := searchParam.(string); stringCheck {
+		if name == "*" {
+			return nil, ErrMultipleIndexDrop
+		}
+
+		return iv.drop(ctx, name, opts...)
+	} else if key, keyCheck := searchParam.([]byte); keyCheck {
+		return iv.dropFromKeys(ctx, key, opts...)
 	}
 
-	return iv.drop(ctx, name, opts...)
+	return nil, ErrInvalidSearchParam
 }
 
 // DropAll executes a dropIndexes operation to drop all indexes on the collection. If the operation succeeds, this

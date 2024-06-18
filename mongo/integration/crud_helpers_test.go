@@ -1294,12 +1294,15 @@ func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw,
 	mt.Helper()
 
 	var name string
+	var keys []byte
 	elems, _ := args.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
 		val := elem.Value()
 
 		switch key {
+		case "key":
+			keys = val.Document()
 		case "name":
 			name = val.StringValue()
 		default:
@@ -1311,12 +1314,21 @@ func executeDropIndex(mt *mtest.T, sess mongo.Session, args bson.Raw) (bson.Raw,
 		var res bson.Raw
 		err := mongo.WithSession(context.Background(), sess, func(sc mongo.SessionContext) error {
 			var indexErr error
-			res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
+			if name != "" {
+				res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
+			} else {
+				res, indexErr = mt.Coll.Indexes().DropOne(sc, keys)
+			}
+
 			return indexErr
 		})
 		return res, err
 	}
-	return mt.Coll.Indexes().DropOne(context.Background(), name)
+	if name != "" {
+		return mt.Coll.Indexes().DropOne(context.Background(), name)
+	}
+	return mt.Coll.Indexes().DropOne(context.Background(), keys)
+
 }
 
 func executeDropCollection(mt *mtest.T, sess mongo.Session, args bson.Raw) error {
