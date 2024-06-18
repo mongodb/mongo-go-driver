@@ -132,6 +132,10 @@ evg-test-atlas-data-lake:
 evg-test-enterprise-auth:
 	go run -tags gssapi ./cmd/testentauth/main.go
 
+.PHONY: evg-test-oidc-auth
+evg-test-oidc-auth:
+	go run -tags oidc ./cmd/testoidcauth/main.go
+
 .PHONY: evg-test-kmip
 evg-test-kmip:
 	go test -exec "env PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) DYLD_LIBRARY_PATH=$(MACOS_LIBRARY_PATH)" $(BUILD_TAGS) -v -timeout $(TEST_TIMEOUT)s ./mongo/integration -run TestClientSideEncryptionSpec/kmipKMS >> test.suite

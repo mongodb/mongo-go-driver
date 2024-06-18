@@ -67,6 +67,8 @@ type OIDCAuthenticator struct {
 	mu sync.Mutex // Guards all of the info in the OIDCAuthenticator struct.
 
 	AuthMechanismProperties map[string]string
+	OIDCMachineCallback     OIDCCallback
+	OIDCHumanCallback       OIDCCallback
 
 	cfg          *Config
 	accessToken  string
@@ -78,6 +80,8 @@ type OIDCAuthenticator struct {
 func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 	oa := &OIDCAuthenticator{
 		AuthMechanismProperties: cred.Props,
+		OIDCMachineCallback:     cred.OIDCMachineCallback,
+		OIDCHumanCallback:       cred.OIDCHumanCallback,
 	}
 	return oa, nil
 }
@@ -229,14 +233,14 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 		time.Sleep(invalidateSleepTimeout)
 	}
 
-	if cfg.OIDCHumanCallback != nil {
-		return oa.doAuthHuman(ctx, cfg, cfg.OIDCHumanCallback)
+	if oa.OIDCHumanCallback != nil {
+		return oa.doAuthHuman(ctx, cfg, oa.OIDCHumanCallback)
 	}
 
 	// Handle user provided or automatic provider machine callback.
 	var machineCallback OIDCCallback
-	if cfg.OIDCMachineCallback != nil {
-		machineCallback = cfg.OIDCMachineCallback
+	if oa.OIDCMachineCallback != nil {
+		machineCallback = oa.OIDCMachineCallback
 	} else {
 		machineCallback, err = oa.providerCallback()
 		if err != nil {

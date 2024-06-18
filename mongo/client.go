@@ -218,11 +218,13 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	if clientOpt.Auth != nil {
 		// Create an authenticator for the client
 		client.authenticator, err = auth.CreateAuthenticator(clientOpt.Auth.AuthMechanism, &auth.Cred{
-			Source:      clientOpt.Auth.AuthSource,
-			Username:    clientOpt.Auth.Username,
-			Password:    clientOpt.Auth.Password,
-			PasswordSet: clientOpt.Auth.PasswordSet,
-			Props:       clientOpt.Auth.AuthMechanismProperties,
+			Source:              clientOpt.Auth.AuthSource,
+			Username:            clientOpt.Auth.Username,
+			Password:            clientOpt.Auth.Password,
+			PasswordSet:         clientOpt.Auth.PasswordSet,
+			Props:               clientOpt.Auth.AuthMechanismProperties,
+			OIDCMachineCallback: clientOpt.Auth.OIDCMachineCallback,
+			OIDCHumanCallback:   clientOpt.Auth.OIDCHumanCallback,
 		})
 		if err != nil {
 			return nil, err

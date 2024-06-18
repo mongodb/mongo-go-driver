@@ -110,6 +110,8 @@ type Credential struct {
 	Username                string
 	Password                string
 	PasswordSet             bool
+	OIDCMachineCallback     driver.OIDCCallback
+	OIDCHumanCallback       driver.OIDCCallback
 }
 
 // BSONOptions are optional BSON marshaling and unmarshaling behaviors.

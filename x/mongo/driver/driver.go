@@ -29,14 +29,12 @@ import (
 // this was moved from the auth package to avoid a circular dependency. The auth package
 // reexports this under the old name to avoid breaking the public api.
 type AuthConfig struct {
-	Description         description.Server
-	Connection          Connection
-	ClusterClock        *session.ClusterClock
-	HandshakeInfo       HandshakeInformation
-	ServerAPI           *ServerAPIOptions
-	HTTPClient          *http.Client
-	OIDCMachineCallback OIDCCallback
-	OIDCHumanCallback   OIDCCallback
+	Description   description.Server
+	Connection    Connection
+	ClusterClock  *session.ClusterClock
+	HandshakeInfo HandshakeInformation
+	ServerAPI     *ServerAPIOptions
+	HTTPClient    *http.Client
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows. RefreshToken will always be
@@ -77,11 +75,13 @@ type Authenticator interface {
 
 // Cred is a user's credential.
 type Cred struct {
-	Source      string
-	Username    string
-	Password    string
-	PasswordSet bool
-	Props       map[string]string
+	Source              string
+	Username            string
+	Password            string
+	PasswordSet         bool
+	Props               map[string]string
+	OIDCMachineCallback OIDCCallback
+	OIDCHumanCallback   OIDCCallback
 }
 
 // Deployment is implemented by types that can select a server from a deployment.
