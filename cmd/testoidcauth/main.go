@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -24,11 +25,14 @@ var uriAdmin = os.Getenv("MONGODB_URI")
 var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
 var uriMulti = os.Getenv("MONGODB_URI_MULTI")
 var oidcTokenDir = path.Join(os.Getenv("OIDC_TOKEN_DIR"), "tmp", "tokens")
-var noUserTokenFile = os.Getenv("OIDC_TOKEN_FILE")
 var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
 func explicitUser(user string) string {
 	return fmt.Sprintf("%s@%s", user, oidcDomain)
+}
+
+func tokenFile(user string) string {
+	return path.Join(oidcTokenDir, user)
 }
 
 func main() {
@@ -40,13 +44,15 @@ func machine_1_1_callbackIsCalled() {
 	countMutex := sync.Mutex{}
 
 	opts := options.Client().ApplyURI(uriSingle)
-	fmt.Println("machine_1_1_callbackIsCalled: uriSingle: ", uriSingle)
+
 	opts.Auth.OIDCMachineCallback = func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
 		t := time.Now().Add(time.Hour)
-		accessToken, err := os.ReadFile(noUserTokenFile)
+		tokenFile := tokenFile("test_user1")
+		fmt.Println(tokenFile)
+		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
 			log.Fatalf("machine_1_1_callbackIsCalled: failed reading token file: %v", err)
 		}
@@ -57,16 +63,14 @@ func machine_1_1_callbackIsCalled() {
 		}, nil
 	}
 
-	client, err := mongo.Connect(
-		context.Background(),
-		options.Client().ApplyURI(uriSingle))
+	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
 		log.Fatalf("Error connecting client: %v", err)
 	}
 
 	coll := client.Database("test").Collection("test")
 
-	res := coll.FindOne(context.Background(), nil)
+	res := coll.FindOne(context.Background(), bson.D{})
 	if res == nil || res.Err() != nil {
 		log.Fatalf("machine_1_1_callbackIsCalled: failed executing FindOne: %v", err)
 	}

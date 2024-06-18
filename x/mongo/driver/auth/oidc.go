@@ -210,6 +210,7 @@ func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
 
 // Auth authenticates the connection.
 func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+	fmt.Println("OIDC Auth!!!")
 	// the Mutex must be held during the entire Auth call so that multiple racing attempts
 	// to authenticate will not result in multiple callbacks. The losers on the Mutex will
 	// retrieve the access token from the Authenticator cache.

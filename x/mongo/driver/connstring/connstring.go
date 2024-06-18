@@ -302,6 +302,13 @@ func (u *ConnString) setDefaultAuthParams(dbName string) error {
 				u.AuthSource = "admin"
 			}
 		}
+	case "mongodb-oidc":
+		if u.AuthSource == "" {
+			u.AuthSource = dbName
+			if u.AuthSource == "" {
+				u.AuthSource = "$external"
+			}
+		}
 	case "":
 		// Only set auth source if there is a request for authentication via non-empty credentials.
 		if u.AuthSource == "" && (u.AuthMechanismProperties != nil || u.Username != "" || u.PasswordSet) {
@@ -781,6 +788,23 @@ func (u *ConnString) validateAuth() error {
 		if u.AuthMechanismProperties != nil {
 			return fmt.Errorf("SCRAM-SHA-256 cannot have mechanism properties")
 		}
+	case "mongodb-oidc":
+		if u.Password != "" {
+			return fmt.Errorf("password cannot be specified for MONGODB-OIDC")
+		}
+		if u.AuthMechanismProperties != nil {
+			if env, ok := u.AuthMechanismProperties["ENVIRONMENT"]; ok {
+				switch strings.ToLower(env) {
+				case "azure":
+					fallthrough
+				case "gcp":
+					if _, ok := u.AuthMechanismProperties["DOMAIN"]; !ok {
+						return fmt.Errorf("DOMAIN must be specified for %s environment", env)
+					}
+				}
+			}
+		}
+
 	case "":
 		if u.UsernameSet && u.Username == "" {
 			return fmt.Errorf("username required if URI contains user info")
