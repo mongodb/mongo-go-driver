@@ -399,21 +399,9 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Insert a document within a session and manually cancel context before
 		// "commitTransaction" can be sent.
-<<<<<<< HEAD
-		callback := func(ctx context.Context) {
-			transactionCtx, cancel := context.WithCancel(ctx)
-
-			_, _ = sess.WithTransaction(transactionCtx, func(ctx context.Context) (interface{}, error) {
-||||||| parent of fb39da85 (GODRIVER-2667 Replacing the assert.Soon with the assert.Eventually function (#1668))
-		callback := func(ctx context.Context) {
-			transactionCtx, cancel := context.WithCancel(ctx)
-
-			_, _ = sess.WithTransaction(transactionCtx, func(ctx SessionContext) (interface{}, error) {
-=======
 		callback := func() bool {
 			transactionCtx, cancel := context.WithCancel(context.Background())
-			_, _ = sess.WithTransaction(transactionCtx, func(ctx SessionContext) (interface{}, error) {
->>>>>>> fb39da85 (GODRIVER-2667 Replacing the assert.Soon with the assert.Eventually function (#1668))
+			_, _ = sess.WithTransaction(transactionCtx, func(ctx context.Context) (interface{}, error) {
 				_, err := coll.InsertOne(ctx, bson.M{"x": 1})
 				assert.NoError(t, err, "InsertOne error: %v", err)
 				cancel()
@@ -567,7 +555,7 @@ func TestConvenientTransactions(t *testing.T) {
 		defer sess.EndSession(context.Background())
 
 		callback := func() bool {
-			_, err = sess.WithTransaction(context.Background(), func(ctx SessionContext) (interface{}, error) {
+			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
 				// Set a timeout of 300ms to cause a timeout on first insertOne
 				// and force a retry.
 				c, cancel := context.WithTimeout(ctx, 300*time.Millisecond)
