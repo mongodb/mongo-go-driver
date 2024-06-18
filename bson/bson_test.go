@@ -129,8 +129,8 @@ func TestTimestamp(t *testing.T) {
 func TestPrimitiveIsZero(t *testing.T) {
 	testcases := []struct {
 		name    string
-		zero    zeroer
-		nonzero zeroer
+		zero    Zeroer
+		nonzero Zeroer
 	}{
 		{"binary", Binary{}, Binary{Data: []byte{0x01, 0x02, 0x03}, Subtype: 0xFF}},
 		{"decimal128", Decimal128{}, NewDecimal128(1, 2)},

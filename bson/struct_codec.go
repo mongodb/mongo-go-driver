@@ -400,7 +400,7 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 func isEmpty(v reflect.Value, omitZeroStruct bool) bool {
 	kind := v.Kind()
 	if (kind != reflect.Ptr || !v.IsNil()) && v.Type().Implements(tZeroer) {
-		return v.Interface().(zeroer).IsZero()
+		return v.Interface().(Zeroer).IsZero()
 	}
 	switch kind {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:

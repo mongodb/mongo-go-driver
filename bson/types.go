@@ -93,7 +93,7 @@ var tValueUnmarshaler = reflect.TypeOf((*ValueUnmarshaler)(nil)).Elem()
 var tMarshaler = reflect.TypeOf((*Marshaler)(nil)).Elem()
 var tUnmarshaler = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 var tProxy = reflect.TypeOf((*proxy)(nil)).Elem()
-var tZeroer = reflect.TypeOf((*zeroer)(nil)).Elem()
+var tZeroer = reflect.TypeOf((*Zeroer)(nil)).Elem()
 
 var tBinary = reflect.TypeOf(Binary{})
 var tUndefined = reflect.TypeOf(Undefined{})

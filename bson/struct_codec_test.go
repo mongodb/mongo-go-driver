@@ -14,7 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
-var _ zeroer = testZeroer{}
+var _ Zeroer = testZeroer{}
 
 type testZeroer struct {
 	val int
