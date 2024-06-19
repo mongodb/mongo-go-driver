@@ -70,6 +70,7 @@ type OIDCAuthenticator struct {
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
 
+	userName     string
 	cfg          *Config
 	accessToken  string
 	refreshToken *string
@@ -79,6 +80,7 @@ type OIDCAuthenticator struct {
 
 func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 	oa := &OIDCAuthenticator{
+		userName:                cred.Username,
 		AuthMechanismProperties: cred.Props,
 		OIDCMachineCallback:     cred.OIDCMachineCallback,
 		OIDCHumanCallback:       cred.OIDCHumanCallback,
@@ -87,6 +89,7 @@ func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 }
 
 type oidcOneStep struct {
+	userName    string
 	accessToken string
 }
 
@@ -210,7 +213,6 @@ func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
 
 // Auth authenticates the connection.
 func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	fmt.Println("OIDC Auth!!!")
 	// the Mutex must be held during the entire Auth call so that multiple racing attempts
 	// to authenticate will not result in multiple callbacks. The losers on the Mutex will
 	// retrieve the access token from the Authenticator cache.
@@ -225,6 +227,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 	if oa.accessToken != "" {
 		err = ConductSaslConversation(ctx, cfg, "$external", &oidcOneStep{
+			userName:    oa.userName,
 			accessToken: oa.accessToken,
 		})
 		if err == nil {
@@ -274,13 +277,10 @@ func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, mac
 	if err != nil {
 		return err
 	}
-	err = ConductSaslConversation(ctx, cfg, "$external", &oidcOneStep{
-		accessToken: accessToken,
-	})
-	if err == nil {
-		return nil
-	}
-	return nil
+	return runSaslConversation(ctx,
+		cfg,
+		newSaslConversation(&oidcOneStep{accessToken: accessToken}, "$external", false),
+	)
 }
 
 // CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.

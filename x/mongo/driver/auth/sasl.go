@@ -105,6 +105,7 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 		fullErr := fmt.Errorf("unmarshal error: %w", err)
 		return newError(fullErr, sc.mechanism)
 	}
+	fmt.Println("resp", saslResp)
 
 	cid := saslResp.ConversationID
 	var payload []byte
@@ -152,17 +153,23 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 	}
 }
 
-// ConductSaslConversation runs a full SASL conversation to authenticate the given connection.
+// ConductSaslConversation runs a full SASL conversation to authenticate the given connection, given
+// sasl arguments.
 func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
+	return runSaslConversation(ctx, cfg, conversation)
+}
 
+// runSaslConversation runs a SASL conversation to authenticate the given connection, given a
+// pre-built saslConversation.
+func runSaslConversation(ctx context.Context, cfg *Config, conversation *saslConversation) error {
 	saslStartDoc, err := conversation.FirstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
 	saslStartCmd := operation.NewCommand(saslStartDoc).
-		Database(authSource).
+		Database(conversation.source).
 		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)

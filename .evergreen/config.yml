@@ -2611,7 +2611,7 @@ buildvariants:
   - name: testoidc-variant
     display_name: "OIDC"
     run_on:
-      - rhel8.7-small
+      - ubuntu2204-large
     expansions:
       GO_DIST: "/opt/golang/go1.20"
     tasks:

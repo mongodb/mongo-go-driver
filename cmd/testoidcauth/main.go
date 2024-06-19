@@ -70,10 +70,12 @@ func machine_1_1_callbackIsCalled() {
 
 	coll := client.Database("test").Collection("test")
 
-	res := coll.FindOne(context.Background(), bson.D{})
-	if res == nil || res.Err() != nil {
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
 		log.Fatalf("machine_1_1_callbackIsCalled: failed executing FindOne: %v", err)
 	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
 	if callbackCount != 1 {
 		log.Fatalf("machine_1_1_callbackIsCalled: expected callback count to be 1, got %d", callbackCount)
 	}
