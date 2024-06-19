@@ -24,7 +24,7 @@ import (
 var uriAdmin = os.Getenv("MONGODB_URI")
 var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
 var uriMulti = os.Getenv("MONGODB_URI_MULTI")
-var oidcTokenDir = path.Join(os.Getenv("OIDC_TOKEN_DIR"), "tmp", "tokens")
+var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
 var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
 func explicitUser(user string) string {
