@@ -48,6 +48,7 @@ func connectWithMachineCB(uri string, cb driver.OIDCCallback) *mongo.Client {
 
 func main() {
 	machine_1_1_callbackIsCalled()
+	machine_1_2_callbackIsCalledOnlyOneForMultipleConnections()
 }
 
 func machine_1_1_callbackIsCalled() {
