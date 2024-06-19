@@ -61,7 +61,6 @@ func machine_1_1_callbackIsCalled() {
 		callbackCount++
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_user1")
-		fmt.Println(tokenFile)
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
 			log.Fatalf("machine_1_1_callbackIsCalled: failed reading token file: %v", err)
@@ -96,7 +95,6 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() {
 		callbackCount++
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_user1")
-		fmt.Println(tokenFile)
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
 			log.Fatalf("machine_1_2: failed reading token file: %v", err)

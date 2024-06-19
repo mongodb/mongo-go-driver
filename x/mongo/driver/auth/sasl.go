@@ -105,7 +105,6 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 		fullErr := fmt.Errorf("unmarshal error: %w", err)
 		return newError(fullErr, sc.mechanism)
 	}
-	fmt.Println("resp", saslResp)
 
 	cid := saslResp.ConversationID
 	var payload []byte
