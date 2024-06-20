@@ -28,7 +28,7 @@ import (
 // ErrInvalidSearchParam is returned if the search param in dropIndex was not a valid key or name
 var ErrInvalidSearchParam = errors.New("invalid search param")
 
-// ErrInvalidIndexValue is returned if there is invalid key value
+// ErrInvalidKeyValue is returned if there is invalid key value
 var ErrInvalidKeyValue = errors.New("invalid key value")
 
 // ErrInvalidIndexValue is returned if an index is created with a keys document that has a value that is not a number
