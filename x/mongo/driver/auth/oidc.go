@@ -219,9 +219,8 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // tokenGenID of the OIDCAuthenticator. It should never actually be greater than, but only equal,
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
+// This must only be called with the lock held
 func (oa *OIDCAuthenticator) invalidateAccessToken(force bool) {
-	oa.mu.Lock()
-	defer oa.mu.Unlock()
 	tokenGenID := oa.cfg.Connection.OIDCTokenGenID()
 	if force || tokenGenID >= oa.tokenGenID {
 		oa.accessToken = ""
@@ -232,7 +231,9 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(force bool) {
 // Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
 // driver.Authenticator interface.
 func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
+	oa.mu.Lock()
 	oa.invalidateAccessToken(true)
+	oa.mu.Unlock()
 	// it should be impossible to get a Reauth when an Auth has never occurred,
 	// so we assume cfg was properly set. There is nothing to enforce this, however,
 	// other than the current driver code flow. If cfg is nil, Auth will return an error.

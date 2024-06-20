@@ -17,6 +17,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -34,6 +35,10 @@ func explicitUser(user string) string {
 
 func tokenFile(user string) string {
 	return path.Join(oidcTokenDir, user)
+}
+
+func connectAdminClinet() (*mongo.Client, error) {
+	return mongo.Connect(context.Background(), options.Client().ApplyURI(uriAdmin))
 }
 
 func connectWithMachineCB(uri string, cb driver.OIDCCallback) (*mongo.Client, error) {
@@ -70,6 +75,8 @@ func main() {
 	aux("machine_2_3_oidcCallbackReturnMissingData", machine_2_3_oidcCallbackReturnMissingData)
 	aux("machine_2_4_invalidClientConfigurationWithCallback", machine_2_4_invalidClientConfigurationWithCallback)
 	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth)
+	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine_3_2_authFailuresWithoutCachedTokensReturnsAnError)
+	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -96,6 +103,8 @@ func machine_1_1_callbackIsCalled() error {
 			RefreshToken: nil,
 		}, nil
 	})
+
+	defer client.Disconnect(context.Background())
 
 	if err != nil {
 		return fmt.Errorf("machine_1_1: failed connecting client: %v", err)
@@ -136,6 +145,8 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() error {
 			RefreshToken: nil,
 		}, nil
 	})
+
+	defer client.Disconnect(context.Background())
 
 	if err != nil {
 		return fmt.Errorf("machine_1_2: failed connecting client: %v", err)
@@ -202,6 +213,8 @@ func machine_2_1_validCallbackInputs() error {
 		}, nil
 	})
 
+	defer client.Disconnect(context.Background())
+
 	if err != nil {
 		return fmt.Errorf("machine_2_1: failed connecting client: %v", err)
 	}
@@ -235,6 +248,8 @@ func machine_2_3_oidcCallbackReturnMissingData() error {
 			RefreshToken: nil,
 		}, nil
 	})
+
+	defer client.Disconnect(context.Background())
 
 	if err != nil {
 		return fmt.Errorf("machine_2_3: failed connecting client: %v\n", err)
@@ -293,6 +308,8 @@ func machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 		}, nil
 	})
 
+	defer client.Disconnect(context.Background())
+
 	if err != nil {
 		return fmt.Errorf("machine_3_1: failed connecting client: %v", err)
 	}
@@ -331,20 +348,95 @@ func machine_3_2_authFailuresWithoutCachedTokensReturnsAnError() error {
 		}, nil
 	})
 
+	defer client.Disconnect(context.Background())
+
 	if err != nil {
 		return fmt.Errorf("machine_3_2: failed connecting client: %v", err)
 	}
 
 	coll := client.Database("test").Collection("test")
-
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err == nil {
-		return fmt.Errorf("machine_3_2: failed succeeded Find when it should fail")
+		return fmt.Errorf("machine_3_2: Find ucceeded when it should fail")
 	}
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
 		return fmt.Errorf("machine_3_2: expected callback count to be 1, got %d\n", callbackCount)
+	}
+	return callbackFailed
+}
+
+func machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache() error {
+	callbackCount := 0
+	var callbackFailed error = nil
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClinet()
+
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("machine_3_3: failed reading token file: %v\n", err)
+		}
+		return &driver.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("machine_3_3: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	err = mtest.SetFailPoint(
+		mtest.FailPoint{
+			ConfigureFailPoint: "failCommand",
+			Mode: mtest.FailPointMode{
+				Times: 10,
+			},
+			Data: mtest.FailPointData{
+				FailCommands: []string{"saslStart"},
+				AppName:      "go-oidc",
+				ErrorCode:    20,
+			},
+		},
+		adminClient,
+	)
+
+	if err != nil {
+		return fmt.Errorf("machine_3_3: failed setting failpoint: %v", err)
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("machine_3_3: Find succeeded when it should fail")
+	}
+
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("machine_3_3: expected callback count to be 1, got %d\n", callbackCount)
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_3_3: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("machine_3_3: expected callback count to be 1, got %d\n", callbackCount)
 	}
 	return callbackFailed
 }
