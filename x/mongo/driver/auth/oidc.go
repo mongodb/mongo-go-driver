@@ -82,6 +82,14 @@ type OIDCAuthenticator struct {
 	tokenGenID   uint64
 }
 
+// SetAccessToken allows for manually setting the access token for the OIDCAuthenticator, this is
+// only for testing purposes.
+func (oa *OIDCAuthenticator) SetAccessToken(accessToken string) {
+	oa.mu.Lock()
+	defer oa.mu.Unlock()
+	oa.accessToken = accessToken
+}
+
 func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 	if cred.Password != "" {
 		return nil, fmt.Errorf("password cannot be specified for %q", MongoDBOIDC)

@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 )
 
 var uriAdmin = os.Getenv("MONGODB_URI")
@@ -68,6 +69,7 @@ func main() {
 	aux("machine_2_1_validCallbackInputs", machine_2_1_validCallbackInputs)
 	aux("machine_2_3_oidcCallbackReturnMissingData", machine_2_3_oidcCallbackReturnMissingData)
 	aux("machine_2_4_invalidClientConfigurationWithCallback", machine_2_4_invalidClientConfigurationWithCallback)
+	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -267,4 +269,82 @@ func machine_2_4_invalidClientConfigurationWithCallback() error {
 		return fmt.Errorf("machine_2_4: succeeded building client when it should fail")
 	}
 	return nil
+}
+
+func machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
+	callbackCount := 0
+	var callbackFailed error = nil
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("machine_3_1: failed reading token file: %v\n", err)
+		}
+		return &driver.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("machine_3_1: failed connecting client: %v", err)
+	}
+
+	// Poison the cache with a random token
+	client.GetAuthenticator().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_3_1: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("machine_3_1: expected callback count to be 1, got %d\n", callbackCount)
+	}
+	return callbackFailed
+}
+
+func machine_3_2_authFailuresWithoutCachedTokensReturnsAnError() error {
+	callbackCount := 0
+	var callbackFailed error = nil
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		return &driver.OIDCCredential{
+			AccessToken:  "this is a bad, bad token",
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("machine_3_2: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("machine_3_2: failed succeeded Find when it should fail")
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("machine_3_2: expected callback count to be 1, got %d\n", callbackCount)
+	}
+	return callbackFailed
 }
