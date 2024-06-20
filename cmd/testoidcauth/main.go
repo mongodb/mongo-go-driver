@@ -46,16 +46,12 @@ func connectWithMachineCB(uri string, cb driver.OIDCCallback) *mongo.Client {
 	return client
 }
 
-func connectWithMachineCBAndProperties(uri string, cb driver.OIDCCallback, props map[string]string) *mongo.Client {
+func connectWithMachineCBAndProperties(uri string, cb driver.OIDCCallback, props map[string]string) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
 	opts.Auth.OIDCMachineCallback = cb
 	opts.Auth.AuthMechanismProperties = props
-	client, err := mongo.Connect(context.Background(), opts)
-	if err != nil {
-		fmt.Printf("Error connecting client: %v", err)
-	}
-	return client
+	return mongo.Connect(context.Background(), opts)
 }
 
 func main() {
@@ -68,12 +64,14 @@ func main() {
 		} else {
 			fmt.Println("...Ok")
 		}
+		fmt.Println("hasError: ", hasError, "testResult: ", testResult)
 		hasError = hasError || testResult
 	}
 	aux("machine_1_1_callbackIsCalled", machine_1_1_callbackIsCalled)
 	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine_1_2_callbackIsCalledOnlyOneForMultipleConnections)
 	aux("machine_2_1_validCallbackInputs", machine_2_1_validCallbackInputs)
 	aux("machine_2_3_oidcCallbackReturnMissingData", machine_2_3_oidcCallbackReturnMissingData)
+	aux("machine_2_4_invalidClientConfigurationWithCallback", machine_2_4_invalidClientConfigurationWithCallback)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -254,42 +252,19 @@ func machine_2_3_oidcCallbackReturnMissingData() bool {
 }
 
 func machine_2_4_invalidClientConfigurationWithCallback() bool {
-	callbackCount := 0
-	callbackFailed := false
-	countMutex := sync.Mutex{}
-
-	client := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
-		countMutex.Lock()
-		defer countMutex.Unlock()
-		callbackCount++
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
-		tokenFile := tokenFile("test_user1")
-		accessToken, err := os.ReadFile(tokenFile)
-		if err != nil {
-			fmt.Printf("machine_2_4: failed reading token file: %v\n", err)
-			callbackFailed = true
-		}
 		return &driver.OIDCCredential{
-			AccessToken:  string(accessToken),
+			AccessToken:  "",
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
 	},
 		map[string]string{"ENVIRONMENT": "test"},
 	)
-
-	coll := client.Database("test").Collection("test")
-
-	_, err := coll.Find(context.Background(), bson.D{})
 	if err == nil {
-		fmt.Println("machine_2_4: succeeded executing Find when it should fail")
+		fmt.Println("machine_2_4: succeeded building client when it should fail")
 		return true
 	}
-	countMutex.Lock()
-	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		fmt.Printf("machine_2_4: expected callback count to be 1, got %d\n", callbackCount)
-		return true
-	}
-	return callbackFailed
+	return false
 }

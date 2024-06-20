@@ -9,6 +9,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +23,8 @@ const MongoDBOIDC = "MONGODB-OIDC"
 // TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 // const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
+
+const resourceProp = "TOKEN_RESOURCE"
 
 // GODRIVER-3249	OIDC: Handle all possible OIDC configuration errors
 //const allowedHostsProp = "ALLOWED_HOSTS"
@@ -79,6 +82,23 @@ type OIDCAuthenticator struct {
 }
 
 func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
+	if cred.Props != nil {
+		if env, ok := cred.Props[environmentProp]; ok {
+			switch strings.ToLower(env) {
+			case "azure":
+				fallthrough
+			case "gcp":
+				if _, ok := cred.Props[resourceProp]; !ok {
+					return nil, fmt.Errorf("%s must be specified for %s %s", resourceProp, env, environmentProp)
+				}
+				fallthrough
+			case "test":
+				if cred.OIDCMachineCallback != nil || cred.OIDCHumanCallback != nil {
+					return nil, fmt.Errorf("OIDC callbacks are not allowed for %s %s", env, environmentProp)
+				}
+			}
+		}
+	}
 	oa := &OIDCAuthenticator{
 		userName:                cred.Username,
 		AuthMechanismProperties: cred.Props,
