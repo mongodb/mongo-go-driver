@@ -3461,9 +3461,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}
 			}
 		})
-		t.Run("ancestor info is used over custom type map entry", func(t *testing.T) {
-			// If a type map entry is registered for TypeEmbeddedDocument, the decoder should use ancestor
-			// information if available instead of the registered entry.
+		t.Run("custom type map entry is used if there is no type information", func(t *testing.T) {
+			// If a type map entry is registered for TypeEmbeddedDocument, the decoder should use it when
+			// type information is not available.
 
 			rb := newTestRegistryBuilder()
 			defaultValueEncoders.RegisterDefaultEncoders(rb)
@@ -3481,8 +3481,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.AppendDocumentElement(nil, "nested", inner),
 			)
 			want := D{
-				{"nested", D{
-					{"foo", int32(10)},
+				{"nested", M{
+					"foo": int32(10),
 				}},
 			}
 

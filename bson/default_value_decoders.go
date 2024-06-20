@@ -144,7 +144,7 @@ func (dvd DefaultValueDecoders) DDecodeValue(dc DecodeContext, vr ValueReader, v
 
 	switch vrType := vr.Type(); vrType {
 	case Type(0), TypeEmbeddedDocument:
-		dc.Ancestor = tD
+		break
 	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()

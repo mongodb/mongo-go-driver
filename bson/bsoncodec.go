@@ -165,18 +165,10 @@ type DecodeContext struct {
 	// Deprecated: Use bson.Decoder.AllowTruncatingDoubles instead.
 	Truncate bool
 
-	// Ancestor is the type of a containing document. This is mainly used to determine what type
-	// should be used when decoding an embedded document into an empty interface. For example, if
-	// Ancestor is a bson.M, BSON embedded document values being decoded into an empty interface
-	// will be decoded into a bson.M.
-	//
-	// Deprecated: Use bson.Decoder.DefaultDocumentM or bson.Decoder.DefaultDocumentD instead.
-	Ancestor reflect.Type
-
 	// defaultDocumentType specifies the Go type to decode top-level and nested BSON documents into. In particular, the
 	// usage for this field is restricted to data typed as "interface{}" or "map[string]interface{}". If DocumentType is
 	// set to a type that a BSON document cannot be unmarshaled into (e.g. "string"), unmarshalling will result in an
-	// error. DocumentType overrides the Ancestor field.
+	// error.
 	defaultDocumentType reflect.Type
 
 	binaryAsSlice     bool
@@ -232,14 +224,6 @@ func (dc *DecodeContext) ZeroStructs() {
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DefaultDocumentM] instead.
 func (dc *DecodeContext) DefaultDocumentM() {
 	dc.defaultDocumentType = reflect.TypeOf(M{})
-}
-
-// DefaultDocumentD causes the Decoder to always unmarshal documents into the D type. This
-// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.DefaultDocumentD] instead.
-func (dc *DecodeContext) DefaultDocumentD() {
-	dc.defaultDocumentType = reflect.TypeOf(D{})
 }
 
 // ValueCodec is an interface for encoding and decoding a reflect.Value.

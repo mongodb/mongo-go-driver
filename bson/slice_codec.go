@@ -175,7 +175,6 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 	var elemsFunc func(DecodeContext, ValueReader, reflect.Value) ([]reflect.Value, error)
 	switch val.Type().Elem() {
 	case tE:
-		dc.Ancestor = val.Type()
 		elemsFunc = defaultValueDecoders.decodeD
 	default:
 		elemsFunc = defaultValueDecoders.decodeDefault
