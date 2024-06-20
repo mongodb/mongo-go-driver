@@ -31,6 +31,7 @@ const resourceProp = "TOKEN_RESOURCE"
 
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
+const testEnvironmentValue = "test"
 
 const apiVersion = 1
 const invalidateSleepTimeout = 100 * time.Millisecond
@@ -82,19 +83,22 @@ type OIDCAuthenticator struct {
 }
 
 func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
+	if cred.Password != "" {
+		return nil, fmt.Errorf("password cannot be specified for %q", MongoDBOIDC)
+	}
 	if cred.Props != nil {
 		if env, ok := cred.Props[environmentProp]; ok {
 			switch strings.ToLower(env) {
-			case "azure":
+			case azureEnvironmentValue:
 				fallthrough
-			case "gcp":
+			case gcpEnvironmentValue:
 				if _, ok := cred.Props[resourceProp]; !ok {
-					return nil, fmt.Errorf("%s must be specified for %s %s", resourceProp, env, environmentProp)
+					return nil, fmt.Errorf("%q must be specified for %q %q", resourceProp, env, environmentProp)
 				}
 				fallthrough
-			case "test":
+			case testEnvironmentValue:
 				if cred.OIDCMachineCallback != nil || cred.OIDCHumanCallback != nil {
-					return nil, fmt.Errorf("OIDC callbacks are not allowed for %s %s", env, environmentProp)
+					return nil, fmt.Errorf("OIDC callbacks are not allowed for %q %q", env, environmentProp)
 				}
 			}
 		}
@@ -146,15 +150,11 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 		return nil, nil
 	}
 
-	switch env {
+	//switch env {
 	// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
 	// This is here just to pass the linter, it will be fixed in one of the above tickets.
-	case azureEnvironmentValue, gcpEnvironmentValue:
-		return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
-			return nil, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
-		}, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
-	}
+	//}
 
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
 }
