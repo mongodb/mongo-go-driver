@@ -2896,10 +2896,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AS: nil,
 					AT: nil,
 					AU: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
-					AV: M{"foo": M{"bar": "baz"}},
+					AV: M{"foo": D{{"bar", "baz"}}},
 					AW: D{{"foo", D{{"bar", "baz"}}}},
-					AX: map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}},
-					AY: []E{{"foo", []E{{"bar", "baz"}}}},
+					AX: map[string]interface{}{"foo": D{{"bar", "baz"}}},
+					AY: []E{{"foo", D{{"bar", "baz"}}}},
 					AZ: D{{"foo", D{{"bar", "baz"}}}},
 				},
 				buildDocument(func(doc []byte) []byte {
@@ -3415,7 +3415,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 		t.Run("custom type map entry", func(t *testing.T) {
 			// registering a custom type map entry for both Type(0) anad TypeEmbeddedDocument should cause
-			// both top-level and embedded documents to decode to registered type when unmarshalling to interface{}
+			// the top-level to decode to registered type when unmarshalling to interface{}
 
 			topLevelRb := newTestRegistryBuilder()
 			defaultValueEncoders.RegisterDefaultEncoders(topLevelRb)
@@ -3437,9 +3437,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.AppendDocumentElement(nil, "nested", innerDoc),
 			)
 			want := M{
-				"nested": M{
-					"foo": int32(1),
-				},
+				"nested": D{{"foo", int32(1)}},
 			}
 
 			testCases := []struct {
