@@ -160,7 +160,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 
 	var wg sync.WaitGroup
 
-	var findFailed error = nil
+	var findFailed error
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
@@ -379,6 +379,11 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
+	}
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
 		countMutex.Lock()
