@@ -41,18 +41,47 @@ func connectWithMachineCB(uri string, cb driver.OIDCCallback) *mongo.Client {
 	opts.Auth.OIDCMachineCallback = cb
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
-		log.Fatalf("Error connecting client: %v", err)
+		fmt.Printf("Error connecting client: %v", err)
+	}
+	return client
+}
+
+func connectWithMachineCBAndProperties(uri string, cb driver.OIDCCallback, props map[string]string) *mongo.Client {
+	opts := options.Client().ApplyURI(uri)
+
+	opts.Auth.OIDCMachineCallback = cb
+	opts.Auth.AuthMechanismProperties = props
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		fmt.Printf("Error connecting client: %v", err)
 	}
 	return client
 }
 
 func main() {
-	machine_1_1_callbackIsCalled()
-	machine_1_2_callbackIsCalledOnlyOneForMultipleConnections()
+	hasError := false
+	aux := func(test_name string, f func() bool) {
+		fmt.Printf("%s...", test_name)
+		testResult := f()
+		if testResult {
+			fmt.Println("...Failed")
+		} else {
+			fmt.Println("...Ok")
+		}
+		hasError = hasError || testResult
+	}
+	aux("machine_1_1_callbackIsCalled", machine_1_1_callbackIsCalled)
+	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine_1_2_callbackIsCalledOnlyOneForMultipleConnections)
+	aux("machine_2_1_validCallbackInputs", machine_2_1_validCallbackInputs)
+	aux("machine_2_3_oidcCallbackReturnMissingData", machine_2_3_oidcCallbackReturnMissingData)
+	if hasError {
+		log.Fatal("One or more tests failed")
+	}
 }
 
-func machine_1_1_callbackIsCalled() {
+func machine_1_1_callbackIsCalled() bool {
 	callbackCount := 0
+	callbackFailed := false
 	countMutex := sync.Mutex{}
 
 	client := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
@@ -63,7 +92,8 @@ func machine_1_1_callbackIsCalled() {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			log.Fatalf("machine_1_1_callbackIsCalled: failed reading token file: %v", err)
+			fmt.Printf("machine_1_1: failed reading token file: %v\n", err)
+			callbackFailed = true
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -76,17 +106,21 @@ func machine_1_1_callbackIsCalled() {
 
 	_, err := coll.Find(context.Background(), bson.D{})
 	if err != nil {
-		log.Fatalf("machine_1_1: failed executing FindOne: %v", err)
+		fmt.Printf("machine_1_1: failed executing Find: %v", err)
+		return true
 	}
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		log.Fatalf("machine_1_1: expected callback count to be 1, got %d", callbackCount)
+		fmt.Printf("machine_1_1: expected callback count to be 1, got %d\n", callbackCount)
+		return true
 	}
+	return callbackFailed
 }
 
-func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() {
+func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() bool {
 	callbackCount := 0
+	callbackFailed := false
 	countMutex := sync.Mutex{}
 
 	client := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
@@ -97,7 +131,8 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			log.Fatalf("machine_1_2: failed reading token file: %v", err)
+			fmt.Printf("machine_1_2: failed reading token file: %v\n", err)
+			callbackFailed = true
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -108,6 +143,7 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() {
 
 	var wg sync.WaitGroup
 
+	findFailed := false
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func() {
@@ -115,7 +151,8 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() {
 			coll := client.Database("test").Collection("test")
 			_, err := coll.Find(context.Background(), bson.D{})
 			if err != nil {
-				log.Fatalf("machine_1_2: failed executing FindOne: %v", err)
+				fmt.Printf("machine_1_2: failed executing Find: %v\n", err)
+				findFailed = true
 			}
 		}()
 	}
@@ -124,6 +161,135 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		log.Fatalf("machine_1_2: expected callback count to be 1, got %d", callbackCount)
+		fmt.Printf("machine_1_2: expected callback count to be 1, got %d\n", callbackCount)
+		return true
 	}
+	return callbackFailed || findFailed
+}
+
+func machine_2_1_validCallbackInputs() bool {
+	callbackCount := 0
+	callbackFailed := false
+	countMutex := sync.Mutex{}
+
+	client := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+		if args.RefreshToken != nil {
+			fmt.Printf("machine_2_1: expected RefreshToken to be nil, got %v\n", args.RefreshToken)
+			callbackFailed = true
+		}
+		if args.Timeout.Before(time.Now()) {
+			fmt.Printf("machine_2_1: expected timeout to be in the future, got %v\n", args.Timeout)
+			callbackFailed = true
+		}
+		if args.Version < 1 {
+			fmt.Printf("machine_2_1: expected Version to be at least 1, got %d\n", args.Version)
+			callbackFailed = true
+		}
+		if args.IDPInfo != nil {
+			fmt.Printf("machine_2_1: expected IdpID to be nil for Machine flow, got %v\n", args.IDPInfo)
+			callbackFailed = true
+		}
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			fmt.Printf("machine_2_1: failed reading token file: %v\n", err)
+		}
+		return &driver.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	coll := client.Database("test").Collection("test")
+
+	_, err := coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		fmt.Printf("machine_2_1: failed executing Find: %v", err)
+		return true
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		fmt.Printf("machine_2_1: expected callback count to be 1, got %d\n", callbackCount)
+		return true
+	}
+	return callbackFailed
+}
+
+func machine_2_3_oidcCallbackReturnMissingData() bool {
+	callbackCount := 0
+	countMutex := sync.Mutex{}
+
+	client := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		return &driver.OIDCCredential{
+			AccessToken:  "",
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	coll := client.Database("test").Collection("test")
+
+	_, err := coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		fmt.Println("machine_2_3: should have failed to executed Find, but succeeded")
+		return true
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		fmt.Printf("machine_2_3: expected callback count to be 1, got %d\n", callbackCount)
+		return true
+	}
+	return true
+}
+
+func machine_2_4_invalidClientConfigurationWithCallback() bool {
+	callbackCount := 0
+	callbackFailed := false
+	countMutex := sync.Mutex{}
+
+	client := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			fmt.Printf("machine_2_4: failed reading token file: %v\n", err)
+			callbackFailed = true
+		}
+		return &driver.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	},
+		map[string]string{"ENVIRONMENT": "test"},
+	)
+
+	coll := client.Database("test").Collection("test")
+
+	_, err := coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		fmt.Println("machine_2_4: succeeded executing Find when it should fail")
+		return true
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		fmt.Printf("machine_2_4: expected callback count to be 1, got %d\n", callbackCount)
+		return true
+	}
+	return callbackFailed
 }
