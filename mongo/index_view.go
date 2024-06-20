@@ -449,7 +449,7 @@ func (iv IndexView) DropOne(ctx context.Context, searchParam interface{}, opts .
 		}
 
 		return iv.drop(ctx, name, opts...)
-	} else if key, keyCheck := searchParam.([]byte); keyCheck {
+	} else if key, keyCheck := searchParam.(bsoncore.Document); keyCheck {
 		return iv.dropFromKeys(ctx, key, opts...)
 	}
 
