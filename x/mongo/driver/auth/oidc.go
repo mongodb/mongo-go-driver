@@ -158,11 +158,15 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 		return nil, nil
 	}
 
-	//switch env {
+	switch env {
 	// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
 	// This is here just to pass the linter, it will be fixed in one of the above tickets.
-	//}
+	case azureEnvironmentValue, gcpEnvironmentValue:
+		return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+			return nil, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
+		}, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
+	}
 
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
 }

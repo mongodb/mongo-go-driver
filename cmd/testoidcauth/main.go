@@ -25,13 +25,15 @@ import (
 
 var uriAdmin = os.Getenv("MONGODB_URI")
 var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
-var uriMulti = os.Getenv("MONGODB_URI_MULTI")
-var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
-var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
-func explicitUser(user string) string {
-	return fmt.Sprintf("%s@%s", user, oidcDomain)
-}
+// var uriMulti = os.Getenv("MONGODB_URI_MULTI")
+var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
+
+//var oidcDomain = os.Getenv("OIDC_DOMAIN")
+
+//func explicitUser(user string) string {
+//	return fmt.Sprintf("%s@%s", user, oidcDomain)
+//}
 
 func tokenFile(user string) string {
 	return path.Join(oidcTokenDir, user)
@@ -57,6 +59,9 @@ func connectWithMachineCBAndProperties(uri string, cb driver.OIDCCallback, props
 }
 
 func main() {
+	// be quiet linter
+	_ = tokenFile("test_user2")
+
 	hasError := false
 	aux := func(test_name string, f func() error) {
 		fmt.Printf("%s...", test_name)
@@ -69,23 +74,23 @@ func main() {
 			fmt.Println("...Ok")
 		}
 	}
-	aux("machine_1_1_callbackIsCalled", machine_1_1_callbackIsCalled)
-	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine_1_2_callbackIsCalledOnlyOneForMultipleConnections)
-	aux("machine_2_1_validCallbackInputs", machine_2_1_validCallbackInputs)
-	aux("machine_2_3_oidcCallbackReturnMissingData", machine_2_3_oidcCallbackReturnMissingData)
-	aux("machine_2_4_invalidClientConfigurationWithCallback", machine_2_4_invalidClientConfigurationWithCallback)
-	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth)
-	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine_3_2_authFailuresWithoutCachedTokensReturnsAnError)
+	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
+	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
+	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
+	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
+	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
+	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
+	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
 	// fail points do not seem to be working, or I'm using them wrongly
-	//aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache)
+	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
 }
 
-func machine_1_1_callbackIsCalled() error {
+func machine11callbackIsCalled() error {
 	callbackCount := 0
-	var callbackFailed error = nil
+	var callbackFailed error
 	countMutex := sync.Mutex{}
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
@@ -96,7 +101,7 @@ func machine_1_1_callbackIsCalled() error {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			callbackFailed = fmt.Errorf("machine_1_1: failed reading token file: %v\n", err)
+			callbackFailed = fmt.Errorf("machine_1_1: failed reading token file: %v", err)
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -120,14 +125,14 @@ func machine_1_1_callbackIsCalled() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_1_1: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_1_1: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }
 
-func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() error {
+func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 	callbackCount := 0
-	var callbackFailed error = nil
+	var callbackFailed error
 	countMutex := sync.Mutex{}
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
@@ -138,7 +143,7 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() error {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			callbackFailed = fmt.Errorf("machine_1_2: failed reading token file: %v\n", err)
+			callbackFailed = fmt.Errorf("machine_1_2: failed reading token file: %v", err)
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -163,7 +168,7 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() error {
 			coll := client.Database("test").Collection("test")
 			_, err := coll.Find(context.Background(), bson.D{})
 			if err != nil {
-				findFailed = fmt.Errorf("machine_1_2: failed executing Find: %v\n", err)
+				findFailed = fmt.Errorf("machine_1_2: failed executing Find: %v", err)
 			}
 		}()
 	}
@@ -172,7 +177,7 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_1_2: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_1_2: expected callback count to be 1, got %d", callbackCount)
 	}
 	if callbackFailed != nil {
 		return callbackFailed
@@ -180,23 +185,23 @@ func machine_1_2_callbackIsCalledOnlyOneForMultipleConnections() error {
 	return findFailed
 }
 
-func machine_2_1_validCallbackInputs() error {
+func machine21validCallbackInputs() error {
 	callbackCount := 0
-	var callbackFailed error = nil
+	var callbackFailed error
 	countMutex := sync.Mutex{}
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
 		if args.RefreshToken != nil {
-			callbackFailed = fmt.Errorf("machine_2_1: expected RefreshToken to be nil, got %v\n", args.RefreshToken)
+			callbackFailed = fmt.Errorf("machine_2_1: expected RefreshToken to be nil, got %v", args.RefreshToken)
 		}
 		if args.Timeout.Before(time.Now()) {
-			callbackFailed = fmt.Errorf("machine_2_1: expected timeout to be in the future, got %v\n", args.Timeout)
+			callbackFailed = fmt.Errorf("machine_2_1: expected timeout to be in the future, got %v", args.Timeout)
 		}
 		if args.Version < 1 {
-			callbackFailed = fmt.Errorf("machine_2_1: expected Version to be at least 1, got %d\n", args.Version)
+			callbackFailed = fmt.Errorf("machine_2_1: expected Version to be at least 1, got %d", args.Version)
 		}
 		if args.IDPInfo != nil {
-			callbackFailed = fmt.Errorf("machine_2_1: expected IdpID to be nil for Machine flow, got %v\n", args.IDPInfo)
+			callbackFailed = fmt.Errorf("machine_2_1: expected IdpID to be nil for Machine flow, got %v", args.IDPInfo)
 		}
 		countMutex.Lock()
 		defer countMutex.Unlock()
@@ -205,7 +210,7 @@ func machine_2_1_validCallbackInputs() error {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			fmt.Printf("machine_2_1: failed reading token file: %v\n", err)
+			fmt.Printf("machine_2_1: failed reading token file: %v", err)
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -229,12 +234,12 @@ func machine_2_1_validCallbackInputs() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_2_1: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_2_1: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }
 
-func machine_2_3_oidcCallbackReturnMissingData() error {
+func machine23oidcCallbackReturnMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
@@ -253,7 +258,7 @@ func machine_2_3_oidcCallbackReturnMissingData() error {
 	defer client.Disconnect(context.Background())
 
 	if err != nil {
-		return fmt.Errorf("machine_2_3: failed connecting client: %v\n", err)
+		return fmt.Errorf("machine_2_3: failed connecting client: %v", err)
 	}
 
 	coll := client.Database("test").Collection("test")
@@ -265,12 +270,12 @@ func machine_2_3_oidcCallbackReturnMissingData() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_2_3: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_2_3: expected callback count to be 1, got %d", callbackCount)
 	}
 	return nil
 }
 
-func machine_2_4_invalidClientConfigurationWithCallback() error {
+func machine24invalidClientConfigurationWithCallback() error {
 	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
 		return &driver.OIDCCredential{
@@ -287,9 +292,9 @@ func machine_2_4_invalidClientConfigurationWithCallback() error {
 	return nil
 }
 
-func machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
+func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	callbackCount := 0
-	var callbackFailed error = nil
+	var callbackFailed error
 	countMutex := sync.Mutex{}
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
@@ -300,7 +305,7 @@ func machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			callbackFailed = fmt.Errorf("machine_3_1: failed reading token file: %v\n", err)
+			callbackFailed = fmt.Errorf("machine_3_1: failed reading token file: %v", err)
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -327,14 +332,14 @@ func machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_3_1: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_3_1: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }
 
-func machine_3_2_authFailuresWithoutCachedTokensReturnsAnError() error {
+func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 	callbackCount := 0
-	var callbackFailed error = nil
+	var callbackFailed error
 	countMutex := sync.Mutex{}
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
@@ -363,14 +368,14 @@ func machine_3_2_authFailuresWithoutCachedTokensReturnsAnError() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_3_2: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_3_2: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }
 
-func machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache() error {
+func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	callbackCount := 0
-	var callbackFailed error = nil
+	var callbackFailed error
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
@@ -383,7 +388,7 @@ func machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache() error {
 		tokenFile := tokenFile("test_user1")
 		accessToken, err := os.ReadFile(tokenFile)
 		if err != nil {
-			callbackFailed = fmt.Errorf("machine_3_3: failed reading token file: %v\n", err)
+			callbackFailed = fmt.Errorf("machine_3_3: failed reading token file: %v", err)
 		}
 		return &driver.OIDCCredential{
 			AccessToken:  string(accessToken),
@@ -427,7 +432,7 @@ func machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_3_3: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_3_3: expected callback count to be 1, got %d", callbackCount)
 	}
 
 	_, err = coll.Find(context.Background(), bson.D{})
@@ -437,7 +442,7 @@ func machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache() error {
 	countMutex.Lock()
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
-		return fmt.Errorf("machine_3_3: expected callback count to be 1, got %d\n", callbackCount)
+		return fmt.Errorf("machine_3_3: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }
