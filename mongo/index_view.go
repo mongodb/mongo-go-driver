@@ -442,18 +442,21 @@ func (iv IndexView) dropFromKeys(ctx context.Context, keySpecDocument bsoncore.D
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
-func (iv IndexView) DropOne(ctx context.Context, searchParam interface{}, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
-	if name, stringCheck := searchParam.(string); stringCheck {
-		if name == "*" {
-			return nil, ErrMultipleIndexDrop
-		}
-
-		return iv.drop(ctx, name, opts...)
-	} else if key, keyCheck := searchParam.(bsoncore.Document); keyCheck {
-		return iv.dropFromKeys(ctx, key, opts...)
+func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	if name == "*" {
+		return nil, ErrMultipleIndexDrop
 	}
 
-	return nil, ErrInvalidSearchParam
+	return iv.drop(ctx, name, opts...)
+}
+
+// DropKeyOne executes a dropIndexes operation to drop an index on the collection. If the operation succeeds, this returns
+// a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
+// indexes that existed prior to the drop.
+//
+// The key parameter should be the keySpecDocument of the index to drop.
+func (iv IndexView) DropKeyOne(ctx context.Context, key bsoncore.Document, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	return iv.dropFromKeys(ctx, key, opts...)
 }
 
 // DropAll executes a dropIndexes operation to drop all indexes on the collection. If the operation succeeds, this

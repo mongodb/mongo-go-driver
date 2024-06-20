@@ -597,24 +597,33 @@ func TestIndexView(t *testing.T) {
 		_, err = iv.DropOne(context.Background(), indexNames[1])
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
-		const name = "clustered"
-		expectedSpecs := []*mongo.IndexSpecification{
-			{
-				Name:         "_id_",
-				Namespace:    mt.DB.Name() + "." + name,
-				KeysDocument: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()),
-				Version:      2,
-				Unique:       func(b bool) *bool { return &b }(true),
-				Clustered:    func(b bool) *bool { return &b }(true),
-			},
-			{
-				Name:         "foo_-1",
-				Namespace:    mt.DB.Name() + "." + name,
-				KeysDocument: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build()),
-				Version:      2,
-			},
+		cursor, err := iv.List(context.Background())
+		assert.Nil(mt, err, "List error: %v", err)
+		for cursor.Next(context.Background()) {
+			var idx index
+			err = cursor.Decode(&idx)
+			assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
+			assert.NotEqual(mt, indexNames[1], idx.Name, "found index %v after dropping", indexNames[1])
 		}
-		_, err = iv.DropOne(context.Background(), bsoncore.Document(expectedSpecs[1].KeysDocument))
+		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
+	})
+	mt.Run("dropKey one", func(mt *mtest.T) {
+		iv := mt.Coll.Indexes()
+		indexNames, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
+			{
+				Keys: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()),
+			},
+			{
+				Keys: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build()),
+			},
+		})
+
+		key := bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build())
+
+		assert.Nil(mt, err, "CreateMany error: %v", err)
+		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
+
+		_, err = iv.DropKeyOne(context.Background(), bsoncore.Document(key))
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
 		cursor, err := iv.List(context.Background())
