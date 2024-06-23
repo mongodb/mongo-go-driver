@@ -916,12 +916,9 @@ func (op Operation) Execute(ctx context.Context) error {
 			operationErr.Labels = tt.Labels
 			operationErr.Raw = tt.Raw
 		case Error:
-			fmt.Println("!!!!")
 			// 391 is the reauthentication required error code, so we will attempt a reauth and
 			// retry the operation, if it is successful.
-			fmt.Println("code", tt.Code)
 			if tt.Code == 391 {
-				fmt.Println("!!!!")
 				if op.Authenticator != nil {
 					if err := op.Authenticator.Reauth(ctx); err != nil {
 						return fmt.Errorf("error reauthenticating: %w", err)
