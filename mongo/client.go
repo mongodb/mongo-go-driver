@@ -26,6 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -79,6 +80,12 @@ type Client struct {
 	metadataClientFLE  *Client
 	internalClientFLE  *Client
 	encryptedFieldsMap map[string]interface{}
+	authenticator      driver.Authenticator
+}
+
+// GetAuthenticator returns the authenticator for the client, used for testing purposes.
+func (c *Client) GetAuthenticator() driver.Authenticator {
+	return c.authenticator
 }
 
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
@@ -213,7 +220,23 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		return nil, err
 	}
 
-	cfg, err := topology.NewConfig(clientOpt, client.clock)
+	if clientOpt.Auth != nil {
+		// Create an authenticator for the client
+		client.authenticator, err = auth.CreateAuthenticator(clientOpt.Auth.AuthMechanism, &auth.Cred{
+			Source:              clientOpt.Auth.AuthSource,
+			Username:            clientOpt.Auth.Username,
+			Password:            clientOpt.Auth.Password,
+			PasswordSet:         clientOpt.Auth.PasswordSet,
+			Props:               clientOpt.Auth.AuthMechanismProperties,
+			OIDCMachineCallback: clientOpt.Auth.OIDCMachineCallback,
+			OIDCHumanCallback:   clientOpt.Auth.OIDCHumanCallback,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cfg, err := topology.NewConfigWithAuthenticator(clientOpt, client.clock, client.authenticator)
 	if err != nil {
 		return nil, err
 	}
@@ -694,7 +717,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
-		ServerAPI(c.serverAPI).Timeout(c.timeout)
+		ServerAPI(c.serverAPI).Timeout(c.timeout).Authenticator(c.authenticator)
 
 	if ldo.NameOnly != nil {
 		op = op.NameOnly(*ldo.NameOnly)

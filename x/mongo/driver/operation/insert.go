@@ -25,6 +25,7 @@ import (
 
 // Insert performs an insert operation.
 type Insert struct {
+	authenticator            driver.Authenticator
 	bypassDocumentValidation *bool
 	comment                  bsoncore.Value
 	documents                []bsoncore.Document
@@ -47,6 +48,7 @@ type Insert struct {
 
 // InsertResult represents an insert result returned by the server.
 type InsertResult struct {
+	authenticator driver.Authenticator
 	// Number of documents successfully inserted.
 	N int64
 }
@@ -115,6 +117,7 @@ func (i *Insert) Execute(ctx context.Context) error {
 		Timeout:           i.timeout,
 		Logger:            i.logger,
 		Name:              driverutil.InsertOp,
+		Authenticator:     i.authenticator,
 	}.Execute(ctx)
 
 }
@@ -304,5 +307,25 @@ func (i *Insert) Logger(logger *logger.Logger) *Insert {
 	}
 
 	i.logger = logger
+	return i
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (i *Insert) Authenticator(authenticator driver.Authenticator) *Insert {
+	if i == nil {
+		i = new(Insert)
+	}
+
+	i.authenticator = authenticator
+	return i
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (i *InsertResult) Authenticator(authenticator driver.Authenticator) *InsertResult {
+	if i == nil {
+		i = new(InsertResult)
+	}
+
+	i.authenticator = authenticator
 	return i
 }

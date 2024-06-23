@@ -19,6 +19,9 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+// Config contains the configuration for an Authenticator.
+type Config = driver.AuthConfig
+
 // AuthenticatorFactory constructs an authenticator.
 type AuthenticatorFactory func(cred *Cred) (Authenticator, error)
 
@@ -33,6 +36,7 @@ func init() {
 	RegisterAuthenticatorFactory(GSSAPI, newGSSAPIAuthenticator)
 	RegisterAuthenticatorFactory(MongoDBX509, newMongoDBX509Authenticator)
 	RegisterAuthenticatorFactory(MongoDBAWS, newMongoDBAWSAuthenticator)
+	RegisterAuthenticatorFactory(MongoDBOIDC, newOIDCAuthenticator)
 }
 
 // CreateAuthenticator creates an authenticator.
@@ -97,12 +101,17 @@ func (ah *authHandshaker) GetHandshakeInformation(ctx context.Context, addr addr
 				return driver.HandshakeInformation{}, newAuthError("failed to create conversation", err)
 			}
 
-			firstMsg, err := ah.conversation.FirstMessage()
-			if err != nil {
-				return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
-			}
+			// It is possible for the speculative conversation to be nil even without error if the authenticator
+			// cannot perform speculative authentication. An example of this is MONGODB-OIDC when there is
+			// no AccessToken in the cache.
+			if ah.conversation != nil {
+				firstMsg, err := ah.conversation.FirstMessage()
+				if err != nil {
+					return driver.HandshakeInformation{}, newAuthError("failed to create speculative authentication message", err)
+				}
 
-			op = op.SpeculativeAuthenticate(firstMsg)
+				op = op.SpeculativeAuthenticate(firstMsg)
+			}
 		}
 	}
 
@@ -170,21 +179,8 @@ func Handshaker(h driver.Handshaker, options *HandshakeOptions) driver.Handshake
 	}
 }
 
-// Config holds the information necessary to perform an authentication attempt.
-type Config struct {
-	Description   description.Server
-	Connection    driver.Connection
-	ClusterClock  *session.ClusterClock
-	HandshakeInfo driver.HandshakeInformation
-	ServerAPI     *driver.ServerAPIOptions
-	HTTPClient    *http.Client
-}
-
 // Authenticator handles authenticating a connection.
-type Authenticator interface {
-	// Auth authenticates the connection.
-	Auth(context.Context, *Config) error
-}
+type Authenticator = driver.Authenticator
 
 func newAuthError(msg string, inner error) error {
 	return &Error{

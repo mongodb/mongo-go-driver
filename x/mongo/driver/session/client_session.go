@@ -90,6 +90,8 @@ type LoadBalancedTransactionConnection interface {
 	DriverConnectionID() uint64 // TODO(GODRIVER-2824): change type to int64.
 	Address() address.Address
 	Stale() bool
+	OIDCTokenGenID() uint64
+	SetOIDCTokenGenID(uint64)
 
 	// Functions copied over from driver.PinnedConnection that are not part of Connection or Expirable.
 	PinToCursor() error
