@@ -89,47 +89,6 @@ func main() {
 	}
 }
 
-func test() error {
-
-	aclient, err := connectAdminClinet()
-	if err != nil {
-		return fmt.Errorf("failed connecting admin client: %v", err)
-	}
-	defer aclient.Disconnect(context.Background())
-
-	client, err := connectAdminClinet()
-	if err != nil {
-		return fmt.Errorf("failed connecting admin client: %v", err)
-	}
-	defer client.Disconnect(context.Background())
-
-	db := aclient.Database("admin")
-	res := db.RunCommand(context.Background(), bson.D{
-		{Key: "configureFailPoint", Value: "failCommand"},
-		{Key: "mode", Value: bson.D{
-			{Key: "times", Value: 1},
-		}},
-		{Key: "data", Value: bson.D{
-			{Key: "failCommands", Value: bson.A{
-				"find",
-			}},
-			{Key: "errorCode", Value: 391}, // IllegalOperation
-		}},
-	})
-
-	if res.Err() != nil {
-		return fmt.Errorf("test: failed setting failpoint: %v", res.Err())
-	}
-
-	coll := client.Database("test").Collection("test")
-
-	_, err = coll.Find(context.Background(), bson.D{})
-	if err != nil {
-		return fmt.Errorf("failed executing Find: %v", err)
-	}
-	return nil
-}
-
 func machine11callbackIsCalled() error {
 	callbackCount := 0
 	var callbackFailed error
