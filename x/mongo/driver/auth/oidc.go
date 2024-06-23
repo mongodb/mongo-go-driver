@@ -224,9 +224,9 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
 // This must only be called with the lock held
-func (oa *OIDCAuthenticator) invalidateAccessToken(force bool) {
+func (oa *OIDCAuthenticator) invalidateAccessToken() {
 	tokenGenID := oa.cfg.Connection.OIDCTokenGenID()
-	if force || tokenGenID >= oa.tokenGenID {
+	if tokenGenID >= oa.tokenGenID {
 		oa.accessToken = ""
 		oa.cfg.Connection.SetOIDCTokenGenID(0)
 	}
@@ -236,7 +236,7 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(force bool) {
 // driver.Authenticator interface.
 func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
 	oa.mu.Lock()
-	oa.invalidateAccessToken(true)
+	oa.invalidateAccessToken()
 	oa.mu.Unlock()
 	// it should be impossible to get a Reauth when an Auth has never occurred,
 	// so we assume cfg was properly set. There is nothing to enforce this, however,
@@ -266,7 +266,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 		if err == nil {
 			return nil
 		}
-		oa.invalidateAccessToken(false)
+		oa.invalidateAccessToken()
 		time.Sleep(invalidateSleepTimeout)
 	}
 

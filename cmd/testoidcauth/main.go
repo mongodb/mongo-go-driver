@@ -585,13 +585,13 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 				ExpiresAt:    &t,
 				RefreshToken: nil,
 			}, nil
-		} else {
-			return &driver.OIDCCredential{
-				AccessToken:  "this is a bad, bad token",
-				ExpiresAt:    &t,
-				RefreshToken: nil,
-			}, nil
 		}
+		return &driver.OIDCCredential{
+			AccessToken:  "this is a bad, bad token",
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+
 	})
 
 	defer client.Disconnect(context.Background())
@@ -666,13 +666,12 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 				ExpiresAt:    &t,
 				RefreshToken: nil,
 			}, nil
-		} else {
-			return &driver.OIDCCredential{
-				AccessToken:  "this is a bad, bad token",
-				ExpiresAt:    &t,
-				RefreshToken: nil,
-			}, nil
 		}
+		return &driver.OIDCCredential{
+			AccessToken:  "this is a bad, bad token",
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
 	})
 
 	defer client.Disconnect(context.Background())
