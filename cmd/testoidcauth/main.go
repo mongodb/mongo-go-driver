@@ -17,7 +17,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -86,6 +85,47 @@ func main() {
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
+}
+
+func test() error {
+
+	aclient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("failed connecting admin client: %v", err)
+	}
+	defer aclient.Disconnect(context.Background())
+
+	client, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("failed connecting admin client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	db := aclient.Database("admin")
+	res := db.RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391}, // IllegalOperation
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("test: failed setting failpoint: %v", res.Err())
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("failed executing Find: %v", err)
+	}
+	return nil
 }
 
 func machine11callbackIsCalled() error {
@@ -410,24 +450,21 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 
 	coll := client.Database("test").Collection("test")
 
-	err = mtest.SetFailPoint(
-		mtest.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
-				Times: 1,
-			},
-			Data: mtest.FailPointData{
-				// saslStart failPoint is not causing find to fail, using find failPoint instead
-				FailCommands: []string{"find"},
-				AppName:      "go-oidc",
-				ErrorCode:    20,
-			},
-		},
-		adminClient,
-	)
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"saslStart",
+			}},
+			{Key: "errorCode", Value: 20},
+		}},
+	})
 
-	if err != nil {
-		return fmt.Errorf("machine_3_3: failed setting failpoint: %v", err)
+	if res.Err() != nil {
+		return fmt.Errorf("machine_3_3: failed setting failpoint: %v", res.Err())
 	}
 
 	_, err = coll.Find(context.Background(), bson.D{})
@@ -489,21 +526,22 @@ func machine41ReauthenticationSucceeds() error {
 	}
 
 	coll := client.Database("test").Collection("test")
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
 
-	err = mtest.SetFailPoint(
-		mtest.FailPoint{
-			ConfigureFailPoint: "failCommand",
-			Mode: mtest.FailPointMode{
-				Times: 1,
-			},
-			Data: mtest.FailPointData{
-				FailCommands: []string{"find"},
-				AppName:      "go-oidc",
-				ErrorCode:    391,
-			},
-		},
-		adminClient,
-	)
+	if res.Err() != nil {
+		return fmt.Errorf("machine_4_1: failed setting failpoint: %v", res.Err())
+	}
 
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed setting failpoint: %v", err)
