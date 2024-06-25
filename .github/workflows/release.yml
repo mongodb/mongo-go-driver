@@ -56,7 +56,7 @@ jobs:
       security-events: write
     uses: ./.github/workflows/codeql.yml
     with:
-      ref: ${{ inputs.version }}
+      ref: ${{ github.ref }}
 
   publish:
     needs: [pre-publish, static-scan]
