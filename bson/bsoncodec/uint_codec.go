@@ -164,7 +164,7 @@ func (uic *UIntCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t refl
 
 		return reflect.ValueOf(uint64(i64)), nil
 	case reflect.Uint:
-		if i64 < 0 || int64(uint(i64)) != i64 { // Can we fit this inside of an uint
+		if i64 < 0 || uint64(i64) > uint64(math.MaxUint) { // Can we fit this inside of an uint
 			return emptyValue, fmt.Errorf("%d overflows uint", i64)
 		}
 
