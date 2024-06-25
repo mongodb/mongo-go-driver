@@ -82,6 +82,7 @@ jobs:
         with:
           version: ${{ inputs.version }}
           silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
+          evergreen_project: ${{ env.EVERGREEN_PROJECT }}
           prev_version: ${{ inputs.prev_version }}
           push_changes: ${{ inputs.push_changes }}
           token: ${{ env.GH_TOKEN }}
