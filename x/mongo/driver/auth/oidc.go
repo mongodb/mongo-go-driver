@@ -171,12 +171,14 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
 }
 
-// This should only be called with the Mutex held.
 func (oa *OIDCAuthenticator) getAccessToken(
 	ctx context.Context,
 	args *OIDCArgs,
 	callback OIDCCallback,
 ) (string, error) {
+	oa.mu.Lock()
+	defer oa.mu.Unlock()
+
 	if oa.accessToken != "" {
 		return oa.accessToken, nil
 	}
@@ -223,8 +225,9 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // tokenGenID of the OIDCAuthenticator. It should never actually be greater than, but only equal,
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
-// This must only be called with the lock held
 func (oa *OIDCAuthenticator) invalidateAccessToken() {
+	oa.mu.Lock()
+	defer oa.mu.Unlock()
 	tokenGenID := oa.cfg.Connection.OIDCTokenGenID()
 	if tokenGenID >= oa.tokenGenID {
 		oa.accessToken = ""
@@ -235,9 +238,7 @@ func (oa *OIDCAuthenticator) invalidateAccessToken() {
 // Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
 // driver.Authenticator interface.
 func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
-	oa.mu.Lock()
 	oa.invalidateAccessToken()
-	oa.mu.Unlock()
 	// it should be impossible to get a Reauth when an Auth has never occurred,
 	// so we assume cfg was properly set. There is nothing to enforce this, however,
 	// other than the current driver code flow. If cfg is nil, Auth will return an error.
@@ -246,11 +247,6 @@ func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
 
 // Auth authenticates the connection.
 func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	// the Mutex must be held during the entire Auth call so that multiple racing attempts
-	// to authenticate will not result in multiple callbacks. The losers on the Mutex will
-	// retrieve the access token from the Authenticator cache.
-	oa.mu.Lock()
-	defer oa.mu.Unlock()
 	var err error
 
 	if cfg == nil {

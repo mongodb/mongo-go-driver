@@ -48,7 +48,6 @@ type Distinct struct {
 
 // DistinctResult represents a distinct result returned by the server.
 type DistinctResult struct {
-	authenticator driver.Authenticator
 	// The distinct values for the field.
 	Values bsoncore.Value
 }
@@ -319,16 +318,6 @@ func (d *Distinct) Timeout(timeout *time.Duration) *Distinct {
 func (d *Distinct) Authenticator(authenticator driver.Authenticator) *Distinct {
 	if d == nil {
 		d = new(Distinct)
-	}
-
-	d.authenticator = authenticator
-	return d
-}
-
-// Authenticator sets the authenticator to use for this operation.
-func (d *DistinctResult) Authenticator(authenticator driver.Authenticator) *DistinctResult {
-	if d == nil {
-		d = new(DistinctResult)
 	}
 
 	d.authenticator = authenticator
