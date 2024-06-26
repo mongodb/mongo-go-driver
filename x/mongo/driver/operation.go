@@ -1497,7 +1497,7 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 			}
 
 			// Check for lower and upper bounds on architecture-dependent int.
-			if w <= math.MaxInt32 {
+			if w > math.MaxInt32 {
 				return 0, nil, fmt.Errorf("WriteConcern.W overflows int32: %v", wc.W)
 			}
 
