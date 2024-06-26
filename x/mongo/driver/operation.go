@@ -1498,7 +1498,7 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 
 			// Check for lower and upper bounds on architecture-dependent int.
 			if w <= math.MaxInt32 {
-				return 0, nil, fmt.Errorf("WriteConcern.W is unexpected large: %v", wc.W)
+				return 0, nil, fmt.Errorf("WriteConcern.W overflows int32: %v", wc.W)
 			}
 
 			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
