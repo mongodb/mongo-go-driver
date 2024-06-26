@@ -1038,7 +1038,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 		t.Run("Decode", func(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := NewValueReader(tc.b)
+					vr := NewValueReader(bytes.NewReader(tc.b))
 					dec := NewDecoder(vr)
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
 					err := dec.Decode(gotVal.Interface())

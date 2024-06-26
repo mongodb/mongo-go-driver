@@ -30,7 +30,7 @@ func ExampleDecoder() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder := bson.NewDecoder(bson.NewValueReader(data))
+	decoder := bson.NewDecoder(bson.NewValueReader(bytes.NewReader(data)))
 
 	type Product struct {
 		Name  string `bson:"name"`
@@ -66,7 +66,7 @@ func ExampleDecoder_DefaultDocumentM() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to unmarshal the document
 	// into a City struct.
-	decoder := bson.NewDecoder(bson.NewValueReader(data))
+	decoder := bson.NewDecoder(bson.NewValueReader(bytes.NewReader(data)))
 
 	type City struct {
 		Name       string      `bson:"name"`
@@ -104,7 +104,7 @@ func ExampleDecoder_UseJSONStructTags() {
 
 	// Create a Decoder that reads the marshaled BSON document and use it to
 	// unmarshal the document into a Product struct.
-	decoder := bson.NewDecoder(bson.NewValueReader(data))
+	decoder := bson.NewDecoder(bson.NewValueReader(bytes.NewReader(data)))
 
 	type Product struct {
 		Name  string `json:"name"`

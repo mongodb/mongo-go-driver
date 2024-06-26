@@ -478,7 +478,7 @@ func (t *prefixPtr) SetBSON(raw bson.RawValue) error {
 	if err != nil {
 		return err
 	}
-	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
+	vr := bson.NewBSONValueReader(raw.Type, bytes.NewReader(raw.Value))
 	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
 	if err != nil {
 		return err
@@ -505,7 +505,7 @@ func (t *prefixVal) SetBSON(raw bson.RawValue) error {
 	if err != nil {
 		return err
 	}
-	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
+	vr := bson.NewBSONValueReader(raw.Type, bytes.NewReader(raw.Value))
 	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
 	if err != nil {
 		return err
@@ -929,7 +929,7 @@ func (o *setterType) SetBSON(raw bson.RawValue) error {
 	if raw.Type == 0x00 {
 		raw.Type = bson.TypeEmbeddedDocument
 	}
-	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
+	vr := bson.NewBSONValueReader(raw.Type, bytes.NewReader(raw.Value))
 	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
 	if err != nil {
 		return err
@@ -1288,7 +1288,7 @@ func (s *getterSetterD) SetBSON(raw bson.RawValue) error {
 	if raw.Type == 0x00 {
 		raw.Type = bson.TypeEmbeddedDocument
 	}
-	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
+	vr := bson.NewBSONValueReader(raw.Type, bytes.NewReader(raw.Value))
 	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
 	if err != nil {
 		return err
@@ -1314,7 +1314,7 @@ func (i *getterSetterInt) SetBSON(raw bson.RawValue) error {
 	if raw.Type == 0x00 {
 		raw.Type = bson.TypeEmbeddedDocument
 	}
-	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
+	vr := bson.NewBSONValueReader(raw.Type, bytes.NewReader(raw.Value))
 	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
 	if err != nil {
 		return err
@@ -1336,7 +1336,7 @@ func (s *ifaceSlice) SetBSON(raw bson.RawValue) error {
 	if err != nil {
 		return err
 	}
-	vr := bson.NewBSONValueReader(raw.Type, raw.Value)
+	vr := bson.NewBSONValueReader(raw.Type, bytes.NewReader(raw.Value))
 	err = decoder.DecodeValue(bson.DecodeContext{Registry: Registry}, vr, rval)
 	if err != nil {
 		return err
