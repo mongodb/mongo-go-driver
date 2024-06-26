@@ -111,8 +111,7 @@ func (dve DefaultValueEncoders) RegisterDefaultEncoders(rb *RegistryBuilder) {
 		RegisterDefaultEncoder(reflect.Struct, newDefaultStructCodec()).
 		RegisterDefaultEncoder(reflect.Ptr, NewPointerCodec()).
 		RegisterHookEncoder(tValueMarshaler, ValueEncoderFunc(dve.ValueMarshalerEncodeValue)).
-		RegisterHookEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue)).
-		RegisterHookEncoder(tProxy, ValueEncoderFunc(dve.ProxyEncodeValue))
+		RegisterHookEncoder(tMarshaler, ValueEncoderFunc(dve.MarshalerEncodeValue))
 }
 
 // BooleanEncodeValue is the ValueEncoderFunc for bool types.
@@ -601,53 +600,6 @@ func (dve DefaultValueEncoders) MarshalerEncodeValue(_ EncodeContext, vw ValueWr
 		return err
 	}
 	return copyValueFromBytes(vw, TypeEmbeddedDocument, data)
-}
-
-// ProxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with all default
-// value encoders registered.
-func (dve DefaultValueEncoders) ProxyEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	// Either val or a pointer to val must implement Proxy
-	switch {
-	case !val.IsValid():
-		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
-	case val.Type().Implements(tProxy):
-		// If Proxy is implemented on a concrete type, make sure that val isn't a nil pointer
-		if isImplementationNil(val, tProxy) {
-			return vw.WriteNull()
-		}
-	case reflect.PtrTo(val.Type()).Implements(tProxy) && val.CanAddr():
-		val = val.Addr()
-	default:
-		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
-	}
-
-	m, ok := val.Interface().(proxy)
-	if !ok {
-		return vw.WriteNull()
-	}
-	v, err := m.ProxyBSON()
-	if err != nil {
-		return err
-	}
-	if v == nil {
-		encoder, err := ec.LookupEncoder(nil)
-		if err != nil {
-			return err
-		}
-		return encoder.EncodeValue(ec, vw, reflect.ValueOf(nil))
-	}
-	vv := reflect.ValueOf(v)
-	switch vv.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		vv = vv.Elem()
-	}
-	encoder, err := ec.LookupEncoder(vv.Type())
-	if err != nil {
-		return err
-	}
-	return encoder.EncodeValue(ec, vw, vv)
 }
 
 // JavaScriptEncodeValue is the ValueEncoderFunc for the JavaScript type.
