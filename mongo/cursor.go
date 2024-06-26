@@ -247,9 +247,6 @@ func getDecoder(
 		if opts.BinaryAsSlice {
 			dec.BinaryAsSlice()
 		}
-		if opts.DefaultDocumentD {
-			dec.DefaultDocumentD()
-		}
 		if opts.DefaultDocumentM {
 			dec.DefaultDocumentM()
 		}

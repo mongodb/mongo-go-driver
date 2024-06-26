@@ -170,11 +170,6 @@ type BSONOptions struct {
 	// instead of a primitive.Binary.
 	BinaryAsSlice bool
 
-	// DefaultDocumentD causes the driver to always unmarshal documents into the
-	// primitive.D type. This behavior is restricted to data typed as
-	// "interface{}" or "map[string]interface{}".
-	DefaultDocumentD bool
-
 	// DefaultDocumentM causes the driver to always unmarshal documents into the
 	// primitive.M type. This behavior is restricted to data typed as
 	// "interface{}" or "map[string]interface{}".

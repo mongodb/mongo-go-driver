@@ -31,10 +31,9 @@ type Decoder struct {
 	dc DecodeContext
 	vr ValueReader
 
-	// We persist defaultDocumentM and defaultDocumentD on the Decoder to prevent overwriting from
+	// We persist defaultDocumentM on the Decoder to prevent overwriting from
 	// (*Decoder).SetContext.
 	defaultDocumentM bool
-	defaultDocumentD bool
 
 	binaryAsSlice     bool
 	useJSONStructTags bool
@@ -87,9 +86,6 @@ func (d *Decoder) Decode(val interface{}) error {
 	if d.defaultDocumentM {
 		d.dc.DefaultDocumentM()
 	}
-	if d.defaultDocumentD {
-		d.dc.DefaultDocumentD()
-	}
 	if d.binaryAsSlice {
 		d.dc.BinaryAsSlice()
 	}
@@ -124,12 +120,6 @@ func (d *Decoder) SetRegistry(r *Registry) {
 // behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
 func (d *Decoder) DefaultDocumentM() {
 	d.defaultDocumentM = true
-}
-
-// DefaultDocumentD causes the Decoder to always unmarshal documents into the primitive.D type. This
-// behavior is restricted to data typed as "interface{}" or "map[string]interface{}".
-func (d *Decoder) DefaultDocumentD() {
-	d.defaultDocumentD = true
 }
 
 // AllowTruncatingDoubles causes the Decoder to truncate the fractional part of BSON "double" values

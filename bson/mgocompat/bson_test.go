@@ -1528,7 +1528,6 @@ var twoWayCrossItems = []crossTypeItem{
 	{&inlineMap{A: 1, M: nil}, map[string]interface{}{"a": 1}},
 	{&inlineMapInt{A: 1, M: map[string]int{"b": 2}}, map[string]int{"a": 1, "b": 2}},
 	{&inlineMapInt{A: 1, M: nil}, map[string]int{"a": 1}},
-	{&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]interface{}{"a": 1, "b": map[string]interface{}{"c": 3}}},
 	{&inlineUnexported{M: map[string]interface{}{"b": 1}, unexported: unexported{A: 2}}, map[string]interface{}{"b": 1, "a": 2}},
 
 	// []byte <=> Binary
@@ -1557,18 +1556,6 @@ var twoWayCrossItems = []crossTypeItem{
 	{&struct{ V time.Time }{time.Unix(-62135596799, 1e6).UTC()},
 		map[string]interface{}{"v": time.Unix(-62135596799, 1e6).UTC()}},
 
-	// bson.D <=> []DocElem
-	{&bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}, &bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}},
-	{&bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}, &MyD{{"a", MyD{{"b", 1}, {"c", 2}}}}},
-	{&struct{ V MyD }{MyD{{"a", 1}}}, &bson.D{{"v", bson.D{{"a", 1}}}}},
-
-	// bson.M <=> map
-	{&bson.M{"a": bson.M{"b": 1, "c": 2}}, MyM{"a": MyM{"b": 1, "c": 2}}},
-	{&bson.M{"a": bson.M{"b": 1, "c": 2}}, map[string]interface{}{"a": map[string]interface{}{"b": 1, "c": 2}}},
-
-	// bson.M <=> map[MyString]
-	{&bson.M{"a": bson.M{"b": 1, "c": 2}}, map[MyString]interface{}{"a": map[MyString]interface{}{"b": 1, "c": 2}}},
-
 	// json.Number <=> int64, float64
 	{&struct{ N json.Number }{"5"}, map[string]interface{}{"n": int64(5)}},
 	{&struct{ N json.Number }{"5.05"}, map[string]interface{}{"n": 5.05}},
@@ -1591,6 +1578,25 @@ var oneWayCrossItems = []crossTypeItem{
 	{&struct {
 		V struct{ v time.Time } `bson:",omitempty"`
 	}{}, map[string]interface{}{}},
+
+	{&inlineMapMyM{A: 1, M: MyM{"b": MyM{"c": 3}}}, map[string]interface{}{"a": 1, "b": bson.M{"c": 3}}},
+	{map[string]interface{}{"a": 1, "b": map[string]interface{}{"c": 3}}, &inlineMapMyM{A: 1, M: MyM{"b": bson.M{"c": 3}}}},
+
+	{&bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}, &bson.D{{"a", bson.M{"b": 1, "c": 2}}}},
+
+	{&bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}, &MyD{{"a", bson.M{"b": 1, "c": 2}}}},
+	{&MyD{{"a", MyD{{"b", 1}, {"c", 2}}}}, &bson.D{{"a", bson.M{"b": 1, "c": 2}}}},
+
+	{&struct{ V MyD }{MyD{{"a", 1}}}, &bson.D{{"v", bson.M{"a": 1}}}},
+	{&bson.D{{"v", bson.D{{"a", 1}}}}, &struct{ V MyD }{MyD{{"a", 1}}}},
+
+	{&bson.M{"a": bson.M{"b": 1, "c": 2}}, MyM{"a": bson.M{"b": 1, "c": 2}}},
+	{MyM{"a": MyM{"b": 1, "c": 2}}, &bson.M{"a": bson.M{"b": 1, "c": 2}}},
+
+	{map[string]interface{}{"a": map[string]interface{}{"b": 1, "c": 2}}, &bson.M{"a": bson.M{"b": 1, "c": 2}}},
+
+	{&bson.M{"a": bson.M{"b": 1, "c": 2}}, map[MyString]interface{}{"a": bson.M{"b": 1, "c": 2}}},
+	{map[MyString]interface{}{"a": map[MyString]interface{}{"b": 1, "c": 2}}, &bson.M{"a": bson.M{"b": 1, "c": 2}}},
 }
 
 func testCrossPair(t *testing.T, dump interface{}, load interface{}) {

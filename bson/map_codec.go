@@ -190,10 +190,6 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 		return err
 	}
 
-	if eType == tEmpty {
-		dc.Ancestor = val.Type()
-	}
-
 	keyType := val.Type().Key()
 
 	for {
