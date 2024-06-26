@@ -1,4 +1,4 @@
-module go.mongodb.go/mongo-driver/internal/test/compilecheck
+module go.mongodb.go/mongo-driver/internal/cmd/compilecheck
 
 go 1.18
 

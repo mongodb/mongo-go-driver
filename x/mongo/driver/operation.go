@@ -1865,7 +1865,6 @@ func (op Operation) decodeResult(opcode wiremessage.OpCode, wm []byte) (bsoncore
 					return nil, errors.New("malformed wire message: insufficient bytes to read single document")
 				}
 			case wiremessage.DocumentSequence:
-				// TODO(GODRIVER-617): Implement document sequence returns.
 				_, _, wm, ok = wiremessage.ReadMsgSectionDocumentSequence(wm)
 				if !ok {
 					return nil, errors.New("malformed wire message: insufficient bytes to read document sequence")
