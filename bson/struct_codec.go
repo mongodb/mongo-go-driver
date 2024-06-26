@@ -54,8 +54,8 @@ type mapElementsEncoder interface {
 
 // structCodec is the Codec used for struct values.
 type structCodec struct {
-	cache       sync.Map // map[reflect.Type]*structDescription
-	elemEncoder mapElementsEncoder
+	cache            sync.Map // map[reflect.Type]*structDescription
+	inlineMapEncoder mapElementsEncoder
 
 	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
 	// destination value passed to Decode before unmarshaling BSON documents into them.
@@ -87,7 +87,7 @@ var (
 // newStructCodec returns a StructCodec that uses p for struct tag parsing.
 func newStructCodec(elemEncoder mapElementsEncoder) *structCodec {
 	return &structCodec{
-		elemEncoder:                      elemEncoder,
+		inlineMapEncoder:                 elemEncoder,
 		overwriteDuplicatedInlinedFields: true,
 	}
 }
@@ -181,14 +181,14 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 		}
 	}
 
-	if sd.inlineMap >= 0 && sc.elemEncoder != nil {
+	if sd.inlineMap >= 0 {
 		rv := val.Field(sd.inlineMap)
 		collisionFn := func(key string) bool {
 			_, exists := sd.fm[key]
 			return exists
 		}
 
-		err = sc.elemEncoder.encodeMapElements(ec, dw, rv, collisionFn)
+		err = sc.inlineMapEncoder.encodeMapElements(ec, dw, rv, collisionFn)
 		if err != nil {
 			return err
 		}

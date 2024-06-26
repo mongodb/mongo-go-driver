@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	// ErrSetZero may be returned from a SetBSON method to have the value set to its respective zero value.
-	ErrSetZero = errors.New("set to zero")
+	// ErrMgoSetZero may be returned from a SetBSON method to have the value set to its respective zero value.
+	ErrMgoSetZero = errors.New("set to zero")
 
 	tInt            = reflect.TypeOf(int(0))
 	tM              = reflect.TypeOf(M{})
@@ -30,7 +30,7 @@ func NewMgoRegistry() *Registry {
 		encodeKeysWithStringer: true,
 	}
 	structCodec := &structCodec{
-		elemEncoder:             mapCodec,
+		inlineMapEncoder:        mapCodec,
 		decodeZeroStruct:        true,
 		encodeOmitDefaultStruct: true,
 		allowUnexportedFields:   true,
@@ -80,7 +80,7 @@ func NewRespectNilValuesMgoRegistry() *Registry {
 // itself will not be changed as usual.
 //
 // If setting the value works, the method should return nil or alternatively
-// mgocompat.ErrSetZero to set the respective field to its zero value (nil for
+// ErrMgoSetZero to set the respective field to its zero value (nil for
 // pointer types). If SetBSON returns a non-nil error, the unmarshalling
 // procedure will stop and error out with the provided value.
 //
@@ -139,7 +139,7 @@ func setterDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error
 		return ValueDecoderError{Name: "SetterDecodeValue", Types: []reflect.Type{tSetter}, Received: val}
 	}
 	if err := m.SetBSON(RawValue{Type: t, Value: src}); err != nil {
-		if !errors.Is(err, ErrSetZero) {
+		if !errors.Is(err, ErrMgoSetZero) {
 			return err
 		}
 		val.Set(reflect.Zero(val.Type()))
