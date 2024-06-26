@@ -45,7 +45,7 @@ jobs:
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
       - name: Pre Publish
         id: pre-publish
-        uses: blink1073/drivers-github-tools/golang/pre-publish@go-driver-actions
+        uses: mongodb-labs/drivers-github-tools/golang/pre-publish@v2
         with:
           version: ${{ inputs.version }}
           push_changes: ${{ inputs.push_changes }}
@@ -78,7 +78,7 @@ jobs:
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
       - name: Publish
-        uses: blink1073/drivers-github-tools/golang/publish@go-driver-actions
+        uses: mongob-labs/drivers-github-tools/golang/publish@v2
         with:
           version: ${{ inputs.version }}
           silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
