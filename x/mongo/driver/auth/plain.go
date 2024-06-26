@@ -8,6 +8,8 @@ package auth
 
 import (
 	"context"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // PLAIN is the mechanism name for PLAIN.
@@ -35,7 +37,7 @@ func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *PlainAuthenticator) Reauth(_ context.Context) error {
+func (a *PlainAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("Plain authentication does not support reauthentication", nil)
 }
 

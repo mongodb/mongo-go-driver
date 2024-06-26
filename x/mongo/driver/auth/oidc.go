@@ -9,6 +9,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -75,7 +76,7 @@ type OIDCAuthenticator struct {
 	OIDCHumanCallback       OIDCCallback
 
 	userName     string
-	cfg          *Config
+	httpClient   *http.Client
 	accessToken  string
 	refreshToken *string
 	idpInfo      *IDPInfo
@@ -173,6 +174,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 
 func (oa *OIDCAuthenticator) getAccessToken(
 	ctx context.Context,
+	conn driver.Connection,
 	args *OIDCArgs,
 	callback OIDCCallback,
 ) (string, error) {
@@ -190,7 +192,7 @@ func (oa *OIDCAuthenticator) getAccessToken(
 
 	oa.accessToken = cred.AccessToken
 	oa.tokenGenID++
-	oa.cfg.Connection.SetOIDCTokenGenID(oa.tokenGenID)
+	conn.SetOIDCTokenGenID(oa.tokenGenID)
 	if cred.RefreshToken != nil {
 		oa.refreshToken = cred.RefreshToken
 	}
@@ -225,24 +227,31 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // tokenGenID of the OIDCAuthenticator. It should never actually be greater than, but only equal,
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
-func (oa *OIDCAuthenticator) invalidateAccessToken() {
+func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
 	oa.mu.Lock()
 	defer oa.mu.Unlock()
-	tokenGenID := oa.cfg.Connection.OIDCTokenGenID()
-	if tokenGenID >= oa.tokenGenID {
+	tokenGenID := conn.OIDCTokenGenID()
+	// If the connection used in a Reauth is a new connection it will not have a correct tokenGenID,
+	// it will instead be set to 0. In the absence of information, the only safe thing to do is to
+	// invalidate the cached accessToken.
+	if tokenGenID == 0 || tokenGenID >= oa.tokenGenID {
 		oa.accessToken = ""
-		oa.cfg.Connection.SetOIDCTokenGenID(0)
+		conn.SetOIDCTokenGenID(0)
 	}
 }
 
 // Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
 // driver.Authenticator interface.
-func (oa *OIDCAuthenticator) Reauth(ctx context.Context) error {
-	oa.invalidateAccessToken()
+func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *Config) error {
+	oa.invalidateAccessToken(cfg.Connection)
+	// The HTTPClient argument of the cfg will be nil on a Reauth call, so we populate
+	// it from the one stored in the Authenticator at Auth time, since the HTTPClient is only
+	// configured on driver startup. The HTTPClient will be needed for builtin provider callbacks
+	cfg.HTTPClient = oa.httpClient
 	// it should be impossible to get a Reauth when an Auth has never occurred,
 	// so we assume cfg was properly set. There is nothing to enforce this, however,
 	// other than the current driver code flow. If cfg is nil, Auth will return an error.
-	return oa.Auth(ctx, oa.cfg)
+	return oa.Auth(ctx, cfg)
 }
 
 // Auth authenticates the connection.
@@ -252,7 +261,8 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	if cfg == nil {
 		return newAuthError(fmt.Sprintf("config must be set for %q authentication", MongoDBOIDC), nil)
 	}
-	oa.cfg = cfg
+	oa.httpClient = cfg.HTTPClient
+	conn := cfg.Connection
 
 	if oa.accessToken != "" {
 		err = ConductSaslConversation(ctx, cfg, "$external", &oidcOneStep{
@@ -262,7 +272,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 		if err == nil {
 			return nil
 		}
-		oa.invalidateAccessToken()
+		oa.invalidateAccessToken(conn)
 		time.Sleep(invalidateSleepTimeout)
 	}
 
@@ -295,15 +305,17 @@ func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *Config, _ OIDCCal
 }
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
-	accessToken, err := oa.getAccessToken(ctx,
+	subCtx, cancel := context.WithTimeout(ctx, machineCallbackTimeout)
+	accessToken, err := oa.getAccessToken(subCtx,
+		cfg.Connection,
 		&OIDCArgs{
 			Version: apiVersion,
-			Timeout: time.Now().Add(machineCallbackTimeout),
 			// idpInfo is nil for machine callbacks in the current spec.
 			IDPInfo:      nil,
 			RefreshToken: nil,
 		},
 		machineCallback)
+	cancel()
 	if err != nil {
 		return err
 	}

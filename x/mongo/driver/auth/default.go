@@ -9,6 +9,8 @@ package auth
 import (
 	"context"
 	"fmt"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {
@@ -67,7 +69,7 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *DefaultAuthenticator) Reauth(_ context.Context) error {
+func (a *DefaultAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("DefaultAuthenticator does not support reauthentication", nil)
 }
 

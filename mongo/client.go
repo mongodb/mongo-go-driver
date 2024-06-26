@@ -83,11 +83,6 @@ type Client struct {
 	authenticator      driver.Authenticator
 }
 
-// GetAuthenticator returns the authenticator for the client, used for testing purposes.
-func (c *Client) GetAuthenticator() driver.Authenticator {
-	return c.authenticator
-}
-
 // Connect creates a new Client and then initializes it using the Connect method. This is equivalent to calling
 // NewClient followed by Client.Connect.
 //

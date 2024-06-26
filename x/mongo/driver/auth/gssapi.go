@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net"
 
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
 )
 
@@ -59,6 +60,6 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *GSSAPIAuthenticator) Reauth(ctx context.Context) error {
+func (a *GSSAPIAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("GSSAPI does not support reauthentication", nil)
 }

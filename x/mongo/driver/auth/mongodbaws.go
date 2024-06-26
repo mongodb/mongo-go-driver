@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/internal/credproviders"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
 )
 
@@ -61,7 +62,7 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context) error {
+func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("AWS authentication does not support reauthentication", nil)
 }
 

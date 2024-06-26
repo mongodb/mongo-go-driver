@@ -12,8 +12,10 @@ import (
 	"log"
 	"os"
 	"path"
+	"reflect"
 	"sync"
 	"time"
+	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -195,8 +197,12 @@ func machine21validCallbackInputs() error {
 		if args.RefreshToken != nil {
 			callbackFailed = fmt.Errorf("machine_2_1: expected RefreshToken to be nil, got %v", args.RefreshToken)
 		}
-		if args.Timeout.Before(time.Now()) {
-			callbackFailed = fmt.Errorf("machine_2_1: expected timeout to be in the future, got %v", args.Timeout)
+		timeout, ok := ctx.Deadline()
+		if !ok {
+			callbackFailed = fmt.Errorf("machine_2_1: expected context to have deadline, got %v", ctx)
+		}
+		if timeout.Before(time.Now()) {
+			callbackFailed = fmt.Errorf("machine_2_1: expected timeout to be in the future, got %v", timeout)
 		}
 		if args.Version < 1 {
 			callbackFailed = fmt.Errorf("machine_2_1: expected Version to be at least 1, got %d", args.Version)
@@ -322,7 +328,12 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	}
 
 	// Poison the cache with a random token
-	client.GetAuthenticator().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
+	clientElem := reflect.ValueOf(client).Elem()
+	authenticatorField := clientElem.FieldByName("authenticator")
+	authenticatorField = reflect.NewAt(
+		authenticatorField.Type(),
+		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
+	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
 
 	coll := client.Database("test").Collection("test")
 

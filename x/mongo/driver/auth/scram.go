@@ -18,6 +18,7 @@ import (
 	"github.com/xdg-go/scram"
 	"github.com/xdg-go/stringprep"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 const (
@@ -85,7 +86,7 @@ func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 // Reauth reauthenticates the connection.
-func (a *ScramAuthenticator) Reauth(_ context.Context) error {
+func (a *ScramAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
 	return newAuthError("SCRAM does not support reauthentication", nil)
 }
 

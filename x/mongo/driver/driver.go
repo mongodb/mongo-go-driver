@@ -44,7 +44,6 @@ type OIDCCallback func(context.Context, *OIDCArgs) (*OIDCCredential, error)
 // OIDCArgs contains the arguments for the OIDC callback.
 type OIDCArgs struct {
 	Version      int
-	Timeout      time.Time
 	IDPInfo      *IDPInfo
 	RefreshToken *string
 }
@@ -70,7 +69,7 @@ type IDPInfo struct {
 type Authenticator interface {
 	// Auth authenticates the connection.
 	Auth(context.Context, *AuthConfig) error
-	Reauth(context.Context) error
+	Reauth(context.Context, *AuthConfig) error
 }
 
 // Cred is a user's credential.

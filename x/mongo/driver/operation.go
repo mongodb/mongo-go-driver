@@ -920,7 +920,13 @@ func (op Operation) Execute(ctx context.Context) error {
 			// retry the operation, if it is successful.
 			if tt.Code == 391 {
 				if op.Authenticator != nil {
-					if err := op.Authenticator.Reauth(ctx); err != nil {
+					cfg := AuthConfig{
+						Description:  conn.Description(),
+						Connection:   conn,
+						ClusterClock: op.Clock,
+						ServerAPI:    op.ServerAPI,
+					}
+					if err := op.Authenticator.Reauth(ctx, &cfg); err != nil {
 						return fmt.Errorf("error reauthenticating: %w", err)
 					}
 					if op.Client != nil && op.Client.Committing {
