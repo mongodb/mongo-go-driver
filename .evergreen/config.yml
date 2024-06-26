@@ -2412,7 +2412,7 @@ buildvariants:
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
 
-  - matrix_name: "tests-80-windows-plus-zlib-zstd-support"
+  - matrix_name: "tests-80-windows-zlib-zstd-support"
     tags: ["pullrequest"]
     matrix_spec: { version: ["8.0"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
