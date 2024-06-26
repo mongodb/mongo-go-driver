@@ -566,7 +566,7 @@ func TestIndexView(t *testing.T) {
 
 			batchSize, ok := cursorDoc.Lookup("batchSize").Int32OK()
 			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "batchSize")
-			assert.Equal(mt, int32(1), batchSize, "expected maxTimeMS value to be 1, got %d", batchSize)
+			assert.Equal(mt, int32(1), batchSize, "expected batchSize value to be 1, got %d", batchSize)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
