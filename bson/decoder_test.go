@@ -39,6 +39,162 @@ func TestBasicDecode(t *testing.T) {
 	}
 }
 
+func TestDecodingInterfaces(t *testing.T) {
+	t.Parallel()
+
+	type testCase struct {
+		name string
+		stub func() ([]byte, interface{}, func(*testing.T))
+	}
+	testCases := []testCase{
+		{
+			name: "struct with interface containing a concrete value",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Value interface{}
+				}
+				var value string
+
+				data := docToBytes(struct {
+					Value string
+				}{
+					Value: "foo",
+				})
+
+				receiver := testStruct{&value}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", value)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing a struct",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type demo struct {
+					Data string
+				}
+
+				type testStruct struct {
+					Value interface{}
+				}
+				var value demo
+
+				data := docToBytes(struct {
+					Value demo
+				}{
+					Value: demo{"foo"},
+				})
+
+				receiver := testStruct{&value}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", value.Data)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing a slice",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values interface{}
+				}
+				var values []string
+
+				data := docToBytes(struct {
+					Values []string
+				}{
+					Values: []string{"foo", "bar"},
+				})
+
+				receiver := testStruct{&values}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, []string{"foo", "bar"}, values)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface containing an array",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values interface{}
+				}
+				var values [2]string
+
+				data := docToBytes(struct {
+					Values []string
+				}{
+					Values: []string{"foo", "bar"},
+				})
+
+				receiver := testStruct{&values}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, [2]string{"foo", "bar"}, values)
+				}
+
+				return data, &receiver, check
+			},
+		},
+		{
+			name: "struct with interface array containing concrete values",
+			stub: func() ([]byte, interface{}, func(*testing.T)) {
+				type testStruct struct {
+					Values [3]interface{}
+				}
+				var str string
+				var i, j int
+
+				data := docToBytes(struct {
+					Values []interface{}
+				}{
+					Values: []interface{}{"foo", 42, nil},
+				})
+
+				receiver := testStruct{[3]interface{}{&str, &i, &j}}
+
+				check := func(t *testing.T) {
+					t.Helper()
+					assert.Equal(t, "foo", str)
+					assert.Equal(t, 42, i)
+					assert.Equal(t, 0, j)
+					assert.Equal(t, testStruct{[3]interface{}{&str, &i, nil}}, receiver)
+				}
+
+				return data, &receiver, check
+			},
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			data, receiver, check := tc.stub()
+			got := reflect.ValueOf(receiver).Elem()
+			vr := NewValueReader(data)
+			reg := DefaultRegistry
+			decoder, err := reg.LookupDecoder(got.Type())
+			noerr(t, err)
+			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
+			noerr(t, err)
+			check(t)
+		})
+	}
+}
+
 func TestDecoderv2(t *testing.T) {
 	t.Parallel()
 

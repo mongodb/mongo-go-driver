@@ -16,13 +16,14 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -86,6 +87,9 @@ func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.Collect
 		if opt.Registry != nil {
 			c.Registry = opt.Registry
 		}
+		if opt.BSONOptions != nil {
+			c.BSONOptions = opt.BSONOptions
+		}
 	}
 
 	return c
@@ -119,15 +123,19 @@ func newCollection(db *Database, name string, opts ...*options.CollectionOptions
 		reg = collOpt.Registry
 	}
 
-	readSelector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(rp),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	readSelector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: rp},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
 
-	writeSelector := description.CompositeSelector([]description.ServerSelector{
-		description.WriteSelector(),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	writeSelector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.Write{},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
 
 	coll := &Collection{
 		client:         db.client,
@@ -162,7 +170,7 @@ func (coll *Collection) copy() *Collection {
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
-func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, error) {
+func (coll *Collection) Clone(opts ...*options.CollectionOptions) *Collection {
 	copyColl := coll.copy()
 	optsColl := mergeCollectionOptions(opts...)
 
@@ -182,12 +190,14 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 		copyColl.registry = optsColl.Registry
 	}
 
-	copyColl.readSelector = description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(copyColl.readPreference),
-		description.LatencySelector(copyColl.client.localThreshold),
-	})
+	copyColl.readSelector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: copyColl.readPreference},
+			&serverselector.Latency{Latency: copyColl.client.localThreshold},
+		},
+	}
 
-	return copyColl, nil
+	return copyColl
 }
 
 // Name returns the name of the collection.
@@ -1304,7 +1314,6 @@ func (coll *Collection) Distinct(
 	filter interface{},
 	opts ...*options.DistinctOptions,
 ) *DistinctResult {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1384,8 +1393,9 @@ func (coll *Collection) Distinct(
 	}
 
 	return &DistinctResult{
-		reg: coll.registry,
-		arr: bson.RawArray(arr),
+		reg:      coll.registry,
+		arr:      bson.RawArray(arr),
+		bsonOpts: coll.bsonOpts,
 	}
 }
 
@@ -2169,7 +2179,7 @@ func (coll *Collection) Indexes() IndexView {
 
 // SearchIndexes returns a SearchIndexView instance that can be used to perform operations on the search indexes for the collection.
 func (coll *Collection) SearchIndexes() SearchIndexView {
-	c, _ := coll.Clone() // Clone() always return a nil error.
+	c := coll.Clone() // Clone() always return a nil error.
 	c.readConcern = nil
 	c.writeConcern = nil
 	return SearchIndexView{
@@ -2280,6 +2290,8 @@ type pinnedServerSelector struct {
 	session  *session.Client
 }
 
+var _ description.ServerSelector = pinnedServerSelector{}
+
 func (pss pinnedServerSelector) String() string {
 	if pss.stringer == nil {
 		return ""
@@ -2292,10 +2304,10 @@ func (pss pinnedServerSelector) SelectServer(
 	t description.Topology,
 	svrs []description.Server,
 ) ([]description.Server, error) {
-	if pss.session != nil && pss.session.PinnedServer != nil {
+	if pss.session != nil && pss.session.PinnedServerAddr != nil {
 		// If there is a pinned server, try to find it in the list of candidates.
 		for _, candidate := range svrs {
-			if candidate.Addr == pss.session.PinnedServer.Addr {
+			if candidate.Addr == *pss.session.PinnedServerAddr {
 				return []description.Server{candidate}, nil
 			}
 		}
@@ -2306,7 +2318,7 @@ func (pss pinnedServerSelector) SelectServer(
 	return pss.fallback.SelectServer(t, svrs)
 }
 
-func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) description.ServerSelector {
+func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) pinnedServerSelector {
 	pss := pinnedServerSelector{
 		session:  sess,
 		fallback: fallback,
@@ -2319,27 +2331,40 @@ func makePinnedSelector(sess *session.Client, fallback description.ServerSelecto
 	return pss
 }
 
-func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelector {
+func makeReadPrefSelector(
+	sess *session.Client,
+	selector description.ServerSelector,
+	localThreshold time.Duration,
+) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
-		selector = description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(sess.CurrentRp),
-			description.LatencySelector(localThreshold),
-		})
+		selector = &serverselector.Composite{
+			Selectors: []description.ServerSelector{
+				&serverselector.ReadPref{ReadPref: sess.CurrentRp},
+				&serverselector.Latency{Latency: localThreshold},
+			},
+		}
 	}
 
 	return makePinnedSelector(sess, selector)
 }
 
-func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelector {
+func makeOutputAggregateSelector(
+	sess *session.Client,
+	rp *readpref.ReadPref,
+	localThreshold time.Duration,
+) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		// Use current transaction's read preference if available
 		rp = sess.CurrentRp
 	}
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.OutputAggregateSelector(rp),
-		description.LatencySelector(localThreshold),
-	})
+	selector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: rp, IsOutputAggregate: true},
+			&serverselector.Latency{Latency: localThreshold},
+		},
+	}
+
 	return makePinnedSelector(sess, selector)
 }
 

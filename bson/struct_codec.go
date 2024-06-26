@@ -317,6 +317,19 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			}
 		}
 
+		if field.Kind() == reflect.Interface && !field.IsNil() && field.Elem().Kind() == reflect.Ptr {
+			v := field.Elem().Elem()
+			decoder, err = dc.LookupDecoder(v.Type())
+			if err != nil {
+				return err
+			}
+			err = decoder.DecodeValue(dc, vr, v)
+			if err != nil {
+				return newDecodeError(fd.name, err)
+			}
+			continue
+		}
+
 		if !field.CanSet() { // Being settable is a super set of being addressable.
 			innerErr := fmt.Errorf("field %v is not settable", field)
 			return newDecodeError(fd.name, innerErr)

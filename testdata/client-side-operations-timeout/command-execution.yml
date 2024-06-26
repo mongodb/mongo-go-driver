@@ -96,7 +96,8 @@ tests:
               databaseName: *databaseName
               command:
                 insert: *timeoutCollectionName
-                maxTimeMS: { $$lte: 450 }
+                # GODRIVER-3106: Add a 1 millisecond buffer on the expected 450ms.
+                maxTimeMS: { $$lte: 451 }
 
   - description: "command is not sent if RTT is greater than timeoutMS"
     operations:

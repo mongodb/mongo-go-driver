@@ -8,10 +8,8 @@ package main
 
 import (
 	"os"
-
-	"go.mongodb.org/mongo-driver/internal/benchmark"
 )
 
 func main() {
-	os.Exit(benchmark.DriverBenchmarkMain())
+	os.Exit(DriverBenchmarkMain())
 }

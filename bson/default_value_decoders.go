@@ -131,7 +131,6 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if err != nil {
 		return err
 	}
-	tEmptyTypeDecoder, _ := decoder.(typeDecoder)
 
 	// Use the elements in the provided value if it's non nil. Otherwise, allocate a new D instance.
 	var elems D
@@ -150,13 +149,13 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 			return err
 		}
 
-		// Pass false for convert because we don't need to call reflect.Value.Convert for tEmpty.
-		elem, err := decodeTypeOrValueWithInfo(decoder, tEmptyTypeDecoder, dc, elemVr, tEmpty, false)
+		var v interface{}
+		err = decoder.DecodeValue(dc, elemVr, reflect.ValueOf(&v).Elem())
 		if err != nil {
 			return err
 		}
 
-		elems = append(elems, E{Key: key, Value: elem.Interface()})
+		elems = append(elems, E{Key: key, Value: v})
 	}
 
 	val.Set(reflect.ValueOf(elems))
@@ -1266,11 +1265,13 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 
 	eType := val.Type().Elem()
 
-	decoder, err := dc.LookupDecoder(eType)
-	if err != nil {
-		return nil, err
+	var vDecoder ValueDecoder
+	if !(eType.Kind() == reflect.Interface && val.Len() > 0) {
+		vDecoder, err = dc.LookupDecoder(eType)
+		if err != nil {
+			return nil, err
+		}
 	}
-	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	idx := 0
 	for {
@@ -1282,10 +1283,41 @@ func decodeDefault(dc DecodeContext, vr ValueReader, val reflect.Value) ([]refle
 			return nil, err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
-		if err != nil {
-			return nil, newDecodeError(strconv.Itoa(idx), err)
+		var elem reflect.Value
+		if vDecoder == nil {
+			elem = val.Index(idx).Elem()
+			if elem.Kind() != reflect.Ptr || elem.IsNil() {
+				valueDecoder, err := dc.LookupDecoder(elem.Type())
+				if err != nil {
+					return nil, err
+				}
+				err = valueDecoder.DecodeValue(dc, vr, elem)
+				if err != nil {
+					return nil, newDecodeError(strconv.Itoa(idx), err)
+				}
+			} else if vr.Type() == TypeNull {
+				if err = vr.ReadNull(); err != nil {
+					return nil, err
+				}
+				elem = reflect.Zero(val.Index(idx).Type())
+			} else {
+				e := elem.Elem()
+				valueDecoder, err := dc.LookupDecoder(e.Type())
+				if err != nil {
+					return nil, err
+				}
+				err = valueDecoder.DecodeValue(dc, vr, e)
+				if err != nil {
+					return nil, newDecodeError(strconv.Itoa(idx), err)
+				}
+			}
+		} else {
+			elem, err = decodeTypeOrValueWithInfo(vDecoder, dc, vr, eType)
+			if err != nil {
+				return nil, newDecodeError(strconv.Itoa(idx), err)
+			}
 		}
+
 		elems = append(elems, elem)
 		idx++
 	}
