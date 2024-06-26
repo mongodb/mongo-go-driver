@@ -78,7 +78,7 @@ jobs:
           aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
           artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
       - name: Publish
-        uses: mongob-labs/drivers-github-tools/golang/publish@v2
+        uses: mongodb-labs/drivers-github-tools/golang/publish@v2
         with:
           version: ${{ inputs.version }}
           silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
