@@ -897,6 +897,24 @@ func TestCollection(t *testing.T) {
 				assert.EqualValues(mt, tc.want, got, "expected result %v, got %v", tc.want, got)
 			})
 		}
+
+		collOpts := options.Collection().SetBSONOptions(&options.BSONOptions{AllowTruncatingDoubles: true})
+		opts := mtest.NewOptions().CollectionOptions(collOpts)
+
+		mt.RunOpts("distinct with bson options", opts, func(mt *mtest.T) {
+			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"y", 1.7}})
+			assert.NoError(mt, err, "failed to insert double")
+
+			filter := bson.D{{"y", bson.D{{"$gt", 1}}}}
+
+			res := mt.Coll.Distinct(context.Background(), "y", filter)
+			assert.Nil(mt, res.Err(), "Distinct error: %v", res.Err())
+
+			var got []int32
+			assert.NoError(t, res.Decode(&got))
+
+			assert.EqualValues(mt, []int32{1}, got)
+		})
 	})
 	mt.RunOpts("find", noClientOpts, func(mt *mtest.T) {
 		mt.Run("found", func(mt *mtest.T) {
