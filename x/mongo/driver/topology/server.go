@@ -679,6 +679,8 @@ func (s *Server) update() {
 		previousDescription := s.Description()
 
 		desc, err := checkServerWithSignal(s, s.conn, s.heartbeatListener)
+
+		// The only error returned from checkServerWithSignal is errCheckCancelled.
 		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue

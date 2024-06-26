@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -1495,7 +1496,12 @@ func marshalBSONWriteConcern(wc writeconcern.WriteConcern, wtimeout time.Duratio
 				return 0, nil, errInconsistent
 			}
 
-			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
+			// Check for lower and upper bounds on architecture-dependent int.
+			if w <= math.MaxInt32 {
+				elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
+			} else {
+				return 0, nil, fmt.Errorf("WriteConcern.W is unexpected large: %v", wc.W)
+			}
 		case string:
 			elems = bsoncore.AppendStringElement(elems, "w", w)
 		default:
