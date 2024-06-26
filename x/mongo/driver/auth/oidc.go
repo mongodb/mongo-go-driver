@@ -300,7 +300,8 @@ func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *Config, _ OIDCCal
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
 	accessToken, err := oa.getAccessToken(ctx,
-		&OIDCArgs{Version: apiVersion,
+		&OIDCArgs{
+			Version: apiVersion,
 			Timeout: time.Now().Add(machineCallbackTimeout),
 			// idpInfo is nil for machine callbacks in the current spec.
 			IDPInfo:      nil,
