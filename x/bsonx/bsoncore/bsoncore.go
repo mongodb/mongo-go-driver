@@ -707,17 +707,16 @@ func ReserveLength(dst []byte) (int32, []byte) {
 
 // UpdateLength updates the length at index with length and returns the []byte.
 func UpdateLength(dst []byte, index, length int32) []byte {
-	dst[index] = byte(length)
-	dst[index+1] = byte(length >> 8)
-	dst[index+2] = byte(length >> 16)
-	dst[index+3] = byte(length >> 24)
+	binary.LittleEndian.PutUint32(dst[index:], uint32(length))
 	return dst
 }
 
 func appendLength(dst []byte, l int32) []byte { return appendi32(dst, l) }
 
 func appendi32(dst []byte, i32 int32) []byte {
-	return append(dst, byte(i32), byte(i32>>8), byte(i32>>16), byte(i32>>24))
+	b := []byte{0, 0, 0, 0}
+	binary.LittleEndian.PutUint32(b, uint32(i32))
+	return append(dst, b...)
 }
 
 // ReadLength reads an int32 length from src and returns the length and the remaining bytes. If
