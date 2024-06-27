@@ -471,7 +471,7 @@ func (t *prefixPtr) GetBSON() (interface{}, error) {
 func (t *prefixPtr) SetBSON(raw bson.RawValue) error {
 	var s string
 	if raw.Type == 0x0A {
-		return ErrSetZero
+		return bson.ErrMgoSetZero
 	}
 	rval := reflect.ValueOf(&s).Elem()
 	decoder, err := Registry.LookupDecoder(rval.Type())
@@ -498,7 +498,7 @@ func (t prefixVal) GetBSON() (interface{}, error) {
 func (t *prefixVal) SetBSON(raw bson.RawValue) error {
 	var s string
 	if raw.Type == 0x0A {
-		return ErrSetZero
+		return bson.ErrMgoSetZero
 	}
 	rval := reflect.ValueOf(&s).Elem()
 	decoder, err := Registry.LookupDecoder(rval.Type())
@@ -1020,7 +1020,7 @@ func TestUnmarshalSetterErrors(t *testing.T) {
 }
 
 func TestUnmarshalSetterErrSetZero(t *testing.T) {
-	setterResult["foo"] = ErrSetZero
+	setterResult["foo"] = bson.ErrMgoSetZero
 	defer delete(setterResult, "field")
 
 	buf := new(bytes.Buffer)
