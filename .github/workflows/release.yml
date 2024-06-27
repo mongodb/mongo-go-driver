@@ -20,7 +20,7 @@ defaults:
 
 env:
   # Changes per branch
-  SILK_ASSET_GROUP: mongodb-go-driver-1.16
+  SILK_ASSET_GROUP: mongodb-go-driver-v1
   EVERGREEN_PROJECT: mongo-go-driver-release
 
 jobs:
