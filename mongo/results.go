@@ -8,6 +8,8 @@ package mongo
 
 import (
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
 
@@ -179,9 +181,10 @@ type CollectionSpecification struct {
 // that error. If the operation did not return any data, all DistinctResult
 // methods will return ErrNoDocuments.
 type DistinctResult struct {
-	err error
-	arr bson.RawArray
-	reg *bson.Registry
+	err      error
+	arr      bson.RawArray
+	reg      *bson.Registry
+	bsonOpts *options.BSONOptions
 }
 
 // Decode will unmarshal the array represented by this DistinctResult into v. If
@@ -193,12 +196,15 @@ type DistinctResult struct {
 // errors from the unmarshalling process without any modification. If v is nil
 // or is a typed nil, an error will be returned.
 func (dr *DistinctResult) Decode(v any) error {
-	val := bson.RawValue{
-		Value: dr.arr,
-		Type:  bson.TypeArray,
-	}
+	doc := bsoncore.NewDocumentBuilder().
+		AppendValue("arr", bsoncore.Value{
+			Type: bsoncore.TypeArray,
+			Data: dr.arr,
+		}).Build()
 
-	return val.UnmarshalWithRegistry(dr.reg, v)
+	dec := getDecoder(doc, dr.bsonOpts, dr.reg)
+
+	return dec.Decode(&struct{ Arr any }{Arr: v})
 }
 
 // Err provides a way to check for query errors without calling Decode. Err
