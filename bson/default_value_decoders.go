@@ -1190,7 +1190,7 @@ func valueUnmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Va
 		// NB: this error should be unreachable due to the above checks
 		return ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
 	}
-	return m.UnmarshalBSONValue(t, src)
+	return m.UnmarshalBSONValue(byte(t), src)
 }
 
 // unmarshalerDecodeValue is the ValueDecoderFunc for Unmarshaler implementations.

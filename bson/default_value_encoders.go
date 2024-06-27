@@ -302,7 +302,7 @@ func valueMarshalerEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Valu
 	if err != nil {
 		return err
 	}
-	return copyValueFromBytes(vw, t, data)
+	return copyValueFromBytes(vw, Type(t), data)
 }
 
 // marshalerEncodeValue is the ValueEncoderFunc for Marshaler implementations.
