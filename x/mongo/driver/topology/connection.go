@@ -436,8 +436,11 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 }
 
 func (c *connection) close() error {
-	// Stop any blocking operations occurring in connect()
-	c.closeConnectContext()
+	// Stop any blocking operations occurring in connect(), but await closing the
+	// connections directly before closing the connection context. This ensures
+	// that closing a connection will manifest as an io.EOF error, avoiding
+	// non-deterministic connection closure errors.
+	defer c.closeConnectContext()
 
 	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
