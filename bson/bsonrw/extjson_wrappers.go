@@ -8,7 +8,6 @@ package bsonrw
 
 import (
 	"encoding/base64"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
@@ -101,9 +100,7 @@ func (ejv *extJSONValue) parseBinary() (b []byte, subType byte, err error) {
 				return nil, 0, fmt.Errorf("invalid $binary subType string: %q: %w", val.v.(string), err)
 			}
 
-			b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
-			binary.LittleEndian.PutUint64(b, i)
-			subType = b[0]
+			subType = byte(i)
 			stFound = true
 		default:
 			return nil, 0, fmt.Errorf("invalid key in $binary object: %s", key)
