@@ -4,18 +4,23 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-package benchmark
+package main
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
+
+// LegacyHelloLowercase is the lowercase, legacy version of the hello command.
+var LegacyHelloLowercase = "ismaster"
 
 const (
 	singleAndMultiDataDir = "single_and_multi_document"
@@ -24,8 +29,62 @@ const (
 	largeData             = "large_doc.json"
 )
 
+// AddOptionsToURI appends connection string options to a URI.
+func AddOptionsToURI(uri string, opts ...string) string {
+	if !strings.ContainsRune(uri, '?') {
+		if uri[len(uri)-1] != '/' {
+			uri += "/"
+		}
+
+		uri += "?"
+	} else {
+		uri += "&"
+	}
+
+	for _, opt := range opts {
+		uri += opt
+	}
+
+	return uri
+}
+
+// AddTLSConfigToURI checks for the environmental variable indicating that the tests are being run
+// on an SSL-enabled server, and if so, returns a new URI with the necessary configuration.
+func AddTLSConfigToURI(uri string) string {
+	caFile := os.Getenv("MONGO_GO_DRIVER_CA_FILE")
+	if len(caFile) == 0 {
+		return uri
+	}
+
+	return AddOptionsToURI(uri, "ssl=true&sslCertificateAuthorityFile=", caFile)
+}
+
+func GetConnString() (*connstring.ConnString, error) {
+	mongodbURI := os.Getenv("MONGODB_URI")
+	if mongodbURI == "" {
+		mongodbURI = "mongodb://localhost:27017"
+	}
+
+	mongodbURI = AddTLSConfigToURI(mongodbURI)
+
+	cs, err := connstring.ParseAndValidate(mongodbURI)
+	if err != nil {
+		return nil, err
+	}
+
+	return cs, nil
+}
+
+func GetDBName(cs *connstring.ConnString) string {
+	if cs.Database != "" {
+		return cs.Database
+	}
+
+	return fmt.Sprintf("mongo-go-driver-%d", os.Getpid())
+}
+
 func getClientDB() (*mongo.Database, error) {
-	cs, err := integtest.GetConnString()
+	cs, err := GetConnString()
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +93,7 @@ func getClientDB() (*mongo.Database, error) {
 		return nil, err
 	}
 
-	db := client.Database(integtest.GetDBName(cs))
+	db := client.Database(GetDBName(cs))
 	return db, nil
 }
 
@@ -48,7 +107,7 @@ func SingleRunCommand(ctx context.Context, tm TimerManager, iters int) error {
 	}
 	defer func() { _ = db.Client().Disconnect(ctx) }()
 
-	cmd := bson.D{{handshake.LegacyHelloLowercase, true}}
+	cmd := bson.D{{LegacyHelloLowercase, true}}
 
 	tm.ResetTimer()
 	for i := 0; i < iters; i++ {
