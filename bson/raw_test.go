@@ -356,7 +356,7 @@ func BenchmarkRawString(b *testing.B) {
 	// Create 1KiB and 128B strings to exercise the string-heavy call paths in
 	// the "Raw.String" method.
 	var buf strings.Builder
-	for i := 0; i < 128; i++ {
+	for i := 0; i < 16000000; i++ {
 		buf.WriteString("abcdefgh")
 	}
 	str1k := buf.String()
@@ -424,6 +424,16 @@ func BenchmarkRawString(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_ = Raw(bs).String()
+			}
+		})
+
+		b.Run(tc.description+"_StringN", func(b *testing.B) {
+			bs, err := Marshal(tc.value)
+			require.NoError(b, err)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_ = Raw(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
 			}
 		})
 	}

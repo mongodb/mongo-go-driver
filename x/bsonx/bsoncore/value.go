@@ -336,6 +336,130 @@ func (v Value) String() string {
 	}
 }
 
+/*
+// String implements the fmt.String interface. This method will return values in extended JSON
+// format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
+func (v Value) StringN(n int) string {
+	switch v.Type {
+	case TypeDouble:
+		f64, ok := v.DoubleOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64))
+	case TypeString:
+		str, ok := v.StringValueOK()
+		if !ok {
+			return ""
+		}
+		return escapeString(str)
+	case TypeEmbeddedDocument:
+		doc, ok := v.DocumentOK()
+		if !ok {
+			return ""
+		}
+		return doc.String()
+	case TypeArray:
+		arr, ok := v.ArrayOK()
+		if !ok {
+			return ""
+		}
+		return arr.String()
+	case TypeBinary:
+		subtype, data, ok := v.BinaryOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype)
+	case TypeUndefined:
+		return `{"$undefined":true}`
+	case TypeObjectID:
+		oid, ok := v.ObjectIDOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid))
+	case TypeBoolean:
+		b, ok := v.BooleanOK()
+		if !ok {
+			return ""
+		}
+		return strconv.FormatBool(b)
+	case TypeDateTime:
+		dt, ok := v.DateTimeOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt)
+	case TypeNull:
+		return "null"
+	case TypeRegex:
+		pattern, options, ok := v.RegexOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(
+			`{"$regularExpression":{"pattern":%s,"options":"%s"}}`,
+			escapeString(pattern), sortStringAlphebeticAscending(options),
+		)
+	case TypeDBPointer:
+		ns, pointer, ok := v.DBPointerOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer))
+	case TypeJavaScript:
+		js, ok := v.JavaScriptOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$code":%s}`, escapeString(js))
+	case TypeSymbol:
+		symbol, ok := v.SymbolOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol))
+	case TypeCodeWithScope:
+		code, scope, ok := v.CodeWithScopeOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope)
+	case TypeInt32:
+		i32, ok := v.Int32OK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$numberInt":"%d"}`, i32)
+	case TypeTimestamp:
+		t, i, ok := v.TimestampOK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i)
+	case TypeInt64:
+		i64, ok := v.Int64OK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$numberLong":"%d"}`, i64)
+	case TypeDecimal128:
+		h, l, ok := v.Decimal128OK()
+		if !ok {
+			return ""
+		}
+		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l))
+	case TypeMinKey:
+		return `{"$minKey":1}`
+	case TypeMaxKey:
+		return `{"$maxKey":1}`
+	default:
+		return ""
+	}
+}
+*/
+
 // DebugString outputs a human readable version of Document. It will attempt to stringify the
 // valid components of the document even if the entire document is not valid.
 func (v Value) DebugString() string {

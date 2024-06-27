@@ -113,6 +113,50 @@ func (a Array) String() string {
 	return buf.String()
 }
 
+// Stringifies an array upto N bytes
+func (a Array) StringN(n int) string {
+	if len(a) < 5 {
+		return ""
+	}
+	var buf strings.Builder
+	buf.WriteByte('[')
+
+	length, rem, _ := ReadLength(a) // We know we have enough bytes to read the length
+	length -= 4
+
+	var elem Element
+	var ok bool
+
+	n -= buf.Len() + 1
+	if n > 0 {
+		for length > 1 {
+			elem, rem, ok = ReadElement(rem)
+			length -= int32(len(elem))
+			if !ok {
+				return ""
+			}
+
+			str := elem.Value().String()
+
+			if buf.Len()+len(str) > n {
+				truncatedStr := truncate(str, uint(n-buf.Len()))
+				buf.WriteString(truncatedStr)
+			} else {
+				buf.WriteString(str)
+			}
+			if length > 1 {
+				buf.WriteByte(',')
+			}
+		}
+		if length != 1 { // Missing final null byte or inaccurate length
+			return ""
+		}
+	}
+
+	buf.WriteByte(']')
+	return buf.String()
+}
+
 // Values returns this array as a slice of values. The returned slice will contain valid values.
 // If the array is not valid, the values up to the invalid point will be returned along with an
 // error.

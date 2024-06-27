@@ -49,6 +49,12 @@ func (a RawArray) String() string {
 	return bsoncore.Array(a).String()
 }
 
+// StringN outputs an ExtendedJSON version of Array that will stringify an array upto N bytes.. If the Array is not valid,
+// this method returns an empty string.
+func (a RawArray) StringN(n int) string {
+	return bsoncore.Array(a).StringN(n)
+}
+
 // Values returns this array as a slice of values. The returned slice will
 // contain valid values. If the array is not valid, the values up to the invalid
 // point will be returned along with an error.

@@ -17,6 +17,8 @@ import (
 // ValidationError is an error type returned when attempting to validate a document or array.
 type ValidationError string
 
+const TruncationSuffix = "..."
+
 func (ve ValidationError) Error() string { return string(ve) }
 
 // NewDocumentLengthError creates and returns an error for when the length of a document exceeds the
@@ -289,6 +291,87 @@ func (d Document) String() string {
 	buf.WriteByte('}')
 
 	return buf.String()
+}
+
+// Stringifies a document upto N bytes
+func (d Document) StringN(n int) string {
+	if len(d) < 5 {
+		return ""
+	}
+	var buf strings.Builder
+	buf.WriteByte('{')
+
+	length, rem, _ := ReadLength(d)
+	length -= 4
+
+	var elem Element
+	var ok bool
+
+	first := true
+
+	n -= buf.Len() + 1
+	if n > 0 {
+		for length > 1 {
+			if !first {
+				buf.WriteByte(',')
+			}
+			elem, rem, ok = ReadElement(rem)
+			length -= int32(len(elem))
+			if !ok {
+				return ""
+			}
+
+			str := elem.String()
+			if buf.Len()+len(str) > n {
+				truncatedStr := truncate(str, uint(n-buf.Len()))
+				buf.WriteString(truncatedStr)
+				break
+			}
+
+			buf.WriteString(str)
+			first = false
+		}
+	}
+
+	if buf.Len()+1 <= n {
+		buf.WriteByte('}')
+	} else {
+		buf.WriteString(TruncationSuffix)
+	}
+
+	return buf.String()
+}
+
+// Truncates string
+func truncate(str string, width uint) string {
+	if width == 0 {
+		return ""
+	}
+
+	if len(str) <= int(width) {
+		return str
+	}
+
+	// Truncate the byte slice of the string to the given width.
+	newStr := str[:width]
+
+	// Check if the last byte is at the beginning of a multi-byte character.
+	// If it is, then remove the last byte.
+	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
+		return newStr[:len(newStr)-1] + TruncationSuffix
+	}
+
+	// Check if the last byte is in the middle of a multi-byte character. If
+	// it is, then step back until we find the beginning of the character.
+	if newStr[len(newStr)-1]&0xC0 == 0x80 {
+		for i := len(newStr) - 1; i >= 0; i-- {
+			if newStr[i]&0xC0 == 0xC0 {
+				return newStr[:i] + TruncationSuffix
+			}
+		}
+	}
+
+	return newStr + TruncationSuffix
 }
 
 // Elements returns this document as a slice of elements. The returned slice will contain valid
