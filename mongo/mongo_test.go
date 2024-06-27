@@ -616,6 +616,6 @@ type bvMarsh struct {
 	err  error
 }
 
-func (b bvMarsh) MarshalBSONValue() (bson.Type, []byte, error) {
-	return b.t, b.data, b.err
+func (b bvMarsh) MarshalBSONValue() (byte, []byte, error) {
+	return byte(b.t), b.data, b.err
 }
