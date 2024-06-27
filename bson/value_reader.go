@@ -16,7 +16,7 @@ import (
 	"sync"
 )
 
-var _ ValueReader = (*valueReader)(nil)
+var _ ValueReader = &valueReader{}
 
 var vrPool = sync.Pool{
 	New: func() interface{} {

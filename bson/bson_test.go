@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -545,19 +544,18 @@ func TestMapCodec(t *testing.T) {
 		strstr := stringerString("foo")
 		mapObj := map[stringerString]int{strstr: 1}
 		testCases := []struct {
-			name string
-			opts *bsonoptions.MapCodecOptions
-			key  string
+			name     string
+			mapCodec *mapCodec
+			key      string
 		}{
-			{"default", bsonoptions.MapCodec(), "foo"},
-			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
-			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
+			{"default", &mapCodec{}, "foo"},
+			{"true", &mapCodec{encodeKeysWithStringer: true}, "bar"},
+			{"false", &mapCodec{encodeKeysWithStringer: false}, "foo"},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				mapCodec := NewMapCodec(tc.opts)
 				mapRegistry := NewRegistry()
-				mapRegistry.RegisterKindEncoder(reflect.Map, mapCodec)
+				mapRegistry.RegisterKindEncoder(reflect.Map, tc.mapCodec)
 				buf := new(bytes.Buffer)
 				vw := NewValueWriter(buf)
 				enc := NewEncoder(vw)
