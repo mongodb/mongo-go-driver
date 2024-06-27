@@ -162,8 +162,8 @@ func copyDocumentToBytes(src ValueReader) ([]byte, error) {
 // Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
 func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
-	if br, ok := src.(BytesReader); ok {
-		_, dst, err := br.ReadValueBytes(dst)
+	if br, ok := src.(bytesReader); ok {
+		_, dst, err := br.readValueBytes(dst)
 		return dst, err
 	}
 
@@ -182,8 +182,8 @@ func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
 // Deprecated: Copying BSON arrays using the ValueWriter and ValueReader interfaces will not be
 // supported in Go Driver 2.0.
 func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
-	if br, ok := src.(BytesReader); ok {
-		_, dst, err := br.ReadValueBytes(dst)
+	if br, ok := src.(bytesReader); ok {
+		_, dst, err := br.readValueBytes(dst)
 		return dst, err
 	}
 
@@ -201,8 +201,8 @@ func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 //
 // Deprecated: Use [go.mongodb.org/mongo-driver/bson.UnmarshalValue] instead.
 func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
-	if wvb, ok := dst.(BytesWriter); ok {
-		return wvb.WriteValueBytes(t, src)
+	if wvb, ok := dst.(bytesWriter); ok {
+		return wvb.writeValueBytes(t, src)
 	}
 
 	vr := vrPool.Get().(*valueReader)
@@ -228,8 +228,8 @@ func CopyValueToBytes(src ValueReader) (Type, []byte, error) {
 // Deprecated: Appending individual BSON elements to an existing slice will not be supported in Go
 // Driver 2.0.
 func appendValueBytes(dst []byte, src ValueReader) (Type, []byte, error) {
-	if br, ok := src.(BytesReader); ok {
-		return br.ReadValueBytes(dst)
+	if br, ok := src.(bytesReader); ok {
+		return br.readValueBytes(dst)
 	}
 
 	vw := vwPool.Get().(*valueWriter)

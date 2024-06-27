@@ -48,13 +48,11 @@ type ValueReader interface {
 	ReadUndefined() error
 }
 
-// BytesReader is a generic interface used to read BSON bytes from a
-// ValueReader. This imterface is meant to be a superset of ValueReader, so that
+// bytesReader is a generic interface used to read BSON bytes from a
+// ValueReader. This interface is meant to be a superset of ValueReader, so that
 // types that implement ValueReader may also implement this interface.
 //
 // The bytes of the value will be appended to dst.
-//
-// Deprecated: BytesReader will not be supported in Go Driver 2.0.
-type BytesReader interface {
-	ReadValueBytes(dst []byte) (Type, []byte, error)
+type bytesReader interface {
+	readValueBytes(dst []byte) (Type, []byte, error)
 }
