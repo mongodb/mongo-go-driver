@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -1185,7 +1186,11 @@ func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassw
 	if certSize > 64*1024*1024 {
 		return "", errors.New("X.509 certificate must be less than 64 MiB")
 	}
-	data := make([]byte, 0, keySize+certSize+1)
+	dataSize := keySize + certSize + 1
+	if dataSize > math.MaxInt {
+		return "", errors.New("size overflow")
+	}
+	data := make([]byte, 0, dataSize)
 	data = append(data, keyData...)
 	data = append(data, '\n')
 	data = append(data, certData...)
