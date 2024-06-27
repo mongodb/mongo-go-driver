@@ -124,28 +124,23 @@ func TestSDAMProse(t *testing.T) {
 					AppName:         "streamingRttTest",
 				},
 			})
-			callback := func(ctx context.Context) {
-				for {
-					// Stop loop if callback has been canceled.
-					select {
-					case <-ctx.Done():
-						return
-					default:
+			callback := func() bool {
+				// We don't know which server received the failpoint command, so we wait until any of the server
+				// RTTs cross the threshold.
+				for _, serverDesc := range testTopology.Description().Servers {
+					if serverDesc.AverageRTT > 250*time.Millisecond {
+						return true
 					}
-
-					// We don't know which server received the failpoint command, so we wait until any of the server
-					// RTTs cross the threshold.
-					for _, serverDesc := range testTopology.Description().Servers {
-						if serverDesc.AverageRTT > 250*time.Millisecond {
-							return
-						}
-					}
-
-					// The next update will be in ~500ms.
-					time.Sleep(500 * time.Millisecond)
 				}
+
+				// The next update will be in ~500ms.
+				return false
 			}
-			assert.Soon(t, callback, defaultCallbackTimeout)
+			assert.Eventually(t,
+				callback,
+				defaultCallbackTimeout,
+				500*time.Millisecond,
+				"expected average rtt heartbeats at least within every 500 ms period")
 		})
 	})
 
