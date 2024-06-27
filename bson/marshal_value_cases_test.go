@@ -37,13 +37,13 @@ type marshalValueMarshaler struct {
 
 var _ ValueMarshaler = marshalValueMarshaler{}
 
-func (mvi marshalValueMarshaler) MarshalBSONValue() (Type, []byte, error) {
-	return TypeInt32, bsoncore.AppendInt32(nil, int32(mvi.Foo)), nil
+func (mvi marshalValueMarshaler) MarshalBSONValue() (byte, []byte, error) {
+	return byte(TypeInt32), bsoncore.AppendInt32(nil, int32(mvi.Foo)), nil
 }
 
 var _ ValueUnmarshaler = &marshalValueMarshaler{}
 
-func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ Type, b []byte) error {
+func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ byte, b []byte) error {
 	v, _, _ := bsoncore.ReadInt32(b)
 	mvi.Foo = int(v)
 	return nil

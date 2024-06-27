@@ -1062,8 +1062,8 @@ type testValueMarshaler struct {
 	err error
 }
 
-func (tvm testValueMarshaler) MarshalBSONValue() (Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
+func (tvm testValueMarshaler) MarshalBSONValue() (byte, []byte, error) {
+	return byte(tvm.t), tvm.buf, tvm.err
 }
 
 type testValueUnmarshaler struct {
@@ -1072,8 +1072,8 @@ type testValueUnmarshaler struct {
 	err error
 }
 
-func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t Type, val []byte) error {
-	tvu.t, tvu.val = t, val
+func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t byte, val []byte) error {
+	tvu.t, tvu.val = Type(t), val
 	return tvu.err
 }
 func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {
