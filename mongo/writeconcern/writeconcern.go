@@ -13,7 +13,6 @@ package writeconcern
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -74,17 +73,6 @@ type WriteConcern struct {
 	// For more information about the "j" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#j-option
 	Journal *bool
-
-	// WTimeout specifies a time limit for the write concern. It sets the
-	// "wtimeout" option in a MongoDB write concern.
-	//
-	// It is only applicable for "w" values greater than 1. Using a WTimeout and
-	// setting Timeout on the Client at the same time will result in undefined
-	// behavior.
-	//
-	// For more information about the "wtimeout" option, see
-	// https://www.mongodb.com/docs/manual/reference/write-concern/#wtimeout
-	WTimeout time.Duration
 }
 
 // Unacknowledged returns a WriteConcern that requests no acknowledgment of
@@ -181,14 +169,6 @@ func (wc *WriteConcern) MarshalBSONValue() (bson.Type, []byte, error) {
 
 	if wc.Journal != nil {
 		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
-	}
-
-	if wc.WTimeout < 0 {
-		return 0, nil, ErrNegativeWTimeout
-	}
-
-	if wc.WTimeout != 0 {
-		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wc.WTimeout/time.Millisecond))
 	}
 
 	if len(elems) == 0 {

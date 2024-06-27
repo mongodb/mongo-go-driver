@@ -251,13 +251,6 @@ type ClientOptions struct {
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
 	Deployment driver.Deployment
-
-	// SocketTimeout specifies the timeout to be used for the Client's socket reads and writes.
-	//
-	// NOTE(benjirewis): SocketTimeout will be deprecated in a future release. The more general Timeout option
-	// may be used in its place to control the amount of time that a single operation can run before returning
-	// an error. Setting SocketTimeout and Timeout on a single client will result in undefined behavior.
-	SocketTimeout *time.Duration
 }
 
 // Client creates a new ClientOptions instance.
@@ -323,6 +316,10 @@ func (c *ClientOptions) validate() error {
 
 	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
 		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	}
+
+	if to := c.Timeout; to != nil && *to < 0 {
+		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
 	}
 
 	return nil
@@ -478,10 +475,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.ServerSelectionTimeout = &cs.ServerSelectionTimeout
 	}
 
-	if cs.SocketTimeoutSet {
-		c.SocketTimeout = &cs.SocketTimeout
-	}
-
 	if cs.SRVMaxHosts != 0 {
 		c.SRVMaxHosts = &cs.SRVMaxHosts
 	}
@@ -531,7 +524,7 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 		c.TLSConfig = tlsConfig
 	}
 
-	if cs.JSet || cs.WString != "" || cs.WNumberSet || cs.WTimeoutSet {
+	if cs.JSet || cs.WString != "" || cs.WNumberSet {
 		c.WriteConcern = &writeconcern.WriteConcern{}
 
 		if len(cs.WString) > 0 {
@@ -542,10 +535,6 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 
 		if cs.JSet {
 			c.WriteConcern.Journal = &cs.J
-		}
-
-		if cs.WTimeoutSet {
-			c.WriteConcern.WTimeout = cs.WTimeout
 		}
 	}
 
@@ -831,29 +820,19 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 	return c
 }
 
-// SetSocketTimeout specifies how long the driver will wait for a socket read or write to return before returning a
-// network error. This can also be set through the "socketTimeoutMS" URI option (e.g. "socketTimeoutMS=1000"). The
-// default value is 0, meaning no timeout is used and socket operations can block indefinitely.
+// SetTimeout specifies the amount of time that a single operation run on this
+// Client can execute before returning an error. The deadline of any operation
+// run through the Client will be honored above any Timeout set on the Client;
+// Timeout will only be honored if there is no deadline on the operation
+// Context. Timeout can also be set through the "timeoutMS" URI option
+// (e.g. "timeoutMS=1000"). The default value is nil, meaning operations do not
+// inherit a timeout from the Client.
 //
-// NOTE(benjirewis): SocketTimeout will be deprecated in a future release. The more general Timeout option may be used
-// in its place to control the amount of time that a single operation can run before returning an error. Setting
-// SocketTimeout and Timeout on a single client will result in undefined behavior.
-func (c *ClientOptions) SetSocketTimeout(d time.Duration) *ClientOptions {
-	c.SocketTimeout = &d
-	return c
-}
-
-// SetTimeout specifies the amount of time that a single operation run on this Client can execute before returning an error.
-// The deadline of any operation run through the Client will be honored above any Timeout set on the Client; Timeout will only
-// be honored if there is no deadline on the operation Context. Timeout can also be set through the "timeoutMS" URI option
-// (e.g. "timeoutMS=1000"). The default value is nil, meaning operations do not inherit a timeout from the Client.
+// The value for a Timeout must be positive.
 //
-// If any Timeout is set (even 0) on the Client, the values of MaxTime on operation options, TransactionOptions.MaxCommitTime and
-// SessionOptions.DefaultMaxCommitTime will be ignored. Setting Timeout and SocketTimeout or WriteConcern.wTimeout will result
-// in undefined behavior.
-//
-// NOTE(benjirewis): SetTimeout represents unstable, provisional API. The behavior of the driver when a Timeout is specified is
-// subject to change.
+// If any Timeout is set (even 0) on the Client, the values of MaxTime on
+// operation options, TransactionOptions.MaxCommitTime and
+// SessionOptions.DefaultMaxCommitTime will be ignored.
 func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 	c.Timeout = &d
 	return c
@@ -1087,9 +1066,6 @@ func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
 		}
 		if opt.Direct != nil {
 			c.Direct = opt.Direct
-		}
-		if opt.SocketTimeout != nil {
-			c.SocketTimeout = opt.SocketTimeout
 		}
 		if opt.SRVMaxHosts != nil {
 			c.SRVMaxHosts = opt.SRVMaxHosts

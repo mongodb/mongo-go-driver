@@ -7,8 +7,6 @@
 package options
 
 import (
-	"time"
-
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -35,14 +33,6 @@ type SessionOptions struct {
 	// The default write concern for transactions started in the session. The default value is nil, which means that
 	// the write concern of the client used to start the session will be used.
 	DefaultWriteConcern *writeconcern.WriteConcern
-
-	// The default maximum amount of time that a CommitTransaction operation executed in the session can run on the
-	// server. The default value is nil, which means that that there is no time limit for execution.
-	//
-	// NOTE(benjirewis): DefaultMaxCommitTime will be deprecated in a future release. The more general Timeout option
-	// may be used in its place to control the amount of time that a single operation can run before returning an
-	// error. DefaultMaxCommitTime is ignored if Timeout is set on the client.
-	DefaultMaxCommitTime *time.Duration
 
 	// If true, all read operations performed with this session will be read from the same snapshot. This option cannot
 	// be set to true if CausalConsistency is set to true. Transactions and write operations are not allowed on
@@ -76,17 +66,6 @@ func (s *SessionOptions) SetDefaultReadPreference(rp *readpref.ReadPref) *Sessio
 // SetDefaultWriteConcern sets the value for the DefaultWriteConcern field.
 func (s *SessionOptions) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *SessionOptions {
 	s.DefaultWriteConcern = wc
-	return s
-}
-
-// SetDefaultMaxCommitTime sets the value for the DefaultMaxCommitTime field.
-//
-// NOTE(benjirewis): DefaultMaxCommitTime will be deprecated in a future release. The more
-// general Timeout option may be used in its place to control the amount of time that a
-// single operation can run before returning an error. DefaultMaxCommitTime is ignored if
-// Timeout is set on the client.
-func (s *SessionOptions) SetDefaultMaxCommitTime(mct *time.Duration) *SessionOptions {
-	s.DefaultMaxCommitTime = mct
 	return s
 }
 

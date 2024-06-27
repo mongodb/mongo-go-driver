@@ -214,15 +214,11 @@ func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
 		if opt.WriteConcern != nil {
 			topts.WriteConcern = opt.WriteConcern
 		}
-		if opt.MaxCommitTime != nil {
-			topts.MaxCommitTime = opt.MaxCommitTime
-		}
 	}
 	coreOpts := &session.TransactionOptions{
 		ReadConcern:    topts.ReadConcern,
 		ReadPreference: topts.ReadPreference,
 		WriteConcern:   topts.WriteConcern,
-		MaxCommitTime:  topts.MaxCommitTime,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)
@@ -282,7 +278,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
-		ServerAPI(s.client.serverAPI).MaxTime(s.clientSession.CurrentMct)
+		ServerAPI(s.client.serverAPI)
 
 	err = op.Execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not
