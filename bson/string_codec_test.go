@@ -25,7 +25,7 @@ func TestStringCodec(t *testing.T) {
 			err         error
 		}{
 			{"true", &stringCodec{decodeObjectIDAsHex: true}, oid.Hex(), nil},
-			{"false", &stringCodec{decodeObjectIDAsHex: false}, "", errors.New("decoding an ObjectID to a hexadecimal string is disabled by default")},
+			{"false", &stringCodec{decodeObjectIDAsHex: false}, "", errors.New("decoding an object ID to a hexadecimal string is disabled by default")},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
