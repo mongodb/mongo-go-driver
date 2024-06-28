@@ -85,7 +85,6 @@ func TestClientOptions(t *testing.T) {
 			{"RetryWrites", (*ClientOptions).SetRetryWrites, true, "RetryWrites", true},
 			{"ServerSelectionTimeout", (*ClientOptions).SetServerSelectionTimeout, 5 * time.Second, "ServerSelectionTimeout", true},
 			{"Direct", (*ClientOptions).SetDirect, true, "Direct", true},
-			{"SocketTimeout", (*ClientOptions).SetSocketTimeout, 5 * time.Second, "SocketTimeout", true},
 			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
 			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
@@ -391,11 +390,6 @@ func TestClientOptions(t *testing.T) {
 				baseClient().SetServerSelectionTimeout(45 * time.Second),
 			},
 			{
-				"SocketTimeout",
-				"mongodb://localhost/?socketTimeoutMS=15000",
-				baseClient().SetSocketTimeout(15 * time.Second),
-			},
-			{
 				"TLS CACertificate",
 				"mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/ca.pem",
 				baseClient().SetTLSConfig(&tls.Config{
@@ -439,11 +433,6 @@ func TestClientOptions(t *testing.T) {
 				"WriteConcern W",
 				"mongodb://localhost/?w=3",
 				baseClient().SetWriteConcern(&writeconcern.WriteConcern{W: 3}),
-			},
-			{
-				"WriteConcern WTimeout",
-				"mongodb://localhost/?wTimeoutMS=45000",
-				baseClient().SetWriteConcern(&writeconcern.WriteConcern{WTimeout: 45 * time.Second}),
 			},
 			{
 				"ZLibLevel",

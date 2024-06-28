@@ -57,6 +57,8 @@ const (
 	Aborted
 )
 
+const defaultWriteConcernTimeout = 10_000 * time.Millisecond
+
 // String implements the fmt.Stringer interface.
 func (s TransactionState) String() string {
 	switch s {
@@ -104,16 +106,15 @@ type Client struct {
 
 	// options for the current transaction
 	// most recently set by transactionopt
-	CurrentRc  *readconcern.ReadConcern
-	CurrentRp  *readpref.ReadPref
-	CurrentWc  *writeconcern.WriteConcern
-	CurrentMct *time.Duration
+	CurrentRc       *readconcern.ReadConcern
+	CurrentRp       *readpref.ReadPref
+	CurrentWc       *writeconcern.WriteConcern
+	CurrentWTimeout time.Duration
 
 	// default transaction options
-	transactionRc            *readconcern.ReadConcern
-	transactionRp            *readpref.ReadPref
-	transactionWc            *writeconcern.WriteConcern
-	transactionMaxCommitTime *time.Duration
+	transactionRc *readconcern.ReadConcern
+	transactionRp *readpref.ReadPref
+	transactionWc *writeconcern.WriteConcern
 
 	pool             *Pool
 	TransactionState TransactionState
@@ -188,9 +189,6 @@ func NewClientSession(pool *Pool, clientID uuid.UUID, opts ...*ClientOptions) (*
 	}
 	if mergedOpts.DefaultWriteConcern != nil {
 		c.transactionWc = mergedOpts.DefaultWriteConcern
-	}
-	if mergedOpts.DefaultMaxCommitTime != nil {
-		c.transactionMaxCommitTime = mergedOpts.DefaultMaxCommitTime
 	}
 	if mergedOpts.Snapshot != nil {
 		c.Snapshot = *mergedOpts.Snapshot
@@ -399,7 +397,6 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 		c.CurrentRc = opts.ReadConcern
 		c.CurrentRp = opts.ReadPreference
 		c.CurrentWc = opts.WriteConcern
-		c.CurrentMct = opts.MaxCommitTime
 	}
 
 	if c.CurrentRc == nil {
@@ -412,10 +409,6 @@ func (c *Client) StartTransaction(opts *TransactionOptions) error {
 
 	if c.CurrentWc == nil {
 		c.CurrentWc = c.transactionWc
-	}
-
-	if c.CurrentMct == nil {
-		c.CurrentMct = c.transactionMaxCommitTime
 	}
 
 	if !c.CurrentWc.Acknowledged() {
@@ -449,21 +442,22 @@ func (c *Client) CommitTransaction() error {
 	return nil
 }
 
-// UpdateCommitTransactionWriteConcern will set the write concern to majority and potentially set  a
-// w timeout of 10 seconds. This should be called after a commit transaction operation fails with a
-// retryable error or after a successful commit transaction operation.
+// UpdateCommitTransactionWriteConcern will set the write concern to majority.
+// This should be called after a commit transaction operation fails with a
+// retryable error or after a successful commit transaction operation
+//
+// Per the transaction specifications, when commitTransaction is retried, if
+// the modified write concern does not include a "wtimeout" value, drivers
+// MUST apply "wtimeout: 10000" to the write concern in order to avoid waiting
+// forever (oruntil a socket timeout) if the majority write concern cannot be
+// satisfied. This field abstracts that functionality. For more information,
+// see SPEC-1185.
 func (c *Client) UpdateCommitTransactionWriteConcern() {
-	wc := &writeconcern.WriteConcern{}
-	timeout := 10 * time.Second
-	if c.CurrentWc != nil {
-		*wc = *c.CurrentWc
-		if c.CurrentWc.WTimeout != 0 {
-			timeout = c.CurrentWc.WTimeout
-		}
+	c.CurrentWc = &writeconcern.WriteConcern{
+		W: "majority",
 	}
-	wc.W = "majority"
-	wc.WTimeout = timeout
-	c.CurrentWc = wc
+
+	c.CurrentWTimeout = defaultWriteConcernTimeout
 }
 
 // CheckAbortTransaction checks to see if allowed to abort transaction and returns

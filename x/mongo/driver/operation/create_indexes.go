@@ -25,7 +25,6 @@ import (
 type CreateIndexes struct {
 	commitQuorum bsoncore.Value
 	indexes      bsoncore.Document
-	maxTime      *time.Duration
 	session      *session.Client
 	clock        *session.ClusterClock
 	collection   string
@@ -112,7 +111,6 @@ func (ci *CreateIndexes) Execute(ctx context.Context) error {
 		Crypt:             ci.crypt,
 		Database:          ci.database,
 		Deployment:        ci.deployment,
-		MaxTime:           ci.maxTime,
 		Selector:          ci.selector,
 		WriteConcern:      ci.writeConcern,
 		ServerAPI:         ci.serverAPI,
@@ -155,16 +153,6 @@ func (ci *CreateIndexes) Indexes(indexes bsoncore.Document) *CreateIndexes {
 	}
 
 	ci.indexes = indexes
-	return ci
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (ci *CreateIndexes) MaxTime(maxTime *time.Duration) *CreateIndexes {
-	if ci == nil {
-		ci = new(CreateIndexes)
-	}
-
-	ci.maxTime = maxTime
 	return ci
 }
 

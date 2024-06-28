@@ -51,9 +51,8 @@ func TestTopologyErrors(t *testing.T) {
 				selectServerCtx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 				defer cancel()
 
-				state := newServerSelectionState(selectNone, make(<-chan time.Time))
 				subCh := make(<-chan description.Topology)
-				_, serverSelectionErr = topo.selectServerFromSubscription(selectServerCtx, subCh, state)
+				_, serverSelectionErr = topo.selectServerFromSubscription(selectServerCtx, subCh, selectNone)
 				return true
 			}
 			assert.Eventually(t,

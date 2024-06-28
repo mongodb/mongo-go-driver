@@ -174,8 +174,6 @@ func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bso
 			opts.SetBatchSize(val.Int32())
 		case "collation":
 			opts.SetCollation(createCollation(mt, val.Document()))
-		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "allowDiskUse":
 			opts.SetAllowDiskUse(val.Boolean())
 		case "session":
@@ -348,8 +346,6 @@ func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptions) {
 			opts.SetHint(val.Document())
 		case "$max":
 			opts.SetMax(val.Document())
-		case "$maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "$min":
 			opts.SetMin(val.Document())
 		case "$returnKey":
