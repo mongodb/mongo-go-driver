@@ -1175,11 +1175,11 @@ func addClientCertFromSeparateFiles(cfg *tls.Config, keyFile, certFile, keyPassw
 	if certSize > 64*1024*1024 {
 		return "", errors.New("X.509 certificate must be less than 64 MiB")
 	}
-	dataSize := keySize + certSize + 1
+	dataSize := int64(keySize) + int64(certSize) + 1
 	if dataSize > math.MaxInt {
 		return "", errors.New("size overflow")
 	}
-	data := make([]byte, 0, dataSize)
+	data := make([]byte, 0, int(dataSize))
 	data = append(data, keyData...)
 	data = append(data, '\n')
 	data = append(data, certData...)
