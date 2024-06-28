@@ -32,7 +32,7 @@ func (uic *uintCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.
 		u64 := val.Uint()
 
 		// If ec.MinSize or if encodeToMinSize is true for a non-uint64 value we should write val as an int32
-		useMinSize := ec.MinSize || (uic.encodeToMinSize && val.Kind() != reflect.Uint64)
+		useMinSize := ec.minSize || (uic.encodeToMinSize && val.Kind() != reflect.Uint64)
 
 		if u64 <= math.MaxInt32 && useMinSize {
 			return vw.WriteInt32(int32(u64))
@@ -70,7 +70,7 @@ func (uic *uintCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Typ
 		if err != nil {
 			return emptyValue, err
 		}
-		if !dc.Truncate && math.Floor(f64) != f64 {
+		if !dc.truncate && math.Floor(f64) != f64 {
 			return emptyValue, errCannotTruncate
 		}
 		if f64 > float64(math.MaxInt64) {

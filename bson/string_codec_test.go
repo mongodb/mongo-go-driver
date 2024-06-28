@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -16,21 +17,25 @@ import (
 func TestStringCodec(t *testing.T) {
 	t.Run("ObjectIDAsHex", func(t *testing.T) {
 		oid := NewObjectID()
-		byteArray := [12]byte(oid)
 		reader := &valueReaderWriter{BSONType: TypeObjectID, Return: oid}
 		testCases := []struct {
 			name        string
 			stringCodec *stringCodec
 			result      string
+			err         error
 		}{
-			{"true", &stringCodec{decodeObjectIDAsHex: true}, oid.Hex()},
-			{"false", &stringCodec{decodeObjectIDAsHex: false}, string(byteArray[:])},
+			{"true", &stringCodec{decodeObjectIDAsHex: true}, oid.Hex(), nil},
+			{"false", &stringCodec{decodeObjectIDAsHex: false}, "", errors.New("decoding an ObjectID to a hexadecimal string is disabled by default")},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				actual := reflect.New(reflect.TypeOf("")).Elem()
 				err := tc.stringCodec.DecodeValue(DecodeContext{}, reader, actual)
-				assert.Nil(t, err, "StringCodec.DecodeValue error: %v", err)
+				if tc.err == nil {
+					assert.NoErrorf(t, err, "StringCodec.DecodeValue error: %q", err)
+				} else {
+					assert.EqualErrorf(t, err, tc.err.Error(), "Expected error %q, got %q", tc.err, err)
+				}
 
 				actualString := actual.Interface().(string)
 				assert.Equal(t, tc.result, actualString, "Expected string %v, got %v", tc.result, actualString)

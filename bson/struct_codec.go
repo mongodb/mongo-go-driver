@@ -166,7 +166,7 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 
 		ectx := EncodeContext{
 			Registry:                ec.Registry,
-			MinSize:                 desc.minSize || ec.MinSize,
+			minSize:                 desc.minSize || ec.minSize,
 			errorOnInlineDuplicates: ec.errorOnInlineDuplicates,
 			stringifyMapKeysWithFmt: ec.stringifyMapKeysWithFmt,
 			nilMapAsEmpty:           ec.nilMapAsEmpty,
@@ -341,9 +341,10 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 
 		dctx := DecodeContext{
 			Registry:            dc.Registry,
-			Truncate:            fd.truncate || dc.Truncate,
+			truncate:            fd.truncate || dc.truncate,
 			defaultDocumentType: dc.defaultDocumentType,
 			binaryAsSlice:       dc.binaryAsSlice,
+			objectIDAsHexString: dc.objectIDAsHexString,
 			useJSONStructTags:   dc.useJSONStructTags,
 			useLocalTimeZone:    dc.useLocalTimeZone,
 			zeroMaps:            dc.zeroMaps,
