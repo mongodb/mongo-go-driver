@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The new version to set"
+        required: true
+      prev_version:
+        description: "The previous tagged version"
+        required: true
+      push_changes:
+        description: "Push changes?"
+        default: true
+        type: boolean
+
+defaults:
+  run:
+    shell: bash -eux {0}
+
+env:
+  # Changes per branch
+  SILK_ASSET_GROUP: mongodb-go-driver
+  EVERGREEN_PROJECT: mongo-go-driver
+
+jobs:
+  pre-publish:
+    environment: release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+    outputs:
+      prev_version: ${{ steps.pre-publish.outputs.prev_version }}
+    steps:
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+        with:
+          app_id: ${{ vars.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: mongodb-labs/drivers-github-tools/setup@v2
+        with:
+          aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws_region_name: ${{ vars.AWS_REGION_NAME }}
+          aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+          artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
+      - name: Pre Publish
+        id: pre-publish
+        uses: mongodb-labs/drivers-github-tools/golang/pre-publish@v2
+        with:
+          version: ${{ inputs.version }}
+          push_changes: ${{ inputs.push_changes }}
+
+  static-scan:
+    needs: [pre-publish]
+    permissions:
+      security-events: write
+    uses: ./.github/workflows/codeql.yml
+    with:
+      ref: ${{ github.ref }}
+
+  publish:
+    needs: [pre-publish, static-scan]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+      contents: write
+      security-events: read
+    steps:
+      - uses: mongodb-labs/drivers-github-tools/secure-checkout@v2
+        with:
+          app_id: ${{ vars.APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: mongodb-labs/drivers-github-tools/setup@v2
+        with:
+          aws_role_arn: ${{ secrets.AWS_ROLE_ARN }}
+          aws_region_name: ${{ vars.AWS_REGION_NAME }}
+          aws_secret_id: ${{ secrets.AWS_SECRET_ID }}
+          artifactory_username: ${{ vars.ARTIFACTORY_USERNAME }}
+      - name: Publish
+        uses: mongodb-labs/drivers-github-tools/golang/publish@v2
+        with:
+          version: ${{ inputs.version }}
+          silk_asset_group: ${{ env.SILK_ASSET_GROUP }}
+          evergreen_project: ${{ env.EVERGREEN_PROJECT }}
+          prev_version: ${{ inputs.prev_version }}
+          push_changes: ${{ inputs.push_changes }}
+          token: ${{ env.GH_TOKEN }}
