@@ -14,7 +14,6 @@ import (
 // stringCodec is the Codec used for string values.
 type stringCodec struct {
 	// DecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
-	// If false, a string made from the raw object ID bytes will be used. Defaults to true.
 	decodeObjectIDAsHex bool
 }
 
@@ -36,7 +35,7 @@ func (sc *stringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.
 	return vw.WriteString(val.String())
 }
 
-func (sc *stringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -58,12 +57,10 @@ func (sc *stringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Typ
 		if err != nil {
 			return emptyValue, err
 		}
-		if sc.decodeObjectIDAsHex {
+		if sc.decodeObjectIDAsHex || dc.objectIDAsHexString {
 			str = oid.Hex()
 		} else {
-			// TODO(GODRIVER-2796): Return an error here instead of decoding to a garbled string.
-			byteArray := [12]byte(oid)
-			str = string(byteArray[:])
+			return emptyValue, fmt.Errorf("decoding an object ID to a hexadecimal string is disabled by default")
 		}
 	case TypeSymbol:
 		str, err = vr.ReadSymbol()

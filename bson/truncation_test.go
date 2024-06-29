@@ -41,7 +41,7 @@ func TestTruncation(t *testing.T) {
 		var output outputArgs
 		dc := DecodeContext{
 			Registry: DefaultRegistry,
-			Truncate: true,
+			truncate: true,
 		}
 
 		err = UnmarshalWithContext(dc, buf.Bytes(), &output)
@@ -67,7 +67,7 @@ func TestTruncation(t *testing.T) {
 		var output outputArgs
 		dc := DecodeContext{
 			Registry: DefaultRegistry,
-			Truncate: false,
+			truncate: false,
 		}
 
 		// case throws an error when truncation is disabled
