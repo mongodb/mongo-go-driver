@@ -13,6 +13,7 @@ package writeconcern
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -157,6 +158,9 @@ func (wc *WriteConcern) MarshalBSONValue() (bson.Type, []byte, error) {
 				return 0, nil, ErrInconsistent
 			}
 
+			if w > math.MaxInt32 {
+				return 0, nil, fmt.Errorf("%d overflows int32", w)
+			}
 			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
 		case string:
 			elems = bsoncore.AppendStringElement(elems, "w", w)

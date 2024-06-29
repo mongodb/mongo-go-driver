@@ -292,7 +292,7 @@ func intDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Va
 	case reflect.Int64:
 		return reflect.ValueOf(i64), nil
 	case reflect.Int:
-		if int64(int(i64)) != i64 { // Can we fit this inside of an int
+		if i64 > math.MaxInt { // Can we fit this inside of an int
 			return emptyValue, fmt.Errorf("%d overflows int", i64)
 		}
 
