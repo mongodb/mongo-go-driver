@@ -230,7 +230,8 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.Majority()}.
+			addWriteConcern(context.Background(), nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -270,15 +271,12 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("calculateMaxTimeMS", func(t *testing.T) {
 		var (
-			timeout     = 5 * time.Second
-			maxTime     = 2 * time.Second
-			negMaxTime  = -2 * time.Second
-			shortRTT    = 50 * time.Millisecond
-			longRTT     = 10 * time.Second
-			verShortRTT = 400 * time.Microsecond
+			timeout  = 5 * time.Second
+			shortRTT = 50 * time.Millisecond
+			longRTT  = 10 * time.Second
 		)
 
-		timeoutCtx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		timeoutCtx, cancel := csot.WithTimeout(context.Background(), &timeout)
 		defer cancel()
 
 		testCases := []struct {
@@ -293,7 +291,6 @@ func TestOperation(t *testing.T) {
 		}{
 			{
 				name:     "uses context deadline and rtt90 with timeout",
-				op:       Operation{MaxTime: &maxTime},
 				ctx:      timeoutCtx,
 				rttMin:   shortRTT,
 				rttStats: "",
@@ -301,35 +298,7 @@ func TestOperation(t *testing.T) {
 				err:      nil,
 			},
 			{
-				name:     "uses MaxTime without timeout",
-				op:       Operation{MaxTime: &maxTime},
-				ctx:      context.Background(),
-				rttMin:   longRTT,
-				rttStats: "",
-				want:     2000,
-				err:      nil,
-			},
-			{
-				name:     "errors when remaining timeout is less than rtt90",
-				op:       Operation{MaxTime: &maxTime},
-				ctx:      timeoutCtx,
-				rttMin:   timeout,
-				rttStats: "",
-				want:     0,
-				err:      ErrDeadlineWouldBeExceeded,
-			},
-			{
-				name:     "errors when MaxTime is negative",
-				op:       Operation{MaxTime: &negMaxTime},
-				ctx:      context.Background(),
-				rttMin:   longRTT,
-				rttStats: "",
-				want:     0,
-				err:      ErrNegativeMaxTime,
-			},
-			{
 				name:     "sub millisecond rtt should round up",
-				op:       Operation{MaxTime: &verShortRTT},
 				ctx:      context.Background(),
 				rttMin:   longRTT,
 				rttStats: "",
@@ -651,7 +620,7 @@ func TestOperation(t *testing.T) {
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
-		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
+		assert.True(t, errors.Is(err, context.DeadlineExceeded))
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
 		conn := mnet.NewConnection(&mockConnection{})
@@ -710,16 +679,22 @@ type mockDeployment struct {
 		selector description.ServerSelector
 	}
 	returns struct {
-		server Server
-		err    error
-		retry  bool
-		kind   description.TopologyKind
+		server                 Server
+		err                    error
+		retry                  bool
+		kind                   description.TopologyKind
+		serverSelectionTimeout time.Duration
 	}
 }
 
 func (m *mockDeployment) SelectServer(_ context.Context, desc description.ServerSelector) (Server, error) {
 	m.params.selector = desc
+
 	return m.returns.server, m.returns.err
+}
+
+func (m *mockDeployment) GetServerSelectionTimeout() time.Duration {
+	return m.returns.serverSelectionTimeout
 }
 
 func (m *mockDeployment) Kind() description.TopologyKind { return m.returns.kind }
@@ -971,6 +946,70 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 
 			got := filterDeprioritizedServers(tc.candidates, tc.deprioritized)
 			assert.ElementsMatch(t, got, tc.want)
+		})
+	}
+}
+
+func TestMarshalBSONWriteConcern(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		writeConcern writeconcern.WriteConcern
+		wantBSONType bson.Type
+		wtimeout     time.Duration
+		want         bson.D
+		wantErr      string
+	}{
+		{
+			name:         "empty",
+			writeConcern: writeconcern.WriteConcern{},
+			wantBSONType: 0x0,
+			want:         nil,
+			wtimeout:     0,
+			wantErr:      "a write concern must have at least one field set",
+		},
+		{
+			name:         "journal only",
+			writeConcern: *writeconcern.Journaled(),
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}},
+			wtimeout:     0,
+			wantErr:      "a write concern must have at least one field set",
+		},
+		{
+			name:         "journal and wtimout",
+			writeConcern: *writeconcern.Journaled(),
+			wtimeout:     10 * time.Millisecond,
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}, {"wtimeout", int64(10 * time.Millisecond / time.Millisecond)}},
+			wantErr:      "a write concern must have at least one field set",
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern, test.wtimeout)
+			assert.Equal(t, test.wantBSONType, gotBSONType)
+
+			wantBSON := []byte(nil)
+
+			if test.want != nil {
+				var err error
+
+				wantBSON, err = bson.Marshal(test.want)
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, wantBSON, gotBSON)
+
+			if gotErr != nil {
+				assert.EqualError(t, gotErr, test.wantErr)
+			}
 		})
 	}
 }

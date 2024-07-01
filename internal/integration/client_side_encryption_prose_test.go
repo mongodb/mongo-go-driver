@@ -53,16 +53,6 @@ const (
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
 
-func containsSubstring(possibleSubstrings []string, str string) bool {
-	for _, possibleSubstring := range possibleSubstrings {
-		if strings.Contains(str, possibleSubstring) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func TestClientSideEncryptionProse(t *testing.T) {
 	t.Parallel()
 
@@ -150,7 +140,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// Insert the copied key document into keyvault.datakeys with majority write concern.
 		wcMajority := writeconcern.Majority()
-		wcMajority.WTimeout = 1 * time.Second
 		wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 		wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 		_, err = wcmColl.InsertOne(context.Background(), alteredKeydoc)
@@ -1001,7 +990,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				if len(tc.errorSubstring) > 0 {
 					assert.NotNil(mt, err, "expected error, got nil")
 
-					assert.True(t, containsSubstring(tc.errorSubstring, err.Error()),
+					assert.True(t, containsPattern(tc.errorSubstring, err.Error()),
 						"expected tc.errorSubstring=%v to contain %v, but it didn't", tc.errorSubstring, err.Error())
 
 					return
@@ -1031,7 +1020,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				_, err = invalidClientEncryption.CreateDataKey(context.Background(), tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
 
-				assert.True(t, containsSubstring(tc.invalidClientEncryptionErrorSubstring, err.Error()),
+				assert.True(t, containsPattern(tc.invalidClientEncryptionErrorSubstring, err.Error()),
 					"expected tc.invalidClientEncryptionErrorSubstring=%v to contain %v, but it didn't",
 					tc.invalidClientEncryptionErrorSubstring, err.Error())
 			})
@@ -1635,7 +1624,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					"x509: certificate is not authorized to sign other certificates",  // All others
 				}
 
-				assert.True(t, containsSubstring(possibleErrors, err.Error()),
+				assert.True(t, containsPattern(possibleErrors, err.Error()),
 					"expected possibleErrors=%v to contain %v, but it didn't",
 					possibleErrors, err.Error())
 
@@ -1896,7 +1885,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 
 			wcMajority := writeconcern.Majority()
-			wcMajority.WTimeout = 1 * time.Second
 			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 			_, err = wcmColl.Indexes().CreateOne(context.Background(), keyVaultIndex)
@@ -2254,7 +2242,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"Client.Timeout or context cancellation while reading body", // > 1.20 on all OS
 			}
 
-			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+			assert.True(t, containsPattern(possibleErrors, err.Error()),
 				"expected possibleErrors=%v to contain %v, but it didn't",
 				possibleErrors, err.Error())
 		})

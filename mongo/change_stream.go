@@ -151,6 +151,33 @@ func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.Cha
 	return csOpts
 }
 
+// validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
+// timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
+// equal to timeoutMS. Otherwise, the timeouts are valid.
+func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
+	if cs.options == nil || cs.client == nil {
+		return true
+	}
+
+	maxAwaitTime := cs.options.MaxAwaitTime
+	timeout := cs.client.timeout
+
+	if maxAwaitTime == nil {
+		return true
+	}
+
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxTimeout := time.Until(deadline)
+		timeout = &ctxTimeout
+	}
+
+	if timeout == nil {
+		return true
+	}
+
+	return *timeout <= 0 || *maxAwaitTime < *timeout
+}
+
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 	if ctx == nil {
@@ -161,12 +188,14 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
+	changeStreamOpts := mergeChangeStreamOptions(opts...)
+
 	cs := &ChangeStream{
 		client:     config.client,
 		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
-		options:    mergeChangeStreamOptions(opts...),
+		options:    changeStreamOpts,
 		selector: &serverselector.Composite{
 			Selectors: []description.ServerSelector{
 				&serverselector.ReadPref{ReadPref: config.readPreference},
@@ -208,7 +237,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
-		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
+		cs.cursorOptions.SetMaxAwaitTime(*cs.options.MaxAwaitTime)
 	}
 	if cs.options.Custom != nil {
 		// Marshal all custom options before passing to the initial aggregate. Return
@@ -297,10 +326,18 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	var server driver.Server
 	var conn *mnet.Connection
 
-	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
+	// Apply the client-level timeout if the operation-level timeout is not set.
+	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
+	defer cancel()
+
+	connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
+	defer cancel()
+
+	if server, cs.err = cs.client.deployment.SelectServer(connCtx, cs.selector); cs.err != nil {
 		return cs.Err()
 	}
-	if conn, cs.err = server.Connection(ctx); cs.err != nil {
+
+	if conn, cs.err = server.Connection(connCtx); cs.err != nil {
 		return cs.Err()
 	}
 	defer conn.Close()
@@ -329,17 +366,6 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
-	// If no deadline is set on the passed-in context, cs.client.timeout is set, and context is not already
-	// a Timeout context, honor cs.client.timeout in new Timeout context for change stream operation execution
-	// and potential retry.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && cs.client.timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *cs.client.timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of executeOperation to avoid a context leak.
-		defer cancelFunc()
-	}
-
 	// Execute the aggregate, retrying on retryable errors once (1) if retryable reads are enabled and
 	// infinitely (-1) if context is a Timeout context.
 	var retries int
@@ -366,16 +392,20 @@ AggregateExecuteLoop:
 				break AggregateExecuteLoop
 			}
 
+			connCtx, cancel := csot.WithServerSelectionTimeout(ctx, cs.client.deployment.GetServerSelectionTimeout())
+			defer cancel()
+
 			// If error is retryable: subtract 1 from retries, redo server selection, checkout
 			// a connection, and restart loop.
 			retries--
-			server, err = cs.client.deployment.SelectServer(ctx, cs.selector)
+			server, err = cs.client.deployment.SelectServer(connCtx, cs.selector)
 			if err != nil {
 				break AggregateExecuteLoop
 			}
 
 			conn.Close()
-			conn, err = server.Connection(ctx)
+
+			conn, err = server.Connection(connCtx)
 			if err != nil {
 				break AggregateExecuteLoop
 			}
@@ -646,26 +676,35 @@ func (cs *ChangeStream) ResumeToken() bson.Raw {
 	return cs.resumeToken
 }
 
-// Next gets the next event for this change stream. It returns true if there were no errors and the next event document
-// is available.
+// Next gets the next event for this change stream. It returns true if there
+// were no errors and the next event document is available.
 //
-// Next blocks until an event is available, an error occurs, or ctx expires. If ctx expires, the error
-// will be set to ctx.Err(). In an error case, Next will return false.
+// Next blocks until an event is available, an error occurs, or ctx expires.
+// If ctx expires, the error will be set to ctx.Err(). In an error case, Next
+// will return false.
 //
 // If Next returns false, subsequent calls will also return false.
 func (cs *ChangeStream) Next(ctx context.Context) bool {
 	return cs.next(ctx, false)
 }
 
-// TryNext attempts to get the next event for this change stream. It returns true if there were no errors and the next
-// event document is available.
+// TryNext attempts to get the next event for this change stream. It returns
+// true if there were no errors and the next event document is available.
 //
-// TryNext returns false if the change stream is closed by the server, an error occurs when getting changes from the
-// server, the next change is not yet available, or ctx expires. If ctx expires, the error will be set to ctx.Err().
+// TryNext returns false if the change stream is closed by the server, an error
+// occurs when getting changes from the server, the next change is not yet
+// available, or ctx expires.
 //
-// If TryNext returns false and an error occurred or the change stream was closed
-// (i.e. cs.Err() != nil || cs.ID() == 0), subsequent attempts will also return false. Otherwise, it is safe to call
-// TryNext again until a change is available.
+// If ctx expires, the error will be set to ctx.Err(). Users can either call
+// TryNext again or close the existing change stream and create a new one. It is
+// suggested to close and re-create the stream with ah higher timeout if the
+// timeout occurs before any events have been received, which is a signal that
+// the server is timing out before it can finish processing the existing oplog.
+//
+// If TryNext returns false and an error occurred or the change stream was
+// closed (i.e. cs.Err() != nil || cs.ID() == 0), subsequent attempts will also
+// return false. Otherwise, it is safe to call TryNext again until a change is
+// available.
 //
 // This method requires driver version >= 1.2.0.
 func (cs *ChangeStream) TryNext(ctx context.Context) bool {
@@ -703,6 +742,18 @@ func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
 }
 
 func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
+	if !validChangeStreamTimeouts(ctx, cs) {
+		cs.err = fmt.Errorf("MaxAwaitTime must be less than the operation timeout")
+
+		return
+	}
+
+	// Apply the client-level timeout if the operation-level timeout is not set.
+	// This calculation is also done in "executeOperation" but cursor.Next is also
+	// blocking and should honor client-level timeouts.
+	ctx, cancel := csot.WithTimeout(ctx, cs.client.timeout)
+	defer cancel()
+
 	for {
 		if cs.cursor == nil {
 			return
