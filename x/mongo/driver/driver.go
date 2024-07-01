@@ -15,7 +15,6 @@ package driver // import "go.mongodb.org/mongo-driver/x/mongo/driver"
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"go.mongodb.org/mongo-driver/internal/csot"
@@ -34,7 +33,6 @@ type AuthConfig struct {
 	ClusterClock  *session.ClusterClock
 	HandshakeInfo HandshakeInformation
 	ServerAPI     *ServerAPIOptions
-	HTTPClient    *http.Client
 }
 
 // OIDCCallback is the type for both Human and Machine Callback flows. RefreshToken will always be

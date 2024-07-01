@@ -91,7 +91,7 @@ func (oa *OIDCAuthenticator) SetAccessToken(accessToken string) {
 	oa.accessToken = accessToken
 }
 
-func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
+func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
 	if cred.Password != "" {
 		return nil, fmt.Errorf("password cannot be specified for %q", MongoDBOIDC)
 	}
@@ -114,6 +114,7 @@ func newOIDCAuthenticator(cred *Cred) (Authenticator, error) {
 	}
 	oa := &OIDCAuthenticator{
 		userName:                cred.Username,
+		httpClient:              httpClient,
 		AuthMechanismProperties: cred.Props,
 		OIDCMachineCallback:     cred.OIDCMachineCallback,
 		OIDCHumanCallback:       cred.OIDCHumanCallback,
@@ -244,13 +245,6 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
 // driver.Authenticator interface.
 func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *Config) error {
 	oa.invalidateAccessToken(cfg.Connection)
-	// The HTTPClient argument of the cfg will be nil on a Reauth call, so we populate
-	// it from the one stored in the Authenticator at Auth time, since the HTTPClient is only
-	// configured on driver startup. The HTTPClient will be needed for builtin provider callbacks
-	cfg.HTTPClient = oa.httpClient
-	// it should be impossible to get a Reauth when an Auth has never occurred,
-	// so we assume cfg was properly set. There is nothing to enforce this, however,
-	// other than the current driver code flow. If cfg is nil, Auth will return an error.
 	return oa.Auth(ctx, cfg)
 }
 
@@ -261,7 +255,6 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	if cfg == nil {
 		return newAuthError(fmt.Sprintf("config must be set for %q authentication", MongoDBOIDC), nil)
 	}
-	oa.httpClient = cfg.HTTPClient
 	conn := cfg.Connection
 
 	if oa.accessToken != "" {

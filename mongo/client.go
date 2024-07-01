@@ -225,7 +225,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 			Props:               clientOpt.Auth.AuthMechanismProperties,
 			OIDCMachineCallback: clientOpt.Auth.OIDCMachineCallback,
 			OIDCHumanCallback:   clientOpt.Auth.OIDCHumanCallback,
-		})
+		}, clientOpt.HTTPClient)
 		if err != nil {
 			return nil, err
 		}

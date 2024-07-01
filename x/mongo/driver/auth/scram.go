@@ -14,6 +14,7 @@ package auth
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/xdg-go/scram"
 	"github.com/xdg-go/stringprep"
@@ -36,7 +37,7 @@ var (
 	)
 )
 
-func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
+func newScramSHA1Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	passdigest := mongoPasswordDigest(cred.Username, cred.Password)
 	client, err := scram.SHA1.NewClientUnprepped(cred.Username, passdigest, "")
 	if err != nil {
@@ -50,7 +51,7 @@ func newScramSHA1Authenticator(cred *Cred) (Authenticator, error) {
 	}, nil
 }
 
-func newScramSHA256Authenticator(cred *Cred) (Authenticator, error) {
+func newScramSHA256Authenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	passprep, err := stringprep.SASLprep.Prepare(cred.Password)
 	if err != nil {
 		return nil, newAuthError("error SASLprepping password", err)

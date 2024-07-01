@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 
 	// Ignore gosec warning "Blocklisted import crypto/md5: weak cryptographic primitive". We need
 	// to use MD5 here to implement the MONGODB-CR specification.
@@ -28,7 +29,7 @@ import (
 // MongoDB 4.0.
 const MONGODBCR = "MONGODB-CR"
 
-func newMongoDBCRAuthenticator(cred *Cred) (Authenticator, error) {
+func newMongoDBCRAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	return &MongoDBCRAuthenticator{
 		DB:       cred.Source,
 		Username: cred.Username,

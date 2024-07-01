@@ -23,7 +23,7 @@ import (
 type Config = driver.AuthConfig
 
 // AuthenticatorFactory constructs an authenticator.
-type AuthenticatorFactory func(cred *Cred) (Authenticator, error)
+type AuthenticatorFactory func(*Cred, *http.Client) (Authenticator, error)
 
 var authFactories = make(map[string]AuthenticatorFactory)
 
@@ -40,9 +40,9 @@ func init() {
 }
 
 // CreateAuthenticator creates an authenticator.
-func CreateAuthenticator(name string, cred *Cred) (Authenticator, error) {
+func CreateAuthenticator(name string, cred *Cred, httpClient *http.Client) (Authenticator, error) {
 	if f, ok := authFactories[name]; ok {
-		return f(cred)
+		return f(cred, httpClient)
 	}
 
 	return nil, newAuthError(fmt.Sprintf("unknown authenticator: %s", name), nil)
@@ -65,7 +65,6 @@ type HandshakeOptions struct {
 	ClusterClock          *session.ClusterClock
 	ServerAPI             *driver.ServerAPIOptions
 	LoadBalanced          bool
-	HTTPClient            *http.Client
 }
 
 type authHandshaker struct {
@@ -141,7 +140,6 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn driver.Conne
 			ClusterClock:  ah.options.ClusterClock,
 			HandshakeInfo: ah.handshakeInfo,
 			ServerAPI:     ah.options.ServerAPI,
-			HTTPClient:    ah.options.HTTPClient,
 		}
 
 		if err := ah.authenticate(ctx, cfg); err != nil {

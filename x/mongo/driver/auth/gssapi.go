@@ -14,6 +14,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
@@ -22,7 +23,7 @@ import (
 // GSSAPI is the mechanism name for GSSAPI.
 const GSSAPI = "GSSAPI"
 
-func newGSSAPIAuthenticator(cred *Cred) (Authenticator, error) {
+func newGSSAPIAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != "$external" {
 		return nil, newAuthError("GSSAPI source must be empty or $external", nil)
 	}

@@ -83,7 +83,7 @@ func NewConfig(co *options.ClientOptions, clock *session.ClusterClock) (*Config,
 			Source:      co.Auth.AuthSource,
 		}
 		mechanism := co.Auth.AuthMechanism
-		authenticator, err := auth.CreateAuthenticator(mechanism, cred)
+		authenticator, err := auth.CreateAuthenticator(mechanism, cred, co.HTTPClient)
 		if err != nil {
 			return nil, err
 		}
@@ -209,7 +209,6 @@ func NewConfigWithAuthenticator(co *options.ClientOptions, clock *session.Cluste
 			ServerAPI:     serverAPI,
 			LoadBalanced:  loadBalanced,
 			ClusterClock:  clock,
-			HTTPClient:    co.HTTPClient,
 		}
 
 		if mechanism == "" {

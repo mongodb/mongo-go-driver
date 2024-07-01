@@ -8,6 +8,7 @@ package auth
 
 import (
 	"context"
+	"net/http"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
@@ -15,7 +16,7 @@ import (
 // PLAIN is the mechanism name for PLAIN.
 const PLAIN = "PLAIN"
 
-func newPlainAuthenticator(cred *Cred) (Authenticator, error) {
+func newPlainAuthenticator(cred *Cred, _ *http.Client) (Authenticator, error) {
 	return &PlainAuthenticator{
 		Username: cred.Username,
 		Password: cred.Password,
