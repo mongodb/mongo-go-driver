@@ -87,10 +87,14 @@ func (bw *bulkWrite) execute(ctx context.Context) error {
 	}
 
 	bw.result.MatchedCount -= bw.result.UpsertedCount
-	if lastErr != nil {
-		_, lastErr = processWriteError(lastErr)
-		return lastErr
+
+	rr, err := processWriteError(lastErr)
+	if err != nil {
+		return err
 	}
+
+	bw.result.Acknowledged = rr.isAcknowledged()
+
 	if len(bwErr.WriteErrors) > 0 || bwErr.WriteConcernError != nil {
 		return bwErr
 	}

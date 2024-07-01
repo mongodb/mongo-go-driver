@@ -28,6 +28,11 @@ type SingleResult struct {
 	rdr      bson.Raw
 	bsonOpts *options.BSONOptions
 	reg      *bson.Registry
+
+	// Operation performed with an acknowledged write. Values returned by
+	// SingleResult methods may not be deterministic if the write operation was
+	// unacknowledged and so should not be relied upon.
+	Acknowledged bool
 }
 
 // NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
