@@ -33,6 +33,7 @@
     },
     {
       "description": "wtimeoutMS as a valid number",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "uri": "mongodb://localhost/?wtimeoutMS=500",
       "valid": true,
       "warning": false,
@@ -42,6 +43,7 @@
     },
     {
       "description": "wtimeoutMS as an invalid number",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "uri": "mongodb://localhost/?wtimeoutMS=-500",
       "valid": false,
       "warning": null
@@ -66,6 +68,7 @@
     },
     {
       "description": "All options combined",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "uri": "mongodb://localhost/?w=3&wtimeoutMS=500&journal=true",
       "valid": true,
       "warning": false,
@@ -96,6 +99,7 @@
     },
     {
       "description": "Unacknowledged with w and wtimeoutMS",
+      "skipReason": "GODRIVER-2348: the wtimeoutMS write concern option is not supported",
       "uri": "mongodb://localhost/?w=0&wtimeoutMS=500",
       "valid": true,
       "warning": false,

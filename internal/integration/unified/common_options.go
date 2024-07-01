@@ -28,9 +28,8 @@ func (rc *readConcern) toReadConcernOption() *readconcern.ReadConcern {
 }
 
 type writeConcern struct {
-	Journal    *bool       `bson:"journal"`
-	W          interface{} `bson:"w"`
-	WTimeoutMS *int32      `bson:"wtimeoutMS"`
+	Journal *bool       `bson:"journal"`
+	W       interface{} `bson:"w"`
 }
 
 func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, error) {
@@ -50,10 +49,6 @@ func (wc *writeConcern) toWriteConcernOption() (*writeconcern.WriteConcern, erro
 		default:
 			return nil, fmt.Errorf("invalid type for write concern 'w' field %T", wc.W)
 		}
-	}
-	if wc.WTimeoutMS != nil {
-		wTimeout := time.Duration(*wc.WTimeoutMS) * time.Millisecond
-		c.WTimeout = wTimeout
 	}
 
 	return c, nil

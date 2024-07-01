@@ -14,6 +14,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
+	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -728,10 +729,14 @@ func (db *Database) createCollectionWithEncryptedFields(ctx context.Context, nam
 	// That is OK. This wire version check is a best effort to inform users earlier if using a QEv2 driver with a QEv1 server.
 	{
 		const QEv2WireVersion = 21
+		ctx, cancel := csot.WithServerSelectionTimeout(ctx, db.client.deployment.GetServerSelectionTimeout())
+		defer cancel()
+
 		server, err := db.client.deployment.SelectServer(ctx, &serverselector.Write{})
 		if err != nil {
 			return fmt.Errorf("error selecting server to check maxWireVersion: %w", err)
 		}
+
 		conn, err := server.Connection(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting connection to check maxWireVersion: %w", err)

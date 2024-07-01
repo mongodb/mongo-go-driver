@@ -7,8 +7,6 @@
 package options
 
 import (
-	"time"
-
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -27,18 +25,6 @@ type TransactionOptions struct {
 	// The write concern for operations in the transaction. The default value is nil, which means that the default
 	// write concern of the session used to start the transaction will be used.
 	WriteConcern *writeconcern.WriteConcern
-
-	// The default maximum amount of time that a CommitTransaction operation executed in the session can run on the
-	// server. The default value is nil, meaning that there is no time limit for execution.
-
-	// The maximum amount of time that a CommitTransaction operation can executed in the transaction can run on the
-	// server. The default value is nil, which means that the default maximum commit time of the session used to
-	// start the transaction will be used.
-	//
-	// NOTE(benjirewis): MaxCommitTime will be deprecated in a future release. The more general Timeout option may
-	// be used in its place to control the amount of time that a single operation can run before returning an error.
-	// MaxCommitTime is ignored if Timeout is set on the client.
-	MaxCommitTime *time.Duration
 }
 
 // Transaction creates a new TransactionOptions instance.
@@ -61,15 +47,5 @@ func (t *TransactionOptions) SetReadPreference(rp *readpref.ReadPref) *Transacti
 // SetWriteConcern sets the value for the WriteConcern field.
 func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptions {
 	t.WriteConcern = wc
-	return t
-}
-
-// SetMaxCommitTime sets the value for the MaxCommitTime field.
-//
-// NOTE(benjirewis): MaxCommitTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can run before
-// returning an error. MaxCommitTime is ignored if Timeout is set on the client.
-func (t *TransactionOptions) SetMaxCommitTime(mct *time.Duration) *TransactionOptions {
-	t.MaxCommitTime = mct
 	return t
 }

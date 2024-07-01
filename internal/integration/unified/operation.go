@@ -93,7 +93,16 @@ func (op *operation) run(ctx context.Context, loopDone <-chan struct{}) (*operat
 	// Special handling for the "timeoutMS" field because it applies to (almost) all operations.
 	if tms, ok := op.Arguments.Lookup("timeoutMS").Int32OK(); ok {
 		timeout := time.Duration(tms) * time.Millisecond
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, timeout)
+
+		// Note that a 0-timeout at the operation level is not actually possible
+		// in Go. This would result in an immediate "context deadline exceeded"
+		// error.
+		//
+		// To achieve an "infinite" case, users would have to rely on either (1)
+		// defining a 0 timeout at the client-level, or (2) use
+		// context.Background() at the operation-level.
+		newCtx, cancelFunc := csot.WithTimeout(ctx, &timeout)
+
 		// Redefine ctx to be the new timeout-derived context.
 		ctx = newCtx
 		// Cancel the timeout-derived context at the end of run to avoid a context leak.

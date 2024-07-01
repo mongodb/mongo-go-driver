@@ -205,6 +205,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		server := topology.NewServer(
 			address,
 			bson.NewObjectID(),
+			1*time.Second,
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
 					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
