@@ -777,10 +777,9 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess *mongo.Session)
 		}
 		return err
 	case "dropIndex":
-		res, err := executeDropIndex(mt, sess, op.Arguments)
+		err := executeDropIndex(mt, sess, op.Arguments)
 		if op.opError == nil && err == nil {
 			assert.Nil(mt, op.Result, "unexpected result for dropIndex: %v", op.Result)
-			assert.NotNil(mt, res, "expected result from dropIndex operation, got nil")
 		}
 		return err
 	case "listIndexNames", "mapReduce":

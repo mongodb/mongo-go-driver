@@ -582,7 +582,7 @@ func TestIndexView(t *testing.T) {
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		_, err = iv.DropOne(context.Background(), indexNames[1])
+		err = iv.DropOne(context.Background(), indexNames[1])
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
 		cursor, err := iv.List(context.Background())
