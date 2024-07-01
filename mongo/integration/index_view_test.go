@@ -614,16 +614,18 @@ func TestIndexView(t *testing.T) {
 				Keys: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()),
 			},
 			{
-				Keys: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build()),
+				Keys:    bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("username", 1).Build()),
+				Options: options.Index().SetUnique(true).SetName("myidx"),
 			},
 		})
 
-		key := bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", -1).Build())
-
+		key := map[string]interface{}{
+			"username": 1,
+		}
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		_, err = iv.DropKeyOne(context.Background(), bsoncore.Document(key))
+		_, err = iv.DropKeyOne(context.Background(), key)
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
 		cursor, err := iv.List(context.Background())
