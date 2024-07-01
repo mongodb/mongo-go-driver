@@ -11,6 +11,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,15 +21,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func main() {
+func TestMain(m *testing.M) {
 	flag.Parse()
+	os.Exit(m.Run())
+}
+
+func TestAtlas(t *testing.T) {
 	uris := flag.Args()
 	ctx := context.Background()
 
-	fmt.Printf("Running atlas tests for %d uris\n", len(uris))
+	t.Logf("Running atlas tests for %d uris\n", len(uris))
 
 	for idx, uri := range uris {
-		fmt.Printf("Running test %d\n", idx)
+		t.Logf("Running test %d\n", idx)
 
 		// Set a low server selection timeout so we fail fast if there are errors.
 		clientOpts := options.Client().
@@ -36,18 +42,18 @@ func main() {
 
 		// Run basic connectivity test.
 		if err := runTest(ctx, clientOpts); err != nil {
-			panic(fmt.Sprintf("error running test with TLS at index %d: %v", idx, err))
+			t.Fatalf("error running test with TLS at index %d: %v", idx, err)
 		}
 
 		// Run the connectivity test with InsecureSkipVerify to ensure SNI is done correctly even if verification is
 		// disabled.
 		clientOpts.TLSConfig.InsecureSkipVerify = true
 		if err := runTest(ctx, clientOpts); err != nil {
-			panic(fmt.Sprintf("error running test with tlsInsecure at index %d: %v", idx, err))
+			t.Fatalf("error running test with tlsInsecure at index %d: %v", idx, err)
 		}
 	}
 
-	fmt.Println("Finished!")
+	t.Logf("Finished!")
 }
 
 func runTest(ctx context.Context, clientOpts *options.ClientOptions) error {
