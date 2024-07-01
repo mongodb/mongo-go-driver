@@ -257,14 +257,21 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	}
 	conn := cfg.Connection
 
-	if oa.accessToken != "" {
+	oa.mu.Lock()
+	cachedAccessToken := oa.accessToken
+	oa.mu.Unlock()
+
+	if cachedAccessToken != "" {
 		err = ConductSaslConversation(ctx, cfg, "$external", &oidcOneStep{
 			userName:    oa.userName,
-			accessToken: oa.accessToken,
+			accessToken: cachedAccessToken,
 		})
 		if err == nil {
 			return nil
 		}
+		// this seems like it could be incorrect since we could be inavlidating an access token that
+		// has already been replaced by a different auth attempt, but the TokenGenID will prevernt
+		// that from happening.
 		oa.invalidateAccessToken(conn)
 		time.Sleep(invalidateSleepTimeout)
 	}
