@@ -25,6 +25,12 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
+// ErrInvalidIndexType is returned if an invalid index type is inputted.
+var ErrInvalidIndexType = errors.New("invalid index type")
+
+// ErrInvalidKeyValue is returned if there is invalid key value
+var ErrInvalidKeyValue = errors.New("invalid key value")
+
 // ErrInvalidIndexValue is returned if an index is created with a keys document that has a value that is not a number
 // or string.
 var ErrInvalidIndexValue = errors.New("invalid index value")
@@ -367,7 +373,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+func (iv IndexView) drop(ctx context.Context, index any, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -397,21 +403,42 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 
 	// TODO(GODRIVER-3038): This operation should pass CSE to the DropIndexes
 	// Crypt setter to be applied to the operation.
-	op := operation.NewDropIndexes(name).
-		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
-		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
-		Database(iv.coll.db.name).Collection(iv.coll.name).
-		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime)
 
-	err = op.Execute(ctx)
-	if err != nil {
-		return nil, replaceErrors(err)
+	var results operation.DropIndexesResult
+
+	switch indexVal := index.(type) {
+	case string:
+		// Convert index to string
+		op := operation.NewDropIndexes(indexVal).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
+			ServerSelector(selector).ClusterClock(iv.coll.client.clock).
+			Database(iv.coll.db.name).Collection(iv.coll.name).
+			Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
+			Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime)
+		err = op.Execute(ctx)
+		if err != nil {
+			return nil, replaceErrors(err)
+		}
+		results = op.Result()
+	case bsoncore.Document:
+		// Convert index to bsoncore.Document
+		op := operation.NewDropIndexes(indexVal).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
+			ServerSelector(selector).ClusterClock(iv.coll.client.clock).
+			Database(iv.coll.db.name).Collection(iv.coll.name).
+			Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
+			Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime)
+		err = op.Execute(ctx)
+		if err != nil {
+			return nil, replaceErrors(err)
+		}
+		results = op.Result()
+	default:
+		// Handle unexpected type
+		return nil, ErrInvalidIndexType
 	}
 
 	// TODO: it's weird to return a bson.Raw here because we have to convert the result back to BSON
 	ridx, res := bsoncore.AppendDocumentStart(nil)
-	res = bsoncore.AppendInt32Element(res, "nIndexesWas", op.Result().NIndexesWas)
+	res = bsoncore.AppendInt32Element(res, "nIndexesWas", results.NIndexesWas)
 	res, _ = bsoncore.AppendDocumentEnd(res, ridx)
 	return res, nil
 }
@@ -433,6 +460,20 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 	}
 
 	return iv.drop(ctx, name, opts...)
+}
+
+// DropKeyOne executes a dropIndexes operation to drop an index on the collection. If the operation succeeds, this returns
+// a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
+// indexes that existed prior to the drop.
+//
+// The key parameter should be the keySpecDocument of the index to drop.
+func (iv IndexView) DropKeyOne(ctx context.Context, keySpecDocument interface{}, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	doc, err := marshal(keySpecDocument, iv.coll.bsonOpts, iv.coll.registry)
+	if err != nil {
+		return nil, err
+	}
+
+	return iv.drop(ctx, doc, opts...)
 }
 
 // DropAll executes a dropIndexes operation to drop all indexes on the collection. If the operation succeeds, this

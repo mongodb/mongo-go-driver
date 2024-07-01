@@ -607,6 +607,37 @@ func TestIndexView(t *testing.T) {
 		}
 		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
 	})
+	mt.Run("dropKey one", func(mt *mtest.T) {
+		iv := mt.Coll.Indexes()
+		indexNames, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
+			{
+				Keys: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("_id", 1).Build()),
+			},
+			{
+				Keys:    bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("username", 1).Build()),
+				Options: options.Index().SetUnique(true).SetName("myidx"),
+			},
+		})
+
+		key := map[string]interface{}{
+			"username": 1,
+		}
+		assert.Nil(mt, err, "CreateMany error: %v", err)
+		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
+
+		_, err = iv.DropKeyOne(context.Background(), key)
+		assert.Nil(mt, err, "DropOne error: %v", err)
+
+		cursor, err := iv.List(context.Background())
+		assert.Nil(mt, err, "List error: %v", err)
+		for cursor.Next(context.Background()) {
+			var idx index
+			err = cursor.Decode(&idx)
+			assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
+			assert.NotEqual(mt, indexNames[1], idx.Name, "found index %v after dropping", indexNames[1])
+		}
+		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
+	})
 	mt.Run("drop all", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
 		names, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
