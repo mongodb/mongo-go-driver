@@ -22,8 +22,8 @@ import (
 )
 
 // DropIndexes performs an dropIndexes operation.
-type DropIndexes[T string | bsoncore.Document] struct {
-	index        T
+type DropIndexes struct {
+	index        any
 	maxTime      *time.Duration
 	session      *session.Client
 	clock        *session.ClusterClock
@@ -64,23 +64,23 @@ func buildDropIndexesResult(response bsoncore.Document) (DropIndexesResult, erro
 	return dir, nil
 }
 
-func NewDropIndexes[T string | bsoncore.Document](index T) *DropIndexes[T] {
-	return &DropIndexes[T]{
+func NewDropIndexes(index any) *DropIndexes {
+	return &DropIndexes{
 		index: index,
 	}
 }
 
 // Result returns the result of executing this operation.
-func (di *DropIndexes[T]) Result() DropIndexesResult { return di.result }
+func (di *DropIndexes) Result() DropIndexesResult { return di.result }
 
-func (di *DropIndexes[T]) processResponse(info driver.ResponseInfo) error {
+func (di *DropIndexes) processResponse(info driver.ResponseInfo) error {
 	var err error
 	di.result, err = buildDropIndexesResult(info.ServerResponse)
 	return err
 }
 
 // Execute runs this operations and returns an error if the operation did not execute successfully.
-func (di *DropIndexes[T]) Execute(ctx context.Context) error {
+func (di *DropIndexes) Execute(ctx context.Context) error {
 	if di.deployment == nil {
 		return errors.New("the DropIndexes operation must have a Deployment set before Execute can be called")
 	}
@@ -104,23 +104,23 @@ func (di *DropIndexes[T]) Execute(ctx context.Context) error {
 
 }
 
-func (di *DropIndexes[T]) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
+func (di *DropIndexes) command(dst []byte, _ description.SelectedServer) ([]byte, error) {
 	dst = bsoncore.AppendStringElement(dst, "dropIndexes", di.collection)
 
-	switch any(di.index).(type) {
+	switch di.index.(type) {
 	case string:
-		dst = bsoncore.AppendStringElement(dst, "index", string(di.index))
+		dst = bsoncore.AppendStringElement(dst, "index", di.index.(string))
 	case bsoncore.Document:
-		dst = bsoncore.AppendDocumentElement(dst, "index", bsoncore.Document(di.index))
+		dst = bsoncore.AppendDocumentElement(dst, "index", di.index.(bsoncore.Document))
 	}
 
 	return dst, nil
 }
 
 // Index specifies the name of the index to drop. If '*' is specified, all indexes will be dropped.
-func (di *DropIndexes[T]) Index(index T) *DropIndexes[T] {
+func (di *DropIndexes) Index(index any) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.index = index
@@ -128,9 +128,9 @@ func (di *DropIndexes[T]) Index(index T) *DropIndexes[T] {
 }
 
 // MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (di *DropIndexes[T]) MaxTime(maxTime *time.Duration) *DropIndexes[T] {
+func (di *DropIndexes) MaxTime(maxTime *time.Duration) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.maxTime = maxTime
@@ -138,9 +138,9 @@ func (di *DropIndexes[T]) MaxTime(maxTime *time.Duration) *DropIndexes[T] {
 }
 
 // Session sets the session for this operation.
-func (di *DropIndexes[T]) Session(session *session.Client) *DropIndexes[T] {
+func (di *DropIndexes) Session(session *session.Client) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.session = session
@@ -148,9 +148,9 @@ func (di *DropIndexes[T]) Session(session *session.Client) *DropIndexes[T] {
 }
 
 // ClusterClock sets the cluster clock for this operation.
-func (di *DropIndexes[T]) ClusterClock(clock *session.ClusterClock) *DropIndexes[T] {
+func (di *DropIndexes) ClusterClock(clock *session.ClusterClock) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.clock = clock
@@ -158,9 +158,9 @@ func (di *DropIndexes[T]) ClusterClock(clock *session.ClusterClock) *DropIndexes
 }
 
 // Collection sets the collection that this command will run against.
-func (di *DropIndexes[T]) Collection(collection string) *DropIndexes[T] {
+func (di *DropIndexes) Collection(collection string) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.collection = collection
@@ -168,9 +168,9 @@ func (di *DropIndexes[T]) Collection(collection string) *DropIndexes[T] {
 }
 
 // CommandMonitor sets the monitor to use for APM events.
-func (di *DropIndexes[T]) CommandMonitor(monitor *event.CommandMonitor) *DropIndexes[T] {
+func (di *DropIndexes) CommandMonitor(monitor *event.CommandMonitor) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.monitor = monitor
@@ -178,9 +178,9 @@ func (di *DropIndexes[T]) CommandMonitor(monitor *event.CommandMonitor) *DropInd
 }
 
 // Crypt sets the Crypt object to use for automatic encryption and decryption.
-func (di *DropIndexes[T]) Crypt(crypt driver.Crypt) *DropIndexes[T] {
+func (di *DropIndexes) Crypt(crypt driver.Crypt) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.crypt = crypt
@@ -188,9 +188,9 @@ func (di *DropIndexes[T]) Crypt(crypt driver.Crypt) *DropIndexes[T] {
 }
 
 // Database sets the database to run this operation against.
-func (di *DropIndexes[T]) Database(database string) *DropIndexes[T] {
+func (di *DropIndexes) Database(database string) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.database = database
@@ -198,9 +198,9 @@ func (di *DropIndexes[T]) Database(database string) *DropIndexes[T] {
 }
 
 // Deployment sets the deployment to use for this operation.
-func (di *DropIndexes[T]) Deployment(deployment driver.Deployment) *DropIndexes[T] {
+func (di *DropIndexes) Deployment(deployment driver.Deployment) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.deployment = deployment
@@ -208,9 +208,9 @@ func (di *DropIndexes[T]) Deployment(deployment driver.Deployment) *DropIndexes[
 }
 
 // ServerSelector sets the selector used to retrieve a server.
-func (di *DropIndexes[T]) ServerSelector(selector description.ServerSelector) *DropIndexes[T] {
+func (di *DropIndexes) ServerSelector(selector description.ServerSelector) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.selector = selector
@@ -218,9 +218,9 @@ func (di *DropIndexes[T]) ServerSelector(selector description.ServerSelector) *D
 }
 
 // WriteConcern sets the write concern for this operation.
-func (di *DropIndexes[T]) WriteConcern(writeConcern *writeconcern.WriteConcern) *DropIndexes[T] {
+func (di *DropIndexes) WriteConcern(writeConcern *writeconcern.WriteConcern) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.writeConcern = writeConcern
@@ -228,9 +228,9 @@ func (di *DropIndexes[T]) WriteConcern(writeConcern *writeconcern.WriteConcern) 
 }
 
 // ServerAPI sets the server API version for this operation.
-func (di *DropIndexes[T]) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropIndexes[T] {
+func (di *DropIndexes) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.serverAPI = serverAPI
@@ -238,9 +238,9 @@ func (di *DropIndexes[T]) ServerAPI(serverAPI *driver.ServerAPIOptions) *DropInd
 }
 
 // Timeout sets the timeout for this operation.
-func (di *DropIndexes[T]) Timeout(timeout *time.Duration) *DropIndexes[T] {
+func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
 	if di == nil {
-		di = new(DropIndexes[T])
+		di = new(DropIndexes)
 	}
 
 	di.timeout = timeout
