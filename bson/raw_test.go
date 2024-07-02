@@ -405,12 +405,12 @@ func BenchmarkRawString(b *testing.B) {
 					Nested string
 				}
 				Key2 string
-				Key3 int64
+				Key3 []string
 				Key4 float64
 			}{
 				Key1: struct{ Nested string }{Nested: str1k},
 				Key2: str1k,
-				Key3: 1234567890,
+				Key3: []string{str1k, str1k, str1k, str1k},
 				Key4: 1234567890.123456789,
 			},
 		},

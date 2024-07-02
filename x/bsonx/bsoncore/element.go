@@ -130,6 +130,34 @@ func (e Element) String() string {
 	return "\"" + string(key) + "\": " + val.String()
 }
 
+// String implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
+func (e Element) StringN() string {
+	if len(e) <= 0 {
+		return ""
+	}
+	t := Type(e[0])
+	idx := bytes.IndexByte(e[1:], 0x00)
+	if idx == -1 {
+		return ""
+	}
+	key, valBytes := []byte(e[1:idx+1]), []byte(e[idx+2:])
+	val, _, valid := ReadValue(valBytes, t)
+	if !valid {
+		return ""
+	}
+
+	var str string
+	if arr, ok := val.ArrayOK(); ok {
+		str = arr.StringN(1024)
+	} else if _, ok := val.StringValueOK(); ok {
+		str = val.StringN(1024)
+	} else {
+		str = val.String()
+	}
+
+	return "\"" + string(key) + "\": " + str
+}
+
 // DebugString outputs a human readable version of RawElement. It will attempt to stringify the
 // valid components of the element even if the entire element is not valid.
 func (e Element) DebugString() string {

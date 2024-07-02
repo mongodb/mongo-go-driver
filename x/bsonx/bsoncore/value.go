@@ -336,7 +336,6 @@ func (v Value) String() string {
 	}
 }
 
-/*
 // String implements the fmt.String interface. This method will return values in extended JSON
 // format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
 func (v Value) StringN(n int) string {
@@ -352,19 +351,24 @@ func (v Value) StringN(n int) string {
 		if !ok {
 			return ""
 		}
-		return escapeString(str)
+		str = escapeString(str)
+		if len(str) > n {
+			truncatedStr := truncate(str, uint(n))
+			return truncatedStr
+		}
+		return str
 	case TypeEmbeddedDocument:
 		doc, ok := v.DocumentOK()
 		if !ok {
 			return ""
 		}
-		return doc.String()
+		return doc.StringN(1024)
 	case TypeArray:
 		arr, ok := v.ArrayOK()
 		if !ok {
 			return ""
 		}
-		return arr.String()
+		return arr.StringN(1024)
 	case TypeBinary:
 		subtype, data, ok := v.BinaryOK()
 		if !ok {
@@ -458,7 +462,6 @@ func (v Value) StringN(n int) string {
 		return ""
 	}
 }
-*/
 
 // DebugString outputs a human readable version of Document. It will attempt to stringify the
 // valid components of the document even if the entire document is not valid.
