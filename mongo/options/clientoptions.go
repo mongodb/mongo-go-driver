@@ -110,9 +110,24 @@ type Credential struct {
 	Username                string
 	Password                string
 	PasswordSet             bool
-	OIDCMachineCallback     driver.OIDCCallback
-	OIDCHumanCallback       driver.OIDCCallback
+	OIDCMachineCallback     OIDCCallback
+	OIDCHumanCallback       OIDCCallback
 }
+
+// OIDCCallback is the type for both Human and Machine Callback flows. RefreshToken will always be
+// nil in the OIDCArgs for the Machine flow.
+type OIDCCallback = driver.OIDCCallback
+
+// OIDCArgs contains the arguments for OIDC authentication.
+type OIDCArgs = driver.OIDCArgs
+
+// OIDCCredential contains the OIDC access and refresh tokens, and is the type returned by an
+// OIDCCallback.
+type OIDCCredential = driver.OIDCCredential
+
+// IDPInfo contains the information needed to perform OIDC human flow authentication with an Idetity
+// Provider (IDP).
+type IDPInfo = driver.IDPInfo
 
 // BSONOptions are optional BSON marshaling and unmarshaling behaviors.
 type BSONOptions struct {

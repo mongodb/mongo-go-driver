@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 )
 
@@ -44,14 +43,14 @@ func connectAdminClinet() (*mongo.Client, error) {
 	return mongo.Connect(context.Background(), options.Client().ApplyURI(uriAdmin))
 }
 
-func connectWithMachineCB(uri string, cb driver.OIDCCallback) (*mongo.Client, error) {
+func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
 	opts.Auth.OIDCMachineCallback = cb
 	return mongo.Connect(context.Background(), opts)
 }
 
-func connectWithMachineCBAndProperties(uri string, cb driver.OIDCCallback, props map[string]string) (*mongo.Client, error) {
+func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, props map[string]string) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
 	opts.Auth.OIDCMachineCallback = cb
@@ -96,7 +95,7 @@ func machine11callbackIsCalled() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -106,7 +105,7 @@ func machine11callbackIsCalled() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("machine_1_1: failed reading token file: %v", err)
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -138,7 +137,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -148,7 +147,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("machine_1_2: failed reading token file: %v", err)
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -193,7 +192,7 @@ func machine21validCallbackInputs() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		if args.RefreshToken != nil {
 			callbackFailed = fmt.Errorf("machine_2_1: expected RefreshToken to be nil, got %v", args.RefreshToken)
 		}
@@ -219,7 +218,7 @@ func machine21validCallbackInputs() error {
 		if err != nil {
 			fmt.Printf("machine_2_1: failed reading token file: %v", err)
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -250,12 +249,12 @@ func machine23oidcCallbackReturnMissingData() error {
 	callbackCount := 0
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
 		t := time.Now().Add(time.Hour)
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  "",
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -283,9 +282,9 @@ func machine23oidcCallbackReturnMissingData() error {
 }
 
 func machine24invalidClientConfigurationWithCallback() error {
-	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	_, err := connectWithMachineCBAndProperties(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		t := time.Now().Add(time.Hour)
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  "",
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -304,7 +303,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -314,7 +313,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("machine_3_1: failed reading token file: %v", err)
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -333,6 +332,8 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 	authenticatorField = reflect.NewAt(
 		authenticatorField.Type(),
 		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
+	// this is the only usage of the x packages in the test, showing the the public interface is
+	// correct.
 	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken("some random happy sunshine string")
 
 	coll := client.Database("test").Collection("test")
@@ -354,12 +355,12 @@ func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
 		t := time.Now().Add(time.Hour)
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  "this is a bad, bad token",
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -397,7 +398,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -407,7 +408,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("machine_3_3: failed reading token file: %v", err)
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -472,7 +473,7 @@ func machine41ReauthenticationSucceeds() error {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -482,7 +483,7 @@ func machine41ReauthenticationSucceeds() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("machine_4_1: failed reading token file: %v", err)
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -538,7 +539,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -550,13 +551,13 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 			if err != nil {
 				callbackFailed = fmt.Errorf("machine_4_2: failed reading token file: %v", err)
 			}
-			return &driver.OIDCCredential{
+			return &options.OIDCCredential{
 				AccessToken:  string(accessToken),
 				ExpiresAt:    &t,
 				RefreshToken: nil,
 			}, nil
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  "this is a bad, bad token",
 			ExpiresAt:    &t,
 			RefreshToken: nil,
@@ -619,7 +620,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
 	}
 
-	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *driver.OIDCArgs) (*driver.OIDCCredential, error) {
+	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
@@ -631,13 +632,13 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 			if err != nil {
 				callbackFailed = fmt.Errorf("machine_4_3: failed reading token file: %v", err)
 			}
-			return &driver.OIDCCredential{
+			return &options.OIDCCredential{
 				AccessToken:  string(accessToken),
 				ExpiresAt:    &t,
 				RefreshToken: nil,
 			}, nil
 		}
-		return &driver.OIDCCredential{
+		return &options.OIDCCredential{
 			AccessToken:  "this is a bad, bad token",
 			ExpiresAt:    &t,
 			RefreshToken: nil,
