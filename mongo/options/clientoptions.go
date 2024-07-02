@@ -118,7 +118,8 @@ type Credential struct {
 // nil in the OIDCArgs for the Machine flow.
 type OIDCCallback = driver.OIDCCallback
 
-// OIDCArgs contains the arguments for OIDC authentication.
+// OIDCArgs contains the arguments for OIDC authentication that are passed to the OIDCCallback
+// function.
 type OIDCArgs = driver.OIDCArgs
 
 // OIDCCredential contains the OIDC access and refresh tokens, and is the type returned by an
