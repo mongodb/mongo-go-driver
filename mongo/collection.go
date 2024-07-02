@@ -87,6 +87,9 @@ func mergeCollectionOptions(opts ...*options.CollectionOptions) *options.Collect
 		if opt.Registry != nil {
 			c.Registry = opt.Registry
 		}
+		if opt.BSONOptions != nil {
+			c.BSONOptions = opt.BSONOptions
+		}
 	}
 
 	return c
@@ -953,9 +956,6 @@ func mergeAggregateOptions(opts ...*options.AggregateOptions) *options.Aggregate
 		if ao.Collation != nil {
 			aggOpts.Collation = ao.Collation
 		}
-		if ao.MaxTime != nil {
-			aggOpts.MaxTime = ao.MaxTime
-		}
 		if ao.MaxAwaitTime != nil {
 			aggOpts.MaxAwaitTime = ao.MaxAwaitTime
 		}
@@ -1040,8 +1040,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		Crypt(a.client.cryptFLE).
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout).
-		MaxTime(ao.MaxTime)
+		Timeout(a.client.timeout)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
@@ -1058,7 +1057,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		op.Collation(bsoncore.Document(ao.Collation.ToDocument()))
 	}
 	if ao.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*ao.MaxAwaitTime / time.Millisecond)
+		cursorOpts.SetMaxAwaitTime(*ao.MaxAwaitTime)
 	}
 	if ao.Comment != nil {
 		comment, err := marshalValue(ao.Comment, a.bsonOpts, a.registry)
@@ -1155,9 +1154,6 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		if co.Limit != nil {
 			countOpts.Limit = co.Limit
 		}
-		if co.MaxTime != nil {
-			countOpts.MaxTime = co.MaxTime
-		}
 		if co.Skip != nil {
 			countOpts.Skip = co.Skip
 		}
@@ -1186,7 +1182,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(countOpts.MaxTime)
+		Timeout(coll.client.timeout)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -1277,16 +1273,13 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		if opt.Comment != nil {
 			co.Comment = opt.Comment
 		}
-		if opt.MaxTime != nil {
-			co.MaxTime = opt.MaxTime
-		}
 	}
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(co.MaxTime)
+		Timeout(coll.client.timeout)
 
 	if co.Comment != nil {
 		comment, err := marshalValue(co.Comment, coll.bsonOpts, coll.registry)
@@ -1322,7 +1315,6 @@ func (coll *Collection) Distinct(
 	filter interface{},
 	opts ...*options.DistinctOptions,
 ) *DistinctResult {
-
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1361,9 +1353,6 @@ func (coll *Collection) Distinct(
 		if do.Comment != nil {
 			option.Comment = do.Comment
 		}
-		if do.MaxTime != nil {
-			option.MaxTime = do.MaxTime
-		}
 	}
 
 	op := operation.NewDistinct(fieldName, f).
@@ -1371,7 +1360,7 @@ func (coll *Collection) Distinct(
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(option.MaxTime)
+		Timeout(coll.client.timeout)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -1402,8 +1391,9 @@ func (coll *Collection) Distinct(
 	}
 
 	return &DistinctResult{
-		reg: coll.registry,
-		arr: bson.RawArray(arr),
+		reg:      coll.registry,
+		arr:      bson.RawArray(arr),
+		bsonOpts: coll.bsonOpts,
 	}
 }
 
@@ -1446,9 +1436,6 @@ func mergeFindOptions(opts ...*options.FindOptions) *options.FindOptions {
 		}
 		if opt.MaxAwaitTime != nil {
 			fo.MaxAwaitTime = opt.MaxAwaitTime
-		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
 		}
 		if opt.Min != nil {
 			fo.Min = opt.Min
@@ -1525,7 +1512,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(fo.MaxTime).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1596,7 +1583,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		op.Max(max)
 	}
 	if fo.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*fo.MaxAwaitTime / time.Millisecond)
+		cursorOpts.SetMaxAwaitTime(*fo.MaxAwaitTime)
 	}
 	if fo.Min != nil {
 		min, err := marshal(fo.Min, coll.bsonOpts, coll.registry)
@@ -1664,7 +1651,6 @@ func newFindOptionsFromFindOneOptions(opts ...*options.FindOneOptions) []*option
 			Comment:             opt.Comment,
 			Hint:                opt.Hint,
 			Max:                 opt.Max,
-			MaxTime:             opt.MaxTime,
 			Min:                 opt.Min,
 			Projection:          opt.Projection,
 			ReturnKey:           opt.ReturnKey,
@@ -1778,9 +1764,6 @@ func mergeFindOneAndDeleteOptions(opts ...*options.FindOneAndDeleteOptions) *opt
 		if opt.Comment != nil {
 			fo.Comment = opt.Comment
 		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
 		if opt.Projection != nil {
 			fo.Projection = opt.Projection
 		}
@@ -1817,8 +1800,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		return &SingleResult{err: err}
 	}
 	fod := mergeFindOneAndDeleteOptions(opts...)
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
-		MaxTime(fod.MaxTime)
+	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 	if fod.Collation != nil {
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
@@ -1884,9 +1866,6 @@ func mergeFindOneAndReplaceOptions(opts ...*options.FindOneAndReplaceOptions) *o
 		if opt.Comment != nil {
 			fo.Comment = opt.Comment
 		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
 		if opt.Projection != nil {
 			fo.Projection = opt.Projection
 		}
@@ -1941,7 +1920,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	fo := mergeFindOneAndReplaceOptions(opts...)
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).MaxTime(fo.MaxTime)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
@@ -2019,9 +1998,6 @@ func mergeFindOneAndUpdateOptions(opts ...*options.FindOneAndUpdateOptions) *opt
 		if opt.Comment != nil {
 			fo.Comment = opt.Comment
 		}
-		if opt.MaxTime != nil {
-			fo.MaxTime = opt.MaxTime
-		}
 		if opt.Projection != nil {
 			fo.Projection = opt.Projection
 		}
@@ -2073,8 +2049,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 
 	fo := mergeFindOneAndUpdateOptions(opts...)
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
-		MaxTime(fo.MaxTime)
+	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {

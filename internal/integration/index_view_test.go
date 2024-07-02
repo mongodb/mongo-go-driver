@@ -9,7 +9,6 @@ package integration
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
@@ -540,16 +539,20 @@ func TestIndexView(t *testing.T) {
 			assert.True(mt, cmp.Equal(specs, expectedSpecs), "expected specifications to match: %v", cmp.Diff(specs, expectedSpecs))
 		})
 		mt.RunOpts("options passed to listIndexes", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
-			opts := options.ListIndexes().SetMaxTime(100 * time.Millisecond)
+			opts := options.ListIndexes().SetBatchSize(1)
 			_, err := mt.Coll.Indexes().ListSpecifications(context.Background(), opts)
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, evt.CommandName, "listIndexes", "expected %q command to be sent, got %q", "listIndexes",
 				evt.CommandName)
-			maxTimeMS, ok := evt.Command.Lookup("maxTimeMS").Int64OK()
-			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "maxTimeMS")
-			assert.Equal(mt, int64(100), maxTimeMS, "expected maxTimeMS value to be 100, got %d", maxTimeMS)
+
+			cursorDoc, ok := evt.Command.Lookup("cursor").DocumentOK()
+			assert.True(mt, ok, "expected command: %v to contain a cursor document", evt.Command)
+
+			batchSize, ok := cursorDoc.Lookup("batchSize").Int32OK()
+			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "batchSize")
+			assert.Equal(mt, int32(1), batchSize, "expected batchSize value to be 1, got %d", batchSize)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {

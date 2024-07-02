@@ -108,15 +108,12 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		if opt.BatchSize != nil {
 			lio.BatchSize = opt.BatchSize
 		}
-		if opt.MaxTime != nil {
-			lio.MaxTime = opt.MaxTime
-		}
 	}
 	if lio.BatchSize != nil {
 		op = op.BatchSize(*lio.BatchSize)
 		cursorOpts.BatchSize = *lio.BatchSize
 	}
-	op = op.MaxTime(lio.MaxTime)
+
 	retry := driver.RetryNone
 	if iv.coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -277,9 +274,6 @@ func (iv IndexView) CreateMany(
 		if opt == nil {
 			continue
 		}
-		if opt.MaxTime != nil {
-			option.MaxTime = opt.MaxTime
-		}
 		if opt.CommitQuorum != nil {
 			option.CommitQuorum = opt.CommitQuorum
 		}
@@ -289,7 +283,7 @@ func (iv IndexView) CreateMany(
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(option.MaxTime).Crypt(iv.coll.client.cryptFLE)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 	if option.CommitQuorum != nil {
 		commitQuorum, err := marshalValue(option.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
@@ -390,7 +384,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropIndexesOptions) (bson.Raw, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -416,21 +410,12 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	dio := options.DropIndexes()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.MaxTime != nil {
-			dio.MaxTime = opt.MaxTime
-		}
-	}
 	op := operation.NewDropIndexes(name).
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime).Crypt(iv.coll.client.cryptFLE)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 
 	err = op.Execute(ctx)
 	if err != nil {

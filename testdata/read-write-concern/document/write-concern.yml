@@ -36,6 +36,7 @@ tests:
         isAcknowledged: true
     -
         description: "WTimeoutMS"
+        skipReason: "GODRIVER-2348: the wtimeoutMS write concern option is not supported"
         valid: true
         writeConcern: { wtimeoutMS: 1000 }
         writeConcernDocument: { wtimeout: 1000 }
@@ -43,6 +44,7 @@ tests:
         isAcknowledged: true
     -
         description: "WTimeoutMS as an invalid number"
+        skipReason: "GODRIVER-2348: the wtimeoutMS write concern option is not supported"
         valid: false
         writeConcern: { wtimeoutMS: -1000 }
         writeConcernDocument: ~
@@ -71,6 +73,7 @@ tests:
         isAcknowledged: false
     -
         description: "Unacknowledged with wtimeoutMS"
+        skipReason: "GODRIVER-2348: the wtimeoutMS write concern option is not supported"
         valid: true
         writeConcern: { w: 0, wtimeoutMS: 500 }
         writeConcernDocument: { w: 0, wtimeout: 500 }

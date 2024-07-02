@@ -133,7 +133,6 @@ func IsDuplicateKeyError(err error) bool {
 var timeoutErrs = [...]error{
 	context.DeadlineExceeded,
 	driver.ErrDeadlineWouldBeExceeded,
-	topology.ErrServerSelectionTimeout,
 }
 
 // IsTimeout returns true if err was caused by a timeout. For error chains,

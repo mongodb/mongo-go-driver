@@ -501,4 +501,13 @@ func TestClient(t *testing.T) {
 			})
 		}
 	})
+	t.Run("negative timeout will err", func(t *testing.T) {
+		t.Parallel()
+
+		copts := options.Client().SetTimeout(-1 * time.Second)
+		_, err := Connect(copts)
+
+		errmsg := `invalid value "-1s" for "Timeout": value must be positive`
+		assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
+	})
 }
