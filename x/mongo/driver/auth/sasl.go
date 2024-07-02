@@ -152,23 +152,16 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 	}
 }
 
-// ConductSaslConversation runs a full SASL conversation to authenticate the given connection, given
-// sasl arguments.
+// ConductSaslConversation runs a full SASL conversation to authenticate the given connection.
 func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
-	return runSaslConversation(ctx, cfg, conversation)
-}
-
-// runSaslConversation runs a SASL conversation to authenticate the given connection, given a
-// pre-built saslConversation.
-func runSaslConversation(ctx context.Context, cfg *Config, conversation *saslConversation) error {
 	saslStartDoc, err := conversation.FirstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
 	}
 	saslStartCmd := operation.NewCommand(saslStartDoc).
-		Database(conversation.source).
+		Database(authSource).
 		Deployment(driver.SingleConnectionDeployment{cfg.Connection}).
 		ClusterClock(cfg.ClusterClock).
 		ServerAPI(cfg.ServerAPI)

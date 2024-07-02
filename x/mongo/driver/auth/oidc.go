@@ -36,6 +36,11 @@ const testEnvironmentValue = "test"
 
 const apiVersion = 1
 const invalidateSleepTimeout = 100 * time.Millisecond
+
+// The CSOT specification says to apply a 1-minute timeout if "CSOT is not applied". That's
+// ambiguous for the v1.x Go Driver because it could mean either "no timeout provided" or "CSOT not
+// enabled". Always use a maximum timeout duration of 1 minute, allowing us to ignore the ambiguity.
+// Contexts with a shorter timeout are unaffected.
 const machineCallbackTimeout = 60 * time.Second
 
 //GODRIVER-3246	OIDC: Implement Human Callback Mechanism
@@ -299,9 +304,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *Config, _ OIDCCallback) error {
 	// TODO GODRIVER-3246: Implement OIDC human flow
-	// Println is for linter
-	fmt.Println("OIDC human flow not implemented yet", oa.idpInfo)
-	return newAuthError("OIDC human flow not implemented yet", nil)
+	return newAuthError("OIDC", fmt.Errorf("human flow not implemented yet, %v", oa.idpInfo))
 }
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
@@ -319,9 +322,11 @@ func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, mac
 	if err != nil {
 		return err
 	}
-	return runSaslConversation(ctx,
+	return ConductSaslConversation(
+		ctx,
 		cfg,
-		newSaslConversation(&oidcOneStep{accessToken: accessToken}, "$external", false),
+		"$external",
+		&oidcOneStep{accessToken: accessToken},
 	)
 }
 
