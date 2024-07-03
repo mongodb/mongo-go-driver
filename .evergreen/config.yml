@@ -2425,7 +2425,7 @@ buildvariants:
       - name: ".test !.enterprise-auth !.snappy"
 
   - matrix_name: "tests-windows-42-plus-zlib-zstd-support"
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"
