@@ -65,13 +65,34 @@ func main() {
 	hasError := false
 	aux := func(test_name string, f func() error) {
 		fmt.Printf("%s...", test_name)
-		err := f()
-		if err != nil {
-			fmt.Println("Test Error: ", err)
-			fmt.Println("...Failed")
-			hasError = true
-		} else {
+		if os.Getenv("OIDC_ENV") != "" {
+			fmt.Println("Not empty env, skipping test")
 			fmt.Println("...Ok")
+		} else {
+			err := f()
+			if err != nil {
+				fmt.Println("Test Error: ", err)
+				fmt.Println("...Failed")
+				hasError = true
+			} else {
+				fmt.Println("...Ok")
+			}
+		}
+	}
+	auxAzure := func(test_name string, f func() error) {
+		fmt.Printf("%s...", test_name)
+		if os.Getenv("OIDC_ENV") != "azure" {
+			fmt.Println("Not azure env, skipping test")
+			fmt.Println("...Ok")
+		} else {
+			err := f()
+			if err != nil {
+				fmt.Println("Test Error: ", err)
+				fmt.Println("...Failed")
+				hasError = true
+			} else {
+				fmt.Println("...Ok")
+			}
 		}
 	}
 	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
@@ -85,6 +106,8 @@ func main() {
 	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
 	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
 	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	auxAzure("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
+	auxAzure("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -685,4 +708,41 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 		return fmt.Errorf("machine_4_3: expected callback count to be 2, got %d", callbackCount)
 	}
 	return callbackFailed
+}
+
+func machine51azureWithNoUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	client, err := mongo.Connect(context.Background(), opts)
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_5_1: failed executing Find: %v", err)
+	}
+	return nil
+}
+
+func machine52azureWithBadUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	opts.Auth.Username = "bad"
+	client, err := mongo.Connect(context.Background(), opts)
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("machine_5_2: Find succeeded when it should fail")
+	}
+	return nil
 }
