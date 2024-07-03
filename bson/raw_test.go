@@ -414,6 +414,21 @@ func BenchmarkRawString(b *testing.B) {
 				Key4: 1234567890.123456789,
 			},
 		},
+		// Very voluminous document with hundreds of thousands of keys
+		{
+			description: "very_voluminous_document",
+			value:       createVoluminousDocument(100000),
+		},
+		// Document containing large strings and values
+		{
+			description: "large_strings_and_values",
+			value:       createLargeStringsDocument(10),
+		},
+		// Document with massive arrays that are large
+		{
+			description: "massive_arrays",
+			value:       createMassiveArraysDocument(100000),
+		},
 	}
 
 	for _, tc := range cases {
@@ -436,5 +451,39 @@ func BenchmarkRawString(b *testing.B) {
 				_ = Raw(bs).StringN(1024) // Assuming you want to limit to 1024 bytes for this benchmark
 			}
 		})
+	}
+}
+
+// createVoluminousDocument generates a document with a specified number of keys, simulating a very large document in terms of the number of keys.
+func createVoluminousDocument(numKeys int) D {
+	d := make(D, numKeys)
+	for i := 0; i < numKeys; i++ {
+		d = append(d, E{Key: fmt.Sprintf("key%d", i), Value: "value"})
+	}
+	return d
+}
+
+// createLargeStringsDocument generates a document with large string values, simulating a document with very large data values.
+func createLargeStringsDocument(sizeMB int) D {
+	largeString := strings.Repeat("a", sizeMB*1024*1024)
+	return D{
+		{Key: "largeString1", Value: largeString},
+		{Key: "largeString2", Value: largeString},
+		{Key: "largeString3", Value: largeString},
+		{Key: "largeString4", Value: largeString},
+	}
+}
+
+// createMassiveArraysDocument generates a document with massive arrays, simulating a document that contains large arrays of data.
+func createMassiveArraysDocument(arraySize int) D {
+	massiveArray := make([]string, arraySize)
+	for i := 0; i < arraySize; i++ {
+		massiveArray[i] = "value"
+	}
+	return D{
+		{Key: "massiveArray1", Value: massiveArray},
+		{Key: "massiveArray2", Value: massiveArray},
+		{Key: "massiveArray3", Value: massiveArray},
+		{Key: "massiveArray4", Value: massiveArray},
 	}
 }

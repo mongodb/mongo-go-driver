@@ -141,9 +141,11 @@ func (a Array) StringN(n int) string {
 			if buf.Len()+len(str) > n {
 				truncatedStr := truncate(str, uint(n-buf.Len()))
 				buf.WriteString(truncatedStr)
+				break
 			} else {
 				buf.WriteString(str)
 			}
+
 			if length > 1 {
 				buf.WriteByte(',')
 			}
@@ -153,7 +155,14 @@ func (a Array) StringN(n int) string {
 		}
 	}
 
-	buf.WriteByte(']')
+	if buf.Len()+1 <= n {
+		buf.WriteByte(']')
+	} else {
+		truncatedStr := truncate(buf.String(), uint(n))
+		buf.Reset()
+		buf.WriteString(truncatedStr)
+	}
+
 	return buf.String()
 }
 
