@@ -15,7 +15,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -651,18 +650,6 @@ func TestIndexView(t *testing.T) {
 				},
 				index: bson.D{{"foo", 1}, {"bar", 1}},
 			},
-			/*{
-				name: "clustered indexes",
-				models: []mongo.IndexModel{
-					{
-						Keys: bson.Raw(bsoncore.NewDocumentBuilder().AppendInt32("foo", 1).Build()),
-					},
-					{
-						Keys: map[string]interface{}{"key": bson.D{{"_id", 1}}},
-					},
-				},
-				index: map[string]interface{}{"key": bson.D{{"_id", 1}}},
-			},*/
 			{
 				name: "text index",
 				models: []mongo.IndexModel{
@@ -670,11 +657,11 @@ func TestIndexView(t *testing.T) {
 						Keys: bson.D{{"_id", 1}},
 					},
 					{
-						Keys: bson.D{{"plot", "text"}},
+						Keys: bson.D{{"plot1", "text"}, {"plot2", "text"}},
 					},
 				},
+				// Key is automatically set to Full Text Search for any text index
 				index: map[string]interface{}{"_fts": "text", "_ftsx": 1},
-				//index: map[string]interface{}{"plot": "text"},
 			},
 		}
 
@@ -684,23 +671,12 @@ func TestIndexView(t *testing.T) {
 				indexNames, err := iv.CreateMany(context.Background(), test.models)
 
 				assert.NoError(mt, err)
-				assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
-
-				// List existing indexes
-				cursor, err := mt.Coll.Indexes().List(context.Background())
-				require.NoError(t, err)
-
-				var indexes []bson.M
-				err = cursor.All(context.Background(), &indexes)
-				require.NoError(t, err)
-
-				t.Logf("Existing indexes: %v", indexes)
-				//////
+				assert.Equal(mt, len(test.models), len(indexNames), "expected %v index names, got %v", len(test.models), len(indexNames))
 
 				_, err = iv.DropWithKey(context.Background(), test.index)
 				assert.Nil(mt, err, "DropOne error: %v", err)
 
-				cursor, err = iv.List(context.Background())
+				cursor, err := iv.List(context.Background())
 				assert.Nil(mt, err, "List error: %v", err)
 				for cursor.Next(context.Background()) {
 					var idx index
