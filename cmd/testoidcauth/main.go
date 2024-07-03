@@ -65,49 +65,35 @@ func main() {
 	hasError := false
 	aux := func(test_name string, f func() error) {
 		fmt.Printf("%s...", test_name)
-		if os.Getenv("OIDC_ENV") != "" {
-			fmt.Println("Not empty env, skipping test")
-			fmt.Println("...Ok")
+		err := f()
+		if err != nil {
+			fmt.Println("Test Error: ", err)
+			fmt.Println("...Failed")
+			hasError = true
 		} else {
-			err := f()
-			if err != nil {
-				fmt.Println("Test Error: ", err)
-				fmt.Println("...Failed")
-				hasError = true
-			} else {
-				fmt.Println("...Ok")
-			}
+			fmt.Println("...Ok")
 		}
 	}
-	auxAzure := func(test_name string, f func() error) {
-		fmt.Printf("%s...", test_name)
-		if os.Getenv("OIDC_ENV") != "azure" {
-			fmt.Println("Not azure env, skipping test")
-			fmt.Println("...Ok")
-		} else {
-			err := f()
-			if err != nil {
-				fmt.Println("Test Error: ", err)
-				fmt.Println("...Failed")
-				hasError = true
-			} else {
-				fmt.Println("...Ok")
-			}
-		}
+	env := os.Getenv("OIDC_ENV")
+	switch env {
+	case "":
+		aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
+		aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
+		aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
+		aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
+		aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
+		aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
+		aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
+		aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
+		aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
+		aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
+		aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	case "azure":
+		aux("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
+		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
+	default:
+		log.Fatal("Unknown OIDC_ENV: ", env)
 	}
-	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
-	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
-	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
-	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
-	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
-	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
-	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
-	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
-	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
-	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
-	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
-	auxAzure("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
-	auxAzure("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -711,7 +697,9 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 }
 
 func machine51azureWithNoUsername() error {
+	fmt.Println("1")
 	opts := options.Client().ApplyURI(uriSingle)
+	fmt.Println("2")
 	client, err := mongo.Connect(context.Background(), opts)
 	defer client.Disconnect(context.Background())
 
@@ -719,8 +707,10 @@ func machine51azureWithNoUsername() error {
 		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
 	}
 
+	fmt.Println("3")
 	coll := client.Database("test").Collection("test")
 
+	fmt.Println("4")
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err != nil {
 		return fmt.Errorf("machine_5_1: failed executing Find: %v", err)

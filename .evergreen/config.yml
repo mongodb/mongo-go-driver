@@ -1979,23 +1979,30 @@ tasks:
     commands:
     - command: shell.exec
       params:
-        working_dir: src
+        working_dir: src/go.mongodb.org/mongo-driver
         shell: bash
         script: |-
           set -o errexit
           ${PREPARE_SHELL}
-          export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar
-          go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test cmd/testoidcauth/main.go
-          rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
-          tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
-          tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./.evergreen
-          rm "$AZUREOIDC_DRIVERS_TAR_FILE".gz || true
-          gzip $AZUREOIDC_DRIVERS_TAR_FILE
+          echo "----------------"
+          ls
+          echo "----------------"
+          pwd
+          echo "----------------"
           export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
+          rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
+          tar -czvf $AZUREOIDC_DRIVERS_TAR_FILE .
+          #go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./cmd/testoidcauth/main.go
+          #rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
+          #tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
+          #tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./.evergreen
+          #rm "$AZUREOIDC_DRIVERS_TAR_FILE".gz || true
+          #gzip $AZUREOIDC_DRIVERS_TAR_FILE
+          #export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
           # Define the command to run on the azure VM.
           # Ensure that we source the environment file created for us, set up any other variables we need,
           # and then run our test suite on the vm.
-          export AZUREOIDC_TEST_CMD="ls -laR data && PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./test"
+          export AZUREOIDC_TEST_CMD="find . && PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh"
           bash $DRIVERS_TOOLS/.evergreen/auth_oidc/azure/run-driver-test.sh
 
   - name: "test-search-index"
@@ -2326,7 +2333,7 @@ task_groups:
         params:
           binary: bash
           env:
-            AZUREOIDC_VMNAME_PREFIX: "RUST_DRIVER"
+            AZUREOIDC_VMNAME_PREFIX: "GO_DRIVER"
           args:
             - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/azure/create-and-setup-vm.sh
     teardown_task:
