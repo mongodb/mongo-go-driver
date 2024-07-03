@@ -111,7 +111,9 @@ func (di *DropIndexes) command(dst []byte, _ description.SelectedServer) ([]byte
 	case string:
 		dst = bsoncore.AppendStringElement(dst, "index", di.index.(string))
 	case bsoncore.Document:
-		dst = bsoncore.AppendDocumentElement(dst, "index", di.index.(bsoncore.Document))
+		if di.index != nil {
+			dst = bsoncore.AppendDocumentElement(dst, "index", di.index.(bsoncore.Document))
+		}
 	}
 
 	return dst, nil
