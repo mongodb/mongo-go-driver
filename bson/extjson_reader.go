@@ -10,51 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sync"
 )
-
-// ExtJSONValueReaderPool is a pool for ValueReaders that read ExtJSON.
-//
-// Deprecated: ExtJSONValueReaderPool will not be supported in Go Driver 2.0.
-type ExtJSONValueReaderPool struct {
-	pool sync.Pool
-}
-
-// NewExtJSONValueReaderPool instantiates a new ExtJSONValueReaderPool.
-//
-// Deprecated: ExtJSONValueReaderPool will not be supported in Go Driver 2.0.
-func NewExtJSONValueReaderPool() *ExtJSONValueReaderPool {
-	return &ExtJSONValueReaderPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(extJSONValueReader)
-			},
-		},
-	}
-}
-
-// Get retrieves a ValueReader from the pool and uses src as the underlying ExtJSON.
-//
-// Deprecated: ExtJSONValueReaderPool will not be supported in Go Driver 2.0.
-func (bvrp *ExtJSONValueReaderPool) Get(r io.Reader, canonical bool) (ValueReader, error) {
-	vr := bvrp.pool.Get().(*extJSONValueReader)
-	return vr.reset(r, canonical)
-}
-
-// Put inserts a ValueReader into the pool. If the ValueReader is not a ExtJSON ValueReader nothing
-// is inserted into the pool and ok will be false.
-//
-// Deprecated: ExtJSONValueReaderPool will not be supported in Go Driver 2.0.
-func (bvrp *ExtJSONValueReaderPool) Put(vr ValueReader) (ok bool) {
-	bvr, ok := vr.(*extJSONValueReader)
-	if !ok {
-		return false
-	}
-
-	bvr, _ = bvr.reset(nil, false)
-	bvrp.pool.Put(bvr)
-	return true
-}
 
 type ejvrState struct {
 	mode  mode

@@ -23,7 +23,15 @@ type outputArgs struct {
 	Val  *int64
 }
 
+func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val interface{}) error {
+	t.Helper()
+
+	vr := NewValueReader(data)
+	return unmarshalFromReader(dc, vr, val)
+}
+
 func TestTruncation(t *testing.T) {
+
 	t.Run("truncation", func(t *testing.T) {
 		inputName := "truncation"
 		inputVal := 4.7892
@@ -44,7 +52,7 @@ func TestTruncation(t *testing.T) {
 			Truncate: true,
 		}
 
-		err = UnmarshalWithContext(dc, buf.Bytes(), &output)
+		err = unmarshalWithContext(t, dc, buf.Bytes(), &output)
 		assert.Nil(t, err)
 
 		assert.Equal(t, inputName, output.Name)
@@ -71,7 +79,7 @@ func TestTruncation(t *testing.T) {
 		}
 
 		// case throws an error when truncation is disabled
-		err = UnmarshalWithContext(dc, buf.Bytes(), &output)
+		err = unmarshalWithContext(t, dc, buf.Bytes(), &output)
 		assert.NotNil(t, err)
 	})
 }

@@ -23,7 +23,7 @@ var errInvalidValue = errors.New("cannot encode invalid element")
 
 var sliceWriterPool = sync.Pool{
 	New: func() interface{} {
-		sw := make(SliceWriter, 0)
+		sw := make(sliceWriter, 0)
 		return &sw
 	},
 }
@@ -507,7 +507,7 @@ func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Valu
 		return err
 	}
 
-	sw := sliceWriterPool.Get().(*SliceWriter)
+	sw := sliceWriterPool.Get().(*sliceWriter)
 	defer sliceWriterPool.Put(sw)
 	*sw = (*sw)[:0]
 

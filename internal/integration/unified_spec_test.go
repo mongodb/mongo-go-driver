@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -208,7 +209,11 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	assert.Nil(t, err, "unable to read spec test file %v: %v", filePath, err)
 
 	var testFile testFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
 	assert.Nil(t, err, "unable to unmarshal spec test file at %v: %v", filePath, err)
 
 	// create mtest wrapper and skip if needed

@@ -52,7 +52,7 @@ func TestCondAddrCodec(t *testing.T) {
 		t.Run("error", func(t *testing.T) {
 			errEncoder := newCondAddrEncoder(encode1, nil)
 			err := errEncoder.EncodeValue(EncodeContext{}, rw, unaddressable)
-			want := ErrNoEncoder{Type: unaddressable.Type()}
+			want := errNoEncoder{Type: unaddressable.Type()}
 			assert.Equal(t, err, want, "expected error %v, got %v", want, err)
 		})
 	})
@@ -88,7 +88,7 @@ func TestCondAddrCodec(t *testing.T) {
 		t.Run("error", func(t *testing.T) {
 			errDecoder := newCondAddrDecoder(decode1, nil)
 			err := errDecoder.DecodeValue(DecodeContext{}, rw, unaddressable)
-			want := ErrNoDecoder{Type: unaddressable.Type()}
+			want := errNoDecoder{Type: unaddressable.Type()}
 			assert.Equal(t, err, want, "expected error %v, got %v", want, err)
 		})
 	})

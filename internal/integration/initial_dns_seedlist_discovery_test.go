@@ -7,9 +7,9 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
-	"io/ioutil"
 	"os"
 	"path"
 	"runtime"
@@ -92,12 +92,16 @@ func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions
 }
 
 func runSeedlistDiscoveryTest(mt *mtest.T, file string) {
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	assert.Nil(mt, err, "ReadFile error for %v: %v", file, err)
 
 	var test seedlistTest
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &test)
-	assert.Nil(mt, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(mt, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&test)
+	assert.Nil(mt, err, "decode error: %v", err)
 
 	if runtime.GOOS == "windows" && strings.HasSuffix(file, "/two-txt-records.json") {
 		mt.Skip("skipping to avoid windows multiple TXT record lookup bug")

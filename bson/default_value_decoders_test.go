@@ -818,7 +818,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					readDocument,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadElement Error",
@@ -904,7 +904,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{BSONType: TypeArray},
 					readArray,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadValue Error",
@@ -998,7 +998,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{BSONType: TypeArray},
 					readArray,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadValue Error",
@@ -1558,7 +1558,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"No Decoder", &wrong, &DecodeContext{Registry: buildDefaultRegistry()}, nil, nothing,
-					ErrNoDecoder{Type: reflect.TypeOf(wrong)},
+					errNoDecoder{Type: reflect.TypeOf(wrong)},
 				},
 				{
 					"decode null",
@@ -3307,7 +3307,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						}
 						val := reflect.New(tEmpty).Elem()
 						dc := DecodeContext{Registry: newTestRegistry()}
-						want := ErrNoTypeMapEntry{Type: tc.bsontype}
+						want := errNoTypeMapEntry{Type: tc.bsontype}
 						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, val)
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
@@ -3324,7 +3324,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						dc := DecodeContext{
 							Registry: reg,
 						}
-						want := ErrNoDecoder{Type: reflect.TypeOf(tc.val)}
+						want := errNoDecoder{Type: reflect.TypeOf(tc.val)}
 						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, val)
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
@@ -3389,7 +3389,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		t.Run("no type registered", func(t *testing.T) {
 			llvr := &valueReaderWriter{BSONType: TypeDouble}
-			want := ErrNoTypeMapEntry{Type: TypeDouble}
+			want := errNoTypeMapEntry{Type: TypeDouble}
 			val := reflect.New(tEmpty).Elem()
 			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{Registry: newTestRegistry()}, llvr, val)
 			if !assert.CompareErrors(got, want) {
@@ -3540,7 +3540,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		}
 		stringStructErr := &DecodeError{
 			keys:    []string{"foo"},
-			wrapped: ErrNoDecoder{reflect.TypeOf("")},
+			wrapped: errNoDecoder{reflect.TypeOf("")},
 		}
 
 		// Test a deeply nested struct mixed with maps and slices.

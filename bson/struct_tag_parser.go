@@ -35,8 +35,6 @@ import (
 //
 //	Skip       This struct field should be skipped. This is usually denoted by parsing a "-"
 //	           for the name.
-//
-// Deprecated: Defining custom BSON struct tag parsers will not be supported in Go Driver 2.0.
 type structTags struct {
 	Name      string
 	OmitEmpty bool

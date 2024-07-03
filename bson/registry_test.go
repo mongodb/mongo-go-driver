@@ -328,7 +328,7 @@ func TestRegistryBuilder(t *testing.T) {
 					"No Codec Registered",
 					ft3,
 					nil,
-					ErrNoEncoder{Type: ft3},
+					errNoEncoder{Type: ft3},
 					false,
 				},
 			}
@@ -348,8 +348,8 @@ func TestRegistryBuilder(t *testing.T) {
 					})
 					t.Run("Decoder", func(t *testing.T) {
 						wanterr := tc.wanterr
-						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
-							wanterr = ErrNoDecoder(ene)
+						if ene, ok := tc.wanterr.(errNoEncoder); ok {
+							wanterr = errNoDecoder(ene)
 						}
 
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
@@ -416,7 +416,7 @@ func TestRegistryBuilder(t *testing.T) {
 		}
 
 		want = nil
-		wanterr := ErrNoTypeMapEntry{Type: TypeObjectID}
+		wanterr := errNoTypeMapEntry{Type: TypeObjectID}
 		got, err = reg.LookupTypeMapEntry(TypeObjectID)
 		if !errors.Is(err, wanterr) {
 			t.Errorf("did not get expected error: got %#v, want %#v", err, wanterr)
@@ -743,7 +743,7 @@ func TestRegistry(t *testing.T) {
 					"No Codec Registered",
 					ft3,
 					nil,
-					ErrNoEncoder{Type: ft3},
+					errNoEncoder{Type: ft3},
 					false,
 				},
 			}
@@ -771,8 +771,8 @@ func TestRegistry(t *testing.T) {
 						t.Parallel()
 
 						wanterr := tc.wanterr
-						if ene, ok := tc.wanterr.(ErrNoEncoder); ok {
-							wanterr = ErrNoDecoder(ene)
+						if ene, ok := tc.wanterr.(errNoEncoder); ok {
+							wanterr = errNoDecoder(ene)
 						}
 
 						gotcodec, goterr := reg.LookupDecoder(tc.t)
@@ -791,7 +791,7 @@ func TestRegistry(t *testing.T) {
 				t.Run("Encoder", func(t *testing.T) {
 					t.Parallel()
 
-					wanterr := ErrNoEncoder{Type: reflect.TypeOf(nil)}
+					wanterr := errNoEncoder{Type: reflect.TypeOf(nil)}
 
 					gotcodec, goterr := reg.LookupEncoder(nil)
 					if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
@@ -804,11 +804,11 @@ func TestRegistry(t *testing.T) {
 				t.Run("Decoder", func(t *testing.T) {
 					t.Parallel()
 
-					wanterr := ErrNilType
+					wanterr := "cannot perform a decoder lookup on <nil>"
 
 					gotcodec, goterr := reg.LookupDecoder(nil)
-					if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
-						t.Errorf("errors did not match: got %#v, want %#v", goterr, wanterr)
+					if !cmp.Equal(goterr.Error(), wanterr, cmp.Comparer(assert.CompareErrors)) {
+						t.Errorf("errors did not match: got %#v, want %q", goterr, wanterr)
 					}
 					if !cmp.Equal(gotcodec, nil, allowunexported, cmp.Comparer(comparepc)) {
 						t.Errorf("codecs did not match: got %v: want nil", gotcodec)
@@ -875,7 +875,7 @@ func TestRegistry(t *testing.T) {
 		}
 
 		want = nil
-		wanterr := ErrNoTypeMapEntry{Type: TypeObjectID}
+		wanterr := errNoTypeMapEntry{Type: TypeObjectID}
 		got, err = reg.LookupTypeMapEntry(TypeObjectID)
 		if !errors.Is(err, wanterr) {
 			t.Errorf("unexpected error: got %#v, want %#v", err, wanterr)

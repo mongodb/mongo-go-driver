@@ -1041,7 +1041,9 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	mt.Helper()
 
 	var testArgs withTransactionArgs
-	err := bson.UnmarshalWithRegistry(specTestRegistry, args, &testArgs)
+	dec := bson.NewDecoder(bson.NewValueReader(args))
+	dec.SetRegistry(specTestRegistry)
+	err := dec.Decode(&testArgs)
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
 	opts := createTransactionOptions(mt, testArgs.Options)
 

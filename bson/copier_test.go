@@ -455,7 +455,7 @@ func TestCopier(t *testing.T) {
 			noerr(t, err)
 			_, _, err = vr.ReadElement()
 			noerr(t, err)
-			btype, got, err := CopyValueToBytes(vr)
+			btype, got, err := copyValueToBytes(vr)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "world")
 			if btype != TypeString {
@@ -467,7 +467,7 @@ func TestCopier(t *testing.T) {
 		})
 		t.Run("Non BytesReader", func(t *testing.T) {
 			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, readval: "Hello, world!"}
-			btype, got, err := CopyValueToBytes(llvrw)
+			btype, got, err := copyValueToBytes(llvrw)
 			noerr(t, err)
 			want := bsoncore.AppendString(nil, "Hello, world!")
 			if btype != TypeString {
@@ -475,53 +475,6 @@ func TestCopier(t *testing.T) {
 			}
 			if !bytes.Equal(got, want) {
 				t.Errorf("Bytes do not match. got %v; want %v", got, want)
-			}
-		})
-	})
-	t.Run("AppendValueBytes", func(t *testing.T) {
-		t.Run("BytesReader", func(t *testing.T) {
-			var idx int32
-			b, err := bsoncore.AppendDocumentEnd(
-				bsoncore.AppendStringElement(
-					bsoncore.AppendDocumentStartInline(nil, &idx),
-					"hello", "world",
-				),
-				idx,
-			)
-			noerr(t, err)
-			vr := newValueReader(b)
-			_, err = vr.ReadDocument()
-			noerr(t, err)
-			_, _, err = vr.ReadElement()
-			noerr(t, err)
-			btype, got, err := appendValueBytes(nil, vr)
-			noerr(t, err)
-			want := bsoncore.AppendString(nil, "world")
-			if btype != TypeString {
-				t.Errorf("Incorrect type returned. got %v; want %v", btype, TypeString)
-			}
-			if !bytes.Equal(got, want) {
-				t.Errorf("Bytes do not match. got %v; want %v", got, want)
-			}
-		})
-		t.Run("Non BytesReader", func(t *testing.T) {
-			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, readval: "Hello, world!"}
-			btype, got, err := appendValueBytes(nil, llvrw)
-			noerr(t, err)
-			want := bsoncore.AppendString(nil, "Hello, world!")
-			if btype != TypeString {
-				t.Errorf("Incorrect type returned. got %v; want %v", btype, TypeString)
-			}
-			if !bytes.Equal(got, want) {
-				t.Errorf("Bytes do not match. got %v; want %v", got, want)
-			}
-		})
-		t.Run("CopyValue error", func(t *testing.T) {
-			want := errors.New("CopyValue error")
-			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, err: want, errAfter: llvrwReadString}
-			_, _, got := appendValueBytes(make([]byte, 0), llvrw)
-			if !assert.CompareErrors(got, want) {
-				t.Errorf("Errors do not match. got %v; want %v", got, want)
 			}
 		})
 	})

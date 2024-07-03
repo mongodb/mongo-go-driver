@@ -14,7 +14,7 @@ import (
 
 const defaultDstCap = 256
 
-var extjPool = NewExtJSONValueWriterPool()
+var extjPool = newExtJSONValueWriterPool()
 
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a valid BSON document.
@@ -96,7 +96,7 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 // Deprecated: Using a custom registry to marshal individual BSON values will not be supported in Go
 // Driver 2.0.
 func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error) {
-	sw := SliceWriter(make([]byte, 0))
+	sw := sliceWriter(make([]byte, 0))
 	vwFlusher := bvwPool.GetAtModeElement(&sw)
 
 	// get an Encoder and encode the value
@@ -119,9 +119,9 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	sw := SliceWriter(make([]byte, 0, defaultDstCap))
-	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
-	defer extjPool.Put(ejvw)
+	sw := sliceWriter(make([]byte, 0, defaultDstCap))
+	ejvw := extjPool.get(&sw, canonical, escapeHTML)
+	defer extjPool.put(ejvw)
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
