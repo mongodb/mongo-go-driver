@@ -612,6 +612,7 @@ func TestIndexView(t *testing.T) {
 			name   string
 			models []mongo.IndexModel
 			index  any
+			want   string
 		}{
 			{
 				name: "custom index name and unique indexes",
@@ -625,6 +626,7 @@ func TestIndexView(t *testing.T) {
 					},
 				},
 				index: bson.D{{"username", 1}},
+				want:  "myidx",
 			},
 			{
 				name: "normal generated index name",
@@ -637,6 +639,7 @@ func TestIndexView(t *testing.T) {
 					},
 				},
 				index: bson.D{{"foo", -1}},
+				want:  "foo_-1",
 			},
 			{
 				name: "compound index",
@@ -649,6 +652,7 @@ func TestIndexView(t *testing.T) {
 					},
 				},
 				index: bson.D{{"foo", 1}, {"bar", 1}},
+				want:  "foo_1_bar_1",
 			},
 			{
 				name: "text index",
@@ -662,6 +666,7 @@ func TestIndexView(t *testing.T) {
 				},
 				// Key is automatically set to Full Text Search for any text index
 				index: map[string]interface{}{"_fts": "text", "_ftsx": 1},
+				want:  "plot1_text_plot2_text",
 			},
 		}
 
@@ -682,7 +687,7 @@ func TestIndexView(t *testing.T) {
 					var idx index
 					err = cursor.Decode(&idx)
 					assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
-					assert.NotEqual(mt, indexNames[1], idx.Name, "found index %v after dropping", indexNames[1])
+					assert.NotEqual(mt, test.want, idx.Name, "found index %v after dropping", test.want)
 				}
 				assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
 			})
