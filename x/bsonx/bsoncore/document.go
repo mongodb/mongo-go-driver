@@ -322,7 +322,7 @@ func (d Document) StringN(n int) string {
 				return ""
 			}
 
-			str := elem.StringN()
+			str := elem.StringN(n)
 			if buf.Len()+len(str) > n {
 				truncatedStr := truncate(str, uint(n-buf.Len()))
 				buf.WriteString(truncatedStr)
@@ -355,18 +355,6 @@ func truncate(str string, width uint) string {
 
 	// Truncate the byte slice of the string to the given width.
 	newStr := str[:width]
-	/*
-		CHANGED
-			// Check if the last byte is in the middle of a multi-byte character. If
-			// it is, then step back until we find the beginning of the character.
-			if newStr[len(newStr)-1]&0xC0 == 0x80 {
-				for i := len(newStr) - 1; i >= 0; i-- {
-					if newStr[i]&0xC0 == 0xC0 {
-						return newStr[:i] + TruncationSuffix
-					}
-				}
-			}
-	*/
 
 	// Check if the last byte is at the beginning of a multi-byte character.
 	// If it is, then remove the last byte.

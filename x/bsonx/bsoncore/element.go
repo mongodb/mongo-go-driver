@@ -131,7 +131,7 @@ func (e Element) String() string {
 }
 
 // String implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
-func (e Element) StringN() string {
+func (e Element) StringN(n int) string {
 	if len(e) <= 0 {
 		return ""
 	}
@@ -148,9 +148,9 @@ func (e Element) StringN() string {
 
 	var str string
 	if arr, ok := val.ArrayOK(); ok {
-		str = arr.StringN(1024)
+		str = arr.StringN(n)
 	} else if _, ok := val.StringValueOK(); ok {
-		str = val.StringN(1024)
+		str = val.StringN(n)
 	} else {
 		str = val.String()
 	}

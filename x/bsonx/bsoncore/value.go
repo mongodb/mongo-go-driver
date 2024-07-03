@@ -362,13 +362,13 @@ func (v Value) StringN(n int) string {
 		if !ok {
 			return ""
 		}
-		return doc.StringN(1024)
+		return doc.StringN(n)
 	case TypeArray:
 		arr, ok := v.ArrayOK()
 		if !ok {
 			return ""
 		}
-		return arr.StringN(1024)
+		return arr.StringN(n)
 	case TypeBinary:
 		subtype, data, ok := v.BinaryOK()
 		if !ok {
