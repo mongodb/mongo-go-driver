@@ -35,7 +35,7 @@ var objectIDCounter = readRandomUint32()
 var processUnique = processUniqueBytes()
 
 var _ encoding.TextMarshaler = ObjectID{}
-var _ encoding.TextUnmarshaler = (*ObjectID)(nil)
+var _ encoding.TextUnmarshaler = &ObjectID{}
 
 // NewObjectID generates a new ObjectID.
 func NewObjectID() ObjectID {

@@ -471,7 +471,7 @@ func (t *prefixPtr) GetBSON() (interface{}, error) {
 func (t *prefixPtr) SetBSON(raw bson.RawValue) error {
 	var s string
 	if raw.Type == 0x0A {
-		return ErrSetZero
+		return bson.ErrMgoSetZero
 	}
 	rval := reflect.ValueOf(&s).Elem()
 	decoder, err := Registry.LookupDecoder(rval.Type())
@@ -498,7 +498,7 @@ func (t prefixVal) GetBSON() (interface{}, error) {
 func (t *prefixVal) SetBSON(raw bson.RawValue) error {
 	var s string
 	if raw.Type == 0x0A {
-		return ErrSetZero
+		return bson.ErrMgoSetZero
 	}
 	rval := reflect.ValueOf(&s).Elem()
 	decoder, err := Registry.LookupDecoder(rval.Type())
@@ -1019,14 +1019,8 @@ func TestUnmarshalSetterErrors(t *testing.T) {
 	assert.Equal(t, "1", m["abc"].Received, "expected m[\"abc\"].Received to be: %v, got: %v", "1", m["abc"].Received)
 }
 
-func TestDMap(t *testing.T) {
-	d := bson.D{{"a", 1}, {"b", 2}}
-	want := bson.M{"a": 1, "b": 2}
-	assert.True(t, reflect.DeepEqual(want, d.Map()), "expected: %v, got: %v", want, d.Map())
-}
-
 func TestUnmarshalSetterErrSetZero(t *testing.T) {
-	setterResult["foo"] = ErrSetZero
+	setterResult["foo"] = bson.ErrMgoSetZero
 	defer delete(setterResult, "field")
 
 	buf := new(bytes.Buffer)

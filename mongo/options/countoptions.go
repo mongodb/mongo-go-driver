@@ -6,8 +6,6 @@
 
 package options
 
-import "time"
-
 // CountOptions represents options that can be used to configure a CountDocuments operation.
 type CountOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
@@ -27,14 +25,6 @@ type CountOptions struct {
 	// The maximum number of documents to count. The default value is 0, which means that there is no limit and all
 	// documents matching the filter will be counted.
 	Limit *int64
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there is
-	// no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in
-	// its place to control the amount of time that a single operation can run before returning an error. MaxTime is
-	// ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// The number of documents to skip before counting. The default value is 0.
 	Skip *int64
@@ -66,16 +56,6 @@ func (co *CountOptions) SetHint(h interface{}) *CountOptions {
 // SetLimit sets the value for the Limit field.
 func (co *CountOptions) SetLimit(i int64) *CountOptions {
 	co.Limit = &i
-	return co
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (co *CountOptions) SetMaxTime(d time.Duration) *CountOptions {
-	co.MaxTime = &d
 	return co
 }
 

@@ -58,14 +58,6 @@ type FindOptions struct {
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
 	MaxAwaitTime *time.Duration
 
-	// MaxTime is the maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in its
-	// place to control the amount of time that a single operation can run before returning an error. MaxTime is ignored if
-	// Timeout is set on the client.
-	MaxTime *time.Duration
-
 	// Min is a document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
 	// there is no minimum value.
 	Min interface{}
@@ -171,16 +163,6 @@ func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 	return f
 }
 
-// SetMaxTime specifies the max time to allow the query to run.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used used in its place to control the amount of time that a single operation
-// can run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOptions) SetMaxTime(d time.Duration) *FindOptions {
-	f.MaxTime = &d
-	return f
-}
-
 // SetMin sets the value for the Min field.
 func (f *FindOptions) SetMin(min interface{}) *FindOptions {
 	f.Min = min
@@ -248,14 +230,6 @@ type FindOneOptions struct {
 	// there is no maximum value.
 	Max interface{}
 
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
-
 	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
 	// there is no minimum value.
 	Min interface{}
@@ -315,16 +289,6 @@ func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 	return f
 }
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
-	f.MaxTime = &d
-	return f
-}
-
 // SetMin sets the value for the Min field.
 func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
 	f.Min = min
@@ -378,14 +342,6 @@ type FindOneAndReplaceOptions struct {
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
-
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
 	Projection interface{}
@@ -438,16 +394,6 @@ func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAn
 // SetComment sets the value for the Comment field.
 func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndReplaceOptions {
 	f.Comment = comment
-	return f
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneAndReplaceOptions) SetMaxTime(d time.Duration) *FindOneAndReplaceOptions {
-	f.MaxTime = &d
 	return f
 }
 
@@ -508,14 +454,6 @@ type FindOneAndUpdateOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime is
-	// ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
@@ -578,16 +516,6 @@ func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpd
 	return f
 }
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneAndUpdateOptions) SetMaxTime(d time.Duration) *FindOneAndUpdateOptions {
-	f.MaxTime = &d
-	return f
-}
-
 // SetProjection sets the value for the Projection field.
 func (f *FindOneAndUpdateOptions) SetProjection(projection interface{}) *FindOneAndUpdateOptions {
 	f.Projection = projection
@@ -635,14 +563,6 @@ type FindOneAndDeleteOptions struct {
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
-
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
 	Projection interface{}
@@ -681,16 +601,6 @@ func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAnd
 // SetComment sets the value for the Comment field.
 func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDeleteOptions {
 	f.Comment = comment
-	return f
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneAndDeleteOptions) SetMaxTime(d time.Duration) *FindOneAndDeleteOptions {
-	f.MaxTime = &d
 	return f
 }
 

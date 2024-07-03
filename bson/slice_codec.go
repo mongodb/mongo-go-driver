@@ -10,45 +10,22 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
-var defaultSliceCodec = NewSliceCodec()
-
-// SliceCodec is the Codec used for slice values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// SliceCodec registered.
-type SliceCodec struct {
-	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
+// sliceCodec is the Codec used for slice values.
+type sliceCodec struct {
+	// encodeNilAsEmpty causes EncodeValue to marshal nil Go slices as empty BSON arrays instead of
 	// BSON null.
-	//
-	// Deprecated: Use bson.Encoder.NilSliceAsEmpty instead.
-	EncodeNilAsEmpty bool
-}
-
-// NewSliceCodec returns a MapCodec with options opts.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// SliceCodec registered.
-func NewSliceCodec(opts ...*bsonoptions.SliceCodecOptions) *SliceCodec {
-	sliceOpt := bsonoptions.MergeSliceCodecOptions(opts...)
-
-	codec := SliceCodec{}
-	if sliceOpt.EncodeNilAsEmpty != nil {
-		codec.EncodeNilAsEmpty = *sliceOpt.EncodeNilAsEmpty
-	}
-	return &codec
+	encodeNilAsEmpty bool
 }
 
 // EncodeValue is the ValueEncoder for slice types.
-func (sc SliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (sc *sliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Slice {
 		return ValueEncoderError{Name: "SliceEncodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
 
-	if val.IsNil() && !sc.EncodeNilAsEmpty && !ec.nilSliceAsEmpty {
+	if val.IsNil() && !sc.encodeNilAsEmpty && !ec.nilSliceAsEmpty {
 		return vw.WriteNull()
 	}
 
@@ -90,7 +67,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 	}
 
 	for idx := 0; idx < val.Len(); idx++ {
-		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.Index(idx))
+		currEncoder, currVal, lookupErr := lookupElementEncoder(ec, encoder, val.Index(idx))
 		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
@@ -117,7 +94,7 @@ func (sc SliceCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.V
 }
 
 // DecodeValue is the ValueDecoder for slice types.
-func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (sc *sliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Slice {
 		return ValueDecoderError{Name: "SliceDecodeValue", Kinds: []reflect.Kind{reflect.Slice}, Received: val}
 	}
@@ -175,9 +152,9 @@ func (sc *SliceCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.
 	var elemsFunc func(DecodeContext, ValueReader, reflect.Value) ([]reflect.Value, error)
 	switch val.Type().Elem() {
 	case tE:
-		elemsFunc = defaultValueDecoders.decodeD
+		elemsFunc = decodeD
 	default:
-		elemsFunc = defaultValueDecoders.decodeDefault
+		elemsFunc = decodeDefault
 	}
 
 	elems, err := elemsFunc(dc, vr, val)
