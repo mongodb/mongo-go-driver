@@ -25,12 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-// ErrInvalidIndexType is returned if an invalid index type is inputted.
-var ErrInvalidIndexType = errors.New("invalid index type")
-
-// ErrInvalidKeyValue is returned if there is invalid key value
-var ErrInvalidKeyValue = errors.New("invalid key value")
-
 // ErrInvalidIndexValue is returned if an index is created with a keys document that has a value that is not a number
 // or string.
 var ErrInvalidIndexValue = errors.New("invalid index value")
