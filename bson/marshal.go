@@ -97,7 +97,11 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 // Driver 2.0.
 func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error) {
 	sw := sliceWriter(make([]byte, 0))
-	vwFlusher := bvwPool.GetAtModeElement(&sw)
+	vw := bvwPool.Get(&sw).(*valueWriter)
+	vwFlusher, err := vw.WriteDocumentElement("")
+	if err != nil {
+		return 0, nil, err
+	}
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
@@ -111,7 +115,7 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 	// flush the bytes written because we cannot guarantee that a full document has been written
 	// after the flush, *sw will be in the format
 	// [value type, 0 (null byte to indicate end of empty element name), value bytes..]
-	if err := vwFlusher.Flush(); err != nil {
+	if err := vw.Flush(); err != nil {
 		return 0, nil, err
 	}
 	return Type(sw[0]), sw[2:], nil

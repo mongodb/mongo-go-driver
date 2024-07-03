@@ -50,14 +50,6 @@ type ValueWriter interface {
 	WriteUndefined() error
 }
 
-// ValueWriterFlusher is a superset of ValueWriter that exposes functionality to flush to the underlying buffer.
-//
-// Deprecated: ValueWriterFlusher will not be supported in Go Driver 2.0.
-type ValueWriterFlusher interface {
-	ValueWriter
-	Flush() error
-}
-
 // sliceWriter allows a pointer to a slice of bytes to be used as an io.Writer.
 type sliceWriter []byte
 

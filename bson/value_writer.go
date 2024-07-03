@@ -66,15 +66,6 @@ func (bvwp *ValueWriterPool) Get(w io.Writer) ValueWriter {
 	return vw
 }
 
-// GetAtModeElement retrieves a ValueWriterFlusher from the pool and resets it to use w as the destination.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlusher {
-	vw := bvwp.Get(w).(*valueWriter)
-	vw.push(mElement)
-	return vw
-}
-
 // Put inserts a ValueWriter into the pool. If the ValueWriter is not a BSON ValueWriter, nothing
 // happens and ok will be false.
 //
