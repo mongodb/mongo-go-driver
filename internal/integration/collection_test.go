@@ -1567,7 +1567,9 @@ func TestCollection(t *testing.T) {
 		})
 
 		mt.Run("dropping a database", func(mt *mtest.T) {
-			err := mt.DB.Drop(context.Background())
+			db := mt.Client.Database("bd7b09e4-7d12-4bcb-9fc6-9852ad93715a")
+
+			err := db.Drop(context.Background())
 			assert.NoError(mt, err)
 		})
 
