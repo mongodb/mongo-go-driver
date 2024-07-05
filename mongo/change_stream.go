@@ -244,13 +244,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
 		for optionName, optionValue := range cs.options.Custom {
-			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			optionValueBSON, err := marshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		cs.aggregate.CustomOptions(customOptions)
@@ -260,13 +259,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		// any errors from Marshaling.
 		cs.pipelineOptions = make(map[string]bsoncore.Value)
 		for optionName, optionValue := range cs.options.CustomPipeline {
-			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			optionValueBSON, err := marshalValueWithRegistry(cs.registry, optionValue)
 			if err != nil {
 				cs.err = err
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			cs.pipelineOptions[optionName] = optionValueBSON
 		}
 	}

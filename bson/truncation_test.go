@@ -31,7 +31,6 @@ func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val inter
 }
 
 func TestTruncation(t *testing.T) {
-
 	t.Run("truncation", func(t *testing.T) {
 		inputName := "truncation"
 		inputVal := 4.7892

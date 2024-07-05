@@ -14,7 +14,11 @@ import (
 
 const defaultDstCap = 256
 
-var extjPool = newExtJSONValueWriterPool()
+var extjPool = sync.Pool{
+	New: func() interface{} {
+		return new(extJSONValueWriter)
+	},
+}
 
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a valid BSON document.
@@ -88,14 +92,6 @@ func Marshal(val interface{}) ([]byte, error) {
 // MarshalValue will use bson.DefaultRegistry to transform val into a BSON value. If val is a struct, this function will
 // inspect struct tags and alter the marshalling process accordingly.
 func MarshalValue(val interface{}) (Type, []byte, error) {
-	return MarshalValueWithRegistry(DefaultRegistry, val)
-}
-
-// MarshalValueWithRegistry returns the BSON encoding of val using Registry r.
-//
-// Deprecated: Using a custom registry to marshal individual BSON values will not be supported in Go
-// Driver 2.0.
-func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error) {
 	sw := bufPool.Get().(*bytes.Buffer)
 	defer func() {
 		// Proper usage of a sync.Pool requires each entry to have approximately
@@ -115,8 +111,8 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 		}
 	}()
 	sw.Reset()
-	vw := NewValueWriter(sw).(*valueWriter)
-	vwFlusher, err := vw.WriteDocumentElement("")
+	vwFlusher := NewValueWriter(sw).(*valueWriter)
+	vw, err := vwFlusher.WriteDocumentElement("")
 	if err != nil {
 		return 0, nil, err
 	}
@@ -124,8 +120,8 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
-	enc.Reset(vwFlusher)
-	enc.SetRegistry(r)
+	enc.Reset(vw)
+	enc.SetRegistry(DefaultRegistry)
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -133,18 +129,24 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 	// flush the bytes written because we cannot guarantee that a full document has been written
 	// after the flush, *sw will be in the format
 	// [value type, 0 (null byte to indicate end of empty element name), value bytes..]
-	if err := vw.Flush(); err != nil {
+	if err := vwFlusher.Flush(); err != nil {
 		return 0, nil, err
 	}
-	buf := sw.Bytes()
-	return Type(buf[0]), buf[2:], nil
+	typ := sw.Next(2)
+	return Type(typ[0]), sw.Bytes(), nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
 	sw := sliceWriter(make([]byte, 0, defaultDstCap))
-	ejvw := extjPool.get(&sw, canonical, escapeHTML)
-	defer extjPool.put(ejvw)
+	ejvw := extjPool.Get().(*extJSONValueWriter)
+	ejvw.reset(sw, canonical, escapeHTML)
+	ejvw.w = &sw
+	defer func() {
+		ejvw.buf = nil
+		ejvw.w = nil
+		extjPool.Put(ejvw)
+	}()
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)

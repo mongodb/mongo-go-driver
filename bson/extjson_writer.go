@@ -15,55 +15,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"unicode/utf8"
 )
-
-// extJSONValueWriterPool is a pool for ExtJSON ValueWriters.
-type extJSONValueWriterPool struct {
-	pool sync.Pool
-}
-
-// newExtJSONValueWriterPool creates a new pool for ValueWriter instances that write to ExtJSON.
-func newExtJSONValueWriterPool() *extJSONValueWriterPool {
-	return &extJSONValueWriterPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(extJSONValueWriter)
-			},
-		},
-	}
-}
-
-// get retrieves a ExtJSON ValueWriter from the pool and resets it to use w as the destination.
-func (bvwp *extJSONValueWriterPool) get(w io.Writer, canonical, escapeHTML bool) ValueWriter {
-	vw := bvwp.pool.Get().(*extJSONValueWriter)
-	if writer, ok := w.(*sliceWriter); ok {
-		vw.reset(*writer, canonical, escapeHTML)
-		vw.w = writer
-		return vw
-	}
-	vw.buf = vw.buf[:0]
-	vw.w = w
-	return vw
-}
-
-// put inserts a ValueWriter into the pool. If the ValueWriter is not a ExtJSON ValueWriter, nothing
-func (bvwp *extJSONValueWriterPool) put(vw ValueWriter) (ok bool) {
-	bvw, ok := vw.(*extJSONValueWriter)
-	if !ok {
-		return false
-	}
-
-	if _, ok := bvw.w.(*sliceWriter); ok {
-		bvw.buf = nil
-	}
-	bvw.w = nil
-
-	bvwp.pool.Put(bvw)
-	return true
-}
 
 type ejvwState struct {
 	mode mode
