@@ -298,7 +298,7 @@ func TestDatabase(t *testing.T) {
 				AppendInt32("size", 4096).
 				Build()
 
-			expectedSpec := &mongo.CollectionSpecification{
+			expectedSpec := mongo.CollectionSpecification{
 				Name:     cappedName,
 				Type:     "collection",
 				ReadOnly: false,
@@ -312,7 +312,7 @@ func TestDatabase(t *testing.T) {
 				keysDoc := bsoncore.NewDocumentBuilder().
 					AppendInt32("_id", 1).
 					Build()
-				expectedSpec.IDIndex = &mongo.IndexSpecification{
+				expectedSpec.IDIndex = mongo.IndexSpecification{
 					Name:         "_id_",
 					Namespace:    mt.DB.Name() + "." + cappedName,
 					KeysDocument: bson.Raw(keysDoc),

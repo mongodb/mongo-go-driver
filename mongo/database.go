@@ -367,7 +367,7 @@ func (db *Database) Drop(ctx context.Context) error {
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listCollections/.
 func (db *Database) ListCollectionSpecifications(ctx context.Context, filter interface{},
-	opts ...*options.ListCollectionsOptions) ([]*CollectionSpecification, error) {
+	opts ...*options.ListCollectionsOptions) ([]CollectionSpecification, error) {
 
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
@@ -390,13 +390,13 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 		return nil, err
 	}
 
-	specs := make([]*CollectionSpecification, len(resp))
+	specs := make([]CollectionSpecification, len(resp))
 	for idx, spec := range resp {
-		specs[idx] = &CollectionSpecification{
+		specs[idx] = CollectionSpecification{
 			Name:    spec.Name,
 			Type:    spec.Type,
 			Options: spec.Options,
-			IDIndex: newIndexSpecificationFromResponse(spec.IDIndex),
+			IDIndex: IndexSpecification(spec.IDIndex),
 		}
 
 		if spec.Info != nil {
@@ -406,7 +406,7 @@ func (db *Database) ListCollectionSpecifications(ctx context.Context, filter int
 
 		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
 		// the response.
-		if specs[idx].IDIndex != nil && specs[idx].IDIndex.Namespace == "" {
+		if specs[idx].IDIndex.Namespace == "" {
 			specs[idx].IDIndex.Namespace = db.name + "." + specs[idx].Name
 		}
 	}

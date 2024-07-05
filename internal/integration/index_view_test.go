@@ -493,7 +493,7 @@ func TestIndexView(t *testing.T) {
 			})
 			assert.Nil(mt, err, "CreateMany error: %v", err)
 
-			expectedSpecs := []*mongo.IndexSpecification{
+			expectedSpecs := []mongo.IndexSpecification{
 				{
 					Name:               "_id_",
 					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
@@ -634,7 +634,7 @@ func TestIndexView(t *testing.T) {
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 			specs, err := clustered.Indexes().ListSpecifications(context.Background())
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
-			expectedSpecs := []*mongo.IndexSpecification{
+			expectedSpecs := []mongo.IndexSpecification{
 				{
 					Name:         "_id_",
 					Namespace:    mt.DB.Name() + "." + name,
