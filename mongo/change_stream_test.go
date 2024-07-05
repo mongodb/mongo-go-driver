@@ -7,7 +7,9 @@
 package mongo
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,7 +17,7 @@ import (
 
 func TestChangeStream(t *testing.T) {
 	t.Run("nil cursor", func(t *testing.T) {
-		cs := &ChangeStream{}
+		cs := &ChangeStream{client: &Client{}}
 
 		id := cs.ID()
 		assert.Equal(t, int64(0), id, "expected ID 0, got %v", id)
@@ -87,6 +89,99 @@ func TestMergeChangeStreamOptions(t *testing.T) {
 
 			got := mergeChangeStreamOptions(tc.input...)
 			assert.Equal(t, tc.want, got, "expected and actual ChangeStreamOptions are different")
+		})
+	}
+}
+
+func TestValidChangeStreamTimeouts(t *testing.T) {
+	t.Parallel()
+
+	newDurPtr := func(dur time.Duration) *time.Duration {
+		return &dur
+	}
+
+	tests := []struct {
+		name                     string
+		parent                   context.Context
+		maxAwaitTimeout, timeout *time.Duration
+		wantTimeout              time.Duration
+		want                     bool
+	}{
+		{
+			name:            "no context deadline and no timeouts",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTimeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime gt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(2),
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime lt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(2),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime eq timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime with negative timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(-1),
+			wantTimeout:     0,
+			want:            true,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			cs := &ChangeStream{
+				options: &options.ChangeStreamOptions{
+					MaxAwaitTime: test.maxAwaitTimeout,
+				},
+				client: &Client{
+					timeout: test.timeout,
+				},
+			}
+
+			got := validChangeStreamTimeouts(test.parent, cs)
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

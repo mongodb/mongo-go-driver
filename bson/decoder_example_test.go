@@ -8,6 +8,7 @@ package bson_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -85,8 +86,12 @@ func ExampleDecoder_DefaultDocumentM() {
 		panic(err)
 	}
 
-	fmt.Printf("%+v\n", res)
-	// Output: {Name:New York Properties:map[elevation:10 population:8804190 state:NY]}
+	data, err = json.Marshal(res)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v\n", string(data))
+	// Output: {"Name":"New York","Properties":{"elevation":10,"population":8804190,"state":"NY"}}
 }
 
 func ExampleDecoder_UseJSONStructTags() {

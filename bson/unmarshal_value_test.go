@@ -76,7 +76,7 @@ func TestUnmarshalValue(t *testing.T) {
 			},
 		}
 		reg := NewRegistry()
-		reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), NewSliceCodec())
+		reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
 		for _, tc := range testCases {
 			tc := tc
 
@@ -111,7 +111,7 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 		},
 	}
 	reg := NewRegistry()
-	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), NewSliceCodec())
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {

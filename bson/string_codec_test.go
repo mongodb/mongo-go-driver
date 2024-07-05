@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
@@ -20,21 +19,17 @@ func TestStringCodec(t *testing.T) {
 		byteArray := [12]byte(oid)
 		reader := &valueReaderWriter{BSONType: TypeObjectID, Return: oid}
 		testCases := []struct {
-			name   string
-			opts   *bsonoptions.StringCodecOptions
-			hex    bool
-			result string
+			name        string
+			stringCodec *stringCodec
+			result      string
 		}{
-			{"default", bsonoptions.StringCodec(), true, oid.Hex()},
-			{"true", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(true), true, oid.Hex()},
-			{"false", bsonoptions.StringCodec().SetDecodeObjectIDAsHex(false), false, string(byteArray[:])},
+			{"true", &stringCodec{decodeObjectIDAsHex: true}, oid.Hex()},
+			{"false", &stringCodec{decodeObjectIDAsHex: false}, string(byteArray[:])},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				stringCodec := NewStringCodec(tc.opts)
-
 				actual := reflect.New(reflect.TypeOf("")).Elem()
-				err := stringCodec.DecodeValue(DecodeContext{}, reader, actual)
+				err := tc.stringCodec.DecodeValue(DecodeContext{}, reader, actual)
 				assert.Nil(t, err, "StringCodec.DecodeValue error: %v", err)
 
 				actualString := actual.Interface().(string)

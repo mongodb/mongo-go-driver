@@ -59,8 +59,6 @@ var (
 	ErrDeadlineWouldBeExceeded = fmt.Errorf(
 		"operation not sent to server, as Timeout would be exceeded: %w",
 		context.DeadlineExceeded)
-	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
-	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
 
 // QueryFailureError is an error representing a command failure as a document.
