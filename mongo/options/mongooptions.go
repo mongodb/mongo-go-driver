@@ -135,7 +135,7 @@ func (af *ArrayFilters) ToArray() ([]bson.Raw, error) {
 	enc := new(bson.Encoder)
 	for _, f := range af.Filters {
 		buf.Reset()
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
 		err := enc.Encode(f)
@@ -162,7 +162,7 @@ func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
 	enc := new(bson.Encoder)
 	for i, f := range af.Filters {
 		buf.Reset()
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
 		err := enc.Encode(f)

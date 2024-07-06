@@ -597,7 +597,7 @@ func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*uplo
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
 		// TODO gridfs package is merged into the mongo package.
 		buf := new(bytes.Buffer)
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		enc := bson.NewEncoder(vw)
 		enc.SetRegistry(uo.Registry)
 		err := enc.Encode(uo.Metadata)

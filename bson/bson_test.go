@@ -557,7 +557,7 @@ func TestMapCodec(t *testing.T) {
 				mapRegistry := NewRegistry()
 				mapRegistry.RegisterKindEncoder(reflect.Map, tc.mapCodec)
 				buf := new(bytes.Buffer)
-				vw := NewValueWriter(buf)
+				vw := NewDocumentWriter(buf)
 				enc := NewEncoder(vw)
 				enc.SetRegistry(mapRegistry)
 				err := enc.Encode(mapObj)

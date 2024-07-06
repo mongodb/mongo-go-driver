@@ -71,7 +71,7 @@ func (rv RawValue) UnmarshalWithRegistry(r *Registry, val interface{}) error {
 		return ErrNilRegistry
 	}
 
-	vr := NewBSONValueReader(rv.Type, bytes.NewReader(rv.Value))
+	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
@@ -91,7 +91,7 @@ func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) erro
 		return ErrNilContext
 	}
 
-	vr := NewBSONValueReader(rv.Type, bytes.NewReader(rv.Value))
+	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)

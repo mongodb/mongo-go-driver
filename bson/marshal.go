@@ -70,7 +70,7 @@ func Marshal(val interface{}) ([]byte, error) {
 		}
 	}()
 	sw.Reset()
-	vw := NewValueWriter(sw)
+	vw := NewDocumentWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)

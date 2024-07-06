@@ -41,16 +41,16 @@ type valueReader struct {
 	frame int64
 }
 
-// NewValueReader returns a ValueReader using b for the underlying BSON
+// NewDocumentReader returns a ValueReader using b for the underlying BSON
 // representation.
-func NewValueReader(r io.Reader) ValueReader {
-	return newValueReader(r)
+func NewDocumentReader(r io.Reader) ValueReader {
+	return newDocumentReader(r)
 }
 
-// NewBSONValueReader returns a ValueReader that starts in the Value mode instead of in top
+// newValueReader returns a ValueReader that starts in the Value mode instead of in top
 // level document mode. This enables the creation of a ValueReader for a single BSON value.
-func NewBSONValueReader(t Type, r io.Reader) ValueReader {
-	vr := newValueReader(r)
+func newValueReader(t Type, r io.Reader) ValueReader {
+	vr := newDocumentReader(r)
 	if len(vr.stack) == 0 {
 		vr.stack = make([]vrState, 1, 5)
 	}
@@ -59,7 +59,7 @@ func NewBSONValueReader(t Type, r io.Reader) ValueReader {
 	return vr
 }
 
-func newValueReader(r io.Reader) *valueReader {
+func newDocumentReader(r io.Reader) *valueReader {
 	stack := make([]vrState, 1, 5)
 	stack[0] = vrState{
 		mode: mTopLevel,
@@ -71,13 +71,13 @@ func newValueReader(r io.Reader) *valueReader {
 }
 
 func newValueReaderFromSlice(buf []byte) *valueReader {
-	vr := newValueReader(nil)
+	vr := newDocumentReader(nil)
 	vr.d = buf
 	return vr
 }
 
 func (vr *valueReader) prepload(length int32) (int32, error) {
-	const chunckSize = 512
+	const chunkSize = 512
 
 	if vr.offset+int64(length) <= int64(len(vr.d)) {
 		return length, nil
@@ -92,7 +92,7 @@ func (vr *valueReader) prepload(length int32) (int32, error) {
 	}
 
 	size := len(vr.d)
-	var need int64 = chunckSize
+	var need int64 = chunkSize
 	if l := int64(length) + vr.offset - int64(size); l > need {
 		need = l
 	}
@@ -109,11 +109,11 @@ func (vr *valueReader) prepload(length int32) (int32, error) {
 }
 
 func (vr *valueReader) indexByteAfter(offset int64, c byte) (int64, error) {
-	const chunckSize = 512
+	const chunkSize = 512
 	for idx := -1; idx < 0; {
 		idx = bytes.IndexByte(vr.d[offset:], c)
 		if idx < 0 {
-			n, err := vr.prepload(chunckSize)
+			n, err := vr.prepload(chunkSize)
 			if n == 0 && err != nil {
 				return 0, err
 			}

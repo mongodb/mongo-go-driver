@@ -201,7 +201,7 @@ func (mi *myInt64) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil
 	}
-	i, err := NewBSONValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
+	i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (mb *myBytes) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil
 	}
-	b, _, err := NewBSONValueReader(TypeBinary, bytes.NewReader(b)).ReadBinary()
+	b, _, err := newValueReader(TypeBinary, bytes.NewReader(b)).ReadBinary()
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (ms *myString) UnmarshalBSON(b []byte) error {
 	if len(b) == 0 {
 		return nil
 	}
-	s, err := NewBSONValueReader(TypeString, bytes.NewReader(b)).ReadString()
+	s, err := newValueReader(TypeString, bytes.NewReader(b)).ReadString()
 	if err != nil {
 		return err
 	}

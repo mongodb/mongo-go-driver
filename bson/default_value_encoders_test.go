@@ -1766,7 +1766,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				b := make(SliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				vw := NewDocumentWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
@@ -1816,7 +1816,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				b := make(SliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				vw := NewDocumentWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)

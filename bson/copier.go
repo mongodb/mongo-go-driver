@@ -206,7 +206,7 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 		return wvb.WriteValueBytes(t, src)
 	}
 
-	vr := newValueReader(bytes.NewReader(src))
+	vr := newDocumentReader(bytes.NewReader(src))
 	vr.pushElement(t)
 
 	return copyValue(dst, vr)

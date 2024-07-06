@@ -20,14 +20,14 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-func TestNewValueWriter(t *testing.T) {
-	vw := newValueWriter(errWriter{})
+func TestNewDocumentWriter(t *testing.T) {
+	vw := newDocumentWriter(errWriter{})
 	if vw == nil {
-		t.Errorf("Expected non-nil ValueWriter to be returned from NewValueWriter")
+		t.Errorf("Expected non-nil ValueWriter to be returned from newDocumentWriter")
 	}
 }
 
-func TestValueWriter(t *testing.T) {
+func TestDocumentWriter(t *testing.T) {
 	header := []byte{0x00, 0x00, 0x00, 0x00}
 	oid := ObjectID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C}
 	testCases := []struct {
@@ -171,7 +171,7 @@ func TestValueWriter(t *testing.T) {
 				t.Fatalf("fn must have one return value and it must be an error.")
 			}
 			params := make([]reflect.Value, 1, len(tc.params)+1)
-			vw := newValueWriter(io.Discard)
+			vw := newDocumentWriter(io.Discard)
 			params[0] = reflect.ValueOf(vw)
 			for _, param := range tc.params {
 				params = append(params, reflect.ValueOf(param))
@@ -195,7 +195,7 @@ func TestValueWriter(t *testing.T) {
 			}
 
 			t.Run("incorrect transition", func(t *testing.T) {
-				vw = newValueWriter(io.Discard)
+				vw = newDocumentWriter(io.Discard)
 				results := fn.Call(params)
 				got := results[0].Interface().(error)
 				fnName := tc.name
@@ -212,7 +212,7 @@ func TestValueWriter(t *testing.T) {
 	}
 
 	t.Run("WriteArray", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mArray)
 		want := TransitionError{current: mArray, destination: mArray, parent: mTopLevel,
 			name: "WriteArray", modes: []mode{mElement, mValue}, action: "write"}
@@ -222,7 +222,7 @@ func TestValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteCodeWithScope", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mArray)
 		want := TransitionError{current: mArray, destination: mCodeWithScope, parent: mTopLevel,
 			name: "WriteCodeWithScope", modes: []mode{mElement, mValue}, action: "write"}
@@ -232,7 +232,7 @@ func TestValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteDocument", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mArray)
 		want := TransitionError{current: mArray, destination: mDocument, parent: mTopLevel,
 			name: "WriteDocument", modes: []mode{mElement, mValue, mTopLevel}, action: "write"}
@@ -242,7 +242,7 @@ func TestValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteDocumentElement", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mElement)
 		want := TransitionError{current: mElement,
 			destination: mElement,
@@ -256,7 +256,7 @@ func TestValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteDocumentEnd", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mElement)
 		want := fmt.Errorf("incorrect mode to end document: %s", mElement)
 		got := vw.WriteDocumentEnd()
@@ -280,7 +280,7 @@ func TestValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteArrayElement", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mElement)
 		want := TransitionError{current: mElement,
 			destination: mValue,
@@ -294,7 +294,7 @@ func TestValueWriter(t *testing.T) {
 		}
 	})
 	t.Run("WriteArrayEnd", func(t *testing.T) {
-		vw := newValueWriter(io.Discard)
+		vw := newDocumentWriter(io.Discard)
 		vw.push(mElement)
 		want := fmt.Errorf("incorrect mode to end array: %s", mElement)
 		got := vw.WriteArrayEnd()

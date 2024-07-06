@@ -184,15 +184,15 @@ func (vw *valueWriter) pop() {
 	}
 }
 
-// NewValueWriter creates a ValueWriter that writes BSON to w.
+// NewDocumentWriter creates a ValueWriter that writes BSON to w.
 //
 // This ValueWriter will only write entire documents to the io.Writer and it
 // will buffer the document as it is built.
-func NewValueWriter(w io.Writer) ValueWriter {
-	return newValueWriter(w)
+func NewDocumentWriter(w io.Writer) ValueWriter {
+	return newDocumentWriter(w)
 }
 
-func newValueWriter(w io.Writer) *valueWriter {
+func newDocumentWriter(w io.Writer) *valueWriter {
 	vw := new(valueWriter)
 	stack := make([]vwState, 1, 5)
 	stack[0] = vwState{mode: mTopLevel}
@@ -202,7 +202,6 @@ func newValueWriter(w io.Writer) *valueWriter {
 	return vw
 }
 
-// TODO: only used in tests
 func newValueWriterFromSlice(buf []byte) *valueWriter {
 	vw := new(valueWriter)
 	stack := make([]vwState, 1, 5)

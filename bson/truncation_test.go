@@ -31,7 +31,7 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(DefaultRegistry)
@@ -57,7 +57,7 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(DefaultRegistry)
