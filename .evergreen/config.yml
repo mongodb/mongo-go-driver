@@ -1984,16 +1984,10 @@ tasks:
         script: |-
           set -o errexit
           ${PREPARE_SHELL}
-          echo "----------------"
-          ls
-          echo "----------------"
-          pwd
-          echo "----------------"
           export AZUREOIDC_DRIVERS_TAR_FILE=/tmp/mongo-go-driver.tar.gz
-          #rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
-          #tar -czvf $AZUREOIDC_DRIVERS_TAR_FILE .
+          # we need to statically link libc to avoid the situation where the VM has a different
+          # version of libc
           go build -tags osusergo,netgo -ldflags '-w -extldflags "-static -lgcc -lc"' -o test ./cmd/testoidcauth/main.go
-          #go build -o test ./cmd/testoidcauth/main.go
           rm "$AZUREOIDC_DRIVERS_TAR_FILE" || true
           tar -cf $AZUREOIDC_DRIVERS_TAR_FILE ./test
           tar -uf $AZUREOIDC_DRIVERS_TAR_FILE ./etc
@@ -2003,8 +1997,6 @@ tasks:
           # Define the command to run on the azure VM.
           # Ensure that we source the environment file created for us, set up any other variables we need,
           # and then run our test suite on the vm.
-          #export AZUREOIDC_TEST_CMD="find . && PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh"
-          #bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh
           export AZUREOIDC_TEST_CMD="PROJECT_DIRECTORY='.' OIDC_ENV=azure OIDC=oidc ./etc/run-oidc-test.sh ./test"
           bash $DRIVERS_TOOLS/.evergreen/auth_oidc/azure/run-driver-test.sh
 
