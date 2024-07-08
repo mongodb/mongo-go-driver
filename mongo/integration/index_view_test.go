@@ -684,6 +684,9 @@ func TestIndexView(t *testing.T) {
 				_, err = iv.DropWithKey(context.Background(), test.index)
 				assert.Nil(mt, err, "DropOne error: %v", err)
 
+				time.Sleep(time.Second)
+				// decrease slowly
+
 				cursor, err := iv.List(context.Background())
 				assert.Nil(mt, err, "List error: %v", err)
 				for cursor.Next(context.Background()) {
