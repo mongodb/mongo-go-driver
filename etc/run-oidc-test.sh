@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# run-enterprise-gssapi-test
-# Runs the enterprise auth tests with gssapi credentials.
+# run-oidc-test
+# Runs oidc auth tests.
 set -eu
 
 echo "Running MONGODB-OIDC authentication tests"
