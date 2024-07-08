@@ -697,15 +697,15 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 }
 
 func machine51azureWithNoUsername() error {
-	fmt.Println("1")
 	opts := options.Client().ApplyURI(uriSingle)
-	fmt.Println("2")
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_5_1: failed parsing uri: %q", uriSingle)
+	}
 	client, err := mongo.Connect(context.Background(), opts)
-	defer client.Disconnect(context.Background())
-
 	if err != nil {
 		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
 	}
+	defer client.Disconnect(context.Background())
 
 	fmt.Println("3")
 	coll := client.Database("test").Collection("test")
@@ -720,13 +720,15 @@ func machine51azureWithNoUsername() error {
 
 func machine52azureWithBadUsername() error {
 	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_5_2: failed parsing uri: %q", uriSingle)
+	}
 	opts.Auth.Username = "bad"
 	client, err := mongo.Connect(context.Background(), opts)
-	defer client.Disconnect(context.Background())
-
 	if err != nil {
 		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
 	}
+	defer client.Disconnect(context.Background())
 
 	coll := client.Database("test").Collection("test")
 
