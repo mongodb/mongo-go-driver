@@ -678,6 +678,9 @@ func TestIndexView(t *testing.T) {
 				assert.NoError(mt, err)
 				assert.Equal(mt, len(test.models), len(indexNames), "expected %v index names, got %v", len(test.models), len(indexNames))
 
+				time.Sleep(time.Second)
+				// decrease slowly
+
 				_, err = iv.DropWithKey(context.Background(), test.index)
 				assert.Nil(mt, err, "DropOne error: %v", err)
 

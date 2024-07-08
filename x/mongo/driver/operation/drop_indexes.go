@@ -64,6 +64,7 @@ func buildDropIndexesResult(response bsoncore.Document) (DropIndexesResult, erro
 	return dir, nil
 }
 
+// NewDropIndexes constructs and returns a new DropIndexes.
 func NewDropIndexes(index any) *DropIndexes {
 	return &DropIndexes{
 		index: index,
