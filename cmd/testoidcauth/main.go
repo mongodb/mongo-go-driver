@@ -707,10 +707,8 @@ func machine51azureWithNoUsername() error {
 	}
 	defer client.Disconnect(context.Background())
 
-	fmt.Println("3")
 	coll := client.Database("test").Collection("test")
 
-	fmt.Println("4")
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err != nil {
 		return fmt.Errorf("machine_5_1: failed executing Find: %v", err)
