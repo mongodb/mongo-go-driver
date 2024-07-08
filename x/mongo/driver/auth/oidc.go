@@ -10,9 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -191,7 +191,6 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 	// return the callback parameterized by the clientID and resource, also passing in the user
 	// configured httpClient.
 	return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
-		fmt.Println("!!!!!!!!!!!!!!!!!!!!")
 		resource = url.QueryEscape(resource)
 		var uri string
 		if clientID != "" {
@@ -206,31 +205,24 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 		req.Header.Add("Metadata", "true")
 		req.Header.Add("Accept", "application/json")
 		resp, err := httpClient.Do(req)
-		fmt.Println("!!!!!!!!!!!!!!!!!!!!")
 		if err != nil {
 			return nil, newAuthError("error getting access token from Azure Identity Provider", err)
 		}
-		fmt.Println("!!!!!!!!!!!!!!!!!!!!")
+		defer resp.Body.Close()
 		var azureResp struct {
 			AccessToken string `json:"access_token"`
-			ExpiresIn   int64  `json:"expires_in"`
+			ExpiresOn   string `json:"expires_on"`
 		}
 
-		fmt.Println("!!!!!!!!!!!!!!!!!!!!")
-		var bodyString string
-		if resp.StatusCode == http.StatusOK {
-			bodyBytes, err := io.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Println("NO RESPONSE", err)
-			}
-			bodyString = string(bodyBytes)
-			fmt.Println(bodyString)
+		if resp.StatusCode != http.StatusOK {
+			return nil, newAuthError(fmt.Sprintf("failed to get a valid response from Azure Identity Provider, http code: %d", resp.StatusCode), nil)
 		}
-		err = json.NewDecoder(strings.NewReader(bodyString)).Decode(&azureResp)
+		err = json.NewDecoder(resp.Body).Decode(&azureResp)
 		if err != nil {
 			return nil, newAuthError("failed parsing result from Azure Identity Provider", err)
 		}
-		expiresAt := time.Now().Add(time.Duration(azureResp.ExpiresIn) * time.Millisecond)
+		expiresOn, err := strconv.ParseInt(azureResp.ExpiresOn, 10, 64)
+		expiresAt := time.Unix(expiresOn, 0)
 		return &OIDCCredential{
 			AccessToken: azureResp.AccessToken,
 			ExpiresAt:   &expiresAt,
