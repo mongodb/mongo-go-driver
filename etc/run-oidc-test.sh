@@ -30,4 +30,5 @@ export TEST_AUTH_OIDC=1
 export COVERAGE=1
 export AUTH="auth"
 
+# run the argument as a command
 $1

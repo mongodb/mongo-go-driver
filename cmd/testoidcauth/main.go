@@ -91,6 +91,8 @@ func main() {
 	case "azure":
 		aux("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
 		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
+	case "gcp":
+		aux("machine_6_1_gcpWithNoUsername", machine61gcpWithNoUsername)
 	default:
 		log.Fatal("Unknown OIDC_ENV: ", env)
 	}
@@ -733,6 +735,26 @@ func machine52azureWithBadUsername() error {
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err == nil {
 		return fmt.Errorf("machine_5_2: Find succeeded when it should fail")
+	}
+	return nil
+}
+
+func machine_6_1_gcpWithNoUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_6_1: failed parsing uri: %q", uriSingle)
+	}
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("machine_6_1: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_6_1: failed executing Find: %v", err)
 	}
 	return nil
 }
