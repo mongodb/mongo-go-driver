@@ -739,7 +739,7 @@ func machine52azureWithBadUsername() error {
 	return nil
 }
 
-func machine_6_1_gcpWithNoUsername() error {
+func machine61gcpWithNoUsername() error {
 	opts := options.Client().ApplyURI(uriSingle)
 	if opts == nil || opts.Auth == nil {
 		return fmt.Errorf("machine_6_1: failed parsing uri: %q", uriSingle)
