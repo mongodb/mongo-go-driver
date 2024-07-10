@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -25,11 +26,8 @@ const MongoDBOIDC = "MONGODB-OIDC"
 // TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 // const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
-
 const resourceProp = "TOKEN_RESOURCE"
-
-// GODRIVER-3249	OIDC: Handle all possible OIDC configuration errors
-//const allowedHostsProp = "ALLOWED_HOSTS"
+const allowedHostsProp = "ALLOWED_HOSTS"
 
 const azureEnvironmentValue = "azure"
 const gcpEnvironmentValue = "gcp"
@@ -45,16 +43,15 @@ const invalidateSleepTimeout = 100 * time.Millisecond
 const machineCallbackTimeout = time.Minute
 const humanCallbackTimeout = 5 * time.Minute
 
-//GODRIVER-3246	OIDC: Implement Human Callback Mechanism
-//var defaultAllowedHosts = []string{
-//	"*.mongodb.net",
-//	"*.mongodb-qa.net",
-//	"*.mongodb-dev.net",
-//	"*.mongodbgov.net",
-//	"localhost",
-//	"127.0.0.1",
-//	"::1",
-//}
+var defaultAllowedHosts = []string{
+	"*.mongodb.net",
+	"*.mongodb-qa.net",
+	"*.mongodb-dev.net",
+	"*.mongodbgov.net",
+	"localhost",
+	"127.0.0.1",
+	"::1",
+}
 
 // OIDCCallback is a function that takes a context and OIDCArgs and returns an OIDCCredential.
 type OIDCCallback = driver.OIDCCallback
@@ -83,6 +80,7 @@ type OIDCAuthenticator struct {
 	OIDCMachineCallback     OIDCCallback
 	OIDCHumanCallback       OIDCCallback
 
+	allowedHosts *[]string
 	userName     string
 	httpClient   *http.Client
 	accessToken  string
@@ -128,6 +126,44 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 		OIDCHumanCallback:       cred.OIDCHumanCallback,
 	}
 	return oa, nil
+}
+
+func (oa *OIDCAuthenticator) getAllowedHosts() []string {
+	// we cache allowed hosts so that we do not need to convert globs to patterns
+	// every time we authenticate.
+	if oa.allowedHosts != nil {
+		return *oa.allowedHosts
+	}
+	var ret []string
+	allowedHosts, ok := oa.AuthMechanismProperties[allowedHostsProp]
+	if ok {
+		ret = strings.Split(allowedHosts, ",")
+	} else {
+		ret = defaultAllowedHosts
+	}
+	for i := range ret {
+		ret[i] = strings.ReplaceAll(ret[i], ".", "[.]")
+		ret[i] = strings.ReplaceAll(ret[i], "*", ".*")
+	}
+	oa.allowedHosts = &ret
+	return ret
+}
+
+func (oa *OIDCAuthenticator) validateConnectionAddressWithAllowedHosts(conn driver.Connection) error {
+	allowedHosts := oa.getAllowedHosts()
+	if len(allowedHosts) == 0 {
+		return newAuthError(fmt.Sprintf("empty %q specified", allowedHostsProp), nil)
+	}
+	for _, pattern := range allowedHosts {
+		matches, err := regexp.MatchString(pattern, string(conn.Address()))
+		if err != nil {
+			return newAuthError(fmt.Sprintf("error matching %q with %q", conn.Address(), pattern), err)
+		}
+		if matches {
+			return nil
+		}
+	}
+	return newAuthError(fmt.Sprintf("address %q not allowed by %q: %v", conn.Address(), allowedHostsProp, allowedHosts), nil)
 }
 
 type oidcOneStep struct {
@@ -320,6 +356,11 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 }
 
 func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
+	// Ensure that the connection address is allowed by the allowed hosts.
+	err := oa.validateConnectionAddressWithAllowedHosts(cfg.Connection)
+	if err != nil {
+		return err
+	}
 	subCtx, cancel := context.WithTimeout(ctx, humanCallbackTimeout)
 	defer cancel()
 	if idpInfo != nil {

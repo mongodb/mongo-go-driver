@@ -80,17 +80,17 @@ func main() {
 			fmt.Println("...Ok")
 		}
 	}
-	//	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
-	//	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
-	//	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
-	//	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
-	//	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
-	//	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
-	//	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
-	//	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
-	//	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
-	//	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
-	//	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
+	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
+	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
+	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
+	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
+	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
+	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
+	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
+	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
+	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
+	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
 	aux("human_1_1_singlePrincipalImplictUsername", human11singlePrincipalImplictUsername)
 	aux("human_1_2_singlePrincipalExplicitUsername", human12singlePrincipalExplicitUsername)
 	aux("human_1_3_mulitplePrincipalUser1", human13mulitplePrincipalUser1)
@@ -864,6 +864,109 @@ func human14mulitplePrincipalUser2() error {
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
 		return fmt.Errorf("human_1_4: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human15mulitplePrincipalNoUser() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_5: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+	if err != nil {
+		return fmt.Errorf("human_1_5: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("human_1_5: Find succeeded when it should fail")
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_5: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human16allowedHostsBlocked() error {
+	var callbackFailed error
+	{
+		opts := options.Client().ApplyURI(uriSingle)
+		opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+			t := time.Now().Add(time.Hour)
+			tokenFile := tokenFile("test_user1")
+			accessToken, err := os.ReadFile(tokenFile)
+			if err != nil {
+				callbackFailed = fmt.Errorf("human_1_6: failed reading token file: %v", err)
+			}
+			return &options.OIDCCredential{
+				AccessToken:  string(accessToken),
+				ExpiresAt:    &t,
+				RefreshToken: nil,
+			}, nil
+		}
+		opts.Auth.AuthMechanismProperties = map[string]string{"ALLOWED_HOSTS": ""}
+		client, err := mongo.Connect(context.Background(), opts)
+		if err != nil {
+			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
+		}
+		defer client.Disconnect(context.Background())
+
+		coll := client.Database("test").Collection("test")
+
+		_, err = coll.Find(context.Background(), bson.D{})
+		if err == nil {
+			return fmt.Errorf("machine_1_6: Find succeeded when it should fail with empty 'ALLOWED_HOSTS'")
+		}
+	}
+	{
+		opts := options.Client().ApplyURI("mongodb://localhost/?authMechanism=MONGODB-OIDC&ignored=example.com")
+		opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+			t := time.Now().Add(time.Hour)
+			tokenFile := tokenFile("test_user1")
+			accessToken, err := os.ReadFile(tokenFile)
+			if err != nil {
+				callbackFailed = fmt.Errorf("human_1_6: failed reading token file: %v", err)
+			}
+			return &options.OIDCCredential{
+				AccessToken:  string(accessToken),
+				ExpiresAt:    &t,
+				RefreshToken: nil,
+			}, nil
+		}
+		opts.Auth.AuthMechanismProperties = map[string]string{"ALLOWED_HOSTS": "example.com"}
+		client, err := mongo.Connect(context.Background(), opts)
+		if err != nil {
+			return fmt.Errorf("human_1_4: failed connecting client: %v", err)
+		}
+		defer client.Disconnect(context.Background())
+
+		coll := client.Database("test").Collection("test")
+
+		_, err = coll.Find(context.Background(), bson.D{})
+		if err == nil {
+			return fmt.Errorf("machine_1_6: Find succeeded when it should fail with 'ALLOWED_HOSTS' 'example.com'")
+		}
 	}
 	return callbackFailed
 }
