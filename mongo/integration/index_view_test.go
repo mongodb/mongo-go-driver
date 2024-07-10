@@ -665,7 +665,7 @@ func TestIndexView(t *testing.T) {
 					},
 				},
 				// Key is automatically set to Full Text Search for any text index
-				index: map[string]interface{}{"_fts": "text", "_ftsx": 1},
+				index: bson.D{{"_fts", "text"}, {"_ftsx", 1}},
 				want:  "plot1_text_plot2_text",
 			},
 		}
@@ -678,14 +678,8 @@ func TestIndexView(t *testing.T) {
 				assert.NoError(mt, err)
 				assert.Equal(mt, len(test.models), len(indexNames), "expected %v index names, got %v", len(test.models), len(indexNames))
 
-				time.Sleep(time.Second)
-				// decrease slowly
-
 				_, err = iv.DropWithKey(context.Background(), test.index)
 				assert.Nil(mt, err, "DropOne error: %v", err)
-
-				time.Sleep(time.Second)
-				// decrease slowly
 
 				cursor, err := iv.List(context.Background())
 				assert.Nil(mt, err, "List error: %v", err)
