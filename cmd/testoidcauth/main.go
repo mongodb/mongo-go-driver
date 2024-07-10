@@ -904,8 +904,8 @@ func human15mulitplePrincipalNoUser() error {
 	}
 	countMutex.Lock()
 	defer countMutex.Unlock()
-	if callbackCount != 1 {
-		return fmt.Errorf("human_1_5: expected callback count to be 1, got %d", callbackCount)
+	if callbackCount != 0 {
+		return fmt.Errorf("human_1_5: expected callback count to be 0, got %d", callbackCount)
 	}
 	return callbackFailed
 }
