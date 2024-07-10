@@ -136,10 +136,9 @@ type oidcOneStep struct {
 }
 
 type oidcTwoStep struct {
-	ctx    context.Context
-	conn   driver.Connection
-	oa     *OIDCAuthenticator
-	cancel context.CancelFunc
+	ctx  context.Context
+	conn driver.Connection
+	oa   *OIDCAuthenticator
 }
 
 func jwtStepRequest(accessToken string) []byte {
@@ -160,7 +159,7 @@ func (oos *oidcOneStep) Start() (string, []byte, error) {
 	return MongoDBOIDC, jwtStepRequest(oos.accessToken), nil
 }
 
-func (oos *oidcOneStep) Next([]byte) ([]byte, error) {
+func (oos *oidcOneStep) Next(context.Context, []byte) ([]byte, error) {
 	return nil, newAuthError("unexpected step in OIDC authentication", nil)
 }
 
@@ -172,17 +171,14 @@ func (ots *oidcTwoStep) Start() (string, []byte, error) {
 	return MongoDBOIDC, principalStepRequest(ots.oa.userName), nil
 }
 
-// Generally, contexts are to be passed to the method rather than stored in the target of a method.
-// But since this is a private interface unused outside of this file, it is safe to store the
-// context in the target.
-func (ots *oidcTwoStep) Next(msg []byte) ([]byte, error) {
+func (ots *oidcTwoStep) Next(ctx context.Context, msg []byte) ([]byte, error) {
 	var idpInfo IDPInfo
 	err := bson.Unmarshal(msg, &idpInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling BSON document: %w", err)
 	}
 
-	accessToken, err := ots.oa.getAccessToken(ots.ctx,
+	accessToken, err := ots.oa.getAccessToken(ctx,
 		ots.conn,
 		&OIDCArgs{
 			Version: apiVersion,
@@ -193,7 +189,6 @@ func (ots *oidcTwoStep) Next(msg []byte) ([]byte, error) {
 		},
 		// two-step callbacks are always human callbacks.
 		ots.oa.OIDCHumanCallback)
-	ots.cancel()
 
 	return jwtStepRequest(accessToken), nil
 }
@@ -326,6 +321,7 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 
 func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, humanCallback OIDCCallback, idpInfo *IDPInfo, refreshToken *string) error {
 	subCtx, cancel := context.WithTimeout(ctx, humanCallbackTimeout)
+	defer cancel()
 	if idpInfo != nil {
 		accessToken, err := oa.getAccessToken(subCtx,
 			cfg.Connection,
@@ -336,24 +332,21 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 				RefreshToken: refreshToken,
 			},
 			humanCallback)
-		cancel()
 		if err != nil {
 			return err
 		}
 		return ConductSaslConversation(
-			ctx,
+			subCtx,
 			cfg,
 			"$external",
 			&oidcOneStep{accessToken: accessToken},
 		)
 	}
 	ots := &oidcTwoStep{
-		ctx:    subCtx,
-		conn:   cfg.Connection,
-		oa:     oa,
-		cancel: cancel,
+		conn: cfg.Connection,
+		oa:   oa,
 	}
-	return ConductSaslConversation(ctx, cfg, "$external", ots)
+	return ConductSaslConversation(subCtx, cfg, "$external", ots)
 }
 
 func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {

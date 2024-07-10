@@ -82,7 +82,7 @@ func (a *awsSaslAdapter) Start() (string, []byte, error) {
 	return MongoDBAWS, step, nil
 }
 
-func (a *awsSaslAdapter) Next(challenge []byte) ([]byte, error) {
+func (a *awsSaslAdapter) Next(_ context.Context, challenge []byte) ([]byte, error) {
 	step, err := a.conversation.Step(challenge)
 	if err != nil {
 		return nil, err

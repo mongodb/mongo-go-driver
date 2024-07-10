@@ -755,7 +755,6 @@ func human12singlePrincipalExplicitUsername() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("human_1_2: failed reading token file: %v", err)
 		}
-		fmt.Println("human_1_2: AccessToken: ", accessToken)
 		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
@@ -799,7 +798,6 @@ func human13mulitplePrincipalUser1() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("human_1_3: failed reading token file: %v", err)
 		}
-		fmt.Println("human_1_3: AccessToken: ", accessToken)
 		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
@@ -843,7 +841,6 @@ func human14mulitplePrincipalUser2() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("human_1_4: failed reading token file: %v", err)
 		}
-		fmt.Println("human_1_4: AccessToken: ", accessToken)
 		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
