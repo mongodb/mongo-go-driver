@@ -875,7 +875,7 @@ func human15mulitplePrincipalNoUser() error {
 	var callbackFailed error
 	countMutex := sync.Mutex{}
 
-	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+	client, err := connectWithHumanCB(uriMulti, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++

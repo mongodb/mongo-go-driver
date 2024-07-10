@@ -420,7 +420,7 @@ func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, mac
 	)
 }
 
-// CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
+// CreateSpeculativeConversation creates a speculative conversation for OIDC authentication.
 func (oa *OIDCAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
 	oa.mu.Lock()
 	defer oa.mu.Unlock()
