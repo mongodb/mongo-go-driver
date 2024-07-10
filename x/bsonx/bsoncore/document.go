@@ -17,6 +17,7 @@ import (
 // ValidationError is an error type returned when attempting to validate a document or array.
 type ValidationError string
 
+// TruncationSuffix is a constant string defined to address a logged value has been truncated
 const TruncationSuffix = "..."
 
 func (ve ValidationError) Error() string { return string(ve) }
@@ -293,7 +294,7 @@ func (d Document) String() string {
 	return buf.String()
 }
 
-// Stringifies a document upto N bytes
+// StringN stringifies a document upto N bytes
 func (d Document) StringN(n int) string {
 	if len(d) < 5 {
 		return ""
@@ -343,7 +344,7 @@ func (d Document) StringN(n int) string {
 	return buf.String()
 }
 
-// Truncates string
+// truncate truncates a given string for a certain width
 func truncate(str string, width uint) string {
 	if width == 0 {
 		return ""

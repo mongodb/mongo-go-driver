@@ -130,7 +130,7 @@ func (e Element) String() string {
 	return "\"" + string(key) + "\": " + val.String()
 }
 
-// String implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
+// StringN implements the fmt.String interface for upto N bytes. The output will be in extended JSON format.
 func (e Element) StringN(n int) string {
 	if len(e) <= 0 {
 		return ""

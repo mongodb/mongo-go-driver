@@ -113,7 +113,7 @@ func (a Array) String() string {
 	return buf.String()
 }
 
-// Stringifies an array upto N bytes
+// StringN stringifies an array upto N bytes
 func (a Array) StringN(n int) string {
 	if len(a) < 5 {
 		return ""
@@ -142,9 +142,9 @@ func (a Array) StringN(n int) string {
 				truncatedStr := truncate(str, uint(n-buf.Len()))
 				buf.WriteString(truncatedStr)
 				break
-			} else {
-				buf.WriteString(str)
 			}
+
+			buf.WriteString(str)
 
 			if length > 1 {
 				buf.WriteByte(',')
