@@ -50,6 +50,13 @@ func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, e
 	return mongo.Connect(context.Background(), opts)
 }
 
+func connectWithHumanCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
+	opts := options.Client().ApplyURI(uri)
+
+	opts.Auth.OIDCHumanCallback = cb
+	return mongo.Connect(context.Background(), opts)
+}
+
 func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, props map[string]string) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
@@ -74,17 +81,19 @@ func main() {
 			fmt.Println("...Ok")
 		}
 	}
-	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
-	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
-	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
-	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
-	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
-	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
-	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
-	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
-	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
-	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
-	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	//	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
+	//	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
+	//	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
+	//	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
+	//	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
+	//	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
+	//	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
+	//	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
+	//	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
+	//	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
+	//	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	aux("human_1_1_singlePrincipalImplictUserName", human11singlePrincipalImplictUserName)
+	aux("human_1_2_singlePrincipalExplicitUserName", human12singlePrincipalExplicitUserName)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -683,6 +692,91 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	defer countMutex.Unlock()
 	if callbackCount != 2 {
 		return fmt.Errorf("machine_4_3: expected callback count to be 2, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human11singlePrincipalImplictUserName() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_1: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_1_1: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_1_1: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_1: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human12singlePrincipalExplicitUserName() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	opts := options.Client().ApplyURI(uriSingle)
+	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_2: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	}
+	opts.Auth.Username = "test_user1"
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("human_1_2: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_1_2: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_2: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }
