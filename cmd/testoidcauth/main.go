@@ -25,15 +25,14 @@ import (
 
 var uriAdmin = os.Getenv("MONGODB_URI")
 var uriSingle = os.Getenv("MONGODB_URI_SINGLE")
-
-// var uriMulti = os.Getenv("MONGODB_URI_MULTI")
+var uriMulti = os.Getenv("MONGODB_URI_MULTI")
 var oidcTokenDir = os.Getenv("OIDC_TOKEN_DIR")
 
-//var oidcDomain = os.Getenv("OIDC_DOMAIN")
+var oidcDomain = os.Getenv("OIDC_DOMAIN")
 
-//func explicitUser(user string) string {
-//	return fmt.Sprintf("%s@%s", user, oidcDomain)
-//}
+func explicitUser(user string) string {
+	return fmt.Sprintf("%s@%s", user, oidcDomain)
+}
 
 func tokenFile(user string) string {
 	return path.Join(oidcTokenDir, user)
@@ -92,8 +91,10 @@ func main() {
 	//	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
 	//	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
 	//	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
-	aux("human_1_1_singlePrincipalImplictUserName", human11singlePrincipalImplictUserName)
-	aux("human_1_2_singlePrincipalExplicitUserName", human12singlePrincipalExplicitUserName)
+	aux("human_1_1_singlePrincipalImplictUsername", human11singlePrincipalImplictUsername)
+	aux("human_1_2_singlePrincipalExplicitUsername", human12singlePrincipalExplicitUsername)
+	aux("human_1_3_mulitplePrincipalUser1", human13mulitplePrincipalUser1)
+	aux("human_1_4_mulitplePrincipalUser2", human14mulitplePrincipalUser2)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -696,7 +697,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	return callbackFailed
 }
 
-func human11singlePrincipalImplictUserName() error {
+func human11singlePrincipalImplictUsername() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
@@ -738,7 +739,7 @@ func human11singlePrincipalImplictUserName() error {
 	return callbackFailed
 }
 
-func human12singlePrincipalExplicitUserName() error {
+func human12singlePrincipalExplicitUsername() error {
 	callbackCount := 0
 	var callbackFailed error
 	countMutex := sync.Mutex{}
@@ -754,13 +755,14 @@ func human12singlePrincipalExplicitUserName() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("human_1_2: failed reading token file: %v", err)
 		}
+		fmt.Println("human_1_2: AccessToken: ", accessToken)
 		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
 			RefreshToken: nil,
 		}, nil
 	}
-	opts.Auth.Username = "test_user1"
+	opts.Auth.Username = explicitUser("test_user1")
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
 		return fmt.Errorf("human_1_2: failed connecting client: %v", err)
@@ -777,6 +779,94 @@ func human12singlePrincipalExplicitUserName() error {
 	defer countMutex.Unlock()
 	if callbackCount != 1 {
 		return fmt.Errorf("human_1_2: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human13mulitplePrincipalUser1() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	opts := options.Client().ApplyURI(uriMulti)
+	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_3: failed reading token file: %v", err)
+		}
+		fmt.Println("human_1_3: AccessToken: ", accessToken)
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	}
+	opts.Auth.Username = explicitUser("test_user1")
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("human_1_3: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_1_3: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_3: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human14mulitplePrincipalUser2() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	opts := options.Client().ApplyURI(uriMulti)
+	opts.Auth.OIDCHumanCallback = func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user2")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_1_4: failed reading token file: %v", err)
+		}
+		fmt.Println("human_1_4: AccessToken: ", accessToken)
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	}
+	opts.Auth.Username = explicitUser("test_user2")
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("human_1_4: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_1_4: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_1_4: expected callback count to be 1, got %d", callbackCount)
 	}
 	return callbackFailed
 }

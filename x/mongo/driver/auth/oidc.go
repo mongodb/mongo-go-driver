@@ -176,12 +176,6 @@ func (ots *oidcTwoStep) Start() (string, []byte, error) {
 // But since this is a private interface unused outside of this file, it is safe to store the
 // context in the target.
 func (ots *oidcTwoStep) Next(msg []byte) ([]byte, error) {
-	{
-		var d bson.D
-		bson.Unmarshal(msg, &d)
-		fmt.Println("D", d)
-	}
-
 	var idpInfo IDPInfo
 	err := bson.Unmarshal(msg, &idpInfo)
 	if err != nil {
