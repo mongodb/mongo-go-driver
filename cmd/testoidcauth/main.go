@@ -95,6 +95,8 @@ func main() {
 	aux("human_1_2_singlePrincipalExplicitUsername", human12singlePrincipalExplicitUsername)
 	aux("human_1_3_mulitplePrincipalUser1", human13mulitplePrincipalUser1)
 	aux("human_1_4_mulitplePrincipalUser2", human14mulitplePrincipalUser2)
+	aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
+	aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}

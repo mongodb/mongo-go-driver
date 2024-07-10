@@ -128,6 +128,15 @@ func newOIDCAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, e
 	return oa, nil
 }
 
+func createAllowedHostsPatterns(hosts []string) []string {
+	for i := range hosts {
+		hosts[i] = strings.ReplaceAll(hosts[i], ".", "[.]")
+		hosts[i] = strings.ReplaceAll(hosts[i], "*", ".*")
+		hosts[i] = "^" + hosts[i] + "(:\\d+)?$"
+	}
+	return hosts
+}
+
 func (oa *OIDCAuthenticator) getAllowedHosts() []string {
 	// we cache allowed hosts so that we do not need to convert globs to patterns
 	// every time we authenticate.
@@ -139,12 +148,10 @@ func (oa *OIDCAuthenticator) getAllowedHosts() []string {
 	if ok {
 		ret = strings.Split(allowedHosts, ",")
 	} else {
-		ret = defaultAllowedHosts
+		ret = make([]string, len(defaultAllowedHosts))
+		copy(ret, defaultAllowedHosts)
 	}
-	for i := range ret {
-		ret[i] = strings.ReplaceAll(ret[i], ".", "[.]")
-		ret[i] = strings.ReplaceAll(ret[i], "*", ".*")
-	}
+	ret = createAllowedHostsPatterns(ret)
 	oa.allowedHosts = &ret
 	return ret
 }
