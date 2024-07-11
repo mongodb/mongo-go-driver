@@ -179,7 +179,6 @@ type oidcOneStep struct {
 }
 
 type oidcTwoStep struct {
-	ctx  context.Context
 	conn driver.Connection
 	oa   *OIDCAuthenticator
 }
@@ -285,9 +284,9 @@ func (oa *OIDCAuthenticator) getAccessToken(
 	oa.accessToken = cred.AccessToken
 	oa.tokenGenID++
 	conn.SetOIDCTokenGenID(oa.tokenGenID)
-	if cred.RefreshToken != nil {
-		oa.refreshToken = cred.RefreshToken
-	}
+	oa.refreshToken = cred.RefreshToken
+	// always set the IdPInfo, in most cases, this should just be recopying the same pointer.
+	oa.idpInfo = args.IDPInfo
 	return cred.AccessToken, nil
 }
 

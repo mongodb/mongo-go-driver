@@ -98,6 +98,10 @@ func main() {
 	aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
 	aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
 	aux("human_1_7_allowedHostsInConnectionStringIgnored", human17AllowedHostsInConnectionStringIgnored)
+	aux("human_2_1_validCallbackInputs", human21validCallbackInputs)
+	aux("human_2_2_CallbackReturnsMissingData", human22CallbackReturnsMissingData)
+	aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
+
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -1076,10 +1080,10 @@ func human23RefreshTokenIsPassedToCallback() error {
 		defer countMutex.Unlock()
 		callbackCount++
 		if callbackCount == 1 && args.RefreshToken != nil {
-			callbackFailed = fmt.Errorf("human_2_3: expected refresh token to be nil first time, got %q, previous error: (%v)", *args.RefreshToken, callbackFailed)
+			callbackFailed = fmt.Errorf("human_2_3: expected refresh token to be nil first time, got %v, previous error: (%v)", args.RefreshToken, callbackFailed)
 		}
 		if callbackCount == 2 && args.RefreshToken == nil {
-			callbackFailed = fmt.Errorf("human_2_3: expected refresh token to be non-nil second time, got %q, previous error: (%v)", *args.RefreshToken, callbackFailed)
+			callbackFailed = fmt.Errorf("human_2_3: expected refresh token to be non-nil second time, got %v, previous error: (%v)", args.RefreshToken, callbackFailed)
 		}
 		t := time.Now().Add(time.Hour)
 		tokenFile := tokenFile("test_user1")
