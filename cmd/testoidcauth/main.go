@@ -101,7 +101,8 @@ func main() {
 	aux("human_2_1_validCallbackInputs", human21validCallbackInputs)
 	aux("human_2_2_CallbackReturnsMissingData", human22CallbackReturnsMissingData)
 	aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
-
+	aux("human_3_1_usesSpeculativeAuth", human31usesSpeculativeAuth)
+	aux("human_3_2_doesNotUseSpecualtiveAuth", human32doesNotUseSpecualtiveAuth)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -1132,6 +1133,133 @@ func human23RefreshTokenIsPassedToCallback() error {
 	defer countMutex.Unlock()
 	if callbackCount != 2 {
 		return fmt.Errorf("human_2_3: expected callback count to be 2, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human31usesSpeculativeAuth() error {
+	var callbackFailed error
+
+	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_3_1: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_3_1: failed connecting client: %v", err)
+	}
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "closesConnection", Value: true},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_3_1: failed to set failpoint 1")
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("human_3_1: Find succeeded when it should fail")
+	}
+
+	res = adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"saslStart",
+			}},
+			{Key: "errorCode", Value: 18},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_3_1: failed to set failpoint 2")
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_3_1: failed executing Find: %v", err)
+	}
+
+	return callbackFailed
+}
+
+func human32doesNotUseSpecualtiveAuth() error {
+	var callbackFailed error
+
+	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_3_2: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_3_2: failed connecting client: %v", err)
+	}
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"saslStart",
+			}},
+			{Key: "errorCode", Value: 18},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_3_2: failed to set failpoint")
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("human_3_2: Find succeeded when it should fail")
 	}
 	return callbackFailed
 }

@@ -285,7 +285,8 @@ func (oa *OIDCAuthenticator) getAccessToken(
 	oa.tokenGenID++
 	conn.SetOIDCTokenGenID(oa.tokenGenID)
 	oa.refreshToken = cred.RefreshToken
-	// always set the IdPInfo, in most cases, this should just be recopying the same pointer.
+	// always set the IdPInfo, in most cases, this should just be recopying the same pointer, or nil
+	// in the machine flow.
 	oa.idpInfo = args.IDPInfo
 	return cred.AccessToken, nil
 }
@@ -374,6 +375,7 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 	}
 	subCtx, cancel := context.WithTimeout(ctx, humanCallbackTimeout)
 	defer cancel()
+	// If the idpInfo exists, we can just do one step
 	if idpInfo != nil {
 		accessToken, err := oa.getAccessToken(subCtx,
 			cfg.Connection,
@@ -394,6 +396,7 @@ func (oa *OIDCAuthenticator) doAuthHuman(ctx context.Context, cfg *Config, human
 			&oidcOneStep{accessToken: accessToken},
 		)
 	}
+	// otherwise, we need the two step where we ask the server for the IdPInfo first.
 	ots := &oidcTwoStep{
 		conn: cfg.Connection,
 		oa:   oa,
