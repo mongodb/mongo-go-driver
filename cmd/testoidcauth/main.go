@@ -1138,56 +1138,36 @@ func human23RefreshTokenIsPassedToCallback() error {
 }
 
 func human31usesSpeculativeAuth() error {
-	var callbackFailed error
-
 	adminClient, err := connectAdminClinet()
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
-		t := time.Now().Add(time.Hour)
-		tokenFile := tokenFile("test_user1")
-		accessToken, err := os.ReadFile(tokenFile)
-		if err != nil {
-			callbackFailed = fmt.Errorf("human_3_1: failed reading token file: %v", err)
-		}
-		return &options.OIDCCredential{
-			AccessToken:  string(accessToken),
-			ExpiresAt:    &t,
-			RefreshToken: nil,
-		}, nil
+		// the callback should not even be called due to spec auth.
+		return &options.OIDCCredential{}, nil
 	})
-
-	defer client.Disconnect(context.Background())
 
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed connecting client: %v", err)
 	}
+	defer client.Disconnect(context.Background())
+
+	// We deviate from the Prose test since the failPoint on find with no error code does not seem to
+	// work. Rather we put an access token in the cache to force speculative auth.
+	tokenFile := tokenFile("test_user1")
+	accessToken, err := os.ReadFile(tokenFile)
+	if err != nil {
+		return fmt.Errorf("human_3_1: failed reading token file: %v", err)
+	}
+	clientElem := reflect.ValueOf(client).Elem()
+	authenticatorField := clientElem.FieldByName("authenticator")
+	authenticatorField = reflect.NewAt(
+		authenticatorField.Type(),
+		unsafe.Pointer(authenticatorField.UnsafeAddr())).Elem()
+	// This is the only usage of the x packages in the test, showing the the public interface is
+	// correct.
+	authenticatorField.Interface().(*auth.OIDCAuthenticator).SetAccessToken(string(accessToken))
 
 	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
-		{Key: "configureFailPoint", Value: "failCommand"},
-		{Key: "mode", Value: bson.D{
-			{Key: "times", Value: 1},
-		}},
-		{Key: "data", Value: bson.D{
-			{Key: "failCommands", Value: bson.A{
-				"find",
-			}},
-			{Key: "closesConnection", Value: true},
-		}},
-	})
-
-	if res.Err() != nil {
-		return fmt.Errorf("human_3_1: failed to set failpoint 1")
-	}
-
-	coll := client.Database("test").Collection("test")
-
-	_, err = coll.Find(context.Background(), bson.D{})
-	if err == nil {
-		return fmt.Errorf("human_3_1: Find succeeded when it should fail")
-	}
-
-	res = adminClient.Database("admin").RunCommand(context.Background(), bson.D{
 		{Key: "configureFailPoint", Value: "failCommand"},
 		{Key: "mode", Value: bson.D{
 			{Key: "times", Value: 1},
@@ -1201,15 +1181,16 @@ func human31usesSpeculativeAuth() error {
 	})
 
 	if res.Err() != nil {
-		return fmt.Errorf("human_3_1: failed to set failpoint 2")
+		return fmt.Errorf("human_3_1: failed to set failpoint")
 	}
 
+	coll := client.Database("test").Collection("test")
 	_, err = coll.Find(context.Background(), bson.D{})
 	if err != nil {
 		return fmt.Errorf("human_3_1: failed executing Find: %v", err)
 	}
 
-	return callbackFailed
+	return nil
 }
 
 func human32doesNotUseSpecualtiveAuth() error {
