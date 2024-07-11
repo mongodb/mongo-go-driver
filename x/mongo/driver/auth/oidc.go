@@ -276,6 +276,11 @@ func (oa *OIDCAuthenticator) getAccessToken(
 	if err != nil {
 		return "", err
 	}
+	// This line should never occur, if go conventions are followed, but it is a safety check such
+	// that we do not throw nil pointer errors to our users if they abuse the API.
+	if cred == nil {
+		return "", newAuthError("OIDC callback returned nil credential with no specified error", nil)
+	}
 
 	oa.accessToken = cred.AccessToken
 	oa.tokenGenID++

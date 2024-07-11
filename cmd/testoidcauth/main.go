@@ -97,6 +97,7 @@ func main() {
 	aux("human_1_4_mulitplePrincipalUser2", human14mulitplePrincipalUser2)
 	aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
 	aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
+	aux("human_1_7_allowedHostsInConnectionStringIgnored", human17AllowedHostsInConnectionStringIgnored)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -969,6 +970,164 @@ func human16allowedHostsBlocked() error {
 		if err == nil {
 			return fmt.Errorf("machine_1_6: Find succeeded when it should fail with 'ALLOWED_HOSTS' 'example.com'")
 		}
+	}
+	return callbackFailed
+}
+
+func human17AllowedHostsInConnectionStringIgnored() error {
+	uri := "mongodb+srv://example.com/?authMechanism=MONGODB-OIDC&authMechanismProperties=ALLOWED_HOSTS:%5B%22example.com%22%5D"
+	opts := options.Client().ApplyURI(uri)
+	err := opts.Validate()
+	if err == nil {
+		return fmt.Errorf("human_1_7: succeeded in applying URI which should produce an error")
+	}
+	return nil
+}
+
+func human21validCallbackInputs() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		if args.Version != 1 {
+			callbackFailed = fmt.Errorf("human_2_1: expected version to be 1, got %d", args.Version)
+		}
+		if args.IDPInfo == nil {
+			callbackFailed = fmt.Errorf("human_2_1: expected IDPInfo to be non-nil, previous error: (%v)", callbackFailed)
+		}
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_2_1: failed reading token file: %v, previous error: (%v)", err, callbackFailed)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_2_1: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_2_1: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_2_1: expected callback count to be 1, got %d", callbackCount)
+	}
+	return callbackFailed
+}
+
+func human22CallbackReturnsMissingData() error {
+	callbackCount := 0
+	countMutex := sync.Mutex{}
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		return &options.OIDCCredential{}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_2_2: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("human_2_2: Find succeeded when it should fail")
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_2_2: expected callback count to be 1, got %d", callbackCount)
+	}
+	return nil
+}
+
+func human23RefreshTokenIsPassedToCallback() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		if callbackCount == 1 && args.RefreshToken != nil {
+			callbackFailed = fmt.Errorf("human_2_3: expected refresh token to be nil first time, got %q, previous error: (%v)", *args.RefreshToken, callbackFailed)
+		}
+		if callbackCount == 2 && args.RefreshToken == nil {
+			callbackFailed = fmt.Errorf("human_2_3: expected refresh token to be non-nil second time, got %q, previous error: (%v)", *args.RefreshToken, callbackFailed)
+		}
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_2_3: failed reading token file: %v", err)
+		}
+		refreshToken := "this is a refresh token"
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: &refreshToken,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_2_3: failed connecting client: %v", err)
+	}
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_2_3: failed to set failpoint")
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_2_3: failed executing Find: %v", err)
+	}
+	countMutex.Lock()
+	defer countMutex.Unlock()
+	if callbackCount != 2 {
+		return fmt.Errorf("human_2_3: expected callback count to be 2, got %d", callbackCount)
 	}
 	return callbackFailed
 }
