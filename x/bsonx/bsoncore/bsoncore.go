@@ -101,19 +101,20 @@ func ReadElement(src []byte) (Element, []byte, bool) {
 		return nil, src, false
 	}
 	t := Type(src[0])
-	idx := bytes.IndexByte(src[1:], 0x00)
-	if idx == -1 {
+	idx := 1
+	for idx < len(src) && src[idx] != 0x00 {
+		idx++
+	}
+	if idx >= len(src) {
 		return nil, src, false
 	}
-	length, ok := valueLength(src[idx+2:], t) // We add 2 here because we called IndexByte with src[1:]
+	idx++ // Move past the null byte
+	length, ok := valueLength(src[idx:], t)
 	if !ok {
 		return nil, src, false
 	}
-	elemLength := 1 + idx + 1 + int(length)
+	elemLength := idx + int(length)
 	if elemLength > len(src) {
-		return nil, src, false
-	}
-	if elemLength < 0 {
 		return nil, src, false
 	}
 	return src[:elemLength], src[elemLength:], true
