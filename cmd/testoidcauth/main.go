@@ -1432,7 +1432,7 @@ func human44ReauthenticationFails() error {
 				AccessToken:  badToken,
 				ExpiresAt:    &t,
 				RefreshToken: &badToken,
-			}, nil
+			}, fmt.Errorf("failed to refresh token")
 		}
 	})
 
