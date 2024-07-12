@@ -1414,21 +1414,25 @@ func human44ReauthenticationFails() error {
 		countMutex.Lock()
 		defer countMutex.Unlock()
 		callbackCount++
+		badToken := "bad token"
+		t := time.Now().Add(time.Hour)
 		if callbackCount == 1 {
-			t := time.Now().Add(time.Hour)
 			tokenFile := tokenFile("test_user1")
 			accessToken, err := os.ReadFile(tokenFile)
 			if err != nil {
 				callbackFailed = fmt.Errorf("human_4_4: failed reading token file: %v", err)
 			}
-			refreshToken := "bad token"
 			return &options.OIDCCredential{
 				AccessToken:  string(accessToken),
 				ExpiresAt:    &t,
-				RefreshToken: &refreshToken,
+				RefreshToken: &badToken,
 			}, nil
 		} else {
-			return &options.OIDCCredential{}, nil
+			return &options.OIDCCredential{
+				AccessToken:  badToken,
+				ExpiresAt:    &t,
+				RefreshToken: &badToken,
+			}, nil
 		}
 	})
 

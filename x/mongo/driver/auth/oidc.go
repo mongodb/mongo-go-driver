@@ -271,6 +271,20 @@ func (oa *OIDCAuthenticator) getAccessToken(
 		return oa.accessToken, nil
 	}
 
+	// Attempt to refresh the access token if a refresh token is available.
+	if args.RefreshToken != nil {
+		cred, err := callback(ctx, args)
+		if err == nil && cred != nil {
+			oa.accessToken = cred.AccessToken
+			oa.tokenGenID++
+			conn.SetOIDCTokenGenID(oa.tokenGenID)
+			oa.refreshToken = cred.RefreshToken
+			return cred.AccessToken, nil
+		}
+		oa.refreshToken = nil
+		args.RefreshToken = nil
+	}
+	// If we get here this means there either was no refresh token or the refresh token failed.
 	cred, err := callback(ctx, args)
 	if err != nil {
 		return "", err
