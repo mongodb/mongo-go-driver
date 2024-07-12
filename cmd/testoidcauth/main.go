@@ -103,6 +103,10 @@ func main() {
 	aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
 	aux("human_3_1_usesSpeculativeAuth", human31usesSpeculativeAuth)
 	aux("human_3_2_doesNotUseSpecualtiveAuth", human32doesNotUseSpecualtiveAuth)
+	aux("human_4_1_reauthenticationSucceeds", human41ReauthenticationSucceeds)
+	aux("human_4_2_reauthenticationSucceedsNoRefresh", human42ReauthenticationSucceedsNoRefreshToken)
+	aux("human_4_3_reauthenticationSucceedsAfterRefreshFails", human43ReauthenticationSucceedsAfterRefreshFails)
+	aux("human_4_4_reauthenticationFails", human44ReauthenticationFails)
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -1242,5 +1246,237 @@ func human32doesNotUseSpecualtiveAuth() error {
 	if err == nil {
 		return fmt.Errorf("human_3_2: Find succeeded when it should fail")
 	}
+	return callbackFailed
+}
+
+func human41ReauthenticationSucceeds() error {
+	return nil
+}
+
+func human42ReauthenticationSucceedsNoRefreshToken() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_4_2: failed reading token file: %v", err)
+		}
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: nil,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_4_2: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_2: failed executing Find: %v", err)
+	}
+
+	countMutex.Lock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_4_2: expected callback count to be 1, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_4_2: failed to set failpoint")
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_2: failed executing Find: %v", err)
+	}
+
+	countMutex.Lock()
+	if callbackCount != 2 {
+		return fmt.Errorf("human_4_2: expected callback count to be 2, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+	return callbackFailed
+}
+
+func human43ReauthenticationSucceedsAfterRefreshFails() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		t := time.Now().Add(time.Hour)
+		tokenFile := tokenFile("test_user1")
+		accessToken, err := os.ReadFile(tokenFile)
+		if err != nil {
+			callbackFailed = fmt.Errorf("human_4_3: failed reading token file: %v", err)
+		}
+		refreshToken := "bad token"
+		return &options.OIDCCredential{
+			AccessToken:  string(accessToken),
+			ExpiresAt:    &t,
+			RefreshToken: &refreshToken,
+		}, nil
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_4_3: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_3: failed executing Find: %v", err)
+	}
+
+	countMutex.Lock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_4_3: expected callback count to be 1, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_4_3: failed to set failpoint")
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_3: failed executing Find: %v", err)
+	}
+
+	countMutex.Lock()
+	if callbackCount != 2 {
+		return fmt.Errorf("human_4_3: expected callback count to be 2, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+	return callbackFailed
+}
+
+func human44ReauthenticationFails() error {
+	callbackCount := 0
+	var callbackFailed error
+	countMutex := sync.Mutex{}
+
+	adminClient, err := connectAdminClinet()
+	defer adminClient.Disconnect(context.Background())
+
+	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
+		countMutex.Lock()
+		defer countMutex.Unlock()
+		callbackCount++
+		if callbackCount == 1 {
+			t := time.Now().Add(time.Hour)
+			tokenFile := tokenFile("test_user1")
+			accessToken, err := os.ReadFile(tokenFile)
+			if err != nil {
+				callbackFailed = fmt.Errorf("human_4_4: failed reading token file: %v", err)
+			}
+			refreshToken := "bad token"
+			return &options.OIDCCredential{
+				AccessToken:  string(accessToken),
+				ExpiresAt:    &t,
+				RefreshToken: &refreshToken,
+			}, nil
+		} else {
+			return &options.OIDCCredential{}, nil
+		}
+	})
+
+	defer client.Disconnect(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("human_4_4: failed connecting client: %v", err)
+	}
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("human_4_4: failed executing Find: %v", err)
+	}
+
+	countMutex.Lock()
+	if callbackCount != 1 {
+		return fmt.Errorf("human_4_4: expected callback count to be 1, got %d", callbackCount)
+	}
+	countMutex.Unlock()
+
+	res := adminClient.Database("admin").RunCommand(context.Background(), bson.D{
+		{Key: "configureFailPoint", Value: "failCommand"},
+		{Key: "mode", Value: bson.D{
+			{Key: "times", Value: 1},
+		}},
+		{Key: "data", Value: bson.D{
+			{Key: "failCommands", Value: bson.A{
+				"find",
+			}},
+			{Key: "errorCode", Value: 391},
+		}},
+	})
+
+	if res.Err() != nil {
+		return fmt.Errorf("human_4_4: failed to set failpoint")
+	}
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("human_4_4: Find succeeded when it should fail")
+	}
+
+	countMutex.Lock()
+	if callbackCount != 3 {
+		return fmt.Errorf("human_4_4: expected callback count to be 3, got %d", callbackCount)
+	}
+	countMutex.Unlock()
 	return callbackFailed
 }
