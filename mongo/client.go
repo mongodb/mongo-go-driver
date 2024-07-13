@@ -19,14 +19,15 @@ import (
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/internal/uuid"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	mcopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
@@ -129,7 +130,7 @@ func Connect(opts ...Options[options.ClientArgs]) (*Client, error) {
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
 func newClient(opts ...Options[options.ClientArgs]) (*Client, error) {
-	args, err := newArgsFromOptions[options.ClientArgs](opts...)
+	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,13 @@ func newClient(opts ...Options[options.ClientArgs]) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.serverAPI = topology.ServerAPIFromServerOptions(cfg.ServerOpts)
+
+	var connectTimeout time.Duration
+	if args.ConnectTimeout != nil {
+		connectTimeout = *args.ConnectTimeout
+	}
+
+	client.serverAPI = topology.ServerAPIFromServerOptions(connectTimeout, cfg.ServerOpts)
 
 	if client.deployment == nil {
 		client.deployment, err = topology.New(cfg)
@@ -404,9 +411,6 @@ func (c *Client) StartSession(opts ...Options[options.SessionArgs]) (*Session, e
 	if sessArgs.DefaultReadPreference != nil {
 		coreOpts.DefaultReadPreference = sessArgs.DefaultReadPreference
 	}
-	if sessArgs.DefaultMaxCommitTime != nil {
-		coreOpts.DefaultMaxCommitTime = sessArgs.DefaultMaxCommitTime
-	}
 	if sessArgs.Snapshot != nil {
 		coreOpts.Snapshot = sessArgs.Snapshot
 	}
@@ -434,8 +438,8 @@ func (c *Client) endSessions(ctx context.Context) {
 
 	sessionIDs := c.sessionPool.IDSlice()
 	op := operation.NewEndSessions(nil).ClusterClock(c.clock).Deployment(c.deployment).
-		ServerSelector(description.ReadPrefSelector(readpref.PrimaryPreferred())).CommandMonitor(c.monitor).
-		Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
+		ServerSelector(&serverselector.ReadPref{ReadPref: readpref.PrimaryPreferred()}).
+		CommandMonitor(c.monitor).Database("admin").Crypt(c.cryptFLE).ServerAPI(c.serverAPI)
 
 	totalNumIDs := len(sessionIDs)
 	var currentBatch []bsoncore.Document
@@ -709,10 +713,15 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(c.localThreshold),
-	})
+	var selector description.ServerSelector
+
+	selector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: readpref.Primary()},
+			&serverselector.Latency{Latency: c.localThreshold},
+		},
+	}
+
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
 	lda, err := newArgsFromOptions(opts...)

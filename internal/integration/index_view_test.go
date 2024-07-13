@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
@@ -34,20 +33,6 @@ func TestIndexView(t *testing.T) {
 	var pint32 = func(i int32) *int32 { return &i }
 
 	mt.Run("list", func(mt *mtest.T) {
-		createIndexes := func(mt *mtest.T, numIndexes int) {
-			mt.Helper()
-
-			models := make([]mongo.IndexModel, 0, numIndexes)
-			for i, key := 0, 'a'; i < numIndexes; i, key = i+1, key+1 {
-				models = append(models, mongo.IndexModel{
-					Keys: bson.M{string(key): 1},
-				})
-			}
-
-			_, err := mt.Coll.Indexes().CreateMany(context.Background(), models)
-			assert.Nil(mt, err, "CreateMany error: %v", err)
-		}
-
 		// For server versions below 3.0, we internally execute List() as a legacy OP_QUERY against the system.indexes
 		// collection. Command monitoring upconversions translate this to a "find" command rather than "listIndexes".
 		cmdName := "listIndexes"
@@ -62,13 +47,13 @@ func TestIndexView(t *testing.T) {
 			})
 		})
 		mt.Run("getMore commands are monitored", func(mt *mtest.T) {
-			createIndexes(mt, 2)
+			createIndexes(mt, mt.Coll, 2)
 			assertGetMoreCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
 				return mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
 			})
 		})
 		mt.Run("killCursors commands are monitored", func(mt *mtest.T) {
-			createIndexes(mt, 2)
+			createIndexes(mt, mt.Coll, 2)
 			assertKillCursorsCommandsAreMonitored(mt, cmdName, func() (*mongo.Cursor, error) {
 				return mt.Coll.Indexes().List(context.Background(), options.ListIndexes().SetBatchSize(2))
 			})
@@ -568,16 +553,20 @@ func TestIndexView(t *testing.T) {
 			assert.True(mt, cmp.Equal(specs, expectedSpecs), "expected specifications to match: %v", cmp.Diff(specs, expectedSpecs))
 		})
 		mt.RunOpts("options passed to listIndexes", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
-			opts := options.ListIndexes().SetMaxTime(100 * time.Millisecond)
+			opts := options.ListIndexes().SetBatchSize(1)
 			_, err := mt.Coll.Indexes().ListSpecifications(context.Background(), opts)
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, evt.CommandName, "listIndexes", "expected %q command to be sent, got %q", "listIndexes",
 				evt.CommandName)
-			maxTimeMS, ok := evt.Command.Lookup("maxTimeMS").Int64OK()
-			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "maxTimeMS")
-			assert.Equal(mt, int64(100), maxTimeMS, "expected maxTimeMS value to be 100, got %d", maxTimeMS)
+
+			cursorDoc, ok := evt.Command.Lookup("cursor").DocumentOK()
+			assert.True(mt, ok, "expected command: %v to contain a cursor document", evt.Command)
+
+			batchSize, ok := cursorDoc.Lookup("batchSize").Int32OK()
+			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "batchSize")
+			assert.Equal(mt, int32(1), batchSize, "expected batchSize value to be 1, got %d", batchSize)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
@@ -722,4 +711,18 @@ func verifyIndexExists(mt *mtest.T, iv mongo.IndexView, expected index) {
 	}
 	assert.Nil(mt, cursor.Err(), "cursor error: %v", err)
 	assert.True(mt, found, "expected to find index %v but was not found", expected.Name)
+}
+
+func createIndexes(mt *mtest.T, coll *mongo.Collection, numIndexes int) {
+	mt.Helper()
+
+	models := make([]mongo.IndexModel, 0, numIndexes)
+	for i, key := 0, 'a'; i < numIndexes; i, key = i+1, key+1 {
+		models = append(models, mongo.IndexModel{
+			Keys: bson.M{string(key): 1},
+		})
+	}
+
+	_, err := coll.Indexes().CreateMany(context.Background(), models)
+	assert.Nil(mt, err, "CreateMany error: %v", err)
 }

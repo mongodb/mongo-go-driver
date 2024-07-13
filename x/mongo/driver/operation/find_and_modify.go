@@ -15,10 +15,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -29,7 +29,6 @@ type FindAndModify struct {
 	collation                bsoncore.Document
 	comment                  bsoncore.Value
 	fields                   bsoncore.Document
-	maxTime                  *time.Duration
 	newDocument              *bool
 	query                    bsoncore.Document
 	remove                   *bool
@@ -137,7 +136,6 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		CommandMonitor: fam.monitor,
 		Database:       fam.database,
 		Deployment:     fam.deployment,
-		MaxTime:        fam.maxTime,
 		Selector:       fam.selector,
 		WriteConcern:   fam.writeConcern,
 		Crypt:          fam.crypt,
@@ -152,7 +150,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	dst = bsoncore.AppendStringElement(dst, "findAndModify", fam.collection)
 	if fam.arrayFilters != nil {
 
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(6) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 6) {
 			return nil, errors.New("the 'arrayFilters' command parameter requires a minimum server wire version of 6")
 		}
 		dst = bsoncore.AppendArrayElement(dst, "arrayFilters", fam.arrayFilters)
@@ -163,7 +161,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	}
 	if fam.collation != nil {
 
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", fam.collation)
@@ -200,7 +198,7 @@ func (fam *FindAndModify) command(dst []byte, desc description.SelectedServer) (
 	}
 	if fam.hint.Type != bsoncore.Type(0) {
 
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(8) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 8) {
 			return nil, errors.New("the 'hint' command parameter requires a minimum server wire version of 8")
 		}
 		if !fam.writeConcern.Acknowledged() {
@@ -262,16 +260,6 @@ func (fam *FindAndModify) Fields(fields bsoncore.Document) *FindAndModify {
 	}
 
 	fam.fields = fields
-	return fam
-}
-
-// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
-func (fam *FindAndModify) MaxTime(maxTime *time.Duration) *FindAndModify {
-	if fam == nil {
-		fam = new(FindAndModify)
-	}
-
-	fam.maxTime = maxTime
 	return fam
 }
 

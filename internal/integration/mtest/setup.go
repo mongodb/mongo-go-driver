@@ -20,12 +20,12 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -142,13 +142,13 @@ func Setup(setupOpts ...*SetupOptions) error {
 	}
 
 	switch testContext.topo.Kind() {
-	case description.Single:
+	case description.TopologyKindSingle:
 		testContext.topoKind = Single
-	case description.ReplicaSet, description.ReplicaSetWithPrimary, description.ReplicaSetNoPrimary:
+	case description.TopologyKindReplicaSet, description.TopologyKindReplicaSetWithPrimary, description.TopologyKindReplicaSetNoPrimary:
 		testContext.topoKind = ReplicaSet
-	case description.Sharded:
+	case description.TopologyKindSharded:
 		testContext.topoKind = Sharded
-	case description.LoadBalanced:
+	case description.TopologyKindLoadBalanced:
 		testContext.topoKind = LoadBalanced
 	default:
 		return fmt.Errorf("could not detect topology kind; current topology: %s", testContext.topo.String())

@@ -6,8 +6,6 @@
 
 package options
 
-import "time"
-
 // DistinctArgs represents arguments that can be used to configure a Distinct
 // operation.
 type DistinctArgs struct {
@@ -19,14 +17,6 @@ type DistinctArgs struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation. The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be
-	// used in its place to control the amount of time that a single operation can run before returning an error.
-	// MaxTime is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 }
 
 // DistinctOptions contains options to configure distinct operations. Each
@@ -61,21 +51,6 @@ func (do *DistinctOptions) SetCollation(c *Collation) *DistinctOptions {
 func (do *DistinctOptions) SetComment(comment interface{}) *DistinctOptions {
 	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
 		args.Comment = comment
-
-		return nil
-	})
-
-	return do
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (do *DistinctOptions) SetMaxTime(d time.Duration) *DistinctOptions {
-	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
-		args.MaxTime = &d
 
 		return nil
 	})

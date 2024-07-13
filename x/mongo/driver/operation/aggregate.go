@@ -13,12 +13,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
@@ -30,7 +30,6 @@ type Aggregate struct {
 	collation                bsoncore.Document
 	comment                  bsoncore.Value
 	hint                     bsoncore.Value
-	maxTime                  *time.Duration
 	pipeline                 bsoncore.Document
 	session                  *session.Client
 	clock                    *session.ClusterClock
@@ -109,7 +108,6 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		MinimumWriteConcernWireVersion: 5,
 		ServerAPI:                      a.serverAPI,
 		IsOutputAggregate:              a.hasOutputStage,
-		MaxTime:                        a.maxTime,
 		Timeout:                        a.timeout,
 		Name:                           driverutil.AggregateOp,
 	}.Execute(ctx)
@@ -136,8 +134,7 @@ func (a *Aggregate) command(dst []byte, desc description.SelectedServer) ([]byte
 		dst = bsoncore.AppendBooleanElement(dst, "bypassDocumentValidation", *a.bypassDocumentValidation)
 	}
 	if a.collation != nil {
-
-		if desc.WireVersion == nil || !desc.WireVersion.Includes(5) {
+		if desc.WireVersion == nil || !driverutil.VersionRangeIncludes(*desc.WireVersion, 5) {
 			return nil, errors.New("the 'collation' command parameter requires a minimum server wire version of 5")
 		}
 		dst = bsoncore.AppendDocumentElement(dst, "collation", a.collation)
@@ -222,16 +219,6 @@ func (a *Aggregate) Hint(hint bsoncore.Value) *Aggregate {
 	}
 
 	a.hint = hint
-	return a
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (a *Aggregate) MaxTime(maxTime *time.Duration) *Aggregate {
-	if a == nil {
-		a = new(Aggregate)
-	}
-
-	a.maxTime = maxTime
 	return a
 }
 

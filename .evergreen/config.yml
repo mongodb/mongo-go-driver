@@ -559,6 +559,8 @@ functions:
         working_dir: src/go.mongodb.org/mongo-driver
         script: |
           ${PREPARE_SHELL}
+
+          IS_SERVERLESS_PROXY="${IS_SERVERLESS_PROXY}" \
           bash etc/run-serverless-test.sh
 
   run-atlas-data-lake-test:
@@ -1944,6 +1946,9 @@ tasks:
           include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
           script: |
             ${PREPARE_SHELL}
+            pushd $TEST_LAMBDA_DIRECTORY/mongodb
+            go mod tidy
+            popd
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
   - name: "test-search-index"
@@ -2006,7 +2011,7 @@ axes:
       - id: "windows-64-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-latest-small
+          - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
@@ -2030,7 +2035,7 @@ axes:
       - id: "windows-64-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-latest-small
+          - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
@@ -2062,7 +2067,7 @@ axes:
       - id: "windows-64-vsCurrent-latest-small-go-1-20"
         display_name: "Windows 64-bit"
         run_on:
-          - windows-vsCurrent-latest-small
+          - windows-vsCurrent-small
         variables:
           GCC_PATH: "/cygdrive/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin"
           GO_DIST: "C:\\golang\\go1.20"
@@ -2109,6 +2114,7 @@ axes:
         display_name: "Serverless Proxy"
         variables:
           VAULT_NAME: "serverless_next"
+          IS_SERVERLESS_PROXY: "true"
 
 task_groups:
   - name: serverless_task_group
@@ -2382,23 +2388,48 @@ buildvariants:
     tasks:
       - name: "test-docker-runner"
 
-  - matrix_name: "tests-36-with-zlib-support"
+  - matrix_name: "tests-rhel-36-with-zlib-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["3.6"], os-ssl-32: ["rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-32}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
-  - matrix_name: "tests-40-with-zlib-support"
+  - matrix_name: "tests-windows-36-with-zlib-support"
+    matrix_spec: { version: ["3.6"], os-ssl-32: ["windows-64-go-1-20"] }
+    display_name: "${version} ${os-ssl-32}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy !.zstd"
+
+  - matrix_name: "tests-rhel-40-with-zlib-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy !.zstd"
 
-  - matrix_name: "tests-42-plus-zlib-zstd-support"
+  - matrix_name: "tests-windows-40-with-zlib-support"
+    matrix_spec: { version: ["4.0"], os-ssl-40: ["windows-64-go-1-20"] }
+    display_name: "${version} ${os-ssl-40}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy !.zstd"
+
+  - matrix_name: "tests-rhel-42-plus-zlib-zstd-support"
     tags: ["pullrequest"]
-    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["windows-64-go-1-20", "rhel87-64-go-1-20"] }
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0", "8.0"], os-ssl-40: ["rhel87-64-go-1-20"] }
+    display_name: "${version} ${os-ssl-40}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy"
+
+  - matrix_name: "tests-windows-42-plus-zlib-zstd-support"
+    matrix_spec: { version: ["4.2", "4.4", "5.0", "6.0", "7.0"], os-ssl-40: ["windows-64-go-1-20"] }
+    display_name: "${version} ${os-ssl-40}"
+    tasks:
+      - name: ".test !.enterprise-auth !.snappy"
+
+  - matrix_name: "tests-windows-80-zlib-zstd-support"
+    tags: ["pullrequest"]
+    matrix_spec: { version: ["8.0"], os-ssl-40: ["windows-64-go-1-20"] }
     display_name: "${version} ${os-ssl-40}"
     tasks:
       - name: ".test !.enterprise-auth !.snappy"

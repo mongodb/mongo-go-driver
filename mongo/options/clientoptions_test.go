@@ -77,7 +77,6 @@ func TestClientOptions(t *testing.T) {
 			{"RetryWrites", (*ClientOptions).SetRetryWrites, true, "RetryWrites", true},
 			{"ServerSelectionTimeout", (*ClientOptions).SetServerSelectionTimeout, 5 * time.Second, "ServerSelectionTimeout", true},
 			{"Direct", (*ClientOptions).SetDirect, true, "Direct", true},
-			{"SocketTimeout", (*ClientOptions).SetSocketTimeout, 5 * time.Second, "SocketTimeout", true},
 			{"TLSConfig", (*ClientOptions).SetTLSConfig, &tls.Config{}, "TLSConfig", false},
 			{"WriteConcern", (*ClientOptions).SetWriteConcern, writeconcern.Majority(), "WriteConcern", false},
 			{"ZlibLevel", (*ClientOptions).SetZlibLevel, 6, "ZlibLevel", true},
@@ -381,6 +380,7 @@ func TestClientOptions(t *testing.T) {
 		}
 	})
 }
+
 func createCertPool(t *testing.T, paths ...string) *x509.CertPool {
 	t.Helper()
 
@@ -812,8 +812,7 @@ func TestSetURIArgs(t *testing.T) {
 			name: "SocketTimeout",
 			uri:  "mongodb://localhost/?socketTimeoutMS=15000",
 			wantArgs: &ClientArgs{
-				Hosts:         []string{"localhost"},
-				SocketTimeout: ptrutil.Ptr[time.Duration](15 * time.Second),
+				Hosts: []string{"localhost"},
 			},
 			wantErrs: nil,
 		},
@@ -904,8 +903,7 @@ func TestSetURIArgs(t *testing.T) {
 			name: "WriteConcern WTimeout",
 			uri:  "mongodb://localhost/?wTimeoutMS=45000",
 			wantArgs: &ClientArgs{
-				Hosts:        []string{"localhost"},
-				WriteConcern: &writeconcern.WriteConcern{WTimeout: 45 * time.Second},
+				Hosts: []string{"localhost"},
 			},
 			wantErrs: nil,
 		},

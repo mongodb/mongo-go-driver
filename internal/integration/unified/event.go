@@ -135,10 +135,10 @@ type serverDescriptionChangedEventInfo struct {
 func newServerDescriptionChangedEventInfo(evt *event.ServerDescriptionChangedEvent) *serverDescriptionChangedEventInfo {
 	return &serverDescriptionChangedEventInfo{
 		NewDescription: &serverDescription{
-			Type: evt.NewDescription.Kind.String(),
+			Type: evt.NewDescription.Kind,
 		},
 		PreviousDescription: &serverDescription{
-			Type: evt.PreviousDescription.Kind.String(),
+			Type: evt.PreviousDescription.Kind,
 		},
 	}
 }

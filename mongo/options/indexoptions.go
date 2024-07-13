@@ -6,10 +6,6 @@
 
 package options
 
-import (
-	"time"
-)
-
 // CreateIndexesArgs represents arguments that can be used to configure
 // IndexView.CreateOne and IndexView.CreateMany operations.
 type CreateIndexesArgs struct {
@@ -26,14 +22,6 @@ type CreateIndexesArgs struct {
 	// is specified for MongoDB versions <= 4.2. The default value is nil, meaning that the server-side default will be
 	// used. See dochub.mongodb.org/core/index-commit-quorum for more information.
 	CommitQuorum interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 }
 
 // CreateIndexesOptions contains options to create indexes. Each option can be
@@ -51,21 +39,6 @@ func CreateIndexes() *CreateIndexesOptions {
 // ArgsSetters returns a list of CreateIndexesArgs setter functions.
 func (c *CreateIndexesOptions) ArgsSetters() []func(*CreateIndexesArgs) error {
 	return c.Opts
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (c *CreateIndexesOptions) SetMaxTime(d time.Duration) *CreateIndexesOptions {
-	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
-		args.MaxTime = &d
-
-		return nil
-	})
-
-	return c
 }
 
 // SetCommitQuorumInt sets the value for the CommitQuorum field as an int32.
@@ -114,15 +87,7 @@ func (c *CreateIndexesOptions) SetCommitQuorumVotingMembers() *CreateIndexesOpti
 
 // DropIndexesArgs represents arguments that can be used to configure
 // IndexView.DropOne and IndexView.DropAll operations.
-type DropIndexesArgs struct {
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
-}
+type DropIndexesArgs struct{}
 
 // DropIndexesOptions contains options to configure dropping indexes. Each
 // option can be set through setter functions. See documentation for each setter
@@ -141,34 +106,11 @@ func (d *DropIndexesOptions) ArgsSetters() []func(*DropIndexesArgs) error {
 	return d.Opts
 }
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (d *DropIndexesOptions) SetMaxTime(duration time.Duration) *DropIndexesOptions {
-	d.Opts = append(d.Opts, func(args *DropIndexesArgs) error {
-		args.MaxTime = &duration
-
-		return nil
-	})
-
-	return d
-}
-
 // ListIndexesArgs represents arguments that can be used to configure an
 // IndexView.List operation.
 type ListIndexesArgs struct {
 	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 }
 
 // ListIndexesOptions contains options to configure count operations. Each
@@ -192,21 +134,6 @@ func (l *ListIndexesOptions) ArgsSetters() []func(*ListIndexesArgs) error {
 func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
 	l.Opts = append(l.Opts, func(args *ListIndexesArgs) error {
 		args.BatchSize = &i
-
-		return nil
-	})
-
-	return l
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (l *ListIndexesOptions) SetMaxTime(d time.Duration) *ListIndexesOptions {
-	l.Opts = append(l.Opts, func(args *ListIndexesArgs) error {
-		args.MaxTime = &d
 
 		return nil
 	})

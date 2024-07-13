@@ -30,10 +30,11 @@ import (
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -166,6 +167,7 @@ func TestServerHeartbeatTimeout(t *testing.T) {
 			server := NewServer(
 				address.Address("localhost:27017"),
 				bson.NewObjectID(),
+				defaultConnectionTimeout,
 				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
 					return tpm.PoolMonitor
 				}),
@@ -218,6 +220,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			desc:              "successful connection should not clear the pool",
 			expectErr:         false,
 			expectPoolCleared: false,
+			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
 			desc: "timeout error during dialing should clear the pool",
@@ -262,6 +265,7 @@ func TestServerConnectionTimeout(t *testing.T) {
 			},
 			expectErr:         true,
 			expectPoolCleared: true,
+			connectTimeout:    defaultConnectionTimeout,
 		},
 		{
 			desc: "operation context timeout with unrelated dial errors should clear the pool",
@@ -300,15 +304,13 @@ func TestServerConnectionTimeout(t *testing.T) {
 			server := NewServer(
 				address.Address(l.Addr().String()),
 				bson.NewObjectID(),
+				tc.connectTimeout,
 				WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor {
 					return tpm.PoolMonitor
 				}),
 				// Replace the default dialer and handshaker with the test dialer and handshaker, if
 				// present.
 				WithConnectionOptions(func(opts ...ConnectionOption) []ConnectionOption {
-					if tc.connectTimeout > 0 {
-						opts = append(opts, WithConnectTimeout(func(time.Duration) time.Duration { return tc.connectTimeout }))
-					}
 					if tc.dialer != nil {
 						opts = append(opts, WithDialer(tc.dialer))
 					}
@@ -381,6 +383,7 @@ func TestServer(t *testing.T) {
 			s := NewServer(
 				address.Address("localhost"),
 				bson.NewObjectID(),
+				defaultConnectionTimeout,
 				WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
 					return append(connOpts,
 						WithHandshaker(func(Handshaker) Handshaker {
@@ -516,7 +519,7 @@ func TestServer(t *testing.T) {
 							return driver.HandshakeInformation{}, tc.getInfoErr
 						}
 
-						desc := description.NewDefaultServer(addr)
+						desc := newServerDescriptionFromError(addr, nil, nil)
 						if tc.loadBalanced {
 							desc.ServiceID = &serviceID
 						}
@@ -567,7 +570,13 @@ func TestServer(t *testing.T) {
 					WithMaxConnecting(func(uint64) uint64 { return 1 }),
 				}
 
-				server, err := ConnectServer(address.Address("localhost:27017"), nil, bson.NewObjectID(), serverOpts...)
+				server, err := ConnectServer(
+					address.Address("localhost:27017"),
+					nil,
+					bson.NewObjectID(),
+					defaultConnectionTimeout,
+					serverOpts...,
+				)
 				assert.Nil(t, err, "ConnectServer error: %v", err)
 				defer func() {
 					_ = server.Disconnect(context.Background())
@@ -601,6 +610,7 @@ func TestServer(t *testing.T) {
 		d := newdialer(&net.Dialer{})
 		s := NewServer(address.Address(addr.String()),
 			bson.NewObjectID(),
+			defaultConnectionTimeout,
 			WithConnectionOptions(func(option ...ConnectionOption) []ConnectionOption {
 				return []ConnectionOption{WithDialer(func(_ Dialer) Dialer { return d })}
 			}),
@@ -648,7 +658,14 @@ func TestServer(t *testing.T) {
 			updated.Store(true)
 			return desc
 		}
-		s, err := ConnectServer(address.Address("localhost"), updateCallback, bson.NewObjectID())
+
+		s, err := ConnectServer(
+			address.Address("localhost"),
+			updateCallback,
+			bson.NewObjectID(),
+			defaultConnectionTimeout,
+		)
+
 		require.NoError(t, err)
 		s.updateDescription(description.Server{Addr: s.address})
 		require.True(t, updated.Load().(bool))
@@ -663,10 +680,10 @@ func TestServer(t *testing.T) {
 			return append(connOpts, dialerOpt)
 		})
 
-		s := NewServer(address.Address("localhost:27017"), bson.NewObjectID(), serverOpt)
+		s := NewServer(address.Address("localhost:27017"), bson.NewObjectID(), defaultConnectionTimeout, serverOpt)
 
 		// do a heartbeat with a nil connection so a new one will be dialed
-		_, err := s.check()
+		_, err := s.check(context.Background())
 		assert.Nil(t, err, "check error: %v", err)
 		assert.NotNil(t, s.conn, "no connection dialed in check")
 
@@ -683,7 +700,7 @@ func TestServer(t *testing.T) {
 		if err = channelConn.AddResponse(makeHelloReply()); err != nil {
 			t.Fatalf("error adding response: %v", err)
 		}
-		_, err = s.check()
+		_, err = s.check(context.Background())
 		assert.Nil(t, err, "check error: %v", err)
 
 		wm = channelConn.GetWrittenMessage()
@@ -727,10 +744,10 @@ func TestServer(t *testing.T) {
 			WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor { return sdam }),
 		}
 
-		s := NewServer(address.Address("localhost:27017"), bson.NewObjectID(), serverOpts...)
+		s := NewServer(address.Address("localhost:27017"), bson.NewObjectID(), defaultConnectionTimeout, serverOpts...)
 
 		// set up heartbeat connection, which doesn't send events
-		_, err := s.check()
+		_, err := s.check(context.Background())
 		assert.Nil(t, err, "check error: %v", err)
 
 		channelConn := s.conn.nc.(*drivertest.ChannelNetConn)
@@ -742,7 +759,7 @@ func TestServer(t *testing.T) {
 			if err = channelConn.AddResponse(makeHelloReply()); err != nil {
 				t.Fatalf("error adding response: %v", err)
 			}
-			_, err = s.check()
+			_, err = s.check(context.Background())
 			_ = channelConn.GetWrittenMessage()
 			assert.Nil(t, err, "check error: %v", err)
 
@@ -764,7 +781,7 @@ func TestServer(t *testing.T) {
 			// do a heartbeat with a non-nil connection
 			readErr := errors.New("error")
 			channelConn.ReadErr <- readErr
-			_, err = s.check()
+			_, err = s.check(context.Background())
 			_ = channelConn.GetWrittenMessage()
 			assert.Nil(t, err, "check error: %v", err)
 
@@ -787,64 +804,9 @@ func TestServer(t *testing.T) {
 
 		s := NewServer(address.Address("localhost"),
 			bson.NewObjectID(),
+			defaultConnectionTimeout,
 			WithServerAppName(func(string) string { return name }))
 		require.Equal(t, name, s.cfg.appname, "expected appname to be: %v, got: %v", name, s.cfg.appname)
-	})
-	t.Run("createConnection overwrites WithSocketTimeout", func(t *testing.T) {
-		socketTimeout := 40 * time.Second
-
-		s := NewServer(
-			address.Address("localhost"),
-			bson.NewObjectID(),
-			WithConnectionOptions(func(connOpts ...ConnectionOption) []ConnectionOption {
-				return append(
-					connOpts,
-					WithReadTimeout(func(time.Duration) time.Duration { return socketTimeout }),
-					WithWriteTimeout(func(time.Duration) time.Duration { return socketTimeout }),
-				)
-			}),
-		)
-
-		conn := s.createConnection()
-		assert.Equal(t, s.cfg.heartbeatTimeout, 10*time.Second, "expected heartbeatTimeout to be: %v, got: %v", 10*time.Second, s.cfg.heartbeatTimeout)
-		assert.Equal(t, s.cfg.heartbeatTimeout, conn.readTimeout, "expected readTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.readTimeout)
-		assert.Equal(t, s.cfg.heartbeatTimeout, conn.writeTimeout, "expected writeTimeout to be: %v, got: %v", s.cfg.heartbeatTimeout, conn.writeTimeout)
-	})
-	t.Run("heartbeat contexts are not leaked", func(t *testing.T) {
-		// The context created for heartbeats should be cancelled when it is no longer needed to avoid leaks.
-
-		server, err := ConnectServer(
-			address.Address("invalid"),
-			nil,
-			bson.NewObjectID(),
-			withMonitoringDisabled(func(bool) bool {
-				return true
-			}),
-		)
-		assert.Nil(t, err, "ConnectServer error: %v", err)
-
-		// Expect check to return an error in the server description because the server address doesn't exist. This is
-		// OK because we just want to ensure the heartbeat context is created.
-		desc, err := server.check()
-		assert.Nil(t, err, "check error: %v", err)
-		assert.NotNil(t, desc.LastError, "expected server description to contain an error, got nil")
-		assert.NotNil(t, server.heartbeatCtx, "expected heartbeatCtx to be non-nil, got nil")
-		assert.Nil(t, server.heartbeatCtx.Err(), "expected heartbeatCtx error to be nil, got %v", server.heartbeatCtx.Err())
-
-		// Override heartbeatCtxCancel with a wrapper that records whether or not it was called.
-		oldCancelFn := server.heartbeatCtxCancel
-		var previousCtxCancelled bool
-		server.heartbeatCtxCancel = func() {
-			previousCtxCancelled = true
-			oldCancelFn()
-		}
-
-		// The second check call should attempt to create a new heartbeat connection and should cancel the previous
-		// heartbeatCtx during the process.
-		desc, err = server.check()
-		assert.Nil(t, err, "check error: %v", err)
-		assert.NotNil(t, desc.LastError, "expected server description to contain an error, got nil")
-		assert.True(t, previousCtxCancelled, "expected check to cancel previous context but did not")
 	})
 }
 
@@ -870,27 +832,27 @@ func TestServer_ProcessError(t *testing.T) {
 		{
 			name: "nil error",
 			startDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			inputErr:       nil,
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 		},
 		// Test that errors that occur on stale connections are ignored.
 		{
 			name: "stale connection",
 			startDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			inputErr:       errors.New("foo"),
 			inputConn:      newProcessErrorTestConn(&description.VersionRange{Max: 17}, true),
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 		},
 		// Test that errors that do not indicate a database state change or connection error are
@@ -898,7 +860,7 @@ func TestServer_ProcessError(t *testing.T) {
 		{
 			name: "non state change error",
 			startDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 			inputErr: driver.Error{
 				Code: 1,
@@ -907,13 +869,13 @@ func TestServer_ProcessError(t *testing.T) {
 			want:           driver.NoChange,
 			wantGeneration: 0,
 			wantDescription: description.Server{
-				Kind: description.RSPrimary,
+				Kind: description.ServerKindRSPrimary,
 			},
 		},
 		// Test that a "not writable primary" error with an old topology version is ignored.
 		{
 			name:             "stale not writable primary error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -924,13 +886,13 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 		},
 		// Test that a "not writable primary" error with an newer topology version marks the Server
 		// as "unknown" and updates its topology version.
 		{
 			name:             "new not writable primary error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -953,7 +915,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// "unknown" and updates its topology version.
 		{
 			name:             "new process ID not writable primary error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -977,7 +939,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// TODO(GODRIVER-2841): Remove this test case.
 		{
 			name:             "newer connection topology version",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 10107, // NotWritablePrimary
 				TopologyVersion: &description.TopologyVersion{
@@ -997,13 +959,13 @@ func TestServer_ProcessError(t *testing.T) {
 			}),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 		},
 		// Test that a "node is shutting down" error with a newer topology version clears the
 		// connection pool, marks the Server as "unknown", and updates its topology version.
 		{
 			name:             "new shutdown error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Code: 11600, // InterruptedAtShutdown
 				TopologyVersion: &description.TopologyVersion{
@@ -1025,7 +987,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// Test that a "not writable primary" error with a stale topology version is ignored.
 		{
 			name:             "stale not writable primary write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 10107, // NotWritablePrimary
@@ -1038,13 +1000,13 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 1, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 1, nil),
 		},
 		// Test that a "not writable primary" error with a newer topology version marks the Server
 		// as "unknown" and updates its topology version.
 		{
 			name:             "new not writable primary write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 10107, // NotWritablePrimary
@@ -1071,7 +1033,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// local Server topology version mark the Server as "unknown" and clear the connection pool.
 		{
 			name:             "new shutdown write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 11600, // InterruptedAtShutdown
@@ -1099,7 +1061,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// servers before 4.2 mark the Server as "unknown" and clear the connection pool.
 		{
 			name:             "older than 4.2 write concern error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.WriteCommandError{
 				WriteConcernError: &driver.WriteConcernError{
 					Code: 10107, // NotWritablePrimary
@@ -1125,7 +1087,7 @@ func TestServer_ProcessError(t *testing.T) {
 		// Test that a network timeout error, such as a DNS lookup timeout error, is ignored.
 		{
 			name:             "network timeout error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Labels: []string{driver.NetworkError},
 				Wrapped: ConnectionError{
@@ -1138,12 +1100,12 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 		},
 		// Test that a context canceled error is ignored.
 		{
 			name:             "context canceled error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Labels: []string{driver.NetworkError},
 				Wrapped: ConnectionError{
@@ -1153,13 +1115,13 @@ func TestServer_ProcessError(t *testing.T) {
 			inputConn:       newProcessErrorTestConn(&description.VersionRange{Max: 17}, false),
 			want:            driver.NoChange,
 			wantGeneration:  0,
-			wantDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			wantDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 		},
 		// Test that a non-timeout network error, such as an address lookup error, marks the server
 		// as "unknown" and sets its topology version to nil.
 		{
 			name:             "non-timeout network error",
-			startDescription: newServerDescription(description.RSPrimary, processID, 0, nil),
+			startDescription: newServerDescription(description.ServerKindRSPrimary, processID, 0, nil),
 			inputErr: driver.Error{
 				Labels: []string{driver.NetworkError},
 				Wrapped: ConnectionError{
@@ -1188,7 +1150,7 @@ func TestServer_ProcessError(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := NewServer(address.Address(""), bson.NewObjectID())
+			server := NewServer(address.Address(""), bson.NewObjectID(), defaultConnectionTimeout)
 			server.state = serverConnected
 			err := server.pool.ready()
 			require.Nil(t, err, "pool.ready() error: %v", err)
@@ -1209,6 +1171,82 @@ func TestServer_ProcessError(t *testing.T) {
 				tc.wantGeneration,
 				generation,
 				"expected and actual pool generation are different")
+		})
+	}
+}
+
+func TestServer_getSocketTimeout(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		enableStreaming   bool
+		connectTimeout    time.Duration
+		heartbeatInterval time.Duration
+		want              time.Duration
+	}{
+		{
+			name:              "server is streamable with connectTimeout and no heartbeat interval",
+			enableStreaming:   true,
+			connectTimeout:    1,
+			heartbeatInterval: 0,
+			want:              1,
+		},
+		{
+			name:              "server is streamable with connectTimeout and heartbeat interval",
+			enableStreaming:   true,
+			connectTimeout:    1,
+			heartbeatInterval: 1,
+			want:              2,
+		},
+		{
+			name:              "server is streamable with no connectTimeout and heartbeat interval",
+			enableStreaming:   true,
+			connectTimeout:    0,
+			heartbeatInterval: 1,
+			want:              0,
+		},
+		{
+			name:              "server is streamable with no connectTimeout and no heartbeat interval",
+			enableStreaming:   true,
+			connectTimeout:    0,
+			heartbeatInterval: 0,
+			want:              0,
+		},
+		{
+			name:              "server is not streamable",
+			enableStreaming:   false,
+			connectTimeout:    1,
+			heartbeatInterval: 0,
+			want:              1,
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			srv := &Server{
+				cfg: &serverConfig{
+					connectTimeout:    test.connectTimeout,
+					heartbeatInterval: test.heartbeatInterval,
+				},
+				conn: &connection{},
+			}
+
+			srv.desc.Store(description.Server{
+				Kind:            description.ServerKind(description.TopologyKindReplicaSet),
+				TopologyVersion: &description.TopologyVersion{},
+			})
+
+			if test.enableStreaming {
+				srv.cfg.serverMonitoringMode = connstring.ServerMonitoringModeStream
+			}
+
+			got := getHeartbeatTimeout(srv)
+			assert.Equal(t, test.want, got)
 		})
 	}
 }
@@ -1302,4 +1340,47 @@ func newServerDescription(
 		},
 		LastError: lastError,
 	}
+}
+
+type mockServerChecker struct {
+	sleep time.Duration
+}
+
+var _ serverChecker = &mockServerChecker{}
+
+func (checker *mockServerChecker) check(ctx context.Context) (description.Server, error) {
+	select {
+	case <-ctx.Done():
+		return description.Server{}, ctx.Err()
+	case <-time.After(checker.sleep):
+	}
+
+	return description.Server{}, nil
+}
+
+func TestCheckServerWithSignal(t *testing.T) {
+	t.Run("check finishes before signal", func(t *testing.T) {
+		listener := newNonBlockingContextDoneListener()
+		go func() {
+			defer listener.StopListening()
+
+			time.Sleep(105 * time.Millisecond)
+		}()
+
+		_, err := checkServerWithSignal(&mockServerChecker{sleep: 100 * time.Millisecond}, &connection{}, listener)
+		assert.NoError(t, err)
+	})
+
+	t.Run("check finishes after signal", func(t *testing.T) {
+		listener := newNonBlockingContextDoneListener()
+		go func() {
+			defer listener.StopListening()
+
+			time.Sleep(100 * time.Millisecond)
+		}()
+
+		_, err := checkServerWithSignal(&mockServerChecker{sleep: 1 * time.Second}, &connection{}, listener)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, context.Canceled)
+	})
 }

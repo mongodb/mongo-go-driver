@@ -20,9 +20,9 @@ import (
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -50,6 +50,27 @@ func serverStateString(state int64) string {
 	return ""
 }
 
+// newServerDescriptionFromError creates a new unknown server description with
+// the given parameters.
+func newServerDescriptionFromError(
+	addr address.Address,
+	err error,
+	tv *description.TopologyVersion,
+) description.Server {
+	return description.Server{
+		Addr:            addr,
+		LastError:       err,
+		Kind:            description.Unknown,
+		TopologyVersion: tv,
+	}
+}
+
+// newDefaultServerDescription creates a new unknown server description with the
+// given address.
+func newDefaultServerDescription(addr address.Address) description.Server {
+	return newServerDescriptionFromError(addr, nil, nil)
+}
+
 var (
 	// ErrServerClosed occurs when an attempt to Get a connection is made after
 	// the server has been closed.
@@ -59,7 +80,7 @@ var (
 	ErrServerConnected = errors.New("server is connected")
 
 	errCheckCancelled = errors.New("server check cancelled")
-	emptyDescription  = description.NewDefaultServer("")
+	emptyDescription  = newDefaultServerDescription("")
 )
 
 // SelectedServer represents a specific server that was selected during server selection.
@@ -112,16 +133,12 @@ type Server struct {
 	currentSubscriberID uint64
 	subscriptionsClosed bool
 
-	// heartbeat and cancellation related fields
-	// globalCtx should be created in NewServer and cancelled in Disconnect to signal that the server is shutting down.
-	// heartbeatCtx should be used for individual heartbeats and should be a child of globalCtx so that it will be
-	// cancelled automatically during shutdown.
-	heartbeatLock      sync.Mutex
-	conn               *connection
-	globalCtx          context.Context
-	globalCtxCancel    context.CancelFunc
-	heartbeatCtx       context.Context
-	heartbeatCtxCancel context.CancelFunc
+	conn *connection
+
+	// Calling StopListening on the heartbeatListner will cancel the context
+	// passed to the heartbeat check. This will result in the current connection
+	// being closed.
+	heartbeatListener contextListener
 
 	processErrorLock sync.Mutex
 	rttMonitor       *rttMonitor
@@ -139,9 +156,10 @@ func ConnectServer(
 	addr address.Address,
 	updateCallback updateTopologyCallback,
 	topologyID bson.ObjectID,
+	connectTimeout time.Duration,
 	opts ...ServerOption,
 ) (*Server, error) {
-	srvr := NewServer(addr, topologyID, opts...)
+	srvr := NewServer(addr, topologyID, connectTimeout, opts...)
 	err := srvr.Connect(updateCallback)
 	if err != nil {
 		return nil, err
@@ -151,9 +169,14 @@ func ConnectServer(
 
 // NewServer creates a new server. The mongodb server at the address will be monitored
 // on an internal monitoring goroutine.
-func NewServer(addr address.Address, topologyID bson.ObjectID, opts ...ServerOption) *Server {
-	cfg := newServerConfig(opts...)
-	globalCtx, globalCtxCancel := context.WithCancel(context.Background())
+func NewServer(
+	addr address.Address,
+	topologyID bson.ObjectID,
+	connectTimeout time.Duration,
+	opts ...ServerOption,
+) *Server {
+	cfg := newServerConfig(connectTimeout, opts...)
+
 	s := &Server{
 		state: serverDisconnected,
 
@@ -166,16 +189,16 @@ func NewServer(addr address.Address, topologyID bson.ObjectID, opts ...ServerOpt
 
 		topologyID: topologyID,
 
-		subscribers:     make(map[uint64]chan description.Server),
-		globalCtx:       globalCtx,
-		globalCtxCancel: globalCtxCancel,
+		subscribers:       make(map[uint64]chan description.Server),
+		heartbeatListener: newNonBlockingContextDoneListener(),
 	}
-	s.desc.Store(description.NewDefaultServer(addr))
+	s.desc.Store(newDefaultServerDescription(addr))
 	rttCfg := &rttConfig{
 		interval:           cfg.heartbeatInterval,
 		minRTTWindow:       5 * time.Minute,
 		createConnectionFn: s.createConnection,
 		createOperationFn:  s.createBaseOperation,
+		connectTimeout:     connectTimeout,
 	}
 	s.rttMonitor = newRTTMonitor(rttCfg)
 
@@ -190,6 +213,7 @@ func NewServer(addr address.Address, topologyID bson.ObjectID, opts ...ServerOpt
 		PoolMonitor:      cfg.poolMonitor,
 		Logger:           cfg.logger,
 		handshakeErrFn:   s.ProcessHandshakeError,
+		ConnectTimeout:   connectTimeout,
 	}
 
 	connectionOpts := copyConnectionOpts(cfg.connectionOpts)
@@ -239,10 +263,10 @@ func (s *Server) Connect(updateCallback updateTopologyCallback) error {
 		return ErrServerConnected
 	}
 
-	desc := description.NewDefaultServer(s.address)
+	desc := newDefaultServerDescription(s.address)
 	if s.cfg.loadBalanced {
 		// LBs automatically start off with kind LoadBalancer because there is no monitoring routine for state changes.
-		desc.Kind = description.LoadBalancer
+		desc.Kind = description.ServerKindLoadBalancer
 	}
 	s.desc.Store(desc)
 	s.updateTopologyCallback.Store(updateCallback)
@@ -278,13 +302,9 @@ func (s *Server) Disconnect(ctx context.Context) error {
 
 	s.updateTopologyCallback.Store((updateTopologyCallback)(nil))
 
-	// Cancel the global context so any new contexts created from it will be automatically cancelled. Close the done
-	// channel so the update() routine will know that it can stop. Cancel any in-progress monitoring checks at the end.
-	// The done channel is closed before cancelling the check so the update routine() will immediately detect that it
-	// can stop rather than trying to create new connections until the read from done succeeds.
-	s.globalCtxCancel()
 	close(s.done)
-	s.cancelCheck()
+
+	s.heartbeatListener.StopListening()
 
 	s.pool.close(ctx)
 
@@ -357,9 +377,9 @@ func (s *Server) ProcessHandshakeError(err error, startingGenerationNumber uint6
 	// Since the only kind of ConnectionError we receive from pool.Get will be an initialization error, we should set
 	// the description.Server appropriately. The description should not have a TopologyVersion because the staleness
 	// checking logic above has already determined that this description is not stale.
-	s.updateDescription(description.NewServerFromError(s.address, wrappedConnErr, nil))
+	s.updateDescription(newServerDescriptionFromError(s.address, wrappedConnErr, nil))
 	s.pool.clear(err, serviceID)
-	s.cancelCheck()
+	s.heartbeatListener.StopListening()
 }
 
 // Description returns a description of the server as of the last heartbeat.
@@ -374,7 +394,7 @@ func (s *Server) SelectedDescription() description.SelectedServer {
 	sdesc := s.Description()
 	return description.SelectedServer{
 		Server: sdesc,
-		Kind:   description.Single,
+		Kind:   description.TopologyKindSingle,
 	}
 }
 
@@ -476,7 +496,7 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// TODO(GODRIVER-2841): Remove this logic once we set the Server description when we create
 	// TODO application connections because then the Server's topology version will always be the
 	// TODO latest known.
-	if tv := connDesc.TopologyVersion; tv != nil && topologyVersion.CompareToIncoming(tv) < 0 {
+	if tv := connDesc.TopologyVersion; tv != nil && driverutil.CompareTopologyVersions(topologyVersion, tv) < 0 {
 		topologyVersion = tv
 	}
 
@@ -484,12 +504,12 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// These errors can be reported as a command error or a write concern error.
 	if cerr, ok := err.(driver.Error); ok && (cerr.NodeIsRecovering() || cerr.NotPrimary()) {
 		// Ignore errors that came from when the database was on a previous topology version.
-		if topologyVersion.CompareToIncoming(cerr.TopologyVersion) >= 0 {
+		if driverutil.CompareTopologyVersions(topologyVersion, cerr.TopologyVersion) >= 0 {
 			return driver.NoChange
 		}
 
 		// updates description to unknown
-		s.updateDescription(description.NewServerFromError(s.address, err, cerr.TopologyVersion))
+		s.updateDescription(newServerDescriptionFromError(s.address, err, cerr.TopologyVersion))
 		s.RequestImmediateCheck()
 
 		res := driver.ServerMarkedUnknown
@@ -503,12 +523,12 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	}
 	if wcerr, ok := getWriteConcernErrorForProcessing(err); ok {
 		// Ignore errors that came from when the database was on a previous topology version.
-		if topologyVersion.CompareToIncoming(wcerr.TopologyVersion) >= 0 {
+		if driverutil.CompareTopologyVersions(topologyVersion, wcerr.TopologyVersion) >= 0 {
 			return driver.NoChange
 		}
 
 		// updates description to unknown
-		s.updateDescription(description.NewServerFromError(s.address, err, wcerr.TopologyVersion))
+		s.updateDescription(newServerDescriptionFromError(s.address, err, wcerr.TopologyVersion))
 		s.RequestImmediateCheck()
 
 		res := driver.ServerMarkedUnknown
@@ -536,10 +556,65 @@ func (s *Server) ProcessError(err error, describer mnet.Describer) driver.Proces
 	// For a non-timeout network error, we clear the pool, set the description to Unknown, and cancel the in-progress
 	// monitoring check. The check is cancelled last to avoid a post-cancellation reconnect racing with
 	// updateDescription.
-	s.updateDescription(description.NewServerFromError(s.address, err, nil))
+	s.updateDescription(newServerDescriptionFromError(s.address, err, nil))
 	s.pool.clear(err, serviceID)
-	s.cancelCheck()
+	s.heartbeatListener.StopListening()
 	return driver.ConnectionPoolCleared
+}
+
+type serverChecker interface {
+	check(ctx context.Context) (description.Server, error)
+}
+
+var _ serverChecker = &Server{}
+
+// checkServerWithSignal will run the server heartbeat check, canceling if the
+// sig channel's buffer is emptied or is closed.
+func checkServerWithSignal(
+	checker serverChecker,
+	conn *connection,
+	listener contextListener,
+) (description.Server, error) {
+	// Create a context for the blocking operations associated with checking the
+	// status of a server.
+	//
+	// The Server Monitoring spec already mandates that drivers set and
+	// dynamically update the read/write timeout of the dedicated connections
+	// used in monitoring threads, so we rely on that to time out commands
+	// rather than adding complexity to the behavior of timeoutMS.
+	ctx, cancel := context.WithCancel(context.Background())
+
+	defer listener.StopListening()
+	defer cancel()
+
+	go func(conn *connection) {
+		defer cancel()
+
+		var aborted bool
+		listener.Listen(ctx, func() {
+			aborted = true
+		})
+
+		// Close the connection if the listener was stopped before
+		// checkServerWithSignal terminates.
+		if !aborted {
+			if conn == nil {
+				return
+			}
+
+			// If the connection exists, we need to wait for it to be connected
+			// because conn.connect() and conn.close() cannot be called concurrently.
+			// If the connection wasn't successfully opened, its state was set back
+			// to disconnected, so calling conn.close() will be a no-op.
+			conn.closeConnectContext()
+			conn.wait()
+			conn.prevCanceled.Store(true)
+			_ = conn.close()
+		}
+
+	}(conn)
+
+	return checker.check(ctx)
 }
 
 // update handle performing heartbeats and updating any subscribers of the
@@ -566,8 +641,6 @@ func (s *Server) update() {
 		s.subscriptionsClosed = true
 		s.subLock.Unlock()
 
-		// We don't need to take s.heartbeatLock here because closeServer is called synchronously when the select checks
-		// below detect that the server is being closed, so we can be sure that the connection isn't being used.
 		if s.conn != nil {
 			_ = s.conn.close()
 		}
@@ -605,8 +678,9 @@ func (s *Server) update() {
 
 		previousDescription := s.Description()
 
-		// Perform the next check.
-		desc, err := s.check()
+		desc, err := checkServerWithSignal(s, s.conn, s.heartbeatListener)
+
+		// The only error returned from checkServerWithSignal is errCheckCancelled.
 		if errors.Is(err, errCheckCancelled) {
 			if atomic.LoadInt64(&s.state) != serverConnected {
 				continue
@@ -733,11 +807,6 @@ func (s *Server) updateDescription(desc description.Server) {
 func (s *Server) createConnection() *connection {
 	opts := copyConnectionOpts(s.cfg.connectionOpts)
 	opts = append(opts,
-		WithConnectTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		WithReadTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		WithWriteTimeout(func(time.Duration) time.Duration { return s.cfg.heartbeatTimeout }),
-		// We override whatever handshaker is currently attached to the options with a basic
-		// one because need to make sure we don't do auth.
 		WithHandshaker(func(h Handshaker) Handshaker {
 			return operation.NewHello().AppName(s.cfg.appname).Compressors(s.cfg.compressionOpts).
 				ServerAPI(s.cfg.serverAPI)
@@ -755,48 +824,19 @@ func copyConnectionOpts(opts []ConnectionOption) []ConnectionOption {
 	return optsCopy
 }
 
-func (s *Server) setupHeartbeatConnection() error {
+func (s *Server) setupHeartbeatConnection(ctx context.Context) error {
 	conn := s.createConnection()
 
-	// Take the lock when assigning the context and connection because they're accessed by cancelCheck.
-	s.heartbeatLock.Lock()
-	if s.heartbeatCtxCancel != nil {
-		// Ensure the previous context is cancelled to avoid a leak.
-		s.heartbeatCtxCancel()
-	}
-	s.heartbeatCtx, s.heartbeatCtxCancel = context.WithCancel(s.globalCtx)
 	s.conn = conn
-	s.heartbeatLock.Unlock()
 
-	return s.conn.connect(s.heartbeatCtx)
-}
+	if s.cfg.connectTimeout != 0 {
+		var cancelFn context.CancelFunc
+		ctx, cancelFn = context.WithTimeout(ctx, s.cfg.connectTimeout)
 
-// cancelCheck cancels in-progress connection dials and reads. It does not set any fields on the server.
-func (s *Server) cancelCheck() {
-	var conn *connection
-
-	// Take heartbeatLock for mutual exclusion with the checks in the update function.
-	s.heartbeatLock.Lock()
-	if s.heartbeatCtx != nil {
-		s.heartbeatCtxCancel()
-	}
-	conn = s.conn
-	s.heartbeatLock.Unlock()
-
-	if conn == nil {
-		return
+		defer cancelFn()
 	}
 
-	// If the connection exists, we need to wait for it to be connected because conn.connect() and
-	// conn.close() cannot be called concurrently. If the connection wasn't successfully opened, its
-	// state was set back to disconnected, so calling conn.close() will be a no-op.
-	conn.closeConnectContext()
-	conn.wait()
-	_ = conn.close()
-}
-
-func (s *Server) checkWasCancelled() bool {
-	return s.heartbeatCtx.Err() != nil
+	return s.conn.connect(ctx)
 }
 
 func (s *Server) createBaseOperation(conn *mnet.Connection) *operation.Hello {
@@ -822,24 +862,119 @@ func isStreamable(srv *Server) bool {
 	return srv.Description().Kind != description.Unknown && srv.Description().TopologyVersion != nil
 }
 
-func (s *Server) check() (description.Server, error) {
+func (s *Server) streamable() bool {
+	return isStreamingEnabled(s) && isStreamable(s)
+}
+
+// getHeartbeatTimeout will return the maximum allowable duration for streaming
+// or polling a hello command during server monitoring.
+func getHeartbeatTimeout(srv *Server) time.Duration {
+	if srv.conn.getCurrentlyStreaming() || srv.streamable() {
+		// If connectTimeoutMS=0, the operation timeout should be infinite.
+		// Otherwise, it is connectTimeoutMS + heartbeatFrequencyMS to account for
+		// the fact that the query will block for heartbeatFrequencyMS
+		// server-side.
+		streamingTO := srv.cfg.connectTimeout
+		if streamingTO != 0 {
+			streamingTO += srv.cfg.heartbeatInterval
+		}
+
+		return streamingTO
+	}
+
+	// The server doesn't support the awaitable protocol. Set the timeout to
+	// connectTimeoutMS and execute a regular heartbeat without any additional
+	// parameters.
+	return srv.cfg.connectTimeout
+}
+
+// withHeartbeatTimeout will apply the appropriate timeout to the parent context
+// for server monitoring.
+func withHeartbeatTimeout(parent context.Context, srv *Server) (context.Context, context.CancelFunc) {
+	var cancel context.CancelFunc
+
+	timeout := getHeartbeatTimeout(srv)
+	if timeout == 0 {
+		return parent, cancel
+	}
+
+	return context.WithTimeout(parent, timeout)
+}
+
+// doHandshake will construct the hello operation use to execute a handshake
+// between the client and a server. Depending on the configuration and version,
+// this function will either poll, stream, or resume streaming.
+func doHandshake(ctx context.Context, srv *Server) (description.Server, error) {
+	heartbeatConn := mnet.NewConnection(initConnection{srv.conn})
+	handshakeOp := srv.createBaseOperation(heartbeatConn)
+
+	// Using timeoutMS in the monitoring and RTT calculation threads would require
+	// another special case in the code that derives maxTimeMS from timeoutMS
+	// because the awaitable hello requests sent to 4.4+ servers already have a
+	// maxAwaitTimeMS field. Adding maxTimeMS also does not help for non-awaitable
+	// hello commands because we expect them to execute quickly on the server. The
+	// Server Monitoring spec already mandates that drivers set and dynamically
+	// update the read/write timeout of the dedicated connections used in
+	// monitoring threads, so we rely on that to time out commands rather than
+	// adding complexity to the behavior of timeoutMS.
+	handshakeOp = handshakeOp.OmitMaxTimeMS(true)
+
+	// Apply monitoring timeout.
+	ctx, cancel := withHeartbeatTimeout(ctx, srv)
+	defer cancel()
+
+	// If we are currently streaming, get more data and return the result.
+	if srv.conn.getCurrentlyStreaming() {
+		if err := handshakeOp.StreamResponse(ctx, heartbeatConn); err != nil {
+			return description.Server{}, err
+		}
+
+		return handshakeOp.Result(srv.address), nil
+	}
+
+	// If the server supports streaming, update it so the next handshake streams
+	// the response.
+	if srv.streamable() {
+		srv.conn.setCanStream(true)
+
+		maxAwaitTimeMS := int64(srv.cfg.heartbeatInterval) / 1e6
+
+		handshakeOp = handshakeOp.
+			TopologyVersion(srv.Description().TopologyVersion).
+			MaxAwaitTimeMS(maxAwaitTimeMS)
+	}
+
+	// Perform the handshake.
+	if err := handshakeOp.Execute(ctx); err != nil {
+		return description.Server{}, err
+	}
+
+	return handshakeOp.Result(srv.address), nil
+}
+
+func (s *Server) check(ctx context.Context) (description.Server, error) {
 	var descPtr *description.Server
 	var err error
-	var duration time.Duration
+	var execDuration time.Duration
 
 	start := time.Now()
 
+	var previousCanceled bool
+	if s.conn != nil {
+		previousCanceled = s.conn.previousCanceled()
+	}
+
 	// Create a new connection if this is the first check, the connection was closed after an error during the previous
 	// check, or the previous check was cancelled.
-	if s.conn == nil || s.conn.closed() || s.checkWasCancelled() {
+	if s.conn == nil || s.conn.closed() || previousCanceled {
 		connID := "0"
 		if s.conn != nil {
 			connID = s.conn.ID()
 		}
 		s.publishServerHeartbeatStartedEvent(connID, false)
 		// Create a new connection and add it's handshake RTT as a sample.
-		err = s.setupHeartbeatConnection()
-		duration = time.Since(start)
+		err = s.setupHeartbeatConnection(ctx)
+		execDuration = time.Since(start)
 		connID = "0"
 		if s.conn != nil {
 			connID = s.conn.ID()
@@ -848,87 +983,56 @@ func (s *Server) check() (description.Server, error) {
 			// Use the description from the connection handshake as the value for this check.
 			s.rttMonitor.addSample(s.conn.helloRTT)
 			descPtr = &s.conn.desc
-			s.publishServerHeartbeatSucceededEvent(connID, duration, s.conn.desc, false)
+			s.publishServerHeartbeatSucceededEvent(connID, execDuration, s.conn.desc, false)
 		} else {
 			err = unwrapConnectionError(err)
-			s.publishServerHeartbeatFailedEvent(connID, duration, err, false)
+			s.publishServerHeartbeatFailedEvent(connID, execDuration, err, false)
 		}
 	} else {
-		// An existing connection is being used. Use the server description properties to execute the right heartbeat.
+		// An existing connection is being used. Use the server description
+		// properties to execute the right heartbeat.
 
-		// Wrap conn in a type that implements driver.StreamerConnection.
-		iconn := initConnection{s.conn}
-		heartbeatConn := mnet.NewConnection(iconn)
-
-		baseOperation := s.createBaseOperation(heartbeatConn)
-		previousDescription := s.Description()
 		streamable := isStreamingEnabled(s) && isStreamable(s)
 
 		s.publishServerHeartbeatStartedEvent(s.conn.ID(), s.conn.getCurrentlyStreaming() || streamable)
 
-		switch {
-		case s.conn.getCurrentlyStreaming():
-			// The connection is already in a streaming state, so we stream the next response.
-			err = baseOperation.StreamResponse(s.heartbeatCtx, heartbeatConn)
-		case streamable:
-			// The server supports the streamable protocol. Set the socket timeout to
-			// connectTimeoutMS+heartbeatFrequencyMS and execute an awaitable hello request. Set conn.canStream so
-			// the wire message will advertise streaming support to the server.
+		var tempDesc description.Server
+		tempDesc, err = doHandshake(ctx, s) // Perform a handshake with the server
 
-			// Calculation for maxAwaitTimeMS is taken from time.Duration.Milliseconds (added in Go 1.13).
-			maxAwaitTimeMS := int64(s.cfg.heartbeatInterval) / 1e6
-			// If connectTimeoutMS=0, the socket timeout should be infinite. Otherwise, it is connectTimeoutMS +
-			// heartbeatFrequencyMS to account for the fact that the query will block for heartbeatFrequencyMS
-			// server-side.
-			socketTimeout := s.cfg.heartbeatTimeout
-			if socketTimeout != 0 {
-				socketTimeout += s.cfg.heartbeatInterval
-			}
-			s.conn.setSocketTimeout(socketTimeout)
-			baseOperation = baseOperation.TopologyVersion(previousDescription.TopologyVersion).
-				MaxAwaitTimeMS(maxAwaitTimeMS)
-			s.conn.setCanStream(true)
-			err = baseOperation.Execute(s.heartbeatCtx)
-		default:
-			// The server doesn't support the awaitable protocol. Set the socket timeout to connectTimeoutMS and
-			// execute a regular heartbeat without any additional parameters.
-
-			s.conn.setSocketTimeout(s.cfg.heartbeatTimeout)
-			err = baseOperation.Execute(s.heartbeatCtx)
-		}
-
-		duration = time.Since(start)
+		execDuration = time.Since(start)
 
 		// We need to record an RTT sample in the polling case so that if the server
 		// is < 4.4, or if polling is specified by the user, then the
 		// RTT-short-circuit feature of CSOT is not disabled.
 		if !streamable {
-			s.rttMonitor.addSample(duration)
+			s.rttMonitor.addSample(execDuration)
 		}
 
 		if err == nil {
-			tempDesc := baseOperation.Result(s.address)
 			descPtr = &tempDesc
-			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), duration, tempDesc, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatSucceededEvent(s.conn.ID(), execDuration,
+				tempDesc, s.conn.getCurrentlyStreaming() || streamable)
 		} else {
 			// Close the connection here rather than below so we ensure we're not closing a connection that wasn't
 			// successfully created.
 			if s.conn != nil {
 				_ = s.conn.close()
 			}
-			s.publishServerHeartbeatFailedEvent(s.conn.ID(), duration, err, s.conn.getCurrentlyStreaming() || streamable)
+			s.publishServerHeartbeatFailedEvent(s.conn.ID(), execDuration, err, s.conn.getCurrentlyStreaming() || streamable)
 		}
 	}
 
 	if descPtr != nil {
-		// The check was successful. Set the average RTT and the 90th percentile RTT and return.
+		// The check was successful. Set the average RTT and return.
 		desc := *descPtr
-		desc = desc.SetAverageRTT(s.rttMonitor.EWMA())
+		desc.AverageRTT = s.rttMonitor.EWMA()
+		desc.AverageRTTSet = true
 		desc.HeartbeatInterval = s.cfg.heartbeatInterval
+
 		return desc, nil
 	}
 
-	if s.checkWasCancelled() {
+	if previousCanceled {
 		// If the previous check was cancelled, we don't want to clear the pool. Return a sentinel error so the caller
 		// will know that an actual error didn't occur.
 		return emptyDescription, errCheckCancelled
@@ -938,7 +1042,7 @@ func (s *Server) check() (description.Server, error) {
 	// be cleared, but only after the description has already been updated, so that is handled by the caller.
 	topologyVersion := extractTopologyVersion(err)
 	s.rttMonitor.reset()
-	return description.NewServerFromError(s.address, err, topologyVersion), nil
+	return newServerDescriptionFromError(s.address, err, topologyVersion), nil
 }
 
 func extractTopologyVersion(err error) *description.TopologyVersion {
@@ -1060,7 +1164,7 @@ func (s *Server) publishServerHeartbeatSucceededEvent(connectionID string,
 ) {
 	serverHeartbeatSucceeded := &event.ServerHeartbeatSucceededEvent{
 		Duration:     duration,
-		Reply:        desc,
+		Reply:        newEventServerDescription(desc),
 		ConnectionID: connectionID,
 		Awaited:      await,
 	}

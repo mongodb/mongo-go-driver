@@ -475,7 +475,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		if clientSession == nil {
 			return errors.New("expected valid session, got nil")
 		}
-		targetHost := clientSession.PinnedServer.Addr.String()
+		targetHost := clientSession.PinnedServerAddr.String()
 		opts := options.Client().ApplyURI(mtest.ClusterURI()).SetHosts([]string{targetHost})
 		integtest.AddTestServerAPIVersion(opts)
 		client, err := mongo.Connect(opts)
@@ -520,7 +520,7 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		if clientSession == nil {
 			return errors.New("expected valid session, got nil")
 		}
-		if clientSession.PinnedServer == nil {
+		if clientSession.PinnedServerAddr == nil {
 			return errors.New("expected pinned server, got nil")
 		}
 	case "assertSessionUnpinned":
@@ -529,8 +529,8 @@ func executeTestRunnerOperation(mt *mtest.T, testCase *testCase, op *operation, 
 		}
 		// We don't use a combined helper for assertSessionPinned and assertSessionUnpinned because the unpinned
 		// case provides the pinned server address in the error msg for debugging.
-		if clientSession.PinnedServer != nil {
-			return fmt.Errorf("expected pinned server to be nil but got %q", clientSession.PinnedServer.Addr)
+		if clientSession.PinnedServerAddr != nil {
+			return fmt.Errorf("expected pinned server to be nil but got %q", clientSession.PinnedServerAddr)
 		}
 	case "assertSameLsidOnLastTwoCommands":
 		first, second := lastTwoIDs(mt)

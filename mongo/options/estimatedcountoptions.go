@@ -6,22 +6,12 @@
 
 package options
 
-import "time"
-
 // EstimatedDocumentCountArgs represents arguments that can be used to configure
 // an EstimatedDocumentCount operation.
 type EstimatedDocumentCountArgs struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default is nil, which means that no comment will be included in the logs.
 	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 }
 
 // EstimatedDocumentCountOptions contains options to estimate document count.
@@ -45,21 +35,6 @@ func (eco *EstimatedDocumentCountOptions) ArgsSetters() []func(*EstimatedDocumen
 func (eco *EstimatedDocumentCountOptions) SetComment(comment interface{}) *EstimatedDocumentCountOptions {
 	eco.Opts = append(eco.Opts, func(args *EstimatedDocumentCountArgs) error {
 		args.Comment = comment
-
-		return nil
-	})
-
-	return eco
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option
-// may be used in its place to control the amount of time that a single operation can run before
-// returning an error. MaxTime is ignored if Timeout is set on the client.
-func (eco *EstimatedDocumentCountOptions) SetMaxTime(d time.Duration) *EstimatedDocumentCountOptions {
-	eco.Opts = append(eco.Opts, func(args *EstimatedDocumentCountArgs) error {
-		args.MaxTime = &d
 
 		return nil
 	})

@@ -229,8 +229,8 @@ func marshalAggregatePipeline(
 		if err != nil {
 			return nil, false, err
 		}
-		if btype != bson.TypeArray {
-			return nil, false, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bson.TypeArray)
+		if typ := bson.Type(btype); typ != bson.TypeArray {
+			return nil, false, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", typ, bson.TypeArray)
 		}
 
 		var hasOutputStage bool

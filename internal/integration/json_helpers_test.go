@@ -112,9 +112,6 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 		case "serverSelectionTimeoutMS":
 			sst := convertValueToMilliseconds(t, opt)
 			clientOpts.SetServerSelectionTimeout(sst)
-		case "socketTimeoutMS":
-			st := convertValueToMilliseconds(t, opt)
-			clientOpts.SetSocketTimeout(st)
 		case "minPoolSize":
 			clientOpts.SetMinPoolSize(uint64(opt.AsInt64()))
 		case "maxPoolSize":
@@ -308,9 +305,6 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 			if txnArgs.WriteConcern != nil {
 				sessOpts.SetDefaultWriteConcern(txnArgs.WriteConcern)
 			}
-			if txnArgs.MaxCommitTime != nil {
-				sessOpts.SetDefaultMaxCommitTime(txnArgs.MaxCommitTime)
-			}
 		default:
 			t.Fatalf("unrecognized session option: %v", name)
 		}
@@ -385,8 +379,7 @@ func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionO
 		case "readConcern":
 			txnOpts.SetReadConcern(createReadConcern(opt))
 		case "maxCommitTimeMS":
-			t := time.Duration(opt.Int32()) * time.Millisecond
-			txnOpts.SetMaxCommitTime(&t)
+			t.Skip("GODRIVER-2348: maxCommitTimeMS is deprecated")
 		default:
 			t.Fatalf("unrecognized transaction option: %v", opt)
 		}
@@ -413,9 +406,6 @@ func createWriteConcern(t testing.TB, opt bson.RawValue) *writeconcern.WriteConc
 		val := elem.Value()
 
 		switch key {
-		case "wtimeout":
-			wtimeout := convertValueToMilliseconds(t, val)
-			wc.WTimeout = wtimeout
 		case "j":
 			j := val.Boolean()
 			wc.Journal = &j

@@ -21,12 +21,12 @@ import (
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -164,7 +164,7 @@ func TestOperation(t *testing.T) {
 		descNotRetryableStandalone := description.Server{
 			WireVersion:           &description.VersionRange{Min: 6, Max: 21},
 			SessionTimeoutMinutes: int64ToPtr(1),
-			Kind:                  description.Standalone,
+			Kind:                  description.ServerKindStandalone,
 		}
 
 		testCases := []struct {
@@ -230,7 +230,8 @@ func TestOperation(t *testing.T) {
 		want := bsoncore.AppendDocumentElement(nil, "writeConcern", bsoncore.BuildDocumentFromElements(
 			nil, bsoncore.AppendStringElement(nil, "w", "majority"),
 		))
-		got, err := Operation{WriteConcern: writeconcern.Majority()}.addWriteConcern(nil, description.SelectedServer{})
+		got, err := Operation{WriteConcern: writeconcern.Majority()}.
+			addWriteConcern(context.Background(), nil, description.SelectedServer{})
 		noerr(t, err)
 		if !bytes.Equal(got, want) {
 			t.Errorf("WriteConcern elements do not match. got %v; want %v", got, want)
@@ -270,15 +271,12 @@ func TestOperation(t *testing.T) {
 	})
 	t.Run("calculateMaxTimeMS", func(t *testing.T) {
 		var (
-			timeout     = 5 * time.Second
-			maxTime     = 2 * time.Second
-			negMaxTime  = -2 * time.Second
-			shortRTT    = 50 * time.Millisecond
-			longRTT     = 10 * time.Second
-			verShortRTT = 400 * time.Microsecond
+			timeout  = 5 * time.Second
+			shortRTT = 50 * time.Millisecond
+			longRTT  = 10 * time.Second
 		)
 
-		timeoutCtx, cancel := csot.MakeTimeoutContext(context.Background(), timeout)
+		timeoutCtx, cancel := csot.WithTimeout(context.Background(), &timeout)
 		defer cancel()
 
 		testCases := []struct {
@@ -293,7 +291,6 @@ func TestOperation(t *testing.T) {
 		}{
 			{
 				name:     "uses context deadline and rtt90 with timeout",
-				op:       Operation{MaxTime: &maxTime},
 				ctx:      timeoutCtx,
 				rttMin:   shortRTT,
 				rttStats: "",
@@ -301,35 +298,7 @@ func TestOperation(t *testing.T) {
 				err:      nil,
 			},
 			{
-				name:     "uses MaxTime without timeout",
-				op:       Operation{MaxTime: &maxTime},
-				ctx:      context.Background(),
-				rttMin:   longRTT,
-				rttStats: "",
-				want:     2000,
-				err:      nil,
-			},
-			{
-				name:     "errors when remaining timeout is less than rtt90",
-				op:       Operation{MaxTime: &maxTime},
-				ctx:      timeoutCtx,
-				rttMin:   timeout,
-				rttStats: "",
-				want:     0,
-				err:      ErrDeadlineWouldBeExceeded,
-			},
-			{
-				name:     "errors when MaxTime is negative",
-				op:       Operation{MaxTime: &negMaxTime},
-				ctx:      context.Background(),
-				rttMin:   longRTT,
-				rttStats: "",
-				want:     0,
-				err:      ErrNegativeMaxTime,
-			},
-			{
 				name:     "sub millisecond rtt should round up",
-				op:       Operation{MaxTime: &verShortRTT},
 				ctx:      context.Background(),
 				rttMin:   longRTT,
 				rttStats: "",
@@ -464,20 +433,20 @@ func TestOperation(t *testing.T) {
 			opQuery    bool
 			want       bsoncore.Document
 		}{
-			{"nil/single/mongos", nil, description.Mongos, description.Single, false, nil},
-			{"nil/single/secondary", nil, description.RSSecondary, description.Single, false, rpPrimaryPreferred},
-			{"primary/mongos", readpref.Primary(), description.Mongos, description.Sharded, false, nil},
-			{"primary/single", readpref.Primary(), description.RSPrimary, description.Single, false, rpPrimaryPreferred},
-			{"primary/primary", readpref.Primary(), description.RSPrimary, description.ReplicaSet, false, nil},
-			{"primaryPreferred", readpref.PrimaryPreferred(), description.RSSecondary, description.ReplicaSet, false, rpPrimaryPreferred},
-			{"secondaryPreferred/mongos/opquery", readpref.SecondaryPreferred(), description.Mongos, description.Sharded, true, nil},
-			{"secondaryPreferred", readpref.SecondaryPreferred(), description.RSSecondary, description.ReplicaSet, false, rpSecondaryPreferred},
-			{"secondary", readpref.Secondary(), description.RSSecondary, description.ReplicaSet, false, rpSecondary},
-			{"nearest", readpref.Nearest(), description.RSSecondary, description.ReplicaSet, false, rpNearest},
+			{"nil/single/mongos", nil, description.ServerKindMongos, description.TopologyKindSingle, false, nil},
+			{"nil/single/secondary", nil, description.ServerKindRSSecondary, description.TopologyKindSingle, false, rpPrimaryPreferred},
+			{"primary/mongos", readpref.Primary(), description.ServerKindMongos, description.TopologyKindSharded, false, nil},
+			{"primary/single", readpref.Primary(), description.ServerKindRSPrimary, description.TopologyKindSingle, false, rpPrimaryPreferred},
+			{"primary/primary", readpref.Primary(), description.ServerKindRSPrimary, description.TopologyKindReplicaSet, false, nil},
+			{"primaryPreferred", readpref.PrimaryPreferred(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpPrimaryPreferred},
+			{"secondaryPreferred/mongos/opquery", readpref.SecondaryPreferred(), description.ServerKindMongos, description.TopologyKindSharded, true, nil},
+			{"secondaryPreferred", readpref.SecondaryPreferred(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondaryPreferred},
+			{"secondary", readpref.Secondary(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondary},
+			{"nearest", readpref.Nearest(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpNearest},
 			{
 				"secondaryPreferred/withTags",
 				readpref.SecondaryPreferred(readpref.WithTags("disk", "ssd", "use", "reporting")),
-				description.RSSecondary, description.ReplicaSet, false, rpWithTags,
+				description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpWithTags,
 			},
 			// GODRIVER-2205: Ensure empty tag sets are written as an empty document in the read
 			// preference document. Empty tag sets match any server and are used as a fallback when
@@ -487,8 +456,8 @@ func TestOperation(t *testing.T) {
 				readpref.SecondaryPreferred(readpref.WithTagSets(
 					tag.Set{{Name: "disk", Value: "ssd"}},
 					tag.Set{})),
-				description.RSSecondary,
-				description.ReplicaSet,
+				description.ServerKindRSSecondary,
+				description.TopologyKindReplicaSet,
 				false,
 				bsoncore.NewDocumentBuilder().
 					AppendString("mode", "secondaryPreferred").
@@ -501,14 +470,14 @@ func TestOperation(t *testing.T) {
 			{
 				"secondaryPreferred/withMaxStaleness",
 				readpref.SecondaryPreferred(readpref.WithMaxStaleness(25 * time.Second)),
-				description.RSSecondary, description.ReplicaSet, false, rpWithMaxStaleness,
+				description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpWithMaxStaleness,
 			},
 			{
 				// A read preference document is generated for SecondaryPreferred if the hedge document is non-nil.
 				"secondaryPreferred with hedge to mongos using OP_QUERY",
 				readpref.SecondaryPreferred(readpref.WithHedgeEnabled(true)),
-				description.Mongos,
-				description.Sharded,
+				description.ServerKindMongos,
+				description.TopologyKindSharded,
 				true,
 				rpWithHedge,
 			},
@@ -519,8 +488,8 @@ func TestOperation(t *testing.T) {
 					readpref.WithMaxStaleness(25*time.Second),
 					readpref.WithHedgeEnabled(false),
 				),
-				description.RSSecondary,
-				description.ReplicaSet,
+				description.ServerKindRSSecondary,
+				description.TopologyKindReplicaSet,
 				false,
 				rpWithAllOptions,
 			},
@@ -544,8 +513,8 @@ func TestOperation(t *testing.T) {
 		t.Run("description.SelectedServer", func(t *testing.T) {
 			want := wiremessage.SecondaryOK
 			desc := description.SelectedServer{
-				Kind:   description.Single,
-				Server: description.Server{Kind: description.RSSecondary},
+				Kind:   description.TopologyKindSingle,
+				Server: description.Server{Kind: description.ServerKindRSSecondary},
 			}
 			got := Operation{}.secondaryOK(desc)
 			if got != want {
@@ -651,7 +620,7 @@ func TestOperation(t *testing.T) {
 		assert.NotNil(t, err, "expected an error from Execute(), got nil")
 		// Assert that error is just context deadline exceeded and is therefore not a driver.Error marked
 		// with the TransientTransactionError label.
-		assert.Equal(t, err, context.DeadlineExceeded, "expected context.DeadlineExceeded error, got %v", err)
+		assert.True(t, errors.Is(err, context.DeadlineExceeded))
 	})
 	t.Run("canceled context not marked as TransientTransactionError", func(t *testing.T) {
 		conn := mnet.NewConnection(&mockConnection{})
@@ -710,16 +679,22 @@ type mockDeployment struct {
 		selector description.ServerSelector
 	}
 	returns struct {
-		server Server
-		err    error
-		retry  bool
-		kind   description.TopologyKind
+		server                 Server
+		err                    error
+		retry                  bool
+		kind                   description.TopologyKind
+		serverSelectionTimeout time.Duration
 	}
 }
 
 func (m *mockDeployment) SelectServer(_ context.Context, desc description.ServerSelector) (Server, error) {
 	m.params.selector = desc
+
 	return m.returns.server, m.returns.err
+}
+
+func (m *mockDeployment) GetServerSelectionTimeout() time.Duration {
+	return m.returns.serverSelectionTimeout
 }
 
 func (m *mockDeployment) Kind() description.TopologyKind { return m.returns.kind }
@@ -971,6 +946,70 @@ func TestFilterDeprioritizedServers(t *testing.T) {
 
 			got := filterDeprioritizedServers(tc.candidates, tc.deprioritized)
 			assert.ElementsMatch(t, got, tc.want)
+		})
+	}
+}
+
+func TestMarshalBSONWriteConcern(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		writeConcern writeconcern.WriteConcern
+		wantBSONType bson.Type
+		wtimeout     time.Duration
+		want         bson.D
+		wantErr      string
+	}{
+		{
+			name:         "empty",
+			writeConcern: writeconcern.WriteConcern{},
+			wantBSONType: 0x0,
+			want:         nil,
+			wtimeout:     0,
+			wantErr:      "a write concern must have at least one field set",
+		},
+		{
+			name:         "journal only",
+			writeConcern: *writeconcern.Journaled(),
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}},
+			wtimeout:     0,
+			wantErr:      "a write concern must have at least one field set",
+		},
+		{
+			name:         "journal and wtimout",
+			writeConcern: *writeconcern.Journaled(),
+			wtimeout:     10 * time.Millisecond,
+			wantBSONType: bson.TypeEmbeddedDocument,
+			want:         bson.D{{"j", true}, {"wtimeout", int64(10 * time.Millisecond / time.Millisecond)}},
+			wantErr:      "a write concern must have at least one field set",
+		},
+	}
+
+	for _, test := range tests {
+		test := test // Capture the range variable
+
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern, test.wtimeout)
+			assert.Equal(t, test.wantBSONType, gotBSONType)
+
+			wantBSON := []byte(nil)
+
+			if test.want != nil {
+				var err error
+
+				wantBSON, err = bson.Marshal(test.want)
+				assert.NoError(t, err)
+			}
+
+			assert.Equal(t, wantBSON, gotBSON)
+
+			if gotErr != nil {
+				assert.EqualError(t, gotErr, test.wantErr)
+			}
 		})
 	}
 }

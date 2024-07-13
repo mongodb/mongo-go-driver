@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 func TestDiffHostList(t *testing.T) {

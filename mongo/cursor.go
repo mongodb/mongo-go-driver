@@ -394,14 +394,14 @@ func (c *Cursor) SetBatchSize(batchSize int32) {
 	c.bc.SetBatchSize(batchSize)
 }
 
-// SetMaxTime will set the maximum amount of time the server will allow the
+// SetMaxAwaitTime will set the maximum amount of time the server will allow the
 // operations to execute. The server will error if this field is set but the
 // cursor is not configured with awaitData=true.
 //
 // The time.Duration value passed by this setter will be converted and rounded
 // down to the nearest millisecond.
-func (c *Cursor) SetMaxTime(dur time.Duration) {
-	c.bc.SetMaxTime(dur)
+func (c *Cursor) SetMaxAwaitTime(dur time.Duration) {
+	c.bc.SetMaxAwaitTime(dur)
 }
 
 // SetComment will set a user-configurable comment that can be used to identify

@@ -9,13 +9,14 @@ package mtest
 import (
 	"context"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -39,7 +40,7 @@ var (
 		MaxMessageSize:        maxMessageSize,
 		MaxBatchCount:         maxBatchCount,
 		SessionTimeoutMinutes: &sessionTimeoutMinutes,
-		Kind:                  description.RSPrimary,
+		Kind:                  description.ServerKindRSPrimary,
 		WireVersion: &description.VersionRange{
 			Max: topology.SupportedWireVersions.Max,
 		},
@@ -133,9 +134,15 @@ func (md *mockDeployment) SelectServer(context.Context, description.ServerSelect
 	return md, nil
 }
 
-// Kind implements the Deployment interface. It always returns description.Single.
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for mock deployments.
+func (*mockDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
+}
+
+// Kind implements the Deployment interface. It always returns description.TopologyKindSingle.
 func (md *mockDeployment) Kind() description.TopologyKind {
-	return description.Single
+	return description.TopologyKindSingle
 }
 
 // Connection implements the driver.Server interface.

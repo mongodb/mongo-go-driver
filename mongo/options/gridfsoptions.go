@@ -7,8 +7,6 @@
 package options
 
 import (
-	"time"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -248,14 +246,6 @@ type GridFSFindArgs struct {
 	// batch. The default value is 0.
 	Limit *int32
 
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
-
 	// If true, the cursor created by the operation will not timeout after a period of inactivity. The default value
 	// is false.
 	NoCursorTimeout *bool
@@ -311,21 +301,6 @@ func (f *GridFSFindOptions) SetBatchSize(i int32) *GridFSFindOptions {
 func (f *GridFSFindOptions) SetLimit(i int32) *GridFSFindOptions {
 	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
 		args.Limit = &i
-
-		return nil
-	})
-
-	return f
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *GridFSFindOptions) SetMaxTime(d time.Duration) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
-		args.MaxTime = &d
 
 		return nil
 	})

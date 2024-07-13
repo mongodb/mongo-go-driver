@@ -8,7 +8,6 @@ package unified
 
 import (
 	"fmt"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
@@ -25,11 +24,10 @@ var _ bson.Unmarshaler = (*transactionOptions)(nil)
 
 func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		RC              *readConcern           `bson:"readConcern"`
-		RP              *ReadPreference        `bson:"readPreference"`
-		WC              *writeConcern          `bson:"writeConcern"`
-		MaxCommitTimeMS *int64                 `bson:"maxCommitTimeMS"`
-		Extra           map[string]interface{} `bson:",inline"`
+		RC    *readConcern           `bson:"readConcern"`
+		RP    *ReadPreference        `bson:"readPreference"`
+		WC    *writeConcern          `bson:"writeConcern"`
+		Extra map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary transactionOptions object: %v", err)
@@ -39,10 +37,6 @@ func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 	}
 
 	to.TransactionOptions = options.Transaction()
-	if temp.MaxCommitTimeMS != nil {
-		mctms := time.Duration(*temp.MaxCommitTimeMS) * time.Millisecond
-		to.SetMaxCommitTime(&mctms)
-	}
 	if rc := temp.RC; rc != nil {
 		to.SetReadConcern(rc.toReadConcernOption())
 	}
@@ -73,11 +67,10 @@ var _ bson.Unmarshaler = (*sessionOptions)(nil)
 
 func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	var temp struct {
-		Causal          *bool                  `bson:"causalConsistency"`
-		MaxCommitTimeMS *int64                 `bson:"maxCommitTimeMS"`
-		TxnOptions      *transactionOptions    `bson:"defaultTransactionOptions"`
-		Snapshot        *bool                  `bson:"snapshot"`
-		Extra           map[string]interface{} `bson:",inline"`
+		Causal     *bool                  `bson:"causalConsistency"`
+		TxnOptions *transactionOptions    `bson:"defaultTransactionOptions"`
+		Snapshot   *bool                  `bson:"snapshot"`
+		Extra      map[string]interface{} `bson:",inline"`
 	}
 	if err := bson.Unmarshal(data, &temp); err != nil {
 		return fmt.Errorf("error unmarshalling to temporary sessionOptions object: %v", err)
@@ -89,10 +82,6 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	so.SessionOptions = options.Session()
 	if temp.Causal != nil {
 		so.SetCausalConsistency(*temp.Causal)
-	}
-	if temp.MaxCommitTimeMS != nil {
-		mctms := time.Duration(*temp.MaxCommitTimeMS) * time.Millisecond
-		so.SetDefaultMaxCommitTime(&mctms)
 	}
 	if temp.TxnOptions != nil {
 		txnArgs, err := mongoutil.NewArgsFromOptions[options.TransactionArgs](temp.TxnOptions)

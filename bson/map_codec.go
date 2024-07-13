@@ -12,34 +12,21 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
-var defaultMapCodec = NewMapCodec()
-
-// MapCodec is the Codec used for map values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// MapCodec registered.
-type MapCodec struct {
+// mapCodec is the Codec used for map values.
+type mapCodec struct {
 	// DecodeZerosMap causes DecodeValue to delete any existing values from Go maps in the destination
 	// value passed to Decode before unmarshaling BSON documents into them.
-	//
-	// Deprecated: Use bson.Decoder.ZeroMaps instead.
-	DecodeZerosMap bool
+	decodeZerosMap bool
 
 	// EncodeNilAsEmpty causes EncodeValue to marshal nil Go maps as empty BSON documents instead of
 	// BSON null.
-	//
-	// Deprecated: Use bson.Encoder.NilMapAsEmpty instead.
-	EncodeNilAsEmpty bool
+	encodeNilAsEmpty bool
 
 	// EncodeKeysWithStringer causes the Encoder to convert Go map keys to BSON document field name
 	// strings using fmt.Sprintf() instead of the default string conversion logic.
-	//
-	// Deprecated: Use bson.Encoder.StringifyMapKeysWithFmt instead.
-	EncodeKeysWithStringer bool
+	encodeKeysWithStringer bool
 }
 
 // KeyMarshaler is the interface implemented by an object that can marshal itself into a string key.
@@ -58,33 +45,13 @@ type KeyUnmarshaler interface {
 	UnmarshalKey(key string) error
 }
 
-// NewMapCodec returns a MapCodec with options opts.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// MapCodec registered.
-func NewMapCodec(opts ...*bsonoptions.MapCodecOptions) *MapCodec {
-	mapOpt := bsonoptions.MergeMapCodecOptions(opts...)
-
-	codec := MapCodec{}
-	if mapOpt.DecodeZerosMap != nil {
-		codec.DecodeZerosMap = *mapOpt.DecodeZerosMap
-	}
-	if mapOpt.EncodeNilAsEmpty != nil {
-		codec.EncodeNilAsEmpty = *mapOpt.EncodeNilAsEmpty
-	}
-	if mapOpt.EncodeKeysWithStringer != nil {
-		codec.EncodeKeysWithStringer = *mapOpt.EncodeKeysWithStringer
-	}
-	return &codec
-}
-
 // EncodeValue is the ValueEncoder for map[*]* types.
-func (mc *MapCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (mc *mapCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Map {
 		return ValueEncoderError{Name: "MapEncodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
 
-	if val.IsNil() && !mc.EncodeNilAsEmpty && !ec.nilMapAsEmpty {
+	if val.IsNil() && !mc.encodeNilAsEmpty && !ec.nilMapAsEmpty {
 		// If we have a nil map but we can't WriteNull, that means we're probably trying to encode
 		// to a TopLevel document. We can't currently tell if this is what actually happened, but if
 		// there's a deeper underlying problem, the error will also be returned from WriteDocument,
@@ -101,13 +68,17 @@ func (mc *MapCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Va
 		return err
 	}
 
-	return mc.mapEncodeValue(ec, dw, val, nil)
+	err = mc.encodeMapElements(ec, dw, val, nil)
+	if err != nil {
+		return err
+	}
+	return dw.WriteDocumentEnd()
 }
 
-// mapEncodeValue handles encoding of the values of a map. The collisionFn returns
+// encodeMapElements handles encoding of the values of a map. The collisionFn returns
 // true if the provided key exists, this is mainly used for inline maps in the
 // struct codec.
-func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
+func (mc *mapCodec) encodeMapElements(ec EncodeContext, dw DocumentWriter, val reflect.Value, collisionFn func(string) bool) error {
 
 	elemType := val.Type().Elem()
 	encoder, err := ec.LookupEncoder(elemType)
@@ -126,7 +97,7 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val refl
 			return fmt.Errorf("Key %s of inlined map conflicts with a struct field name", key)
 		}
 
-		currEncoder, currVal, lookupErr := defaultValueEncoders.lookupElementEncoder(ec, encoder, val.MapIndex(key))
+		currEncoder, currVal, lookupErr := lookupElementEncoder(ec, encoder, val.MapIndex(key))
 		if lookupErr != nil && !errors.Is(lookupErr, errInvalidValue) {
 			return lookupErr
 		}
@@ -150,11 +121,11 @@ func (mc *MapCodec) mapEncodeValue(ec EncodeContext, dw DocumentWriter, val refl
 		}
 	}
 
-	return dw.WriteDocumentEnd()
+	return nil
 }
 
 // DecodeValue is the ValueDecoder for map[string/decimal]* types.
-func (mc *MapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (mc *mapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if val.Kind() != reflect.Map || (!val.CanSet() && val.IsNil()) {
 		return ValueDecoderError{Name: "MapDecodeValue", Kinds: []reflect.Kind{reflect.Map}, Received: val}
 	}
@@ -180,7 +151,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 		val.Set(reflect.MakeMap(val.Type()))
 	}
 
-	if val.Len() > 0 && (mc.DecodeZerosMap || dc.zeroMaps) {
+	if val.Len() > 0 && (mc.decodeZerosMap || dc.zeroMaps) {
 		clearMap(val)
 	}
 
@@ -189,7 +160,6 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 	if err != nil {
 		return err
 	}
-	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	if eType == tEmpty {
 		dc.Ancestor = val.Type()
@@ -211,7 +181,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Va
 			return err
 		}
 
-		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
+		elem, err := decodeTypeOrValueWithInfo(decoder, dc, vr, eType)
 		if err != nil {
 			return newDecodeError(key, err)
 		}
@@ -228,8 +198,8 @@ func clearMap(m reflect.Value) {
 	}
 }
 
-func (mc *MapCodec) encodeKey(val reflect.Value, encodeKeysWithStringer bool) (string, error) {
-	if mc.EncodeKeysWithStringer || encodeKeysWithStringer {
+func (mc *mapCodec) encodeKey(val reflect.Value, encodeKeysWithStringer bool) (string, error) {
+	if mc.encodeKeysWithStringer || encodeKeysWithStringer {
 		return fmt.Sprint(val), nil
 	}
 
@@ -274,12 +244,12 @@ func (mc *MapCodec) encodeKey(val reflect.Value, encodeKeysWithStringer bool) (s
 var keyUnmarshalerType = reflect.TypeOf((*KeyUnmarshaler)(nil)).Elem()
 var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 
-func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, error) {
+func (mc *mapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, error) {
 	keyVal := reflect.ValueOf(key)
 	var err error
 	switch {
 	// First, if EncodeKeysWithStringer is not enabled, try to decode withKeyUnmarshaler
-	case !mc.EncodeKeysWithStringer && reflect.PtrTo(keyType).Implements(keyUnmarshalerType):
+	case !mc.encodeKeysWithStringer && reflect.PtrTo(keyType).Implements(keyUnmarshalerType):
 		keyVal = reflect.New(keyType)
 		v := keyVal.Interface().(KeyUnmarshaler)
 		err = v.UnmarshalKey(key)
@@ -309,7 +279,7 @@ func (mc *MapCodec) decodeKey(key string, keyType reflect.Type) (reflect.Value, 
 			}
 			keyVal = reflect.ValueOf(n).Convert(keyType)
 		case reflect.Float32, reflect.Float64:
-			if mc.EncodeKeysWithStringer {
+			if mc.encodeKeysWithStringer {
 				parsed, err := strconv.ParseFloat(key, 64)
 				if err != nil {
 					return keyVal, fmt.Errorf("Map key is defined to be a decimal type (%v) but got error %w", keyType.Kind(), err)

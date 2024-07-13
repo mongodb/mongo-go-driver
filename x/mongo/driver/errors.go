@@ -14,8 +14,9 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // LegacyNotPrimaryErrMsg is the error message that older MongoDB servers (see
@@ -58,8 +59,6 @@ var (
 	ErrDeadlineWouldBeExceeded = fmt.Errorf(
 		"operation not sent to server, as Timeout would be exceeded: %w",
 		context.DeadlineExceeded)
-	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
-	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
 
 // QueryFailureError is an error representing a command failure as a document.
@@ -498,7 +497,7 @@ func ExtractErrorFromServerResponse(doc bsoncore.Document) error {
 			if !ok {
 				break
 			}
-			version, err := description.NewTopologyVersion(bson.Raw(doc))
+			version, err := driverutil.NewTopologyVersion(bson.Raw(doc))
 			if err == nil {
 				tv = version
 			}

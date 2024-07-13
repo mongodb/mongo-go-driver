@@ -14,11 +14,12 @@ import (
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -78,18 +79,22 @@ func (iv IndexView) List(ctx context.Context, opts ...Options[options.ListIndexe
 		closeImplicitSession(sess)
 		return nil, err
 	}
+	var selector description.ServerSelector
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(readpref.Primary()),
-		description.LatencySelector(iv.coll.client.localThreshold),
-	})
+	selector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: readpref.Primary()},
+			&serverselector.Latency{Latency: iv.coll.client.localThreshold},
+		},
+	}
+
 	selector = makeReadPrefSelector(sess, selector, iv.coll.client.localThreshold)
 	op := operation.NewListIndexes().
 		Session(sess).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
 
@@ -104,7 +109,7 @@ func (iv IndexView) List(ctx context.Context, opts ...Options[options.ListIndexe
 		op = op.BatchSize(*args.BatchSize)
 		cursorOpts.BatchSize = *args.BatchSize
 	}
-	op = op.MaxTime(args.MaxTime)
+
 	retry := driver.RetryNone
 	if iv.coll.client.retryReads {
 		retry = driver.RetryOncePerCommand
@@ -272,7 +277,7 @@ func (iv IndexView) CreateMany(
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(args.MaxTime).Crypt(iv.coll.client.cryptFLE)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 	if args.CommitQuorum != nil {
 		commitQuorum, err := marshalValue(args.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
@@ -379,7 +384,7 @@ func (iv IndexView) createOptionsDoc(opts Options[options.IndexArgs]) (bsoncore.
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, opts ...Options[options.DropIndexesArgs]) (bson.Raw, error) {
+func (iv IndexView) drop(ctx context.Context, name string, _ ...Options[options.DropIndexesArgs]) (bson.Raw, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -405,17 +410,12 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...Options[optio
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	dio, err := newArgsFromOptions[options.DropIndexesArgs](opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
-	}
-
 	op := operation.NewDropIndexes(name).
 		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).MaxTime(dio.MaxTime)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
 
 	err = op.Execute(ctx)
 	if err != nil {

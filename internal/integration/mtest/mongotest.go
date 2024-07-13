@@ -14,7 +14,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
@@ -530,7 +529,6 @@ func (t *T) ClearCollections() {
 				// re-instantiating the collection with a majority write concern before dropping.
 				collname := coll.created.Name()
 				wcm := writeconcern.Majority()
-				wcm.WTimeout = 1 * time.Second
 				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
 				_ = wccoll.Drop(context.Background())
 
@@ -610,9 +608,7 @@ func (t *T) CloneDatabase(opts *options.DatabaseOptions) {
 
 // CloneCollection modifies the default collection for this test to match the given options.
 func (t *T) CloneCollection(opts *options.CollectionOptions) {
-	var err error
-	t.Coll, err = t.Coll.Clone(opts)
-	assert.Nil(t, err, "error cloning collection: %v", err)
+	t.Coll = t.Coll.Clone(opts)
 }
 
 func sanitizeCollectionName(db string, coll string) string {

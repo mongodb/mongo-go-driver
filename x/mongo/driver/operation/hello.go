@@ -19,10 +19,10 @@ import (
 	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/version"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -47,6 +47,7 @@ type Hello struct {
 	maxAwaitTimeMS     *int64
 	serverAPI          *driver.ServerAPIOptions
 	loadBalanced       bool
+	omitMaxTimeMS      bool
 
 	res bsoncore.Document
 }
@@ -123,7 +124,7 @@ func (h *Hello) LoadBalanced(lb bool) *Hello {
 
 // Result returns the result of executing this operation.
 func (h *Hello) Result(addr address.Address) description.Server {
-	return description.NewServer(addr, bson.Raw(h.res))
+	return driverutil.NewServerDescription(addr, bson.Raw(h.res))
 }
 
 const dockerEnvPath = "/.dockerenv"
@@ -590,7 +591,8 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = info.ServerResponse
 			return nil
 		},
-		ServerAPI: h.serverAPI,
+		ServerAPI:     h.serverAPI,
+		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}
 
 	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
@@ -649,4 +651,16 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 // does not do anything besides the initial Hello for a handshake.
 func (h *Hello) FinishHandshake(context.Context, *mnet.Connection) error {
 	return nil
+}
+
+// OmitMaxTimeMS will ensure maxTimMS is not included in the wire message
+// constructed to send a hello request.
+func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+
+	h.omitMaxTimeMS = val
+
+	return h
 }

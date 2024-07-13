@@ -9,20 +9,18 @@ package operation
 import (
 	"context"
 	"errors"
-	"time"
 
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
 // CommitTransaction attempts to commit a transaction.
 type CommitTransaction struct {
-	maxTime       *time.Duration
 	recoveryToken bsoncore.Document
 	session       *session.Client
 	clock         *session.ClusterClock
@@ -63,7 +61,6 @@ func (ct *CommitTransaction) Execute(ctx context.Context) error {
 		Crypt:             ct.crypt,
 		Database:          ct.database,
 		Deployment:        ct.deployment,
-		MaxTime:           ct.maxTime,
 		Selector:          ct.selector,
 		WriteConcern:      ct.writeConcern,
 		ServerAPI:         ct.serverAPI,
@@ -79,16 +76,6 @@ func (ct *CommitTransaction) command(dst []byte, _ description.SelectedServer) (
 		dst = bsoncore.AppendDocumentElement(dst, "recoveryToken", ct.recoveryToken)
 	}
 	return dst, nil
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (ct *CommitTransaction) MaxTime(maxTime *time.Duration) *CommitTransaction {
-	if ct == nil {
-		ct = new(CommitTransaction)
-	}
-
-	ct.maxTime = maxTime
-	return ct
 }
 
 // RecoveryToken sets the recovery token to use when committing or aborting a sharded transaction.

@@ -12,7 +12,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.
@@ -120,8 +119,8 @@ type PoolMonitor struct {
 type ServerDescriptionChangedEvent struct {
 	Address             address.Address
 	TopologyID          bson.ObjectID // A unique identifier for the topology this server is a part of
-	PreviousDescription description.Server
-	NewDescription      description.Server
+	PreviousDescription ServerDescription
+	NewDescription      ServerDescription
 }
 
 // ServerOpeningEvent is an event generated when the server is initialized.
@@ -139,8 +138,8 @@ type ServerClosedEvent struct {
 // TopologyDescriptionChangedEvent represents a topology description change.
 type TopologyDescriptionChangedEvent struct {
 	TopologyID          bson.ObjectID // A unique identifier for the topology this server is a part of
-	PreviousDescription description.Topology
-	NewDescription      description.Topology
+	PreviousDescription TopologyDescription
+	NewDescription      TopologyDescription
 }
 
 // TopologyOpeningEvent is an event generated when the topology is initialized.
@@ -162,7 +161,7 @@ type ServerHeartbeatStartedEvent struct {
 // ServerHeartbeatSucceededEvent is an event generated when the heartbeat succeeds.
 type ServerHeartbeatSucceededEvent struct {
 	Duration     time.Duration
-	Reply        description.Server
+	Reply        ServerDescription
 	ConnectionID string // The address this heartbeat was sent to with a unique identifier
 	Awaited      bool   // If this heartbeat was awaitable
 }

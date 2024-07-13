@@ -6,8 +6,6 @@
 
 package options
 
-import "time"
-
 // CountArgs represents arguments that can be used to configure a CountDocuments
 // operation.
 type CountArgs struct {
@@ -28,14 +26,6 @@ type CountArgs struct {
 	// The maximum number of documents to count. The default value is 0, which means that there is no limit and all
 	// documents matching the filter will be counted.
 	Limit *int64
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there is
-	// no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in
-	// its place to control the amount of time that a single operation can run before returning an error. MaxTime is
-	// ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// The number of documents to skip before counting. The default value is 0.
 	Skip *int64
@@ -95,21 +85,6 @@ func (co *CountOptions) SetHint(h interface{}) *CountOptions {
 func (co *CountOptions) SetLimit(i int64) *CountOptions {
 	co.Opts = append(co.Opts, func(args *CountArgs) error {
 		args.Limit = &i
-
-		return nil
-	})
-
-	return co
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (co *CountOptions) SetMaxTime(d time.Duration) *CountOptions {
-	co.Opts = append(co.Opts, func(args *CountArgs) error {
-		args.MaxTime = &d
 
 		return nil
 	})

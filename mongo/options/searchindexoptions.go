@@ -10,6 +10,7 @@ package options
 // SearchIndexView.
 type SearchIndexesArgs struct {
 	Name *string
+	Type *string
 }
 
 // SearchIndexesOptions contains options to configure search index operations.
@@ -33,6 +34,17 @@ func (sio *SearchIndexesOptions) ArgsSetters() []func(*SearchIndexesArgs) error 
 func (sio *SearchIndexesOptions) SetName(name string) *SearchIndexesOptions {
 	sio.Opts = append(sio.Opts, func(args *SearchIndexesArgs) error {
 		args.Name = &name
+
+		return nil
+	})
+
+	return sio
+}
+
+// SetType sets the value for the Type field.
+func (sio *SearchIndexesOptions) SetType(typ string) *SearchIndexesOptions {
+	sio.Opts = append(sio.Opts, func(args *SearchIndexesArgs) error {
+		args.Type = &typ
 
 		return nil
 	})

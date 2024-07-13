@@ -620,7 +620,12 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "retrywrites":
 			clientOpts.SetRetryWrites(value.(bool))
 		case "sockettimeoutms":
-			clientOpts.SetSocketTimeout(time.Duration(value.(int32)) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing socketTimeoutMS (a legacy timeout option
+			// that we have removed as of v2), then a CSOT analogue exists. Once we
+			// have ensured an analogue exists, extend "skippedTestDescriptions" to
+			// avoid this error.
+			return newSkipTestError("the socketTimeoutMS client option is not supported")
 		case "w":
 			wc.W = value
 			wcSet = true

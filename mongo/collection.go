@@ -17,13 +17,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/mongo/description"
+	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
@@ -93,15 +94,19 @@ func newCollection(db *Database, name string, opts ...Options[options.Collection
 		reg = args.Registry
 	}
 
-	readSelector := description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(rp),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	readSelector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: rp},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
 
-	writeSelector := description.CompositeSelector([]description.ServerSelector{
-		description.WriteSelector(),
-		description.LatencySelector(db.client.localThreshold),
-	})
+	writeSelector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.Write{},
+			&serverselector.Latency{Latency: db.client.localThreshold},
+		},
+	}
 
 	coll := &Collection{
 		client:         db.client,
@@ -136,13 +141,10 @@ func (coll *Collection) copy() *Collection {
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
-func (coll *Collection) Clone(opts ...Options[options.CollectionArgs]) (*Collection, error) {
+func (coll *Collection) Clone(opts ...Options[options.CollectionArgs]) *Collection {
 	copyColl := coll.copy()
 
-	args, err := newArgsFromOptions[options.CollectionArgs](opts...)
-	if err != nil {
-		return nil, err
-	}
+	args, _ := newArgsFromOptions[options.CollectionArgs](opts...)
 
 	if args.ReadConcern != nil {
 		copyColl.readConcern = args.ReadConcern
@@ -160,12 +162,14 @@ func (coll *Collection) Clone(opts ...Options[options.CollectionArgs]) (*Collect
 		copyColl.registry = args.Registry
 	}
 
-	copyColl.readSelector = description.CompositeSelector([]description.ServerSelector{
-		description.ReadPrefSelector(copyColl.readPreference),
-		description.LatencySelector(copyColl.client.localThreshold),
-	})
+	copyColl.readSelector = &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: copyColl.readPreference},
+			&serverselector.Latency{Latency: copyColl.client.localThreshold},
+		},
+	}
 
-	return copyColl, nil
+	return copyColl
 }
 
 // Name returns the name of the collection.
@@ -933,8 +937,7 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *
 		Crypt(a.client.cryptFLE).
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout).
-		MaxTime(args.MaxTime)
+		Timeout(a.client.timeout)
 
 	if args.AllowDiskUse != nil {
 		op.AllowDiskUse(*args.AllowDiskUse)
@@ -951,7 +954,7 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *
 		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
 	if args.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*args.MaxAwaitTime / time.Millisecond)
+		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, a.bsonOpts, a.registry)
@@ -1058,7 +1061,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(args.MaxTime)
+		Timeout(coll.client.timeout)
 	if args.Collation != nil {
 		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
@@ -1152,7 +1155,7 @@ func (coll *Collection) EstimatedDocumentCount(
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(args.MaxTime)
+		Timeout(coll.client.timeout)
 
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1228,7 +1231,7 @@ func (coll *Collection) Distinct(
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(args.MaxTime)
+		Timeout(coll.client.timeout)
 
 	if args.Collation != nil {
 		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
@@ -1259,8 +1262,9 @@ func (coll *Collection) Distinct(
 	}
 
 	return &DistinctResult{
-		reg: coll.registry,
-		arr: bson.RawArray(arr),
+		reg:      coll.registry,
+		arr:      bson.RawArray(arr),
+		bsonOpts: coll.bsonOpts,
 	}
 }
 
@@ -1320,7 +1324,7 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).MaxTime(args.MaxTime).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).Logger(coll.client.logger)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1391,7 +1395,7 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 		op.Max(max)
 	}
 	if args.MaxAwaitTime != nil {
-		cursorOpts.MaxTimeMS = int64(*args.MaxAwaitTime / time.Millisecond)
+		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
 	}
 	if args.Min != nil {
 		min, err := marshal(args.Min, coll.bsonOpts, coll.registry)
@@ -1455,7 +1459,6 @@ func newFindArgsFromFindOneArgs(args *options.FindOneArgs) *options.FindArgs {
 		v.Comment = args.Comment
 		v.Hint = args.Hint
 		v.Max = args.Max
-		v.MaxTime = args.MaxTime
 		v.Min = args.Min
 		v.Projection = args.Projection
 		v.ReturnKey = args.ReturnKey
@@ -1578,8 +1581,7 @@ func (coll *Collection) FindOneAndDelete(
 		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
-		MaxTime(args.MaxTime)
+	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 	if args.Collation != nil {
 		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
 	}
@@ -1667,7 +1669,7 @@ func (coll *Collection) FindOneAndReplace(
 	}
 
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).MaxTime(args.MaxTime)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
@@ -1760,8 +1762,7 @@ func (coll *Collection) FindOneAndUpdate(
 		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
 	}
 
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
-		MaxTime(args.MaxTime)
+	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {
@@ -1875,7 +1876,7 @@ func (coll *Collection) Indexes() IndexView {
 
 // SearchIndexes returns a SearchIndexView instance that can be used to perform operations on the search indexes for the collection.
 func (coll *Collection) SearchIndexes() SearchIndexView {
-	c, _ := coll.Clone() // Clone() always return a nil error.
+	c := coll.Clone()
 	c.readConcern = nil
 	c.writeConcern = nil
 	return SearchIndexView{
@@ -1990,6 +1991,8 @@ type pinnedServerSelector struct {
 	session  *session.Client
 }
 
+var _ description.ServerSelector = pinnedServerSelector{}
+
 func (pss pinnedServerSelector) String() string {
 	if pss.stringer == nil {
 		return ""
@@ -2002,10 +2005,10 @@ func (pss pinnedServerSelector) SelectServer(
 	t description.Topology,
 	svrs []description.Server,
 ) ([]description.Server, error) {
-	if pss.session != nil && pss.session.PinnedServer != nil {
+	if pss.session != nil && pss.session.PinnedServerAddr != nil {
 		// If there is a pinned server, try to find it in the list of candidates.
 		for _, candidate := range svrs {
-			if candidate.Addr == pss.session.PinnedServer.Addr {
+			if candidate.Addr == *pss.session.PinnedServerAddr {
 				return []description.Server{candidate}, nil
 			}
 		}
@@ -2016,7 +2019,7 @@ func (pss pinnedServerSelector) SelectServer(
 	return pss.fallback.SelectServer(t, svrs)
 }
 
-func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) description.ServerSelector {
+func makePinnedSelector(sess *session.Client, fallback description.ServerSelector) pinnedServerSelector {
 	pss := pinnedServerSelector{
 		session:  sess,
 		fallback: fallback,
@@ -2029,27 +2032,40 @@ func makePinnedSelector(sess *session.Client, fallback description.ServerSelecto
 	return pss
 }
 
-func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelector {
+func makeReadPrefSelector(
+	sess *session.Client,
+	selector description.ServerSelector,
+	localThreshold time.Duration,
+) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
-		selector = description.CompositeSelector([]description.ServerSelector{
-			description.ReadPrefSelector(sess.CurrentRp),
-			description.LatencySelector(localThreshold),
-		})
+		selector = &serverselector.Composite{
+			Selectors: []description.ServerSelector{
+				&serverselector.ReadPref{ReadPref: sess.CurrentRp},
+				&serverselector.Latency{Latency: localThreshold},
+			},
+		}
 	}
 
 	return makePinnedSelector(sess, selector)
 }
 
-func makeOutputAggregateSelector(sess *session.Client, rp *readpref.ReadPref, localThreshold time.Duration) description.ServerSelector {
+func makeOutputAggregateSelector(
+	sess *session.Client,
+	rp *readpref.ReadPref,
+	localThreshold time.Duration,
+) pinnedServerSelector {
 	if sess != nil && sess.TransactionRunning() {
 		// Use current transaction's read preference if available
 		rp = sess.CurrentRp
 	}
 
-	selector := description.CompositeSelector([]description.ServerSelector{
-		description.OutputAggregateSelector(rp),
-		description.LatencySelector(localThreshold),
-	})
+	selector := &serverselector.Composite{
+		Selectors: []description.ServerSelector{
+			&serverselector.ReadPref{ReadPref: rp, IsOutputAggregate: true},
+			&serverselector.Latency{Latency: localThreshold},
+		},
+	}
+
 	return makePinnedSelector(sess, selector)
 }
 

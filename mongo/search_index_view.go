@@ -122,8 +122,11 @@ func (siv SearchIndexView) CreateMany(
 			if searchIndexArgs.Name != nil {
 				indexes = bsoncore.AppendStringElement(indexes, "name", *searchIndexArgs.Name)
 			}
-		}
 
+			if searchIndexArgs.Type != nil {
+				indexes = bsoncore.AppendStringElement(indexes, "type", *searchIndexArgs.Type)
+			}
+		}
 		indexes = bsoncore.AppendDocumentElement(indexes, "definition", definition)
 
 		indexes, err = bsoncore.AppendDocumentEnd(indexes, iidx)
