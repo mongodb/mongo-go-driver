@@ -211,10 +211,6 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 		clientOpt.SetMaxPoolSize(defaultMaxPoolSize)
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	if clientOpt.Auth != nil {
 		var oidcMachineCallback auth.OIDCCallback
 		if clientOpt.Auth.OIDCMachineCallback != nil {
@@ -248,6 +244,7 @@ func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	cfg, err := topology.NewConfigWithAuthenticator(clientOpt, client.clock, client.authenticator)
+
 	if err != nil {
 		return nil, err
 	}

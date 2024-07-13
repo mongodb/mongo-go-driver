@@ -87,31 +87,23 @@ func waitForEvent(mt *mtest.T, test *testCase, op *operation) {
 	eventType := op.Arguments.Lookup("event").StringValue()
 	expectedCount := int(op.Arguments.Lookup("count").Int32())
 
-	callback := func(ctx context.Context) {
-		for {
-			// Stop loop if callback has been canceled.
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			var count int
-			// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
-			if eventType == "ServerMarkedUnknownEvent" {
-				count = test.monitor.getServerMarkedUnknownCount()
-			} else {
-				count = test.monitor.getPoolEventCount(eventType)
-			}
-
-			if count >= expectedCount {
-				return
-			}
-			time.Sleep(100 * time.Millisecond)
+	callback := func() bool {
+		var count int
+		// Spec tests only ever wait for ServerMarkedUnknown SDAM events for the time being.
+		if eventType == "ServerMarkedUnknownEvent" {
+			count = test.monitor.getServerMarkedUnknownCount()
+		} else {
+			count = test.monitor.getPoolEventCount(eventType)
 		}
+
+		return count >= expectedCount
 	}
 
-	assert.Soon(mt, callback, defaultCallbackTimeout)
+	assert.Eventually(mt,
+		callback,
+		defaultCallbackTimeout,
+		100*time.Millisecond,
+		"expected spec tests to only wait for Server Marked Unknown SDAM events")
 }
 
 func assertEventCount(mt *mtest.T, testCase *testCase, op *operation) {
@@ -134,23 +126,16 @@ func recordPrimary(mt *mtest.T, testCase *testCase) {
 }
 
 func waitForPrimaryChange(mt *mtest.T, testCase *testCase, op *operation) {
-	callback := func(ctx context.Context) {
-		for {
-			// Stop loop if callback has been canceled.
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			if getPrimaryAddress(mt, testCase.testTopology, false) != testCase.recordedPrimary {
-				return
-			}
-		}
+	callback := func() bool {
+		return getPrimaryAddress(mt, testCase.testTopology, false) != testCase.recordedPrimary
 	}
 
 	timeout := convertValueToMilliseconds(mt, op.Arguments.Lookup("timeoutMS"))
-	assert.Soon(mt, callback, timeout)
+	assert.Eventually(mt,
+		callback,
+		timeout,
+		100*time.Millisecond,
+		"expected primary address to be different within the timeout period")
 }
 
 // getPrimaryAddress returns the address of the current primary. If failFast is true, the server selection fast path
