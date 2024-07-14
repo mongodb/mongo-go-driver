@@ -460,7 +460,7 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configureAutoEncryption(args *options.ClientArgs) error {
-	aeArgs, err := newArgsFromOptions[options.AutoEncryptionArgs](args.AutoEncryptionOptions)
+	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -511,7 +511,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, e
 
 func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientArgs) error {
 	// parse key vault options and create new key vault client
-	aeArgs, err := newArgsFromOptions[options.AutoEncryptionArgs](clientArgs.AutoEncryptionOptions)
+	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -536,7 +536,7 @@ func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientArgs) erro
 
 func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientArgs) error {
 	// parse key vault options and create new key vault client
-	aeArgs, err := newArgsFromOptions[options.AutoEncryptionArgs](clientArgs.AutoEncryptionOptions)
+	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -554,8 +554,8 @@ func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientArgs) erro
 	return err
 }
 
-func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionArgs]) (*mongocrypt.MongoCrypt, error) {
-	args, err := newArgsFromOptions[options.AutoEncryptionArgs](opts)
+func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
+	args, err := newArgsFromOptions[options.AutoEncryptionOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -642,8 +642,8 @@ func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionArgs]) (*mongo
 }
 
 //nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
-func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts Options[options.AutoEncryptionArgs]) {
-	args, _ := newArgsFromOptions[options.AutoEncryptionArgs](opts)
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts Options[options.AutoEncryptionOptions]) {
+	args, _ := newArgsFromOptions[options.AutoEncryptionOptions](opts)
 
 	bypass := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
 	kr := keyRetriever{coll: c.keyVaultCollFLE}

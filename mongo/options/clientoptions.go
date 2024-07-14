@@ -201,7 +201,7 @@ type BSONOptions struct {
 type ClientArgs struct {
 	AppName                  *string
 	Auth                     *Credential
-	AutoEncryptionOptions    *AutoEncryptionOptions
+	AutoEncryptionOptions    *AutoEncryptionOptionsBuilder
 	ConnectTimeout           *time.Duration
 	Compressors              []string
 	Dialer                   ContextDialer
@@ -1102,7 +1102,7 @@ func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
 // SetAutoEncryptionOptions specifies an AutoEncryptionOptions instance to automatically encrypt and decrypt commands
 // and their results. See the options.AutoEncryptionOptions documentation for more information about the supported
 // options.
-func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
+func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptionsBuilder) *ClientOptions {
 	c.Opts = append(c.Opts, func(args *ClientArgs) error {
 		args.AutoEncryptionOptions = opts
 

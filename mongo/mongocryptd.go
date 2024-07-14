@@ -39,12 +39,12 @@ type mongocryptdClient struct {
 // newMongocryptdClient creates a client to mongocryptd.
 // newMongocryptdClient is expected to not be called if the crypt shared library is available.
 // The crypt shared library replaces all mongocryptd functionality.
-func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
+func newMongocryptdClient(opts *options.AutoEncryptionOptionsBuilder) (*mongocryptdClient, error) {
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
 
-	args, err := newArgsFromOptions[options.AutoEncryptionArgs](opts)
+	args, err := newArgsFromOptions[options.AutoEncryptionOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}

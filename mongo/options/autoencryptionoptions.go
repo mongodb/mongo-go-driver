@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-// AutoEncryptionArgs represents arguments used to configure auto encryption/decryption behavior for a mongo.Client
+// AutoEncryptionOptions represents arguments used to configure auto encryption/decryption behavior for a mongo.Client
 // instance.
 //
 // Automatic encryption is an enterprise only feature that only applies to operations on a collection. Automatic
@@ -25,7 +25,7 @@ import (
 //
 // Enabling Client Side Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
-type AutoEncryptionArgs struct {
+type AutoEncryptionOptions struct {
 	KeyVaultClientOptions *ClientOptions
 	KeyVaultNamespace     string
 	KmsProviders          map[string]map[string]interface{}
@@ -38,18 +38,18 @@ type AutoEncryptionArgs struct {
 	BypassQueryAnalysis   *bool
 }
 
-// AutoEncryptionOptions contains options to configure automatic enecryption
-// for operations. Each option can be set through setter functions. See
-// documentation for each setter function for an explanation of the option.
-type AutoEncryptionOptions struct {
-	Opts []func(*AutoEncryptionArgs) error
+// AutoEncryptionOptionsBuilder contains options to configure automatic
+// enecryption for operations. Each option can be set through setter functions.
+// See documentation for each setter function for an explanation of the option.
+type AutoEncryptionOptionsBuilder struct {
+	Opts []func(*AutoEncryptionOptions) error
 }
 
 // AutoEncryption creates a new AutoEncryptionOptions configured with default values.
-func AutoEncryption() *AutoEncryptionOptions {
-	opts := &AutoEncryptionOptions{}
+func AutoEncryption() *AutoEncryptionOptionsBuilder {
+	opts := &AutoEncryptionOptionsBuilder{}
 
-	opts.Opts = append(opts.Opts, func(args *AutoEncryptionArgs) error {
+	opts.Opts = append(opts.Opts, func(args *AutoEncryptionOptions) error {
 		args.HTTPClient = http.DefaultClient
 
 		return nil
@@ -59,7 +59,7 @@ func AutoEncryption() *AutoEncryptionOptions {
 }
 
 // ArgsSetters returns a list of AutoEncryptionArgs setter functions.
-func (a *AutoEncryptionOptions) ArgsSetters() []func(*AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) ArgsSetters() []func(*AutoEncryptionOptions) error {
 	return a.Opts
 }
 
@@ -72,8 +72,8 @@ func (a *AutoEncryptionOptions) ArgsSetters() []func(*AutoEncryptionArgs) error 
 // (and created if necessary). The internal mongo.Client may be shared during automatic encryption (if
 // BypassAutomaticEncryption is false). The internal mongo.Client is configured with the same options as the target
 // mongo.Client except minPoolSize is set to 0 and AutoEncryptionOptions is omitted.
-func (a *AutoEncryptionOptions) SetKeyVaultClientOptions(opts *ClientOptions) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetKeyVaultClientOptions(opts *ClientOptions) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.KeyVaultClientOptions = opts
 
 		return nil
@@ -83,8 +83,8 @@ func (a *AutoEncryptionOptions) SetKeyVaultClientOptions(opts *ClientOptions) *A
 }
 
 // SetKeyVaultNamespace specifies the namespace of the key vault collection. This is required.
-func (a *AutoEncryptionOptions) SetKeyVaultNamespace(ns string) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetKeyVaultNamespace(ns string) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.KeyVaultNamespace = ns
 
 		return nil
@@ -94,8 +94,8 @@ func (a *AutoEncryptionOptions) SetKeyVaultNamespace(ns string) *AutoEncryptionO
 }
 
 // SetKmsProviders specifies options for KMS providers. This is required.
-func (a *AutoEncryptionOptions) SetKmsProviders(providers map[string]map[string]interface{}) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetKmsProviders(providers map[string]map[string]interface{}) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.KmsProviders = providers
 
 		return nil
@@ -111,8 +111,8 @@ func (a *AutoEncryptionOptions) SetKmsProviders(providers map[string]map[string]
 // Supplying a schemaMap provides more security than relying on JSON Schemas obtained from the server. It protects
 // against a malicious server advertising a false JSON Schema, which could trick the client into sending unencrypted
 // data that should be encrypted.
-func (a *AutoEncryptionOptions) SetSchemaMap(schemaMap map[string]interface{}) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetSchemaMap(schemaMap map[string]interface{}) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.SchemaMap = schemaMap
 
 		return nil
@@ -129,8 +129,8 @@ func (a *AutoEncryptionOptions) SetSchemaMap(schemaMap map[string]interface{}) *
 // (and created if necessary). The internal mongo.Client may be shared for key vault operations (if KeyVaultClient is
 // unset). The internal mongo.Client is configured with the same options as the target mongo.Client except minPoolSize
 // is set to 0 and AutoEncryptionOptions is omitted.
-func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetBypassAutoEncryption(bypass bool) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.BypassAutoEncryption = &bypass
 
 		return nil
@@ -168,8 +168,8 @@ func (a *AutoEncryptionOptions) SetBypassAutoEncryption(bypass bool) *AutoEncryp
 // absolute path to the directory containing the linked libmongocrypt library. Setting an override
 // path disables the default system library search path. If an override path is specified but the
 // crypt_shared library cannot be loaded, Client creation will return an error. Must be a string.
-func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetExtraOptions(extraOpts map[string]interface{}) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.ExtraOptions = extraOpts
 
 		return nil
@@ -182,8 +182,8 @@ func (a *AutoEncryptionOptions) SetExtraOptions(extraOpts map[string]interface{}
 // to the KMS provider.
 //
 // This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
-func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetTLSConfig(tlsOpts map[string]*tls.Config) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		tlsConfigs := make(map[string]*tls.Config)
 		for provider, config := range tlsOpts {
 			// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
@@ -202,8 +202,8 @@ func (a *AutoEncryptionOptions) SetTLSConfig(tlsOpts map[string]*tls.Config) *Au
 
 // SetEncryptedFieldsMap specifies a map from namespace to local EncryptedFieldsMap document.
 // EncryptedFieldsMap is used for Queryable Encryption.
-func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetEncryptedFieldsMap(ef map[string]interface{}) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.EncryptedFieldsMap = ef
 
 		return nil
@@ -214,8 +214,8 @@ func (a *AutoEncryptionOptions) SetEncryptedFieldsMap(ef map[string]interface{})
 
 // SetBypassQueryAnalysis specifies whether or not query analysis should be used for automatic encryption.
 // Use this option when using explicit encryption with Queryable Encryption.
-func (a *AutoEncryptionOptions) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptions {
-	a.Opts = append(a.Opts, func(args *AutoEncryptionArgs) error {
+func (a *AutoEncryptionOptionsBuilder) SetBypassQueryAnalysis(bypass bool) *AutoEncryptionOptionsBuilder {
+	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.BypassQueryAnalysis = &bypass
 
 		return nil

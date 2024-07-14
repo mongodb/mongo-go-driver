@@ -34,7 +34,7 @@ type Args interface {
 		options.SearchIndexesArgs | options.ServerAPIArgs | options.SessionArgs |
 		options.TimeSeriesArgs | options.TransactionArgs | options.UpdateArgs |
 		options.UpdateSearchIndexArgs | options.ChangeStreamArgs |
-		options.AutoEncryptionArgs
+		options.AutoEncryptionOptions
 }
 
 // MongoOptions is an interface that wraps a method to return a list of setter
