@@ -202,7 +202,7 @@ benchmark:perf
 
 .PHONY: driver-benchmark
 driver-benchmark:perf
-	@go run internal/cmd/benchmark/main.go | tee perf.suite
+	cd internal/cmd/benchmark && go run . | tee perf.suite
 
 perf:driver-test-data.tar.gz
 	tar -zxf $< $(if $(eq $(UNAME_S),Darwin),-s , --transform=s)/testdata/perf/
