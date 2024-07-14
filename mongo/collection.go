@@ -190,7 +190,7 @@ func (coll *Collection) Database() *Database {
 //
 // The opts parameter can be used to specify options for the operation (see the options.BulkWriteOptions documentation.)
 func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
-	opts ...Options[options.BulkWriteArgs]) (*BulkWriteResult, error) {
+	opts ...Options[options.BulkWriteOptions]) (*BulkWriteResult, error) {
 
 	if len(models) == 0 {
 		return nil, ErrEmptySlice
@@ -228,7 +228,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	}
 
 	// Ensure opts have the default case at the front.
-	opts = append([]Options[options.BulkWriteArgs]{options.BulkWrite()}, opts...)
+	opts = append([]Options[options.BulkWriteOptions]{options.BulkWrite()}, opts...)
 	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
