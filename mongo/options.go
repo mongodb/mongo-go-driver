@@ -24,5 +24,5 @@ func newArgsFromOptions[T mongoutil.Args](opts ...Options[T]) (*T, error) {
 		mongoOpts[idx] = opt
 	}
 
-	return mongoutil.NewArgsFromOptions[T](mongoOpts...)
+	return mongoutil.NewArgsFromOptions(mongoOpts...)
 }

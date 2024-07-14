@@ -155,7 +155,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 // aggregator is an interface used to run collection and database-level aggregations
 type aggregator interface {
-	Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateArgs]) (*mongo.Cursor, error)
+	Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateOptions]) (*mongo.Cursor, error)
 }
 
 // watcher is an interface used to create client, db, and collection-level change streams

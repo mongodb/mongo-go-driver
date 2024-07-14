@@ -849,7 +849,7 @@ func (coll *Collection) ReplaceOne(
 func (coll *Collection) Aggregate(
 	ctx context.Context,
 	pipeline interface{},
-	opts ...Options[options.AggregateArgs],
+	opts ...Options[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
@@ -871,7 +871,7 @@ func (coll *Collection) Aggregate(
 }
 
 // aggregate is the helper method for Aggregate
-func aggregate(a aggregateParams, opts ...Options[options.AggregateArgs]) (cur *Cursor, err error) {
+func aggregate(a aggregateParams, opts ...Options[options.AggregateOptions]) (cur *Cursor, err error) {
 	if a.ctx == nil {
 		a.ctx = context.Background()
 	}

@@ -1888,7 +1888,7 @@ func initCollection(mt *mtest.T, coll *mongo.Collection) {
 	assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
 }
 
-func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts *options.AggregateOptions) {
+func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts mongo.Options[options.AggregateOptions]) {
 	mt.Helper()
 	initCollection(mt, mt.Coll)
 

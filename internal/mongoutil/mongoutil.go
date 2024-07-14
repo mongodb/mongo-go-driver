@@ -14,7 +14,7 @@ import (
 
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
-	options.AggregateArgs | options.BucketArgs | options.BulkWriteArgs |
+	options.AggregateOptions | options.BucketArgs | options.BulkWriteArgs |
 		options.ClientArgs | options.ClientEncryptionArgs | options.CollectionArgs |
 		options.CountArgs | options.CreateIndexesArgs |
 		options.CreateCollectionArgs | options.CreateSearchIndexesArgs |

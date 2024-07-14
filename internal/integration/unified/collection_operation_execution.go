@@ -24,7 +24,7 @@ import (
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateArgs]) (*mongo.Cursor, error)
+		Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -1191,13 +1191,13 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		case "name":
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
-			// Unmarshal the document into the AggregateArgs embedded object.
+			// Unmarshal the document into the AggregateOptions embedded object.
 			opt := &mongoutil.ArgOptions[options.ListSearchIndexesArgs]{
 				Args: &options.ListSearchIndexesArgs{},
 				Callback: func(args *options.ListSearchIndexesArgs) error {
-					args.AggregateArgs = &options.AggregateArgs{}
+					args.AggregateOptions = &options.AggregateOptions{}
 
-					return bson.Unmarshal(val.Document(), args.AggregateArgs)
+					return bson.Unmarshal(val.Document(), args.AggregateOptions)
 				},
 			}
 

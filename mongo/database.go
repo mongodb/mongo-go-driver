@@ -129,7 +129,7 @@ func (db *Database) Collection(name string, opts ...Options[options.CollectionAr
 func (db *Database) Aggregate(
 	ctx context.Context,
 	pipeline interface{},
-	opts ...Options[options.AggregateArgs],
+	opts ...Options[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,

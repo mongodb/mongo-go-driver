@@ -12,9 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// AggregateArgs represents arguments that can be used to configure an
+// AggregateOptions represents arguments that can be used to configure an
 // Aggregate operation.
-type AggregateArgs struct {
+type AggregateOptions struct {
 	// If true, the operation can write to temporary files in the _tmp subdirectory of the database directory path on
 	// the server. The default value is false.
 	AllowDiskUse *bool
@@ -59,26 +59,26 @@ type AggregateArgs struct {
 	Custom bson.M
 }
 
-// AggregateOptions contains options to configure aggregate operations. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type AggregateOptions struct {
-	Opts []func(*AggregateArgs) error
+// AggregateOptionsBuilder contains options to configure aggregate operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type AggregateOptionsBuilder struct {
+	Opts []func(*AggregateOptions) error
 }
 
 // Aggregate creates a new AggregateOptions instance.
-func Aggregate() *AggregateOptions {
-	return &AggregateOptions{}
+func Aggregate() *AggregateOptionsBuilder {
+	return &AggregateOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of AggergateArgs setter functions.
-func (ao *AggregateOptions) ArgsSetters() []func(*AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) ArgsSetters() []func(*AggregateOptions) error {
 	return ao.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
-func (ao *AggregateOptions) SetAllowDiskUse(b bool) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetAllowDiskUse(b bool) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.AllowDiskUse = &b
 
 		return nil
@@ -88,8 +88,8 @@ func (ao *AggregateOptions) SetAllowDiskUse(b bool) *AggregateOptions {
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (ao *AggregateOptions) SetBatchSize(i int32) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetBatchSize(i int32) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.BatchSize = &i
 
 		return nil
@@ -99,8 +99,8 @@ func (ao *AggregateOptions) SetBatchSize(i int32) *AggregateOptions {
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (ao *AggregateOptions) SetBypassDocumentValidation(b bool) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetBypassDocumentValidation(b bool) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.BypassDocumentValidation = &b
 
 		return nil
@@ -110,8 +110,8 @@ func (ao *AggregateOptions) SetBypassDocumentValidation(b bool) *AggregateOption
 }
 
 // SetCollation sets the value for the Collation field.
-func (ao *AggregateOptions) SetCollation(c *Collation) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetCollation(c *Collation) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.Collation = c
 
 		return nil
@@ -121,8 +121,8 @@ func (ao *AggregateOptions) SetCollation(c *Collation) *AggregateOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-func (ao *AggregateOptions) SetMaxAwaitTime(d time.Duration) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.MaxAwaitTime = &d
 
 		return nil
@@ -132,8 +132,8 @@ func (ao *AggregateOptions) SetMaxAwaitTime(d time.Duration) *AggregateOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (ao *AggregateOptions) SetComment(comment interface{}) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -143,8 +143,8 @@ func (ao *AggregateOptions) SetComment(comment interface{}) *AggregateOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (ao *AggregateOptions) SetHint(h interface{}) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.Hint = h
 
 		return nil
@@ -154,8 +154,8 @@ func (ao *AggregateOptions) SetHint(h interface{}) *AggregateOptions {
 }
 
 // SetLet sets the value for the Let field.
-func (ao *AggregateOptions) SetLet(let interface{}) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetLet(let interface{}) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.Let = let
 
 		return nil
@@ -168,8 +168,8 @@ func (ao *AggregateOptions) SetLet(let interface{}) *AggregateOptions {
 // with desired option names and values. Values must be Marshalable. Custom options may conflict
 // with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
 // options where possible.
-func (ao *AggregateOptions) SetCustom(c bson.M) *AggregateOptions {
-	ao.Opts = append(ao.Opts, func(args *AggregateArgs) error {
+func (ao *AggregateOptionsBuilder) SetCustom(c bson.M) *AggregateOptionsBuilder {
+	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
 		args.Custom = c
 
 		return nil

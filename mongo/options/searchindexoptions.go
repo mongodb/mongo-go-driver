@@ -71,7 +71,7 @@ func (csio *CreateSearchIndexesOptions) ArgsSetters() []func(*CreateSearchIndexe
 // ListSearchIndexesArgs represents arguments that can be used to configure a
 // SearchIndexView.List operation.
 type ListSearchIndexesArgs struct {
-	AggregateArgs *AggregateArgs
+	AggregateOptions *AggregateOptions
 }
 
 // ListSearchIndexesOptions represents options that can be used to configure a
