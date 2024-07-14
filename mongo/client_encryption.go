@@ -29,7 +29,7 @@ type ClientEncryption struct {
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
-func NewClientEncryption(keyVaultClient *Client, opts ...Options[options.ClientEncryptionArgs]) (*ClientEncryption, error) {
+func NewClientEncryption(keyVaultClient *Client, opts ...Options[options.ClientEncryptionOptions]) (*ClientEncryption, error) {
 	if keyVaultClient == nil {
 		return nil, errors.New("keyVaultClient must not be nil")
 	}
