@@ -566,7 +566,7 @@ func (db *Database) ListCollectionNames(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
-	opts ...Options[options.ChangeStreamArgs]) (*ChangeStream, error) {
+	opts ...Options[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,

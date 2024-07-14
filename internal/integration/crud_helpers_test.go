@@ -160,7 +160,7 @@ type aggregator interface {
 
 // watcher is an interface used to create client, db, and collection-level change streams
 type watcher interface {
-	Watch(context.Context, interface{}, ...mongo.Options[options.ChangeStreamArgs]) (*mongo.ChangeStream, error)
+	Watch(context.Context, interface{}, ...mongo.Options[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 }
 
 func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {

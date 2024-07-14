@@ -33,7 +33,7 @@ type Args interface {
 		options.RewrapManyDataKeyArgs | options.RunCmdArgs |
 		options.SearchIndexesArgs | options.ServerAPIArgs | options.SessionArgs |
 		options.TimeSeriesArgs | options.TransactionArgs | options.UpdateArgs |
-		options.UpdateSearchIndexArgs | options.ChangeStreamArgs |
+		options.UpdateSearchIndexArgs | options.ChangeStreamOptions |
 		options.AutoEncryptionOptions
 }
 

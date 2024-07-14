@@ -110,7 +110,7 @@ func TestValidChangeStreamTimeouts(t *testing.T) {
 			t.Parallel()
 
 			cs := &ChangeStream{
-				arguments: &options.ChangeStreamArgs{
+				arguments: &options.ChangeStreamOptions{
 					MaxAwaitTime: test.maxAwaitTimeout,
 				},
 				client: &Client{

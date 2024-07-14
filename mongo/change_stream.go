@@ -84,7 +84,7 @@ type ChangeStream struct {
 	bsonOpts        *options.BSONOptions
 	registry        *bson.Registry
 	streamType      StreamType
-	arguments       *options.ChangeStreamArgs
+	arguments       *options.ChangeStreamOptions
 	selector        description.ServerSelector
 	operationTime   *bson.Timestamp
 	wireVersion     *description.VersionRange
@@ -130,7 +130,7 @@ func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
-	opts ...Options[options.ChangeStreamArgs]) (*ChangeStream, error) {
+	opts ...Options[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -139,7 +139,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
-	args, err := newArgsFromOptions[options.ChangeStreamArgs](opts...)
+	args, err := newArgsFromOptions[options.ChangeStreamOptions](opts...)
 	if err != nil {
 		return nil, err
 	}

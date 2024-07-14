@@ -380,7 +380,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 						var numExpectedEvents int
 						var initialToken bson.Raw
-						var opts *options.ChangeStreamOptions
+						var opts *options.ChangeStreamOptionsBuilder
 						switch tc.rt {
 						case startAfter:
 							numExpectedEvents = numEvents - 1
@@ -436,7 +436,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 				testCases := []struct {
 					name            string
-					opts            *options.ChangeStreamOptions
+					opts            *options.ChangeStreamOptionsBuilder
 					iterateStream   bool // whether or not resulting change stream should be iterated
 					initialToken    bson.Raw
 					numDocsExpected int
