@@ -11,6 +11,7 @@ import (
 	"errors"
 	"math"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -18,11 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
@@ -510,4 +513,77 @@ func TestClient(t *testing.T) {
 		errmsg := `invalid value "-1s" for "Timeout": value must be positive`
 		assert.Equal(t, errmsg, err.Error(), "expected error %v, got %v", errmsg, err.Error())
 	})
+}
+
+// Test that convertOIDCArgs exhaustively copies all fields of a driver.OIDCArgs
+// into an options.OIDCArgs.
+func TestConvertOIDCArgs(t *testing.T) {
+	refreshToken := "test refresh token"
+
+	testCases := []struct {
+		desc string
+		args *driver.OIDCArgs
+	}{
+		{
+			desc: "populated args",
+			args: &driver.OIDCArgs{
+				Version: 9,
+				IDPInfo: &driver.IDPInfo{
+					Issuer:        "test issuer",
+					ClientID:      "test client ID",
+					RequestScopes: []string{"test scope 1", "test scope 2"},
+				},
+				RefreshToken: &refreshToken,
+			},
+		},
+		{
+			desc: "nil",
+			args: nil,
+		},
+		{
+			desc: "nil IDPInfo and RefreshToken",
+			args: &driver.OIDCArgs{
+				Version:      9,
+				IDPInfo:      nil,
+				RefreshToken: nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc // Capture range variable.
+
+		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
+
+			got := convertOIDCArgs(tc.args)
+
+			if tc.args == nil {
+				assert.Nil(t, got, "expected nil when input is nil")
+				return
+			}
+
+			require.Equal(t,
+				3,
+				reflect.ValueOf(*tc.args).NumField(),
+				"expected the driver.OIDCArgs struct to have exactly 3 fields")
+			require.Equal(t,
+				3,
+				reflect.ValueOf(*got).NumField(),
+				"expected the options.OIDCArgs struct to have exactly 3 fields")
+
+			assert.Equal(t,
+				tc.args.Version,
+				got.Version,
+				"expected Version field to be equal")
+			assert.EqualValues(t,
+				tc.args.IDPInfo,
+				got.IDPInfo,
+				"expected IDPInfo field to be convertible to equal values")
+			assert.Equal(t,
+				tc.args.RefreshToken,
+				got.RefreshToken,
+				"expected RefreshToken field to be equal")
+		})
+	}
 }

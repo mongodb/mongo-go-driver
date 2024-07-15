@@ -9,6 +9,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"net/http"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -64,7 +65,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				// Create a SCRAM authenticator and overwrite the nonce generator to make the conversation
 				// deterministic.
-				authenticator, err := CreateAuthenticator(tc.mechanism, cred)
+				authenticator, err := CreateAuthenticator(tc.mechanism, cred, &http.Client{})
 				assert.Nil(t, err, "CreateAuthenticator error: %v", err)
 				setNonce(t, authenticator, tc.nonce)
 
@@ -151,7 +152,7 @@ func TestSpeculativeSCRAM(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.mechanism, func(t *testing.T) {
-				authenticator, err := CreateAuthenticator(tc.mechanism, cred)
+				authenticator, err := CreateAuthenticator(tc.mechanism, cred, &http.Client{})
 				assert.Nil(t, err, "CreateAuthenticator error: %v", err)
 				setNonce(t, authenticator, tc.nonce)
 

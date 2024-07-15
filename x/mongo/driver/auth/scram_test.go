@@ -8,6 +8,7 @@ package auth
 
 import (
 	"context"
+	"net/http"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
@@ -39,7 +40,7 @@ func TestSCRAM(t *testing.T) {
 	t.Run("conversation", func(t *testing.T) {
 		testCases := []struct {
 			name                  string
-			createAuthenticatorFn func(*Cred) (Authenticator, error)
+			createAuthenticatorFn func(*Cred, *http.Client) (Authenticator, error)
 			payloads              [][]byte
 			nonce                 string
 		}{
@@ -50,11 +51,13 @@ func TestSCRAM(t *testing.T) {
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				authenticator, err := tc.createAuthenticatorFn(&Cred{
-					Username: "user",
-					Password: "pencil",
-					Source:   "admin",
-				})
+				authenticator, err := tc.createAuthenticatorFn(
+					&Cred{
+						Username: "user",
+						Password: "pencil",
+						Source:   "admin",
+					},
+					&http.Client{})
 				assert.Nil(t, err, "error creating authenticator: %v", err)
 				sa, _ := authenticator.(*ScramAuthenticator)
 				sa.client = sa.client.WithNonceGenerator(func() string {

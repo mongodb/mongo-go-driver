@@ -341,7 +341,8 @@ func (coll *Collection) insert(ctx context.Context, documents []interface{},
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).
+		Authenticator(coll.client.authenticator)
 	imo := options.InsertMany()
 	for _, opt := range opts {
 		if opt == nil {
@@ -581,7 +582,8 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger).
+		Authenticator(coll.client.authenticator)
 	if do.Comment != nil {
 		comment, err := marshalValue(do.Comment, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -727,7 +729,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Hint(uo.Hint != nil).
 		ArrayFilters(uo.ArrayFilters != nil).Ordered(true).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
 	if uo.Let != nil {
 		let, err := marshal(uo.Let, coll.bsonOpts, coll.registry)
 		if err != nil {
@@ -1040,7 +1042,8 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		Crypt(a.client.cryptFLE).
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
-		Timeout(a.client.timeout)
+		Timeout(a.client.timeout).
+		Authenticator(coll.client.authenticator)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)
@@ -1181,7 +1184,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if countOpts.Collation != nil {
 		op.Collation(bsoncore.Document(countOpts.Collation.ToDocument()))
 	}
@@ -1278,7 +1281,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	if co.Comment != nil {
 		comment, err := marshalValue(co.Comment, coll.bsonOpts, coll.registry)
@@ -1359,7 +1362,7 @@ func (coll *Collection) Distinct(
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.deployment).ReadConcern(rc).ReadPreference(coll.readPreference).
 		ServerSelector(selector).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout)
+		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	if option.Collation != nil {
 		op.Collation(bsoncore.Document(option.Collation.ToDocument()))
@@ -1479,6 +1482,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 
@@ -1511,7 +1515,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
 		ClusterClock(coll.client.clock).Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
-		Timeout(coll.client.timeout).Logger(coll.client.logger)
+		Timeout(coll.client.timeout).Logger(coll.client.logger).Authenticator(coll.client.authenticator)
 
 	cursorOpts := coll.client.createBaseCursorOptions()
 
@@ -1799,7 +1803,7 @@ func (coll *Collection) FindOneAndDelete(ctx context.Context, filter interface{}
 		return &SingleResult{err: err}
 	}
 	fod := mergeFindOneAndDeleteOptions(opts...)
-	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if fod.Collation != nil {
 		op = op.Collation(bsoncore.Document(fod.Collation.ToDocument()))
 	}
@@ -1919,7 +1923,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 
 	fo := mergeFindOneAndReplaceOptions(opts...)
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
@@ -2048,7 +2052,7 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	}
 
 	fo := mergeFindOneAndUpdateOptions(opts...)
-	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	u, err := marshalUpdateValue(update, coll.bsonOpts, coll.registry, true)
 	if err != nil {
@@ -2256,7 +2260,8 @@ func (coll *Collection) drop(ctx context.Context) error {
 		ServerSelector(selector).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).
-		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
+		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).
+		Authenticator(coll.client.authenticator)
 	err = op.Execute(ctx)
 
 	// ignore namespace not found errors

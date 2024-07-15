@@ -9,18 +9,23 @@ package auth
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	"go.mongodb.org/mongo-driver/internal/aws/credentials"
 	"go.mongodb.org/mongo-driver/internal/credproviders"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/creds"
 )
 
 // MongoDBAWS is the mechanism name for MongoDBAWS.
 const MongoDBAWS = "MONGODB-AWS"
 
-func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
+func newMongoDBAWSAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {
 	if cred.Source != "" && cred.Source != "$external" {
 		return nil, newAuthError("MONGODB-AWS source must be empty or $external", nil)
+	}
+	if httpClient == nil {
+		return nil, errors.New("httpClient must not be nil")
 	}
 	return &MongoDBAWSAuthenticator{
 		source: cred.Source,
@@ -32,6 +37,7 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 				SessionToken:    cred.Props["AWS_SESSION_TOKEN"],
 			},
 		},
+		httpClient: httpClient,
 	}, nil
 }
 
@@ -39,15 +45,12 @@ func newMongoDBAWSAuthenticator(cred *Cred) (Authenticator, error) {
 type MongoDBAWSAuthenticator struct {
 	source      string
 	credentials *credproviders.StaticProvider
+	httpClient  *http.Client
 }
 
 // Auth authenticates the connection.
 func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
-	httpClient := cfg.HTTPClient
-	if httpClient == nil {
-		return errors.New("cfg.HTTPClient must not be nil")
-	}
-	providers := creds.NewAWSCredentialProvider(httpClient, a.credentials)
+	providers := creds.NewAWSCredentialProvider(a.httpClient, a.credentials)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{
 			credentials: providers.Cred,
@@ -58,6 +61,11 @@ func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 		return newAuthError("sasl conversation error", err)
 	}
 	return nil
+}
+
+// Reauth reauthenticates the connection.
+func (a *MongoDBAWSAuthenticator) Reauth(_ context.Context, _ *driver.AuthConfig) error {
+	return newAuthError("AWS authentication does not support reauthentication", nil)
 }
 
 type awsSaslAdapter struct {

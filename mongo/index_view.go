@@ -93,7 +93,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
 
 	cursorOpts := iv.coll.client.createBaseCursorOptions()
 
@@ -282,7 +282,7 @@ func (iv IndexView) CreateMany(
 		Session(sess).WriteConcern(wc).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
 	if option.CommitQuorum != nil {
 		commitQuorum, err := marshalValue(option.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
@@ -414,7 +414,7 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropInd
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
-		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
+		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE).Authenticator(iv.coll.client.authenticator)
 
 	err = op.Execute(ctx)
 	if err != nil {
