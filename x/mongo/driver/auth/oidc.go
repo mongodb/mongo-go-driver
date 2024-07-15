@@ -222,6 +222,9 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 			return nil, newAuthError("failed parsing result from Azure Identity Provider", err)
 		}
 		expiresOn, err := strconv.ParseInt(azureResp.ExpiresOn, 10, 64)
+		if err != nil {
+			return nil, newAuthError("failed converting experiation field from Azure Identity Provider to int64", err)
+		}
 		expiresAt := time.Unix(expiresOn, 0)
 		return &OIDCCredential{
 			AccessToken: azureResp.AccessToken,
