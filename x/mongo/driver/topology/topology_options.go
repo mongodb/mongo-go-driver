@@ -81,8 +81,8 @@ func newLogger(opts mongoutil.OptionsBuilder[options.LoggerOptions]) (*logger.Lo
 	return log, nil
 }
 
-// NewConfig behaves like NewConfigFromOptions by extracting arguments from the
-// ClientOptions setters.
+// NewConfig behaves like NewConfigFromOptions by extracting arguments from a
+// list of ClientOptions setters.
 func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
 	args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](opts)
 	if err != nil {
