@@ -20,7 +20,7 @@ type ListDatabasesOptions struct {
 }
 
 // ListDatabasesOptionsBuilder represents functional options that configure a
-// ListDatabasesArgs.
+// ListDatabasesopts.
 type ListDatabasesOptionsBuilder struct {
 	Opts []func(*ListDatabasesOptions) error
 }
@@ -30,15 +30,15 @@ func ListDatabases() *ListDatabasesOptionsBuilder {
 	return &ListDatabasesOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of ListDatabasesArgs setter functions.
-func (ld *ListDatabasesOptionsBuilder) ArgsSetters() []func(*ListDatabasesOptions) error {
+// OptionsSetters returns a list of ListDatabasesopts setter functions.
+func (ld *ListDatabasesOptionsBuilder) OptionsSetters() []func(*ListDatabasesOptions) error {
 	return ld.Opts
 }
 
 // SetNameOnly sets the value for the NameOnly field.
 func (ld *ListDatabasesOptionsBuilder) SetNameOnly(b bool) *ListDatabasesOptionsBuilder {
-	ld.Opts = append(ld.Opts, func(args *ListDatabasesOptions) error {
-		args.NameOnly = &b
+	ld.Opts = append(ld.Opts, func(opts *ListDatabasesOptions) error {
+		opts.NameOnly = &b
 		return nil
 	})
 	return ld
@@ -46,8 +46,8 @@ func (ld *ListDatabasesOptionsBuilder) SetNameOnly(b bool) *ListDatabasesOptions
 
 // SetAuthorizedDatabases sets the value for the AuthorizedDatabases field.
 func (ld *ListDatabasesOptionsBuilder) SetAuthorizedDatabases(b bool) *ListDatabasesOptionsBuilder {
-	ld.Opts = append(ld.Opts, func(args *ListDatabasesOptions) error {
-		args.AuthorizedDatabases = &b
+	ld.Opts = append(ld.Opts, func(opts *ListDatabasesOptions) error {
+		opts.AuthorizedDatabases = &b
 		return nil
 	})
 	return ld

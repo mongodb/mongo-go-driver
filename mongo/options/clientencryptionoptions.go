@@ -41,15 +41,15 @@ func ClientEncryption() *ClientEncryptionOptionsBuilder {
 	}
 }
 
-// ArgsSetters returns a list of ClientEncryptionArgs setter functions.
-func (c *ClientEncryptionOptionsBuilder) ArgsSetters() []func(*ClientEncryptionOptions) error {
+// OptionsSetters returns a list of ClientEncryptionopts setter functions.
+func (c *ClientEncryptionOptionsBuilder) OptionsSetters() []func(*ClientEncryptionOptions) error {
 	return c.Opts
 }
 
 // SetKeyVaultNamespace specifies the namespace of the key vault collection. This is required.
 func (c *ClientEncryptionOptionsBuilder) SetKeyVaultNamespace(ns string) *ClientEncryptionOptionsBuilder {
-	c.Opts = append(c.Opts, func(args *ClientEncryptionOptions) error {
-		args.KeyVaultNamespace = ns
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.KeyVaultNamespace = ns
 		return nil
 	})
 	return c
@@ -57,8 +57,8 @@ func (c *ClientEncryptionOptionsBuilder) SetKeyVaultNamespace(ns string) *Client
 
 // SetKmsProviders specifies options for KMS providers. This is required.
 func (c *ClientEncryptionOptionsBuilder) SetKmsProviders(providers map[string]map[string]interface{}) *ClientEncryptionOptionsBuilder {
-	c.Opts = append(c.Opts, func(args *ClientEncryptionOptions) error {
-		args.KmsProviders = providers
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
+		opts.KmsProviders = providers
 		return nil
 	})
 	return c
@@ -69,7 +69,7 @@ func (c *ClientEncryptionOptionsBuilder) SetKmsProviders(providers map[string]ma
 //
 // This should only be used to set custom TLS configurations. By default, the connection will use an empty tls.Config{} with MinVersion set to tls.VersionTLS12.
 func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(tlsOpts map[string]*tls.Config) *ClientEncryptionOptionsBuilder {
-	c.Opts = append(c.Opts, func(args *ClientEncryptionOptions) error {
+	c.Opts = append(c.Opts, func(opts *ClientEncryptionOptions) error {
 		tlsConfigs := make(map[string]*tls.Config)
 		for provider, config := range tlsOpts {
 			// use TLS min version 1.2 to enforce more secure hash algorithms and advanced cipher suites
@@ -78,7 +78,7 @@ func (c *ClientEncryptionOptionsBuilder) SetTLSConfig(tlsOpts map[string]*tls.Co
 			}
 			tlsConfigs[provider] = config
 		}
-		args.TLSConfig = tlsConfigs
+		opts.TLSConfig = tlsConfigs
 		return nil
 	})
 	return c

@@ -9,7 +9,7 @@ package options
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
-// BulkWriteOptions represents args that can be used to configure a BulkWrite
+// BulkWriteOptions represents opts that can be used to configure a BulkWrite
 // operation.
 type BulkWriteOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
@@ -50,15 +50,15 @@ func BulkWrite() *BulkWriteOptionsBuilder {
 	return opts
 }
 
-// ArgsSetters returns a list of BulkWriteArgs setter functions.
-func (b *BulkWriteOptionsBuilder) ArgsSetters() []func(*BulkWriteOptions) error {
+// OptionsSetters returns a list of BulkWriteopts setter functions.
+func (b *BulkWriteOptionsBuilder) OptionsSetters() []func(*BulkWriteOptions) error {
 	return b.Opts
 }
 
 // SetComment sets the value for the Comment field.
 func (b *BulkWriteOptionsBuilder) SetComment(comment interface{}) *BulkWriteOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BulkWriteOptions) error {
-		args.Comment = comment
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -68,8 +68,8 @@ func (b *BulkWriteOptionsBuilder) SetComment(comment interface{}) *BulkWriteOpti
 
 // SetOrdered sets the value for the Ordered field.
 func (b *BulkWriteOptionsBuilder) SetOrdered(ordered bool) *BulkWriteOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BulkWriteOptions) error {
-		args.Ordered = &ordered
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Ordered = &ordered
 
 		return nil
 	})
@@ -79,8 +79,8 @@ func (b *BulkWriteOptionsBuilder) SetOrdered(ordered bool) *BulkWriteOptionsBuil
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *BulkWriteOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BulkWriteOptions) error {
-		args.BypassDocumentValidation = &bypass
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.BypassDocumentValidation = &bypass
 
 		return nil
 	})
@@ -93,8 +93,8 @@ func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *Bulk
 // This must be a document mapping parameter names to values. Values must be constant or closed expressions that do not
 // reference document fields. Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
 func (b *BulkWriteOptionsBuilder) SetLet(let interface{}) *BulkWriteOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BulkWriteOptions) error {
-		args.Let = &let
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Let = &let
 
 		return nil
 	})

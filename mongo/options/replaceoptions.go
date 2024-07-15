@@ -55,15 +55,15 @@ func Replace() *ReplaceOptionsBuilder {
 	return &ReplaceOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (ro *ReplaceOptionsBuilder) ArgsSetters() []func(*ReplaceOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (ro *ReplaceOptionsBuilder) OptionsSetters() []func(*ReplaceOptions) error {
 	return ro.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (ro *ReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
-		args.BypassDocumentValidation = &b
+	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
+		opts.BypassDocumentValidation = &b
 
 		return nil
 	})
@@ -73,8 +73,8 @@ func (ro *ReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *ReplaceOpt
 
 // SetCollation sets the value for the Collation field.
 func (ro *ReplaceOptionsBuilder) SetCollation(c *Collation) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
-		args.Collation = c
+	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
+		opts.Collation = c
 
 		return nil
 	})
@@ -84,8 +84,8 @@ func (ro *ReplaceOptionsBuilder) SetCollation(c *Collation) *ReplaceOptionsBuild
 
 // SetComment sets the value for the Comment field.
 func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
-		args.Comment = comment
+	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -95,8 +95,8 @@ func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptions
 
 // SetHint sets the value for the Hint field.
 func (ro *ReplaceOptionsBuilder) SetHint(h interface{}) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
-		args.Hint = h
+	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
+		opts.Hint = h
 
 		return nil
 	})
@@ -106,8 +106,8 @@ func (ro *ReplaceOptionsBuilder) SetHint(h interface{}) *ReplaceOptionsBuilder {
 
 // SetUpsert sets the value for the Upsert field.
 func (ro *ReplaceOptionsBuilder) SetUpsert(b bool) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
-		args.Upsert = &b
+	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
+		opts.Upsert = &b
 
 		return nil
 	})
@@ -117,8 +117,8 @@ func (ro *ReplaceOptionsBuilder) SetUpsert(b bool) *ReplaceOptionsBuilder {
 
 // SetLet sets the value for the Let field.
 func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
-	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
-		args.Let = l
+	ro.Opts = append(ro.Opts, func(opts *ReplaceOptions) error {
+		opts.Let = l
 
 		return nil
 	})

@@ -26,15 +26,15 @@ func EstimatedDocumentCount() *EstimatedDocumentCountOptionsBuilder {
 	return &EstimatedDocumentCountOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (eco *EstimatedDocumentCountOptionsBuilder) ArgsSetters() []func(*EstimatedDocumentCountOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (eco *EstimatedDocumentCountOptionsBuilder) OptionsSetters() []func(*EstimatedDocumentCountOptions) error {
 	return eco.Opts
 }
 
 // SetComment sets the value for the Comment field.
 func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{}) *EstimatedDocumentCountOptionsBuilder {
-	eco.Opts = append(eco.Opts, func(args *EstimatedDocumentCountOptions) error {
-		args.Comment = comment
+	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})

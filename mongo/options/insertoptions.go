@@ -21,7 +21,7 @@ type InsertOneOptions struct {
 }
 
 // InsertOneOptionsBuilder represents functional options that configure an
-// InsertOneArgs.
+// InsertOneopts.
 type InsertOneOptionsBuilder struct {
 	Opts []func(*InsertOneOptions) error
 }
@@ -31,15 +31,15 @@ func InsertOne() *InsertOneOptionsBuilder {
 	return &InsertOneOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of InsertOneArgs setter functions.
-func (ioo *InsertOneOptionsBuilder) ArgsSetters() []func(*InsertOneOptions) error {
+// OptionsSetters returns a list of InsertOneopts setter functions.
+func (ioo *InsertOneOptionsBuilder) OptionsSetters() []func(*InsertOneOptions) error {
 	return ioo.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (ioo *InsertOneOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertOneOptionsBuilder {
-	ioo.Opts = append(ioo.Opts, func(args *InsertOneOptions) error {
-		args.BypassDocumentValidation = &b
+	ioo.Opts = append(ioo.Opts, func(opts *InsertOneOptions) error {
+		opts.BypassDocumentValidation = &b
 		return nil
 	})
 	return ioo
@@ -47,8 +47,8 @@ func (ioo *InsertOneOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertO
 
 // SetComment sets the value for the Comment field.
 func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOptionsBuilder {
-	ioo.Opts = append(ioo.Opts, func(args *InsertOneOptions) error {
-		args.Comment = &comment
+	ioo.Opts = append(ioo.Opts, func(opts *InsertOneOptions) error {
+		opts.Comment = &comment
 		return nil
 	})
 	return ioo
@@ -86,15 +86,15 @@ func InsertMany() *InsertManyOptionsBuilder {
 	return opts
 }
 
-// ArgsSetters returns a list of InsertManyArgs setter functions.
-func (imo *InsertManyOptionsBuilder) ArgsSetters() []func(*InsertManyOptions) error {
+// OptionsSetters returns a list of InsertManyopts setter functions.
+func (imo *InsertManyOptionsBuilder) OptionsSetters() []func(*InsertManyOptions) error {
 	return imo.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (imo *InsertManyOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertManyOptionsBuilder {
-	imo.Opts = append(imo.Opts, func(args *InsertManyOptions) error {
-		args.BypassDocumentValidation = &b
+	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
+		opts.BypassDocumentValidation = &b
 
 		return nil
 	})
@@ -104,8 +104,8 @@ func (imo *InsertManyOptionsBuilder) SetBypassDocumentValidation(b bool) *Insert
 
 // SetComment sets the value for the Comment field.
 func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertManyOptionsBuilder {
-	imo.Opts = append(imo.Opts, func(args *InsertManyOptions) error {
-		args.Comment = comment
+	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -115,8 +115,8 @@ func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertMany
 
 // SetOrdered sets the value for the Ordered field.
 func (imo *InsertManyOptionsBuilder) SetOrdered(b bool) *InsertManyOptionsBuilder {
-	imo.Opts = append(imo.Opts, func(args *InsertManyOptions) error {
-		args.Ordered = &b
+	imo.Opts = append(imo.Opts, func(opts *InsertManyOptions) error {
+		opts.Ordered = &b
 
 		return nil
 	})

@@ -27,15 +27,15 @@ func DropCollection() *DropCollectionOptionsBuilder {
 	return &DropCollectionOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of DropCollectionArgs setter functions.
-func (d *DropCollectionOptionsBuilder) ArgsSetters() []func(*DropCollectionOptions) error {
+// OptionsSetters returns a list of DropCollectionopts setter functions.
+func (d *DropCollectionOptionsBuilder) OptionsSetters() []func(*DropCollectionOptions) error {
 	return d.Opts
 }
 
 // SetEncryptedFields sets the encrypted fields for encrypted collections.
 func (d *DropCollectionOptionsBuilder) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptionsBuilder {
-	d.Opts = append(d.Opts, func(args *DropCollectionOptions) error {
-		args.EncryptedFields = encryptedFields
+	d.Opts = append(d.Opts, func(opts *DropCollectionOptions) error {
+		opts.EncryptedFields = encryptedFields
 
 		return nil
 	})

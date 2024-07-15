@@ -41,7 +41,7 @@ type Options interface {
 // OptionsBuilder is an interface that wraps a method to return a list of setter
 // functions for merging options for a generic options type.
 type OptionsBuilder[T Options] interface {
-	ArgsSetters() []func(*T) error
+	OptionsSetters() []func(*T) error
 }
 
 // NewOptionsFromBuilder will functionally merge a slice of mongo.Options in a
@@ -59,7 +59,7 @@ func NewOptionsFromBuilder[T Options](opts ...OptionsBuilder[T]) (*T, error) {
 			continue
 		}
 
-		for _, setArgs := range opt.ArgsSetters() {
+		for _, setArgs := range opt.OptionsSetters() {
 			if setArgs == nil {
 				continue
 			}
@@ -80,10 +80,10 @@ type OptionsBuilderWithCallback[T Options] struct {
 	Callback func(*T) error // A callback for further modification
 }
 
-// ArgsSetters will re-assign the entire argument option to the Args field
+// OptionsSetters will re-assign the entire argument option to the Args field
 // defined on opts. If a callback exists, that function will be executed to
 // further modify the arguments.
-func (opts *OptionsBuilderWithCallback[T]) ArgsSetters() []func(*T) error {
+func (opts *OptionsBuilderWithCallback[T]) OptionsSetters() []func(*T) error {
 	return []func(*T) error{
 		func(args *T) error {
 			if opts.Options != nil {

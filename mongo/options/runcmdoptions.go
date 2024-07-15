@@ -30,15 +30,15 @@ func RunCmd() *RunCmdOptionsBuilder {
 	return &RunCmdOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (rc *RunCmdOptionsBuilder) ArgsSetters() []func(*RunCmdOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (rc *RunCmdOptionsBuilder) OptionsSetters() []func(*RunCmdOptions) error {
 	return rc.Opts
 }
 
 // SetReadPreference sets value for the ReadPreference field.
 func (rc *RunCmdOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptionsBuilder {
-	rc.Opts = append(rc.Opts, func(args *RunCmdOptions) error {
-		args.ReadPreference = rp
+	rc.Opts = append(rc.Opts, func(opts *RunCmdOptions) error {
+		opts.ReadPreference = rp
 
 		return nil
 	})

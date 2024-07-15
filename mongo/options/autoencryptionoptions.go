@@ -58,8 +58,8 @@ func AutoEncryption() *AutoEncryptionOptionsBuilder {
 	return opts
 }
 
-// ArgsSetters returns a list of AutoEncryptionArgs setter functions.
-func (a *AutoEncryptionOptionsBuilder) ArgsSetters() []func(*AutoEncryptionOptions) error {
+// OptionsSetters returns a list of AutoEncryptionArgs setter functions.
+func (a *AutoEncryptionOptionsBuilder) OptionsSetters() []func(*AutoEncryptionOptions) error {
 	return a.Opts
 }
 

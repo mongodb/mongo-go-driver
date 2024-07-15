@@ -71,15 +71,15 @@ func Aggregate() *AggregateOptionsBuilder {
 	return &AggregateOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of AggergateArgs setter functions.
-func (ao *AggregateOptionsBuilder) ArgsSetters() []func(*AggregateOptions) error {
+// OptionsSetters returns a list of Aggergateopts setter functions.
+func (ao *AggregateOptionsBuilder) OptionsSetters() []func(*AggregateOptions) error {
 	return ao.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
 func (ao *AggregateOptionsBuilder) SetAllowDiskUse(b bool) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.AllowDiskUse = &b
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.AllowDiskUse = &b
 
 		return nil
 	})
@@ -89,8 +89,8 @@ func (ao *AggregateOptionsBuilder) SetAllowDiskUse(b bool) *AggregateOptionsBuil
 
 // SetBatchSize sets the value for the BatchSize field.
 func (ao *AggregateOptionsBuilder) SetBatchSize(i int32) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.BatchSize = &i
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.BatchSize = &i
 
 		return nil
 	})
@@ -100,8 +100,8 @@ func (ao *AggregateOptionsBuilder) SetBatchSize(i int32) *AggregateOptionsBuilde
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (ao *AggregateOptionsBuilder) SetBypassDocumentValidation(b bool) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.BypassDocumentValidation = &b
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.BypassDocumentValidation = &b
 
 		return nil
 	})
@@ -111,8 +111,8 @@ func (ao *AggregateOptionsBuilder) SetBypassDocumentValidation(b bool) *Aggregat
 
 // SetCollation sets the value for the Collation field.
 func (ao *AggregateOptionsBuilder) SetCollation(c *Collation) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.Collation = c
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.Collation = c
 
 		return nil
 	})
@@ -122,8 +122,8 @@ func (ao *AggregateOptionsBuilder) SetCollation(c *Collation) *AggregateOptionsB
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
 func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.MaxAwaitTime = &d
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.MaxAwaitTime = &d
 
 		return nil
 	})
@@ -133,8 +133,8 @@ func (ao *AggregateOptionsBuilder) SetMaxAwaitTime(d time.Duration) *AggregateOp
 
 // SetComment sets the value for the Comment field.
 func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.Comment = comment
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -144,8 +144,8 @@ func (ao *AggregateOptionsBuilder) SetComment(comment interface{}) *AggregateOpt
 
 // SetHint sets the value for the Hint field.
 func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.Hint = h
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.Hint = h
 
 		return nil
 	})
@@ -155,8 +155,8 @@ func (ao *AggregateOptionsBuilder) SetHint(h interface{}) *AggregateOptionsBuild
 
 // SetLet sets the value for the Let field.
 func (ao *AggregateOptionsBuilder) SetLet(let interface{}) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.Let = let
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.Let = let
 
 		return nil
 	})
@@ -169,8 +169,8 @@ func (ao *AggregateOptionsBuilder) SetLet(let interface{}) *AggregateOptionsBuil
 // with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
 // options where possible.
 func (ao *AggregateOptionsBuilder) SetCustom(c bson.M) *AggregateOptionsBuilder {
-	ao.Opts = append(ao.Opts, func(args *AggregateOptions) error {
-		args.Custom = c
+	ao.Opts = append(ao.Opts, func(opts *AggregateOptions) error {
+		opts.Custom = c
 
 		return nil
 	})

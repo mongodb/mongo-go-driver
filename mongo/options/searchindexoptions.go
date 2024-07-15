@@ -25,15 +25,15 @@ func SearchIndexes() *SearchIndexesOptionsBuilder {
 	return &SearchIndexesOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (sio *SearchIndexesOptionsBuilder) ArgsSetters() []func(*SearchIndexesOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (sio *SearchIndexesOptionsBuilder) OptionsSetters() []func(*SearchIndexesOptions) error {
 	return sio.Opts
 }
 
 // SetName sets the value for the Name field.
 func (sio *SearchIndexesOptionsBuilder) SetName(name string) *SearchIndexesOptionsBuilder {
-	sio.Opts = append(sio.Opts, func(args *SearchIndexesOptions) error {
-		args.Name = &name
+	sio.Opts = append(sio.Opts, func(opts *SearchIndexesOptions) error {
+		opts.Name = &name
 
 		return nil
 	})
@@ -43,8 +43,8 @@ func (sio *SearchIndexesOptionsBuilder) SetName(name string) *SearchIndexesOptio
 
 // SetType sets the value for the Type field.
 func (sio *SearchIndexesOptionsBuilder) SetType(typ string) *SearchIndexesOptionsBuilder {
-	sio.Opts = append(sio.Opts, func(args *SearchIndexesOptions) error {
-		args.Type = &typ
+	sio.Opts = append(sio.Opts, func(opts *SearchIndexesOptions) error {
+		opts.Type = &typ
 
 		return nil
 	})
@@ -63,8 +63,8 @@ type CreateSearchIndexesOptionsBuilder struct {
 	Opts []func(*CreateSearchIndexesOptions) error
 }
 
-// ArgsSetters returns a list of CreateSearchIndexesArgs setter functions.
-func (csio *CreateSearchIndexesOptionsBuilder) ArgsSetters() []func(*CreateSearchIndexesOptions) error {
+// OptionsSetters returns a list of CreateSearchIndexesopts setter functions.
+func (csio *CreateSearchIndexesOptionsBuilder) OptionsSetters() []func(*CreateSearchIndexesOptions) error {
 	return csio.Opts
 }
 
@@ -80,8 +80,8 @@ type ListSearchIndexesOptionsBuilder struct {
 	Opts []func(*ListSearchIndexesOptions) error
 }
 
-// ArgsSetters returns a list of ListSearchIndexesArgs setter functions.
-func (lsi *ListSearchIndexesOptionsBuilder) ArgsSetters() []func(*ListSearchIndexesOptions) error {
+// OptionsSetters returns a list of ListSearchIndexesopts setter functions.
+func (lsi *ListSearchIndexesOptionsBuilder) OptionsSetters() []func(*ListSearchIndexesOptions) error {
 	return lsi.Opts
 }
 
@@ -96,8 +96,8 @@ type DropSearchIndexOptionsBuilder struct {
 	Opts []func(*DropSearchIndexOptions) error
 }
 
-// ArgsSetters returns a list of DropSearchIndexArgs setter functions.
-func (dsio *DropSearchIndexOptionsBuilder) ArgsSetters() []func(*DropSearchIndexOptions) error {
+// OptionsSetters returns a list of DropSearchIndexopts setter functions.
+func (dsio *DropSearchIndexOptionsBuilder) OptionsSetters() []func(*DropSearchIndexOptions) error {
 	return dsio.Opts
 }
 
@@ -112,7 +112,7 @@ type UpdateSearchIndexOptionsBuilder struct {
 	Opts []func(*UpdateSearchIndexOptions) error
 }
 
-// ArgsSetters returns a list of UpdateSearchIndexArgs setter functions.
-func (usio *UpdateSearchIndexOptionsBuilder) ArgsSetters() []func(*UpdateSearchIndexOptions) error {
+// OptionsSetters returns a list of UpdateSearchIndexopts setter functions.
+func (usio *UpdateSearchIndexOptionsBuilder) OptionsSetters() []func(*UpdateSearchIndexOptions) error {
 	return usio.Opts
 }

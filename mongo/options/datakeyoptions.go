@@ -28,8 +28,8 @@ func DataKey() *DataKeyOptionsBuilder {
 	return &DataKeyOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of DataKey setter functions.
-func (dk *DataKeyOptionsBuilder) ArgsSetters() []func(*DataKeyOptions) error {
+// OptionsSetters returns a list of DataKey setter functions.
+func (dk *DataKeyOptionsBuilder) OptionsSetters() []func(*DataKeyOptions) error {
 	return dk.Opts
 }
 
@@ -73,8 +73,8 @@ func (dk *DataKeyOptionsBuilder) ArgsSetters() []func(*DataKeyOptions) error {
 //
 // If unset, "keyVersion" defaults to the key's primary version and "endpoint" defaults to "cloudkms.googleapis.com".
 func (dk *DataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *DataKeyOptionsBuilder {
-	dk.Opts = append(dk.Opts, func(args *DataKeyOptions) error {
-		args.MasterKey = masterKey
+	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
+		opts.MasterKey = masterKey
 
 		return nil
 	})
@@ -85,8 +85,8 @@ func (dk *DataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *DataKeyOpt
 // SetKeyAltNames specifies an optional list of string alternate names used to reference a key. If a key is created'
 // with alternate names, encryption may refer to the key by a unique alternate name instead of by _id.
 func (dk *DataKeyOptionsBuilder) SetKeyAltNames(keyAltNames []string) *DataKeyOptionsBuilder {
-	dk.Opts = append(dk.Opts, func(args *DataKeyOptions) error {
-		args.KeyAltNames = keyAltNames
+	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
+		opts.KeyAltNames = keyAltNames
 
 		return nil
 	})
@@ -96,8 +96,8 @@ func (dk *DataKeyOptionsBuilder) SetKeyAltNames(keyAltNames []string) *DataKeyOp
 
 // SetKeyMaterial will set a custom keyMaterial to DataKeyOptions which can be used to encrypt data.
 func (dk *DataKeyOptionsBuilder) SetKeyMaterial(keyMaterial []byte) *DataKeyOptionsBuilder {
-	dk.Opts = append(dk.Opts, func(args *DataKeyOptions) error {
-		args.KeyMaterial = keyMaterial
+	dk.Opts = append(dk.Opts, func(opts *DataKeyOptions) error {
+		opts.KeyMaterial = keyMaterial
 
 		return nil
 	})

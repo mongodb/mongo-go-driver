@@ -43,15 +43,15 @@ func Count() *CountOptionsBuilder {
 	return &CountOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (co *CountOptionsBuilder) ArgsSetters() []func(*CountOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (co *CountOptionsBuilder) OptionsSetters() []func(*CountOptions) error {
 	return co.Opts
 }
 
 // SetCollation sets the value for the Collation field.
 func (co *CountOptionsBuilder) SetCollation(c *Collation) *CountOptionsBuilder {
-	co.Opts = append(co.Opts, func(args *CountOptions) error {
-		args.Collation = c
+	co.Opts = append(co.Opts, func(opts *CountOptions) error {
+		opts.Collation = c
 
 		return nil
 	})
@@ -61,8 +61,8 @@ func (co *CountOptionsBuilder) SetCollation(c *Collation) *CountOptionsBuilder {
 
 // SetComment sets the value for the Comment field.
 func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuilder {
-	co.Opts = append(co.Opts, func(args *CountOptions) error {
-		args.Comment = comment
+	co.Opts = append(co.Opts, func(opts *CountOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -72,8 +72,8 @@ func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuil
 
 // SetHint sets the value for the Hint field.
 func (co *CountOptionsBuilder) SetHint(h interface{}) *CountOptionsBuilder {
-	co.Opts = append(co.Opts, func(args *CountOptions) error {
-		args.Hint = h
+	co.Opts = append(co.Opts, func(opts *CountOptions) error {
+		opts.Hint = h
 
 		return nil
 	})
@@ -83,8 +83,8 @@ func (co *CountOptionsBuilder) SetHint(h interface{}) *CountOptionsBuilder {
 
 // SetLimit sets the value for the Limit field.
 func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
-	co.Opts = append(co.Opts, func(args *CountOptions) error {
-		args.Limit = &i
+	co.Opts = append(co.Opts, func(opts *CountOptions) error {
+		opts.Limit = &i
 
 		return nil
 	})
@@ -94,8 +94,8 @@ func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
 
 // SetSkip sets the value for the Skip field.
 func (co *CountOptionsBuilder) SetSkip(i int64) *CountOptionsBuilder {
-	co.Opts = append(co.Opts, func(args *CountOptions) error {
-		args.Skip = &i
+	co.Opts = append(co.Opts, func(opts *CountOptions) error {
+		opts.Skip = &i
 
 		return nil
 	})

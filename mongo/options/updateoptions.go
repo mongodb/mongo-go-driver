@@ -60,15 +60,15 @@ func Update() *UpdateOptionsBuilder {
 	return &UpdateOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of UpdateArgs setter functions.
-func (uo *UpdateOptionsBuilder) ArgsSetters() []func(*UpdateOptions) error {
+// OptionsSetters returns a list of Updateopts setter functions.
+func (uo *UpdateOptionsBuilder) OptionsSetters() []func(*UpdateOptions) error {
 	return uo.Opts
 }
 
 // SetArrayFilters sets the value for the ArrayFilters field.
 func (uo *UpdateOptionsBuilder) SetArrayFilters(af ArrayFilters) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.ArrayFilters = &af
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.ArrayFilters = &af
 
 		return nil
 	})
@@ -78,8 +78,8 @@ func (uo *UpdateOptionsBuilder) SetArrayFilters(af ArrayFilters) *UpdateOptionsB
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
 func (uo *UpdateOptionsBuilder) SetBypassDocumentValidation(b bool) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.BypassDocumentValidation = &b
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.BypassDocumentValidation = &b
 
 		return nil
 	})
@@ -89,8 +89,8 @@ func (uo *UpdateOptionsBuilder) SetBypassDocumentValidation(b bool) *UpdateOptio
 
 // SetCollation sets the value for the Collation field.
 func (uo *UpdateOptionsBuilder) SetCollation(c *Collation) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.Collation = c
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.Collation = c
 
 		return nil
 	})
@@ -100,8 +100,8 @@ func (uo *UpdateOptionsBuilder) SetCollation(c *Collation) *UpdateOptionsBuilder
 
 // SetComment sets the value for the Comment field.
 func (uo *UpdateOptionsBuilder) SetComment(comment interface{}) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.Comment = comment
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -111,8 +111,8 @@ func (uo *UpdateOptionsBuilder) SetComment(comment interface{}) *UpdateOptionsBu
 
 // SetHint sets the value for the Hint field.
 func (uo *UpdateOptionsBuilder) SetHint(h interface{}) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.Hint = h
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.Hint = h
 
 		return nil
 	})
@@ -122,8 +122,8 @@ func (uo *UpdateOptionsBuilder) SetHint(h interface{}) *UpdateOptionsBuilder {
 
 // SetUpsert sets the value for the Upsert field.
 func (uo *UpdateOptionsBuilder) SetUpsert(b bool) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.Upsert = &b
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.Upsert = &b
 
 		return nil
 	})
@@ -133,8 +133,8 @@ func (uo *UpdateOptionsBuilder) SetUpsert(b bool) *UpdateOptionsBuilder {
 
 // SetLet sets the value for the Let field.
 func (uo *UpdateOptionsBuilder) SetLet(l interface{}) *UpdateOptionsBuilder {
-	uo.Opts = append(uo.Opts, func(args *UpdateOptions) error {
-		args.Let = l
+	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
+		opts.Let = l
 
 		return nil
 	})

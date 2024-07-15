@@ -13,7 +13,7 @@ import (
 // Options is an interface that wraps a method to return a list of setter
 // functions that can set a generic arguments type.
 type Options[T mongoutil.Options] interface {
-	ArgsSetters() []func(*T) error
+	OptionsSetters() []func(*T) error
 }
 
 // newOptionsFromBuilder wraps the given mongo-level options in the internal

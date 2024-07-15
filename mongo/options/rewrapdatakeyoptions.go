@@ -28,15 +28,15 @@ func RewrapManyDataKey() *RewrapManyDataKeyOptionsBuilder {
 	return new(RewrapManyDataKeyOptionsBuilder)
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (rmdko *RewrapManyDataKeyOptionsBuilder) ArgsSetters() []func(*RewrapManyDataKeyOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (rmdko *RewrapManyDataKeyOptionsBuilder) OptionsSetters() []func(*RewrapManyDataKeyOptions) error {
 	return rmdko.Opts
 }
 
 // SetProvider sets the value for the Provider field.
 func (rmdko *RewrapManyDataKeyOptionsBuilder) SetProvider(provider string) *RewrapManyDataKeyOptionsBuilder {
-	rmdko.Opts = append(rmdko.Opts, func(args *RewrapManyDataKeyOptions) error {
-		args.Provider = &provider
+	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
+		opts.Provider = &provider
 
 		return nil
 	})
@@ -46,8 +46,8 @@ func (rmdko *RewrapManyDataKeyOptionsBuilder) SetProvider(provider string) *Rewr
 
 // SetMasterKey sets the value for the MasterKey field.
 func (rmdko *RewrapManyDataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptionsBuilder {
-	rmdko.Opts = append(rmdko.Opts, func(args *RewrapManyDataKeyOptions) error {
-		args.MasterKey = masterKey
+	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
+		opts.MasterKey = masterKey
 
 		return nil
 	})

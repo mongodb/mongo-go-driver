@@ -31,15 +31,15 @@ func Distinct() *DistinctOptionsBuilder {
 	return &DistinctOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of DistinctArg setter functions.
-func (do *DistinctOptionsBuilder) ArgsSetters() []func(*DistinctOptions) error {
+// OptionsSetters returns a list of DistinctArg setter functions.
+func (do *DistinctOptionsBuilder) OptionsSetters() []func(*DistinctOptions) error {
 	return do.Opts
 }
 
 // SetCollation sets the value for the Collation field.
 func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBuilder {
-	do.Opts = append(do.Opts, func(args *DistinctOptions) error {
-		args.Collation = c
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Collation = c
 
 		return nil
 	})
@@ -49,8 +49,8 @@ func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBui
 
 // SetComment sets the value for the Comment field.
 func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
-	do.Opts = append(do.Opts, func(args *DistinctOptions) error {
-		args.Comment = comment
+	do.Opts = append(do.Opts, func(opts *DistinctOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})

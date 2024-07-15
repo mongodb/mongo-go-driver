@@ -40,15 +40,15 @@ func Transaction() *TransactionOptionsBuilder {
 	return &TransactionOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of TransactionArgs setter functions.
-func (t *TransactionOptionsBuilder) ArgsSetters() []func(*TransactionOptions) error {
+// OptionsSetters returns a list of Transactionopts setter functions.
+func (t *TransactionOptionsBuilder) OptionsSetters() []func(*TransactionOptions) error {
 	return t.Opts
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
 func (t *TransactionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptionsBuilder {
-	t.Opts = append(t.Opts, func(args *TransactionOptions) error {
-		args.ReadConcern = rc
+	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
+		opts.ReadConcern = rc
 
 		return nil
 	})
@@ -58,8 +58,8 @@ func (t *TransactionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) 
 
 // SetReadPreference sets the value for the ReadPreference field.
 func (t *TransactionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *TransactionOptionsBuilder {
-	t.Opts = append(t.Opts, func(args *TransactionOptions) error {
-		args.ReadPreference = rp
+	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
+		opts.ReadPreference = rp
 
 		return nil
 	})
@@ -69,8 +69,8 @@ func (t *TransactionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *Tr
 
 // SetWriteConcern sets the value for the WriteConcern field.
 func (t *TransactionOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptionsBuilder {
-	t.Opts = append(t.Opts, func(args *TransactionOptions) error {
-		args.WriteConcern = wc
+	t.Opts = append(t.Opts, func(opts *TransactionOptions) error {
+		opts.WriteConcern = wc
 
 		return nil
 	})

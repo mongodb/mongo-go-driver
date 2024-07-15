@@ -32,15 +32,15 @@ func ListCollections() *ListCollectionsOptionsBuilder {
 	return &ListCollectionsOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (lc *ListCollectionsOptionsBuilder) ArgsSetters() []func(*ListCollectionsOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (lc *ListCollectionsOptionsBuilder) OptionsSetters() []func(*ListCollectionsOptions) error {
 	return lc.Opts
 }
 
 // SetNameOnly sets the value for the NameOnly field.
 func (lc *ListCollectionsOptionsBuilder) SetNameOnly(b bool) *ListCollectionsOptionsBuilder {
-	lc.Opts = append(lc.Opts, func(args *ListCollectionsOptions) error {
-		args.NameOnly = &b
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.NameOnly = &b
 
 		return nil
 	})
@@ -50,8 +50,8 @@ func (lc *ListCollectionsOptionsBuilder) SetNameOnly(b bool) *ListCollectionsOpt
 
 // SetBatchSize sets the value for the BatchSize field.
 func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectionsOptionsBuilder {
-	lc.Opts = append(lc.Opts, func(args *ListCollectionsOptions) error {
-		args.BatchSize = &size
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.BatchSize = &size
 
 		return nil
 	})
@@ -62,8 +62,8 @@ func (lc *ListCollectionsOptionsBuilder) SetBatchSize(size int32) *ListCollectio
 // SetAuthorizedCollections sets the value for the AuthorizedCollections field. This option is only valid for MongoDB server versions >= 4.0. Server
 // versions < 4.0 ignore this option.
 func (lc *ListCollectionsOptionsBuilder) SetAuthorizedCollections(b bool) *ListCollectionsOptionsBuilder {
-	lc.Opts = append(lc.Opts, func(args *ListCollectionsOptions) error {
-		args.AuthorizedCollections = &b
+	lc.Opts = append(lc.Opts, func(opts *ListCollectionsOptions) error {
+		opts.AuthorizedCollections = &b
 
 		return nil
 	})

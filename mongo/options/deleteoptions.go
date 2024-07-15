@@ -45,15 +45,15 @@ func Delete() *DeleteOptionsBuilder {
 	return &DeleteOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of DeleteArgs setter functions.
-func (do *DeleteOptionsBuilder) ArgsSetters() []func(*DeleteOptions) error {
+// OptionsSetters returns a list of Deleteopts setter functions.
+func (do *DeleteOptionsBuilder) OptionsSetters() []func(*DeleteOptions) error {
 	return do.Opts
 }
 
 // SetCollation sets the value for the Collation field.
 func (do *DeleteOptionsBuilder) SetCollation(c *Collation) *DeleteOptionsBuilder {
-	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
-		args.Collation = c
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Collation = c
 
 		return nil
 	})
@@ -63,8 +63,8 @@ func (do *DeleteOptionsBuilder) SetCollation(c *Collation) *DeleteOptionsBuilder
 
 // SetComment sets the value for the Comment field.
 func (do *DeleteOptionsBuilder) SetComment(comment interface{}) *DeleteOptionsBuilder {
-	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
-		args.Comment = comment
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Comment = comment
 
 		return nil
 	})
@@ -74,8 +74,8 @@ func (do *DeleteOptionsBuilder) SetComment(comment interface{}) *DeleteOptionsBu
 
 // SetHint sets the value for the Hint field.
 func (do *DeleteOptionsBuilder) SetHint(hint interface{}) *DeleteOptionsBuilder {
-	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
-		args.Hint = hint
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Hint = hint
 
 		return nil
 	})
@@ -85,8 +85,8 @@ func (do *DeleteOptionsBuilder) SetHint(hint interface{}) *DeleteOptionsBuilder 
 
 // SetLet sets the value for the Let field.
 func (do *DeleteOptionsBuilder) SetLet(let interface{}) *DeleteOptionsBuilder {
-	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
-		args.Let = let
+	do.Opts = append(do.Opts, func(opts *DeleteOptions) error {
+		opts.Let = let
 
 		return nil
 	})

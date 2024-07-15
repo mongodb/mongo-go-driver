@@ -40,7 +40,7 @@ type SessionOptions struct {
 	Snapshot *bool
 }
 
-// SessionOptionsBuilder represents functional options that configure a SessionArgs.
+// SessionOptionsBuilder represents functional options that configure a Sessionopts.
 type SessionOptionsBuilder struct {
 	Opts []func(*SessionOptions) error
 }
@@ -50,15 +50,15 @@ func Session() *SessionOptionsBuilder {
 	return &SessionOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of SessionArgs setter functions.
-func (s *SessionOptionsBuilder) ArgsSetters() []func(*SessionOptions) error {
+// OptionsSetters returns a list of Sessionopts setter functions.
+func (s *SessionOptionsBuilder) OptionsSetters() []func(*SessionOptions) error {
 	return s.Opts
 }
 
 // SetCausalConsistency sets the value for the CausalConsistency field.
 func (s *SessionOptionsBuilder) SetCausalConsistency(b bool) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(args *SessionOptions) error {
-		args.CausalConsistency = &b
+	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
+		opts.CausalConsistency = &b
 		return nil
 	})
 	return s
@@ -66,8 +66,8 @@ func (s *SessionOptionsBuilder) SetCausalConsistency(b bool) *SessionOptionsBuil
 
 // SetDefaultReadConcern sets the value for the DefaultReadConcern field.
 func (s *SessionOptionsBuilder) SetDefaultReadConcern(rc *readconcern.ReadConcern) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(args *SessionOptions) error {
-		args.DefaultReadConcern = rc
+	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
+		opts.DefaultReadConcern = rc
 		return nil
 	})
 	return s
@@ -75,8 +75,8 @@ func (s *SessionOptionsBuilder) SetDefaultReadConcern(rc *readconcern.ReadConcer
 
 // SetDefaultReadPreference sets the value for the DefaultReadPreference field.
 func (s *SessionOptionsBuilder) SetDefaultReadPreference(rp *readpref.ReadPref) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(args *SessionOptions) error {
-		args.DefaultReadPreference = rp
+	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
+		opts.DefaultReadPreference = rp
 		return nil
 	})
 	return s
@@ -84,8 +84,8 @@ func (s *SessionOptionsBuilder) SetDefaultReadPreference(rp *readpref.ReadPref) 
 
 // SetDefaultWriteConcern sets the value for the DefaultWriteConcern field.
 func (s *SessionOptionsBuilder) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(args *SessionOptions) error {
-		args.DefaultWriteConcern = wc
+	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
+		opts.DefaultWriteConcern = wc
 		return nil
 	})
 	return s
@@ -93,8 +93,8 @@ func (s *SessionOptionsBuilder) SetDefaultWriteConcern(wc *writeconcern.WriteCon
 
 // SetSnapshot sets the value for the Snapshot field.
 func (s *SessionOptionsBuilder) SetSnapshot(b bool) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(args *SessionOptions) error {
-		args.Snapshot = &b
+	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
+		opts.Snapshot = &b
 		return nil
 	})
 	return s

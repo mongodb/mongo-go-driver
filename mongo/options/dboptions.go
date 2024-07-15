@@ -49,15 +49,15 @@ func Database() *DatabaseOptionsBuilder {
 	return &DatabaseOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of DatabaseArgs setter functions.
-func (d *DatabaseOptionsBuilder) ArgsSetters() []func(*DatabaseOptions) error {
+// OptionsSetters returns a list of Databaseopts setter functions.
+func (d *DatabaseOptionsBuilder) OptionsSetters() []func(*DatabaseOptions) error {
 	return d.Opts
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
 func (d *DatabaseOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptionsBuilder {
-	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
-		args.ReadConcern = rc
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.ReadConcern = rc
 
 		return nil
 	})
@@ -67,8 +67,8 @@ func (d *DatabaseOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *Da
 
 // SetWriteConcern sets the value for the WriteConcern field.
 func (d *DatabaseOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptionsBuilder {
-	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
-		args.WriteConcern = wc
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.WriteConcern = wc
 
 		return nil
 	})
@@ -78,8 +78,8 @@ func (d *DatabaseOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) 
 
 // SetReadPreference sets the value for the ReadPreference field.
 func (d *DatabaseOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptionsBuilder {
-	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
-		args.ReadPreference = rp
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.ReadPreference = rp
 
 		return nil
 	})
@@ -88,9 +88,9 @@ func (d *DatabaseOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *Datab
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (d *DatabaseOptionsBuilder) SetBSONOptions(opts *BSONOptions) *DatabaseOptionsBuilder {
-	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
-		args.BSONOptions = opts
+func (d *DatabaseOptionsBuilder) SetBSONOptions(bopts *BSONOptions) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.BSONOptions = bopts
 
 		return nil
 	})
@@ -100,8 +100,8 @@ func (d *DatabaseOptionsBuilder) SetBSONOptions(opts *BSONOptions) *DatabaseOpti
 
 // SetRegistry sets the value for the Registry field.
 func (d *DatabaseOptionsBuilder) SetRegistry(r *bson.Registry) *DatabaseOptionsBuilder {
-	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
-		args.Registry = r
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.Registry = r
 
 		return nil
 	})

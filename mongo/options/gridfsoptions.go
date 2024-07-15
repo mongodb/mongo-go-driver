@@ -59,15 +59,15 @@ func GridFSBucket() *BucketOptionsBuilder {
 	return bo
 }
 
-// ArgsSetters returns a list of CountArgs setter functions.
-func (b *BucketOptionsBuilder) ArgsSetters() []func(*BucketOptions) error {
+// OptionsSetters returns a list of Countopts setter functions.
+func (b *BucketOptionsBuilder) OptionsSetters() []func(*BucketOptions) error {
 	return b.Opts
 }
 
 // SetName sets the value for the Name field.
 func (b *BucketOptionsBuilder) SetName(name string) *BucketOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BucketOptions) error {
-		args.Name = &name
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.Name = &name
 
 		return nil
 	})
@@ -77,8 +77,8 @@ func (b *BucketOptionsBuilder) SetName(name string) *BucketOptionsBuilder {
 
 // SetChunkSizeBytes sets the value for the ChunkSize field.
 func (b *BucketOptionsBuilder) SetChunkSizeBytes(i int32) *BucketOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BucketOptions) error {
-		args.ChunkSizeBytes = &i
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.ChunkSizeBytes = &i
 
 		return nil
 	})
@@ -88,8 +88,8 @@ func (b *BucketOptionsBuilder) SetChunkSizeBytes(i int32) *BucketOptionsBuilder 
 
 // SetWriteConcern sets the value for the WriteConcern field.
 func (b *BucketOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BucketOptions) error {
-		args.WriteConcern = wc
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.WriteConcern = wc
 
 		return nil
 	})
@@ -99,8 +99,8 @@ func (b *BucketOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *B
 
 // SetReadConcern sets the value for the ReadConcern field.
 func (b *BucketOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BucketOptions) error {
-		args.ReadConcern = rc
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.ReadConcern = rc
 
 		return nil
 	})
@@ -110,8 +110,8 @@ func (b *BucketOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *Buck
 
 // SetReadPreference sets the value for the ReadPreference field.
 func (b *BucketOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *BucketOptionsBuilder {
-	b.Opts = append(b.Opts, func(args *BucketOptions) error {
-		args.ReadPreference = rp
+	b.Opts = append(b.Opts, func(opts *BucketOptions) error {
+		opts.ReadPreference = rp
 
 		return nil
 	})
@@ -149,15 +149,15 @@ func GridFSUpload() *GridFSUploadOptionsBuilder {
 	return opts
 }
 
-// ArgsSetters returns a list of GridFSUploadArgs setter functions.
-func (u *GridFSUploadOptionsBuilder) ArgsSetters() []func(*GridFSUploadOptions) error {
+// OptionsSetters returns a list of GridFSUploadopts setter functions.
+func (u *GridFSUploadOptionsBuilder) OptionsSetters() []func(*GridFSUploadOptions) error {
 	return u.Opts
 }
 
 // SetChunkSizeBytes sets the value for the ChunkSize field.
 func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOptionsBuilder {
-	u.Opts = append(u.Opts, func(args *GridFSUploadOptions) error {
-		args.ChunkSizeBytes = &i
+	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
+		opts.ChunkSizeBytes = &i
 
 		return nil
 	})
@@ -167,8 +167,8 @@ func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOpt
 
 // SetMetadata sets the value for the Metadata field.
 func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadOptionsBuilder {
-	u.Opts = append(u.Opts, func(args *GridFSUploadOptions) error {
-		args.Metadata = doc
+	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
+		opts.Metadata = doc
 
 		return nil
 	})
@@ -178,8 +178,8 @@ func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadO
 
 // SetRegistry sets the bson codec registry for the Registry field.
 func (u *GridFSUploadOptionsBuilder) SetRegistry(registry *bson.Registry) *GridFSUploadOptionsBuilder {
-	u.Opts = append(u.Opts, func(args *GridFSUploadOptions) error {
-		args.Registry = registry
+	u.Opts = append(u.Opts, func(opts *GridFSUploadOptions) error {
+		opts.Registry = registry
 
 		return nil
 	})
@@ -215,15 +215,15 @@ func GridFSName() *GridFSNameOptionsBuilder {
 	return &GridFSNameOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of GridFSNameArgs setter functions.
-func (n *GridFSNameOptionsBuilder) ArgsSetters() []func(*GridFSNameOptions) error {
+// OptionsSetters returns a list of GridFSNameopts setter functions.
+func (n *GridFSNameOptionsBuilder) OptionsSetters() []func(*GridFSNameOptions) error {
 	return n.Opts
 }
 
 // SetRevision sets the value for the Revision field.
 func (n *GridFSNameOptionsBuilder) SetRevision(r int32) *GridFSNameOptionsBuilder {
-	n.Opts = append(n.Opts, func(args *GridFSNameOptions) error {
-		args.Revision = &r
+	n.Opts = append(n.Opts, func(opts *GridFSNameOptions) error {
+		opts.Revision = &r
 
 		return nil
 	})
@@ -271,15 +271,15 @@ func GridFSFind() *GridFSFindOptionsBuilder {
 	return &GridFSFindOptionsBuilder{}
 }
 
-// ArgsSetters returns a list of GridFSFindArgs setter functions.
-func (f *GridFSFindOptionsBuilder) ArgsSetters() []func(*GridFSFindOptions) error {
+// OptionsSetters returns a list of GridFSFindopts setter functions.
+func (f *GridFSFindOptionsBuilder) OptionsSetters() []func(*GridFSFindOptions) error {
 	return f.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
 func (f *GridFSFindOptionsBuilder) SetAllowDiskUse(b bool) *GridFSFindOptionsBuilder {
-	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
-		args.AllowDiskUse = &b
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.AllowDiskUse = &b
 
 		return nil
 	})
@@ -289,8 +289,8 @@ func (f *GridFSFindOptionsBuilder) SetAllowDiskUse(b bool) *GridFSFindOptionsBui
 
 // SetBatchSize sets the value for the BatchSize field.
 func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuilder {
-	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
-		args.BatchSize = &i
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.BatchSize = &i
 
 		return nil
 	})
@@ -300,8 +300,8 @@ func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuild
 
 // SetLimit sets the value for the Limit field.
 func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
-	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
-		args.Limit = &i
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.Limit = &i
 
 		return nil
 	})
@@ -311,8 +311,8 @@ func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
 func (f *GridFSFindOptionsBuilder) SetNoCursorTimeout(b bool) *GridFSFindOptionsBuilder {
-	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
-		args.NoCursorTimeout = &b
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.NoCursorTimeout = &b
 
 		return nil
 	})
@@ -322,8 +322,8 @@ func (f *GridFSFindOptionsBuilder) SetNoCursorTimeout(b bool) *GridFSFindOptions
 
 // SetSkip sets the value for the Skip field.
 func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
-	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
-		args.Skip = &i
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.Skip = &i
 
 		return nil
 	})
@@ -333,8 +333,8 @@ func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
 
 // SetSort sets the value for the Sort field.
 func (f *GridFSFindOptionsBuilder) SetSort(sort interface{}) *GridFSFindOptionsBuilder {
-	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
-		args.Sort = sort
+	f.Opts = append(f.Opts, func(opts *GridFSFindOptions) error {
+		opts.Sort = sort
 
 		return nil
 	})
