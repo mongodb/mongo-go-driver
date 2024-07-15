@@ -110,7 +110,7 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
-func (db *Database) Collection(name string, opts ...Options[options.CollectionArgs]) *Collection {
+func (db *Database) Collection(name string, opts ...Options[options.CollectionOptions]) *Collection {
 	return newCollection(db, name, opts...)
 }
 

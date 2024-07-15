@@ -126,7 +126,7 @@ func (op *Options) CollectionCreateOptions(opts *options.CreateCollectionOptions
 }
 
 // CollectionOptions sets the options to use when creating a collection for a test.
-func (op *Options) CollectionOptions(opts *options.CollectionOptions) *Options {
+func (op *Options) CollectionOptions(opts *options.CollectionOptionsBuilder) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.collOpts = opts
 	})

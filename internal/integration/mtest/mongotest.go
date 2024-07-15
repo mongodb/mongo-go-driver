@@ -118,7 +118,7 @@ type T struct {
 	// options copied to sub-tests
 	clientType  ClientType
 	clientOpts  *options.ClientOptionsBuilder
-	collOpts    *options.CollectionOptions
+	collOpts    *options.CollectionOptionsBuilder
 	shareClient *bool
 
 	baseOpts *Options // used to create subtests
@@ -427,7 +427,7 @@ type Collection struct {
 	Name               string
 	DB                 string        // defaults to mt.DB.Name() if not specified
 	Client             *mongo.Client // defaults to mt.Client if not specified
-	Opts               *options.CollectionOptions
+	Opts               *options.CollectionOptionsBuilder
 	CreateOpts         *options.CreateCollectionOptions
 	ViewOn             string
 	ViewPipeline       interface{}
@@ -607,7 +607,7 @@ func (t *T) CloneDatabase(opts *options.DatabaseOptions) {
 }
 
 // CloneCollection modifies the default collection for this test to match the given options.
-func (t *T) CloneCollection(opts *options.CollectionOptions) {
+func (t *T) CloneCollection(opts *options.CollectionOptionsBuilder) {
 	t.Coll = t.Coll.Clone(opts)
 }
 

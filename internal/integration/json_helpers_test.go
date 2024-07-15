@@ -337,7 +337,7 @@ func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptions
 }
 
 // create collection options from a map
-func createCollectionOptions(t testing.TB, opts bson.Raw) *options.CollectionOptions {
+func createCollectionOptions(t testing.TB, opts bson.Raw) *options.CollectionOptionsBuilder {
 	t.Helper()
 
 	co := options.Collection()

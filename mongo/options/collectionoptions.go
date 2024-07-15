@@ -13,9 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// CollectionArgs represents arguments that can be used to configure a
+// CollectionOptions represents arguments that can be used to configure a
 // Collection.
-type CollectionArgs struct {
+type CollectionOptions struct {
 	// ReadConcern is the read concern to use for operations executed on the Collection. The default value is nil, which means that
 	// the read concern of the Database used to configure the Collection will be used.
 	ReadConcern *readconcern.ReadConcern
@@ -37,26 +37,26 @@ type CollectionArgs struct {
 	Registry *bson.Registry
 }
 
-// CollectionOptions contains options to configure a Collection instance. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type CollectionOptions struct {
-	Opts []func(*CollectionArgs) error
+// CollectionOptionsBuilder contains options to configure a Collection instance.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type CollectionOptionsBuilder struct {
+	Opts []func(*CollectionOptions) error
 }
 
 // Collection creates a new CollectionOptions instance.
-func Collection() *CollectionOptions {
-	return &CollectionOptions{}
+func Collection() *CollectionOptionsBuilder {
+	return &CollectionOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CollectionArgs setter functions.
-func (c *CollectionOptions) ArgsSetters() []func(*CollectionArgs) error {
+func (c *CollectionOptionsBuilder) ArgsSetters() []func(*CollectionOptions) error {
 	return c.Opts
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
-func (c *CollectionOptions) SetReadConcern(rc *readconcern.ReadConcern) *CollectionOptions {
-	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+func (c *CollectionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CollectionOptions) error {
 		args.ReadConcern = rc
 
 		return nil
@@ -66,8 +66,8 @@ func (c *CollectionOptions) SetReadConcern(rc *readconcern.ReadConcern) *Collect
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
-func (c *CollectionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *CollectionOptions {
-	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+func (c *CollectionOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CollectionOptions) error {
 		args.WriteConcern = wc
 
 		return nil
@@ -77,8 +77,8 @@ func (c *CollectionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *Coll
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
-func (c *CollectionOptions) SetReadPreference(rp *readpref.ReadPref) *CollectionOptions {
-	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+func (c *CollectionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CollectionOptions) error {
 		args.ReadPreference = rp
 
 		return nil
@@ -88,8 +88,8 @@ func (c *CollectionOptions) SetReadPreference(rp *readpref.ReadPref) *Collection
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (c *CollectionOptions) SetBSONOptions(opts *BSONOptions) *CollectionOptions {
-	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+func (c *CollectionOptionsBuilder) SetBSONOptions(opts *BSONOptions) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CollectionOptions) error {
 		args.BSONOptions = opts
 
 		return nil
@@ -99,8 +99,8 @@ func (c *CollectionOptions) SetBSONOptions(opts *BSONOptions) *CollectionOptions
 }
 
 // SetRegistry sets the value for the Registry field.
-func (c *CollectionOptions) SetRegistry(r *bson.Registry) *CollectionOptions {
-	c.Opts = append(c.Opts, func(args *CollectionArgs) error {
+func (c *CollectionOptionsBuilder) SetRegistry(r *bson.Registry) *CollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CollectionOptions) error {
 		args.Registry = r
 
 		return nil

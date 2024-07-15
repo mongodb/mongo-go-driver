@@ -15,7 +15,7 @@ import (
 
 type dbOrCollectionOptions struct {
 	DBOptions         *options.DatabaseOptions
-	CollectionOptions *options.CollectionOptions
+	CollectionOptions *options.CollectionOptionsBuilder
 }
 
 var _ bson.Unmarshaler = (*dbOrCollectionOptions)(nil)

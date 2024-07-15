@@ -66,8 +66,8 @@ func closeImplicitSession(sess *session.Client) {
 	}
 }
 
-func newCollection(db *Database, name string, opts ...Options[options.CollectionArgs]) *Collection {
-	args, _ := newArgsFromOptions[options.CollectionArgs](opts...)
+func newCollection(db *Database, name string, opts ...Options[options.CollectionOptions]) *Collection {
+	args, _ := newArgsFromOptions[options.CollectionOptions](opts...)
 
 	rc := db.readConcern
 	if args.ReadConcern != nil {
@@ -141,10 +141,10 @@ func (coll *Collection) copy() *Collection {
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
-func (coll *Collection) Clone(opts ...Options[options.CollectionArgs]) *Collection {
+func (coll *Collection) Clone(opts ...Options[options.CollectionOptions]) *Collection {
 	copyColl := coll.copy()
 
-	args, _ := newArgsFromOptions[options.CollectionArgs](opts...)
+	args, _ := newArgsFromOptions[options.CollectionOptions](opts...)
 
 	if args.ReadConcern != nil {
 		copyColl.readConcern = args.ReadConcern
