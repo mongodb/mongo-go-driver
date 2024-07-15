@@ -356,7 +356,7 @@ func TestClientSideEncryptionCustomCrypt(t *testing.T) {
 			ApplyURI(mtest.ClusterURI()).
 			SetAutoEncryptionOptions(aeOpts)
 		cc := &customCrypt{}
-		clientOpts.Opts = append(clientOpts.Opts, func(args *options.ClientArgs) error {
+		clientOpts.Opts = append(clientOpts.Opts, func(args *options.ClientOptions) error {
 			args.Crypt = cc
 
 			return nil
@@ -683,7 +683,7 @@ func TestFLEIndexView(t *testing.T) {
 		SetReadPreference(mtest.PrimaryRp)
 
 	cc := &customCrypt{}
-	opts.Opts = append(opts.Opts, func(args *options.ClientArgs) error {
+	opts.Opts = append(opts.Opts, func(args *options.ClientOptions) error {
 		args.Crypt = cc
 
 		return nil

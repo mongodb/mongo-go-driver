@@ -2462,7 +2462,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			typeStr       string
 			field         string
 			typeBson      bson.Type
-			rangeOpts     *options.RangeOptions
+			rangeOpts     *options.RangeOptionsBuilder
 			zero          bson.RawValue
 			six           bson.RawValue
 			thirty        bson.RawValue
@@ -2939,7 +2939,7 @@ type cseProseTest struct {
 	cseStarted   []*event.CommandStartedEvent
 }
 
-func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts *options.ClientOptions,
+func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts mongo.Options[options.ClientOptions],
 	ceo mongo.Options[options.ClientEncryptionOptions]) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
@@ -3018,7 +3018,7 @@ func rawValueToCoreValue(rv bson.RawValue) bsoncore.Value {
 
 type deadlockTest struct {
 	clientTest           *mongo.Client
-	clientKeyVaultOpts   *options.ClientOptions
+	clientKeyVaultOpts   *options.ClientOptionsBuilder
 	clientKeyVaultEvents []startedEvent
 	clientEncryption     *mongo.ClientEncryption
 	ciphertext           bson.Binary
