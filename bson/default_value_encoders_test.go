@@ -35,7 +35,6 @@ func (ms myStruct) Foo() int {
 }
 
 func TestDefaultValueEncoders(t *testing.T) {
-	var dve DefaultValueEncoders
 	var wrong = func(string, string) string { return "wrong" }
 
 	type mybool bool
@@ -78,7 +77,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	}{
 		{
 			"BooleanEncodeValue",
-			ValueEncoderFunc(dve.BooleanEncodeValue),
+			ValueEncoderFunc(booleanEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -94,7 +93,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"IntEncodeValue",
-			ValueEncoderFunc(dve.IntEncodeValue),
+			ValueEncoderFunc(intEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -134,7 +133,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UintEncodeValue",
-			defaultUIntCodec,
+			&uintCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -175,7 +174,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"FloatEncodeValue",
-			ValueEncoderFunc(dve.FloatEncodeValue),
+			ValueEncoderFunc(floatEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -197,7 +196,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimeEncodeValue",
-			defaultTimeCodec,
+			&timeCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -212,7 +211,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MapEncodeValue",
-			defaultMapCodec,
+			&mapCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -233,7 +232,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					map[string]int{"foo": 1},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeDocument,
 					fmt.Errorf("no encoder found for int"),
@@ -257,7 +256,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty map/success",
 					map[string]interface{}{},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeDocumentEnd,
 					nil,
@@ -292,7 +291,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ArrayEncodeValue",
-			ValueEncoderFunc(dve.ArrayEncodeValue),
+			ValueEncoderFunc(arrayEncodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -313,7 +312,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[1]int{1},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -370,7 +369,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SliceEncodeValue",
-			defaultSliceCodec,
+			&sliceCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -391,7 +390,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[]int{1},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -431,7 +430,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty slice/success",
 					[]interface{}{},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArrayEnd,
 					nil,
@@ -456,7 +455,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ObjectIDEncodeValue",
-			ValueEncoderFunc(dve.ObjectIDEncodeValue),
+			ValueEncoderFunc(objectIDEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -475,7 +474,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"Decimal128EncodeValue",
-			ValueEncoderFunc(dve.Decimal128EncodeValue),
+			ValueEncoderFunc(decimal128EncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -490,7 +489,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"JSONNumberEncodeValue",
-			ValueEncoderFunc(dve.JSONNumberEncodeValue),
+			ValueEncoderFunc(jsonNumberEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -519,7 +518,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"URLEncodeValue",
-			ValueEncoderFunc(dve.URLEncodeValue),
+			ValueEncoderFunc(urlEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -534,7 +533,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ByteSliceEncodeValue",
-			defaultByteSliceCodec,
+			&byteSliceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -550,7 +549,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"EmptyInterfaceEncodeValue",
-			defaultEmptyInterfaceCodec,
+			&emptyInterfaceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -564,7 +563,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ValueMarshalerEncodeValue",
-			ValueEncoderFunc(dve.ValueMarshalerEncodeValue),
+			ValueEncoderFunc(valueMarshalerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -642,7 +641,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MarshalerEncodeValue",
-			ValueEncoderFunc(dve.MarshalerEncodeValue),
+			ValueEncoderFunc(marshalerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -704,7 +703,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"PointerCodec.EncodeValue",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"nil",
@@ -742,7 +741,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"pointer implementation addressable interface",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"ValueMarshaler",
@@ -764,7 +763,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"JavaScriptEncodeValue",
-			ValueEncoderFunc(dve.JavaScriptEncodeValue),
+			ValueEncoderFunc(javaScriptEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -779,7 +778,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SymbolEncodeValue",
-			ValueEncoderFunc(dve.SymbolEncodeValue),
+			ValueEncoderFunc(symbolEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -794,7 +793,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"BinaryEncodeValue",
-			ValueEncoderFunc(dve.BinaryEncodeValue),
+			ValueEncoderFunc(binaryEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -809,7 +808,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UndefinedEncodeValue",
-			ValueEncoderFunc(dve.UndefinedEncodeValue),
+			ValueEncoderFunc(undefinedEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -824,7 +823,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"DateTimeEncodeValue",
-			ValueEncoderFunc(dve.DateTimeEncodeValue),
+			ValueEncoderFunc(dateTimeEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -839,7 +838,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"NullEncodeValue",
-			ValueEncoderFunc(dve.NullEncodeValue),
+			ValueEncoderFunc(nullEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -854,7 +853,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"RegexEncodeValue",
-			ValueEncoderFunc(dve.RegexEncodeValue),
+			ValueEncoderFunc(regexEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -869,7 +868,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"DBPointerEncodeValue",
-			ValueEncoderFunc(dve.DBPointerEncodeValue),
+			ValueEncoderFunc(dbPointerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -891,7 +890,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimestampEncodeValue",
-			ValueEncoderFunc(dve.TimestampEncodeValue),
+			ValueEncoderFunc(timestampEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -906,7 +905,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MinKeyEncodeValue",
-			ValueEncoderFunc(dve.MinKeyEncodeValue),
+			ValueEncoderFunc(minKeyEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -921,7 +920,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MaxKeyEncodeValue",
-			ValueEncoderFunc(dve.MaxKeyEncodeValue),
+			ValueEncoderFunc(maxKeyEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -936,7 +935,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreDocumentEncodeValue",
-			ValueEncoderFunc(dve.CoreDocumentEncodeValue),
+			ValueEncoderFunc(coreDocumentEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -994,7 +993,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"StructEncodeValue",
-			defaultTestStructCodec,
+			newStructCodec(&mapCodec{}),
 			[]subtest{
 				{
 					"interface value",
@@ -1016,7 +1015,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CodeWithScopeEncodeValue",
-			ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
+			ValueEncoderFunc(codeWithScopeEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1051,7 +1050,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreArrayEncodeValue",
-			defaultArrayCodec,
+			&arrayCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -1720,7 +1719,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("EmptyInterfaceEncodeValue/nil", func(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		llvrw := new(valueReaderWriter)
-		err := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
+		err := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
 		noerr(t, err)
 		if llvrw.invoked != writeNull {
 			t.Errorf("Incorrect method called. got %v; want %v", llvrw.invoked, writeNull)
@@ -1731,7 +1730,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		val.Set(reflect.ValueOf(int64(1234567890)))
 		llvrw := new(valueReaderWriter)
-		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
+		got := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
 		want := ErrNoEncoder{Type: tInt64}
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
@@ -1745,8 +1744,8 @@ type testValueMarshalPtr struct {
 	err error
 }
 
-func (tvm *testValueMarshalPtr) MarshalBSONValue() (Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
+func (tvm *testValueMarshalPtr) MarshalBSONValue() (byte, []byte, error) {
+	return byte(tvm.t), tvm.buf, tvm.err
 }
 
 type testMarshalPtr struct {

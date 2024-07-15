@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -204,16 +205,61 @@ type MaxKey struct{}
 //	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 type D []E
 
-// Map creates a map from the elements of the D.
-//
-// Deprecated: Converting directly from a D to an M will not be supported in Go Driver 2.0. Instead,
-// users should marshal the D to BSON using bson.Marshal and unmarshal it to M using bson.Unmarshal.
-func (d D) Map() M {
-	m := make(M, len(d))
-	for _, e := range d {
-		m[e.Key] = e.Value
+func (d D) String() string {
+	b, err := MarshalExtJSON(d, true, false)
+	if err != nil {
+		return ""
 	}
-	return m
+	return string(b)
+}
+
+// MarshalJSON encodes D into JSON.
+func (d D) MarshalJSON() ([]byte, error) {
+	if d == nil {
+		return json.Marshal(nil)
+	}
+	var err error
+	var buf bytes.Buffer
+	buf.Write([]byte("{"))
+	enc := json.NewEncoder(&buf)
+	for i, e := range d {
+		err = enc.Encode(e.Key)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write([]byte(":"))
+		err = enc.Encode(e.Value)
+		if err != nil {
+			return nil, err
+		}
+		if i < len(d)-1 {
+			buf.Write([]byte(","))
+		}
+	}
+	buf.Write([]byte("}"))
+	return json.RawMessage(buf.Bytes()).MarshalJSON()
+}
+
+// UnmarshalJSON decodes D from JSON.
+func (d *D) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		*d = nil
+		return nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '{' {
+		return &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf(D(nil)),
+			Offset: dec.InputOffset(),
+		}
+	}
+	*d, err = jsonDecodeD(dec)
+	return err
 }
 
 // E represents a BSON element for a D. It is usually used inside a D.
@@ -231,9 +277,111 @@ type E struct {
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 type M map[string]interface{}
 
+func (m M) String() string {
+	b, err := MarshalExtJSON(m, true, false)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
 // An A is an ordered representation of a BSON array.
 //
 // Example usage:
 //
 //	bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
 type A []interface{}
+
+func jsonDecodeD(dec *json.Decoder) (D, error) {
+	res := D{}
+	for {
+		var e E
+
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := t.(string)
+		if !ok {
+			break
+		}
+		e.Key = key
+
+		t, err = dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				e.Value, err = jsonDecodeSlice(dec)
+				if err != nil {
+					return nil, err
+				}
+			case '{':
+				e.Value, err = jsonDecodeD(dec)
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			e.Value = t
+		}
+
+		res = append(res, e)
+	}
+	return res, nil
+}
+
+func jsonDecodeSlice(dec *json.Decoder) ([]interface{}, error) {
+	var res []interface{}
+	done := false
+	for !done {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				a, err := jsonDecodeSlice(dec)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, a)
+			case '{':
+				d, err := jsonDecodeD(dec)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, d)
+			default:
+				done = true
+			}
+		default:
+			res = append(res, t)
+		}
+	}
+	return res, nil
+}
+
+func tokenString(t json.Token) string {
+	switch v := t.(type) {
+	case json.Delim:
+		switch v {
+		case '{':
+			return "object"
+		case '[':
+			return "array"
+		}
+	case bool:
+		return "bool"
+	case float64:
+		return "number"
+	case json.Number, string:
+		return "string"
+	}
+	return "unknown"
+}

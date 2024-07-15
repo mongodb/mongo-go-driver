@@ -11,7 +11,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/event"
@@ -36,8 +35,7 @@ var (
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
 	impossibleWc = &writeconcern.WriteConcern{
-		W:        30,
-		WTimeout: time.Second,
+		W: 30,
 	}
 )
 
@@ -862,7 +860,7 @@ func TestCollection(t *testing.T) {
 			count int64
 		}{
 			{"no options", nil, 5},
-			{"options", options.EstimatedDocumentCount().SetMaxTime(1 * time.Second), 5},
+			{"options", options.EstimatedDocumentCount().SetComment("1"), 5},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -884,7 +882,7 @@ func TestCollection(t *testing.T) {
 		}{
 			{"no options", bson.D{}, nil, all},
 			{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, all[2:]},
-			{"options", bson.D{}, options.Distinct().SetMaxTime(5000000000), all},
+			{"options", bson.D{}, options.Distinct().SetComment("1"), all},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -1166,7 +1164,6 @@ func TestCollection(t *testing.T) {
 				SetComment(expectedComment).
 				SetHint(indexName).
 				SetMax(bson.D{{"x", int32(5)}}).
-				SetMaxTime(1 * time.Second).
 				SetMin(bson.D{{"x", int32(0)}}).
 				SetProjection(bson.D{{"x", int32(1)}}).
 				SetReturnKey(false).
@@ -1188,7 +1185,6 @@ func TestCollection(t *testing.T) {
 				AppendString("comment", expectedComment).
 				AppendString("hint", indexName).
 				StartDocument("max").AppendInt32("x", 5).FinishDocument().
-				AppendInt32("maxTimeMS", 1000).
 				StartDocument("min").AppendInt32("x", 0).FinishDocument().
 				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
 				AppendBoolean("returnKey", false).

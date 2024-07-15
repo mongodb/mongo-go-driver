@@ -31,7 +31,7 @@ type Unmarshaler interface {
 // document. To create custom BSON unmarshaling behavior for an entire BSON
 // document, implement the Unmarshaler interface instead.
 type ValueUnmarshaler interface {
-	UnmarshalBSONValue(Type, []byte) error
+	UnmarshalBSONValue(typ byte, data []byte) error
 }
 
 // Unmarshal parses the BSON-encoded data and stores the result in the value

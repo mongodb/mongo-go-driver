@@ -31,8 +31,6 @@ type Decoder struct {
 	dc DecodeContext
 	vr ValueReader
 
-	// We persist defaultDocumentM and defaultDocumentD on the Decoder to prevent overwriting from
-	// (*Decoder).SetContext.
 	defaultDocumentM bool
 	defaultDocumentD bool
 

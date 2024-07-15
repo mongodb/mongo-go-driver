@@ -13,7 +13,7 @@ import (
 )
 
 func ExampleValueEncoder() {
-	var _ ValueEncoderFunc = func(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+	var _ ValueEncoderFunc = func(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 		if val.Kind() != reflect.String {
 			return ValueEncoderError{Name: "StringEncodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
 		}

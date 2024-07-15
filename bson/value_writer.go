@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-var _ ValueWriter = (*valueWriter)(nil)
+var _ ValueWriter = &valueWriter{}
 
 var vwPool = sync.Pool{
 	New: func() interface{} {
