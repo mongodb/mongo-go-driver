@@ -1975,7 +1975,6 @@ tasks:
     commands:
       - func: "run-oidc-auth-test-with-test-credentials"
 
-<<<<<<< HEAD
   - name: "oidc-auth-test-azure-latest"
     commands:
     - command: shell.exec
