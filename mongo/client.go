@@ -104,7 +104,7 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(opts ...Options[options.ClientArgs]) (*Client, error) {
+func Connect(opts ...Options[options.ClientOptions]) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func Connect(opts ...Options[options.ClientArgs]) (*Client, error) {
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func newClient(opts ...Options[options.ClientArgs]) (*Client, error) {
+func newClient(opts ...Options[options.ClientOptions]) (*Client, error) {
 	args, err := newArgsFromOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -459,7 +459,7 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 }
 
-func (c *Client) configureAutoEncryption(args *options.ClientArgs) error {
+func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
 	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
@@ -491,7 +491,7 @@ func (c *Client) configureAutoEncryption(args *options.ClientArgs) error {
 	return nil
 }
 
-func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, error) {
+func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client, error) {
 	if c.internalClientFLE != nil {
 		return c.internalClientFLE, nil
 	}
@@ -501,7 +501,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, e
 	argsCopy.AutoEncryptionOptions = nil
 	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
 
-	opts := &mongoutil.ArgOptions[options.ClientArgs]{Args: &argsCopy}
+	opts := &mongoutil.ArgOptions[options.ClientOptions]{Args: &argsCopy}
 
 	var err error
 	c.internalClientFLE, err = newClient(opts)
@@ -509,7 +509,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientArgs) (*Client, e
 	return c.internalClientFLE, err
 }
 
-func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientArgs) error {
+func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientOptions) error {
 	// parse key vault options and create new key vault client
 	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
@@ -534,7 +534,7 @@ func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientArgs) erro
 	return nil
 }
 
-func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientArgs) error {
+func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) error {
 	// parse key vault options and create new key vault client
 	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {

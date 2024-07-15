@@ -68,7 +68,7 @@ func jsonFilesInDir(t testing.TB, dir string) []string {
 }
 
 // create client options from a map
-func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
+func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptionsBuilder {
 	t.Helper()
 
 	clientOpts := options.Client()

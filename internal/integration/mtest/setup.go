@@ -58,8 +58,8 @@ var testContext struct {
 	serverless                  bool
 }
 
-func setupClient(opts *options.ClientOptions) (*mongo.Client, error) {
-	args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+func setupClient(opts *options.ClientOptionsBuilder) (*mongo.Client, error) {
+	args, err := mongoutil.NewArgsFromOptions[options.ClientOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}

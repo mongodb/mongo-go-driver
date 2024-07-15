@@ -134,7 +134,7 @@ func (op *Options) CollectionOptions(opts *options.CollectionOptions) *Options {
 }
 
 // ClientOptions sets the options to use when creating a client for a test.
-func (op *Options) ClientOptions(opts *options.ClientOptions) *Options {
+func (op *Options) ClientOptions(opts *options.ClientOptionsBuilder) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.clientOpts = opts
 	})

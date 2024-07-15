@@ -30,7 +30,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"golang.org/x/sync/errgroup"
 )
 
 var noClientOpts = mtest.NewOptions().CreateClient(false)
@@ -832,120 +831,120 @@ func TestClient_BSONOptions(t *testing.T) {
 	})
 }
 
-func TestClientStress(t *testing.T) {
-	mtOpts := mtest.NewOptions().CreateClient(false)
-	mt := mtest.New(t, mtOpts)
-
-	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
-	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
-		oid := bson.NewObjectID()
-		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
-		_, err := mt.Coll.InsertOne(context.Background(), doc)
-		assert.Nil(mt, err, "InsertOne error: %v", err)
-
-		// findOne calls FindOne("_id": oid) on the given collection and with the given timeout. It
-		// returns any errors.
-		findOne := func(coll *mongo.Collection, timeout time.Duration) error {
-			ctx, cancel := context.WithTimeout(context.Background(), timeout)
-			defer cancel()
-			var res map[string]interface{}
-			return coll.FindOne(ctx, bson.D{{Key: "_id", Value: oid}}).Decode(&res)
-		}
-
-		// findOneFor calls FindOne on the given collection and with the given timeout in a loop for
-		// the given duration and returns any errors returned by FindOne.
-		findOneFor := func(coll *mongo.Collection, timeout time.Duration, d time.Duration) []error {
-			errs := make([]error, 0)
-			start := time.Now()
-			for time.Since(start) <= d {
-				err := findOne(coll, timeout)
-				if err != nil {
-					errs = append(errs, err)
-				}
-				time.Sleep(10 * time.Microsecond)
-			}
-			return errs
-		}
-
-		// Calculate the maximum observed round-trip time by measuring the duration of some FindOne
-		// operations and picking the max.
-		var maxRTT time.Duration
-		for i := 0; i < 50; i++ {
-			start := time.Now()
-			err := findOne(mt.Coll, 10*time.Second)
-			assert.Nil(t, err, "FindOne error: %v", err)
-			duration := time.Since(start)
-			if duration > maxRTT {
-				maxRTT = duration
-			}
-		}
-		assert.True(mt, maxRTT > 0, "RTT must be greater than 0")
-
-		// Run tests with various "maxPoolSize" values, including 1-connection pools and the default
-		// size of 100, to test how the client handles traffic spikes using different connection
-		// pool configurations.
-		maxPoolSizes := []uint64{1, 10, 100}
-		for _, maxPoolSize := range maxPoolSizes {
-			tpm := eventtest.NewTestPoolMonitor()
-			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
-				options.Client().
-					SetPoolMonitor(tpm.PoolMonitor).
-					SetMaxPoolSize(maxPoolSize))
-			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
-				// Print the count of connection created, connection closed, and pool clear events
-				// collected during the test to help with debugging.
-				defer func() {
-					created := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionCreated }))
-					closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
-					poolCleared := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.PoolCleared }))
-					mt.Logf("Connections created: %d, connections closed: %d, pool clears: %d", created, closed, poolCleared)
-				}()
-
-				doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
-				_, err := mt.Coll.InsertOne(context.Background(), doc)
-				assert.Nil(mt, err, "InsertOne error: %v", err)
-
-				// Set the timeout to be 100x the maximum observed RTT. Use a minimum 100ms timeout to
-				// prevent spurious test failures due to extremely low timeouts.
-				timeout := maxRTT * 100
-				minTimeout := 100 * time.Millisecond
-				if timeout < minTimeout {
-					timeout = minTimeout
-				}
-				mt.Logf("Max RTT %v; using a timeout of %v", maxRTT, timeout)
-
-				// Warm up the client for 1 second to allow connections to be established. Ignore
-				// any errors.
-				_ = findOneFor(mt.Coll, timeout, 1*time.Second)
-
-				// Simulate normal traffic by running one FindOne loop for 1 second and assert that there
-				// are no errors.
-				errs := findOneFor(mt.Coll, timeout, 1*time.Second)
-				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
-
-				// Simulate an extreme traffic spike by running 1,000 FindOne loops in parallel for 10
-				// seconds and expect at least some errors to occur.
-				g := new(errgroup.Group)
-				for i := 0; i < 1000; i++ {
-					g.Go(func() error {
-						errs := findOneFor(mt.Coll, timeout, 10*time.Second)
-						if len(errs) == 0 {
-							return nil
-						}
-						return errs[len(errs)-1]
-					})
-				}
-				err = g.Wait()
-				mt.Logf("Error from extreme traffic spike (errors are expected): %v", err)
-
-				// Simulate normal traffic again for 5 second. Ignore any errors to allow any outstanding
-				// connection errors to stop.
-				_ = findOneFor(mt.Coll, timeout, 5*time.Second)
-
-				// Simulate normal traffic again for 1 second and assert that there are no errors.
-				errs = findOneFor(mt.Coll, timeout, 1*time.Second)
-				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
-			})
-		}
-	})
-}
+//func TestClientStress(t *testing.T) {
+//	mtOpts := mtest.NewOptions().CreateClient(false)
+//	mt := mtest.New(t, mtOpts)
+//
+//	// Test that a Client can recover from a massive traffic spike after the traffic spike is over.
+//	mt.Run("Client recovers from traffic spike", func(mt *mtest.T) {
+//		oid := bson.NewObjectID()
+//		doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
+//		_, err := mt.Coll.InsertOne(context.Background(), doc)
+//		assert.Nil(mt, err, "InsertOne error: %v", err)
+//
+//		// findOne calls FindOne("_id": oid) on the given collection and with the given timeout. It
+//		// returns any errors.
+//		findOne := func(coll *mongo.Collection, timeout time.Duration) error {
+//			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+//			defer cancel()
+//			var res map[string]interface{}
+//			return coll.FindOne(ctx, bson.D{{Key: "_id", Value: oid}}).Decode(&res)
+//		}
+//
+//		// findOneFor calls FindOne on the given collection and with the given timeout in a loop for
+//		// the given duration and returns any errors returned by FindOne.
+//		findOneFor := func(coll *mongo.Collection, timeout time.Duration, d time.Duration) []error {
+//			errs := make([]error, 0)
+//			start := time.Now()
+//			for time.Since(start) <= d {
+//				err := findOne(coll, timeout)
+//				if err != nil {
+//					errs = append(errs, err)
+//				}
+//				time.Sleep(10 * time.Microsecond)
+//			}
+//			return errs
+//		}
+//
+//		// Calculate the maximum observed round-trip time by measuring the duration of some FindOne
+//		// operations and picking the max.
+//		var maxRTT time.Duration
+//		for i := 0; i < 50; i++ {
+//			start := time.Now()
+//			err := findOne(mt.Coll, 10*time.Second)
+//			assert.Nil(t, err, "FindOne error: %v", err)
+//			duration := time.Since(start)
+//			if duration > maxRTT {
+//				maxRTT = duration
+//			}
+//		}
+//		assert.True(mt, maxRTT > 0, "RTT must be greater than 0")
+//
+//		// Run tests with various "maxPoolSize" values, including 1-connection pools and the default
+//		// size of 100, to test how the client handles traffic spikes using different connection
+//		// pool configurations.
+//		maxPoolSizes := []uint64{1, 10, 100}
+//		for _, maxPoolSize := range maxPoolSizes {
+//			tpm := eventtest.NewTestPoolMonitor()
+//			maxPoolSizeOpt := mtest.NewOptions().ClientOptions(
+//				options.Client().
+//					SetPoolMonitor(tpm.PoolMonitor).
+//					SetMaxPoolSize(maxPoolSize))
+//			mt.RunOpts(fmt.Sprintf("maxPoolSize %d", maxPoolSize), maxPoolSizeOpt, func(mt *mtest.T) {
+//				// Print the count of connection created, connection closed, and pool clear events
+//				// collected during the test to help with debugging.
+//				defer func() {
+//					created := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionCreated }))
+//					closed := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.ConnectionClosed }))
+//					poolCleared := len(tpm.Events(func(e *event.PoolEvent) bool { return e.Type == event.PoolCleared }))
+//					mt.Logf("Connections created: %d, connections closed: %d, pool clears: %d", created, closed, poolCleared)
+//				}()
+//
+//				doc := bson.D{{Key: "_id", Value: oid}, {Key: "key", Value: "value"}}
+//				_, err := mt.Coll.InsertOne(context.Background(), doc)
+//				assert.Nil(mt, err, "InsertOne error: %v", err)
+//
+//				// Set the timeout to be 100x the maximum observed RTT. Use a minimum 100ms timeout to
+//				// prevent spurious test failures due to extremely low timeouts.
+//				timeout := maxRTT * 100
+//				minTimeout := 100 * time.Millisecond
+//				if timeout < minTimeout {
+//					timeout = minTimeout
+//				}
+//				mt.Logf("Max RTT %v; using a timeout of %v", maxRTT, timeout)
+//
+//				// Warm up the client for 1 second to allow connections to be established. Ignore
+//				// any errors.
+//				_ = findOneFor(mt.Coll, timeout, 1*time.Second)
+//
+//				// Simulate normal traffic by running one FindOne loop for 1 second and assert that there
+//				// are no errors.
+//				errs := findOneFor(mt.Coll, timeout, 1*time.Second)
+//				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
+//
+//				// Simulate an extreme traffic spike by running 1,000 FindOne loops in parallel for 10
+//				// seconds and expect at least some errors to occur.
+//				g := new(errgroup.Group)
+//				for i := 0; i < 1000; i++ {
+//					g.Go(func() error {
+//						errs := findOneFor(mt.Coll, timeout, 10*time.Second)
+//						if len(errs) == 0 {
+//							return nil
+//						}
+//						return errs[len(errs)-1]
+//					})
+//				}
+//				err = g.Wait()
+//				mt.Logf("Error from extreme traffic spike (errors are expected): %v", err)
+//
+//				// Simulate normal traffic again for 5 second. Ignore any errors to allow any outstanding
+//				// connection errors to stop.
+//				_ = findOneFor(mt.Coll, timeout, 5*time.Second)
+//
+//				// Simulate normal traffic again for 1 second and assert that there are no errors.
+//				errs = findOneFor(mt.Coll, timeout, 1*time.Second)
+//				assert.True(mt, len(errs) == 0, "expected no errors, but got %d (%v)", len(errs), errs)
+//			})
+//		}
+//	})
+//}

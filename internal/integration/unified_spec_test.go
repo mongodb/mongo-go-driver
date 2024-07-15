@@ -281,7 +281,7 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
-		args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](testClientOpts)
+		args, err := mongoutil.NewArgsFromOptions[options.ClientOptions](testClientOpts)
 		require.NoError(mt, err, "failed to construct arguments from options")
 
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither

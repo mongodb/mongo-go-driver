@@ -78,7 +78,7 @@ func AddCompressorToURI(uri string) string {
 }
 
 // AddTestServerAPIVersion adds the latest server API version in a ServerAPIOptions to passed-in opts.
-func AddTestServerAPIVersion(opts *options.ClientOptions) {
+func AddTestServerAPIVersion(opts *options.ClientOptionsBuilder) {
 	if os.Getenv("REQUIRE_API_VERSION") == "true" {
 		opts.SetServerAPIOptions(options.ServerAPI(driver.TestServerAPIVersion))
 	}

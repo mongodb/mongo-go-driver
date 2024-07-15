@@ -117,7 +117,7 @@ type T struct {
 
 	// options copied to sub-tests
 	clientType  ClientType
-	clientOpts  *options.ClientOptions
+	clientOpts  *options.ClientOptionsBuilder
 	collOpts    *options.CollectionOptions
 	shareClient *bool
 
@@ -395,7 +395,7 @@ func (t *T) ClearEvents() {
 // If t.Coll is not-nil, it will be reset to use the new client. Should only be called if the existing client is
 // not nil. This will Disconnect the existing client but will not drop existing collections. To do so, ClearCollections
 // must be called before calling ResetClient.
-func (t *T) ResetClient(opts *options.ClientOptions) {
+func (t *T) ResetClient(opts *options.ClientOptionsBuilder) {
 	if opts != nil {
 		t.clientOpts = opts
 	}
@@ -632,7 +632,7 @@ func (t *T) createTestClient() {
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
 
-	args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](clientOpts)
+	args, err := mongoutil.NewArgsFromOptions[options.ClientOptions](clientOpts)
 	if err != nil {
 		t.Fatalf("failed to construct arguments from options: %v", err)
 	}
@@ -698,14 +698,14 @@ func (t *T) createTestClient() {
 		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
-		args, _ = mongoutil.NewArgsFromOptions[options.ClientArgs](clientOpts)
+		args, _ = mongoutil.NewArgsFromOptions[options.ClientOptions](clientOpts)
 
 		args.PoolMonitor = nil
 
 		t.mockDeployment = newMockDeployment()
 		args.Deployment = t.mockDeployment
 
-		opts := &mongoutil.ArgOptions[options.ClientArgs]{Args: args}
+		opts := &mongoutil.ArgOptions[options.ClientOptions]{Args: args}
 		t.Client, err = mongo.Connect(opts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()
@@ -716,7 +716,7 @@ func (t *T) createTestClient() {
 	case Default:
 		// Use a different set of options to specify the URI because clientOpts may already have a URI or host seedlist
 		// specified.
-		var uriOpts *options.ClientOptions
+		var uriOpts *options.ClientOptionsBuilder
 		if args.Deployment == nil {
 			// Only specify URI if the deployment is not set to avoid setting topology/server options along with the
 			// deployment.

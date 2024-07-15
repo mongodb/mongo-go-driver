@@ -83,8 +83,8 @@ func newLogger(opts mongoutil.MongoOptions[options.LoggerArgs]) (*logger.Logger,
 
 // NewConfig behaves like NewConfigFromArgs by extracting arguments from the
 // ClientOptions setters.
-func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
-	args, err := mongoutil.NewArgsFromOptions[options.ClientArgs](opts)
+func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
+	args, err := mongoutil.NewArgsFromOptions[options.ClientOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -95,12 +95,12 @@ func NewConfig(opts *options.ClientOptions, clock *session.ClusterClock) (*Confi
 // NewConfigFromArgs will translate data from client arguments into a topology
 // config for building non-default deployments. Server and topology options are
 // not honored if a custom deployment is used.
-func NewConfigFromArgs(args *options.ClientArgs, clock *session.ClusterClock) (*Config, error) {
+func NewConfigFromArgs(args *options.ClientOptions, clock *session.ClusterClock) (*Config, error) {
 	var serverAPI *driver.ServerAPIOptions
 
-	clientOpts := options.ClientOptions{
-		Opts: []func(*options.ClientArgs) error{
-			func(ca *options.ClientArgs) error {
+	clientOpts := options.ClientOptionsBuilder{
+		Opts: []func(*options.ClientOptions) error{
+			func(ca *options.ClientOptions) error {
 				*ca = *args
 
 				return nil

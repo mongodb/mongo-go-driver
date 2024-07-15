@@ -578,7 +578,7 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 }
 
-func setupConvenientTransactions(t *testing.T, extraClientOpts ...Options[options.ClientArgs]) *Client {
+func setupConvenientTransactions(t *testing.T, extraClientOpts ...Options[options.ClientOptions]) *Client {
 	cs := integtest.ConnString(t)
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
@@ -597,7 +597,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...Options[option
 		SetWriteConcern(writeconcern.Majority()).
 		SetPoolMonitor(poolMonitor)
 	integtest.AddTestServerAPIVersion(baseClientOpts)
-	fullClientOpts := []Options[options.ClientArgs]{baseClientOpts}
+	fullClientOpts := []Options[options.ClientOptions]{baseClientOpts}
 	fullClientOpts = append(fullClientOpts, extraClientOpts...)
 
 	client, err := Connect(fullClientOpts...)

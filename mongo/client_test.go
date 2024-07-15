@@ -30,7 +30,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...Options[options.ClientArgs]) *Client {
+func setupClient(opts ...Options[options.ClientOptions]) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)
@@ -126,7 +126,7 @@ func TestClient(t *testing.T) {
 	t.Run("localThreshold", func(t *testing.T) {
 		testCases := []struct {
 			name              string
-			opts              *options.ClientOptions
+			opts              *options.ClientOptionsBuilder
 			expectedThreshold time.Duration
 		}{
 			{"default", options.Client(), defaultLocalThreshold},
@@ -148,7 +148,7 @@ func TestClient(t *testing.T) {
 	t.Run("min pool size from Set*PoolSize()", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *options.ClientOptions
+			opts *options.ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -192,7 +192,7 @@ func TestClient(t *testing.T) {
 	t.Run("min pool size from ApplyURI()", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *options.ClientOptions
+			opts *options.ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -239,7 +239,7 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name          string
-			opts          *options.ClientOptions
+			opts          *options.ClientOptionsBuilder
 			expectErr     bool
 			expectedRetry bool
 		}{
@@ -267,7 +267,7 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name          string
-			opts          *options.ClientOptions
+			opts          *options.ClientOptionsBuilder
 			expectErr     bool
 			expectedRetry bool
 		}{
@@ -315,7 +315,7 @@ func TestClient(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
 
-			args, _ := newArgsFromOptions[options.ClientArgs](opts)
+			args, _ := newArgsFromOptions[options.ClientOptions](opts)
 			got := args.GetURI()
 
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)

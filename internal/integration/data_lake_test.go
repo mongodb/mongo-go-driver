@@ -97,7 +97,7 @@ func TestAtlasDataLake(t *testing.T) {
 	})
 }
 
-func getBaseClientOptions(mt *mtest.T) *options.ClientOptions {
+func getBaseClientOptions(mt *mtest.T) *options.ClientOptionsBuilder {
 	mt.Helper()
 
 	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())

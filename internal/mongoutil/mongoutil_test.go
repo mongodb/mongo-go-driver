@@ -24,76 +24,76 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 	// done in a separate test.
 	clientTests := []struct {
 		name string
-		opts []MongoOptions[options.ClientArgs]
-		want options.ClientArgs
+		opts []MongoOptions[options.ClientOptions]
+		want options.ClientOptions
 	}{
 		{
 			name: "nil options",
 			opts: nil,
-			want: options.ClientArgs{},
+			want: options.ClientOptions{},
 		},
 		{
 			name: "no options",
-			opts: []MongoOptions[options.ClientArgs]{},
-			want: options.ClientArgs{},
+			opts: []MongoOptions[options.ClientOptions]{},
+			want: options.ClientOptions{},
 		},
 		{
 			name: "one option",
-			opts: []MongoOptions[options.ClientArgs]{
+			opts: []MongoOptions[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "one nil option",
-			opts: []MongoOptions[options.ClientArgs]{nil},
-			want: options.ClientArgs{},
+			opts: []MongoOptions[options.ClientOptions]{nil},
+			want: options.ClientOptions{},
 		},
 		{
 			name: "many same options",
-			opts: []MongoOptions[options.ClientArgs]{
+			opts: []MongoOptions[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				options.Client().SetAppName("testApp"),
 			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "many different options (last one wins)",
-			opts: []MongoOptions[options.ClientArgs]{
+			opts: []MongoOptions[options.ClientOptions]{
 				options.Client().SetAppName("testApp1"),
 				options.Client().SetAppName("testApp2"),
 			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp2")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp2")},
 		},
 		{
 			name: "many nil options",
-			opts: []MongoOptions[options.ClientArgs]{nil, nil},
-			want: options.ClientArgs{},
+			opts: []MongoOptions[options.ClientOptions]{nil, nil},
+			want: options.ClientOptions{},
 		},
 		{
 			name: "many options where last is nil (non-nil wins)",
-			opts: []MongoOptions[options.ClientArgs]{
+			opts: []MongoOptions[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				nil,
 			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "many nil options where first is nil (non-nil wins)",
-			opts: []MongoOptions[options.ClientArgs]{
+			opts: []MongoOptions[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "many nil options where middle is non-nil (non-nil wins)",
-			opts: []MongoOptions[options.ClientArgs]{
+			opts: []MongoOptions[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 				nil,
 			},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 	}
 
@@ -103,7 +103,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewArgsFromOptions[options.ClientArgs](test.opts...)
+			got, err := NewArgsFromOptions[options.ClientOptions](test.opts...)
 			assert.NoError(t, err)
 
 			// WLOG it should be enough to test a small subset of arguments.
@@ -122,26 +122,26 @@ func TestNewOptionsFromArgs(t *testing.T) {
 	// done in a separate test.
 	clientTests := []struct {
 		name string
-		args *options.ClientArgs
-		clbk func(*options.ClientArgs) error
-		want options.ClientArgs
+		args *options.ClientOptions
+		clbk func(*options.ClientOptions) error
+		want options.ClientOptions
 	}{
 		{
 			name: "nil args",
 			args: nil,
 			clbk: nil,
-			want: options.ClientArgs{},
+			want: options.ClientOptions{},
 		},
 		{
 			name: "no args",
-			args: &options.ClientArgs{},
+			args: &options.ClientOptions{},
 			clbk: nil,
-			want: options.ClientArgs{},
+			want: options.ClientOptions{},
 		},
 		{
 			name: "no callback",
-			args: &options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
-			want: options.ClientArgs{AppName: ptrutil.Ptr[string]("testApp")},
+			args: &options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
+			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 	}
 
@@ -151,9 +151,9 @@ func TestNewOptionsFromArgs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := NewOptionsFromArgs[options.ClientArgs](test.args)
+			opts := NewOptionsFromArgs[options.ClientOptions](test.args)
 
-			got, err := NewArgsFromOptions[options.ClientArgs](opts)
+			got, err := NewArgsFromOptions[options.ClientOptions](opts)
 			assert.NoError(t, err)
 
 			// WLOG it should be enough to test a small subset of arguments.

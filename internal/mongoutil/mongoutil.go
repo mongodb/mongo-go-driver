@@ -15,7 +15,7 @@ import (
 // Args defines arguments types that can be merged using the functional setters.
 type Args interface {
 	options.AggregateOptions | options.BucketArgs | options.BulkWriteOptions |
-		options.ClientArgs | options.ClientEncryptionOptions | options.CollectionArgs |
+		options.ClientOptions | options.ClientEncryptionOptions | options.CollectionArgs |
 		options.CountArgs | options.CreateIndexesArgs |
 		options.CreateCollectionArgs | options.CreateSearchIndexesArgs |
 		options.CreateViewArgs | options.DataKeyArgs | options.DatabaseArgs |
@@ -105,7 +105,7 @@ func NewOptionsFromArgs[T Args](args *T) *ArgOptions[T] {
 
 // AuthFromURI will create a Credentials object given the provided URI.
 func AuthFromURI(uri string) (*options.Credential, error) {
-	args, err := NewArgsFromOptions[options.ClientArgs](options.Client().ApplyURI(uri))
+	args, err := NewArgsFromOptions[options.ClientOptions](options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func AuthFromURI(uri string) (*options.Credential, error) {
 // HostsFromURI will parse the hosts in the URI and return them as a slice of
 // strings.
 func HostsFromURI(uri string) ([]string, error) {
-	args, err := NewArgsFromOptions[options.ClientArgs](options.Client().ApplyURI(uri))
+	args, err := NewArgsFromOptions[options.ClientOptions](options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}
