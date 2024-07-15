@@ -146,9 +146,7 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 		encoder := desc.encoder
 
 		var empty bool
-		if cz, ok := encoder.(CodecZeroer); ok {
-			empty = cz.IsTypeZero(rv.Interface())
-		} else if rv.Kind() == reflect.Interface {
+		if rv.Kind() == reflect.Interface {
 			// isEmpty will not treat an interface rv as an interface, so we need to check for the
 			// nil interface separately.
 			empty = rv.IsNil()
