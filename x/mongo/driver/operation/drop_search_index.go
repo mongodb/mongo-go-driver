@@ -21,18 +21,19 @@ import (
 
 // DropSearchIndex performs an dropSearchIndex operation.
 type DropSearchIndex struct {
-	index      string
-	session    *session.Client
-	clock      *session.ClusterClock
-	collection string
-	monitor    *event.CommandMonitor
-	crypt      driver.Crypt
-	database   string
-	deployment driver.Deployment
-	selector   description.ServerSelector
-	result     DropSearchIndexResult
-	serverAPI  *driver.ServerAPIOptions
-	timeout    *time.Duration
+	authenticator driver.Authenticator
+	index         string
+	session       *session.Client
+	clock         *session.ClusterClock
+	collection    string
+	monitor       *event.CommandMonitor
+	crypt         driver.Crypt
+	database      string
+	deployment    driver.Deployment
+	selector      description.ServerSelector
+	result        DropSearchIndexResult
+	serverAPI     *driver.ServerAPIOptions
+	timeout       *time.Duration
 }
 
 // DropSearchIndexResult represents a dropSearchIndex result returned by the server.
@@ -93,6 +94,7 @@ func (dsi *DropSearchIndex) Execute(ctx context.Context) error {
 		Selector:          dsi.selector,
 		ServerAPI:         dsi.serverAPI,
 		Timeout:           dsi.timeout,
+		Authenticator:     dsi.authenticator,
 	}.Execute(ctx)
 
 }
@@ -210,5 +212,15 @@ func (dsi *DropSearchIndex) Timeout(timeout *time.Duration) *DropSearchIndex {
 	}
 
 	dsi.timeout = timeout
+	return dsi
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (dsi *DropSearchIndex) Authenticator(authenticator driver.Authenticator) *DropSearchIndex {
+	if dsi == nil {
+		dsi = new(DropSearchIndex)
+	}
+
+	dsi.authenticator = authenticator
 	return dsi
 }
