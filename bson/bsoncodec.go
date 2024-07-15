@@ -329,13 +329,3 @@ func decodeTypeOrValueWithInfo(vd ValueDecoder, dc DecodeContext, vr ValueReader
 	err := vd.DecodeValue(dc, vr, val)
 	return val, err
 }
-
-// CodecZeroer is the interface implemented by Codecs that can also determine if
-// a value of the type that would be encoded is zero.
-//
-// Deprecated: Defining custom rules for the zero/empty value will not be supported in Go Driver
-// 2.0. Users who want to omit empty complex values should use a pointer field and set the value to
-// nil instead.
-type CodecZeroer interface {
-	IsTypeZero(interface{}) bool
-}
