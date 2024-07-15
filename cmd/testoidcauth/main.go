@@ -695,6 +695,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	}
 	return callbackFailed
 }
+<<<<<<< HEAD
 
 func machine51azureWithNoUsername() error {
 	opts := options.Client().ApplyURI(uriSingle)
