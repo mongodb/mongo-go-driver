@@ -618,9 +618,6 @@ func TestIndexView(t *testing.T) {
 				name: "custom index name and unique indexes",
 				models: []mongo.IndexModel{
 					{
-						Keys: bson.D{{"_id", 1}},
-					},
-					{
 						Keys:    bson.D{{"username", 1}},
 						Options: options.Index().SetUnique(true).SetName("myidx"),
 					},
@@ -632,9 +629,6 @@ func TestIndexView(t *testing.T) {
 				name: "normal generated index name",
 				models: []mongo.IndexModel{
 					{
-						Keys: bson.D{{"_id", 1}},
-					},
-					{
 						Keys: bson.D{{"foo", -1}},
 					},
 				},
@@ -645,9 +639,6 @@ func TestIndexView(t *testing.T) {
 				name: "compound index",
 				models: []mongo.IndexModel{
 					{
-						Keys: bson.D{{"_id", 1}},
-					},
-					{
 						Keys: bson.D{{"foo", 1}, {"bar", 1}},
 					},
 				},
@@ -657,9 +648,6 @@ func TestIndexView(t *testing.T) {
 			{
 				name: "text index",
 				models: []mongo.IndexModel{
-					{
-						Keys: bson.D{{"_id", 1}},
-					},
 					{
 						Keys: bson.D{{"plot1", "text"}, {"plot2", "text"}},
 					},
@@ -678,8 +666,18 @@ func TestIndexView(t *testing.T) {
 				assert.NoError(mt, err)
 				assert.Equal(mt, len(test.models), len(indexNames), "expected %v index names, got %v", len(test.models), len(indexNames))
 
-				_, err = iv.DropWithKey(context.Background(), test.index)
+				resb, err := iv.DropWithKey(context.Background(), test.index)
 				assert.Nil(mt, err, "DropOne error: %v", err)
+
+				type result struct {
+					NIndexesWas int
+				}
+
+				res := new(result)
+
+				err = bson.Unmarshal(resb, res)
+				assert.NoError(t, err, "failed to decode result")
+				assert.Greater(t, res.NIndexesWas, 0)
 
 				cursor, err := iv.List(context.Background())
 				assert.Nil(mt, err, "List error: %v", err)
