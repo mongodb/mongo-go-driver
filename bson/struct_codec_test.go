@@ -14,13 +14,13 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 )
 
-var _ Zeroer = zeroer{}
+var _ Zeroer = testZeroer{}
 
-type zeroer struct {
+type testZeroer struct {
 	val int
 }
 
-func (z zeroer) IsZero() bool {
+func (z testZeroer) IsZero() bool {
 	return z.val != 0
 }
 
@@ -84,22 +84,22 @@ func TestIsZero(t *testing.T) {
 		},
 		{
 			description: "zero struct that implements Zeroer",
-			value:       zeroer{},
+			value:       testZeroer{},
 			want:        false,
 		},
 		{
 			description: "non-zero struct that implements Zeroer",
-			value:       &zeroer{val: 1},
+			value:       &testZeroer{val: 1},
 			want:        true,
 		},
 		{
 			description: "pointer to zero struct that implements Zeroer",
-			value:       &zeroer{},
+			value:       &testZeroer{},
 			want:        false,
 		},
 		{
 			description: "pointer to non-zero struct that implements Zeroer",
-			value:       zeroer{val: 1},
+			value:       testZeroer{val: 1},
 			want:        true,
 		},
 		{

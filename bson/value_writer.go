@@ -260,7 +260,7 @@ func (vw *valueWriter) writeElementHeader(t Type, destination mode, callerName s
 	return nil
 }
 
-func (vw *valueWriter) WriteValueBytes(t Type, b []byte) error {
+func (vw *valueWriter) writeValueBytes(t Type, b []byte) error {
 	if err := vw.writeElementHeader(t, mode(0), "WriteValueBytes"); err != nil {
 		return err
 	}
