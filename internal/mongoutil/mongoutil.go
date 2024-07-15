@@ -53,9 +53,6 @@ func NewOptionsFromBuilder[T Options](opts ...OptionsBuilder[T]) (*T, error) {
 			// Do nothing if the option is nil or if opt is nil but implicitly cast as
 			// an Options interface by the NewArgsFromOptions function. The latter
 			// case would look something like this:
-			//
-			// var opt *SomeOptions
-			// NewArgsFromOptions(opt)
 			continue
 		}
 

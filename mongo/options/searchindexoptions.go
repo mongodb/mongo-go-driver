@@ -74,7 +74,7 @@ type ListSearchIndexesOptions struct {
 	AggregateOptions *AggregateOptions
 }
 
-// ListSearchIndexesOptionsBuilder represents options that can be used to
+// ListSearchIndexesOptionsBuilder contains options that can be used to
 // configure a SearchIndexView.List operation.
 type ListSearchIndexesOptionsBuilder struct {
 	Opts []func(*ListSearchIndexesOptions) error

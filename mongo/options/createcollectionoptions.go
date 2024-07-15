@@ -148,7 +148,7 @@ func (tso *TimeSeriesOptionsBuilder) SetBucketRounding(dur time.Duration) *TimeS
 	return tso
 }
 
-// CreateCollectionOptions represents options that can be used to configure a
+// CreateCollectionOptions represents arguments that can be used to configure a
 // CreateCollection operation.
 type CreateCollectionOptions struct {
 	// Specifies if the collection is capped (see https://www.mongodb.com/docs/manual/core/capped-collections/). If true,

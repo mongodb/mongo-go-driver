@@ -212,7 +212,7 @@ func newClient(opts ...Options[options.ClientOptions]) (*Client, error) {
 		args.MaxPoolSize = &defaultMaxPoolSize
 	}
 
-	cfg, err := topology.NewConfigFromArgs(args, client.clock)
+	cfg, err := topology.NewConfigFromOptions(args, client.clock)
 	if err != nil {
 		return nil, err
 	}

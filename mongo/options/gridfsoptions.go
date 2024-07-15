@@ -231,8 +231,8 @@ func (n *GridFSNameOptionsBuilder) SetRevision(r int32) *GridFSNameOptionsBuilde
 	return n
 }
 
-// GridFSFindOptions represents options that can be used to configure a GridFS Find
-// operation.
+// GridFSFindOptions represents arguments that can be used to configure a GridFS
+// Find operation.
 type GridFSFindOptions struct {
 	// If true, the server can write temporary data to disk while executing the find operation. The default value
 	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
