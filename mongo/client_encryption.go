@@ -86,7 +86,7 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 
 	createArgs, err := newOptionsFromBuilder[options.CreateCollectionOptions](createOpts)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	ef := createArgs.EncryptedFields
@@ -154,7 +154,7 @@ func (ce *ClientEncryption) CreateDataKey(
 ) (bson.Binary, error) {
 	args, err := newOptionsFromBuilder[options.DataKeyOptions](opts...)
 	if err != nil {
-		return bson.Binary{}, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return bson.Binary{}, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	co := mcopts.DataKey().SetKeyAltNames(args.KeyAltNames)
@@ -406,7 +406,7 @@ func (ce *ClientEncryption) RewrapManyDataKey(
 
 	args, err := newOptionsFromBuilder[options.RewrapManyDataKeyOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	// Transfer rmdko options to /x/ package options to publish the mongocrypt feed.

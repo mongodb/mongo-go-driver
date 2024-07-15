@@ -102,7 +102,7 @@ func (iv IndexView) List(ctx context.Context, opts ...Options[options.ListIndexe
 
 	args, err := newOptionsFromBuilder[options.ListIndexesOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args.BatchSize != nil {
@@ -270,7 +270,7 @@ func (iv IndexView) CreateMany(
 
 	args, err := newOptionsFromBuilder[options.CreateIndexesOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	op := operation.NewCreateIndexes(indexes).
@@ -299,7 +299,7 @@ func (iv IndexView) CreateMany(
 func (iv IndexView) createOptionsDoc(opts Options[options.IndexOptions]) (bsoncore.Document, error) {
 	args, err := newOptionsFromBuilder[options.IndexOptions](opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	optsDoc := bsoncore.Document{}
@@ -472,7 +472,7 @@ func (iv IndexView) DropAll(
 func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel) (string, error) {
 	args, err := newOptionsFromBuilder[options.IndexOptions](model.Options)
 	if err != nil {
-		return "", fmt.Errorf("failed to construct arguments from options: %w", err)
+		return "", fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args != nil && args.Name != nil {

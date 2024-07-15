@@ -462,7 +462,7 @@ func (c *Client) endSessions(ctx context.Context) {
 func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
 	aeArgs, err := newOptionsFromBuilder[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	c.encryptedFieldsMap = aeArgs.EncryptedFieldsMap
@@ -513,7 +513,7 @@ func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientOptions) e
 	// parse key vault options and create new key vault client
 	aeArgs, err := newOptionsFromBuilder[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	switch {
@@ -538,7 +538,7 @@ func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) e
 	// parse key vault options and create new key vault client
 	aeArgs, err := newOptionsFromBuilder[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption {
@@ -557,7 +557,7 @@ func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) e
 func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
 	args, err := newOptionsFromBuilder[options.AutoEncryptionOptions](opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	// convert schemas in SchemaMap to bsoncore documents
@@ -894,7 +894,7 @@ func newLogger(opts Options[options.LoggerOptions]) (*logger.Logger, error) {
 
 	args, err := newOptionsFromBuilder[options.LoggerOptions](opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	// If there are no component-level options and the environment does not

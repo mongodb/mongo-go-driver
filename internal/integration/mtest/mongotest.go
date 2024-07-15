@@ -450,7 +450,7 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 	db := coll.Client.Database(coll.DB)
 
 	args, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
-	require.NoError(t, err, "failed to construct arguments from options")
+	require.NoError(t, err, "failed to construct options from builder")
 
 	if coll.CreateOpts != nil && args.EncryptedFields != nil {
 		// An encrypted collection consists of a data collection and three state collections.
@@ -516,7 +516,7 @@ func (t *T) ClearCollections() {
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
 			args, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
-			require.NoError(t, err, "failed to construct arguments from options")
+			require.NoError(t, err, "failed to construct options from builder")
 
 			if coll.CreateOpts != nil && args.EncryptedFields != nil {
 				DropEncryptedCollection(t, coll.created, args.EncryptedFields)
@@ -634,7 +634,7 @@ func (t *T) createTestClient() {
 
 	args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](clientOpts)
 	if err != nil {
-		t.Fatalf("failed to construct arguments from options: %v", err)
+		t.Fatalf("failed to construct options from builder: %v", err)
 	}
 
 	// set ServerAPIOptions to latest version if required

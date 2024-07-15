@@ -204,7 +204,7 @@ func (b *GridFSBucket) OpenDownloadStreamByName(
 ) (*GridFSDownloadStream, error) {
 	args, err := newOptionsFromBuilder[options.GridFSNameOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	numSkip := options.DefaultRevision
@@ -276,7 +276,7 @@ func (b *GridFSBucket) Find(
 ) (*Cursor, error) {
 	args, err := newOptionsFromBuilder[options.GridFSFindOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	find := options.Find()
@@ -549,7 +549,7 @@ func (b *GridFSBucket) parseGridFSUploadOptions(opts ...Options[options.GridFSUp
 
 	args, err := newOptionsFromBuilder[options.GridFSUploadOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args.ChunkSizeBytes != nil {

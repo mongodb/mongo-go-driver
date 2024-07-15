@@ -86,7 +86,7 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 	if temp.TxnOptions != nil {
 		txnArgs, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](temp.TxnOptions)
 		if err != nil {
-			return fmt.Errorf("failed to construct arguments from options: %w", err)
+			return fmt.Errorf("failed to construct options from builder: %w", err)
 		}
 
 		if rc := txnArgs.ReadConcern; rc != nil {

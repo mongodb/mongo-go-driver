@@ -528,7 +528,7 @@ func (c *ClientOptionsBuilder) Validate() error {
 	if opts.ServerAPIOptions != nil {
 		serverAPIopts, err := getOptions[ServerAPIOptions](opts.ServerAPIOptions)
 		if err != nil {
-			return fmt.Errorf("failed to construct arguments from options: %w", err)
+			return fmt.Errorf("failed to construct options from builder: %w", err)
 		}
 
 		if err := serverAPIopts.ServerAPIVersion.Validate(); err != nil {

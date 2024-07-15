@@ -206,7 +206,7 @@ func (s *Session) StartTransaction(opts ...Options[options.TransactionOptions]) 
 
 	args, err := newOptionsFromBuilder[options.TransactionOptions](opts...)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	coreOpts := &session.TransactionOptions{

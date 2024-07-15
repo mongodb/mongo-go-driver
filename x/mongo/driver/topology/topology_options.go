@@ -65,7 +65,7 @@ func newLogger(opts mongoutil.OptionsBuilder[options.LoggerOptions]) (*logger.Lo
 
 	args, err := mongoutil.NewOptionsFromBuilder[options.LoggerOptions](opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	componentLevels := make(map[logger.Component]logger.Level)
@@ -86,7 +86,7 @@ func newLogger(opts mongoutil.OptionsBuilder[options.LoggerOptions]) (*logger.Lo
 func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
 	args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	return NewConfigFromArgs(args, clock)

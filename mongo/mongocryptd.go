@@ -46,7 +46,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptionsBuilder) (*mongocry
 
 	args, err := newOptionsFromBuilder[options.AutoEncryptionOptions](opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if bypass, ok := args.ExtraOptions["mongocryptdBypassSpawn"]; ok {

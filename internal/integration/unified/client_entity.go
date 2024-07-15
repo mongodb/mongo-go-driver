@@ -186,7 +186,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 	if entityOptions.ServerAPIOptions != nil {
 		args, err := mongoutil.NewOptionsFromBuilder[options.ServerAPIOptions](entityOptions.ServerAPIOptions)
 		if err != nil {
-			return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+			return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 		}
 
 		if err := args.ServerAPIVersion.Validate(); err != nil {

@@ -134,7 +134,7 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %v", err)
+		return fmt.Errorf("failed to construct options from builder: %v", err)
 	}
 
 	for _, host := range hosts {
@@ -903,7 +903,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 	}
 
 	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
-	require.NoError(mt, err, "failed to construct arguments from options")
+	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
@@ -955,7 +955,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 	}
 
 	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
-	require.NoError(mt, err, "failed to construct arguments from options")
+	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
@@ -1003,7 +1003,7 @@ func executeReplaceOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 	}
 
 	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.ReplaceOptions](opts)
-	require.NoError(mt, err, "failed to construct arguments from options")
+	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)

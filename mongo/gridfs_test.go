@@ -86,7 +86,7 @@ func TestGridFS(t *testing.T) {
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
 				bucketArgs, err := newOptionsFromBuilder[options.BucketOptions](tt.bucketOpts)
-				require.NoError(t, err, "failed to construct arguments from options")
+				require.NoError(t, err, "failed to construct options from builder")
 
 				expectedBucketChunkSize := DefaultGridFSChunkSize
 				if tt.bucketOpts != nil && bucketArgs.ChunkSizeBytes != nil {
@@ -96,7 +96,7 @@ func TestGridFS(t *testing.T) {
 					"expected chunk size %v, got %v", expectedBucketChunkSize, bucket.chunkSize)
 
 				uploadArgs, err := newOptionsFromBuilder[options.GridFSUploadOptions](tt.uploadOpts)
-				require.NoError(t, err, "failed to construct arguments from options")
+				require.NoError(t, err, "failed to construct options from builder")
 
 				expectedUploadChunkSize := expectedBucketChunkSize
 				if tt.uploadOpts != nil && uploadArgs.ChunkSizeBytes != nil {

@@ -156,7 +156,7 @@ func (db *Database) processRunCommand(
 ) (*operation.Command, *session.Client, error) {
 	args, err := newOptionsFromBuilder[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	sess := sessionFromContext(ctx)
@@ -433,7 +433,7 @@ func (db *Database) ListCollections(
 
 	args, err := newOptionsFromBuilder[options.ListCollectionsOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	filterDoc, err := marshal(filter, db.bsonOpts, db.registry)
@@ -591,7 +591,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 func (db *Database) CreateCollection(ctx context.Context, name string, opts ...Options[options.CreateCollectionOptions]) error {
 	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	// Follow Client-Side Encryption specification to check for encryptedFields.
@@ -754,7 +754,7 @@ func (db *Database) createCollectionOperation(
 ) (*operation.Create, error) {
 	args, err := newOptionsFromBuilder[options.CreateCollectionOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	op := operation.NewCreate(name).ServerAPI(db.client.serverAPI)
@@ -897,7 +897,7 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		ServerAPI(db.client.serverAPI)
 	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args.Collation != nil {

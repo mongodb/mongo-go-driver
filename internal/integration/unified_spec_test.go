@@ -282,14 +282,14 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
 		args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](testClientOpts)
-		require.NoError(mt, err, "failed to construct arguments from options")
+		require.NoError(mt, err, "failed to construct options from builder")
 
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
 		if args.AutoEncryptionOptions != nil {
 			aeArgs, err := mongoutil.NewOptionsFromBuilder[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
-			require.NoError(mt, err, "failed to construct arguments from options")
+			require.NoError(mt, err, "failed to construct options from builder")
 
 			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
 			bypassQueryAnalysis := aeArgs.BypassQueryAnalysis != nil && *aeArgs.BypassQueryAnalysis

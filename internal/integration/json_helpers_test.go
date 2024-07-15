@@ -293,7 +293,7 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptionsBu
 
 			txnArgs, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](txnOpts)
 			if err != nil {
-				t.Fatalf("failed to construct arguments from options: %v", err)
+				t.Fatalf("failed to construct options from builder: %v", err)
 			}
 
 			if txnArgs.ReadConcern != nil {

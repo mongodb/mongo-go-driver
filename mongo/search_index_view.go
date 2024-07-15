@@ -53,7 +53,7 @@ func (siv SearchIndexView) List(
 
 	searchIdxArgs, err := newOptionsFromBuilder[options.SearchIndexesOptions](searchIdxOpts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	index := bson.D{}
@@ -115,7 +115,7 @@ func (siv SearchIndexView) CreateMany(
 		if model.Options != nil {
 			searchIndexArgs, err := newOptionsFromBuilder[options.SearchIndexesOptions](model.Options)
 			if err != nil {
-				return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+				return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 			}
 
 			iidx, indexes = bsoncore.AppendDocumentElementStart(indexes, strconv.Itoa(i))

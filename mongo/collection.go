@@ -308,7 +308,7 @@ func (coll *Collection) insert(
 
 	args, err := newOptionsFromBuilder[options.InsertManyOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	if args.BypassDocumentValidation != nil && *args.BypassDocumentValidation {
@@ -487,7 +487,7 @@ func (coll *Collection) delete(
 
 	args, err := newOptionsFromBuilder[options.DeleteOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	didx, doc := bsoncore.AppendDocumentStart(nil)
@@ -598,7 +598,7 @@ func (coll *Collection) updateOrReplace(
 
 	args, err := newOptionsFromBuilder[options.UpdateOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	// collation, arrayFilters, upsert, and hint are included on the individual update documents rather than as part of the
@@ -804,7 +804,7 @@ func (coll *Collection) ReplaceOne(
 
 	args, err := newOptionsFromBuilder[options.ReplaceOptions](opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
@@ -1147,7 +1147,7 @@ func (coll *Collection) EstimatedDocumentCount(
 
 	args, err := newOptionsFromBuilder[options.EstimatedDocumentCountOptions](opts...)
 	if err != nil {
-		return 0, fmt.Errorf("failed to construct arguments from options: %w", err)
+		return 0, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
@@ -1221,7 +1221,7 @@ func (coll *Collection) Distinct(
 
 	args, err := newOptionsFromBuilder[options.DistinctOptions](opts...)
 	if err != nil {
-		err = fmt.Errorf("failed to construct arguments from options: %w", err)
+		err = fmt.Errorf("failed to construct options from builder: %w", err)
 
 		return &DistinctResult{err: err}
 	}
@@ -1578,7 +1578,7 @@ func (coll *Collection) FindOneAndDelete(
 
 	args, err := newOptionsFromBuilder[options.FindOneAndDeleteOptions](opts...)
 	if err != nil {
-		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
+		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
 	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
@@ -1665,7 +1665,7 @@ func (coll *Collection) FindOneAndReplace(
 
 	args, err := newOptionsFromBuilder[options.FindOneAndReplaceOptions](opts...)
 	if err != nil {
-		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
+		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
 	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsoncore.TypeEmbeddedDocument, Data: r}).
@@ -1759,7 +1759,7 @@ func (coll *Collection) FindOneAndUpdate(
 
 	args, err := newOptionsFromBuilder[options.FindOneAndUpdateOptions](opts...)
 	if err != nil {
-		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
+		return &SingleResult{err: fmt.Errorf("failed to construct options from builder: %w", err)}
 	}
 
 	op := operation.NewFindAndModify(f).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
@@ -1889,7 +1889,7 @@ func (coll *Collection) SearchIndexes() SearchIndexView {
 func (coll *Collection) Drop(ctx context.Context, opts ...Options[options.DropCollectionOptions]) error {
 	args, err := newOptionsFromBuilder[options.DropCollectionOptions](opts...)
 	if err != nil {
-		return fmt.Errorf("failed to construct arguments from options: %w", err)
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	ef := args.EncryptedFields
