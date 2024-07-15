@@ -2318,7 +2318,6 @@ task_groups:
     tasks:
       - oidc-auth-test-latest
 
-<<<<<<< HEAD
   - name: testazureoidc_task_group
     setup_group:
       - func: fetch-source
