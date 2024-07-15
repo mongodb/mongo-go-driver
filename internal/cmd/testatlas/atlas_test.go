@@ -46,7 +46,7 @@ func TestAtlas(t *testing.T) {
 			t.Fatalf("error running test with TLS at index %d: %v", idx, err)
 		}
 
-		args, err := mongoutil.NewArgsFromOptions[options.ClientOptions](clientOpts)
+		args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](clientOpts)
 		if err != nil {
 			panic(fmt.Sprintf("failed to construct args from options: %v", err))
 		}

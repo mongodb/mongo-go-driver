@@ -340,7 +340,7 @@ func executeInsertMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 	return mt.Coll.InsertMany(context.Background(), docs, opts)
 }
 
-func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptions) {
+func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptionsBuilder) {
 	elems, _ := modifiersDoc.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -902,7 +902,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		}
 	}
 
-	updateArgs, err := mongoutil.NewArgsFromOptions[options.UpdateArgs](opts)
+	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
 	require.NoError(mt, err, "failed to construct arguments from options")
 
 	if updateArgs.Upsert == nil {
@@ -954,7 +954,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewArgsFromOptions[options.UpdateArgs](opts)
+	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
 	require.NoError(mt, err, "failed to construct arguments from options")
 
 	if updateArgs.Upsert == nil {
@@ -1002,7 +1002,7 @@ func executeReplaceOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewArgsFromOptions[options.ReplaceArgs](opts)
+	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.ReplaceOptions](opts)
 	require.NoError(mt, err, "failed to construct arguments from options")
 
 	if updateArgs.Upsert == nil {
@@ -1439,7 +1439,7 @@ func executeAdminCommandWithRetry(
 	mt *mtest.T,
 	client *mongo.Client,
 	cmd interface{},
-	opts ...mongo.Options[options.RunCmdArgs],
+	opts ...mongo.Options[options.RunCmdOptions],
 ) {
 	mt.Helper()
 

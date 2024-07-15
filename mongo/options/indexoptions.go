@@ -6,9 +6,9 @@
 
 package options
 
-// CreateIndexesArgs represents arguments that can be used to configure
+// CreateIndexesOptions represents arguments that can be used to configure
 // IndexView.CreateOne and IndexView.CreateMany operations.
-type CreateIndexesArgs struct {
+type CreateIndexesOptions struct {
 	// The number of data-bearing members of a replica set, including the primary, that must complete the index builds
 	// successfully before the primary marks the indexes as ready. This should either be a string or int32 value. The
 	// semantics of the values are as follows:
@@ -24,26 +24,26 @@ type CreateIndexesArgs struct {
 	CommitQuorum interface{}
 }
 
-// CreateIndexesOptions contains options to create indexes. Each option can be
-// set through setter functions. See documentation for each setter function for
-// an explanation of the option.
-type CreateIndexesOptions struct {
-	Opts []func(*CreateIndexesArgs) error
+// CreateIndexesOptionsBuilder contains options to create indexes. Each option
+// can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type CreateIndexesOptionsBuilder struct {
+	Opts []func(*CreateIndexesOptions) error
 }
 
 // CreateIndexes creates a new CreateIndexesOptions instance.
-func CreateIndexes() *CreateIndexesOptions {
-	return &CreateIndexesOptions{}
+func CreateIndexes() *CreateIndexesOptionsBuilder {
+	return &CreateIndexesOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CreateIndexesArgs setter functions.
-func (c *CreateIndexesOptions) ArgsSetters() []func(*CreateIndexesArgs) error {
+func (c *CreateIndexesOptionsBuilder) ArgsSetters() []func(*CreateIndexesOptions) error {
 	return c.Opts
 }
 
 // SetCommitQuorumInt sets the value for the CommitQuorum field as an int32.
-func (c *CreateIndexesOptions) SetCommitQuorumInt(quorum int32) *CreateIndexesOptions {
-	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+func (c *CreateIndexesOptionsBuilder) SetCommitQuorumInt(quorum int32) *CreateIndexesOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateIndexesOptions) error {
 		args.CommitQuorum = quorum
 
 		return nil
@@ -53,8 +53,8 @@ func (c *CreateIndexesOptions) SetCommitQuorumInt(quorum int32) *CreateIndexesOp
 }
 
 // SetCommitQuorumString sets the value for the CommitQuorum field as a string.
-func (c *CreateIndexesOptions) SetCommitQuorumString(quorum string) *CreateIndexesOptions {
-	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+func (c *CreateIndexesOptionsBuilder) SetCommitQuorumString(quorum string) *CreateIndexesOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateIndexesOptions) error {
 		args.CommitQuorum = quorum
 
 		return nil
@@ -64,8 +64,8 @@ func (c *CreateIndexesOptions) SetCommitQuorumString(quorum string) *CreateIndex
 }
 
 // SetCommitQuorumMajority sets the value for the CommitQuorum to special "majority" value.
-func (c *CreateIndexesOptions) SetCommitQuorumMajority() *CreateIndexesOptions {
-	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+func (c *CreateIndexesOptionsBuilder) SetCommitQuorumMajority() *CreateIndexesOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateIndexesOptions) error {
 		args.CommitQuorum = "majority"
 
 		return nil
@@ -75,8 +75,8 @@ func (c *CreateIndexesOptions) SetCommitQuorumMajority() *CreateIndexesOptions {
 }
 
 // SetCommitQuorumVotingMembers sets the value for the CommitQuorum to special "votingMembers" value.
-func (c *CreateIndexesOptions) SetCommitQuorumVotingMembers() *CreateIndexesOptions {
-	c.Opts = append(c.Opts, func(args *CreateIndexesArgs) error {
+func (c *CreateIndexesOptionsBuilder) SetCommitQuorumVotingMembers() *CreateIndexesOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateIndexesOptions) error {
 		args.CommitQuorum = "votingMembers"
 
 		return nil
@@ -85,54 +85,54 @@ func (c *CreateIndexesOptions) SetCommitQuorumVotingMembers() *CreateIndexesOpti
 	return c
 }
 
-// DropIndexesArgs represents arguments that can be used to configure
+// DropIndexesOptions represents arguments that can be used to configure
 // IndexView.DropOne and IndexView.DropAll operations.
-type DropIndexesArgs struct{}
+type DropIndexesOptions struct{}
 
-// DropIndexesOptions contains options to configure dropping indexes. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type DropIndexesOptions struct {
-	Opts []func(*DropIndexesArgs) error
+// DropIndexesOptionsBuilder contains options to configure dropping indexes.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type DropIndexesOptionsBuilder struct {
+	Opts []func(*DropIndexesOptions) error
 }
 
 // DropIndexes creates a new DropIndexesOptions instance.
-func DropIndexes() *DropIndexesOptions {
-	return &DropIndexesOptions{}
+func DropIndexes() *DropIndexesOptionsBuilder {
+	return &DropIndexesOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of DropIndexesArgs setter functions.
-func (d *DropIndexesOptions) ArgsSetters() []func(*DropIndexesArgs) error {
+func (d *DropIndexesOptionsBuilder) ArgsSetters() []func(*DropIndexesOptions) error {
 	return d.Opts
 }
 
-// ListIndexesArgs represents arguments that can be used to configure an
+// ListIndexesOptions represents arguments that can be used to configure an
 // IndexView.List operation.
-type ListIndexesArgs struct {
+type ListIndexesOptions struct {
 	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
 }
 
-// ListIndexesOptions contains options to configure count operations. Each
+// ListIndexesOptionsBuilder contains options to configure count operations. Each
 // option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type ListIndexesOptions struct {
-	Opts []func(*ListIndexesArgs) error
+type ListIndexesOptionsBuilder struct {
+	Opts []func(*ListIndexesOptions) error
 }
 
 // ListIndexes creates a new ListIndexesOptions instance.
-func ListIndexes() *ListIndexesOptions {
-	return &ListIndexesOptions{}
+func ListIndexes() *ListIndexesOptionsBuilder {
+	return &ListIndexesOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (l *ListIndexesOptions) ArgsSetters() []func(*ListIndexesArgs) error {
+func (l *ListIndexesOptionsBuilder) ArgsSetters() []func(*ListIndexesOptions) error {
 	return l.Opts
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
-	l.Opts = append(l.Opts, func(args *ListIndexesArgs) error {
+func (l *ListIndexesOptionsBuilder) SetBatchSize(i int32) *ListIndexesOptionsBuilder {
+	l.Opts = append(l.Opts, func(args *ListIndexesOptions) error {
 		args.BatchSize = &i
 
 		return nil
@@ -141,9 +141,9 @@ func (l *ListIndexesOptions) SetBatchSize(i int32) *ListIndexesOptions {
 	return l
 }
 
-// IndexArgs represents arguments that can be used to configure a new index
+// IndexOptions represents arguments that can be used to configure a new index
 // created through the IndexView.CreateOne or IndexView.CreateMany operations.
-type IndexArgs struct {
+type IndexOptions struct {
 	// The length of time, in seconds, for documents to remain in the collection. The default value is 0, which means
 	// that documents will remain in the collection until they're explicitly deleted or the collection is dropped.
 	ExpireAfterSeconds *int32
@@ -225,26 +225,26 @@ type IndexArgs struct {
 	Hidden *bool
 }
 
-// IndexOptions contains options to configure index operations. Each option
+// IndexOptionsBuilder contains options to configure index operations. Each option
 // can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type IndexOptions struct {
-	Opts []func(*IndexArgs) error
+type IndexOptionsBuilder struct {
+	Opts []func(*IndexOptions) error
 }
 
 // Index creates a new IndexOptions instance.
-func Index() *IndexOptions {
-	return &IndexOptions{}
+func Index() *IndexOptionsBuilder {
+	return &IndexOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of IndexArgs setter functions.
-func (i *IndexOptions) ArgsSetters() []func(*IndexArgs) error {
+func (i *IndexOptionsBuilder) ArgsSetters() []func(*IndexOptions) error {
 	return i.Opts
 }
 
 // SetExpireAfterSeconds sets value for the ExpireAfterSeconds field.
-func (i *IndexOptions) SetExpireAfterSeconds(seconds int32) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetExpireAfterSeconds(seconds int32) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.ExpireAfterSeconds = &seconds
 
 		return nil
@@ -254,8 +254,8 @@ func (i *IndexOptions) SetExpireAfterSeconds(seconds int32) *IndexOptions {
 }
 
 // SetName sets the value for the Name field.
-func (i *IndexOptions) SetName(name string) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetName(name string) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Name = &name
 
 		return nil
@@ -265,8 +265,8 @@ func (i *IndexOptions) SetName(name string) *IndexOptions {
 }
 
 // SetSparse sets the value of the Sparse field.
-func (i *IndexOptions) SetSparse(sparse bool) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetSparse(sparse bool) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Sparse = &sparse
 
 		return nil
@@ -276,8 +276,8 @@ func (i *IndexOptions) SetSparse(sparse bool) *IndexOptions {
 }
 
 // SetStorageEngine sets the value for the StorageEngine field.
-func (i *IndexOptions) SetStorageEngine(engine interface{}) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetStorageEngine(engine interface{}) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.StorageEngine = engine
 
 		return nil
@@ -287,8 +287,8 @@ func (i *IndexOptions) SetStorageEngine(engine interface{}) *IndexOptions {
 }
 
 // SetUnique sets the value for the Unique field.
-func (i *IndexOptions) SetUnique(unique bool) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetUnique(unique bool) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Unique = &unique
 
 		return nil
@@ -298,8 +298,8 @@ func (i *IndexOptions) SetUnique(unique bool) *IndexOptions {
 }
 
 // SetVersion sets the value for the Version field.
-func (i *IndexOptions) SetVersion(version int32) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetVersion(version int32) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Version = &version
 
 		return nil
@@ -309,8 +309,8 @@ func (i *IndexOptions) SetVersion(version int32) *IndexOptions {
 }
 
 // SetDefaultLanguage sets the value for the DefaultLanguage field.
-func (i *IndexOptions) SetDefaultLanguage(language string) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetDefaultLanguage(language string) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.DefaultLanguage = &language
 
 		return nil
@@ -320,8 +320,8 @@ func (i *IndexOptions) SetDefaultLanguage(language string) *IndexOptions {
 }
 
 // SetLanguageOverride sets the value of the LanguageOverride field.
-func (i *IndexOptions) SetLanguageOverride(override string) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetLanguageOverride(override string) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.LanguageOverride = &override
 
 		return nil
@@ -331,8 +331,8 @@ func (i *IndexOptions) SetLanguageOverride(override string) *IndexOptions {
 }
 
 // SetTextVersion sets the value for the TextVersion field.
-func (i *IndexOptions) SetTextVersion(version int32) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetTextVersion(version int32) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.TextVersion = &version
 
 		return nil
@@ -342,8 +342,8 @@ func (i *IndexOptions) SetTextVersion(version int32) *IndexOptions {
 }
 
 // SetWeights sets the value for the Weights field.
-func (i *IndexOptions) SetWeights(weights interface{}) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetWeights(weights interface{}) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Weights = weights
 
 		return nil
@@ -353,8 +353,8 @@ func (i *IndexOptions) SetWeights(weights interface{}) *IndexOptions {
 }
 
 // SetSphereVersion sets the value for the SphereVersion field.
-func (i *IndexOptions) SetSphereVersion(version int32) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetSphereVersion(version int32) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.SphereVersion = &version
 
 		return nil
@@ -364,8 +364,8 @@ func (i *IndexOptions) SetSphereVersion(version int32) *IndexOptions {
 }
 
 // SetBits sets the value for the Bits field.
-func (i *IndexOptions) SetBits(bits int32) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetBits(bits int32) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Bits = &bits
 
 		return nil
@@ -375,8 +375,8 @@ func (i *IndexOptions) SetBits(bits int32) *IndexOptions {
 }
 
 // SetMax sets the value for the Max field.
-func (i *IndexOptions) SetMax(max float64) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetMax(max float64) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Max = &max
 
 		return nil
@@ -386,8 +386,8 @@ func (i *IndexOptions) SetMax(max float64) *IndexOptions {
 }
 
 // SetMin sets the value for the Min field.
-func (i *IndexOptions) SetMin(min float64) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetMin(min float64) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Min = &min
 
 		return nil
@@ -397,8 +397,8 @@ func (i *IndexOptions) SetMin(min float64) *IndexOptions {
 }
 
 // SetBucketSize sets the value for the BucketSize field
-func (i *IndexOptions) SetBucketSize(bucketSize int32) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetBucketSize(bucketSize int32) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.BucketSize = &bucketSize
 
 		return nil
@@ -408,8 +408,8 @@ func (i *IndexOptions) SetBucketSize(bucketSize int32) *IndexOptions {
 }
 
 // SetPartialFilterExpression sets the value for the PartialFilterExpression field.
-func (i *IndexOptions) SetPartialFilterExpression(expression interface{}) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetPartialFilterExpression(expression interface{}) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.PartialFilterExpression = expression
 
 		return nil
@@ -419,8 +419,8 @@ func (i *IndexOptions) SetPartialFilterExpression(expression interface{}) *Index
 }
 
 // SetCollation sets the value for the Collation field.
-func (i *IndexOptions) SetCollation(collation *Collation) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetCollation(collation *Collation) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Collation = collation
 
 		return nil
@@ -430,8 +430,8 @@ func (i *IndexOptions) SetCollation(collation *Collation) *IndexOptions {
 }
 
 // SetWildcardProjection sets the value for the WildcardProjection field.
-func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetWildcardProjection(wildcardProjection interface{}) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.WildcardProjection = wildcardProjection
 
 		return nil
@@ -441,8 +441,8 @@ func (i *IndexOptions) SetWildcardProjection(wildcardProjection interface{}) *In
 }
 
 // SetHidden sets the value for the Hidden field.
-func (i *IndexOptions) SetHidden(hidden bool) *IndexOptions {
-	i.Opts = append(i.Opts, func(args *IndexArgs) error {
+func (i *IndexOptionsBuilder) SetHidden(hidden bool) *IndexOptionsBuilder {
+	i.Opts = append(i.Opts, func(args *IndexOptions) error {
 		args.Hidden = &hidden
 
 		return nil

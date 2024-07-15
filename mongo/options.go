@@ -12,17 +12,17 @@ import (
 
 // Options is an interface that wraps a method to return a list of setter
 // functions that can set a generic arguments type.
-type Options[T mongoutil.Args] interface {
+type Options[T mongoutil.Options] interface {
 	ArgsSetters() []func(*T) error
 }
 
-// newArgsFromOptions wraps the given mongo-level options in the internal
+// newOptionsFromBuilder wraps the given mongo-level options in the internal
 // mongoutil options, merging a slice of options in a last-one-wins algorithm.
-func newArgsFromOptions[T mongoutil.Args](opts ...Options[T]) (*T, error) {
-	mongoOpts := make([]mongoutil.MongoOptions[T], len(opts))
+func newOptionsFromBuilder[T mongoutil.Options](opts ...Options[T]) (*T, error) {
+	mongoOpts := make([]mongoutil.OptionsBuilder[T], len(opts))
 	for idx, opt := range opts {
 		mongoOpts[idx] = opt
 	}
 
-	return mongoutil.NewArgsFromOptions(mongoOpts...)
+	return mongoutil.NewOptionsFromBuilder(mongoOpts...)
 }

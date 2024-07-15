@@ -67,7 +67,7 @@ func closeImplicitSession(sess *session.Client) {
 }
 
 func newCollection(db *Database, name string, opts ...Options[options.CollectionOptions]) *Collection {
-	args, _ := newArgsFromOptions[options.CollectionOptions](opts...)
+	args, _ := newOptionsFromBuilder[options.CollectionOptions](opts...)
 
 	rc := db.readConcern
 	if args.ReadConcern != nil {
@@ -144,7 +144,7 @@ func (coll *Collection) copy() *Collection {
 func (coll *Collection) Clone(opts ...Options[options.CollectionOptions]) *Collection {
 	copyColl := coll.copy()
 
-	args, _ := newArgsFromOptions[options.CollectionOptions](opts...)
+	args, _ := newOptionsFromBuilder[options.CollectionOptions](opts...)
 
 	if args.ReadConcern != nil {
 		copyColl.readConcern = args.ReadConcern
@@ -229,7 +229,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 
 	// Ensure opts have the default case at the front.
 	opts = append([]Options[options.BulkWriteOptions]{options.BulkWrite()}, opts...)
-	args, err := newArgsFromOptions(opts...)
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 func (coll *Collection) insert(
 	ctx context.Context,
 	documents []interface{},
-	opts ...Options[options.InsertManyArgs],
+	opts ...Options[options.InsertManyOptions],
 ) ([]interface{}, error) {
 
 	if ctx == nil {
@@ -306,7 +306,7 @@ func (coll *Collection) insert(
 		Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).Ordered(true).
 		ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Logger(coll.client.logger)
 
-	args, err := newArgsFromOptions[options.InsertManyArgs](opts...)
+	args, err := newOptionsFromBuilder[options.InsertManyOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -361,9 +361,9 @@ func (coll *Collection) insert(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...Options[options.InsertOneArgs]) (*InsertOneResult, error) {
+	opts ...Options[options.InsertOneOptions]) (*InsertOneResult, error) {
 
-	args, err := newArgsFromOptions(opts...)
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -398,7 +398,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 func (coll *Collection) InsertMany(
 	ctx context.Context,
 	documents interface{},
-	opts ...Options[options.InsertManyArgs],
+	opts ...Options[options.InsertManyOptions],
 ) (*InsertManyResult, error) {
 
 	dv := reflect.ValueOf(documents)
@@ -447,7 +447,7 @@ func (coll *Collection) delete(
 	filter interface{},
 	deleteOne bool,
 	expectedRr returnResult,
-	opts ...Options[options.DeleteArgs],
+	opts ...Options[options.DeleteOptions],
 ) (*DeleteResult, error) {
 
 	if ctx == nil {
@@ -485,7 +485,7 @@ func (coll *Collection) delete(
 		limit = 1
 	}
 
-	args, err := newArgsFromOptions[options.DeleteArgs](opts...)
+	args, err := newOptionsFromBuilder[options.DeleteOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -559,7 +559,7 @@ func (coll *Collection) delete(
 func (coll *Collection) DeleteOne(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.DeleteArgs],
+	opts ...Options[options.DeleteOptions],
 ) (*DeleteResult, error) {
 	return coll.delete(ctx, filter, true, rrOne, opts...)
 }
@@ -577,7 +577,7 @@ func (coll *Collection) DeleteOne(
 func (coll *Collection) DeleteMany(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.DeleteArgs],
+	opts ...Options[options.DeleteOptions],
 ) (*DeleteResult, error) {
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
@@ -589,14 +589,14 @@ func (coll *Collection) updateOrReplace(
 	multi bool,
 	expectedRr returnResult,
 	checkDollarKey bool,
-	opts ...Options[options.UpdateArgs],
+	opts ...Options[options.UpdateOptions],
 ) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := newArgsFromOptions[options.UpdateArgs](opts...)
+	args, err := newOptionsFromBuilder[options.UpdateOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -708,7 +708,7 @@ func (coll *Collection) UpdateByID(
 	ctx context.Context,
 	id interface{},
 	update interface{},
-	opts ...Options[options.UpdateArgs],
+	opts ...Options[options.UpdateOptions],
 ) (*UpdateResult, error) {
 	if id == nil {
 		return nil, ErrNilValue
@@ -734,7 +734,7 @@ func (coll *Collection) UpdateOne(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...Options[options.UpdateArgs],
+	opts ...Options[options.UpdateOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -765,7 +765,7 @@ func (coll *Collection) UpdateMany(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...Options[options.UpdateArgs],
+	opts ...Options[options.UpdateOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -796,13 +796,13 @@ func (coll *Collection) ReplaceOne(
 	ctx context.Context,
 	filter interface{},
 	replacement interface{},
-	opts ...Options[options.ReplaceArgs],
+	opts ...Options[options.ReplaceOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := newArgsFromOptions[options.ReplaceArgs](opts...)
+	args, err := newOptionsFromBuilder[options.ReplaceOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -821,7 +821,7 @@ func (coll *Collection) ReplaceOne(
 		return nil, err
 	}
 
-	updateArgs := &options.UpdateArgs{
+	updateArgs := &options.UpdateOptions{
 		BypassDocumentValidation: args.BypassDocumentValidation,
 		Collation:                args.Collation,
 		Upsert:                   args.Upsert,
@@ -830,7 +830,7 @@ func (coll *Collection) ReplaceOne(
 		Comment:                  args.Comment,
 	}
 
-	updateOptions := mongoutil.NewOptionsFromArgs[options.UpdateArgs](updateArgs)
+	updateOptions := mongoutil.NewBuilderFromOptions[options.UpdateOptions](updateArgs)
 
 	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions)
 }
@@ -914,7 +914,7 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateOptions]) (cu
 		selector = makeOutputAggregateSelector(sess, a.readPreference, a.client.localThreshold)
 	}
 
-	args, err := newArgsFromOptions(opts...)
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1033,7 +1033,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		ctx = context.Background()
 	}
 
-	args, err := newArgsFromOptions[options.CountOptions](opts...)
+	args, err := newOptionsFromBuilder[options.CountOptions](opts...)
 	if err != nil {
 		return 0, err
 	}
@@ -1121,7 +1121,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/count/.
 func (coll *Collection) EstimatedDocumentCount(
 	ctx context.Context,
-	opts ...Options[options.EstimatedDocumentCountArgs],
+	opts ...Options[options.EstimatedDocumentCountOptions],
 ) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -1145,7 +1145,7 @@ func (coll *Collection) EstimatedDocumentCount(
 		rc = nil
 	}
 
-	args, err := newArgsFromOptions[options.EstimatedDocumentCountArgs](opts...)
+	args, err := newOptionsFromBuilder[options.EstimatedDocumentCountOptions](opts...)
 	if err != nil {
 		return 0, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -1189,7 +1189,7 @@ func (coll *Collection) Distinct(
 	ctx context.Context,
 	fieldName string,
 	filter interface{},
-	opts ...Options[options.DistinctArgs],
+	opts ...Options[options.DistinctOptions],
 ) *DistinctResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -1219,7 +1219,7 @@ func (coll *Collection) Distinct(
 
 	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 
-	args, err := newArgsFromOptions[options.DistinctArgs](opts...)
+	args, err := newOptionsFromBuilder[options.DistinctOptions](opts...)
 	if err != nil {
 		err = fmt.Errorf("failed to construct arguments from options: %w", err)
 
@@ -1277,8 +1277,8 @@ func (coll *Collection) Distinct(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...Options[options.FindArgs]) (*Cursor, error) {
-	args, err := newArgsFromOptions(opts...)
+	opts ...Options[options.FindOptions]) (*Cursor, error) {
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1286,7 +1286,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 }
 
 func (coll *Collection) find(ctx context.Context, filter interface{},
-	args *options.FindArgs) (cur *Cursor, err error) {
+	args *options.FindOptions) (cur *Cursor, err error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1450,9 +1450,9 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 	return newCursorWithSession(bc, coll.bsonOpts, coll.registry, sess)
 }
 
-func newFindArgsFromFindOneArgs(args *options.FindOneArgs) *options.FindArgs {
+func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptions {
 	var limit int64 = -1
-	v := &options.FindArgs{Limit: &limit}
+	v := &options.FindOptions{Limit: &limit}
 	if args != nil {
 		v.AllowPartialResults = args.AllowPartialResults
 		v.Collation = args.Collation
@@ -1479,13 +1479,13 @@ func newFindArgsFromFindOneArgs(args *options.FindOneArgs) *options.FindArgs {
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...Options[options.FindOneArgs]) *SingleResult {
+	opts ...Options[options.FindOneOptions]) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := newArgsFromOptions(opts...)
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil
 	}
@@ -1569,14 +1569,14 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 func (coll *Collection) FindOneAndDelete(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.FindOneAndDeleteArgs]) *SingleResult {
+	opts ...Options[options.FindOneAndDeleteOptions]) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
 
-	args, err := newArgsFromOptions[options.FindOneAndDeleteArgs](opts...)
+	args, err := newOptionsFromBuilder[options.FindOneAndDeleteOptions](opts...)
 	if err != nil {
 		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
 	}
@@ -1648,7 +1648,7 @@ func (coll *Collection) FindOneAndReplace(
 	ctx context.Context,
 	filter interface{},
 	replacement interface{},
-	opts ...Options[options.FindOneAndReplaceArgs],
+	opts ...Options[options.FindOneAndReplaceOptions],
 ) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
@@ -1663,7 +1663,7 @@ func (coll *Collection) FindOneAndReplace(
 		return &SingleResult{err: errors.New("replacement document cannot contain keys beginning with '$'")}
 	}
 
-	args, err := newArgsFromOptions[options.FindOneAndReplaceArgs](opts...)
+	args, err := newOptionsFromBuilder[options.FindOneAndReplaceOptions](opts...)
 	if err != nil {
 		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
 	}
@@ -1746,7 +1746,7 @@ func (coll *Collection) FindOneAndUpdate(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...Options[options.FindOneAndUpdateArgs]) *SingleResult {
+	opts ...Options[options.FindOneAndUpdateOptions]) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1757,7 +1757,7 @@ func (coll *Collection) FindOneAndUpdate(
 		return &SingleResult{err: err}
 	}
 
-	args, err := newArgsFromOptions[options.FindOneAndUpdateArgs](opts...)
+	args, err := newOptionsFromBuilder[options.FindOneAndUpdateOptions](opts...)
 	if err != nil {
 		return &SingleResult{err: fmt.Errorf("failed to construct arguments from options: %w", err)}
 	}
@@ -1886,8 +1886,8 @@ func (coll *Collection) SearchIndexes() SearchIndexView {
 
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
-func (coll *Collection) Drop(ctx context.Context, opts ...Options[options.DropCollectionArgs]) error {
-	args, err := newArgsFromOptions[options.DropCollectionArgs](opts...)
+func (coll *Collection) Drop(ctx context.Context, opts ...Options[options.DropCollectionOptions]) error {
+	args, err := newOptionsFromBuilder[options.DropCollectionOptions](opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}

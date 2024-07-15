@@ -22,8 +22,9 @@ var DefaultChunkSize int32 = 255 * 1024
 // DefaultRevision is the default revision number for a download by name operation.
 var DefaultRevision int32 = -1
 
-// BucketArgs represents arguments that can be used to configure GridFS bucket.
-type BucketArgs struct {
+// BucketOptions represents arguments that can be used to configure GridFS
+// bucket.
+type BucketOptions struct {
 	// The name of the bucket. The default value is "fs".
 	Name *string
 
@@ -43,29 +44,29 @@ type BucketArgs struct {
 	ReadPreference *readpref.ReadPref
 }
 
-// BucketOptions contains options to configure a gridfs bucket. Each option can
-// be set through setter functions. See documentation for each setter function
-// for an explanation of the option.
-type BucketOptions struct {
-	Opts []func(*BucketArgs) error
+// BucketOptionsBuilder contains options to configure a gridfs bucket. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type BucketOptionsBuilder struct {
+	Opts []func(*BucketOptions) error
 }
 
 // GridFSBucket creates a new BucketOptions instance.
-func GridFSBucket() *BucketOptions {
-	bo := &BucketOptions{}
+func GridFSBucket() *BucketOptionsBuilder {
+	bo := &BucketOptionsBuilder{}
 	bo.SetName(DefaultName).SetChunkSizeBytes(DefaultChunkSize)
 
 	return bo
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (b *BucketOptions) ArgsSetters() []func(*BucketArgs) error {
+func (b *BucketOptionsBuilder) ArgsSetters() []func(*BucketOptions) error {
 	return b.Opts
 }
 
 // SetName sets the value for the Name field.
-func (b *BucketOptions) SetName(name string) *BucketOptions {
-	b.Opts = append(b.Opts, func(args *BucketArgs) error {
+func (b *BucketOptionsBuilder) SetName(name string) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(args *BucketOptions) error {
 		args.Name = &name
 
 		return nil
@@ -75,8 +76,8 @@ func (b *BucketOptions) SetName(name string) *BucketOptions {
 }
 
 // SetChunkSizeBytes sets the value for the ChunkSize field.
-func (b *BucketOptions) SetChunkSizeBytes(i int32) *BucketOptions {
-	b.Opts = append(b.Opts, func(args *BucketArgs) error {
+func (b *BucketOptionsBuilder) SetChunkSizeBytes(i int32) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(args *BucketOptions) error {
 		args.ChunkSizeBytes = &i
 
 		return nil
@@ -86,8 +87,8 @@ func (b *BucketOptions) SetChunkSizeBytes(i int32) *BucketOptions {
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
-func (b *BucketOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptions {
-	b.Opts = append(b.Opts, func(args *BucketArgs) error {
+func (b *BucketOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(args *BucketOptions) error {
 		args.WriteConcern = wc
 
 		return nil
@@ -97,8 +98,8 @@ func (b *BucketOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *BucketOp
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
-func (b *BucketOptions) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptions {
-	b.Opts = append(b.Opts, func(args *BucketArgs) error {
+func (b *BucketOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(args *BucketOptions) error {
 		args.ReadConcern = rc
 
 		return nil
@@ -108,8 +109,8 @@ func (b *BucketOptions) SetReadConcern(rc *readconcern.ReadConcern) *BucketOptio
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
-func (b *BucketOptions) SetReadPreference(rp *readpref.ReadPref) *BucketOptions {
-	b.Opts = append(b.Opts, func(args *BucketArgs) error {
+func (b *BucketOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *BucketOptionsBuilder {
+	b.Opts = append(b.Opts, func(args *BucketOptions) error {
 		args.ReadPreference = rp
 
 		return nil
@@ -118,9 +119,9 @@ func (b *BucketOptions) SetReadPreference(rp *readpref.ReadPref) *BucketOptions 
 	return b
 }
 
-// GridFSUploadArgs represents arguments that can be used to configure a GridFS
+// GridFSUploadOptions represents arguments that can be used to configure a GridFS
 // upload operation.
-type GridFSUploadArgs struct {
+type GridFSUploadOptions struct {
 	// The number of bytes in each chunk in the bucket. The default value is DefaultChunkSize (255 KiB).
 	ChunkSizeBytes *int32
 
@@ -133,29 +134,29 @@ type GridFSUploadArgs struct {
 	Registry *bson.Registry
 }
 
-// GridFSUploadOptions contains options to configure a GridFS Upload. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type GridFSUploadOptions struct {
-	Opts []func(*GridFSUploadArgs) error
+// GridFSUploadOptionsBuilder contains options to configure a GridFS Upload.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type GridFSUploadOptionsBuilder struct {
+	Opts []func(*GridFSUploadOptions) error
 }
 
 // GridFSUpload creates a new GridFSUploadOptions instance.
-func GridFSUpload() *GridFSUploadOptions {
-	opts := &GridFSUploadOptions{}
+func GridFSUpload() *GridFSUploadOptionsBuilder {
+	opts := &GridFSUploadOptionsBuilder{}
 	opts.SetRegistry(bson.DefaultRegistry)
 
 	return opts
 }
 
 // ArgsSetters returns a list of GridFSUploadArgs setter functions.
-func (u *GridFSUploadOptions) ArgsSetters() []func(*GridFSUploadArgs) error {
+func (u *GridFSUploadOptionsBuilder) ArgsSetters() []func(*GridFSUploadOptions) error {
 	return u.Opts
 }
 
 // SetChunkSizeBytes sets the value for the ChunkSize field.
-func (u *GridFSUploadOptions) SetChunkSizeBytes(i int32) *GridFSUploadOptions {
-	u.Opts = append(u.Opts, func(args *GridFSUploadArgs) error {
+func (u *GridFSUploadOptionsBuilder) SetChunkSizeBytes(i int32) *GridFSUploadOptionsBuilder {
+	u.Opts = append(u.Opts, func(args *GridFSUploadOptions) error {
 		args.ChunkSizeBytes = &i
 
 		return nil
@@ -165,8 +166,8 @@ func (u *GridFSUploadOptions) SetChunkSizeBytes(i int32) *GridFSUploadOptions {
 }
 
 // SetMetadata sets the value for the Metadata field.
-func (u *GridFSUploadOptions) SetMetadata(doc interface{}) *GridFSUploadOptions {
-	u.Opts = append(u.Opts, func(args *GridFSUploadArgs) error {
+func (u *GridFSUploadOptionsBuilder) SetMetadata(doc interface{}) *GridFSUploadOptionsBuilder {
+	u.Opts = append(u.Opts, func(args *GridFSUploadOptions) error {
 		args.Metadata = doc
 
 		return nil
@@ -176,8 +177,8 @@ func (u *GridFSUploadOptions) SetMetadata(doc interface{}) *GridFSUploadOptions 
 }
 
 // SetRegistry sets the bson codec registry for the Registry field.
-func (u *GridFSUploadOptions) SetRegistry(registry *bson.Registry) *GridFSUploadOptions {
-	u.Opts = append(u.Opts, func(args *GridFSUploadArgs) error {
+func (u *GridFSUploadOptionsBuilder) SetRegistry(registry *bson.Registry) *GridFSUploadOptionsBuilder {
+	u.Opts = append(u.Opts, func(args *GridFSUploadOptions) error {
 		args.Registry = registry
 
 		return nil
@@ -186,9 +187,9 @@ func (u *GridFSUploadOptions) SetRegistry(registry *bson.Registry) *GridFSUpload
 	return u
 }
 
-// GridFSNameArgs represents arguments that can be used to configure a GridFS
+// GridFSNameOptions represents arguments that can be used to configure a GridFS
 // DownloadByName operation.
-type GridFSNameArgs struct {
+type GridFSNameOptions struct {
 	// Specifies the revision of the file to retrieve. Revision numbers are defined as follows:
 	//
 	// * 0 = the original stored file
@@ -202,26 +203,26 @@ type GridFSNameArgs struct {
 	Revision *int32
 }
 
-// GridFSNameOptions contains options to configure a GridFS name. Each option
-// can be set through setter functions. See documentation for each setter
+// GridFSNameOptionsBuilder contains options to configure a GridFS name. Each
+// option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type GridFSNameOptions struct {
-	Opts []func(*GridFSNameArgs) error
+type GridFSNameOptionsBuilder struct {
+	Opts []func(*GridFSNameOptions) error
 }
 
 // GridFSName creates a new GridFSNameOptions instance.
-func GridFSName() *GridFSNameOptions {
-	return &GridFSNameOptions{}
+func GridFSName() *GridFSNameOptionsBuilder {
+	return &GridFSNameOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of GridFSNameArgs setter functions.
-func (n *GridFSNameOptions) ArgsSetters() []func(*GridFSNameArgs) error {
+func (n *GridFSNameOptionsBuilder) ArgsSetters() []func(*GridFSNameOptions) error {
 	return n.Opts
 }
 
 // SetRevision sets the value for the Revision field.
-func (n *GridFSNameOptions) SetRevision(r int32) *GridFSNameOptions {
-	n.Opts = append(n.Opts, func(args *GridFSNameArgs) error {
+func (n *GridFSNameOptionsBuilder) SetRevision(r int32) *GridFSNameOptionsBuilder {
+	n.Opts = append(n.Opts, func(args *GridFSNameOptions) error {
 		args.Revision = &r
 
 		return nil
@@ -230,9 +231,9 @@ func (n *GridFSNameOptions) SetRevision(r int32) *GridFSNameOptions {
 	return n
 }
 
-// GridFSFindArgs represents options that can be used to configure a GridFS Find
+// GridFSFindOptions represents options that can be used to configure a GridFS Find
 // operation.
-type GridFSFindArgs struct {
+type GridFSFindOptions struct {
 	// If true, the server can write temporary data to disk while executing the find operation. The default value
 	// is false. This option is only valid for MongoDB versions >= 4.4. For previous server versions, the server will
 	// return an error if this option is used.
@@ -258,26 +259,26 @@ type GridFSFindArgs struct {
 	Sort interface{}
 }
 
-// GridFSFindOptions contains options to configure find operations. Each option
-// can be set through setter functions. See documentation for each setter
+// GridFSFindOptionsBuilder contains options to configure find operations. Each
+// option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type GridFSFindOptions struct {
-	Opts []func(*GridFSFindArgs) error
+type GridFSFindOptionsBuilder struct {
+	Opts []func(*GridFSFindOptions) error
 }
 
 // GridFSFind creates a new GridFSFindOptions instance.
-func GridFSFind() *GridFSFindOptions {
-	return &GridFSFindOptions{}
+func GridFSFind() *GridFSFindOptionsBuilder {
+	return &GridFSFindOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of GridFSFindArgs setter functions.
-func (f *GridFSFindOptions) ArgsSetters() []func(*GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) ArgsSetters() []func(*GridFSFindOptions) error {
 	return f.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
-func (f *GridFSFindOptions) SetAllowDiskUse(b bool) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) SetAllowDiskUse(b bool) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
 		args.AllowDiskUse = &b
 
 		return nil
@@ -287,8 +288,8 @@ func (f *GridFSFindOptions) SetAllowDiskUse(b bool) *GridFSFindOptions {
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (f *GridFSFindOptions) SetBatchSize(i int32) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) SetBatchSize(i int32) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
 		args.BatchSize = &i
 
 		return nil
@@ -298,8 +299,8 @@ func (f *GridFSFindOptions) SetBatchSize(i int32) *GridFSFindOptions {
 }
 
 // SetLimit sets the value for the Limit field.
-func (f *GridFSFindOptions) SetLimit(i int32) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) SetLimit(i int32) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
 		args.Limit = &i
 
 		return nil
@@ -309,8 +310,8 @@ func (f *GridFSFindOptions) SetLimit(i int32) *GridFSFindOptions {
 }
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
-func (f *GridFSFindOptions) SetNoCursorTimeout(b bool) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) SetNoCursorTimeout(b bool) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
 		args.NoCursorTimeout = &b
 
 		return nil
@@ -320,8 +321,8 @@ func (f *GridFSFindOptions) SetNoCursorTimeout(b bool) *GridFSFindOptions {
 }
 
 // SetSkip sets the value for the Skip field.
-func (f *GridFSFindOptions) SetSkip(i int32) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) SetSkip(i int32) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
 		args.Skip = &i
 
 		return nil
@@ -331,8 +332,8 @@ func (f *GridFSFindOptions) SetSkip(i int32) *GridFSFindOptions {
 }
 
 // SetSort sets the value for the Sort field.
-func (f *GridFSFindOptions) SetSort(sort interface{}) *GridFSFindOptions {
-	f.Opts = append(f.Opts, func(args *GridFSFindArgs) error {
+func (f *GridFSFindOptionsBuilder) SetSort(sort interface{}) *GridFSFindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *GridFSFindOptions) error {
 		args.Sort = sort
 
 		return nil

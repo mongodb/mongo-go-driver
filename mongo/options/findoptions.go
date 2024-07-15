@@ -10,8 +10,9 @@ import (
 	"time"
 )
 
-// FindArgs represents arguments that can be used to configure a Find operation.
-type FindArgs struct {
+// FindOptions represents arguments that can be used to configure a Find
+// operation.
+type FindOptions struct {
 	// AllowPartial results specifies whether the Find operation on a sharded cluster can return partial results if some
 	// shards are down rather than returning an error. The default value is false.
 	AllowPartialResults *bool
@@ -94,24 +95,24 @@ type FindArgs struct {
 	NoCursorTimeout *bool
 }
 
-// FindOptions represents functional options that configure an FindArgs.
-type FindOptions struct {
-	Opts []func(*FindArgs) error
+// FindOptionsBuilder represents functional options that configure an FindArgs.
+type FindOptionsBuilder struct {
+	Opts []func(*FindOptions) error
 }
 
 // Find creates a new FindOptions instance.
-func Find() *FindOptions {
-	return &FindOptions{}
+func Find() *FindOptionsBuilder {
+	return &FindOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of FindArgs setter functions.
-func (f *FindOptions) ArgsSetters() []func(*FindArgs) error {
+func (f *FindOptionsBuilder) ArgsSetters() []func(*FindOptions) error {
 	return f.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
-func (f *FindOptions) SetAllowDiskUse(b bool) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetAllowDiskUse(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.AllowDiskUse = &b
 		return nil
 	})
@@ -119,8 +120,8 @@ func (f *FindOptions) SetAllowDiskUse(b bool) *FindOptions {
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
-func (f *FindOptions) SetAllowPartialResults(b bool) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetAllowPartialResults(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.AllowPartialResults = &b
 		return nil
 	})
@@ -128,8 +129,8 @@ func (f *FindOptions) SetAllowPartialResults(b bool) *FindOptions {
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (f *FindOptions) SetBatchSize(i int32) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetBatchSize(i int32) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.BatchSize = &i
 		return nil
 	})
@@ -137,8 +138,8 @@ func (f *FindOptions) SetBatchSize(i int32) *FindOptions {
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetCollation(collation *Collation) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Collation = collation
 		return nil
 	})
@@ -146,8 +147,8 @@ func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOptions) SetComment(comment interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetComment(comment interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Comment = &comment
 		return nil
 	})
@@ -155,8 +156,8 @@ func (f *FindOptions) SetComment(comment interface{}) *FindOptions {
 }
 
 // SetCursorType sets the value for the CursorType field.
-func (f *FindOptions) SetCursorType(ct CursorType) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetCursorType(ct CursorType) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.CursorType = &ct
 		return nil
 	})
@@ -164,8 +165,8 @@ func (f *FindOptions) SetCursorType(ct CursorType) *FindOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOptions) SetHint(hint interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetHint(hint interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Hint = hint
 		return nil
 	})
@@ -173,8 +174,8 @@ func (f *FindOptions) SetHint(hint interface{}) *FindOptions {
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOptions) SetLet(let interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetLet(let interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Let = let
 		return nil
 	})
@@ -182,8 +183,8 @@ func (f *FindOptions) SetLet(let interface{}) *FindOptions {
 }
 
 // SetLimit sets the value for the Limit field.
-func (f *FindOptions) SetLimit(i int64) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Limit = &i
 		return nil
 	})
@@ -191,8 +192,8 @@ func (f *FindOptions) SetLimit(i int64) *FindOptions {
 }
 
 // SetMax sets the value for the Max field.
-func (f *FindOptions) SetMax(max interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetMax(max interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Max = max
 		return nil
 	})
@@ -200,8 +201,8 @@ func (f *FindOptions) SetMax(max interface{}) *FindOptions {
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetMaxAwaitTime(d time.Duration) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.MaxAwaitTime = &d
 		return nil
 	})
@@ -209,8 +210,8 @@ func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
 }
 
 // SetMin sets the value for the Min field.
-func (f *FindOptions) SetMin(min interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetMin(min interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Min = min
 		return nil
 	})
@@ -218,8 +219,8 @@ func (f *FindOptions) SetMin(min interface{}) *FindOptions {
 }
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
-func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetNoCursorTimeout(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.NoCursorTimeout = &b
 		return nil
 	})
@@ -227,8 +228,8 @@ func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOptions) SetProjection(projection interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetProjection(projection interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Projection = projection
 		return nil
 	})
@@ -236,8 +237,8 @@ func (f *FindOptions) SetProjection(projection interface{}) *FindOptions {
 }
 
 // SetReturnKey sets the value for the ReturnKey field.
-func (f *FindOptions) SetReturnKey(b bool) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetReturnKey(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.ReturnKey = &b
 		return nil
 	})
@@ -245,8 +246,8 @@ func (f *FindOptions) SetReturnKey(b bool) *FindOptions {
 }
 
 // SetShowRecordID sets the value for the ShowRecordID field.
-func (f *FindOptions) SetShowRecordID(b bool) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetShowRecordID(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.ShowRecordID = &b
 		return nil
 	})
@@ -254,8 +255,8 @@ func (f *FindOptions) SetShowRecordID(b bool) *FindOptions {
 }
 
 // SetSkip sets the value for the Skip field.
-func (f *FindOptions) SetSkip(i int64) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetSkip(i int64) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Skip = &i
 		return nil
 	})
@@ -263,16 +264,17 @@ func (f *FindOptions) SetSkip(i int64) *FindOptions {
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
-	f.Opts = append(f.Opts, func(args *FindArgs) error {
+func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOptions) error {
 		args.Sort = sort
 		return nil
 	})
 	return f
 }
 
-// FindOneArgs represents arguments that can be used to configure a FindOne operation.
-type FindOneArgs struct {
+// FindOneOptions represents arguments that can be used to configure a FindOne
+// operation.
+type FindOneOptions struct {
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
 	// returning an error. The default value is false.
 	AllowPartialResults *bool
@@ -320,24 +322,25 @@ type FindOneArgs struct {
 	Sort interface{}
 }
 
-// FindOneOptions represents functional options that configure an FindOneArgs.
-type FindOneOptions struct {
-	Opts []func(*FindOneArgs) error
+// FindOneOptionsBuilder represents functional options that configure an
+// FindOneArgs.
+type FindOneOptionsBuilder struct {
+	Opts []func(*FindOneOptions) error
 }
 
 // FindOne creates a new FindOneOptions instance.
-func FindOne() *FindOneOptions {
-	return &FindOneOptions{}
+func FindOne() *FindOneOptionsBuilder {
+	return &FindOneOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of FindOneArgs setter functions.
-func (f *FindOneOptions) ArgsSetters() []func(*FindOneArgs) error {
+func (f *FindOneOptionsBuilder) ArgsSetters() []func(*FindOneOptions) error {
 	return f.Opts
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
-func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetAllowPartialResults(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.AllowPartialResults = &b
 		return nil
 	})
@@ -345,8 +348,8 @@ func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetCollation(collation *Collation) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Collation = collation
 		return nil
 	})
@@ -354,8 +357,8 @@ func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneOptions) SetComment(comment interface{}) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetComment(comment interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Comment = &comment
 		return nil
 	})
@@ -363,8 +366,8 @@ func (f *FindOneOptions) SetComment(comment interface{}) *FindOneOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetHint(hint interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Hint = hint
 		return nil
 	})
@@ -372,8 +375,8 @@ func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
 }
 
 // SetMax sets the value for the Max field.
-func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Max = max
 		return nil
 	})
@@ -381,8 +384,8 @@ func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
 }
 
 // SetMin sets the value for the Min field.
-func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetMin(min interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Min = min
 		return nil
 	})
@@ -390,8 +393,8 @@ func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneOptions) SetProjection(projection interface{}) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetProjection(projection interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Projection = projection
 		return nil
 	})
@@ -399,8 +402,8 @@ func (f *FindOneOptions) SetProjection(projection interface{}) *FindOneOptions {
 }
 
 // SetReturnKey sets the value for the ReturnKey field.
-func (f *FindOneOptions) SetReturnKey(b bool) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetReturnKey(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.ReturnKey = &b
 		return nil
 	})
@@ -408,8 +411,8 @@ func (f *FindOneOptions) SetReturnKey(b bool) *FindOneOptions {
 }
 
 // SetShowRecordID sets the value for the ShowRecordID field.
-func (f *FindOneOptions) SetShowRecordID(b bool) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetShowRecordID(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.ShowRecordID = &b
 		return nil
 	})
@@ -417,8 +420,8 @@ func (f *FindOneOptions) SetShowRecordID(b bool) *FindOneOptions {
 }
 
 // SetSkip sets the value for the Skip field.
-func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetSkip(i int64) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Skip = &i
 		return nil
 	})
@@ -426,17 +429,17 @@ func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneOptions) SetSort(sort interface{}) *FindOneOptions {
-	f.Opts = append(f.Opts, func(args *FindOneArgs) error {
+func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneOptions) error {
 		args.Sort = sort
 		return nil
 	})
 	return f
 }
 
-// FindOneAndReplaceArgs represents arguments that can be used to configure a
+// FindOneAndReplaceOptions represents arguments that can be used to configure a
 // FindOneAndReplace instance.
-type FindOneAndReplaceArgs struct {
+type FindOneAndReplaceOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -484,26 +487,26 @@ type FindOneAndReplaceArgs struct {
 	Let interface{}
 }
 
-// FindOneAndReplaceOptions contains options to perform a findAndModify
+// FindOneAndReplaceOptionsBuilder contains options to perform a findAndModify
 // operation. Each option can be set through setter functions. See documentation
 // for each setter function for an explanation of the option.
-type FindOneAndReplaceOptions struct {
-	Opts []func(*FindOneAndReplaceArgs) error
+type FindOneAndReplaceOptionsBuilder struct {
+	Opts []func(*FindOneAndReplaceOptions) error
 }
 
 // FindOneAndReplace creates a new FindOneAndReplaceOptions instance.
-func FindOneAndReplace() *FindOneAndReplaceOptions {
-	return &FindOneAndReplaceOptions{}
+func FindOneAndReplace() *FindOneAndReplaceOptionsBuilder {
+	return &FindOneAndReplaceOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of FindOneAndReplaceArgs setter functions.
-func (f *FindOneAndReplaceOptions) ArgsSetters() []func(*FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) ArgsSetters() []func(*FindOneAndReplaceOptions) error {
 	return f.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (f *FindOneAndReplaceOptions) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.BypassDocumentValidation = &b
 
 		return nil
@@ -513,8 +516,8 @@ func (f *FindOneAndReplaceOptions) SetBypassDocumentValidation(b bool) *FindOneA
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetCollation(collation *Collation) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Collation = collation
 
 		return nil
@@ -524,8 +527,8 @@ func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAn
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -535,8 +538,8 @@ func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndRe
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneAndReplaceOptions) SetProjection(projection interface{}) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetProjection(projection interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Projection = projection
 
 		return nil
@@ -546,8 +549,8 @@ func (f *FindOneAndReplaceOptions) SetProjection(projection interface{}) *FindOn
 }
 
 // SetReturnDocument sets the value for the ReturnDocument field.
-func (f *FindOneAndReplaceOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.ReturnDocument = &rd
 
 		return nil
@@ -557,8 +560,8 @@ func (f *FindOneAndReplaceOptions) SetReturnDocument(rd ReturnDocument) *FindOne
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneAndReplaceOptions) SetSort(sort interface{}) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Sort = sort
 
 		return nil
@@ -568,8 +571,8 @@ func (f *FindOneAndReplaceOptions) SetSort(sort interface{}) *FindOneAndReplaceO
 }
 
 // SetUpsert sets the value for the Upsert field.
-func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetUpsert(b bool) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Upsert = &b
 
 		return nil
@@ -579,8 +582,8 @@ func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Hint = hint
 
 		return nil
@@ -590,8 +593,8 @@ func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceO
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndReplaceArgs) error {
+func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndReplaceOptions) error {
 		args.Let = let
 
 		return nil
@@ -600,9 +603,9 @@ func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOpt
 	return f
 }
 
-// FindOneAndUpdateArgs represents arguments that can be used to configure a
+// FindOneAndUpdateOptions represents arguments that can be used to configure a
 // FindOneAndUpdate options.
-type FindOneAndUpdateArgs struct {
+type FindOneAndUpdateOptions struct {
 	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
 	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the update will apply to all array elements.
@@ -655,26 +658,26 @@ type FindOneAndUpdateArgs struct {
 	Let interface{}
 }
 
-// FindOneAndUpdateOptions contains options to configure a findOneAndUpdate
-// operation. Each option can be set through setter functions. See documentation
-// for each setter function for an explanation of the option.
-type FindOneAndUpdateOptions struct {
-	Opts []func(*FindOneAndUpdateArgs) error
+// FindOneAndUpdateOptionsBuilder contains options to configure a
+// findOneAndUpdate operation. Each option can be set through setter functions.
+// See documentation for each setter function for an explanation of the option.
+type FindOneAndUpdateOptionsBuilder struct {
+	Opts []func(*FindOneAndUpdateOptions) error
 }
 
 // FindOneAndUpdate creates a new FindOneAndUpdateOptions instance.
-func FindOneAndUpdate() *FindOneAndUpdateOptions {
-	return &FindOneAndUpdateOptions{}
+func FindOneAndUpdate() *FindOneAndUpdateOptionsBuilder {
+	return &FindOneAndUpdateOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of FindOneAndUpdateArgs setter functions.
-func (f *FindOneAndUpdateOptions) ArgsSetters() []func(*FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) ArgsSetters() []func(*FindOneAndUpdateOptions) error {
 	return f.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (f *FindOneAndUpdateOptions) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.BypassDocumentValidation = &b
 
 		return nil
@@ -684,8 +687,8 @@ func (f *FindOneAndUpdateOptions) SetBypassDocumentValidation(b bool) *FindOneAn
 }
 
 // SetArrayFilters sets the value for the ArrayFilters field.
-func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetArrayFilters(filters ArrayFilters) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.ArrayFilters = &filters
 
 		return nil
@@ -695,8 +698,8 @@ func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOne
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetCollation(collation *Collation) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Collation = collation
 
 		return nil
@@ -706,8 +709,8 @@ func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAnd
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -717,8 +720,8 @@ func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpd
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneAndUpdateOptions) SetProjection(projection interface{}) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetProjection(projection interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Projection = projection
 
 		return nil
@@ -728,8 +731,8 @@ func (f *FindOneAndUpdateOptions) SetProjection(projection interface{}) *FindOne
 }
 
 // SetReturnDocument sets the value for the ReturnDocument field.
-func (f *FindOneAndUpdateOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.ReturnDocument = &rd
 
 		return nil
@@ -739,8 +742,8 @@ func (f *FindOneAndUpdateOptions) SetReturnDocument(rd ReturnDocument) *FindOneA
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneAndUpdateOptions) SetSort(sort interface{}) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Sort = sort
 
 		return nil
@@ -750,8 +753,8 @@ func (f *FindOneAndUpdateOptions) SetSort(sort interface{}) *FindOneAndUpdateOpt
 }
 
 // SetUpsert sets the value for the Upsert field.
-func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetUpsert(b bool) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Upsert = &b
 
 		return nil
@@ -761,8 +764,8 @@ func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Hint = hint
 
 		return nil
@@ -772,8 +775,8 @@ func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOpt
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndUpdateArgs) error {
+func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndUpdateOptions) error {
 		args.Let = let
 
 		return nil
@@ -782,9 +785,9 @@ func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptio
 	return f
 }
 
-// FindOneAndDeleteArgs represents arguments that can be used to configure a
+// FindOneAndDeleteOptions represents arguments that can be used to configure a
 // FindOneAndDelete operation.
-type FindOneAndDeleteArgs struct {
+type FindOneAndDeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
@@ -818,26 +821,26 @@ type FindOneAndDeleteArgs struct {
 	Let interface{}
 }
 
-// FindOneAndDeleteOptions contains options to configure delete operations. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type FindOneAndDeleteOptions struct {
-	Opts []func(*FindOneAndDeleteArgs) error
+// FindOneAndDeleteOptionsBuilder contains options to configure delete
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type FindOneAndDeleteOptionsBuilder struct {
+	Opts []func(*FindOneAndDeleteOptions) error
 }
 
 // FindOneAndDelete creates a new FindOneAndDeleteOptions instance.
-func FindOneAndDelete() *FindOneAndDeleteOptions {
-	return &FindOneAndDeleteOptions{}
+func FindOneAndDelete() *FindOneAndDeleteOptionsBuilder {
+	return &FindOneAndDeleteOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of FindOneAndDeleteArgs setter functions.
-func (f *FindOneAndDeleteOptions) ArgsSetters() []func(*FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) ArgsSetters() []func(*FindOneAndDeleteOptions) error {
 	return f.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAndDeleteOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) SetCollation(collation *Collation) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteOptions) error {
 		args.Collation = collation
 
 		return nil
@@ -847,8 +850,8 @@ func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAnd
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDeleteOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -858,8 +861,8 @@ func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDel
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneAndDeleteOptions) SetProjection(projection interface{}) *FindOneAndDeleteOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteOptions) error {
 		args.Projection = projection
 
 		return nil
@@ -869,8 +872,8 @@ func (f *FindOneAndDeleteOptions) SetProjection(projection interface{}) *FindOne
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteOptions) error {
 		args.Sort = sort
 
 		return nil
@@ -880,8 +883,8 @@ func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOpt
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteOptions) error {
 		args.Hint = hint
 
 		return nil
@@ -891,8 +894,8 @@ func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOpt
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOneAndDeleteOptions) SetLet(let interface{}) *FindOneAndDeleteOptions {
-	f.Opts = append(f.Opts, func(args *FindOneAndDeleteArgs) error {
+func (f *FindOneAndDeleteOptionsBuilder) SetLet(let interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(args *FindOneAndDeleteOptions) error {
 		args.Let = let
 
 		return nil

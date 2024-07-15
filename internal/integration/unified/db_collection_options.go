@@ -14,7 +14,7 @@ import (
 )
 
 type dbOrCollectionOptions struct {
-	DBOptions         *options.DatabaseOptions
+	DBOptions         *options.DatabaseOptionsBuilder
 	CollectionOptions *options.CollectionOptionsBuilder
 }
 

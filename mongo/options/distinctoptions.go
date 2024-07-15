@@ -6,9 +6,9 @@
 
 package options
 
-// DistinctArgs represents arguments that can be used to configure a Distinct
+// DistinctOptions represents arguments that can be used to configure a Distinct
 // operation.
-type DistinctArgs struct {
+type DistinctOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
@@ -19,26 +19,26 @@ type DistinctArgs struct {
 	Comment interface{}
 }
 
-// DistinctOptions contains options to configure distinct operations. Each
+// DistinctOptionsBuilder contains options to configure distinct operations. Each
 // option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type DistinctOptions struct {
-	Opts []func(*DistinctArgs) error
+type DistinctOptionsBuilder struct {
+	Opts []func(*DistinctOptions) error
 }
 
 // Distinct creates a new DistinctOptions instance.
-func Distinct() *DistinctOptions {
-	return &DistinctOptions{}
+func Distinct() *DistinctOptionsBuilder {
+	return &DistinctOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of DistinctArg setter functions.
-func (do *DistinctOptions) ArgsSetters() []func(*DistinctArgs) error {
+func (do *DistinctOptionsBuilder) ArgsSetters() []func(*DistinctOptions) error {
 	return do.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (do *DistinctOptions) SetCollation(c *Collation) *DistinctOptions {
-	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
+func (do *DistinctOptionsBuilder) SetCollation(c *Collation) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(args *DistinctOptions) error {
 		args.Collation = c
 
 		return nil
@@ -48,8 +48,8 @@ func (do *DistinctOptions) SetCollation(c *Collation) *DistinctOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (do *DistinctOptions) SetComment(comment interface{}) *DistinctOptions {
-	do.Opts = append(do.Opts, func(args *DistinctArgs) error {
+func (do *DistinctOptionsBuilder) SetComment(comment interface{}) *DistinctOptionsBuilder {
+	do.Opts = append(do.Opts, func(args *DistinctOptions) error {
 		args.Comment = comment
 
 		return nil

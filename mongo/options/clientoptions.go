@@ -212,7 +212,7 @@ type ClientOptions struct {
 	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
-	LoggerOptions            *LoggerOptions
+	LoggerOptions            *LoggerOptionsBuilder
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -227,7 +227,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
-	ServerAPIOptions         *ServerAPIOptions
+	ServerAPIOptions         *ServerAPIOptionsBuilder
 	ServerMonitoringMode     *string
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
@@ -526,7 +526,7 @@ func (c *ClientOptionsBuilder) Validate() error {
 
 	// verify server API version if ServerAPIOptions are passed in.
 	if args.ServerAPIOptions != nil {
-		serverAPIArgs, err := getArgs[ServerAPIArgs](args.ServerAPIOptions)
+		serverAPIArgs, err := getArgs[ServerAPIOptions](args.ServerAPIOptions)
 		if err != nil {
 			return fmt.Errorf("failed to construct arguments from options: %w", err)
 		}
@@ -758,7 +758,7 @@ func (c *ClientOptionsBuilder) SetLocalThreshold(d time.Duration) *ClientOptions
 
 // SetLoggerOptions specifies a LoggerOptions containing options for
 // configuring a logger.
-func (c *ClientOptionsBuilder) SetLoggerOptions(opts *LoggerOptions) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetLoggerOptions(opts *LoggerOptionsBuilder) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(args *ClientOptions) error {
 		args.LoggerOptions = opts
 
@@ -1134,7 +1134,7 @@ func (c *ClientOptionsBuilder) SetDisableOCSPEndpointCheck(disableCheck bool) *C
 // SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
 // when running commands. See the options.ServerAPIOptions documentation for more information about the supported
 // options.
-func (c *ClientOptionsBuilder) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetServerAPIOptions(opts *ServerAPIOptionsBuilder) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(args *ClientOptions) error {
 		args.ServerAPIOptions = opts
 

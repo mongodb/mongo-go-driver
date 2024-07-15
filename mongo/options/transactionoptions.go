@@ -12,9 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// TransactionArgs represents arguments that can be used to configure a
+// TransactionOptions represents arguments that can be used to configure a
 // transaction.
-type TransactionArgs struct {
+type TransactionOptions struct {
 	// The read concern for operations in the transaction. The default value is nil, which means that the default
 	// read concern of the session used to start the transaction will be used.
 	ReadConcern *readconcern.ReadConcern
@@ -28,26 +28,26 @@ type TransactionArgs struct {
 	WriteConcern *writeconcern.WriteConcern
 }
 
-// TransactionOptions contains arguments to configure count operations. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type TransactionOptions struct {
-	Opts []func(*TransactionArgs) error
+// TransactionOptionsBuilder contains arguments to configure count operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type TransactionOptionsBuilder struct {
+	Opts []func(*TransactionOptions) error
 }
 
 // Transaction creates a new TransactionOptions instance.
-func Transaction() *TransactionOptions {
-	return &TransactionOptions{}
+func Transaction() *TransactionOptionsBuilder {
+	return &TransactionOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of TransactionArgs setter functions.
-func (t *TransactionOptions) ArgsSetters() []func(*TransactionArgs) error {
+func (t *TransactionOptionsBuilder) ArgsSetters() []func(*TransactionOptions) error {
 	return t.Opts
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
-func (t *TransactionOptions) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptions {
-	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+func (t *TransactionOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *TransactionOptionsBuilder {
+	t.Opts = append(t.Opts, func(args *TransactionOptions) error {
 		args.ReadConcern = rc
 
 		return nil
@@ -57,8 +57,8 @@ func (t *TransactionOptions) SetReadConcern(rc *readconcern.ReadConcern) *Transa
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
-func (t *TransactionOptions) SetReadPreference(rp *readpref.ReadPref) *TransactionOptions {
-	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+func (t *TransactionOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *TransactionOptionsBuilder {
+	t.Opts = append(t.Opts, func(args *TransactionOptions) error {
 		args.ReadPreference = rp
 
 		return nil
@@ -68,8 +68,8 @@ func (t *TransactionOptions) SetReadPreference(rp *readpref.ReadPref) *Transacti
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
-func (t *TransactionOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptions {
-	t.Opts = append(t.Opts, func(args *TransactionArgs) error {
+func (t *TransactionOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *TransactionOptionsBuilder {
+	t.Opts = append(t.Opts, func(args *TransactionOptions) error {
 		args.WriteConcern = wc
 
 		return nil

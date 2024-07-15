@@ -118,7 +118,7 @@ func NewOptions() *Options {
 }
 
 // CollectionCreateOptions sets the options to pass to Database.CreateCollection() when creating a collection for a test.
-func (op *Options) CollectionCreateOptions(opts *options.CreateCollectionOptions) *Options {
+func (op *Options) CollectionCreateOptions(opts *options.CreateCollectionOptionsBuilder) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.collCreateOpts = opts
 	})

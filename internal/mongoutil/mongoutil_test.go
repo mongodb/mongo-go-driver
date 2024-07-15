@@ -24,7 +24,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 	// done in a separate test.
 	clientTests := []struct {
 		name string
-		opts []MongoOptions[options.ClientOptions]
+		opts []OptionsBuilder[options.ClientOptions]
 		want options.ClientOptions
 	}{
 		{
@@ -34,24 +34,24 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "no options",
-			opts: []MongoOptions[options.ClientOptions]{},
+			opts: []OptionsBuilder[options.ClientOptions]{},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "one option",
-			opts: []MongoOptions[options.ClientOptions]{
+			opts: []OptionsBuilder[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 			},
 			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "one nil option",
-			opts: []MongoOptions[options.ClientOptions]{nil},
+			opts: []OptionsBuilder[options.ClientOptions]{nil},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "many same options",
-			opts: []MongoOptions[options.ClientOptions]{
+			opts: []OptionsBuilder[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				options.Client().SetAppName("testApp"),
 			},
@@ -59,7 +59,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many different options (last one wins)",
-			opts: []MongoOptions[options.ClientOptions]{
+			opts: []OptionsBuilder[options.ClientOptions]{
 				options.Client().SetAppName("testApp1"),
 				options.Client().SetAppName("testApp2"),
 			},
@@ -67,12 +67,12 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options",
-			opts: []MongoOptions[options.ClientOptions]{nil, nil},
+			opts: []OptionsBuilder[options.ClientOptions]{nil, nil},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "many options where last is nil (non-nil wins)",
-			opts: []MongoOptions[options.ClientOptions]{
+			opts: []OptionsBuilder[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				nil,
 			},
@@ -80,7 +80,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options where first is nil (non-nil wins)",
-			opts: []MongoOptions[options.ClientOptions]{
+			opts: []OptionsBuilder[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 			},
@@ -88,7 +88,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options where middle is non-nil (non-nil wins)",
-			opts: []MongoOptions[options.ClientOptions]{
+			opts: []OptionsBuilder[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 				nil,
@@ -103,7 +103,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewArgsFromOptions[options.ClientOptions](test.opts...)
+			got, err := NewOptionsFromBuilder[options.ClientOptions](test.opts...)
 			assert.NoError(t, err)
 
 			// WLOG it should be enough to test a small subset of arguments.
@@ -151,9 +151,9 @@ func TestNewOptionsFromArgs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := NewOptionsFromArgs[options.ClientOptions](test.args)
+			opts := NewBuilderFromOptions[options.ClientOptions](test.args)
 
-			got, err := NewArgsFromOptions[options.ClientOptions](opts)
+			got, err := NewOptionsFromBuilder[options.ClientOptions](opts)
 			assert.NoError(t, err)
 
 			// WLOG it should be enough to test a small subset of arguments.

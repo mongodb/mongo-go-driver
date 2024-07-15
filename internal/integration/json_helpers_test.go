@@ -276,7 +276,7 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 }
 
 // create session options from a map
-func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
+func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptionsBuilder {
 	t.Helper()
 
 	sessOpts := options.Session()
@@ -291,7 +291,7 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 		case "defaultTransactionOptions":
 			txnOpts := createTransactionOptions(t, opt.Document())
 
-			txnArgs, err := mongoutil.NewArgsFromOptions[options.TransactionArgs](txnOpts)
+			txnArgs, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](txnOpts)
 			if err != nil {
 				t.Fatalf("failed to construct arguments from options: %v", err)
 			}
@@ -314,7 +314,7 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 }
 
 // create database options from a BSON document.
-func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptions {
+func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptionsBuilder {
 	t.Helper()
 
 	do := options.Database()
@@ -362,7 +362,7 @@ func createCollectionOptions(t testing.TB, opts bson.Raw) *options.CollectionOpt
 }
 
 // create transaction options from a map
-func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionOptions {
+func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionOptionsBuilder {
 	t.Helper()
 
 	txnOpts := options.Transaction()

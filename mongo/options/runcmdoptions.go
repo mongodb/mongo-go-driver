@@ -10,34 +10,34 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-// RunCmdArgs represents arguments that can be used to configure a RunCommand
+// RunCmdOptions represents arguments that can be used to configure a RunCommand
 // operation.
-type RunCmdArgs struct {
+type RunCmdOptions struct {
 	// The read preference to use for the operation. The default value is nil, which means that the primary read
 	// preference will be used.
 	ReadPreference *readpref.ReadPref
 }
 
-// RunCmdOptions contains options to configure runCommand operations. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type RunCmdOptions struct {
-	Opts []func(*RunCmdArgs) error
+// RunCmdOptionsBuilder contains options to configure runCommand operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type RunCmdOptionsBuilder struct {
+	Opts []func(*RunCmdOptions) error
 }
 
 // RunCmd creates a new RunCmdOptions instance.
-func RunCmd() *RunCmdOptions {
-	return &RunCmdOptions{}
+func RunCmd() *RunCmdOptionsBuilder {
+	return &RunCmdOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (rc *RunCmdOptions) ArgsSetters() []func(*RunCmdArgs) error {
+func (rc *RunCmdOptionsBuilder) ArgsSetters() []func(*RunCmdOptions) error {
 	return rc.Opts
 }
 
 // SetReadPreference sets value for the ReadPreference field.
-func (rc *RunCmdOptions) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptions {
-	rc.Opts = append(rc.Opts, func(args *RunCmdArgs) error {
+func (rc *RunCmdOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *RunCmdOptionsBuilder {
+	rc.Opts = append(rc.Opts, func(args *RunCmdOptions) error {
 		args.ReadPreference = rp
 
 		return nil

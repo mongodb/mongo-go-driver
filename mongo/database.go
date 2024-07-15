@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	defaultRunCmdOpts = []Options[options.RunCmdArgs]{options.RunCmd().SetReadPreference(readpref.Primary())}
+	defaultRunCmdOpts = []Options[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
 )
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
@@ -44,8 +44,8 @@ type Database struct {
 	registry       *bson.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...Options[options.DatabaseArgs]) *Database {
-	args, _ := newArgsFromOptions[options.DatabaseArgs](opts...)
+func newDatabase(client *Client, name string, opts ...Options[options.DatabaseOptions]) *Database {
+	args, _ := newOptionsFromBuilder[options.DatabaseOptions](opts...)
 
 	rc := client.readConcern
 	if args.ReadConcern != nil {
@@ -152,9 +152,9 @@ func (db *Database) processRunCommand(
 	ctx context.Context,
 	cmd interface{},
 	cursorCommand bool,
-	opts ...Options[options.RunCmdArgs],
+	opts ...Options[options.RunCmdOptions],
 ) (*operation.Command, *session.Client, error) {
-	args, err := newArgsFromOptions[options.RunCmdArgs](append(defaultRunCmdOpts, opts...)...)
+	args, err := newOptionsFromBuilder[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -234,7 +234,7 @@ func (db *Database) processRunCommand(
 func (db *Database) RunCommand(
 	ctx context.Context,
 	runCommand interface{},
-	opts ...Options[options.RunCmdArgs],
+	opts ...Options[options.RunCmdOptions],
 ) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -275,7 +275,7 @@ func (db *Database) RunCommand(
 func (db *Database) RunCommandCursor(
 	ctx context.Context,
 	runCommand interface{},
-	opts ...Options[options.RunCmdArgs],
+	opts ...Options[options.RunCmdOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -362,7 +362,7 @@ func (db *Database) Drop(ctx context.Context) error {
 func (db *Database) ListCollectionSpecifications(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.ListCollectionsArgs],
+	opts ...Options[options.ListCollectionsOptions],
 ) ([]*CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
@@ -425,13 +425,13 @@ func (db *Database) ListCollectionSpecifications(
 func (db *Database) ListCollections(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.ListCollectionsArgs],
+	opts ...Options[options.ListCollectionsOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := newArgsFromOptions[options.ListCollectionsArgs](opts...)
+	args, err := newOptionsFromBuilder[options.ListCollectionsOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -522,7 +522,7 @@ func (db *Database) ListCollections(
 func (db *Database) ListCollectionNames(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.ListCollectionsArgs],
+	opts ...Options[options.ListCollectionsOptions],
 ) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
@@ -588,8 +588,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
-func (db *Database) CreateCollection(ctx context.Context, name string, opts ...Options[options.CreateCollectionArgs]) error {
-	args, err := newArgsFromOptions(opts...)
+func (db *Database) CreateCollection(ctx context.Context, name string, opts ...Options[options.CreateCollectionOptions]) error {
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -661,7 +661,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 	ctx context.Context,
 	name string,
 	ef interface{},
-	opts ...Options[options.CreateCollectionArgs],
+	opts ...Options[options.CreateCollectionOptions],
 ) error {
 	efBSON, err := marshal(ef, db.bsonOpts, db.registry)
 	if err != nil {
@@ -739,7 +739,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 func (db *Database) createCollection(
 	ctx context.Context,
 	name string,
-	opts ...Options[options.CreateCollectionArgs],
+	opts ...Options[options.CreateCollectionOptions],
 ) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
@@ -750,9 +750,9 @@ func (db *Database) createCollection(
 
 func (db *Database) createCollectionOperation(
 	name string,
-	opts ...Options[options.CreateCollectionArgs],
+	opts ...Options[options.CreateCollectionOptions],
 ) (*operation.Create, error) {
-	args, err := newArgsFromOptions[options.CreateCollectionArgs](opts...)
+	args, err := newOptionsFromBuilder[options.CreateCollectionOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -773,7 +773,7 @@ func (db *Database) createCollectionOperation(
 		op.ChangeStreamPreAndPostImages(csppi)
 	}
 	if args.DefaultIndexOptions != nil {
-		defaultIndexArgs, err := newArgsFromOptions[options.DefaultIndexArgs](args.DefaultIndexOptions)
+		defaultIndexArgs, err := newOptionsFromBuilder[options.DefaultIndexOptions](args.DefaultIndexOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
 		}
@@ -825,7 +825,7 @@ func (db *Database) createCollectionOperation(
 		op.ExpireAfterSeconds(*args.ExpireAfterSeconds)
 	}
 	if args.TimeSeriesOptions != nil {
-		timeSeriesArgs, err := newArgsFromOptions[options.TimeSeriesArgs](args.TimeSeriesOptions)
+		timeSeriesArgs, err := newOptionsFromBuilder[options.TimeSeriesOptions](args.TimeSeriesOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
 		}
@@ -884,7 +884,7 @@ func (db *Database) createCollectionOperation(
 // The opts parameter can be used to specify options for the operation (see the options.CreateViewOptions
 // documentation).
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
-	opts ...Options[options.CreateViewArgs]) error {
+	opts ...Options[options.CreateViewOptions]) error {
 
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)
 	if err != nil {
@@ -895,7 +895,7 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		ViewOn(viewOn).
 		Pipeline(pipelineArray).
 		ServerAPI(db.client.serverAPI)
-	args, err := newArgsFromOptions(opts...)
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -942,14 +942,14 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
 // container for files.
-func (db *Database) GridFSBucket(opts ...Options[options.BucketArgs]) *GridFSBucket {
+func (db *Database) GridFSBucket(opts ...Options[options.BucketOptions]) *GridFSBucket {
 	b := &GridFSBucket{
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
 		db:        db,
 	}
 
-	bo, _ := newArgsFromOptions[options.BucketArgs](opts...)
+	bo, _ := newOptionsFromBuilder[options.BucketOptions](opts...)
 	if bo.Name != nil {
 		b.name = *bo.Name
 	}

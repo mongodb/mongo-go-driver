@@ -281,14 +281,14 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
-		args, err := mongoutil.NewArgsFromOptions[options.ClientOptions](testClientOpts)
+		args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](testClientOpts)
 		require.NoError(mt, err, "failed to construct arguments from options")
 
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
 		if args.AutoEncryptionOptions != nil {
-			aeArgs, err := mongoutil.NewArgsFromOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
+			aeArgs, err := mongoutil.NewOptionsFromBuilder[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
 			require.NoError(mt, err, "failed to construct arguments from options")
 
 			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
@@ -649,7 +649,7 @@ func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
 func executeSessionOperation(mt *mtest.T, op *operation, sess *mongo.Session) error {
 	switch op.Name {
 	case "startTransaction":
-		var txnOpts *options.TransactionOptions
+		var txnOpts *options.TransactionOptionsBuilder
 		if opts, err := op.Arguments.LookupErr("options"); err == nil {
 			txnOpts = createTransactionOptions(mt, opts.Document())
 		}
@@ -896,7 +896,7 @@ func executeClientOperation(mt *mtest.T, op *operation, sess *mongo.Session) err
 func setupSessions(mt *mtest.T, test *testCase) (*mongo.Session, *mongo.Session) {
 	mt.Helper()
 
-	var sess0Opts, sess1Opts *options.SessionOptions
+	var sess0Opts, sess1Opts *options.SessionOptionsBuilder
 	if opts, err := test.SessionOptions.LookupErr("session0"); err == nil {
 		sess0Opts = createSessionOptions(mt, opts.Document())
 	}

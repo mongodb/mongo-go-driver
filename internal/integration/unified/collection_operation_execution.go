@@ -1177,7 +1177,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []*mongoutil.ArgOptions[options.ListSearchIndexesArgs]
+	var opts []*mongoutil.OptionsBuilderWithCallback[options.ListSearchIndexesOptions]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1192,9 +1192,9 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
 			// Unmarshal the document into the AggregateOptions embedded object.
-			opt := &mongoutil.ArgOptions[options.ListSearchIndexesArgs]{
-				Args: &options.ListSearchIndexesArgs{},
-				Callback: func(args *options.ListSearchIndexesArgs) error {
+			opt := &mongoutil.OptionsBuilderWithCallback[options.ListSearchIndexesOptions]{
+				Options: &options.ListSearchIndexesOptions{},
+				Callback: func(args *options.ListSearchIndexesOptions) error {
 					args.AggregateOptions = &options.AggregateOptions{}
 
 					return bson.Unmarshal(val.Document(), args.AggregateOptions)
@@ -1207,7 +1207,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		}
 	}
 
-	aggregateOpts := make([]mongo.Options[options.ListSearchIndexesArgs], len(opts))
+	aggregateOpts := make([]mongo.Options[options.ListSearchIndexesOptions], len(opts))
 	for idx, opt := range opts {
 		aggregateOpts[idx] = opt
 	}

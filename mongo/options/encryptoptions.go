@@ -16,63 +16,63 @@ const (
 	QueryTypeEquality string = "equality"
 )
 
-// RangeArgs specifies index options for a Queryable Encryption field supporting
-// "rangePreview" queries. Beta: The Range algorithm is experimental only. It is
-// not intended for public use. It is subject to breaking changes.
-type RangeArgs struct {
+// RangeOptions specifies index options for a Queryable Encryption field
+// supporting "rangePreview" queries. Beta: The Range algorithm is experimental
+// only. It is not intended for public use. It is subject to breaking changes.
+type RangeOptions struct {
 	Min       *bson.RawValue
 	Max       *bson.RawValue
 	Sparsity  int64
 	Precision *int32
 }
 
-// RangeOptions contains options to configure RangeArgs for queryeable
+// RangeOptionsBuilder contains options to configure RangeArgs for queryeable
 // encryption. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
-type RangeOptions struct {
-	Opts []func(*RangeArgs) error
+type RangeOptionsBuilder struct {
+	Opts []func(*RangeOptions) error
 }
 
 // Range creates a new RangeOptions instance.
-func Range() *RangeOptions {
-	return &RangeOptions{}
+func Range() *RangeOptionsBuilder {
+	return &RangeOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of RangeArgs setter functions.
-func (ro *RangeOptions) ArgsSetters() []func(*RangeArgs) error {
+func (ro *RangeOptionsBuilder) ArgsSetters() []func(*RangeOptions) error {
 	return ro.Opts
 }
 
-// EncryptArgs represents options to explicitly encrypt a value.
-type EncryptArgs struct {
+// EncryptOptions represents options to explicitly encrypt a value.
+type EncryptOptions struct {
 	KeyID            *bson.Binary
 	KeyAltName       *string
 	Algorithm        string
 	QueryType        string
 	ContentionFactor *int64
-	RangeOptions     *RangeOptions
+	RangeOptions     *RangeOptionsBuilder
 }
 
-// EncryptOptions contains options to configure EncryptArgs for queryeable
-// encryption. Each option can be set through setter functions. See
+// EncryptOptionsBuilder contains options to configure EncryptArgs for
+// queryeable encryption. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
-type EncryptOptions struct {
-	Opts []func(*EncryptArgs) error
+type EncryptOptionsBuilder struct {
+	Opts []func(*EncryptOptions) error
 }
 
 // ArgsSetters returns a list of EncryptArgs setter functions.
-func (e *EncryptOptions) ArgsSetters() []func(*EncryptArgs) error {
+func (e *EncryptOptionsBuilder) ArgsSetters() []func(*EncryptOptions) error {
 	return e.Opts
 }
 
 // Encrypt creates a new EncryptOptions instance.
-func Encrypt() *EncryptOptions {
-	return &EncryptOptions{}
+func Encrypt() *EncryptOptionsBuilder {
+	return &EncryptOptionsBuilder{}
 }
 
 // SetKeyID specifies an _id of a data key. This should be a UUID (a primitive.Binary with subtype 4).
-func (e *EncryptOptions) SetKeyID(keyID bson.Binary) *EncryptOptions {
-	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
+func (e *EncryptOptionsBuilder) SetKeyID(keyID bson.Binary) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(args *EncryptOptions) error {
 		args.KeyID = &keyID
 
 		return nil
@@ -81,8 +81,8 @@ func (e *EncryptOptions) SetKeyID(keyID bson.Binary) *EncryptOptions {
 }
 
 // SetKeyAltName identifies a key vault document by 'keyAltName'.
-func (e *EncryptOptions) SetKeyAltName(keyAltName string) *EncryptOptions {
-	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
+func (e *EncryptOptionsBuilder) SetKeyAltName(keyAltName string) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(args *EncryptOptions) error {
 		args.KeyAltName = &keyAltName
 
 		return nil
@@ -98,8 +98,8 @@ func (e *EncryptOptions) SetKeyAltName(keyAltName string) *EncryptOptions {
 // - Unindexed
 // This is required.
 // Indexed and Unindexed are used for Queryable Encryption.
-func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
-	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
+func (e *EncryptOptionsBuilder) SetAlgorithm(algorithm string) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(args *EncryptOptions) error {
 		args.Algorithm = algorithm
 
 		return nil
@@ -112,8 +112,8 @@ func (e *EncryptOptions) SetAlgorithm(algorithm string) *EncryptOptions {
 // This should be one of the following:
 // - equality
 // QueryType is used for Queryable Encryption.
-func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
-	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
+func (e *EncryptOptionsBuilder) SetQueryType(queryType string) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(args *EncryptOptions) error {
 		args.QueryType = queryType
 
 		return nil
@@ -124,8 +124,8 @@ func (e *EncryptOptions) SetQueryType(queryType string) *EncryptOptions {
 
 // SetContentionFactor specifies the contention factor. It is only valid to set if algorithm is "Indexed".
 // ContentionFactor is used for Queryable Encryption.
-func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOptions {
-	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
+func (e *EncryptOptionsBuilder) SetContentionFactor(contentionFactor int64) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(args *EncryptOptions) error {
 		args.ContentionFactor = &contentionFactor
 
 		return nil
@@ -136,8 +136,8 @@ func (e *EncryptOptions) SetContentionFactor(contentionFactor int64) *EncryptOpt
 
 // SetRangeOptions specifies the options to use for explicit encryption with range. It is only valid to set if algorithm is "rangePreview".
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (e *EncryptOptions) SetRangeOptions(ro *RangeOptions) *EncryptOptions {
-	e.Opts = append(e.Opts, func(args *EncryptArgs) error {
+func (e *EncryptOptionsBuilder) SetRangeOptions(ro *RangeOptionsBuilder) *EncryptOptionsBuilder {
+	e.Opts = append(e.Opts, func(args *EncryptOptions) error {
 		args.RangeOptions = ro
 
 		return nil
@@ -148,8 +148,8 @@ func (e *EncryptOptions) SetRangeOptions(ro *RangeOptions) *EncryptOptions {
 
 // SetMin sets the range index minimum value.
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ro *RangeOptions) SetMin(min bson.RawValue) *RangeOptions {
-	ro.Opts = append(ro.Opts, func(args *RangeArgs) error {
+func (ro *RangeOptionsBuilder) SetMin(min bson.RawValue) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *RangeOptions) error {
 		args.Min = &min
 
 		return nil
@@ -160,8 +160,8 @@ func (ro *RangeOptions) SetMin(min bson.RawValue) *RangeOptions {
 
 // SetMax sets the range index maximum value.
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ro *RangeOptions) SetMax(max bson.RawValue) *RangeOptions {
-	ro.Opts = append(ro.Opts, func(args *RangeArgs) error {
+func (ro *RangeOptionsBuilder) SetMax(max bson.RawValue) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *RangeOptions) error {
 		args.Max = &max
 
 		return nil
@@ -172,8 +172,8 @@ func (ro *RangeOptions) SetMax(max bson.RawValue) *RangeOptions {
 
 // SetSparsity sets the range index sparsity.
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ro *RangeOptions) SetSparsity(sparsity int64) *RangeOptions {
-	ro.Opts = append(ro.Opts, func(args *RangeArgs) error {
+func (ro *RangeOptionsBuilder) SetSparsity(sparsity int64) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *RangeOptions) error {
 		args.Sparsity = sparsity
 
 		return nil
@@ -184,8 +184,8 @@ func (ro *RangeOptions) SetSparsity(sparsity int64) *RangeOptions {
 
 // SetPrecision sets the range index precision.
 // Beta: The Range algorithm is experimental only. It is not intended for public use. It is subject to breaking changes.
-func (ro *RangeOptions) SetPrecision(precision int32) *RangeOptions {
-	ro.Opts = append(ro.Opts, func(args *RangeArgs) error {
+func (ro *RangeOptionsBuilder) SetPrecision(precision int32) *RangeOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *RangeOptions) error {
 		args.Precision = &precision
 
 		return nil

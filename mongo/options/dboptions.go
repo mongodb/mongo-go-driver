@@ -13,8 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// DatabaseArgs represents arguments that can be used to configure a Database.
-type DatabaseArgs struct {
+// DatabaseOptions represents arguments that can be used to configure a
+// database.
+type DatabaseOptions struct {
 	// ReadConcern is the read concern to use for operations executed on the Database. The default value is nil, which means that
 	// the read concern of the Client used to configure the Database will be used.
 	ReadConcern *readconcern.ReadConcern
@@ -36,26 +37,26 @@ type DatabaseArgs struct {
 	Registry *bson.Registry
 }
 
-// DatabaseOptions contains options to configure a database object. Each option
-// can be set through setter functions. See documentation for each setter
+// DatabaseOptionsBuilder contains options to configure a database object. Each
+// option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type DatabaseOptions struct {
-	Opts []func(*DatabaseArgs) error
+type DatabaseOptionsBuilder struct {
+	Opts []func(*DatabaseOptions) error
 }
 
 // Database creates a new DatabaseOptions instance.
-func Database() *DatabaseOptions {
-	return &DatabaseOptions{}
+func Database() *DatabaseOptionsBuilder {
+	return &DatabaseOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of DatabaseArgs setter functions.
-func (d *DatabaseOptions) ArgsSetters() []func(*DatabaseArgs) error {
+func (d *DatabaseOptionsBuilder) ArgsSetters() []func(*DatabaseOptions) error {
 	return d.Opts
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
-func (d *DatabaseOptions) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptions {
-	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+func (d *DatabaseOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
 		args.ReadConcern = rc
 
 		return nil
@@ -65,8 +66,8 @@ func (d *DatabaseOptions) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseO
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
-func (d *DatabaseOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptions {
-	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+func (d *DatabaseOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
 		args.WriteConcern = wc
 
 		return nil
@@ -76,8 +77,8 @@ func (d *DatabaseOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *Databa
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
-func (d *DatabaseOptions) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptions {
-	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+func (d *DatabaseOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
 		args.ReadPreference = rp
 
 		return nil
@@ -87,8 +88,8 @@ func (d *DatabaseOptions) SetReadPreference(rp *readpref.ReadPref) *DatabaseOpti
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
-	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+func (d *DatabaseOptionsBuilder) SetBSONOptions(opts *BSONOptions) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
 		args.BSONOptions = opts
 
 		return nil
@@ -98,8 +99,8 @@ func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
 }
 
 // SetRegistry sets the value for the Registry field.
-func (d *DatabaseOptions) SetRegistry(r *bson.Registry) *DatabaseOptions {
-	d.Opts = append(d.Opts, func(args *DatabaseArgs) error {
+func (d *DatabaseOptionsBuilder) SetRegistry(r *bson.Registry) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DatabaseOptions) error {
 		args.Registry = r
 
 		return nil

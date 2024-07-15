@@ -315,7 +315,7 @@ func TestClient(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
 
-			args, _ := newArgsFromOptions[options.ClientOptions](opts)
+			args, _ := newOptionsFromBuilder[options.ClientOptions](opts)
 			got := args.GetURI()
 
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
@@ -413,7 +413,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("serverAPI version", func(t *testing.T) {
-		getServerAPIOptions := func() *options.ServerAPIOptions {
+		getServerAPIOptions := func() *options.ServerAPIOptionsBuilder {
 			return options.ServerAPI(options.ServerAPIVersion1).
 				SetStrict(false).SetDeprecationErrors(false)
 		}

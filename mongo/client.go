@@ -130,7 +130,7 @@ func Connect(opts ...Options[options.ClientOptions]) (*Client, error) {
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
 func newClient(opts ...Options[options.ClientOptions]) (*Client, error) {
-	args, err := newArgsFromOptions(opts...)
+	args, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -382,12 +382,12 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...Options[options.SessionArgs]) (*Session, error) {
+func (c *Client) StartSession(opts ...Options[options.SessionOptions]) (*Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
 
-	sessArgs, err := newArgsFromOptions(opts...)
+	sessArgs, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +460,7 @@ func (c *Client) endSessions(ctx context.Context) {
 }
 
 func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
-	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
+	aeArgs, err := newOptionsFromBuilder[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -501,7 +501,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client
 	argsCopy.AutoEncryptionOptions = nil
 	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
 
-	opts := &mongoutil.ArgOptions[options.ClientOptions]{Args: &argsCopy}
+	opts := &mongoutil.OptionsBuilderWithCallback[options.ClientOptions]{Options: &argsCopy}
 
 	var err error
 	c.internalClientFLE, err = newClient(opts)
@@ -511,7 +511,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client
 
 func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientOptions) error {
 	// parse key vault options and create new key vault client
-	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
+	aeArgs, err := newOptionsFromBuilder[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -536,7 +536,7 @@ func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientOptions) e
 
 func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) error {
 	// parse key vault options and create new key vault client
-	aeArgs, err := newArgsFromOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
+	aeArgs, err := newOptionsFromBuilder[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
 	if err != nil {
 		return fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -555,7 +555,7 @@ func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) e
 }
 
 func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
-	args, err := newArgsFromOptions[options.AutoEncryptionOptions](opts)
+	args, err := newOptionsFromBuilder[options.AutoEncryptionOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}
@@ -643,7 +643,7 @@ func (c *Client) newMongoCrypt(opts Options[options.AutoEncryptionOptions]) (*mo
 
 //nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
 func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts Options[options.AutoEncryptionOptions]) {
-	args, _ := newArgsFromOptions[options.AutoEncryptionOptions](opts)
+	args, _ := newOptionsFromBuilder[options.AutoEncryptionOptions](opts)
 
 	bypass := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
 	kr := keyRetriever{coll: c.keyVaultCollFLE}
@@ -674,7 +674,7 @@ func (c *Client) validSession(sess *session.Client) error {
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
-func (c *Client) Database(name string, opts ...Options[options.DatabaseArgs]) *Database {
+func (c *Client) Database(name string, opts ...Options[options.DatabaseOptions]) *Database {
 	return newDatabase(c, name, opts...)
 }
 
@@ -687,7 +687,7 @@ func (c *Client) Database(name string, opts ...Options[options.DatabaseArgs]) *D
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...Options[options.ListDatabasesArgs]) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...Options[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -724,7 +724,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
-	lda, err := newArgsFromOptions(opts...)
+	lda, err := newOptionsFromBuilder(opts...)
 	if err != nil {
 		return ListDatabasesResult{}, err
 	}
@@ -765,7 +765,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...Options[options.ListDatabasesArgs]) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...Options[options.ListDatabasesOptions]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -823,7 +823,7 @@ func (c *Client) UseSession(ctx context.Context, fn func(context.Context) error)
 // not safe for concurrent use by multiple goroutines.
 func (c *Client) UseSessionWithOptions(
 	ctx context.Context,
-	opts *options.SessionOptions,
+	opts *options.SessionOptionsBuilder,
 	fn func(context.Context) error,
 ) error {
 	defaultSess, err := c.StartSession(opts)
@@ -886,13 +886,13 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
 // messages using a LogSink.
-func newLogger(opts Options[options.LoggerArgs]) (*logger.Logger, error) {
+func newLogger(opts Options[options.LoggerOptions]) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {
 		opts = options.Logger()
 	}
 
-	args, err := newArgsFromOptions[options.LoggerArgs](opts)
+	args, err := newOptionsFromBuilder[options.LoggerOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 	}

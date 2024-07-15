@@ -6,9 +6,9 @@
 
 package options
 
-// InsertOneArgs represents arguments that can be used to configure an InsertOne
+// InsertOneOptions represents arguments that can be used to configure an InsertOne
 // operation.
-type InsertOneArgs struct {
+type InsertOneOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -20,24 +20,25 @@ type InsertOneArgs struct {
 	Comment interface{}
 }
 
-// InsertOneOptions represents functional options that configure an InsertOneArgs.
-type InsertOneOptions struct {
-	Opts []func(*InsertOneArgs) error
+// InsertOneOptionsBuilder represents functional options that configure an
+// InsertOneArgs.
+type InsertOneOptionsBuilder struct {
+	Opts []func(*InsertOneOptions) error
 }
 
 // InsertOne creates a new InsertOneOptions instance.
-func InsertOne() *InsertOneOptions {
-	return &InsertOneOptions{}
+func InsertOne() *InsertOneOptionsBuilder {
+	return &InsertOneOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of InsertOneArgs setter functions.
-func (ioo *InsertOneOptions) ArgsSetters() []func(*InsertOneArgs) error {
+func (ioo *InsertOneOptionsBuilder) ArgsSetters() []func(*InsertOneOptions) error {
 	return ioo.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (ioo *InsertOneOptions) SetBypassDocumentValidation(b bool) *InsertOneOptions {
-	ioo.Opts = append(ioo.Opts, func(args *InsertOneArgs) error {
+func (ioo *InsertOneOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertOneOptionsBuilder {
+	ioo.Opts = append(ioo.Opts, func(args *InsertOneOptions) error {
 		args.BypassDocumentValidation = &b
 		return nil
 	})
@@ -45,17 +46,17 @@ func (ioo *InsertOneOptions) SetBypassDocumentValidation(b bool) *InsertOneOptio
 }
 
 // SetComment sets the value for the Comment field.
-func (ioo *InsertOneOptions) SetComment(comment interface{}) *InsertOneOptions {
-	ioo.Opts = append(ioo.Opts, func(args *InsertOneArgs) error {
+func (ioo *InsertOneOptionsBuilder) SetComment(comment interface{}) *InsertOneOptionsBuilder {
+	ioo.Opts = append(ioo.Opts, func(args *InsertOneOptions) error {
 		args.Comment = &comment
 		return nil
 	})
 	return ioo
 }
 
-// InsertManyArgs represents arguments that can be used to configure an
+// InsertManyOptions represents arguments that can be used to configure an
 // InsertMany operation.
-type InsertManyArgs struct {
+type InsertManyOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -70,29 +71,29 @@ type InsertManyArgs struct {
 	Ordered *bool
 }
 
-// InsertManyOptions contains options to configure insert operations. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type InsertManyOptions struct {
-	Opts []func(*InsertManyArgs) error
+// InsertManyOptionsBuilder contains options to configure insert operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type InsertManyOptionsBuilder struct {
+	Opts []func(*InsertManyOptions) error
 }
 
 // InsertMany creates a new InsertManyOptions instance.
-func InsertMany() *InsertManyOptions {
-	opts := &InsertManyOptions{}
+func InsertMany() *InsertManyOptionsBuilder {
+	opts := &InsertManyOptionsBuilder{}
 	opts.SetOrdered(DefaultOrdered)
 
 	return opts
 }
 
 // ArgsSetters returns a list of InsertManyArgs setter functions.
-func (imo *InsertManyOptions) ArgsSetters() []func(*InsertManyArgs) error {
+func (imo *InsertManyOptionsBuilder) ArgsSetters() []func(*InsertManyOptions) error {
 	return imo.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (imo *InsertManyOptions) SetBypassDocumentValidation(b bool) *InsertManyOptions {
-	imo.Opts = append(imo.Opts, func(args *InsertManyArgs) error {
+func (imo *InsertManyOptionsBuilder) SetBypassDocumentValidation(b bool) *InsertManyOptionsBuilder {
+	imo.Opts = append(imo.Opts, func(args *InsertManyOptions) error {
 		args.BypassDocumentValidation = &b
 
 		return nil
@@ -102,8 +103,8 @@ func (imo *InsertManyOptions) SetBypassDocumentValidation(b bool) *InsertManyOpt
 }
 
 // SetComment sets the value for the Comment field.
-func (imo *InsertManyOptions) SetComment(comment interface{}) *InsertManyOptions {
-	imo.Opts = append(imo.Opts, func(args *InsertManyArgs) error {
+func (imo *InsertManyOptionsBuilder) SetComment(comment interface{}) *InsertManyOptionsBuilder {
+	imo.Opts = append(imo.Opts, func(args *InsertManyOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -113,8 +114,8 @@ func (imo *InsertManyOptions) SetComment(comment interface{}) *InsertManyOptions
 }
 
 // SetOrdered sets the value for the Ordered field.
-func (imo *InsertManyOptions) SetOrdered(b bool) *InsertManyOptions {
-	imo.Opts = append(imo.Opts, func(args *InsertManyArgs) error {
+func (imo *InsertManyOptionsBuilder) SetOrdered(b bool) *InsertManyOptionsBuilder {
+	imo.Opts = append(imo.Opts, func(args *InsertManyOptions) error {
 		args.Ordered = &b
 
 		return nil

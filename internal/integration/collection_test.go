@@ -78,22 +78,22 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("options are converted", convertedOptsOpts, func(mt *mtest.T) {
 			nilOptsTestCases := []struct {
 				name            string
-				opts            []mongo.Options[options.InsertOneArgs]
+				opts            []mongo.Options[options.InsertOneOptions]
 				expectOptionSet bool
 			}{
 				{
 					"only nil is passed",
-					[]mongo.Options[options.InsertOneArgs]{nil},
+					[]mongo.Options[options.InsertOneOptions]{nil},
 					false,
 				},
 				{
 					"non-nil options is passed before nil",
-					[]mongo.Options[options.InsertOneArgs]{options.InsertOne().SetBypassDocumentValidation(true), nil},
+					[]mongo.Options[options.InsertOneOptions]{options.InsertOne().SetBypassDocumentValidation(true), nil},
 					true,
 				},
 				{
 					"non-nil options is passed after nil",
-					[]mongo.Options[options.InsertOneArgs]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
+					[]mongo.Options[options.InsertOneOptions]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
 					true,
 				},
 			}
@@ -856,7 +856,7 @@ func TestCollection(t *testing.T) {
 	mt.RunOpts("estimated document count", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name  string
-			opts  *options.EstimatedDocumentCountOptions
+			opts  *options.EstimatedDocumentCountOptionsBuilder
 			count int64
 		}{
 			{"no options", nil, 5},
@@ -877,7 +877,7 @@ func TestCollection(t *testing.T) {
 		testCases := []struct {
 			name   string
 			filter bson.D
-			opts   *options.DistinctOptions
+			opts   *options.DistinctOptionsBuilder
 			want   []int32
 		}{
 			{"no options", bson.D{}, nil, all},
@@ -1209,7 +1209,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneOptions
+				opts     *options.FindOneOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOne().SetHint(bson.M{"x": 1}), ""},
@@ -1269,7 +1269,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndDeleteOptions
+				opts     *options.FindOneAndDeleteOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndDelete().SetHint(bson.M{"x": 1}), ""},
@@ -1345,7 +1345,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndReplaceOptions
+				opts     *options.FindOneAndReplaceOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndReplace().SetHint(bson.M{"x": 1}), ""},
@@ -1427,7 +1427,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndUpdateOptions
+				opts     *options.FindOneAndUpdateOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndUpdate().SetHint(bson.M{"x": 1}), ""},

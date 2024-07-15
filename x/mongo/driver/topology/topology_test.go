@@ -560,7 +560,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 		documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
 	)
 
-	newLoggerOptions := func(sink options.LogSink) *options.LoggerOptions {
+	newLoggerOptions := func(sink options.LogSink) *options.LoggerOptionsBuilder {
 		return options.
 			Logger().
 			SetSink(sink).

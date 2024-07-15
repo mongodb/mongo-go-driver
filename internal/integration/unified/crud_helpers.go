@@ -23,7 +23,7 @@ func newMissingArgumentError(arg string) error {
 type updateArguments struct {
 	filter bson.Raw
 	update interface{}
-	opts   *options.UpdateOptions
+	opts   *options.UpdateOptionsBuilder
 }
 
 func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
@@ -85,7 +85,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 
 type listCollectionsArguments struct {
 	filter bson.Raw
-	opts   *options.ListCollectionsOptions
+	opts   *options.ListCollectionsOptionsBuilder
 }
 
 func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, error) {

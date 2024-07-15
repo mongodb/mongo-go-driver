@@ -6,34 +6,34 @@
 
 package options
 
-// EstimatedDocumentCountArgs represents arguments that can be used to configure
+// EstimatedDocumentCountOptions represents arguments that can be used to configure
 // an EstimatedDocumentCount operation.
-type EstimatedDocumentCountArgs struct {
+type EstimatedDocumentCountOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default is nil, which means that no comment will be included in the logs.
 	Comment interface{}
 }
 
-// EstimatedDocumentCountOptions contains options to estimate document count.
-// Each option can be set through setter functions. See documentation for each
-// setter function for an explanation of the option.
-type EstimatedDocumentCountOptions struct {
-	Opts []func(*EstimatedDocumentCountArgs) error
+// EstimatedDocumentCountOptionsBuilder contains options to estimate document
+// count. Each option can be set through setter functions. See documentation for
+// each setter function for an explanation of the option.
+type EstimatedDocumentCountOptionsBuilder struct {
+	Opts []func(*EstimatedDocumentCountOptions) error
 }
 
 // EstimatedDocumentCount creates a new EstimatedDocumentCountOptions instance.
-func EstimatedDocumentCount() *EstimatedDocumentCountOptions {
-	return &EstimatedDocumentCountOptions{}
+func EstimatedDocumentCount() *EstimatedDocumentCountOptionsBuilder {
+	return &EstimatedDocumentCountOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (eco *EstimatedDocumentCountOptions) ArgsSetters() []func(*EstimatedDocumentCountArgs) error {
+func (eco *EstimatedDocumentCountOptionsBuilder) ArgsSetters() []func(*EstimatedDocumentCountOptions) error {
 	return eco.Opts
 }
 
 // SetComment sets the value for the Comment field.
-func (eco *EstimatedDocumentCountOptions) SetComment(comment interface{}) *EstimatedDocumentCountOptions {
-	eco.Opts = append(eco.Opts, func(args *EstimatedDocumentCountArgs) error {
+func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{}) *EstimatedDocumentCountOptionsBuilder {
+	eco.Opts = append(eco.Opts, func(args *EstimatedDocumentCountOptions) error {
 		args.Comment = comment
 
 		return nil

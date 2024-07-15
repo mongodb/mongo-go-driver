@@ -6,9 +6,9 @@
 
 package options
 
-// ReplaceArgs represents arguments that can be used to configure a ReplaceOne
+// ReplaceOptions represents arguments that can be used to configure a ReplaceOne
 // operation.
-type ReplaceArgs struct {
+type ReplaceOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
 	// false. See https://www.mongodb.com/docs/manual/core/schema-validation/ for more information about document
@@ -43,26 +43,26 @@ type ReplaceArgs struct {
 	Let interface{}
 }
 
-// ReplaceOptions contains options to configure replace operations. Each option
-// can be set through setter functions. See documentation for each setter
+// ReplaceOptionsBuilder contains options to configure replace operations. Each
+// option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type ReplaceOptions struct {
-	Opts []func(*ReplaceArgs) error
+type ReplaceOptionsBuilder struct {
+	Opts []func(*ReplaceOptions) error
 }
 
 // Replace creates a new ReplaceOptions instance.
-func Replace() *ReplaceOptions {
-	return &ReplaceOptions{}
+func Replace() *ReplaceOptionsBuilder {
+	return &ReplaceOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (ro *ReplaceOptions) ArgsSetters() []func(*ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) ArgsSetters() []func(*ReplaceOptions) error {
 	return ro.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (ro *ReplaceOptions) SetBypassDocumentValidation(b bool) *ReplaceOptions {
-	ro.Opts = append(ro.Opts, func(args *ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *ReplaceOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
 		args.BypassDocumentValidation = &b
 
 		return nil
@@ -72,8 +72,8 @@ func (ro *ReplaceOptions) SetBypassDocumentValidation(b bool) *ReplaceOptions {
 }
 
 // SetCollation sets the value for the Collation field.
-func (ro *ReplaceOptions) SetCollation(c *Collation) *ReplaceOptions {
-	ro.Opts = append(ro.Opts, func(args *ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) SetCollation(c *Collation) *ReplaceOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
 		args.Collation = c
 
 		return nil
@@ -83,8 +83,8 @@ func (ro *ReplaceOptions) SetCollation(c *Collation) *ReplaceOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (ro *ReplaceOptions) SetComment(comment interface{}) *ReplaceOptions {
-	ro.Opts = append(ro.Opts, func(args *ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) SetComment(comment interface{}) *ReplaceOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -94,8 +94,8 @@ func (ro *ReplaceOptions) SetComment(comment interface{}) *ReplaceOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (ro *ReplaceOptions) SetHint(h interface{}) *ReplaceOptions {
-	ro.Opts = append(ro.Opts, func(args *ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) SetHint(h interface{}) *ReplaceOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
 		args.Hint = h
 
 		return nil
@@ -105,8 +105,8 @@ func (ro *ReplaceOptions) SetHint(h interface{}) *ReplaceOptions {
 }
 
 // SetUpsert sets the value for the Upsert field.
-func (ro *ReplaceOptions) SetUpsert(b bool) *ReplaceOptions {
-	ro.Opts = append(ro.Opts, func(args *ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) SetUpsert(b bool) *ReplaceOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
 		args.Upsert = &b
 
 		return nil
@@ -116,8 +116,8 @@ func (ro *ReplaceOptions) SetUpsert(b bool) *ReplaceOptions {
 }
 
 // SetLet sets the value for the Let field.
-func (ro *ReplaceOptions) SetLet(l interface{}) *ReplaceOptions {
-	ro.Opts = append(ro.Opts, func(args *ReplaceArgs) error {
+func (ro *ReplaceOptionsBuilder) SetLet(l interface{}) *ReplaceOptionsBuilder {
+	ro.Opts = append(ro.Opts, func(args *ReplaceOptions) error {
 		args.Let = l
 
 		return nil

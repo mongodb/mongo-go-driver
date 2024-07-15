@@ -104,13 +104,13 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
 		for _, model := range models {
-			args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](model.Options)
+			args, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](model.Options)
 			require.NoError(mt, err, "failed to construct arguments from options")
 
 			require.Contains(mt, indexes, *args.Name)
 		}
 
-		getDocument := func(opts *options.SearchIndexesOptions) bson.Raw {
+		getDocument := func(opts *options.SearchIndexesOptionsBuilder) bson.Raw {
 			for {
 				cursor, err := view.List(ctx, opts)
 				require.NoError(mt, err, "failed to list")
@@ -121,7 +121,7 @@ func TestSearchIndexProse(t *testing.T) {
 				name := cursor.Current.Lookup("name").StringValue()
 				queryable := cursor.Current.Lookup("queryable").Boolean()
 
-				args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](opts)
+				args, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](opts)
 				require.NoError(mt, err, "failed to construct arguments from options")
 
 				if name == *args.Name && queryable {
@@ -135,13 +135,13 @@ func TestSearchIndexProse(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(len(models))
 		for i := range models {
-			go func(opts *options.SearchIndexesOptions) {
+			go func(opts *options.SearchIndexesOptionsBuilder) {
 				defer wg.Done()
 
 				doc := getDocument(opts)
 				require.NotNil(mt, doc, "got empty document")
 
-				args, err := mongoutil.NewArgsFromOptions[options.SearchIndexesArgs](opts)
+				args, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](opts)
 				require.NoError(mt, err, "failed to construct arguments from options")
 
 				assert.Equal(mt, *args.Name, doc.Lookup("name").StringValue(), "unmatched name")

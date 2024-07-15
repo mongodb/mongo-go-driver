@@ -6,9 +6,9 @@
 
 package options
 
-// DeleteArgs represents arguments that can be used to configure DeleteOne and
-// DeleteMany operations.
-type DeleteArgs struct {
+// DeleteOptions represents arguments that can be used to configure DeleteOne
+// and DeleteMany operations.
+type DeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
@@ -33,26 +33,26 @@ type DeleteArgs struct {
 	Let interface{}
 }
 
-// DeleteOptions contains options to configure delete operations. Each option
-// can be set through setter functions. See documentation for each setter
+// DeleteOptionsBuilder contains options to configure delete operations. Each
+// option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type DeleteOptions struct {
-	Opts []func(*DeleteArgs) error
+type DeleteOptionsBuilder struct {
+	Opts []func(*DeleteOptions) error
 }
 
 // Delete creates a new DeleteOptions instance.
-func Delete() *DeleteOptions {
-	return &DeleteOptions{}
+func Delete() *DeleteOptionsBuilder {
+	return &DeleteOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of DeleteArgs setter functions.
-func (do *DeleteOptions) ArgsSetters() []func(*DeleteArgs) error {
+func (do *DeleteOptionsBuilder) ArgsSetters() []func(*DeleteOptions) error {
 	return do.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (do *DeleteOptions) SetCollation(c *Collation) *DeleteOptions {
-	do.Opts = append(do.Opts, func(args *DeleteArgs) error {
+func (do *DeleteOptionsBuilder) SetCollation(c *Collation) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
 		args.Collation = c
 
 		return nil
@@ -62,8 +62,8 @@ func (do *DeleteOptions) SetCollation(c *Collation) *DeleteOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (do *DeleteOptions) SetComment(comment interface{}) *DeleteOptions {
-	do.Opts = append(do.Opts, func(args *DeleteArgs) error {
+func (do *DeleteOptionsBuilder) SetComment(comment interface{}) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -73,8 +73,8 @@ func (do *DeleteOptions) SetComment(comment interface{}) *DeleteOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (do *DeleteOptions) SetHint(hint interface{}) *DeleteOptions {
-	do.Opts = append(do.Opts, func(args *DeleteArgs) error {
+func (do *DeleteOptionsBuilder) SetHint(hint interface{}) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
 		args.Hint = hint
 
 		return nil
@@ -84,8 +84,8 @@ func (do *DeleteOptions) SetHint(hint interface{}) *DeleteOptions {
 }
 
 // SetLet sets the value for the Let field.
-func (do *DeleteOptions) SetLet(let interface{}) *DeleteOptions {
-	do.Opts = append(do.Opts, func(args *DeleteArgs) error {
+func (do *DeleteOptionsBuilder) SetLet(let interface{}) *DeleteOptionsBuilder {
+	do.Opts = append(do.Opts, func(args *DeleteOptions) error {
 		args.Let = let
 
 		return nil

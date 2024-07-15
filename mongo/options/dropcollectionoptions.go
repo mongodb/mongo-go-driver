@@ -6,35 +6,35 @@
 
 package options
 
-// DropCollectionArgs represents arguments that can be used to configure a Drop
-// operation.
-type DropCollectionArgs struct {
+// DropCollectionOptions represents arguments that can be used to configure a
+// Drop operation.
+type DropCollectionOptions struct {
 	// EncryptedFields configures encrypted fields for encrypted collections.
 	//
 	// This option is only valid for MongoDB versions >= 6.0
 	EncryptedFields interface{}
 }
 
-// DropCollectionOptions contains options to configure collection drop
+// DropCollectionOptionsBuilder contains options to configure collection drop
 // operations. Each option can be set through setter functions. See
 // documentation for each setter function for an explanation of the option.
-type DropCollectionOptions struct {
-	Opts []func(*DropCollectionArgs) error
+type DropCollectionOptionsBuilder struct {
+	Opts []func(*DropCollectionOptions) error
 }
 
 // DropCollection creates a new DropCollectionOptions instance.
-func DropCollection() *DropCollectionOptions {
-	return &DropCollectionOptions{}
+func DropCollection() *DropCollectionOptionsBuilder {
+	return &DropCollectionOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of DropCollectionArgs setter functions.
-func (d *DropCollectionOptions) ArgsSetters() []func(*DropCollectionArgs) error {
+func (d *DropCollectionOptionsBuilder) ArgsSetters() []func(*DropCollectionOptions) error {
 	return d.Opts
 }
 
 // SetEncryptedFields sets the encrypted fields for encrypted collections.
-func (d *DropCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptions {
-	d.Opts = append(d.Opts, func(args *DropCollectionArgs) error {
+func (d *DropCollectionOptionsBuilder) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DropCollectionOptions) error {
 		args.EncryptedFields = encryptedFields
 
 		return nil

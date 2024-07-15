@@ -6,33 +6,33 @@
 
 package options
 
-// SearchIndexesArgs represents arguments that can be used to configure a
+// SearchIndexesOptions represents arguments that can be used to configure a
 // SearchIndexView.
-type SearchIndexesArgs struct {
+type SearchIndexesOptions struct {
 	Name *string
 	Type *string
 }
 
-// SearchIndexesOptions contains options to configure search index operations.
-// Each option can be set through setter functions. See documentation for each
-// setter function for an explanation of the option.
-type SearchIndexesOptions struct {
-	Opts []func(*SearchIndexesArgs) error
+// SearchIndexesOptionsBuilder contains options to configure search index
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type SearchIndexesOptionsBuilder struct {
+	Opts []func(*SearchIndexesOptions) error
 }
 
 // SearchIndexes creates a new SearchIndexesOptions instance.
-func SearchIndexes() *SearchIndexesOptions {
-	return &SearchIndexesOptions{}
+func SearchIndexes() *SearchIndexesOptionsBuilder {
+	return &SearchIndexesOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (sio *SearchIndexesOptions) ArgsSetters() []func(*SearchIndexesArgs) error {
+func (sio *SearchIndexesOptionsBuilder) ArgsSetters() []func(*SearchIndexesOptions) error {
 	return sio.Opts
 }
 
 // SetName sets the value for the Name field.
-func (sio *SearchIndexesOptions) SetName(name string) *SearchIndexesOptions {
-	sio.Opts = append(sio.Opts, func(args *SearchIndexesArgs) error {
+func (sio *SearchIndexesOptionsBuilder) SetName(name string) *SearchIndexesOptionsBuilder {
+	sio.Opts = append(sio.Opts, func(args *SearchIndexesOptions) error {
 		args.Name = &name
 
 		return nil
@@ -42,8 +42,8 @@ func (sio *SearchIndexesOptions) SetName(name string) *SearchIndexesOptions {
 }
 
 // SetType sets the value for the Type field.
-func (sio *SearchIndexesOptions) SetType(typ string) *SearchIndexesOptions {
-	sio.Opts = append(sio.Opts, func(args *SearchIndexesArgs) error {
+func (sio *SearchIndexesOptionsBuilder) SetType(typ string) *SearchIndexesOptionsBuilder {
+	sio.Opts = append(sio.Opts, func(args *SearchIndexesOptions) error {
 		args.Type = &typ
 
 		return nil
@@ -52,67 +52,67 @@ func (sio *SearchIndexesOptions) SetType(typ string) *SearchIndexesOptions {
 	return sio
 }
 
-// CreateSearchIndexesArgs represents arguments that can be used to configure a
-// SearchIndexView.CreateOne or SearchIndexView.CreateMany operation.
-type CreateSearchIndexesArgs struct{}
+// CreateSearchIndexesOptions represents arguments that can be used to configure
+// a SearchIndexView.CreateOne or SearchIndexView.CreateMany operation.
+type CreateSearchIndexesOptions struct{}
 
-// CreateSearchIndexesOptions contains options to configure creating search
-// indexes. Each option can be set through setter functions. See documentation
-// for each setter function for an explanation of the option.
-type CreateSearchIndexesOptions struct {
-	Opts []func(*CreateSearchIndexesArgs) error
+// CreateSearchIndexesOptionsBuilder contains options to configure creating
+// search indexes. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type CreateSearchIndexesOptionsBuilder struct {
+	Opts []func(*CreateSearchIndexesOptions) error
 }
 
 // ArgsSetters returns a list of CreateSearchIndexesArgs setter functions.
-func (csio *CreateSearchIndexesOptions) ArgsSetters() []func(*CreateSearchIndexesArgs) error {
+func (csio *CreateSearchIndexesOptionsBuilder) ArgsSetters() []func(*CreateSearchIndexesOptions) error {
 	return csio.Opts
 }
 
-// ListSearchIndexesArgs represents arguments that can be used to configure a
+// ListSearchIndexesOptions represents arguments that can be used to configure a
 // SearchIndexView.List operation.
-type ListSearchIndexesArgs struct {
+type ListSearchIndexesOptions struct {
 	AggregateOptions *AggregateOptions
 }
 
-// ListSearchIndexesOptions represents options that can be used to configure a
-// SearchIndexView.List operation.
-type ListSearchIndexesOptions struct {
-	Opts []func(*ListSearchIndexesArgs) error
+// ListSearchIndexesOptionsBuilder represents options that can be used to
+// configure a SearchIndexView.List operation.
+type ListSearchIndexesOptionsBuilder struct {
+	Opts []func(*ListSearchIndexesOptions) error
 }
 
 // ArgsSetters returns a list of ListSearchIndexesArgs setter functions.
-func (lsi *ListSearchIndexesOptions) ArgsSetters() []func(*ListSearchIndexesArgs) error {
+func (lsi *ListSearchIndexesOptionsBuilder) ArgsSetters() []func(*ListSearchIndexesOptions) error {
 	return lsi.Opts
 }
 
-// DropSearchIndexArgs represents arguments that can be used to configure a
+// DropSearchIndexOptions represents arguments that can be used to configure a
 // SearchIndexView.DropOne operation.
-type DropSearchIndexArgs struct{}
+type DropSearchIndexOptions struct{}
 
-// DropSearchIndexOptions contains options to configure dropping search indexes.
-// Each option can be set through setter functions. See documentation for each
-// setter function for an explanation of the option.
-type DropSearchIndexOptions struct {
-	Opts []func(*DropSearchIndexArgs) error
+// DropSearchIndexOptionsBuilder contains options to configure dropping search
+// indexes. Each option can be set through setter functions. See documentation
+// for each setter function for an explanation of the option.
+type DropSearchIndexOptionsBuilder struct {
+	Opts []func(*DropSearchIndexOptions) error
 }
 
 // ArgsSetters returns a list of DropSearchIndexArgs setter functions.
-func (dsio *DropSearchIndexOptions) ArgsSetters() []func(*DropSearchIndexArgs) error {
+func (dsio *DropSearchIndexOptionsBuilder) ArgsSetters() []func(*DropSearchIndexOptions) error {
 	return dsio.Opts
 }
 
-// UpdateSearchIndexArgs represents arguments that can be used to configure a
+// UpdateSearchIndexOptions represents arguments that can be used to configure a
 // SearchIndexView.UpdateOne operation.
-type UpdateSearchIndexArgs struct{}
+type UpdateSearchIndexOptions struct{}
 
-// UpdateSearchIndexOptions contains options to configure updating search
+// UpdateSearchIndexOptionsBuilder contains options to configure updating search
 // indexes. Each option can be set through setter functions. See documentation
 // for each setter function for an explanation of the option.
-type UpdateSearchIndexOptions struct {
-	Opts []func(*UpdateSearchIndexArgs) error
+type UpdateSearchIndexOptionsBuilder struct {
+	Opts []func(*UpdateSearchIndexOptions) error
 }
 
 // ArgsSetters returns a list of UpdateSearchIndexArgs setter functions.
-func (usio *UpdateSearchIndexOptions) ArgsSetters() []func(*UpdateSearchIndexArgs) error {
+func (usio *UpdateSearchIndexOptionsBuilder) ArgsSetters() []func(*UpdateSearchIndexOptions) error {
 	return usio.Opts
 }

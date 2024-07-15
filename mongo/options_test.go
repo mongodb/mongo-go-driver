@@ -19,68 +19,68 @@ func TestNewArgsFromOptions(t *testing.T) {
 
 	tests := []struct {
 		name string
-		opts []Options[options.FindArgs]
-		want *options.FindArgs
+		opts []Options[options.FindOptions]
+		want *options.FindOptions
 	}{
 		{
 			name: "nil",
 			opts: nil,
-			want: &options.FindArgs{},
+			want: &options.FindOptions{},
 		},
 		{
 			name: "empty",
-			opts: []Options[options.FindArgs]{},
-			want: &options.FindArgs{},
+			opts: []Options[options.FindOptions]{},
+			want: &options.FindOptions{},
 		},
 		{
 			name: "singleton",
-			opts: []Options[options.FindArgs]{
+			opts: []Options[options.FindOptions]{
 				options.Find().SetSkip(1),
 			},
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Skip: ptrutil.Ptr(int64(1)),
 			},
 		},
 		{
 			name: "multiplicity",
-			opts: []Options[options.FindArgs]{
+			opts: []Options[options.FindOptions]{
 				options.Find().SetSkip(1),
 				options.Find().SetSkip(2),
 			},
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 		{
 			name: "interior null",
-			opts: []Options[options.FindArgs]{
+			opts: []Options[options.FindOptions]{
 				options.Find().SetSkip(1),
 				nil,
 				options.Find().SetSkip(2),
 			},
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 		{
 			name: "start null",
-			opts: []Options[options.FindArgs]{
+			opts: []Options[options.FindOptions]{
 				nil,
 				options.Find().SetSkip(1),
 				options.Find().SetSkip(2),
 			},
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
 		{
 			name: "end null",
-			opts: []Options[options.FindArgs]{
+			opts: []Options[options.FindOptions]{
 				options.Find().SetSkip(1),
 				options.Find().SetSkip(2),
 				nil,
 			},
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Skip: ptrutil.Ptr(int64(2)),
 			},
 		},
@@ -92,7 +92,7 @@ func TestNewArgsFromOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := newArgsFromOptions(test.opts...)
+			got, err := newOptionsFromBuilder(test.opts...)
 			assert.NoError(t, err, "unexpected merging error")
 			assert.Equal(t, test.want, got)
 		})
@@ -118,6 +118,6 @@ func BenchmarkNewArgsFromOptions(b *testing.B) {
 
 	// Run the benchmark
 	for i := 0; i < b.N; i++ {
-		_, _ = newArgsFromOptions(mockOptions[i])
+		_, _ = newOptionsFromBuilder(mockOptions[i])
 	}
 }

@@ -10,36 +10,36 @@ import (
 	"time"
 )
 
-// DefaultIndexArgs represents the default arguments for a collection to
+// DefaultIndexOptions represents the default arguments for a collection to
 // apply on new indexes. This type can be used when creating a new collection
 // through the CreateCollectionOptions.SetDefaultIndexOptions method.
-type DefaultIndexArgs struct {
+type DefaultIndexOptions struct {
 	// Specifies the storage engine to use for the index. The value must be a document in the form
 	// {<storage engine name>: <options>}. The default value is nil, which means that the default storage engine
 	// will be used.
 	StorageEngine interface{}
 }
 
-// DefaultIndexOptions contains options to configure default index operations.
-// Each option can be set through setter functions. See documentation for each
-// setter function for an explanation of the option.
-type DefaultIndexOptions struct {
-	Opts []func(*DefaultIndexArgs) error
+// DefaultIndexOptionsBuilder contains options to configure default index
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type DefaultIndexOptionsBuilder struct {
+	Opts []func(*DefaultIndexOptions) error
 }
 
 // DefaultIndex creates a new DefaultIndexOptions instance.
-func DefaultIndex() *DefaultIndexOptions {
-	return &DefaultIndexOptions{}
+func DefaultIndex() *DefaultIndexOptionsBuilder {
+	return &DefaultIndexOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of DefaultIndexArgs setter functions.
-func (d *DefaultIndexOptions) ArgsSetters() []func(*DefaultIndexArgs) error {
+func (d *DefaultIndexOptionsBuilder) ArgsSetters() []func(*DefaultIndexOptions) error {
 	return d.Opts
 }
 
 // SetStorageEngine sets the value for the StorageEngine field.
-func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *DefaultIndexOptions {
-	d.Opts = append(d.Opts, func(args *DefaultIndexArgs) error {
+func (d *DefaultIndexOptionsBuilder) SetStorageEngine(storageEngine interface{}) *DefaultIndexOptionsBuilder {
+	d.Opts = append(d.Opts, func(args *DefaultIndexOptions) error {
 		args.StorageEngine = storageEngine
 
 		return nil
@@ -48,8 +48,8 @@ func (d *DefaultIndexOptions) SetStorageEngine(storageEngine interface{}) *Defau
 	return d
 }
 
-// TimeSeriesArgs specifies arguments on a time-series collection.
-type TimeSeriesArgs struct {
+// TimeSeriesOptions specifies arguments on a time-series collection.
+type TimeSeriesOptions struct {
 	// TimeField is the top-level field to be used for time. Inserted documents must have this field,
 	// and the field must be of the BSON UTC datetime type (0x9).
 	TimeField string
@@ -76,26 +76,26 @@ type TimeSeriesArgs struct {
 	BucketRounding *time.Duration
 }
 
-// TimeSeriesOptions contains options to configure timeseries operations.
+// TimeSeriesOptionsBuilder contains options to configure timeseries operations.
 // Each option can be set through setter functions. See documentation for each
 // setter function for an explanation of the option.
-type TimeSeriesOptions struct {
-	Opts []func(*TimeSeriesArgs) error
+type TimeSeriesOptionsBuilder struct {
+	Opts []func(*TimeSeriesOptions) error
 }
 
 // TimeSeries creates a new TimeSeriesOptions instance.
-func TimeSeries() *TimeSeriesOptions {
-	return &TimeSeriesOptions{}
+func TimeSeries() *TimeSeriesOptionsBuilder {
+	return &TimeSeriesOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of TimeSeriesArgs setter functions.
-func (tso *TimeSeriesOptions) ArgsSetters() []func(*TimeSeriesArgs) error {
+func (tso *TimeSeriesOptionsBuilder) ArgsSetters() []func(*TimeSeriesOptions) error {
 	return tso.Opts
 }
 
 // SetTimeField sets the value for the TimeField.
-func (tso *TimeSeriesOptions) SetTimeField(timeField string) *TimeSeriesOptions {
-	tso.Opts = append(tso.Opts, func(args *TimeSeriesArgs) error {
+func (tso *TimeSeriesOptionsBuilder) SetTimeField(timeField string) *TimeSeriesOptionsBuilder {
+	tso.Opts = append(tso.Opts, func(args *TimeSeriesOptions) error {
 		args.TimeField = timeField
 
 		return nil
@@ -105,8 +105,8 @@ func (tso *TimeSeriesOptions) SetTimeField(timeField string) *TimeSeriesOptions 
 }
 
 // SetMetaField sets the value for the MetaField.
-func (tso *TimeSeriesOptions) SetMetaField(metaField string) *TimeSeriesOptions {
-	tso.Opts = append(tso.Opts, func(args *TimeSeriesArgs) error {
+func (tso *TimeSeriesOptionsBuilder) SetMetaField(metaField string) *TimeSeriesOptionsBuilder {
+	tso.Opts = append(tso.Opts, func(args *TimeSeriesOptions) error {
 		args.MetaField = &metaField
 
 		return nil
@@ -116,8 +116,8 @@ func (tso *TimeSeriesOptions) SetMetaField(metaField string) *TimeSeriesOptions 
 }
 
 // SetGranularity sets the value for Granularity.
-func (tso *TimeSeriesOptions) SetGranularity(granularity string) *TimeSeriesOptions {
-	tso.Opts = append(tso.Opts, func(args *TimeSeriesArgs) error {
+func (tso *TimeSeriesOptionsBuilder) SetGranularity(granularity string) *TimeSeriesOptionsBuilder {
+	tso.Opts = append(tso.Opts, func(args *TimeSeriesOptions) error {
 		args.Granularity = &granularity
 
 		return nil
@@ -127,8 +127,8 @@ func (tso *TimeSeriesOptions) SetGranularity(granularity string) *TimeSeriesOpti
 }
 
 // SetBucketMaxSpan sets the value for BucketMaxSpan.
-func (tso *TimeSeriesOptions) SetBucketMaxSpan(dur time.Duration) *TimeSeriesOptions {
-	tso.Opts = append(tso.Opts, func(args *TimeSeriesArgs) error {
+func (tso *TimeSeriesOptionsBuilder) SetBucketMaxSpan(dur time.Duration) *TimeSeriesOptionsBuilder {
+	tso.Opts = append(tso.Opts, func(args *TimeSeriesOptions) error {
 		args.BucketMaxSpan = &dur
 
 		return nil
@@ -138,8 +138,8 @@ func (tso *TimeSeriesOptions) SetBucketMaxSpan(dur time.Duration) *TimeSeriesOpt
 }
 
 // SetBucketRounding sets the value for BucketRounding.
-func (tso *TimeSeriesOptions) SetBucketRounding(dur time.Duration) *TimeSeriesOptions {
-	tso.Opts = append(tso.Opts, func(args *TimeSeriesArgs) error {
+func (tso *TimeSeriesOptionsBuilder) SetBucketRounding(dur time.Duration) *TimeSeriesOptionsBuilder {
+	tso.Opts = append(tso.Opts, func(args *TimeSeriesOptions) error {
 		args.BucketRounding = &dur
 
 		return nil
@@ -148,9 +148,9 @@ func (tso *TimeSeriesOptions) SetBucketRounding(dur time.Duration) *TimeSeriesOp
 	return tso
 }
 
-// CreateCollectionArgs represents options that can be used to configure a
+// CreateCollectionOptions represents options that can be used to configure a
 // CreateCollection operation.
-type CreateCollectionArgs struct {
+type CreateCollectionOptions struct {
 	// Specifies if the collection is capped (see https://www.mongodb.com/docs/manual/core/capped-collections/). If true,
 	// the SizeInBytes option must also be specified. The default value is false.
 	Capped *bool
@@ -167,7 +167,7 @@ type CreateCollectionArgs struct {
 
 	// Specifies a default configuration for indexes on the collection. This option is only valid for MongoDB versions
 	// >= 3.4. The default value is nil, meaning indexes will be configured using server defaults.
-	DefaultIndexOptions *DefaultIndexOptions
+	DefaultIndexOptions *DefaultIndexOptionsBuilder
 
 	// Specifies the maximum number of documents allowed in a capped collection. The limit specified by the SizeInBytes
 	// option takes precedence over this option. If a capped collection reaches its size limit, old documents will be
@@ -214,7 +214,7 @@ type CreateCollectionArgs struct {
 	// collections.
 	//
 	// This option is only valid for MongoDB versions >= 5.0
-	TimeSeriesOptions *TimeSeriesOptions
+	TimeSeriesOptions *TimeSeriesOptionsBuilder
 
 	// EncryptedFields configures encrypted fields.
 	//
@@ -227,26 +227,26 @@ type CreateCollectionArgs struct {
 	ClusteredIndex interface{}
 }
 
-// CreateCollectionOptions contains options to configure a new collection. Each
-// option can be set through setter functions. See documentation for each setter
-// function for an explanation of the option.
-type CreateCollectionOptions struct {
-	Opts []func(*CreateCollectionArgs) error
+// CreateCollectionOptionsBuilder contains options to configure a new
+// collection. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type CreateCollectionOptionsBuilder struct {
+	Opts []func(*CreateCollectionOptions) error
 }
 
 // CreateCollection creates a new CreateCollectionOptions instance.
-func CreateCollection() *CreateCollectionOptions {
-	return &CreateCollectionOptions{}
+func CreateCollection() *CreateCollectionOptionsBuilder {
+	return &CreateCollectionOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CreateCollectionArgs setter functions.
-func (c *CreateCollectionOptions) ArgsSetters() []func(*CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) ArgsSetters() []func(*CreateCollectionOptions) error {
 	return c.Opts
 }
 
 // SetCapped sets the value for the Capped field.
-func (c *CreateCollectionOptions) SetCapped(capped bool) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetCapped(capped bool) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.Capped = &capped
 
 		return nil
@@ -256,8 +256,8 @@ func (c *CreateCollectionOptions) SetCapped(capped bool) *CreateCollectionOption
 }
 
 // SetCollation sets the value for the Collation field.
-func (c *CreateCollectionOptions) SetCollation(collation *Collation) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetCollation(collation *Collation) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.Collation = collation
 
 		return nil
@@ -267,8 +267,8 @@ func (c *CreateCollectionOptions) SetCollation(collation *Collation) *CreateColl
 }
 
 // SetChangeStreamPreAndPostImages sets the value for the ChangeStreamPreAndPostImages field.
-func (c *CreateCollectionOptions) SetChangeStreamPreAndPostImages(csppi interface{}) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetChangeStreamPreAndPostImages(csppi interface{}) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.ChangeStreamPreAndPostImages = &csppi
 
 		return nil
@@ -278,8 +278,8 @@ func (c *CreateCollectionOptions) SetChangeStreamPreAndPostImages(csppi interfac
 }
 
 // SetDefaultIndexOptions sets the value for the DefaultIndexOptions field.
-func (c *CreateCollectionOptions) SetDefaultIndexOptions(opts *DefaultIndexOptions) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetDefaultIndexOptions(opts *DefaultIndexOptionsBuilder) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.DefaultIndexOptions = opts
 
 		return nil
@@ -289,8 +289,8 @@ func (c *CreateCollectionOptions) SetDefaultIndexOptions(opts *DefaultIndexOptio
 }
 
 // SetMaxDocuments sets the value for the MaxDocuments field.
-func (c *CreateCollectionOptions) SetMaxDocuments(max int64) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetMaxDocuments(max int64) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.MaxDocuments = &max
 
 		return nil
@@ -300,8 +300,8 @@ func (c *CreateCollectionOptions) SetMaxDocuments(max int64) *CreateCollectionOp
 }
 
 // SetSizeInBytes sets the value for the SizeInBytes field.
-func (c *CreateCollectionOptions) SetSizeInBytes(size int64) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetSizeInBytes(size int64) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.SizeInBytes = &size
 
 		return nil
@@ -311,8 +311,8 @@ func (c *CreateCollectionOptions) SetSizeInBytes(size int64) *CreateCollectionOp
 }
 
 // SetStorageEngine sets the value for the StorageEngine field.
-func (c *CreateCollectionOptions) SetStorageEngine(storageEngine interface{}) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetStorageEngine(storageEngine interface{}) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.StorageEngine = &storageEngine
 
 		return nil
@@ -322,8 +322,8 @@ func (c *CreateCollectionOptions) SetStorageEngine(storageEngine interface{}) *C
 }
 
 // SetValidationAction sets the value for the ValidationAction field.
-func (c *CreateCollectionOptions) SetValidationAction(action string) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetValidationAction(action string) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.ValidationAction = &action
 
 		return nil
@@ -333,8 +333,8 @@ func (c *CreateCollectionOptions) SetValidationAction(action string) *CreateColl
 }
 
 // SetValidationLevel sets the value for the ValidationLevel field.
-func (c *CreateCollectionOptions) SetValidationLevel(level string) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetValidationLevel(level string) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.ValidationLevel = &level
 
 		return nil
@@ -344,8 +344,8 @@ func (c *CreateCollectionOptions) SetValidationLevel(level string) *CreateCollec
 }
 
 // SetValidator sets the value for the Validator field.
-func (c *CreateCollectionOptions) SetValidator(validator interface{}) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetValidator(validator interface{}) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.Validator = validator
 
 		return nil
@@ -355,8 +355,8 @@ func (c *CreateCollectionOptions) SetValidator(validator interface{}) *CreateCol
 }
 
 // SetExpireAfterSeconds sets the value for the ExpireAfterSeconds field.
-func (c *CreateCollectionOptions) SetExpireAfterSeconds(eas int64) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetExpireAfterSeconds(eas int64) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.ExpireAfterSeconds = &eas
 
 		return nil
@@ -366,8 +366,8 @@ func (c *CreateCollectionOptions) SetExpireAfterSeconds(eas int64) *CreateCollec
 }
 
 // SetTimeSeriesOptions sets the options for time-series collections.
-func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts *TimeSeriesOptions) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetTimeSeriesOptions(timeSeriesOpts *TimeSeriesOptionsBuilder) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.TimeSeriesOptions = timeSeriesOpts
 
 		return nil
@@ -377,8 +377,8 @@ func (c *CreateCollectionOptions) SetTimeSeriesOptions(timeSeriesOpts *TimeSerie
 }
 
 // SetEncryptedFields sets the encrypted fields for encrypted collections.
-func (c *CreateCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetEncryptedFields(encryptedFields interface{}) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.EncryptedFields = encryptedFields
 
 		return nil
@@ -388,8 +388,8 @@ func (c *CreateCollectionOptions) SetEncryptedFields(encryptedFields interface{}
 }
 
 // SetClusteredIndex sets the value for the ClusteredIndex field.
-func (c *CreateCollectionOptions) SetClusteredIndex(clusteredIndex interface{}) *CreateCollectionOptions {
-	c.Opts = append(c.Opts, func(args *CreateCollectionArgs) error {
+func (c *CreateCollectionOptionsBuilder) SetClusteredIndex(clusteredIndex interface{}) *CreateCollectionOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateCollectionOptions) error {
 		args.ClusteredIndex = clusteredIndex
 
 		return nil
@@ -398,34 +398,34 @@ func (c *CreateCollectionOptions) SetClusteredIndex(clusteredIndex interface{}) 
 	return c
 }
 
-// CreateViewArgs represents arguments that can be used to configure a
+// CreateViewOptions represents arguments that can be used to configure a
 // CreateView operation.
-type CreateViewArgs struct {
+type CreateViewOptions struct {
 	// Specifies the default collation for the new collection. This option is only valid for MongoDB versions >= 3.4.
 	// For previous server versions, the driver will return an error if this option is used. The default value is nil.
 	Collation *Collation
 }
 
-// CreateViewOptions contains options to configure a new view. Each option can
-// be set through setter functions. See documentation for each setter function
-// for an explanation of the option.
-type CreateViewOptions struct {
-	Opts []func(*CreateViewArgs) error
+// CreateViewOptionsBuilder contains options to configure a new view. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type CreateViewOptionsBuilder struct {
+	Opts []func(*CreateViewOptions) error
 }
 
 // CreateView creates an new CreateViewOptions instance.
-func CreateView() *CreateViewOptions {
-	return &CreateViewOptions{}
+func CreateView() *CreateViewOptionsBuilder {
+	return &CreateViewOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of TimeSeriesArgs setter functions.
-func (c *CreateViewOptions) ArgsSetters() []func(*CreateViewArgs) error {
+func (c *CreateViewOptionsBuilder) ArgsSetters() []func(*CreateViewOptions) error {
 	return c.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (c *CreateViewOptions) SetCollation(collation *Collation) *CreateViewOptions {
-	c.Opts = append(c.Opts, func(args *CreateViewArgs) error {
+func (c *CreateViewOptionsBuilder) SetCollation(collation *Collation) *CreateViewOptionsBuilder {
+	c.Opts = append(c.Opts, func(args *CreateViewOptions) error {
 		args.Collation = collation
 
 		return nil

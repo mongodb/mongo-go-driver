@@ -184,7 +184,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		args, err := mongoutil.NewArgsFromOptions[options.ServerAPIArgs](entityOptions.ServerAPIOptions)
+		args, err := mongoutil.NewOptionsFromBuilder[options.ServerAPIOptions](entityOptions.ServerAPIOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct arguments from options: %w", err)
 		}
@@ -192,7 +192,7 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		if err := args.ServerAPIVersion.Validate(); err != nil {
 			return nil, err
 		}
-		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptionsBuilder)
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}

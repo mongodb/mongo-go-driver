@@ -224,29 +224,29 @@ func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 
 	tests := []struct {
 		name string
-		args *options.FindOneArgs
-		want *options.FindArgs
+		args *options.FindOneOptions
+		want *options.FindOptions
 	}{
 		{
 			name: "nil",
 			args: nil,
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 		{
 			name: "empty",
-			args: &options.FindOneArgs{},
-			want: &options.FindArgs{
+			args: &options.FindOneOptions{},
+			want: &options.FindOptions{
 				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 		{
 			name: "non empty",
-			args: &options.FindOneArgs{
+			args: &options.FindOneOptions{
 				Skip: ptrutil.Ptr(int64(1)),
 			},
-			want: &options.FindArgs{
+			want: &options.FindOptions{
 				Skip:  ptrutil.Ptr(int64(1)),
 				Limit: ptrutil.Ptr(int64(-1)),
 			},
