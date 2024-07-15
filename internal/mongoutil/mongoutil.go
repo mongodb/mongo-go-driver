@@ -16,7 +16,7 @@ import (
 type Args interface {
 	options.AggregateOptions | options.BucketArgs | options.BulkWriteOptions |
 		options.ClientOptions | options.ClientEncryptionOptions | options.CollectionOptions |
-		options.CountArgs | options.CreateIndexesArgs |
+		options.CountOptions | options.CreateIndexesArgs |
 		options.CreateCollectionArgs | options.CreateSearchIndexesArgs |
 		options.CreateViewArgs | options.DataKeyArgs | options.DatabaseArgs |
 		options.DefaultIndexArgs | options.DeleteArgs | options.DistinctArgs |

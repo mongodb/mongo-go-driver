@@ -1028,12 +1028,12 @@ func aggregate(a aggregateParams, opts ...Options[options.AggregateOptions]) (cu
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
-	opts ...Options[options.CountArgs]) (int64, error) {
+	opts ...Options[options.CountOptions]) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := newArgsFromOptions[options.CountArgs](opts...)
+	args, err := newArgsFromOptions[options.CountOptions](opts...)
 	if err != nil {
 		return 0, err
 	}

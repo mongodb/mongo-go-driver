@@ -6,9 +6,9 @@
 
 package options
 
-// CountArgs represents arguments that can be used to configure a CountDocuments
-// operation.
-type CountArgs struct {
+// CountOptions represents arguments that can be used to configure a
+// CountDocuments operation.
+type CountOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the default collation of the collection will be used.
@@ -31,26 +31,26 @@ type CountArgs struct {
 	Skip *int64
 }
 
-// CountOptions contains options to configure count operations. Each option
-// can be set through setter functions. See documentation for each setter
+// CountOptionsBuilder contains options to configure count operations. Each
+// option can be set through setter functions. See documentation for each setter
 // function for an explanation of the option.
-type CountOptions struct {
-	Opts []func(*CountArgs) error
+type CountOptionsBuilder struct {
+	Opts []func(*CountOptions) error
 }
 
 // Count creates a new CountOptions instance.
-func Count() *CountOptions {
-	return &CountOptions{}
+func Count() *CountOptionsBuilder {
+	return &CountOptionsBuilder{}
 }
 
 // ArgsSetters returns a list of CountArgs setter functions.
-func (co *CountOptions) ArgsSetters() []func(*CountArgs) error {
+func (co *CountOptionsBuilder) ArgsSetters() []func(*CountOptions) error {
 	return co.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (co *CountOptions) SetCollation(c *Collation) *CountOptions {
-	co.Opts = append(co.Opts, func(args *CountArgs) error {
+func (co *CountOptionsBuilder) SetCollation(c *Collation) *CountOptionsBuilder {
+	co.Opts = append(co.Opts, func(args *CountOptions) error {
 		args.Collation = c
 
 		return nil
@@ -60,8 +60,8 @@ func (co *CountOptions) SetCollation(c *Collation) *CountOptions {
 }
 
 // SetComment sets the value for the Comment field.
-func (co *CountOptions) SetComment(comment interface{}) *CountOptions {
-	co.Opts = append(co.Opts, func(args *CountArgs) error {
+func (co *CountOptionsBuilder) SetComment(comment interface{}) *CountOptionsBuilder {
+	co.Opts = append(co.Opts, func(args *CountOptions) error {
 		args.Comment = comment
 
 		return nil
@@ -71,8 +71,8 @@ func (co *CountOptions) SetComment(comment interface{}) *CountOptions {
 }
 
 // SetHint sets the value for the Hint field.
-func (co *CountOptions) SetHint(h interface{}) *CountOptions {
-	co.Opts = append(co.Opts, func(args *CountArgs) error {
+func (co *CountOptionsBuilder) SetHint(h interface{}) *CountOptionsBuilder {
+	co.Opts = append(co.Opts, func(args *CountOptions) error {
 		args.Hint = h
 
 		return nil
@@ -82,8 +82,8 @@ func (co *CountOptions) SetHint(h interface{}) *CountOptions {
 }
 
 // SetLimit sets the value for the Limit field.
-func (co *CountOptions) SetLimit(i int64) *CountOptions {
-	co.Opts = append(co.Opts, func(args *CountArgs) error {
+func (co *CountOptionsBuilder) SetLimit(i int64) *CountOptionsBuilder {
+	co.Opts = append(co.Opts, func(args *CountOptions) error {
 		args.Limit = &i
 
 		return nil
@@ -93,8 +93,8 @@ func (co *CountOptions) SetLimit(i int64) *CountOptions {
 }
 
 // SetSkip sets the value for the Skip field.
-func (co *CountOptions) SetSkip(i int64) *CountOptions {
-	co.Opts = append(co.Opts, func(args *CountArgs) error {
+func (co *CountOptionsBuilder) SetSkip(i int64) *CountOptionsBuilder {
+	co.Opts = append(co.Opts, func(args *CountOptions) error {
 		args.Skip = &i
 
 		return nil

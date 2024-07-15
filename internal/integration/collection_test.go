@@ -821,7 +821,7 @@ func TestCollection(t *testing.T) {
 			testCases := []struct {
 				name     string
 				filter   bson.D
-				opts     *options.CountOptions
+				opts     *options.CountOptionsBuilder
 				count    int64
 				testOpts *mtest.Options
 			}{

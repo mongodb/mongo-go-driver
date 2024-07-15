@@ -409,7 +409,7 @@ func countDocumentsAggregatePipeline(
 	filter interface{},
 	encOpts *options.BSONOptions,
 	registry *bson.Registry,
-	args *options.CountArgs,
+	args *options.CountOptions,
 ) (bsoncore.Document, error) {
 	filterDoc, err := marshal(filter, encOpts, registry)
 	if err != nil {
