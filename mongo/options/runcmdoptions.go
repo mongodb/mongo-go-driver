@@ -30,7 +30,7 @@ func RunCmd() *RunCmdOptionsBuilder {
 	return &RunCmdOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Countopts setter functions.
+// OptionsSetters returns a list of CountOptions setter functions.
 func (rc *RunCmdOptionsBuilder) OptionsSetters() []func(*RunCmdOptions) error {
 	return rc.Opts
 }

@@ -83,7 +83,7 @@ func ChangeStream() *ChangeStreamOptionsBuilder {
 	return &ChangeStreamOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of ChangeStreamopts setter functions.
+// OptionsSetters returns a list of ChangeStreamOptions setter functions.
 func (cso *ChangeStreamOptionsBuilder) OptionsSetters() []func(*ChangeStreamOptions) error {
 	return cso.Opts
 }

@@ -43,7 +43,7 @@ func Count() *CountOptionsBuilder {
 	return &CountOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Countopts setter functions.
+// OptionsSetters returns a list of CountOptions setter functions.
 func (co *CountOptionsBuilder) OptionsSetters() []func(*CountOptions) error {
 	return co.Opts
 }

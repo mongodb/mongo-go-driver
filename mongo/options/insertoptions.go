@@ -31,7 +31,7 @@ func InsertOne() *InsertOneOptionsBuilder {
 	return &InsertOneOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of InsertOneopts setter functions.
+// OptionsSetters returns a list of InsertOneOptions setter functions.
 func (ioo *InsertOneOptionsBuilder) OptionsSetters() []func(*InsertOneOptions) error {
 	return ioo.Opts
 }
@@ -86,7 +86,7 @@ func InsertMany() *InsertManyOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of InsertManyopts setter functions.
+// OptionsSetters returns a list of InsertManyOptions setter functions.
 func (imo *InsertManyOptionsBuilder) OptionsSetters() []func(*InsertManyOptions) error {
 	return imo.Opts
 }

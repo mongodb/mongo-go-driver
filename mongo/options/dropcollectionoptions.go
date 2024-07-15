@@ -27,7 +27,7 @@ func DropCollection() *DropCollectionOptionsBuilder {
 	return &DropCollectionOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of DropCollectionopts setter functions.
+// OptionsSetters returns a list of DropCollectionOptions setter functions.
 func (d *DropCollectionOptionsBuilder) OptionsSetters() []func(*DropCollectionOptions) error {
 	return d.Opts
 }

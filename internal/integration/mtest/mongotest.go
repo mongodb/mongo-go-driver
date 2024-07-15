@@ -449,14 +449,14 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 	db := coll.Client.Database(coll.DB)
 
-	args, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
+	opts, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
 	require.NoError(t, err, "failed to construct options from builder")
 
-	if coll.CreateOpts != nil && args.EncryptedFields != nil {
+	if coll.CreateOpts != nil && opts.EncryptedFields != nil {
 		// An encrypted collection consists of a data collection and three state collections.
 		// Aborted test runs may leave these collections.
 		// Drop all four collections to avoid a quiet failure to create all collections.
-		DropEncryptedCollection(t, db.Collection(coll.Name), args.EncryptedFields)
+		DropEncryptedCollection(t, db.Collection(coll.Name), opts.EncryptedFields)
 	}
 
 	if createOnServer && t.clientType != Mock {
@@ -515,11 +515,11 @@ func (t *T) ClearCollections() {
 	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
-			args, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
+			opts, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
 			require.NoError(t, err, "failed to construct options from builder")
 
-			if coll.CreateOpts != nil && args.EncryptedFields != nil {
-				DropEncryptedCollection(t, coll.created, args.EncryptedFields)
+			if coll.CreateOpts != nil && opts.EncryptedFields != nil {
+				DropEncryptedCollection(t, coll.created, opts.EncryptedFields)
 			}
 
 			err = coll.created.Drop(context.Background())

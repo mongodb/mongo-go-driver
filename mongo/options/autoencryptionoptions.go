@@ -39,7 +39,7 @@ type AutoEncryptionOptions struct {
 }
 
 // AutoEncryptionOptionsBuilder contains options to configure automatic
-// enecryption for operations. Each option can be set through setter functions.
+// encryption for operations. Each option can be set through setter functions.
 // See documentation for each setter function for an explanation of the option.
 type AutoEncryptionOptionsBuilder struct {
 	Opts []func(*AutoEncryptionOptions) error
@@ -58,7 +58,7 @@ func AutoEncryption() *AutoEncryptionOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of AutoEncryptionArgs setter functions.
+// OptionsSetters returns a list of AutoEncryptionOptions setter functions.
 func (a *AutoEncryptionOptionsBuilder) OptionsSetters() []func(*AutoEncryptionOptions) error {
 	return a.Opts
 }

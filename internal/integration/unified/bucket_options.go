@@ -13,8 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// gridFSBucketOptions is a wrapper for *options.BucketOptions. This type implements the bson.Unmarshaler interface to
-// convert BSON documents to a BucketOptions instance.
+// gridFSBucketOptions is a wrapper for *options.BucketOptionsBuilder. This type
+// implements the bson.Unmarshaler interface to convert BSON documents to a
+// BucketOptionsBuilder instance.
 type gridFSBucketOptions struct {
 	*options.BucketOptionsBuilder
 }

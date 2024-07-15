@@ -50,7 +50,7 @@ func Session() *SessionOptionsBuilder {
 	return &SessionOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Sessionopts setter functions.
+// OptionsSetters returns a list of SessionOptions setter functions.
 func (s *SessionOptionsBuilder) OptionsSetters() []func(*SessionOptions) error {
 	return s.Opts
 }

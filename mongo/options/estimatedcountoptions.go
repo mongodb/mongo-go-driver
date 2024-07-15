@@ -26,7 +26,7 @@ func EstimatedDocumentCount() *EstimatedDocumentCountOptionsBuilder {
 	return &EstimatedDocumentCountOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Countopts setter functions.
+// OptionsSetters returns a list of CountOptions setter functions.
 func (eco *EstimatedDocumentCountOptionsBuilder) OptionsSetters() []func(*EstimatedDocumentCountOptions) error {
 	return eco.Opts
 }

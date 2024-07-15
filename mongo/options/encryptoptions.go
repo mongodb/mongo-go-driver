@@ -38,7 +38,7 @@ func Range() *RangeOptionsBuilder {
 	return &RangeOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Rangeopts setter functions.
+// OptionsSetters returns a list of RangeOptions setter functions.
 func (ro *RangeOptionsBuilder) OptionsSetters() []func(*RangeOptions) error {
 	return ro.Opts
 }
@@ -60,7 +60,7 @@ type EncryptOptionsBuilder struct {
 	Opts []func(*EncryptOptions) error
 }
 
-// OptionsSetters returns a list of Encryptopts setter functions.
+// OptionsSetters returns a list of EncryptOptions setter functions.
 func (e *EncryptOptionsBuilder) OptionsSetters() []func(*EncryptOptions) error {
 	return e.Opts
 }

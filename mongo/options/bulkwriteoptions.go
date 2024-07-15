@@ -9,8 +9,8 @@ package options
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
-// BulkWriteOptions represents opts that can be used to configure a BulkWrite
-// operation.
+// BulkWriteOptions represents arguments that can be used to configure a
+// BulkWrite operation.
 type BulkWriteOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
@@ -50,7 +50,7 @@ func BulkWrite() *BulkWriteOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of BulkWriteopts setter functions.
+// OptionsSetters returns a list of BulkWriteOptions setter functions.
 func (b *BulkWriteOptionsBuilder) OptionsSetters() []func(*BulkWriteOptions) error {
 	return b.Opts
 }

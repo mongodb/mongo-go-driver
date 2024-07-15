@@ -40,7 +40,7 @@ func Transaction() *TransactionOptionsBuilder {
 	return &TransactionOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Transactionopts setter functions.
+// OptionsSetters returns a list of TransactionOptions setter functions.
 func (t *TransactionOptionsBuilder) OptionsSetters() []func(*TransactionOptions) error {
 	return t.Opts
 }

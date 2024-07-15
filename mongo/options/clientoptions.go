@@ -195,8 +195,8 @@ type BSONOptions struct {
 	ZeroStructs bool
 }
 
-// ClientOptions contains opts to configure a Client instance. Arguments can be
-// set through the ClientOptions setter functions. See each function for
+// ClientOptions contains arguments to configure a Client instance. Arguments
+// can be set through the ClientOptions setter functions. See each function for
 // documentation.
 type ClientOptions struct {
 	AppName                  *string
@@ -269,7 +269,7 @@ func Client() *ClientOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of Clientopts setter functions.
+// OptionsSetters returns a list of ClientOptions setter functions.
 func (c *ClientOptionsBuilder) OptionsSetters() []func(*ClientOptions) error {
 	return c.Opts
 }

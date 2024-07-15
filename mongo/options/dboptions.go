@@ -49,7 +49,7 @@ func Database() *DatabaseOptionsBuilder {
 	return &DatabaseOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Databaseopts setter functions.
+// OptionsSetters returns a list of DatabaseOptions setter functions.
 func (d *DatabaseOptionsBuilder) OptionsSetters() []func(*DatabaseOptions) error {
 	return d.Opts
 }

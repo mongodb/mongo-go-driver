@@ -45,7 +45,7 @@ func Delete() *DeleteOptionsBuilder {
 	return &DeleteOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of Deleteopts setter functions.
+// OptionsSetters returns a list of DeleteOptions setter functions.
 func (do *DeleteOptionsBuilder) OptionsSetters() []func(*DeleteOptions) error {
 	return do.Opts
 }
