@@ -6,12 +6,6 @@
 
 package options
 
-import (
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-)
-
 // DefaultCausalConsistency is the default value for the CausalConsistency option.
 var DefaultCausalConsistency = true
 
@@ -22,17 +16,10 @@ type SessionOptions struct {
 	// https://www.mongodb.com/docs/manual/core/read-isolation-consistency-recency/#sessions for more information.
 	CausalConsistency *bool
 
-	// The default read concern for transactions started in the session. The default value is nil, which means that
-	// the read concern of the client used to start the session will be used.
-	DefaultReadConcern *readconcern.ReadConcern
-
-	// The default read preference for transactions started in the session. The default value is nil, which means that
-	// the read preference of the client used to start the session will be used.
-	DefaultReadPreference *readpref.ReadPref
-
-	// The default write concern for transactions started in the session. The default value is nil, which means that
-	// the write concern of the client used to start the session will be used.
-	DefaultWriteConcern *writeconcern.WriteConcern
+	// The default options for transactions started in the session. If this object
+	// or any value on the object is nil, the client-level read concern,
+	// write concern, and/or read preference will be used to start the session.
+	DefaultTransactionOptions *TransactionOptionsBuilder
 
 	// If true, all read operations performed with this session will be read from the same snapshot. This option cannot
 	// be set to true if CausalConsistency is set to true. Transactions and write operations are not allowed on
@@ -64,28 +51,10 @@ func (s *SessionOptionsBuilder) SetCausalConsistency(b bool) *SessionOptionsBuil
 	return s
 }
 
-// SetDefaultReadConcern sets the value for the DefaultReadConcern field.
-func (s *SessionOptionsBuilder) SetDefaultReadConcern(rc *readconcern.ReadConcern) *SessionOptionsBuilder {
+// SetDefaultTransactionOptions sets the value for the DefaultTransactionOptions field.
+func (s *SessionOptionsBuilder) SetDefaultTransactionOptions(dt *TransactionOptionsBuilder) *SessionOptionsBuilder {
 	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
-		opts.DefaultReadConcern = rc
-		return nil
-	})
-	return s
-}
-
-// SetDefaultReadPreference sets the value for the DefaultReadPreference field.
-func (s *SessionOptionsBuilder) SetDefaultReadPreference(rp *readpref.ReadPref) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
-		opts.DefaultReadPreference = rp
-		return nil
-	})
-	return s
-}
-
-// SetDefaultWriteConcern sets the value for the DefaultWriteConcern field.
-func (s *SessionOptionsBuilder) SetDefaultWriteConcern(wc *writeconcern.WriteConcern) *SessionOptionsBuilder {
-	s.Opts = append(s.Opts, func(opts *SessionOptions) error {
-		opts.DefaultWriteConcern = wc
+		opts.DefaultTransactionOptions = dt
 		return nil
 	})
 	return s

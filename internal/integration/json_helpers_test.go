@@ -20,7 +20,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -289,22 +288,7 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptionsBu
 		case "causalConsistency":
 			sessOpts = sessOpts.SetCausalConsistency(opt.Boolean())
 		case "defaultTransactionOptions":
-			txnOpts := createTransactionOptions(t, opt.Document())
-
-			txnArgs, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](txnOpts)
-			if err != nil {
-				t.Fatalf("failed to construct options from builder: %v", err)
-			}
-
-			if txnArgs.ReadConcern != nil {
-				sessOpts.SetDefaultReadConcern(txnArgs.ReadConcern)
-			}
-			if txnArgs.ReadPreference != nil {
-				sessOpts.SetDefaultReadPreference(txnArgs.ReadPreference)
-			}
-			if txnArgs.WriteConcern != nil {
-				sessOpts.SetDefaultWriteConcern(txnArgs.WriteConcern)
-			}
+			sessOpts.SetDefaultTransactionOptions(createTransactionOptions(t, opt.Document()))
 		default:
 			t.Fatalf("unrecognized session option: %v", name)
 		}
