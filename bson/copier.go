@@ -142,7 +142,7 @@ func copyDocumentToBytes(src ValueReader) ([]byte, error) {
 // append the result to dst.
 func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
 	if br, ok := src.(bytesReader); ok {
-		_, dst, err := br.ReadValueBytes(dst)
+		_, dst, err := br.readValueBytes(dst)
 		return dst, err
 	}
 
@@ -159,7 +159,7 @@ func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
 // appendArrayBytes copies an array from the ValueReader to dst.
 func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 	if br, ok := src.(bytesReader); ok {
-		_, dst, err := br.ReadValueBytes(dst)
+		_, dst, err := br.readValueBytes(dst)
 		return dst, err
 	}
 
@@ -175,10 +175,8 @@ func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 
 // copyValueFromBytes will write the value represtend by t and src to dst.
 func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
-	if wvb, ok := dst.(interface {
-		WriteValueBytes(t Type, b []byte) error
-	}); ok {
-		return wvb.WriteValueBytes(t, src)
+	if wvb, ok := dst.(bytesWriter); ok {
+		return wvb.writeValueBytes(t, src)
 	}
 
 	vr := vrPool.Get().(*valueReader)
@@ -194,7 +192,7 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 // []byte.
 func copyValueToBytes(src ValueReader) (Type, []byte, error) {
 	if br, ok := src.(bytesReader); ok {
-		return br.ReadValueBytes(nil)
+		return br.readValueBytes(nil)
 	}
 
 	vw := vwPool.Get().(*valueWriter)
@@ -422,11 +420,14 @@ func copyDocumentCore(dw DocumentWriter, dr DocumentReader) error {
 	return dw.WriteDocumentEnd()
 }
 
-// bytesReader is a generic interface used to read BSON bytes from a
-// ValueReader. This imterface is meant to be a superset of ValueReader, so that
-// types that implement ValueReader may also implement this interface.
+// bytesReader is the interface used to read BSON bytes from a valueReader.
 //
 // The bytes of the value will be appended to dst.
 type bytesReader interface {
-	ReadValueBytes(dst []byte) (Type, []byte, error)
+	readValueBytes(dst []byte) (Type, []byte, error)
+}
+
+// bytesWriter is the interface used to write BSON bytes to a valueWriter.
+type bytesWriter interface {
+	writeValueBytes(t Type, b []byte) error
 }

@@ -57,11 +57,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 	d128 := NewDecimal128(12345, 67890)
 	var nilValueMarshaler *testValueMarshaler
 	var nilMarshaler *testMarshaler
-	var nilProxy *testProxy
 
 	vmStruct := struct{ V testValueMarshalPtr }{testValueMarshalPtr{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}}}
 	mStruct := struct{ V testMarshalPtr }{testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))}}
-	pStruct := struct{ V testProxyPtr }{testProxyPtr{ret: int64(1234567890)}}
 
 	type subtest struct {
 		name   string
@@ -704,76 +702,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
-			"ProxyEncodeValue",
-			ValueEncoderFunc(proxyEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					nothing,
-					ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: reflect.ValueOf(wrong)},
-				},
-				{
-					"Proxy error",
-					testProxy{err: errors.New("proxy error")},
-					nil,
-					nil,
-					nothing,
-					errors.New("proxy error"),
-				},
-				{
-					"Lookup error",
-					testProxy{ret: nil},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					nothing,
-					errNoEncoder{Type: nil},
-				},
-				{
-					"success struct implementation",
-					testProxy{ret: int64(1234567890)},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeInt64,
-					nil,
-				},
-				{
-					"success ptr to struct implementation",
-					&testProxy{ret: int64(1234567890)},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeInt64,
-					nil,
-				},
-				{
-					"success nil ptr to struct implementation",
-					nilProxy,
-					nil,
-					nil,
-					writeNull,
-					nil,
-				},
-				{
-					"success ptr to ptr implementation",
-					&testProxyPtr{ret: int64(1234567890)},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeInt64,
-					nil,
-				},
-				{
-					"unaddressable ptr implementation",
-					testProxyPtr{ret: int64(1234567890)},
-					nil,
-					nil,
-					nothing,
-					ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: reflect.ValueOf(testProxyPtr{})},
-				},
-			},
-		},
-		{
 			"PointerCodec.EncodeValue",
 			&pointerCodec{},
 			[]subtest{
@@ -826,14 +754,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Marshaler",
 					&mStruct,
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeDocumentEnd,
-					nil,
-				},
-				{
-					"Proxy",
-					&pStruct,
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					writeDocumentEnd,
@@ -1554,10 +1474,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC Decimal128
 					AD *time.Time
 					AE testValueMarshaler
-					AF Proxy
-					AG testProxy
-					AH map[string]interface{}
-					AI CodeWithScope
+					AF map[string]interface{}
+					AG CodeWithScope
 				}{
 					A: true,
 					B: 123,
@@ -1583,10 +1501,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC: decimal128,
 					AD: &now,
 					AE: testValueMarshaler{t: TypeString, buf: bsoncore.AppendString(nil, "hello, world")},
-					AF: testProxy{ret: struct{ Hello string }{Hello: "world!"}},
-					AG: testProxy{ret: struct{ Pi float64 }{Pi: 3.14159}},
-					AH: nil,
-					AI: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
+					AF: nil,
+					AG: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = bsoncore.AppendBooleanElement(doc, "a", true)
@@ -1611,10 +1527,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					doc = bsoncore.AppendDecimal128Element(doc, "ac", decimal128.h, decimal128.l)
 					doc = bsoncore.AppendDateTimeElement(doc, "ad", now.UnixNano()/int64(time.Millisecond))
 					doc = bsoncore.AppendStringElement(doc, "ae", "hello, world")
-					doc = bsoncore.AppendDocumentElement(doc, "af", buildDocument(bsoncore.AppendStringElement(nil, "hello", "world!")))
-					doc = bsoncore.AppendDocumentElement(doc, "ag", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)))
-					doc = bsoncore.AppendNullElement(doc, "ah")
-					doc = bsoncore.AppendCodeWithScopeElement(doc, "ai",
+					doc = bsoncore.AppendNullElement(doc, "af")
+					doc = bsoncore.AppendCodeWithScopeElement(doc, "ag",
 						"var hello = 'world';", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
 					)
 					return doc
@@ -1649,8 +1563,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC []Decimal128
 					AD []*time.Time
 					AE []testValueMarshaler
-					AF []Proxy
-					AG []testProxy
 				}{
 					A: []bool{true},
 					B: []int32{123},
@@ -1683,14 +1595,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AE: []testValueMarshaler{
 						{t: TypeString, buf: bsoncore.AppendString(nil, "hello")},
 						{t: TypeString, buf: bsoncore.AppendString(nil, "world")},
-					},
-					AF: []Proxy{
-						testProxy{ret: struct{ Hello string }{Hello: "world!"}},
-						testProxy{ret: struct{ Foo string }{Foo: "bar"}},
-					},
-					AG: []testProxy{
-						{ret: struct{ One int64 }{One: 1234567890}},
-						{ret: struct{ Pi float64 }{Pi: 3.14159}},
 					},
 				},
 				buildDocument(func(doc []byte) []byte {
@@ -1740,22 +1644,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					)
 					doc = appendArrayElement(doc, "ae",
 						bsoncore.AppendStringElement(bsoncore.AppendStringElement(nil, "0", "hello"), "1", "world"),
-					)
-					doc = appendArrayElement(doc, "af",
-						bsoncore.AppendDocumentElement(
-							bsoncore.AppendDocumentElement(nil, "0",
-								bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "hello", "world!")),
-							), "1",
-							bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "foo", "bar")),
-						),
-					)
-					doc = appendArrayElement(doc, "ag",
-						bsoncore.AppendDocumentElement(
-							bsoncore.AppendDocumentElement(nil, "0",
-								bsoncore.BuildDocument(nil, bsoncore.AppendInt64Element(nil, "one", 1234567890)),
-							), "1",
-							bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
-						),
 					)
 					return doc
 				}(nil)),
@@ -1868,17 +1756,3 @@ type testMarshalPtr struct {
 func (tvm *testMarshalPtr) MarshalBSON() ([]byte, error) {
 	return tvm.buf, tvm.err
 }
-
-type testProxy struct {
-	ret interface{}
-	err error
-}
-
-func (tp testProxy) ProxyBSON() (interface{}, error) { return tp.ret, tp.err }
-
-type testProxyPtr struct {
-	ret interface{}
-	err error
-}
-
-func (tp *testProxyPtr) ProxyBSON() (interface{}, error) { return tp.ret, tp.err }
