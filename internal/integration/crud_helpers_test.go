@@ -1289,7 +1289,7 @@ func executeCreateIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (string
 	return mt.Coll.Indexes().CreateOne(context.Background(), model)
 }
 
-func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.Raw, error) {
+func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
 	var name string
@@ -1307,14 +1307,11 @@ func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.Raw
 	}
 
 	if sess != nil {
-		var res bson.Raw
-		err := mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
-			var indexErr error
-			res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
-			return indexErr
+		return mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
+			return mt.Coll.Indexes().DropOne(sc, name)
 		})
-		return res, err
 	}
+
 	return mt.Coll.Indexes().DropOne(context.Background(), name)
 }
 
