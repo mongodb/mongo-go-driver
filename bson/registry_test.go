@@ -807,9 +807,7 @@ func TestRegistry(t *testing.T) {
 					wanterr := "cannot perform a decoder lookup on <nil>"
 
 					gotcodec, goterr := reg.LookupDecoder(nil)
-					if !cmp.Equal(goterr.Error(), wanterr, cmp.Comparer(assert.CompareErrors)) {
-						t.Errorf("errors did not match: got %#v, want %q", goterr, wanterr)
-					}
+					assert.EqualError(t, goterr, wanterr, "errors did not match")
 					if !cmp.Equal(gotcodec, nil, allowunexported, cmp.Comparer(comparepc)) {
 						t.Errorf("codecs did not match: got %v: want nil", gotcodec)
 					}

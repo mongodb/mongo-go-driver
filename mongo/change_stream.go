@@ -244,7 +244,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
 		for optionName, optionValue := range cs.options.Custom {
-			optionValueBSON, err := marshalValueWithRegistry(cs.registry, optionValue)
+			optionValueBSON, err := marshalValue(optionValue, nil, cs.registry)
 			if err != nil {
 				cs.err = err
 				closeImplicitSession(cs.sess)
@@ -259,7 +259,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		// any errors from Marshaling.
 		cs.pipelineOptions = make(map[string]bsoncore.Value)
 		for optionName, optionValue := range cs.options.CustomPipeline {
-			optionValueBSON, err := marshalValueWithRegistry(cs.registry, optionValue)
+			optionValueBSON, err := marshalValue(optionValue, nil, cs.registry)
 			if err != nil {
 				cs.err = err
 				closeImplicitSession(cs.sess)

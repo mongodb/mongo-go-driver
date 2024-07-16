@@ -1079,7 +1079,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
 		for optionName, optionValue := range ao.Custom {
-			optionValueBSON, err := marshalValueWithRegistry(a.registry, optionValue)
+			optionValueBSON, err := marshalValue(optionValue, nil, a.registry)
 			if err != nil {
 				return nil, err
 			}
