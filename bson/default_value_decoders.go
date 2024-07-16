@@ -114,7 +114,7 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 
 	switch vrType := vr.Type(); vrType {
 	case Type(0), TypeEmbeddedDocument:
-		dc.Ancestor = tD
+		break
 	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
