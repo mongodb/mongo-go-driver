@@ -115,9 +115,10 @@ func (a Array) String() string {
 
 // StringN stringifies an array upto N bytes
 func (a Array) StringN(n int) string {
-	if len(a) < 5 {
+	if lens, _, _ := ReadLength(a); lens < 5 || n <= 0 {
 		return ""
 	}
+
 	var buf strings.Builder
 	buf.WriteByte('[')
 
@@ -157,10 +158,6 @@ func (a Array) StringN(n int) string {
 
 	if buf.Len()+1 <= n {
 		buf.WriteByte(']')
-	} else {
-		truncatedStr := truncate(buf.String(), uint(n))
-		buf.Reset()
-		buf.WriteString(truncatedStr)
 	}
 
 	return buf.String()

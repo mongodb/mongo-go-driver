@@ -147,10 +147,10 @@ func (e Element) StringN(n int) string {
 	}
 
 	var str string
-	if arr, ok := val.ArrayOK(); ok {
-		str = arr.StringN(n)
-	} else if _, ok := val.StringValueOK(); ok {
+	if _, ok := val.StringValueOK(); ok {
 		str = val.StringN(n)
+	} else if arr, ok := val.ArrayOK(); ok {
+		str = arr.StringN(n)
 	} else {
 		str = val.String()
 	}

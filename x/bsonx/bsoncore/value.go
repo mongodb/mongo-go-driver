@@ -339,6 +339,10 @@ func (v Value) String() string {
 // StringN implements the fmt.String interface. This method will return values in extended JSON
 // format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
 func (v Value) StringN(n int) string {
+	if n <= 0 {
+		return ""
+	}
+
 	switch v.Type {
 	case TypeString:
 		str, ok := v.StringValueOK()

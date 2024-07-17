@@ -17,9 +17,6 @@ import (
 // ValidationError is an error type returned when attempting to validate a document or array.
 type ValidationError string
 
-// TruncationSuffix is a constant string defined to address a logged value has been truncated
-const TruncationSuffix = "..."
-
 func (ve ValidationError) Error() string { return string(ve) }
 
 // NewDocumentLengthError creates and returns an error for when the length of a document exceeds the
@@ -296,9 +293,13 @@ func (d Document) String() string {
 
 // StringN stringifies a document upto N bytes
 func (d Document) StringN(n int) string {
-	if len(d) < 5 {
+	if len(d) < 5 || n <= 0 {
 		return ""
 	}
+
+	// String outputed is short by 2
+	n += 2
+
 	var buf strings.Builder
 	buf.Grow(n) //Preallocate buffer size
 	buf.WriteByte('{')
@@ -337,8 +338,6 @@ func (d Document) StringN(n int) string {
 
 	if buf.Len()+1 <= n {
 		buf.WriteByte('}')
-	} else {
-		buf.WriteString(TruncationSuffix)
 	}
 
 	return buf.String()
@@ -360,21 +359,21 @@ func truncate(str string, width uint) string {
 	// Check if the last byte is at the beginning of a multi-byte character.
 	// If it is, then remove the last byte.
 	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
-		return newStr[:len(newStr)-1] + TruncationSuffix
+		return newStr[:len(newStr)-1]
 	}
 
-	// Check if the last byte is in the middle of a multi-byte character. If
-	// it is, then step back until we find the beginning of the character.
-	for i := len(newStr) - 1; i >= 0; i-- {
-		if (newStr[i] & 0xC0) != 0x80 {
-			if i+len(TruncationSuffix) <= len(newStr) {
-				return newStr[:i] + TruncationSuffix
+	// Check if the last byte is a multi-byte character
+	if newStr[len(newStr)-1]&0xC0 == 0x80 {
+		// If it is, step back until you we are at the start of a character
+		for i := len(newStr) - 1; i >= 0; i-- {
+			if newStr[i]&0xC0 == 0xC0 {
+				// Truncate at the end of the character before the character we stepped back to
+				return newStr[:i]
 			}
-			return newStr[:i]
 		}
 	}
 
-	return newStr + TruncationSuffix
+	return newStr
 }
 
 // Elements returns this document as a slice of elements. The returned slice will contain valid
