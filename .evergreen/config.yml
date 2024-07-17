@@ -350,6 +350,23 @@ functions:
             chmod +x $i
           done
 
+  assume-ec2-role:
+    - command: ec2.assume_role
+      params:
+        role_arn: ${aws_test_secrets_role}
+
+  run-oidc-auth-test-with-test-credentials:
+    - command: shell.exec
+      type: test
+      params:
+        working_dir: src/go.mongodb.org/mongo-driver
+        shell: bash
+        include_expansions_in_env: ["DRIVERS_TOOLS", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+        script: |
+          ${PREPARE_SHELL}
+          export OIDC="oidc"
+          bash ${PROJECT_DIRECTORY}/etc/run-oidc-test.sh
+
   run-make:
     - command: shell.exec
       type: test
@@ -1954,6 +1971,10 @@ tasks:
             popd
             ./.evergreen/run-deployed-lambda-aws-tests.sh
 
+  - name: "oidc-auth-test-latest"
+    commands:
+      - func: "run-oidc-auth-test-with-test-credentials"
+
   - name: "test-search-index"
     commands:
       - func: "bootstrap-mongo-orchestration"
@@ -2246,6 +2267,31 @@ task_groups:
       - func: cleanup
     tasks:
       - testazurekms-task
+
+  - name: testoidc_task_group
+    setup_group:
+      - func: fetch-source
+      - func: prepare-resources
+      - func: fix-absolute-paths
+      - func: make-files-executable
+      - func: assume-ec2-role
+      - command: shell.exec
+        params:
+          shell: bash
+          include_expansions_in_env: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]
+          script: |
+            ${PREPARE_SHELL}
+            ${DRIVERS_TOOLS}/.evergreen/auth_oidc/setup.sh
+    teardown_task:
+      - command: subprocess.exec
+        params:
+          binary: bash
+          args:
+            - ${DRIVERS_TOOLS}/.evergreen/auth_oidc/teardown.sh
+    setup_group_can_fail_task: true
+    setup_group_timeout_secs: 1800
+    tasks:
+      - oidc-auth-test-latest
 
   - name: test-aws-lambda-task-group
     setup_group:
@@ -2586,3 +2632,13 @@ buildvariants:
       - name: testazurekms_task_group
         batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README
       - testazurekms-fail-task
+
+  - name: testoidc-variant
+    display_name: "OIDC"
+    run_on:
+      - ubuntu2204-large
+    expansions:
+      GO_DIST: "/opt/golang/go1.20"
+    tasks:
+      - name: testoidc_task_group
+        batchtime: 20160 # Use a batchtime of 14 days as suggested by the CSFLE test README

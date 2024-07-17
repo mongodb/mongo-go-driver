@@ -102,6 +102,7 @@ func (di *DropIndexes) Execute(ctx context.Context) error {
 		ServerAPI:         di.serverAPI,
 		Timeout:           di.timeout,
 		Name:              driverutil.DropIndexesOp,
+		Authenticator:     di.authenticator,
 	}.Execute(ctx)
 
 }
@@ -248,5 +249,15 @@ func (di *DropIndexes) Timeout(timeout *time.Duration) *DropIndexes {
 	}
 
 	di.timeout = timeout
+	return di
+}
+
+// Authenticator sets the authenticator to use for this operation.
+func (di *DropIndexes) Authenticator(authenticator driver.Authenticator) *DropIndexes {
+	if di == nil {
+		di = new(DropIndexes)
+	}
+
+	di.authenticator = authenticator
 	return di
 }
