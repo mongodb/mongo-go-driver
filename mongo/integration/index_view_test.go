@@ -607,6 +607,88 @@ func TestIndexView(t *testing.T) {
 		}
 		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
 	})
+	mt.Run("drop with key", func(mt *mtest.T) {
+		tests := []struct {
+			name   string
+			models []mongo.IndexModel
+			index  any
+			want   string
+		}{
+			{
+				name: "custom index name and unique indexes",
+				models: []mongo.IndexModel{
+					{
+						Keys:    bson.D{{"username", int32(1)}},
+						Options: options.Index().SetUnique(true).SetName("myidx"),
+					},
+				},
+				index: bson.D{{"username", int32(1)}},
+				want:  "myidx",
+			},
+			{
+				name: "normal generated index name",
+				models: []mongo.IndexModel{
+					{
+						Keys: bson.D{{"foo", int32(-1)}},
+					},
+				},
+				index: bson.D{{"foo", int32(-1)}},
+				want:  "foo_-1",
+			},
+			{
+				name: "compound index",
+				models: []mongo.IndexModel{
+					{
+						Keys: bson.D{{"foo", int32(1)}, {"bar", int32(1)}},
+					},
+				},
+				index: bson.D{{"foo", int32(1)}, {"bar", int32(1)}},
+				want:  "foo_1_bar_1",
+			},
+			{
+				name: "text index",
+				models: []mongo.IndexModel{
+					{
+						Keys: bson.D{{"plot1", "text"}, {"plot2", "text"}},
+					},
+				},
+				// Key is automatically set to Full Text Search for any text index
+				index: bson.D{{"_fts", "text"}, {"_ftsx", int32(1)}},
+				want:  "plot1_text_plot2_text",
+			},
+		}
+
+		for _, test := range tests {
+			mt.Run(test.name, func(mt *mtest.T) {
+				iv := mt.Coll.Indexes()
+				indexNames, err := iv.CreateMany(context.Background(), test.models)
+
+				s, _ := test.index.(bson.D)
+				for _, name := range indexNames {
+					verifyIndexExists(mt, iv, index{
+						Key:  s,
+						Name: name,
+					})
+				}
+
+				assert.NoError(mt, err)
+				assert.Equal(mt, len(test.models), len(indexNames), "expected %v index names, got %v", len(test.models), len(indexNames))
+
+				_, err = iv.DropWithKey(context.Background(), test.index)
+				assert.Nil(mt, err, "DropOne error: %v", err)
+
+				cursor, err := iv.List(context.Background())
+				assert.Nil(mt, err, "List error: %v", err)
+				for cursor.Next(context.Background()) {
+					var idx index
+					err = cursor.Decode(&idx)
+					assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
+					assert.NotEqual(mt, test.want, idx.Name, "found index %v after dropping", test.want)
+				}
+				assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
+			})
+		}
+	})
 	mt.Run("drop all", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
 		names, err := iv.CreateMany(context.Background(), []mongo.IndexModel{
