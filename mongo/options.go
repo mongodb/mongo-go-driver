@@ -18,7 +18,6 @@ type Options[T mongoutil.Options] interface {
 
 // newOptionsFromBuilder wraps the given mongo-level options in the internal
 // mongoutil options, merging a slice of options in a last-one-wins algorithm.
-
 func newOptionsFromBuilder[T mongoutil.Options](opts ...Options[T]) (*T, error) {
 	mongoOpts := make([]mongoutil.OptionsBuilder[T], len(opts))
 	for idx, opt := range opts {
