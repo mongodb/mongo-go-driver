@@ -730,7 +730,7 @@ func TestFLEIndexView(t *testing.T) {
 
 		cc.numEncryptCalls = 0 // Reset Encrypt calls from createIndexes
 
-		_, err := coll.Indexes().DropOne(context.Background(), "a_1")
+		err := coll.Indexes().DropOne(context.Background(), "a_1")
 		assert.NoError(mt, err, "error dropping one index: %v", err)
 
 		assert.Equal(mt, cc.numEncryptCalls, 1, "expected 1 call to Encrypt, got %v", cc.numEncryptCalls)

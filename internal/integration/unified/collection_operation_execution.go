@@ -598,8 +598,8 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("name")
 	}
 
-	res, err := coll.Indexes().DropOne(ctx, name, dropIndexOpts)
-	return newDocumentResult(res, err), nil
+	err = coll.Indexes().DropOne(ctx, name, dropIndexOpts)
+	return newDocumentResult(nil, err), nil
 }
 
 func executeDropIndexes(ctx context.Context, operation *operation) (*operationResult, error) {

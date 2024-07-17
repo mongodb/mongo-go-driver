@@ -296,7 +296,6 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
-			dc.Ancestor = inlineMap.Type()
 			err = decoder.DecodeValue(dc, vr, elem)
 			if err != nil {
 				return err
