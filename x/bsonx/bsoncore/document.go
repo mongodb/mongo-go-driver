@@ -297,7 +297,7 @@ func (d Document) StringN(n int) string {
 		return ""
 	}
 
-	// String outputed is short by 2
+	// String outputted is short by 2
 	n += 2
 
 	var buf strings.Builder
