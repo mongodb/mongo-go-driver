@@ -477,5 +477,13 @@ func TestCopier(t *testing.T) {
 				t.Errorf("Bytes do not match. got %v; want %v", got, want)
 			}
 		})
+		t.Run("Error", func(t *testing.T) {
+			want := errors.New("CopyValue error")
+			llvrw := &TestValueReaderWriter{t: t, bsontype: TypeString, err: want, errAfter: llvrwReadString}
+			_, _, got := copyValueToBytes(llvrw)
+			if !assert.CompareErrors(got, want) {
+				t.Errorf("Errors do not match. got %v; want %v", got, want)
+			}
+		})
 	})
 }

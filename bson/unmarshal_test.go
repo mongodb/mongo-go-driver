@@ -39,23 +39,48 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestUnmarshalWithRegistry(t *testing.T) {
-	for _, tc := range unmarshalingTestCases() {
+	t.Parallel()
+
+	testCases := []struct {
+		name     string
+		val      interface{}
+		bsontype Type
+		bytes    []byte
+	}{
+		{
+			name:     "SliceCodec binary",
+			val:      []byte("hello world"),
+			bsontype: TypeBinary,
+			bytes:    bsoncore.AppendBinary(nil, TypeBinaryGeneric, []byte("hello world")),
+		},
+		{
+			name:     "SliceCodec string",
+			val:      []byte("hello world"),
+			bsontype: TypeString,
+			bytes:    bsoncore.AppendString(nil, "hello world"),
+		},
+	}
+	reg := NewRegistry()
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
+	for _, tc := range testCases {
+		tc := tc
+
 		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
+			t.Parallel()
 
 			// Assert that unmarshaling the input data results in the expected value.
-			got := reflect.New(tc.sType).Interface()
-			err := Unmarshal(data, got)
+			gotValue := reflect.New(reflect.TypeOf(tc.val))
+			dec := NewDecoder(NewBSONValueReader(tc.bsontype, tc.bytes))
+			dec.SetRegistry(reg)
+			err := dec.Decode(gotValue.Interface())
 			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
 
 			// Fill the input data slice with random bytes and then assert that the result still
 			// matches the expected value.
-			_, err = rand.Read(data)
+			_, err = rand.Read(tc.bytes)
 			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "unmarshaled value does not match expected after modifying the input bytes")
 		})
 	}
 }

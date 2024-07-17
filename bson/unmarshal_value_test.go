@@ -56,11 +56,16 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 			bytes:    bsoncore.AppendString(nil, strings.Repeat("t", 4096)),
 		},
 	}
+	reg := NewRegistry()
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
 	for _, bm := range benchmarks {
 		b.Run(bm.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {
+				dec := NewDecoder(nil)
+				dec.SetRegistry(reg)
 				for pb.Next() {
-					err := UnmarshalValue(bm.bsontype, bm.bytes, &[]byte{})
+					dec.Reset(NewBSONValueReader(bm.bsontype, bm.bytes))
+					err := dec.Decode(&[]byte{})
 					if err != nil {
 						b.Fatal(err)
 					}
