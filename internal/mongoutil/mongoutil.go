@@ -98,8 +98,8 @@ func (opts *OptionsBuilderWithCallback[T]) OptionsSetters() []func(*T) error {
 
 // NewBuilderFromOptions will construct an OptionsBuilder object from the
 // provided Options object.
-func NewBuilderFromOptions[T Options](args *T) *OptionsBuilderWithCallback[T] {
-	return &OptionsBuilderWithCallback[T]{Options: args}
+func NewBuilderFromOptions[T Options](args *T, callback func(*T) error) *OptionsBuilderWithCallback[T] {
+	return &OptionsBuilderWithCallback[T]{Options: args, Callback: callback}
 }
 
 // AuthFromURI will create a Credentials object given the provided URI.

@@ -1177,7 +1177,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []*mongoutil.OptionsBuilderWithCallback[options.ListSearchIndexesOptions]
+	var opts []mongoutil.OptionsBuilder[options.ListSearchIndexesOptions]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1192,16 +1192,14 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
 			// Unmarshal the document into the AggregateOptions embedded object.
-			opt := &mongoutil.OptionsBuilderWithCallback[options.ListSearchIndexesOptions]{
-				Options: &options.ListSearchIndexesOptions{},
-				Callback: func(args *options.ListSearchIndexesOptions) error {
-					args.AggregateOptions = &options.AggregateOptions{}
+			lsiOpts := &options.ListSearchIndexesOptions{}
+			lsiOptsCallback := func(args *options.ListSearchIndexesOptions) error {
+				args.AggregateOptions = &options.AggregateOptions{}
 
-					return bson.Unmarshal(val.Document(), args.AggregateOptions)
-				},
+				return bson.Unmarshal(val.Document(), args.AggregateOptions)
 			}
 
-			opts = append(opts, opt)
+			opts = append(opts, mongoutil.NewBuilderFromOptions[options.ListSearchIndexesOptions](lsiOpts, lsiOptsCallback))
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}

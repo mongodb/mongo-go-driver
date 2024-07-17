@@ -501,7 +501,7 @@ func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client
 	argsCopy.AutoEncryptionOptions = nil
 	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
 
-	opts := &mongoutil.OptionsBuilderWithCallback[options.ClientOptions]{Options: &argsCopy}
+	opts := mongoutil.NewBuilderFromOptions(&argsCopy, nil)
 
 	var err error
 	c.internalClientFLE, err = newClient(opts)

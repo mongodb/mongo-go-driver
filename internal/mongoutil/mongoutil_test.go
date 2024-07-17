@@ -7,7 +7,9 @@
 package mongoutil
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
@@ -123,23 +125,20 @@ func TestNewOptionsFromArgs(t *testing.T) {
 	clientTests := []struct {
 		name string
 		args *options.ClientOptions
-		clbk func(*options.ClientOptions) error
 		want options.ClientOptions
 	}{
 		{
 			name: "nil args",
 			args: nil,
-			clbk: nil,
 			want: options.ClientOptions{},
 		},
 		{
 			name: "no args",
 			args: &options.ClientOptions{},
-			clbk: nil,
 			want: options.ClientOptions{},
 		},
 		{
-			name: "no callback",
+			name: "args",
 			args: &options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
@@ -151,7 +150,7 @@ func TestNewOptionsFromArgs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := NewBuilderFromOptions[options.ClientOptions](test.args)
+			opts := NewBuilderFromOptions[options.ClientOptions](test.args, nil)
 
 			got, err := NewOptionsFromBuilder[options.ClientOptions](opts)
 			assert.NoError(t, err)
@@ -160,4 +159,40 @@ func TestNewOptionsFromArgs(t *testing.T) {
 			assert.Equal(t, test.want.AppName, got.AppName)
 		})
 	}
+}
+
+func BenchmarkNewOptionsFromBuilder(b *testing.B) {
+	b.Run("reflect.ValueOf is always called", func(b *testing.B) {
+		opts := make([]OptionsBuilder[options.ClientOptions], b.N)
+
+		// Create a huge string to see if we can force reflect.ValueOf to use heap
+		// over stack.
+		size := 16 * 1024 * 1024
+		str := strings.Repeat("a", size)
+
+		for i := 0; i < b.N; i++ {
+			opts[i] = options.Client().ApplyURI("x").SetAppName(str).
+				SetAuth(options.Credential{}).SetHosts([]string{"x", "y"}).
+				SetDirect(true).SetTimeout(time.Second)
+		}
+
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = NewOptionsFromBuilder[options.ClientOptions](opts...)
+		}
+	})
+
+	b.Run("reflect.ValuOf is never called", func(b *testing.B) {
+		opts := make([]OptionsBuilder[options.LoggerOptions], b.N)
+
+		for i := 0; i < b.N; i++ {
+			var lo *options.LoggerOptionsBuilder
+			opts[i] = lo
+		}
+
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = NewOptionsFromBuilder[options.LoggerOptions](opts...)
+		}
+	})
 }
