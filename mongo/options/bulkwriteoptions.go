@@ -47,8 +47,8 @@ func BulkWrite() *BulkWriteOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of BulkWriteOptions setter functions.
-func (b *BulkWriteOptionsBuilder) OptionsSetters() []func(*BulkWriteOptions) error {
+// ListSetters returns a list of BulkWriteOptions setter functions.
+func (b *BulkWriteOptionsBuilder) ListSetters() []func(*BulkWriteOptions) error {
 	return b.Opts
 }
 

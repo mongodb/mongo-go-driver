@@ -72,7 +72,7 @@ func createOCSPClientOptions(uri string) *options.ClientOptionsBuilder {
 func createInsecureOCSPClientOptions(uri string) *options.ClientOptionsBuilder {
 	opts := createOCSPClientOptions(uri)
 
-	args, _ := mongoutil.NewOptionsFromBuilder[options.ClientOptions](opts)
+	args, _ := mongoutil.NewOptions[options.ClientOptions](opts)
 
 	if args.TLSConfig != nil {
 		args.TLSConfig.InsecureSkipVerify = true

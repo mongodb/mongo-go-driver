@@ -59,7 +59,7 @@ var testContext struct {
 }
 
 func setupClient(opts *options.ClientOptionsBuilder) (*mongo.Client, error) {
-	args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](opts)
+	args, err := mongoutil.NewOptions[options.ClientOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}

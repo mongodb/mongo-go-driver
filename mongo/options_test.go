@@ -20,7 +20,7 @@ package mongo
 //
 //	tests := []struct {
 //		name string
-//		opts []options.Builder[options.FindOptions]
+//		opts []options.SetterLister[options.FindOptions]
 //		want *options.FindOptions
 //	}{
 //		{
@@ -30,12 +30,12 @@ package mongo
 //		},
 //		{
 //			name: "empty",
-//			opts: []options.Builder[options.FindOptions]{},
+//			opts: []options.SetterLister[options.FindOptions]{},
 //			want: &options.FindOptions{},
 //		},
 //		{
 //			name: "singleton",
-//			opts: []options.Builder[options.FindOptions]{
+//			opts: []options.SetterLister[options.FindOptions]{
 //				options.Find().SetSkip(1),
 //			},
 //			want: &options.FindOptions{
@@ -44,7 +44,7 @@ package mongo
 //		},
 //		{
 //			name: "multiplicity",
-//			opts: []options.Builder[options.FindOptions]{
+//			opts: []options.SetterLister[options.FindOptions]{
 //				options.Find().SetSkip(1),
 //				options.Find().SetSkip(2),
 //			},
@@ -54,7 +54,7 @@ package mongo
 //		},
 //		{
 //			name: "interior null",
-//			opts: []options.Builder[options.FindOptions]{
+//			opts: []options.SetterLister[options.FindOptions]{
 //				options.Find().SetSkip(1),
 //				nil,
 //				options.Find().SetSkip(2),
@@ -65,7 +65,7 @@ package mongo
 //		},
 //		{
 //			name: "start null",
-//			opts: []options.Builder[options.FindOptions]{
+//			opts: []options.SetterLister[options.FindOptions]{
 //				nil,
 //				options.Find().SetSkip(1),
 //				options.Find().SetSkip(2),
@@ -76,7 +76,7 @@ package mongo
 //		},
 //		{
 //			name: "end null",
-//			opts: []options.Builder[options.FindOptions]{
+//			opts: []options.SetterLister[options.FindOptions]{
 //				options.Find().SetSkip(1),
 //				options.Find().SetSkip(2),
 //				nil,
@@ -93,7 +93,7 @@ package mongo
 //		t.Run(test.name, func(t *testing.T) {
 //			t.Parallel()
 //
-//			got, err := mongoutil.NewOptionsFromBuilder(test.opts...)
+//			got, err := mongoutil.NewOptions(test.opts...)
 //			assert.NoError(t, err, "unexpected merging error")
 //			assert.Equal(t, test.want, got)
 //		})
@@ -101,16 +101,16 @@ package mongo
 //}
 //
 //func BenchmarkNewArgsFromOptions(b *testing.B) {
-//	mockOptions := make([]options.Builder[options.BulkWriteOptions], b.N)
+//	mockOptions := make([]options.SetterLister[options.BulkWriteOptions], b.N)
 //	for i := 0; i < b.N; i = i + 2 {
 //		// Specifically benchmark the case where a nil value is assigned to the
 //		// Options interface.
 //		var bwo *options.BulkWriteOptionsBuilder
 //
-//		mockoptions.Builder[i] = bwo
+//		mockoptions.SetterLister[i] = bwo
 //
 //		if i+1 < b.N {
-//			mockoptions.Builder[i+1] = options.BulkWrite()
+//			mockoptions.SetterLister[i+1] = options.BulkWrite()
 //		}
 //	}
 //
@@ -119,6 +119,6 @@ package mongo
 //
 //	// Run the benchmark
 //	for i := 0; i < b.N; i++ {
-//		_, _ = mongoutil.NewOptionsFromBuilder(mockoptions.Builder[i])
+//		_, _ = mongoutil.NewOptions(mockoptions.SetterLister[i])
 //	}
 //}

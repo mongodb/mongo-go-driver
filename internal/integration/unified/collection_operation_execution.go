@@ -24,7 +24,7 @@ import (
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...options.Builder[options.AggregateOptions]) (*mongo.Cursor, error)
+		Aggregate(context.Context, interface{}, ...options.SetterLister[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -1177,7 +1177,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []options.Builder[options.ListSearchIndexesOptions]
+	var opts []options.SetterLister[options.ListSearchIndexesOptions]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1199,16 +1199,14 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 				return bson.Unmarshal(val.Document(), args.AggregateOptions)
 			}
 
-			opts = append(opts, mongoutil.NewBuilderFromOptions[options.ListSearchIndexesOptions](lsiOpts, lsiOptsCallback))
+			opts = append(opts, mongoutil.NewOptionsLister[options.ListSearchIndexesOptions](lsiOpts, lsiOptsCallback))
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}
 	}
 
-	aggregateOpts := make([]options.Builder[options.ListSearchIndexesOptions], len(opts))
-	for idx, opt := range opts {
-		aggregateOpts[idx] = opt
-	}
+	aggregateOpts := make([]options.SetterLister[options.ListSearchIndexesOptions], len(opts))
+	copy(aggregateOpts, opts)
 
 	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, aggregateOpts...)
 	return newValueResult(bson.TypeNull, nil, err), nil

@@ -32,8 +32,8 @@ func DefaultIndex() *DefaultIndexOptionsBuilder {
 	return &DefaultIndexOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of DefaultIndexOptions setter functions.
-func (d *DefaultIndexOptionsBuilder) OptionsSetters() []func(*DefaultIndexOptions) error {
+// ListSetters returns a list of DefaultIndexOptions setter functions.
+func (d *DefaultIndexOptionsBuilder) ListSetters() []func(*DefaultIndexOptions) error {
 	return d.Opts
 }
 
@@ -88,8 +88,8 @@ func TimeSeries() *TimeSeriesOptionsBuilder {
 	return &TimeSeriesOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of TimeSeriesOptions setter functions.
-func (tso *TimeSeriesOptionsBuilder) OptionsSetters() []func(*TimeSeriesOptions) error {
+// ListSetters returns a list of TimeSeriesOptions setter functions.
+func (tso *TimeSeriesOptionsBuilder) ListSetters() []func(*TimeSeriesOptions) error {
 	return tso.Opts
 }
 
@@ -239,8 +239,8 @@ func CreateCollection() *CreateCollectionOptionsBuilder {
 	return &CreateCollectionOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of CreateCollectionOptions setter functions.
-func (c *CreateCollectionOptionsBuilder) OptionsSetters() []func(*CreateCollectionOptions) error {
+// ListSetters returns a list of CreateCollectionOptions setter functions.
+func (c *CreateCollectionOptionsBuilder) ListSetters() []func(*CreateCollectionOptions) error {
 	return c.Opts
 }
 
@@ -418,8 +418,8 @@ func CreateView() *CreateViewOptionsBuilder {
 	return &CreateViewOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of TimeSeriesOptions setter functions.
-func (c *CreateViewOptionsBuilder) OptionsSetters() []func(*CreateViewOptions) error {
+// ListSetters returns a list of TimeSeriesOptions setter functions.
+func (c *CreateViewOptionsBuilder) ListSetters() []func(*CreateViewOptions) error {
 	return c.Opts
 }
 

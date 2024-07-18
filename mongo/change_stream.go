@@ -131,7 +131,7 @@ func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
-	opts ...options.Builder[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.SetterLister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -140,7 +140,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
-	args, err := mongoutil.NewOptionsFromBuilder[options.ChangeStreamOptions](opts...)
+	args, err := mongoutil.NewOptions[options.ChangeStreamOptions](opts...)
 	if err != nil {
 		return nil, err
 	}

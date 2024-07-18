@@ -291,7 +291,7 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptionsBu
 		case "defaultTransactionOptions":
 			txnOpts := createTransactionOptions(t, opt.Document())
 
-			txnArgs, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](txnOpts)
+			txnArgs, err := mongoutil.NewOptions[options.TransactionOptions](txnOpts)
 			if err != nil {
 				t.Fatalf("failed to construct options from builder: %v", err)
 			}

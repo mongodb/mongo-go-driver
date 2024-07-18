@@ -21,7 +21,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-func setupDb(name string, opts ...options.Builder[options.DatabaseOptions]) *Database {
+func setupDb(name string, opts ...options.SetterLister[options.DatabaseOptions]) *Database {
 	client := setupClient()
 	return client.Database(name, opts...)
 }

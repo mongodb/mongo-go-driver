@@ -60,8 +60,8 @@ func Update() *UpdateOptionsBuilder {
 	return &UpdateOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of UpdateOptions setter functions.
-func (uo *UpdateOptionsBuilder) OptionsSetters() []func(*UpdateOptions) error {
+// ListSetters returns a list of UpdateOptions setter functions.
+func (uo *UpdateOptionsBuilder) ListSetters() []func(*UpdateOptions) error {
 	return uo.Opts
 }
 

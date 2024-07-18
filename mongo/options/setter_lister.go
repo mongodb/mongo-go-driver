@@ -6,21 +6,24 @@
 
 package options
 
-// Builder is an interface that wraps a method to return a list of setter
+// Lister is an interface that wraps a method to return a list of setter
 // functions that can set a generic arguments type.
-type Builder[T any] interface {
-	OptionsSetters() []func(*T) error
+
+// SetterLister is an interface that wraps a ListSetters method to return a
+// slice of option setters.
+type SetterLister[T any] interface {
+	ListSetters() []func(*T) error
 }
 
-func getOptions[T any](mopts Builder[T]) (*T, error) {
+func getOptions[T any](mopts SetterLister[T]) (*T, error) {
 	opts := new(T)
 
-	for _, setOptions := range mopts.OptionsSetters() {
-		if setOptions == nil {
+	for _, setterFn := range mopts.ListSetters() {
+		if setterFn == nil {
 			continue
 		}
 
-		if err := setOptions(opts); err != nil {
+		if err := setterFn(opts); err != nil {
 			return nil, err
 		}
 	}

@@ -12,9 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// NewOptionsFromBuilder will functionally merge a slice of mongo.Options in a
+// NewOptions will functionally merge a slice of mongo.Options in a
 // "last-one-wins" manner, where nil options are ignored.
-func NewOptionsFromBuilder[T any](opts ...options.Builder[T]) (*T, error) {
+func NewOptions[T any](opts ...options.SetterLister[T]) (*T, error) {
 	args := new(T)
 	for _, opt := range opts {
 		if opt == nil || reflect.ValueOf(opt).IsNil() {
@@ -24,7 +24,7 @@ func NewOptionsFromBuilder[T any](opts ...options.Builder[T]) (*T, error) {
 			continue
 		}
 
-		for _, setArgs := range opt.OptionsSetters() {
+		for _, setArgs := range opt.ListSetters() {
 			if setArgs == nil {
 				continue
 			}
@@ -37,18 +37,17 @@ func NewOptionsFromBuilder[T any](opts ...options.Builder[T]) (*T, error) {
 	return args, nil
 }
 
-// OptionsBuilderWithCallback implements a mongo.OptionsBuilder object for an
-// arbitrary options type. The intended use case is to create options from
-// options.
-type OptionsBuilderWithCallback[T any] struct {
+// OptionsLister implements an options.SetterLister object for an arbitrary
+// options type.
+type OptionsLister[T any] struct {
 	Options  *T             // Arguments to set on the option type
 	Callback func(*T) error // A callback for further modification
 }
 
-// OptionsSetters will re-assign the entire argument option to the Args field
+// ListSetters will re-assign the entire argument option to the Args field
 // defined on opts. If a callback exists, that function will be executed to
 // further modify the arguments.
-func (opts *OptionsBuilderWithCallback[T]) OptionsSetters() []func(*T) error {
+func (opts *OptionsLister[T]) ListSetters() []func(*T) error {
 	return []func(*T) error{
 		func(args *T) error {
 			if opts.Options != nil {
@@ -64,15 +63,15 @@ func (opts *OptionsBuilderWithCallback[T]) OptionsSetters() []func(*T) error {
 	}
 }
 
-// NewBuilderFromOptions will construct an OptionsBuilder object from the
-// provided Options object.
-func NewBuilderFromOptions[T any](args *T, callback func(*T) error) *OptionsBuilderWithCallback[T] {
-	return &OptionsBuilderWithCallback[T]{Options: args, Callback: callback}
+// NewOptionsLister will construct a SetterLister from the provided Options
+// object.
+func NewOptionsLister[T any](args *T, callback func(*T) error) *OptionsLister[T] {
+	return &OptionsLister[T]{Options: args, Callback: callback}
 }
 
 // AuthFromURI will create a Credentials object given the provided URI.
 func AuthFromURI(uri string) (*options.Credential, error) {
-	args, err := NewOptionsFromBuilder[options.ClientOptions](options.Client().ApplyURI(uri))
+	args, err := NewOptions[options.ClientOptions](options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +82,7 @@ func AuthFromURI(uri string) (*options.Credential, error) {
 // HostsFromURI will parse the hosts in the URI and return them as a slice of
 // strings.
 func HostsFromURI(uri string) ([]string, error) {
-	args, err := NewOptionsFromBuilder[options.ClientOptions](options.Client().ApplyURI(uri))
+	args, err := NewOptions[options.ClientOptions](options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}

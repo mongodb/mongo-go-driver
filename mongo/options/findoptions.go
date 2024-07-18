@@ -105,8 +105,8 @@ func Find() *FindOptionsBuilder {
 	return &FindOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of FindOptions setter functions.
-func (f *FindOptionsBuilder) OptionsSetters() []func(*FindOptions) error {
+// ListSetters returns a list of FindOptions setter functions.
+func (f *FindOptionsBuilder) ListSetters() []func(*FindOptions) error {
 	return f.Opts
 }
 
@@ -333,8 +333,8 @@ func FindOne() *FindOneOptionsBuilder {
 	return &FindOneOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of FindOneOptions setter functions.
-func (f *FindOneOptionsBuilder) OptionsSetters() []func(*FindOneOptions) error {
+// ListSetters returns a list of FindOneOptions setter functions.
+func (f *FindOneOptionsBuilder) ListSetters() []func(*FindOneOptions) error {
 	return f.Opts
 }
 
@@ -499,8 +499,8 @@ func FindOneAndReplace() *FindOneAndReplaceOptionsBuilder {
 	return &FindOneAndReplaceOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of FindOneAndReplaceOptions setter functions.
-func (f *FindOneAndReplaceOptionsBuilder) OptionsSetters() []func(*FindOneAndReplaceOptions) error {
+// ListSetters returns a list of FindOneAndReplaceOptions setter functions.
+func (f *FindOneAndReplaceOptionsBuilder) ListSetters() []func(*FindOneAndReplaceOptions) error {
 	return f.Opts
 }
 
@@ -670,8 +670,8 @@ func FindOneAndUpdate() *FindOneAndUpdateOptionsBuilder {
 	return &FindOneAndUpdateOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of FindOneAndUpdateOptions setter functions.
-func (f *FindOneAndUpdateOptionsBuilder) OptionsSetters() []func(*FindOneAndUpdateOptions) error {
+// ListSetters returns a list of FindOneAndUpdateOptions setter functions.
+func (f *FindOneAndUpdateOptionsBuilder) ListSetters() []func(*FindOneAndUpdateOptions) error {
 	return f.Opts
 }
 
@@ -833,8 +833,8 @@ func FindOneAndDelete() *FindOneAndDeleteOptionsBuilder {
 	return &FindOneAndDeleteOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of FindOneAndDeleteOptions setter functions.
-func (f *FindOneAndDeleteOptionsBuilder) OptionsSetters() []func(*FindOneAndDeleteOptions) error {
+// ListSetters returns a list of FindOneAndDeleteOptions setter functions.
+func (f *FindOneAndDeleteOptionsBuilder) ListSetters() []func(*FindOneAndDeleteOptions) error {
 	return f.Opts
 }
 

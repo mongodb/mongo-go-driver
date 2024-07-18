@@ -31,7 +31,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...options.Builder[options.ClientOptions]) *Client {
+func setupClient(opts ...options.SetterLister[options.ClientOptions]) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)
@@ -316,7 +316,7 @@ func TestClient(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
 
-			args, _ := mongoutil.NewOptionsFromBuilder[options.ClientOptions](opts)
+			args, _ := mongoutil.NewOptions[options.ClientOptions](opts)
 			got := args.GetURI()
 
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)

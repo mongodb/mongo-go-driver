@@ -155,12 +155,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 // aggregator is an interface used to run collection and database-level aggregations
 type aggregator interface {
-	Aggregate(context.Context, interface{}, ...options.Builder[options.AggregateOptions]) (*mongo.Cursor, error)
+	Aggregate(context.Context, interface{}, ...options.SetterLister[options.AggregateOptions]) (*mongo.Cursor, error)
 }
 
 // watcher is an interface used to create client, db, and collection-level change streams
 type watcher interface {
-	Watch(context.Context, interface{}, ...options.Builder[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
+	Watch(context.Context, interface{}, ...options.SetterLister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 }
 
 func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -902,7 +902,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -954,7 +954,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -1002,7 +1002,7 @@ func executeReplaceOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.ReplaceOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.ReplaceOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -1436,7 +1436,7 @@ func executeAdminCommandWithRetry(
 	mt *mtest.T,
 	client *mongo.Client,
 	cmd interface{},
-	opts ...options.Builder[options.RunCmdOptions],
+	opts ...options.SetterLister[options.RunCmdOptions],
 ) {
 	mt.Helper()
 

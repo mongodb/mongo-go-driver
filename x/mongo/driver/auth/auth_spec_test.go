@@ -61,7 +61,7 @@ func runTest(t *testing.T, filename string, test testCase) {
 	t.Run(filename+":"+test.Description, func(t *testing.T) {
 		clientOptsBldr := options.Client().ApplyURI(test.URI)
 
-		opts, _ := mongoutil.NewOptionsFromBuilder[options.ClientOptions](clientOptsBldr)
+		opts, _ := mongoutil.NewOptions[options.ClientOptions](clientOptsBldr)
 
 		if test.Valid {
 			require.NoError(t, clientOptsBldr.Validate())

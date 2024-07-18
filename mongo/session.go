@@ -116,7 +116,7 @@ func (s *Session) EndSession(ctx context.Context) {
 func (s *Session) WithTransaction(
 	ctx context.Context,
 	fn func(ctx context.Context) (interface{}, error),
-	opts ...options.Builder[options.TransactionOptions],
+	opts ...options.SetterLister[options.TransactionOptions],
 ) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
@@ -197,7 +197,7 @@ func (s *Session) WithTransaction(
 
 // StartTransaction starts a new transaction. This method returns an error if
 // there is already a transaction in-progress for this session.
-func (s *Session) StartTransaction(opts ...options.Builder[options.TransactionOptions]) error {
+func (s *Session) StartTransaction(opts ...options.SetterLister[options.TransactionOptions]) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -205,7 +205,7 @@ func (s *Session) StartTransaction(opts ...options.Builder[options.TransactionOp
 
 	s.didCommitAfterStart = false
 
-	args, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](opts...)
+	args, err := mongoutil.NewOptions[options.TransactionOptions](opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}

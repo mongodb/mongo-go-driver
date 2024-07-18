@@ -264,8 +264,8 @@ func Client() *ClientOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of ClientOptions setter functions.
-func (c *ClientOptionsBuilder) OptionsSetters() []func(*ClientOptions) error {
+// ListSetters returns a list of ClientOptions setter functions.
+func (c *ClientOptionsBuilder) ListSetters() []func(*ClientOptions) error {
 	return c.Opts
 }
 

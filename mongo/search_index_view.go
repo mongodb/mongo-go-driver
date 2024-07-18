@@ -44,14 +44,14 @@ type SearchIndexModel struct {
 // documentation).
 func (siv SearchIndexView) List(
 	ctx context.Context,
-	searchIdxOpts options.Builder[options.SearchIndexesOptions],
-	opts ...options.Builder[options.ListSearchIndexesOptions],
+	searchIdxOpts options.SetterLister[options.SearchIndexesOptions],
+	opts ...options.SetterLister[options.ListSearchIndexesOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	searchIdxArgs, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](searchIdxOpts)
+	searchIdxArgs, err := mongoutil.NewOptions[options.SearchIndexesOptions](searchIdxOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -61,12 +61,12 @@ func (siv SearchIndexView) List(
 		index = bson.D{{"name", *searchIdxArgs.Name}}
 	}
 
-	args, err := mongoutil.NewOptionsFromBuilder[options.ListSearchIndexesOptions](opts...)
+	args, err := mongoutil.NewOptions[options.ListSearchIndexesOptions](opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	aggregateOpts := mongoutil.NewBuilderFromOptions(args.AggregateOptions, nil)
+	aggregateOpts := mongoutil.NewOptionsLister(args.AggregateOptions, nil)
 
 	return siv.coll.Aggregate(ctx, Pipeline{{{"$listSearchIndexes", index}}}, aggregateOpts)
 }
@@ -76,7 +76,7 @@ func (siv SearchIndexView) List(
 func (siv SearchIndexView) CreateOne(
 	ctx context.Context,
 	model SearchIndexModel,
-	opts ...options.Builder[options.CreateSearchIndexesOptions],
+	opts ...options.SetterLister[options.CreateSearchIndexesOptions],
 ) (string, error) {
 	names, err := siv.CreateMany(ctx, []SearchIndexModel{model}, opts...)
 	if err != nil {
@@ -96,7 +96,7 @@ func (siv SearchIndexView) CreateOne(
 func (siv SearchIndexView) CreateMany(
 	ctx context.Context,
 	models []SearchIndexModel,
-	_ ...options.Builder[options.CreateSearchIndexesOptions],
+	_ ...options.SetterLister[options.CreateSearchIndexesOptions],
 ) ([]string, error) {
 	var indexes bsoncore.Document
 	aidx, indexes := bsoncore.AppendArrayStart(indexes)
@@ -113,7 +113,7 @@ func (siv SearchIndexView) CreateMany(
 
 		var iidx int32
 		if model.Options != nil {
-			searchIndexArgs, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](model.Options)
+			searchIndexArgs, err := mongoutil.NewOptions[options.SearchIndexesOptions](model.Options)
 			if err != nil {
 				return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 			}
@@ -186,7 +186,7 @@ func (siv SearchIndexView) CreateMany(
 func (siv SearchIndexView) DropOne(
 	ctx context.Context,
 	name string,
-	_ ...options.Builder[options.DropSearchIndexOptions],
+	_ ...options.SetterLister[options.DropSearchIndexOptions],
 ) error {
 	if name == "*" {
 		return ErrMultipleIndexDrop
@@ -235,7 +235,7 @@ func (siv SearchIndexView) UpdateOne(
 	ctx context.Context,
 	name string,
 	definition interface{},
-	_ ...options.Builder[options.UpdateSearchIndexOptions],
+	_ ...options.SetterLister[options.UpdateSearchIndexOptions],
 ) error {
 	if definition == nil {
 		return fmt.Errorf("search index definition cannot be nil")

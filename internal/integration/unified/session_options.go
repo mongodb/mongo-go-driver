@@ -84,7 +84,7 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 		so.SetCausalConsistency(*temp.Causal)
 	}
 	if temp.TxnOptions != nil {
-		txnArgs, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](temp.TxnOptions)
+		txnArgs, err := mongoutil.NewOptions[options.TransactionOptions](temp.TxnOptions)
 		if err != nil {
 			return fmt.Errorf("failed to construct options from builder: %w", err)
 		}

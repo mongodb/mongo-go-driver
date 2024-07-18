@@ -98,8 +98,8 @@ func Logger() *LoggerOptionsBuilder {
 	return &LoggerOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of LoggerOptions setter functions.
-func (opts *LoggerOptionsBuilder) OptionsSetters() []func(*LoggerOptions) error {
+// ListSetters returns a list of LoggerOptions setter functions.
+func (opts *LoggerOptionsBuilder) ListSetters() []func(*LoggerOptions) error {
 	return opts.Opts
 }
 

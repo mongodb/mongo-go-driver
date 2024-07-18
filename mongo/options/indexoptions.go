@@ -36,8 +36,8 @@ func CreateIndexes() *CreateIndexesOptionsBuilder {
 	return &CreateIndexesOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of CreateIndexesOptions setter functions.
-func (c *CreateIndexesOptionsBuilder) OptionsSetters() []func(*CreateIndexesOptions) error {
+// ListSetters returns a list of CreateIndexesOptions setter functions.
+func (c *CreateIndexesOptionsBuilder) ListSetters() []func(*CreateIndexesOptions) error {
 	return c.Opts
 }
 
@@ -101,8 +101,8 @@ func DropIndexes() *DropIndexesOptionsBuilder {
 	return &DropIndexesOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of DropIndexesOptions setter functions.
-func (d *DropIndexesOptionsBuilder) OptionsSetters() []func(*DropIndexesOptions) error {
+// ListSetters returns a list of DropIndexesOptions setter functions.
+func (d *DropIndexesOptionsBuilder) ListSetters() []func(*DropIndexesOptions) error {
 	return d.Opts
 }
 
@@ -125,8 +125,8 @@ func ListIndexes() *ListIndexesOptionsBuilder {
 	return &ListIndexesOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of CountOptions setter functions.
-func (l *ListIndexesOptionsBuilder) OptionsSetters() []func(*ListIndexesOptions) error {
+// ListSetters returns a list of CountOptions setter functions.
+func (l *ListIndexesOptionsBuilder) ListSetters() []func(*ListIndexesOptions) error {
 	return l.Opts
 }
 
@@ -237,8 +237,8 @@ func Index() *IndexOptionsBuilder {
 	return &IndexOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of IndexOptions setter functions.
-func (i *IndexOptionsBuilder) OptionsSetters() []func(*IndexOptions) error {
+// ListSetters returns a list of IndexOptions setter functions.
+func (i *IndexOptionsBuilder) ListSetters() []func(*IndexOptions) error {
 	return i.Opts
 }
 

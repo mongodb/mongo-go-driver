@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func TestNewArgumentsFromOptions(t *testing.T) {
+func TestNewOptions(t *testing.T) {
 	t.Parallel()
 
 	// For simplicity, we just chose one options type to test on. This should be
@@ -26,7 +26,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 	// done in a separate test.
 	clientTests := []struct {
 		name string
-		opts []options.Builder[options.ClientOptions]
+		opts []options.SetterLister[options.ClientOptions]
 		want options.ClientOptions
 	}{
 		{
@@ -36,24 +36,24 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "no options",
-			opts: []options.Builder[options.ClientOptions]{},
+			opts: []options.SetterLister[options.ClientOptions]{},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "one option",
-			opts: []options.Builder[options.ClientOptions]{
+			opts: []options.SetterLister[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 			},
 			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "one nil option",
-			opts: []options.Builder[options.ClientOptions]{nil},
+			opts: []options.SetterLister[options.ClientOptions]{nil},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "many same options",
-			opts: []options.Builder[options.ClientOptions]{
+			opts: []options.SetterLister[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				options.Client().SetAppName("testApp"),
 			},
@@ -61,7 +61,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many different options (last one wins)",
-			opts: []options.Builder[options.ClientOptions]{
+			opts: []options.SetterLister[options.ClientOptions]{
 				options.Client().SetAppName("testApp1"),
 				options.Client().SetAppName("testApp2"),
 			},
@@ -69,12 +69,12 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options",
-			opts: []options.Builder[options.ClientOptions]{nil, nil},
+			opts: []options.SetterLister[options.ClientOptions]{nil, nil},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "many options where last is nil (non-nil wins)",
-			opts: []options.Builder[options.ClientOptions]{
+			opts: []options.SetterLister[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				nil,
 			},
@@ -82,7 +82,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options where first is nil (non-nil wins)",
-			opts: []options.Builder[options.ClientOptions]{
+			opts: []options.SetterLister[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 			},
@@ -90,7 +90,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options where middle is non-nil (non-nil wins)",
-			opts: []options.Builder[options.ClientOptions]{
+			opts: []options.SetterLister[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 				nil,
@@ -105,7 +105,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := NewOptionsFromBuilder[options.ClientOptions](test.opts...)
+			got, err := NewOptions[options.ClientOptions](test.opts...)
 			assert.NoError(t, err)
 
 			// WLOG it should be enough to test a small subset of arguments.
@@ -114,7 +114,7 @@ func TestNewArgumentsFromOptions(t *testing.T) {
 	}
 }
 
-func TestNewOptionsFromArgs(t *testing.T) {
+func TestNewOptionsLister(t *testing.T) {
 	t.Parallel()
 
 	// For simplicity, we just chose one options type to test on. This should be
@@ -150,9 +150,9 @@ func TestNewOptionsFromArgs(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := NewBuilderFromOptions[options.ClientOptions](test.args, nil)
+			opts := NewOptionsLister[options.ClientOptions](test.args, nil)
 
-			got, err := NewOptionsFromBuilder[options.ClientOptions](opts)
+			got, err := NewOptions[options.ClientOptions](opts)
 			assert.NoError(t, err)
 
 			// WLOG it should be enough to test a small subset of arguments.
@@ -161,9 +161,9 @@ func TestNewOptionsFromArgs(t *testing.T) {
 	}
 }
 
-func BenchmarkNewOptionsFromBuilder(b *testing.B) {
+func BenchmarkNewOptions(b *testing.B) {
 	b.Run("reflect.ValueOf is always called", func(b *testing.B) {
-		opts := make([]options.Builder[options.ClientOptions], b.N)
+		opts := make([]options.SetterLister[options.ClientOptions], b.N)
 
 		// Create a huge string to see if we can force reflect.ValueOf to use heap
 		// over stack.
@@ -178,12 +178,12 @@ func BenchmarkNewOptionsFromBuilder(b *testing.B) {
 
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, _ = NewOptionsFromBuilder[options.ClientOptions](opts...)
+			_, _ = NewOptions[options.ClientOptions](opts...)
 		}
 	})
 
 	b.Run("reflect.ValuOf is never called", func(b *testing.B) {
-		opts := make([]options.Builder[options.LoggerOptions], b.N)
+		opts := make([]options.SetterLister[options.LoggerOptions], b.N)
 
 		for i := 0; i < b.N; i++ {
 			var lo *options.LoggerOptionsBuilder
@@ -192,7 +192,7 @@ func BenchmarkNewOptionsFromBuilder(b *testing.B) {
 
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, _ = NewOptionsFromBuilder[options.LoggerOptions](opts...)
+			_, _ = NewOptions[options.LoggerOptions](opts...)
 		}
 	})
 }
