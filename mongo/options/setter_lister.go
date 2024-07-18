@@ -6,9 +6,6 @@
 
 package options
 
-// Lister is an interface that wraps a method to return a list of setter
-// functions that can set a generic arguments type.
-
 // SetterLister is an interface that wraps a ListSetters method to return a
 // slice of option setters.
 type SetterLister[T any] interface {
