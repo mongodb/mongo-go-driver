@@ -731,7 +731,7 @@ func TestStringN(t *testing.T) {
 			case bsoncore.Value:
 				result = v.StringN(tc.n)
 			case bsoncore.Array:
-				result = bsoncore.Array(v).StringN(tc.n)
+				result = v.StringN(tc.n)
 			case D:
 				bs, err := Marshal(v)
 				require.NoError(t, err)
