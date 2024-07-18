@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -63,7 +64,7 @@ func isNamespaceNotFoundError(err error) bool {
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listIndexes/.
-func (iv IndexView) List(ctx context.Context, opts ...Options[options.ListIndexesOptions]) (*Cursor, error) {
+func (iv IndexView) List(ctx context.Context, opts ...options.Builder[options.ListIndexesOptions]) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -99,7 +100,7 @@ func (iv IndexView) List(ctx context.Context, opts ...Options[options.ListIndexe
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(iv.coll.bsonOpts, iv.coll.registry)
 
-	args, err := newOptionsFromBuilder[options.ListIndexesOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.ListIndexesOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -138,7 +139,7 @@ func (iv IndexView) List(ctx context.Context, opts ...Options[options.ListIndexe
 // ListSpecifications executes a List command and returns a slice of returned IndexSpecifications
 func (iv IndexView) ListSpecifications(
 	ctx context.Context,
-	opts ...Options[options.ListIndexesOptions],
+	opts ...options.Builder[options.ListIndexesOptions],
 ) ([]*IndexSpecification, error) {
 	cursor, err := iv.List(ctx, opts...)
 	if err != nil {
@@ -167,7 +168,7 @@ func (iv IndexView) ListSpecifications(
 func (iv IndexView) CreateOne(
 	ctx context.Context,
 	model IndexModel,
-	opts ...Options[options.CreateIndexesOptions],
+	opts ...options.Builder[options.CreateIndexesOptions],
 ) (string, error) {
 	names, err := iv.CreateMany(ctx, []IndexModel{model}, opts...)
 	if err != nil {
@@ -190,7 +191,7 @@ func (iv IndexView) CreateOne(
 func (iv IndexView) CreateMany(
 	ctx context.Context,
 	models []IndexModel,
-	opts ...Options[options.CreateIndexesOptions],
+	opts ...options.Builder[options.CreateIndexesOptions],
 ) ([]string, error) {
 	names := make([]string, 0, len(models))
 
@@ -267,7 +268,7 @@ func (iv IndexView) CreateMany(
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	args, err := newOptionsFromBuilder[options.CreateIndexesOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.CreateIndexesOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -295,8 +296,8 @@ func (iv IndexView) CreateMany(
 	return names, nil
 }
 
-func (iv IndexView) createOptionsDoc(opts Options[options.IndexOptions]) (bsoncore.Document, error) {
-	args, err := newOptionsFromBuilder[options.IndexOptions](opts)
+func (iv IndexView) createOptionsDoc(opts options.Builder[options.IndexOptions]) (bsoncore.Document, error) {
+	args, err := mongoutil.NewOptionsFromBuilder[options.IndexOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -383,7 +384,7 @@ func (iv IndexView) createOptionsDoc(opts Options[options.IndexOptions]) (bsonco
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, _ ...Options[options.DropIndexesOptions]) error {
+func (iv IndexView) drop(ctx context.Context, name string, _ ...options.Builder[options.DropIndexesOptions]) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -437,7 +438,7 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...Options[options.
 func (iv IndexView) DropOne(
 	ctx context.Context,
 	name string,
-	opts ...Options[options.DropIndexesOptions],
+	opts ...options.Builder[options.DropIndexesOptions],
 ) error {
 	// For more information about the command, see
 	// https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
@@ -458,13 +459,13 @@ func (iv IndexView) DropOne(
 // https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
 func (iv IndexView) DropAll(
 	ctx context.Context,
-	opts ...Options[options.DropIndexesOptions],
+	opts ...options.Builder[options.DropIndexesOptions],
 ) error {
 	return iv.drop(ctx, "*", opts...)
 }
 
 func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel) (string, error) {
-	args, err := newOptionsFromBuilder[options.IndexOptions](model.Options)
+	args, err := mongoutil.NewOptionsFromBuilder[options.IndexOptions](model.Options)
 	if err != nil {
 		return "", fmt.Errorf("failed to construct options from builder: %w", err)
 	}

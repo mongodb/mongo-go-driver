@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -115,7 +116,7 @@ func (s *Session) EndSession(ctx context.Context) {
 func (s *Session) WithTransaction(
 	ctx context.Context,
 	fn func(ctx context.Context) (interface{}, error),
-	opts ...Options[options.TransactionOptions],
+	opts ...options.Builder[options.TransactionOptions],
 ) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
@@ -196,7 +197,7 @@ func (s *Session) WithTransaction(
 
 // StartTransaction starts a new transaction. This method returns an error if
 // there is already a transaction in-progress for this session.
-func (s *Session) StartTransaction(opts ...Options[options.TransactionOptions]) error {
+func (s *Session) StartTransaction(opts ...options.Builder[options.TransactionOptions]) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -204,7 +205,7 @@ func (s *Session) StartTransaction(opts ...Options[options.TransactionOptions]) 
 
 	s.didCommitAfterStart = false
 
-	args, err := newOptionsFromBuilder[options.TransactionOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.TransactionOptions](opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}

@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -130,7 +131,7 @@ func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
-	opts ...Options[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Builder[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -139,7 +140,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
-	args, err := newOptionsFromBuilder[options.ChangeStreamOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.ChangeStreamOptions](opts...)
 	if err != nil {
 		return nil, err
 	}

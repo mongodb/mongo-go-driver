@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -44,7 +45,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptionsBuilder) (*mongocry
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
 
-	args, err := newOptionsFromBuilder[options.AutoEncryptionOptions](opts)
+	args, err := mongoutil.NewOptionsFromBuilder[options.AutoEncryptionOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}

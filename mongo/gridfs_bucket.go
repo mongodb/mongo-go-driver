@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -66,7 +67,7 @@ type upload struct {
 func (b *GridFSBucket) OpenUploadStream(
 	ctx context.Context,
 	filename string,
-	opts ...Options[options.GridFSUploadOptions],
+	opts ...options.Builder[options.GridFSUploadOptions],
 ) (*GridFSUploadStream, error) {
 	return b.OpenUploadStreamWithID(ctx, bson.NewObjectID(), filename, opts...)
 }
@@ -81,7 +82,7 @@ func (b *GridFSBucket) OpenUploadStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
-	opts ...Options[options.GridFSUploadOptions],
+	opts ...options.Builder[options.GridFSUploadOptions],
 ) (*GridFSUploadStream, error) {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
 	defer cancel()
@@ -111,7 +112,7 @@ func (b *GridFSBucket) UploadFromStream(
 	ctx context.Context,
 	filename string,
 	source io.Reader,
-	opts ...Options[options.GridFSUploadOptions],
+	opts ...options.Builder[options.GridFSUploadOptions],
 ) (bson.ObjectID, error) {
 	fileID := bson.NewObjectID()
 	err := b.UploadFromStreamWithID(ctx, fileID, filename, source, opts...)
@@ -132,7 +133,7 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 	fileID interface{},
 	filename string,
 	source io.Reader,
-	opts ...Options[options.GridFSUploadOptions],
+	opts ...options.Builder[options.GridFSUploadOptions],
 ) error {
 	us, err := b.OpenUploadStreamWithID(ctx, fileID, filename, opts...)
 	if err != nil {
@@ -200,9 +201,9 @@ func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{},
 func (b *GridFSBucket) OpenDownloadStreamByName(
 	ctx context.Context,
 	filename string,
-	opts ...Options[options.GridFSNameOptions],
+	opts ...options.Builder[options.GridFSNameOptions],
 ) (*GridFSDownloadStream, error) {
-	args, err := newOptionsFromBuilder[options.GridFSNameOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.GridFSNameOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -238,7 +239,7 @@ func (b *GridFSBucket) DownloadToStreamByName(
 	ctx context.Context,
 	filename string,
 	stream io.Writer,
-	opts ...Options[options.GridFSNameOptions],
+	opts ...options.Builder[options.GridFSNameOptions],
 ) (int64, error) {
 	ds, err := b.OpenDownloadStreamByName(ctx, filename, opts...)
 	if err != nil {
@@ -272,9 +273,9 @@ func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
 func (b *GridFSBucket) Find(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.GridFSFindOptions],
+	opts ...options.Builder[options.GridFSFindOptions],
 ) (*Cursor, error) {
-	args, err := newOptionsFromBuilder[options.GridFSFindOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.GridFSFindOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -346,7 +347,7 @@ func (b *GridFSBucket) GetChunksCollection() *Collection {
 func (b *GridFSBucket) openDownloadStream(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.FindOneOptions],
+	opts ...options.Builder[options.FindOneOptions],
 ) (*GridFSDownloadStream, error) {
 	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
 	defer cancel()
@@ -542,12 +543,12 @@ func (b *GridFSBucket) checkFirstWrite(ctx context.Context) error {
 	return nil
 }
 
-func (b *GridFSBucket) parseGridFSUploadOptions(opts ...Options[options.GridFSUploadOptions]) (*upload, error) {
+func (b *GridFSBucket) parseGridFSUploadOptions(opts ...options.Builder[options.GridFSUploadOptions]) (*upload, error) {
 	upload := &upload{
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 
-	args, err := newOptionsFromBuilder[options.GridFSUploadOptions](opts...)
+	args, err := mongoutil.NewOptionsFromBuilder[options.GridFSUploadOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}

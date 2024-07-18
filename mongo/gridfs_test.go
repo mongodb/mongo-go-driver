@@ -13,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -85,7 +86,7 @@ func TestGridFS(t *testing.T) {
 				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
-				bucketArgs, err := newOptionsFromBuilder[options.BucketOptions](tt.bucketOpts)
+				bucketArgs, err := mongoutil.NewOptionsFromBuilder[options.BucketOptions](tt.bucketOpts)
 				require.NoError(t, err, "failed to construct options from builder")
 
 				expectedBucketChunkSize := DefaultGridFSChunkSize
@@ -95,7 +96,7 @@ func TestGridFS(t *testing.T) {
 				assert.Equal(t, expectedBucketChunkSize, bucket.chunkSize,
 					"expected chunk size %v, got %v", expectedBucketChunkSize, bucket.chunkSize)
 
-				uploadArgs, err := newOptionsFromBuilder[options.GridFSUploadOptions](tt.uploadOpts)
+				uploadArgs, err := mongoutil.NewOptionsFromBuilder[options.GridFSUploadOptions](tt.uploadOpts)
 				require.NoError(t, err, "failed to construct options from builder")
 
 				expectedUploadChunkSize := expectedBucketChunkSize

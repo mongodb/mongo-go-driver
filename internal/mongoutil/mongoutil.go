@@ -12,41 +12,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Options defines options types that can be merged using the functional
-// setters.
-type Options interface {
-	options.AggregateOptions | options.BucketOptions | options.BulkWriteOptions |
-		options.ClientOptions | options.ClientEncryptionOptions | options.CollectionOptions |
-		options.CountOptions | options.CreateIndexesOptions |
-		options.CreateCollectionOptions | options.CreateSearchIndexesOptions |
-		options.CreateViewOptions | options.DataKeyOptions | options.DatabaseOptions |
-		options.DefaultIndexOptions | options.DeleteOptions | options.DistinctOptions |
-		options.DropCollectionOptions | options.DropIndexesOptions |
-		options.DropSearchIndexOptions | options.EncryptOptions |
-		options.EstimatedDocumentCountOptions | options.FindOptions |
-		options.FindOneOptions | options.FindOneAndDeleteOptions |
-		options.FindOneAndReplaceOptions | options.FindOneAndUpdateOptions |
-		options.GridFSFindOptions | options.GridFSNameOptions | options.GridFSUploadOptions |
-		options.IndexOptions | options.InsertManyOptions | options.InsertOneOptions |
-		options.ListCollectionsOptions | options.ListDatabasesOptions |
-		options.ListIndexesOptions | options.ListSearchIndexesOptions |
-		options.LoggerOptions | options.RangeOptions | options.ReplaceOptions |
-		options.RewrapManyDataKeyOptions | options.RunCmdOptions |
-		options.SearchIndexesOptions | options.ServerAPIOptions | options.SessionOptions |
-		options.TimeSeriesOptions | options.TransactionOptions | options.UpdateOptions |
-		options.UpdateSearchIndexOptions | options.ChangeStreamOptions |
-		options.AutoEncryptionOptions
-}
-
-// OptionsBuilder is an interface that wraps a method to return a list of setter
-// functions for merging options for a generic options type.
-type OptionsBuilder[T Options] interface {
-	OptionsSetters() []func(*T) error
-}
-
 // NewOptionsFromBuilder will functionally merge a slice of mongo.Options in a
 // "last-one-wins" manner, where nil options are ignored.
-func NewOptionsFromBuilder[T Options](opts ...OptionsBuilder[T]) (*T, error) {
+func NewOptionsFromBuilder[T any](opts ...options.Builder[T]) (*T, error) {
 	args := new(T)
 	for _, opt := range opts {
 		if opt == nil || reflect.ValueOf(opt).IsNil() {
@@ -72,7 +40,7 @@ func NewOptionsFromBuilder[T Options](opts ...OptionsBuilder[T]) (*T, error) {
 // OptionsBuilderWithCallback implements a mongo.OptionsBuilder object for an
 // arbitrary options type. The intended use case is to create options from
 // options.
-type OptionsBuilderWithCallback[T Options] struct {
+type OptionsBuilderWithCallback[T any] struct {
 	Options  *T             // Arguments to set on the option type
 	Callback func(*T) error // A callback for further modification
 }
@@ -98,7 +66,7 @@ func (opts *OptionsBuilderWithCallback[T]) OptionsSetters() []func(*T) error {
 
 // NewBuilderFromOptions will construct an OptionsBuilder object from the
 // provided Options object.
-func NewBuilderFromOptions[T Options](args *T, callback func(*T) error) *OptionsBuilderWithCallback[T] {
+func NewBuilderFromOptions[T any](args *T, callback func(*T) error) *OptionsBuilderWithCallback[T] {
 	return &OptionsBuilderWithCallback[T]{Options: args, Callback: callback}
 }
 

@@ -78,22 +78,22 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("options are converted", convertedOptsOpts, func(mt *mtest.T) {
 			nilOptsTestCases := []struct {
 				name            string
-				opts            []mongo.Options[options.InsertOneOptions]
+				opts            []options.Builder[options.InsertOneOptions]
 				expectOptionSet bool
 			}{
 				{
 					"only nil is passed",
-					[]mongo.Options[options.InsertOneOptions]{nil},
+					[]options.Builder[options.InsertOneOptions]{nil},
 					false,
 				},
 				{
 					"non-nil options is passed before nil",
-					[]mongo.Options[options.InsertOneOptions]{options.InsertOne().SetBypassDocumentValidation(true), nil},
+					[]options.Builder[options.InsertOneOptions]{options.InsertOne().SetBypassDocumentValidation(true), nil},
 					true,
 				},
 				{
 					"non-nil options is passed after nil",
-					[]mongo.Options[options.InsertOneOptions]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
+					[]options.Builder[options.InsertOneOptions]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
 					true,
 				},
 			}
@@ -1888,7 +1888,7 @@ func initCollection(mt *mtest.T, coll *mongo.Collection) {
 	assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
 }
 
-func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts mongo.Options[options.AggregateOptions]) {
+func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Builder[options.AggregateOptions]) {
 	mt.Helper()
 	initCollection(mt, mt.Coll)
 

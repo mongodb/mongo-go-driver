@@ -2939,8 +2939,8 @@ type cseProseTest struct {
 	cseStarted   []*event.CommandStartedEvent
 }
 
-func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts mongo.Options[options.ClientOptions],
-	ceo mongo.Options[options.ClientEncryptionOptions]) *cseProseTest {
+func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts options.Builder[options.ClientOptions],
+	ceo options.Builder[options.ClientEncryptionOptions]) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
 	var err error
