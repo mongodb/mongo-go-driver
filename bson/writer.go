@@ -50,30 +50,11 @@ type ValueWriter interface {
 	WriteUndefined() error
 }
 
-// ValueWriterFlusher is a superset of ValueWriter that exposes functionality to flush to the underlying buffer.
-//
-// Deprecated: ValueWriterFlusher will not be supported in Go Driver 2.0.
-type ValueWriterFlusher interface {
-	ValueWriter
-	Flush() error
-}
-
-// bytesWriter is the interface used to write BSON bytes to a ValueWriter.
-// This interface is meant to be a superset of ValueWriter, so that types that
-// implement ValueWriter may also implement this interface.
-type bytesWriter interface {
-	writeValueBytes(t Type, b []byte) error
-}
-
-// SliceWriter allows a pointer to a slice of bytes to be used as an io.Writer.
-//
-// Deprecated: SliceWriter will not be supported in Go Driver 2.0.
-type SliceWriter []byte
+// sliceWriter allows a pointer to a slice of bytes to be used as an io.Writer.
+type sliceWriter []byte
 
 // Write writes the bytes to the underlying slice.
-//
-// Deprecated: SliceWriter will not be supported in Go Driver 2.0.
-func (sw *SliceWriter) Write(p []byte) (int, error) {
+func (sw *sliceWriter) Write(p []byte) (int, error) {
 	written := len(p)
 	*sw = append(*sw, p...)
 	return written, nil

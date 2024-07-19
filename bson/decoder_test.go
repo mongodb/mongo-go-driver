@@ -224,7 +224,7 @@ func TestDecoderv2(t *testing.T) {
 
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
 			dec := NewDecoder(NewValueReader([]byte{}))
-			want := ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
+			want := errNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
 			assert.Equal(t, want, got, "Received unexpected error.")
 		})

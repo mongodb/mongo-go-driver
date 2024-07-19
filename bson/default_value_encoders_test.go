@@ -735,7 +735,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					nothing,
-					ErrNoEncoder{Type: reflect.TypeOf(wrong)},
+					errNoEncoder{Type: reflect.TypeOf(wrong)},
 				},
 			},
 		},
@@ -1653,7 +1653,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				b := make(SliceWriter, 0, 512)
+				b := make(sliceWriter, 0, 512)
 				vw := NewValueWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
@@ -1703,7 +1703,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				b := make(SliceWriter, 0, 512)
+				b := make(sliceWriter, 0, 512)
 				vw := NewValueWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
@@ -1731,7 +1731,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		val.Set(reflect.ValueOf(int64(1234567890)))
 		llvrw := new(valueReaderWriter)
 		got := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
-		want := ErrNoEncoder{Type: tInt64}
+		want := errNoEncoder{Type: tInt64}
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 		}

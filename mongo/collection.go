@@ -987,11 +987,10 @@ func aggregate(a aggregateParams, opts ...options.SetterLister[options.Aggregate
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
 		for optionName, optionValue := range args.Custom {
-			bsonType, bsonData, err := bson.MarshalValueWithRegistry(a.registry, optionValue)
+			optionValueBSON, err := marshalValue(optionValue, nil, a.registry)
 			if err != nil {
 				return nil, err
 			}
-			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		op.CustomOptions(customOptions)

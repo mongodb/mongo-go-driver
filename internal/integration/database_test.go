@@ -599,7 +599,9 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false")
 
 	var actualOpts bson.M
-	err = bson.UnmarshalWithRegistry(interfaceAsMapRegistry, cursor.Current.Lookup("options").Document(), &actualOpts)
+	dec := bson.NewDecoder(bson.NewValueReader(cursor.Current.Lookup("options").Document()))
+	dec.SetRegistry(interfaceAsMapRegistry)
+	err = dec.Decode(&actualOpts)
 	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)
 
 	return actualOpts
