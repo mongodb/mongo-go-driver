@@ -33,62 +33,6 @@ func putValueWriter(vw *valueWriter) {
 	}
 }
 
-// ValueWriterPool is a pool for BSON ValueWriters.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-type ValueWriterPool struct {
-	pool sync.Pool
-}
-
-// NewValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func NewValueWriterPool() *ValueWriterPool {
-	return &ValueWriterPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(valueWriter)
-			},
-		},
-	}
-}
-
-// Get retrieves a BSON ValueWriter from the pool and resets it to use w as the destination.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) Get(w io.Writer) ValueWriter {
-	vw := bvwp.pool.Get().(*valueWriter)
-
-	// TODO: Having to call reset here with the same buffer doesn't really make sense.
-	vw.reset(vw.buf)
-	vw.buf = vw.buf[:0]
-	vw.w = w
-	return vw
-}
-
-// GetAtModeElement retrieves a ValueWriterFlusher from the pool and resets it to use w as the destination.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlusher {
-	vw := bvwp.Get(w).(*valueWriter)
-	vw.push(mElement)
-	return vw
-}
-
-// Put inserts a ValueWriter into the pool. If the ValueWriter is not a BSON ValueWriter, nothing
-// happens and ok will be false.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) Put(vw ValueWriter) (ok bool) {
-	bvw, ok := vw.(*valueWriter)
-	if !ok {
-		return false
-	}
-
-	bvwp.pool.Put(bvw)
-	return true
-}
-
 // This is here so that during testing we can change it and not require
 // allocating a 4GB slice.
 var maxSize = math.MaxInt32
@@ -260,7 +204,7 @@ func (vw *valueWriter) writeElementHeader(t Type, destination mode, callerName s
 	return nil
 }
 
-func (vw *valueWriter) WriteValueBytes(t Type, b []byte) error {
+func (vw *valueWriter) writeValueBytes(t Type, b []byte) error {
 	if err := vw.writeElementHeader(t, mode(0), "WriteValueBytes"); err != nil {
 		return err
 	}

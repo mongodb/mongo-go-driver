@@ -24,50 +24,6 @@ var vrPool = sync.Pool{
 	},
 }
 
-// ValueReaderPool is a pool for ValueReaders that read BSON.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-type ValueReaderPool struct {
-	pool sync.Pool
-}
-
-// NewValueReaderPool instantiates a new ValueReaderPool.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func NewValueReaderPool() *ValueReaderPool {
-	return &ValueReaderPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(valueReader)
-			},
-		},
-	}
-}
-
-// Get retrieves a ValueReader from the pool and uses src as the underlying BSON.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func (bvrp *ValueReaderPool) Get(src []byte) ValueReader {
-	vr := bvrp.pool.Get().(*valueReader)
-	vr.reset(src)
-	return vr
-}
-
-// Put inserts a ValueReader into the pool. If the ValueReader is not a BSON ValueReader nothing
-// is inserted into the pool and ok will be false.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func (bvrp *ValueReaderPool) Put(vr ValueReader) (ok bool) {
-	bvr, ok := vr.(*valueReader)
-	if !ok {
-		return false
-	}
-
-	bvr.reset(nil)
-	bvrp.pool.Put(bvr)
-	return true
-}
-
 // ErrEOA is the error returned when the end of a BSON array has been reached.
 var ErrEOA = errors.New("end of array")
 
@@ -304,7 +260,7 @@ func (vr *valueReader) nextElementLength() (int32, error) {
 	return length, err
 }
 
-func (vr *valueReader) ReadValueBytes(dst []byte) (Type, []byte, error) {
+func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
 		length, err := vr.peekLength()
@@ -839,7 +795,7 @@ func (vr *valueReader) peekLength() (int32, error) {
 	}
 
 	idx := vr.offset
-	return (int32(vr.d[idx]) | int32(vr.d[idx+1])<<8 | int32(vr.d[idx+2])<<16 | int32(vr.d[idx+3])<<24), nil
+	return int32(binary.LittleEndian.Uint32(vr.d[idx:])), nil
 }
 
 func (vr *valueReader) readLength() (int32, error) { return vr.readi32() }
@@ -851,7 +807,7 @@ func (vr *valueReader) readi32() (int32, error) {
 
 	idx := vr.offset
 	vr.offset += 4
-	return (int32(vr.d[idx]) | int32(vr.d[idx+1])<<8 | int32(vr.d[idx+2])<<16 | int32(vr.d[idx+3])<<24), nil
+	return int32(binary.LittleEndian.Uint32(vr.d[idx:])), nil
 }
 
 func (vr *valueReader) readu32() (uint32, error) {
@@ -861,7 +817,7 @@ func (vr *valueReader) readu32() (uint32, error) {
 
 	idx := vr.offset
 	vr.offset += 4
-	return (uint32(vr.d[idx]) | uint32(vr.d[idx+1])<<8 | uint32(vr.d[idx+2])<<16 | uint32(vr.d[idx+3])<<24), nil
+	return binary.LittleEndian.Uint32(vr.d[idx:]), nil
 }
 
 func (vr *valueReader) readi64() (int64, error) {
@@ -871,8 +827,7 @@ func (vr *valueReader) readi64() (int64, error) {
 
 	idx := vr.offset
 	vr.offset += 8
-	return int64(vr.d[idx]) | int64(vr.d[idx+1])<<8 | int64(vr.d[idx+2])<<16 | int64(vr.d[idx+3])<<24 |
-		int64(vr.d[idx+4])<<32 | int64(vr.d[idx+5])<<40 | int64(vr.d[idx+6])<<48 | int64(vr.d[idx+7])<<56, nil
+	return int64(binary.LittleEndian.Uint64(vr.d[idx:])), nil
 }
 
 func (vr *valueReader) readu64() (uint64, error) {
@@ -882,6 +837,5 @@ func (vr *valueReader) readu64() (uint64, error) {
 
 	idx := vr.offset
 	vr.offset += 8
-	return uint64(vr.d[idx]) | uint64(vr.d[idx+1])<<8 | uint64(vr.d[idx+2])<<16 | uint64(vr.d[idx+3])<<24 |
-		uint64(vr.d[idx+4])<<32 | uint64(vr.d[idx+5])<<40 | uint64(vr.d[idx+6])<<48 | uint64(vr.d[idx+7])<<56, nil
+	return binary.LittleEndian.Uint64(vr.d[idx:]), nil
 }

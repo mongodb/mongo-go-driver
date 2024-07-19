@@ -148,7 +148,9 @@ func ExampleRegistry_customDecoder() {
 		IsOK lenientBool `bson:"isOK"`
 	}
 	var doc MyDocument
-	err = bson.UnmarshalWithRegistry(reg, b, &doc)
+	dec := bson.NewDecoder(bson.NewValueReader(b))
+	dec.SetRegistry(reg)
+	err = dec.Decode(&doc)
 	if err != nil {
 		panic(err)
 	}
@@ -290,7 +292,9 @@ func ExampleRegistry_RegisterKindDecoder() {
 		Int64 int64
 	}
 	var doc myDocument
-	err = bson.UnmarshalWithRegistry(reg, b, &doc)
+	dec := bson.NewDecoder(bson.NewValueReader(b))
+	dec.SetRegistry(reg)
+	err = dec.Decode(&doc)
 	if err != nil {
 		panic(err)
 	}

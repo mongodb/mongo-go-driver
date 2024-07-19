@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -377,7 +376,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropIndexesOptions) (bson.Raw, error) {
+func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropIndexesOptions) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -390,7 +389,7 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropInd
 
 	err := iv.coll.client.validSession(sess)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	wc := iv.coll.writeConcern
@@ -412,30 +411,26 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropInd
 
 	err = op.Execute(ctx)
 	if err != nil {
-		return nil, replaceErrors(err)
+		return replaceErrors(err)
 	}
 
-	// TODO: it's weird to return a bson.Raw here because we have to convert the result back to BSON
-	ridx, res := bsoncore.AppendDocumentStart(nil)
-	res = bsoncore.AppendInt32Element(res, "nIndexesWas", op.Result().NIndexesWas)
-	res, _ = bsoncore.AppendDocumentEnd(res, ridx)
-	return res, nil
+	return nil
 }
 
-// DropOne executes a dropIndexes operation to drop an index on the collection. If the operation succeeds, this returns
-// a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
-// indexes that existed prior to the drop.
+// DropOne executes a dropIndexes operation to drop an index on the collection.
 //
-// The name parameter should be the name of the index to drop. If the name is "*", ErrMultipleIndexDrop will be returned
-// without running the command because doing so would drop all indexes.
+// The name parameter should be the name of the index to drop. If the name is
+// "*", ErrMultipleIndexDrop will be returned without running the command
+// because doing so would drop all indexes.
 //
-// The opts parameter can be used to specify options for this operation (see the options.DropIndexesOptions
-// documentation).
+// The opts parameter can be used to specify options for this operation (see the
+// options.DropIndexesOptions documentation).
 //
-// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
-func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+// For more information about the command, see
+// https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
+func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) error {
 	if name == "*" {
-		return nil, ErrMultipleIndexDrop
+		return ErrMultipleIndexDrop
 	}
 
 	return iv.drop(ctx, name, opts...)
@@ -450,9 +445,7 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 // For more information about the command, see
 // https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
 func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) error {
-	_, err := iv.drop(ctx, "*", opts...)
-
-	return err
+	return iv.drop(ctx, "*", opts...)
 }
 
 func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel) (string, error) {

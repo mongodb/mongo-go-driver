@@ -17,49 +17,33 @@ import (
 // primitive codecs.
 var DefaultRegistry = NewRegistry()
 
-// ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.
-//
-// Deprecated: ErrNilType will not be supported in Go Driver 2.0.
-var ErrNilType = errors.New("cannot perform a decoder lookup on <nil>")
-
-// ErrNotPointer is returned when a non-pointer type is provided to LookupDecoder.
-//
-// Deprecated: ErrNotPointer will not be supported in Go Driver 2.0.
-var ErrNotPointer = errors.New("non-pointer provided to LookupDecoder")
-
-// ErrNoEncoder is returned when there wasn't an encoder available for a type.
-//
-// Deprecated: ErrNoEncoder will not be supported in Go Driver 2.0.
-type ErrNoEncoder struct {
+// errNoEncoder is returned when there wasn't an encoder available for a type.
+type errNoEncoder struct {
 	Type reflect.Type
 }
 
-func (ene ErrNoEncoder) Error() string {
+func (ene errNoEncoder) Error() string {
 	if ene.Type == nil {
 		return "no encoder found for <nil>"
 	}
 	return "no encoder found for " + ene.Type.String()
 }
 
-// ErrNoDecoder is returned when there wasn't a decoder available for a type.
-//
-// Deprecated: ErrNoDecoder will not be supported in Go Driver 2.0.
-type ErrNoDecoder struct {
+// errNoDecoder is returned when there wasn't a decoder available for a type.
+type errNoDecoder struct {
 	Type reflect.Type
 }
 
-func (end ErrNoDecoder) Error() string {
+func (end errNoDecoder) Error() string {
 	return "no decoder found for " + end.Type.String()
 }
 
-// ErrNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.
-//
-// Deprecated: ErrNoTypeMapEntry will not be supported in Go Driver 2.0.
-type ErrNoTypeMapEntry struct {
+// errNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.
+type errNoTypeMapEntry struct {
 	Type Type
 }
 
-func (entme ErrNoTypeMapEntry) Error() string {
+func (entme errNoTypeMapEntry) Error() string {
 	return "no type map entry found for " + entme.Type.String()
 }
 
@@ -258,12 +242,12 @@ func (r *Registry) RegisterTypeMapEntry(bt Type, rt reflect.Type) {
 // concurrent use by multiple goroutines after all codecs and encoders are registered.
 func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if valueType == nil {
-		return nil, ErrNoEncoder{Type: valueType}
+		return nil, errNoEncoder{Type: valueType}
 	}
 	enc, found := r.lookupTypeEncoder(valueType)
 	if found {
 		if enc == nil {
-			return nil, ErrNoEncoder{Type: valueType}
+			return nil, errNoEncoder{Type: valueType}
 		}
 		return enc, nil
 	}
@@ -276,7 +260,7 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if v, ok := r.kindEncoders.Load(valueType.Kind()); ok {
 		return r.storeTypeEncoder(valueType, v), nil
 	}
-	return nil, ErrNoEncoder{Type: valueType}
+	return nil, errNoEncoder{Type: valueType}
 }
 
 func (r *Registry) storeTypeEncoder(rt reflect.Type, enc ValueEncoder) ValueEncoder {
@@ -327,12 +311,12 @@ func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool
 // concurrent use by multiple goroutines after all codecs and decoders are registered.
 func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if valueType == nil {
-		return nil, ErrNilType
+		return nil, errors.New("cannot perform a decoder lookup on <nil>")
 	}
 	dec, found := r.lookupTypeDecoder(valueType)
 	if found {
 		if dec == nil {
-			return nil, ErrNoDecoder{Type: valueType}
+			return nil, errNoDecoder{Type: valueType}
 		}
 		return dec, nil
 	}
@@ -345,7 +329,7 @@ func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if v, ok := r.kindDecoders.Load(valueType.Kind()); ok {
 		return r.storeTypeDecoder(valueType, v), nil
 	}
-	return nil, ErrNoDecoder{Type: valueType}
+	return nil, errNoDecoder{Type: valueType}
 }
 
 func (r *Registry) lookupTypeDecoder(valueType reflect.Type) (ValueDecoder, bool) {
@@ -381,7 +365,7 @@ func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool
 func (r *Registry) LookupTypeMapEntry(bt Type) (reflect.Type, error) {
 	v, ok := r.typeMap.Load(bt)
 	if v == nil || !ok {
-		return nil, ErrNoTypeMapEntry{Type: bt}
+		return nil, errNoTypeMapEntry{Type: bt}
 	}
 	return v.(reflect.Type), nil
 }

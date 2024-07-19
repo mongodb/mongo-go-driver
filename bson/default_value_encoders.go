@@ -17,13 +17,17 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-var bvwPool = NewValueWriterPool()
+var bvwPool = sync.Pool{
+	New: func() interface{} {
+		return new(valueWriter)
+	},
+}
 
 var errInvalidValue = errors.New("cannot encode invalid element")
 
 var sliceWriterPool = sync.Pool{
 	New: func() interface{} {
-		sw := make(SliceWriter, 0)
+		sw := make(sliceWriter, 0)
 		return &sw
 	},
 }
@@ -97,7 +101,6 @@ func registerDefaultEncoders(reg *Registry) {
 	reg.RegisterKindEncoder(reflect.Ptr, &pointerCodec{})
 	reg.RegisterInterfaceEncoder(tValueMarshaler, ValueEncoderFunc(valueMarshalerEncodeValue))
 	reg.RegisterInterfaceEncoder(tMarshaler, ValueEncoderFunc(marshalerEncodeValue))
-	reg.RegisterInterfaceEncoder(tProxy, ValueEncoderFunc(proxyEncodeValue))
 }
 
 // booleanEncodeValue is the ValueEncoderFunc for bool types.
@@ -333,50 +336,6 @@ func marshalerEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) er
 	return copyValueFromBytes(vw, TypeEmbeddedDocument, data)
 }
 
-// proxyEncodeValue is the ValueEncoderFunc for Proxy implementations.
-func proxyEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
-	// Either val or a pointer to val must implement Proxy
-	switch {
-	case !val.IsValid():
-		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
-	case val.Type().Implements(tProxy):
-		// If Proxy is implemented on a concrete type, make sure that val isn't a nil pointer
-		if isImplementationNil(val, tProxy) {
-			return vw.WriteNull()
-		}
-	case reflect.PtrTo(val.Type()).Implements(tProxy) && val.CanAddr():
-		val = val.Addr()
-	default:
-		return ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: val}
-	}
-
-	m, ok := val.Interface().(Proxy)
-	if !ok {
-		return vw.WriteNull()
-	}
-	v, err := m.ProxyBSON()
-	if err != nil {
-		return err
-	}
-	if v == nil {
-		encoder, err := ec.LookupEncoder(nil)
-		if err != nil {
-			return err
-		}
-		return encoder.EncodeValue(ec, vw, reflect.ValueOf(nil))
-	}
-	vv := reflect.ValueOf(v)
-	switch vv.Kind() {
-	case reflect.Ptr, reflect.Interface:
-		vv = vv.Elem()
-	}
-	encoder, err := ec.LookupEncoder(vv.Type())
-	if err != nil {
-		return err
-	}
-	return encoder.EncodeValue(ec, vw, vv)
-}
-
 // javaScriptEncodeValue is the ValueEncoderFunc for the JavaScript type.
 func javaScriptEncodeValue(_ EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Type() != tJavaScript {
@@ -507,11 +466,13 @@ func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Valu
 		return err
 	}
 
-	sw := sliceWriterPool.Get().(*SliceWriter)
+	sw := sliceWriterPool.Get().(*sliceWriter)
 	defer sliceWriterPool.Put(sw)
 	*sw = (*sw)[:0]
 
-	scopeVW := bvwPool.Get(sw)
+	scopeVW := bvwPool.Get().(*valueWriter)
+	scopeVW.reset(scopeVW.buf[:0])
+	scopeVW.w = sw
 	defer bvwPool.Put(scopeVW)
 
 	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))

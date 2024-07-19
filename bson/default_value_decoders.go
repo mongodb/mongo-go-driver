@@ -114,7 +114,7 @@ func dDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 
 	switch vrType := vr.Type(); vrType {
 	case Type(0), TypeEmbeddedDocument:
-		dc.Ancestor = tD
+		break
 	case TypeNull:
 		val.Set(reflect.Zero(val.Type()))
 		return vr.ReadNull()
@@ -292,7 +292,7 @@ func intDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Va
 	case reflect.Int64:
 		return reflect.ValueOf(i64), nil
 	case reflect.Int:
-		if int64(int(i64)) != i64 { // Can we fit this inside of an int
+		if i64 > math.MaxInt { // Can we fit this inside of an int
 			return emptyValue, fmt.Errorf("%d overflows int", i64)
 		}
 
@@ -1180,7 +1180,7 @@ func valueUnmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Va
 		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
-	t, src, err := CopyValueToBytes(vr)
+	t, src, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
@@ -1206,7 +1206,7 @@ func unmarshalerDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) 
 		val.Set(reflect.New(val.Type().Elem()))
 	}
 
-	_, src, err := CopyValueToBytes(vr)
+	_, src, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}

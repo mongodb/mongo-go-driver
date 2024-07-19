@@ -30,28 +30,6 @@ func noerr(t *testing.T, err error) {
 	}
 }
 
-func TestCompareTimestamp(t *testing.T) {
-	testcases := []struct {
-		name     string
-		tp       Timestamp
-		tp2      Timestamp
-		expected int
-	}{
-		{"equal", Timestamp{T: 12345, I: 67890}, Timestamp{T: 12345, I: 67890}, 0},
-		{"T greater than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 2345, I: 67890}, 1},
-		{"I greater than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 12345, I: 7890}, 1},
-		{"T less than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 112345, I: 67890}, -1},
-		{"I less than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 12345, I: 167890}, -1},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := CompareTimestamp(tc.tp, tc.tp2)
-			require.Equal(t, tc.expected, result)
-		})
-	}
-}
-
 func TestTimestamp(t *testing.T) {
 	t.Parallel()
 

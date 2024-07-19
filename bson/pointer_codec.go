@@ -38,7 +38,7 @@ func (pc *pointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflec
 	typ := val.Type()
 	if v, ok := pc.ecache.Load(typ); ok {
 		if v == nil {
-			return ErrNoEncoder{Type: typ}
+			return errNoEncoder{Type: typ}
 		}
 		return v.EncodeValue(ec, vw, val.Elem())
 	}
@@ -74,7 +74,7 @@ func (pc *pointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflec
 
 	if v, ok := pc.dcache.Load(typ); ok {
 		if v == nil {
-			return ErrNoDecoder{Type: typ}
+			return errNoDecoder{Type: typ}
 		}
 		return v.DecodeValue(dc, vr, val.Elem())
 	}

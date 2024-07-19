@@ -154,7 +154,7 @@ func setterDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) error
 		val = val.Addr() // If the type doesn't implement the interface, a pointer to it must.
 	}
 
-	t, src, err := CopyValueToBytes(vr)
+	t, src, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
