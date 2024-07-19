@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
@@ -445,7 +444,16 @@ func TestOperation(t *testing.T) {
 			{"nearest", readpref.Nearest(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpNearest},
 			{
 				"secondaryPreferred/withTags",
-				readpref.SecondaryPreferred(readpref.WithTags("disk", "ssd", "use", "reporting")),
+				func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred()
+
+					tagSet, err := readpref.NewTagSet("disk", "ssd", "use", "reporting")
+					assert.NoError(t, err)
+
+					rp.TagSets = []readpref.TagSet{tagSet}
+
+					return rp
+				}(),
 				description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpWithTags,
 			},
 			// GODRIVER-2205: Ensure empty tag sets are written as an empty document in the read
@@ -453,9 +461,15 @@ func TestOperation(t *testing.T) {
 			// no other tag sets match any servers.
 			{
 				"secondaryPreferred/withTags/emptyTagSet",
-				readpref.SecondaryPreferred(readpref.WithTagSets(
-					tag.Set{{Name: "disk", Value: "ssd"}},
-					tag.Set{})),
+				func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred()
+					rp.TagSets = []readpref.TagSet{
+						readpref.TagSet{{Name: "disk", Value: "ssd"}},
+						readpref.TagSet{},
+					}
+
+					return rp
+				}(),
 				description.ServerKindRSSecondary,
 				description.TopologyKindReplicaSet,
 				false,
@@ -469,13 +483,27 @@ func TestOperation(t *testing.T) {
 			},
 			{
 				"secondaryPreferred/withMaxStaleness",
-				readpref.SecondaryPreferred(readpref.WithMaxStaleness(25 * time.Second)),
+				func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred()
+
+					maxStaleness := 25 * time.Second
+					rp.MaxStaleness = &maxStaleness
+
+					return rp
+				}(),
 				description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpWithMaxStaleness,
 			},
 			{
 				// A read preference document is generated for SecondaryPreferred if the hedge document is non-nil.
 				"secondaryPreferred with hedge to mongos using OP_QUERY",
-				readpref.SecondaryPreferred(readpref.WithHedgeEnabled(true)),
+				func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred()
+
+					he := true
+					rp.HedgeEnabled = &he
+
+					return rp
+				}(),
 				description.ServerKindMongos,
 				description.TopologyKindSharded,
 				true,
@@ -483,11 +511,22 @@ func TestOperation(t *testing.T) {
 			},
 			{
 				"secondaryPreferred with all options",
-				readpref.SecondaryPreferred(
-					readpref.WithTags("disk", "ssd", "use", "reporting"),
-					readpref.WithMaxStaleness(25*time.Second),
-					readpref.WithHedgeEnabled(false),
-				),
+				func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred()
+
+					tagSet, err := readpref.NewTagSet("disk", "ssd", "use", "reporting")
+					assert.NoError(t, err)
+
+					rp.TagSets = []readpref.TagSet{tagSet}
+
+					maxStaleness := 25 * time.Second
+					rp.MaxStaleness = &maxStaleness
+
+					he := false
+					rp.HedgeEnabled = &he
+
+					return rp
+				}(),
 				description.ServerKindRSSecondary,
 				description.TopologyKindReplicaSet,
 				false,

@@ -12,7 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // ServerKind represents the type of a single server in a topology.
@@ -105,7 +105,7 @@ type Server struct {
 	SessionTimeoutMinutes *int64
 	SetName               string
 	SetVersion            uint32
-	Tags                  tag.Set
+	Tags                  readpref.TagSet
 	TopologyVersion       *TopologyVersion
 	Kind                  ServerKind
 	WireVersion           *VersionRange

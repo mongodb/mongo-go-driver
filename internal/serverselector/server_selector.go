@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
@@ -190,12 +189,12 @@ func (ssf Func) SelectServer(
 }
 
 func verifyMaxStaleness(rp *readpref.ReadPref, topo description.Topology) error {
-	maxStaleness, set := rp.MaxStaleness()
-	if !set {
+	maxStaleness := rp.MaxStaleness
+	if maxStaleness == nil {
 		return nil
 	}
 
-	if maxStaleness < 90*time.Second {
+	if *maxStaleness < 90*time.Second {
 		return fmt.Errorf("max staleness (%s) must be greater than or equal to 90s", maxStaleness)
 	}
 
@@ -208,7 +207,7 @@ func verifyMaxStaleness(rp *readpref.ReadPref, topo description.Topology) error 
 	s := topo.Servers[0]
 	idleWritePeriod := 10 * time.Second
 
-	if maxStaleness < s.HeartbeatInterval+idleWritePeriod {
+	if *maxStaleness < s.HeartbeatInterval+idleWritePeriod {
 		return fmt.Errorf(
 			"max staleness (%s) must be greater than or equal to the heartbeat interval (%s) plus idle write period (%s)",
 			maxStaleness, s.HeartbeatInterval, idleWritePeriod,
@@ -242,7 +241,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []description.Server) [
 	if len(secondaries) == 0 {
 		return secondaries
 	}
-	if maxStaleness, set := rp.MaxStaleness(); set {
+	if maxStaleness := rp.MaxStaleness; maxStaleness != nil {
 		primaries := selectByKind(candidates, description.ServerKindRSPrimary)
 		if len(primaries) == 0 {
 			baseTime := secondaries[0].LastWriteTime
@@ -255,7 +254,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []description.Server) [
 			var selected []description.Server
 			for _, secondary := range secondaries {
 				estimatedStaleness := baseTime.Sub(secondary.LastWriteTime) + secondary.HeartbeatInterval
-				if estimatedStaleness <= maxStaleness {
+				if estimatedStaleness <= *maxStaleness {
 					selected = append(selected, secondary)
 				}
 			}
@@ -269,7 +268,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []description.Server) [
 		for _, secondary := range secondaries {
 			estimatedStaleness := secondary.LastUpdateTime.Sub(secondary.LastWriteTime) -
 				primary.LastUpdateTime.Sub(primary.LastWriteTime) + secondary.HeartbeatInterval
-			if estimatedStaleness <= maxStaleness {
+			if estimatedStaleness <= *maxStaleness {
 				selected = append(selected, secondary)
 			}
 		}
@@ -279,7 +278,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []description.Server) [
 	return secondaries
 }
 
-func selectByTagSet(candidates []description.Server, tagSets []tag.Set) []description.Server {
+func selectByTagSet(candidates []description.Server, tagSets []readpref.TagSet) []description.Server {
 	if len(tagSets) == 0 {
 		return candidates
 	}
@@ -327,7 +326,7 @@ func selectForReplicaSet(
 		}
 	}
 
-	switch rp.Mode() {
+	switch rp.Mode {
 	case readpref.PrimaryMode:
 		return selectByKind(candidates, description.ServerKindRSPrimary), nil
 	case readpref.PrimaryPreferredMode:
@@ -335,25 +334,25 @@ func selectForReplicaSet(
 
 		if len(selected) == 0 {
 			selected = selectSecondaries(rp, candidates)
-			return selectByTagSet(selected, rp.TagSets()), nil
+			return selectByTagSet(selected, rp.TagSets), nil
 		}
 
 		return selected, nil
 	case readpref.SecondaryPreferredMode:
 		selected := selectSecondaries(rp, candidates)
-		selected = selectByTagSet(selected, rp.TagSets())
+		selected = selectByTagSet(selected, rp.TagSets)
 		if len(selected) > 0 {
 			return selected, nil
 		}
 		return selectByKind(candidates, description.ServerKindRSPrimary), nil
 	case readpref.SecondaryMode:
 		selected := selectSecondaries(rp, candidates)
-		return selectByTagSet(selected, rp.TagSets()), nil
+		return selectByTagSet(selected, rp.TagSets), nil
 	case readpref.NearestMode:
 		selected := selectByKind(candidates, description.ServerKindRSPrimary)
 		selected = append(selected, selectSecondaries(rp, candidates)...)
-		return selectByTagSet(selected, rp.TagSets()), nil
+		return selectByTagSet(selected, rp.TagSets), nil
 	}
 
-	return nil, fmt.Errorf("unsupported mode: %d", rp.Mode())
+	return nil, fmt.Errorf("unsupported mode: %d", rp.Mode)
 }

@@ -72,17 +72,3 @@ func (mode Mode) String() string {
 		return "unknown"
 	}
 }
-
-// IsValid checks whether the mode is valid.
-func (mode Mode) IsValid() bool {
-	switch mode {
-	case PrimaryMode,
-		PrimaryPreferredMode,
-		SecondaryMode,
-		SecondaryPreferredMode,
-		NearestMode:
-		return true
-	default:
-		return false
-	}
-}

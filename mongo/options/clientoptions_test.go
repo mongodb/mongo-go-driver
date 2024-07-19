@@ -212,15 +212,6 @@ func TestClientOptions(t *testing.T) {
 				},
 			},
 			{
-				"ReadPreference Primary With Options",
-				"mongodb://localhost/?readPreference=Primary&maxStaleness=200",
-				&ClientOptions{
-					err:        errors.New("can not specify tags, max staleness, or hedge with mode primary"),
-					Hosts:      []string{"localhost"},
-					HTTPClient: httputil.DefaultHTTPClient,
-				},
-			},
-			{
 				"TLS addCertFromFile error",
 				"mongodb://localhost/?ssl=true&sslCertificateAuthorityFile=testdata/doesntexist",
 				&ClientOptions{
@@ -367,12 +358,26 @@ func TestClientOptions(t *testing.T) {
 			{
 				"ReadPreferenceTagSets",
 				"mongodb://localhost/?readPreference=secondaryPreferred&readPreferenceTags=foo:bar",
-				baseClient().SetReadPreference(readpref.SecondaryPreferred(readpref.WithTags("foo", "bar"))),
+				baseClient().SetReadPreference(func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred() //readpref.NewTagSet("foo", "bar")
+
+					tagSet, _ := readpref.NewTagSet("foo", "bar")
+					rp.TagSets = append(rp.TagSets, tagSet)
+
+					return rp
+				}()),
 			},
 			{
 				"MaxStaleness",
 				"mongodb://localhost/?readPreference=secondaryPreferred&maxStaleness=250",
-				baseClient().SetReadPreference(readpref.SecondaryPreferred(readpref.WithMaxStaleness(250 * time.Second))),
+				baseClient().SetReadPreference(func() *readpref.ReadPref {
+					rp := readpref.SecondaryPreferred()
+
+					maxStaleness := 250 * time.Second
+					rp.MaxStaleness = &maxStaleness
+
+					return rp
+				}()),
 			},
 			{
 				"RetryWrites",

@@ -28,7 +28,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
@@ -432,26 +431,23 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
-		opts := make([]readpref.Option, 0, 1)
-
-		tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
-		if len(tagSets) > 0 {
-			opts = append(opts, readpref.WithTagSets(tagSets...))
-		}
-
-		if cs.MaxStaleness != 0 {
-			opts = append(opts, readpref.WithMaxStaleness(cs.MaxStaleness))
-		}
-
 		mode, err := readpref.ModeFromString(cs.ReadPreference)
 		if err != nil {
 			c.err = err
 			return c
 		}
 
-		c.ReadPreference, c.err = readpref.New(mode, opts...)
-		if c.err != nil {
-			return c
+		c.ReadPreference = &readpref.ReadPref{
+			Mode: mode,
+		}
+
+		tagSets := readpref.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+		if len(tagSets) > 0 {
+			c.ReadPreference.TagSets = tagSets
+		}
+
+		if cs.MaxStaleness != 0 {
+			c.ReadPreference.MaxStaleness = &cs.MaxStaleness
 		}
 	}
 

@@ -11,7 +11,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // ServerDescription contains information about a node in a cluster. This is
@@ -43,7 +43,7 @@ type ServerDescription struct {
 	SessionTimeoutMinutes    *int64
 	SetName                  string
 	SetVersion               uint32
-	Tags                     tag.Set
+	Tags                     readpref.TagSet
 	TopologyVersionProcessID bson.ObjectID
 	TopologyVersionCounter   int64
 }

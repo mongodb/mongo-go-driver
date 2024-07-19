@@ -16,7 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
@@ -421,7 +421,7 @@ func NewServerDescription(addr address.Address, response bson.Raw) description.S
 				desc.LastError = err
 				return desc
 			}
-			desc.Tags = tag.NewTagSetFromMap(m)
+			desc.Tags = readpref.NewTagSetFromMap(m)
 		case "topologyVersion":
 			doc, ok := element.Value().DocumentOK()
 			if !ok {
