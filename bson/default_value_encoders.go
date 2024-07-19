@@ -17,13 +17,17 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-var bvwPool = NewValueWriterPool()
+var bvwPool = sync.Pool{
+	New: func() interface{} {
+		return new(valueWriter)
+	},
+}
 
 var errInvalidValue = errors.New("cannot encode invalid element")
 
 var sliceWriterPool = sync.Pool{
 	New: func() interface{} {
-		sw := make(SliceWriter, 0)
+		sw := make(sliceWriter, 0)
 		return &sw
 	},
 }
@@ -462,11 +466,13 @@ func codeWithScopeEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Valu
 		return err
 	}
 
-	sw := sliceWriterPool.Get().(*SliceWriter)
+	sw := sliceWriterPool.Get().(*sliceWriter)
 	defer sliceWriterPool.Put(sw)
 	*sw = (*sw)[:0]
 
-	scopeVW := bvwPool.Get(sw)
+	scopeVW := bvwPool.Get().(*valueWriter)
+	scopeVW.reset(scopeVW.buf[:0])
+	scopeVW.w = sw
 	defer bvwPool.Put(scopeVW)
 
 	encoder, err := ec.LookupEncoder(reflect.TypeOf(cws.Scope))

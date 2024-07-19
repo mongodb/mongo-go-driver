@@ -7,7 +7,6 @@
 package bson
 
 import (
-	"errors"
 	"math/rand"
 	"reflect"
 	"sync"
@@ -40,175 +39,48 @@ func TestUnmarshal(t *testing.T) {
 }
 
 func TestUnmarshalWithRegistry(t *testing.T) {
-	for _, tc := range unmarshalingTestCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
+	t.Parallel()
 
-			// Assert that unmarshaling the input data results in the expected value.
-			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithRegistry(DefaultRegistry, data, got)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
-
-			// Fill the input data slice with random bytes and then assert that the result still
-			// matches the expected value.
-			_, err = rand.Read(data)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
-		})
-	}
-}
-
-func TestUnmarshalWithContext(t *testing.T) {
-	for _, tc := range unmarshalingTestCases() {
-		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
-
-			// Assert that unmarshaling the input data results in the expected value.
-			dc := DecodeContext{Registry: DefaultRegistry}
-			got := reflect.New(tc.sType).Interface()
-			err := UnmarshalWithContext(dc, data, got)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
-
-			// Fill the input data slice with random bytes and then assert that the result still
-			// matches the expected value.
-			_, err = rand.Read(data)
-			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
-		})
-	}
-}
-
-func TestUnmarshalExtJSONWithRegistry(t *testing.T) {
-	t.Run("UnmarshalExtJSONWithContext", func(t *testing.T) {
-		type teststruct struct{ Foo int }
-		var got teststruct
-		data := []byte("{\"foo\":1}")
-		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &got)
-		noerr(t, err)
-		want := teststruct{1}
-		assert.Equal(t, want, got, "Did not unmarshal as expected.")
-	})
-
-	t.Run("UnmarshalExtJSONInvalidInput", func(t *testing.T) {
-		data := []byte("invalid")
-		err := UnmarshalExtJSONWithRegistry(DefaultRegistry, data, true, &M{})
-		if !errors.Is(err, ErrInvalidJSON) {
-			t.Fatalf("wanted ErrInvalidJSON, got %v", err)
-		}
-	})
-}
-
-func TestUnmarshalExtJSONWithContext(t *testing.T) {
-	type fooInt struct {
-		Foo int
-	}
-
-	type fooString struct {
-		Foo string
-	}
-
-	type fooBytes struct {
-		Foo []byte
-	}
-
-	var cases = []struct {
-		name  string
-		sType reflect.Type
-		want  interface{}
-		data  []byte
+	testCases := []struct {
+		name     string
+		val      interface{}
+		bsontype Type
+		bytes    []byte
 	}{
 		{
-			name:  "Small struct",
-			sType: reflect.TypeOf(fooInt{}),
-			data:  []byte(`{"foo":1}`),
-			want:  &fooInt{Foo: 1},
+			name:     "SliceCodec binary",
+			val:      []byte("hello world"),
+			bsontype: TypeBinary,
+			bytes:    bsoncore.AppendBinary(nil, TypeBinaryGeneric, []byte("hello world")),
 		},
 		{
-			name:  "Valid surrogate pair",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uD834\uDd1e"}`),
-			want:  &fooString{Foo: "𝄞"},
-		},
-		{
-			name:  "Valid surrogate pair with other values",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"abc \uD834\uDd1e 123"}`),
-			want:  &fooString{Foo: "abc 𝄞 123"},
-		},
-		{
-			name:  "High surrogate value with no following low surrogate value",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"abc \uD834 123"}`),
-			want:  &fooString{Foo: "abc � 123"},
-		},
-		{
-			name:  "High surrogate value at end of string",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uD834"}`),
-			want:  &fooString{Foo: "�"},
-		},
-		{
-			name:  "Low surrogate value with no preceding high surrogate value",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"abc \uDd1e 123"}`),
-			want:  &fooString{Foo: "abc � 123"},
-		},
-		{
-			name:  "Low surrogate value at end of string",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uDd1e"}`),
-			want:  &fooString{Foo: "�"},
-		},
-		{
-			name:  "High surrogate value with non-surrogate unicode value",
-			sType: reflect.TypeOf(fooString{}),
-			data:  []byte(`{"foo":"\uD834\u00BF"}`),
-			want:  &fooString{Foo: "�¿"},
-		},
-		// GODRIVER-2311
-		// Test that ExtJSON-encoded binary unmarshals correctly to a bson.D and that the
-		// unmarshaled value does not reference the same underlying byte array as the input.
-		{
-			name:  "bson.D with binary",
-			sType: reflect.TypeOf(D{}),
-			data:  []byte(`{"foo": {"$binary": {"subType": "0", "base64": "AAECAwQF"}}}`),
-			want:  &D{{"foo", Binary{Subtype: 0, Data: []byte{0, 1, 2, 3, 4, 5}}}},
-		},
-		// GODRIVER-2311
-		// Test that ExtJSON-encoded binary unmarshals correctly to a struct and that the
-		// unmarshaled value does not reference thesame  underlying byte array as the input.
-		{
-			name:  "struct with binary",
-			sType: reflect.TypeOf(fooBytes{}),
-			data:  []byte(`{"foo": {"$binary": {"subType": "0", "base64": "AAECAwQF"}}}`),
-			want:  &fooBytes{Foo: []byte{0, 1, 2, 3, 4, 5}},
+			name:     "SliceCodec string",
+			val:      []byte("hello world"),
+			bsontype: TypeString,
+			bytes:    bsoncore.AppendString(nil, "hello world"),
 		},
 	}
+	reg := NewRegistry()
+	reg.RegisterTypeDecoder(reflect.TypeOf([]byte{}), &sliceCodec{})
+	for _, tc := range testCases {
+		tc := tc
 
-	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Make a copy of the test data so we can modify it later.
-			data := make([]byte, len(tc.data))
-			copy(data, tc.data)
+			t.Parallel()
 
 			// Assert that unmarshaling the input data results in the expected value.
-			got := reflect.New(tc.sType).Interface()
-			dc := DecodeContext{Registry: DefaultRegistry}
-			err := UnmarshalExtJSONWithContext(dc, data, true, got)
+			gotValue := reflect.New(reflect.TypeOf(tc.val))
+			dec := NewDecoder(NewBSONValueReader(tc.bsontype, tc.bytes))
+			dec.SetRegistry(reg)
+			err := dec.Decode(gotValue.Interface())
 			noerr(t, err)
-			assert.Equal(t, tc.want, got, "Did not unmarshal as expected.")
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "value mismatch; expected %s, got %s", tc.val, gotValue.Elem())
 
 			// Fill the input data slice with random bytes and then assert that the result still
 			// matches the expected value.
-			_, err = rand.Read(data)
+			_, err = rand.Read(tc.bytes)
 			noerr(t, err)
-			assert.Equal(t, tc.want, got, "unmarshaled value does not match expected after modifying the input bytes")
+			assert.Equal(t, tc.val, gotValue.Elem().Interface(), "unmarshaled value does not match expected after modifying the input bytes")
 		})
 	}
 }
@@ -249,7 +121,9 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, int32(1), first.X, "expected X value to be 1, got %v", first.X)
 
 		var second Struct
-		err = UnmarshalWithRegistry(customReg, docBytes, &second)
+		dec := NewDecoder(NewValueReader(docBytes))
+		dec.SetRegistry(customReg)
+		err = dec.Decode(&second)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, int32(-1), second.X, "expected X value to be -1, got %v", second.X)
 	})
@@ -264,7 +138,9 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, int32(1), *first.X, "expected X value to be 1, got %v", *first.X)
 
 		var second Struct
-		err = UnmarshalWithRegistry(customReg, docBytes, &second)
+		dec := NewDecoder(NewValueReader(docBytes))
+		dec.SetRegistry(customReg)
+		err = dec.Decode(&second)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
 		assert.Equal(t, int32(-1), *second.X, "expected X value to be -1, got %v", *second.X)
 	})

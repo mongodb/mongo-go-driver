@@ -605,7 +605,9 @@ func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*uplo
 			return nil, err
 		}
 		var doc bson.D
-		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, buf.Bytes(), &doc)
+		dec := bson.NewDecoder(bson.NewValueReader(buf.Bytes()))
+		dec.SetRegistry(uo.Registry)
+		unMarErr := dec.Decode(&doc)
 		if unMarErr != nil {
 			return nil, unMarErr
 		}

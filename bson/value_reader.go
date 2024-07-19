@@ -24,50 +24,6 @@ var vrPool = sync.Pool{
 	},
 }
 
-// ValueReaderPool is a pool for ValueReaders that read BSON.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-type ValueReaderPool struct {
-	pool sync.Pool
-}
-
-// NewValueReaderPool instantiates a new ValueReaderPool.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func NewValueReaderPool() *ValueReaderPool {
-	return &ValueReaderPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(valueReader)
-			},
-		},
-	}
-}
-
-// Get retrieves a ValueReader from the pool and uses src as the underlying BSON.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func (bvrp *ValueReaderPool) Get(src []byte) ValueReader {
-	vr := bvrp.pool.Get().(*valueReader)
-	vr.reset(src)
-	return vr
-}
-
-// Put inserts a ValueReader into the pool. If the ValueReader is not a BSON ValueReader nothing
-// is inserted into the pool and ok will be false.
-//
-// Deprecated: ValueReaderPool will not be supported in Go Driver 2.0.
-func (bvrp *ValueReaderPool) Put(vr ValueReader) (ok bool) {
-	bvr, ok := vr.(*valueReader)
-	if !ok {
-		return false
-	}
-
-	bvr.reset(nil)
-	bvrp.pool.Put(bvr)
-	return true
-}
-
 // ErrEOA is the error returned when the end of a BSON array has been reached.
 var ErrEOA = errors.New("end of array")
 

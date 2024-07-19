@@ -15,9 +15,6 @@ import (
 )
 
 // copyDocument handles copying one document from the src to the dst.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func copyDocument(dst ValueWriter, src ValueReader) error {
 	dr, err := src.ReadDocument()
 	if err != nil {
@@ -34,9 +31,6 @@ func copyDocument(dst ValueWriter, src ValueReader) error {
 
 // copyArrayFromBytes copies the values from a BSON array represented as a
 // []byte to a ValueWriter.
-//
-// Deprecated: Copying BSON arrays using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func copyArrayFromBytes(dst ValueWriter, src []byte) error {
 	aw, err := dst.WriteArray()
 	if err != nil {
@@ -53,9 +47,6 @@ func copyArrayFromBytes(dst ValueWriter, src []byte) error {
 
 // copyDocumentFromBytes copies the values from a BSON document represented as a
 // []byte to a ValueWriter.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func copyDocumentFromBytes(dst ValueWriter, src []byte) error {
 	dw, err := dst.WriteDocument()
 	if err != nil {
@@ -74,9 +65,6 @@ type writeElementFn func(key string) (ValueWriter, error)
 
 // copyBytesToArrayWriter copies the values from a BSON Array represented as a []byte to an
 // ArrayWriter.
-//
-// Deprecated: Copying BSON arrays using the ArrayWriter interface will not be supported in Go
-// Driver 2.0.
 func copyBytesToArrayWriter(dst ArrayWriter, src []byte) error {
 	wef := func(_ string) (ValueWriter, error) {
 		return dst.WriteArrayElement()
@@ -87,9 +75,6 @@ func copyBytesToArrayWriter(dst ArrayWriter, src []byte) error {
 
 // copyBytesToDocumentWriter copies the values from a BSON document represented as a []byte to a
 // DocumentWriter.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func copyBytesToDocumentWriter(dst DocumentWriter, src []byte) error {
 	wef := func(key string) (ValueWriter, error) {
 		return dst.WriteDocumentElement(key)
@@ -149,18 +134,12 @@ func copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 
 // copyDocumentToBytes copies an entire document from the ValueReader and
 // returns it as bytes.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func copyDocumentToBytes(src ValueReader) ([]byte, error) {
 	return appendDocumentBytes(nil, src)
 }
 
 // appendDocumentBytes functions the same as CopyDocumentToBytes, but will
 // append the result to dst.
-//
-// Deprecated: Copying BSON documents using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
 	if br, ok := src.(bytesReader); ok {
 		_, dst, err := br.readValueBytes(dst)
@@ -178,9 +157,6 @@ func appendDocumentBytes(dst []byte, src ValueReader) ([]byte, error) {
 }
 
 // appendArrayBytes copies an array from the ValueReader to dst.
-//
-// Deprecated: Copying BSON arrays using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 	if br, ok := src.(bytesReader); ok {
 		_, dst, err := br.readValueBytes(dst)
@@ -198,8 +174,6 @@ func appendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
 }
 
 // copyValueFromBytes will write the value represtend by t and src to dst.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.UnmarshalValue] instead.
 func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 	if wvb, ok := dst.(bytesWriter); ok {
 		return wvb.writeValueBytes(t, src)
@@ -214,44 +188,28 @@ func copyValueFromBytes(dst ValueWriter, t Type, src []byte) error {
 	return copyValue(dst, vr)
 }
 
-// CopyValueToBytes copies a value from src and returns it as a Type and a
+// copyValueToBytes copies a value from src and returns it as a Type and a
 // []byte.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.MarshalValue] instead.
-func CopyValueToBytes(src ValueReader) (Type, []byte, error) {
-	return appendValueBytes(nil, src)
-}
-
-// appendValueBytes functions the same as CopyValueToBytes, but will append the
-// result to dst.
-//
-// Deprecated: Appending individual BSON elements to an existing slice will not be supported in Go
-// Driver 2.0.
-func appendValueBytes(dst []byte, src ValueReader) (Type, []byte, error) {
+func copyValueToBytes(src ValueReader) (Type, []byte, error) {
 	if br, ok := src.(bytesReader); ok {
-		return br.readValueBytes(dst)
+		return br.readValueBytes(nil)
 	}
 
 	vw := vwPool.Get().(*valueWriter)
 	defer putValueWriter(vw)
 
-	start := len(dst)
-
-	vw.reset(dst)
+	vw.reset(nil)
 	vw.push(mElement)
 
 	err := copyValue(vw, src)
 	if err != nil {
-		return 0, dst, err
+		return 0, nil, err
 	}
 
-	return Type(vw.buf[start]), vw.buf[start+2:], nil
+	return Type(vw.buf[0]), vw.buf[2:], nil
 }
 
 // copyValue will copy a single value from src to dst.
-//
-// Deprecated: Copying BSON values using the ValueWriter and ValueReader interfaces will not be
-// supported in Go Driver 2.0.
 func copyValue(dst ValueWriter, src ValueReader) error {
 	var err error
 	switch src.Type() {
@@ -460,4 +418,16 @@ func copyDocumentCore(dw DocumentWriter, dr DocumentReader) error {
 	}
 
 	return dw.WriteDocumentEnd()
+}
+
+// bytesReader is the interface used to read BSON bytes from a valueReader.
+//
+// The bytes of the value will be appended to dst.
+type bytesReader interface {
+	readValueBytes(dst []byte) (Type, []byte, error)
+}
+
+// bytesWriter is the interface used to write BSON bytes to a valueWriter.
+type bytesWriter interface {
+	writeValueBytes(t Type, b []byte) error
 }

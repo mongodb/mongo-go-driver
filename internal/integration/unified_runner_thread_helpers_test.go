@@ -87,7 +87,9 @@ func runOnThread(mt *mtest.T, testCase *testCase, op *operation) {
 
 	var routineOperation operation
 	operationDoc := op.Arguments.Lookup("operation")
-	err := bson.UnmarshalWithRegistry(specTestRegistry, operationDoc.Document(), &routineOperation)
+	dec := bson.NewDecoder(bson.NewValueReader(operationDoc.Document()))
+	dec.SetRegistry(specTestRegistry)
+	err := dec.Decode(&routineOperation)
 	assert.Nil(mt, err, "error creating operation for runOnThread: %v", err)
 
 	ok = routine.addOperation(&routineOperation)

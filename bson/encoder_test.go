@@ -20,7 +20,7 @@ import (
 func TestBasicEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(SliceWriter, 0, 1024)
+			got := make(sliceWriter, 0, 1024)
 			vw := NewValueWriter(&got)
 			reg := DefaultRegistry
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
@@ -39,7 +39,7 @@ func TestBasicEncode(t *testing.T) {
 func TestEncoderEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(SliceWriter, 0, 1024)
+			got := make(sliceWriter, 0, 1024)
 			vw := NewValueWriter(&got)
 			enc := NewEncoder(vw)
 			err := enc.Encode(tc.val)
@@ -88,7 +88,7 @@ func TestEncoderEncode(t *testing.T) {
 				marshaler := testMarshaler{buf: tc.buf, err: tc.err}
 
 				var vw ValueWriter
-				b := make(SliceWriter, 0, 100)
+				b := make(sliceWriter, 0, 100)
 				compareVW := false
 				if tc.vw != nil {
 					vw = tc.vw

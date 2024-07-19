@@ -91,14 +91,6 @@ func ObjectIDFromHex(s string) (ObjectID, error) {
 	return oid, nil
 }
 
-// IsValidObjectID returns true if the provided hex string represents a valid ObjectID and false if not.
-//
-// Deprecated: Use ObjectIDFromHex and check the error instead.
-func IsValidObjectID(s string) bool {
-	_, err := ObjectIDFromHex(s)
-	return err == nil
-}
-
 // MarshalText returns the ObjectID as UTF-8-encoded text. Implementing this allows us to use ObjectID
 // as a map key when marshalling JSON. See https://pkg.go.dev/encoding#TextMarshaler
 func (id ObjectID) MarshalText() ([]byte, error) {

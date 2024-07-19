@@ -47,12 +47,3 @@ type ValueReader interface {
 	ReadTimestamp() (t, i uint32, err error)
 	ReadUndefined() error
 }
-
-// bytesReader is a generic interface used to read BSON bytes from a
-// ValueReader. This interface is meant to be a superset of ValueReader, so that
-// types that implement ValueReader may also implement this interface.
-//
-// The bytes of the value will be appended to dst.
-type bytesReader interface {
-	readValueBytes(dst []byte) (Type, []byte, error)
-}
