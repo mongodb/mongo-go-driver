@@ -140,7 +140,7 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 }
 
 // ListSpecifications executes a List command and returns a slice of returned IndexSpecifications
-func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.ListIndexesOptions) ([]*IndexSpecification, error) {
+func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.ListIndexesOptions) ([]IndexSpecification, error) {
 	cursor, err := iv.List(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -154,9 +154,9 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 
 	namespace := iv.coll.db.Name() + "." + iv.coll.Name()
 
-	specs := make([]*IndexSpecification, len(resp))
+	specs := make([]IndexSpecification, len(resp))
 	for idx, spec := range resp {
-		specs[idx] = newIndexSpecificationFromResponse(spec)
+		specs[idx] = IndexSpecification(spec)
 		specs[idx].Namespace = namespace
 	}
 

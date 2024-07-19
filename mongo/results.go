@@ -139,19 +139,6 @@ type indexListSpecificationResponse struct {
 	Clustered          *bool    `bson:"clustered"`
 }
 
-func newIndexSpecificationFromResponse(resp indexListSpecificationResponse) *IndexSpecification {
-	return &IndexSpecification{
-		Name:               resp.Name,
-		Namespace:          resp.Namespace,
-		KeysDocument:       resp.KeysDocument,
-		Version:            resp.Version,
-		ExpireAfterSeconds: resp.ExpireAfterSeconds,
-		Sparse:             resp.Sparse,
-		Unique:             resp.Unique,
-		Clustered:          resp.Clustered,
-	}
-}
-
 // CollectionSpecification represents a collection in a database. This type is returned by the
 // Database.ListCollectionSpecifications function.
 type CollectionSpecification struct {
@@ -171,9 +158,8 @@ type CollectionSpecification struct {
 	// A document containing the options used to construct the collection.
 	Options bson.Raw
 
-	// An IndexSpecification instance with details about the collection's _id index. This will be nil if the NameOnly
-	// option is used and for MongoDB versions < 3.4.
-	IDIndex *IndexSpecification
+	// An IndexSpecification instance with details about the collection's _id index.
+	IDIndex IndexSpecification
 }
 
 // DistinctResult represents an array of BSON data returned from an operation.
