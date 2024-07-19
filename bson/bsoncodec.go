@@ -96,7 +96,7 @@ type EncodeContext struct {
 type DecodeContext struct {
 	*Registry
 
-	// Truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
+	// truncate, if true, instructs decoders to to truncate the fractional part of BSON "double"
 	// values when attempting to unmarshal them into a Go integer (int, int8, int16, int32, int64,
 	// uint, uint8, uint16, uint32, or uint64) struct field. The truncation logic does not apply to
 	// BSON "decimal128" values.
@@ -108,12 +108,15 @@ type DecodeContext struct {
 	// error.
 	defaultDocumentType reflect.Type
 
-	binaryAsSlice       bool
+	binaryAsSlice bool
+
+	// a false value results in a decoding error.
 	objectIDAsHexString bool
-	useJSONStructTags   bool
-	useLocalTimeZone    bool
-	zeroMaps            bool
-	zeroStructs         bool
+
+	useJSONStructTags bool
+	useLocalTimeZone  bool
+	zeroMaps          bool
+	zeroStructs       bool
 }
 
 // ValueEncoder is the interface implemented by types that can encode a provided Go type to BSON.

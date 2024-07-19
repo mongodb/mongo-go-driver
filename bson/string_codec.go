@@ -12,10 +12,7 @@ import (
 )
 
 // stringCodec is the Codec used for string values.
-type stringCodec struct {
-	// DecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
-	decodeObjectIDAsHex bool
-}
+type stringCodec struct{}
 
 // Assert that stringCodec satisfies the typeDecoder interface, which allows it to be
 // used by collection type decoders (e.g. map, slice, etc) to set individual values in a
@@ -57,10 +54,10 @@ func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Ty
 		if err != nil {
 			return emptyValue, err
 		}
-		if sc.decodeObjectIDAsHex || dc.objectIDAsHexString {
+		if dc.objectIDAsHexString {
 			str = oid.Hex()
 		} else {
-			return emptyValue, fmt.Errorf("decoding an object ID to a hexadecimal string is disabled by default")
+			return emptyValue, fmt.Errorf("decoding an object ID to a non-hexadecimal string representation is not supported")
 		}
 	case TypeSymbol:
 		str, err = vr.ReadSymbol()

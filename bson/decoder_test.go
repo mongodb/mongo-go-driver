@@ -607,6 +607,26 @@ func TestDecoderConfiguration(t *testing.T) {
 		})
 	}
 
+	t.Run("Decoding an object ID to string", func(t *testing.T) {
+		t.Parallel()
+
+		type objectIDTest struct {
+			ID string
+		}
+
+		doc := bsoncore.NewDocumentBuilder().
+			AppendObjectID("id", func() ObjectID {
+				id, _ := ObjectIDFromHex("5ef7fdd91c19e3222b41b839")
+				return id
+			}()).
+			Build()
+
+		dec := NewDecoder(NewValueReader(doc))
+
+		var got objectIDTest
+		err := dec.Decode(&got)
+		assert.EqualError(t, err, "error decoding key id: decoding an object ID to a non-hexadecimal string representation is not supported")
+	})
 	t.Run("DefaultDocumentM top-level", func(t *testing.T) {
 		t.Parallel()
 
