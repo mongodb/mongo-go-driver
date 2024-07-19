@@ -458,7 +458,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				b := make(SliceWriter, 0, 512)
+				b := make(sliceWriter, 0, 512)
 				vw := NewDocumentWriter(&b)
 				enc := NewEncoder(vw)
 				err := enc.Encode(tc.value)

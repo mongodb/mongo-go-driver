@@ -47,12 +47,6 @@ func (eic *emptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, va
 			// that type.
 			return dc.defaultDocumentType, nil
 		}
-		if dc.Ancestor != nil {
-			// Using ancestor information rather than looking up the type map entry forces consistent decoding.
-			// If we're decoding into a bson.D, subdocuments should also be decoded as bson.D, even if a type map entry
-			// has been registered.
-			return dc.Ancestor, nil
-		}
 	}
 
 	rtype, err := dc.LookupTypeMapEntry(valueType)
@@ -75,6 +69,8 @@ func (eic *emptyInterfaceCodec) getEmptyInterfaceDecodeType(dc DecodeContext, va
 		if err == nil {
 			return rtype, nil
 		}
+		// fallback to bson.D
+		return tD, nil
 	}
 
 	return nil, err

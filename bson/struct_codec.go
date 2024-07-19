@@ -57,23 +57,23 @@ type structCodec struct {
 	cache            sync.Map // map[reflect.Type]*structDescription
 	inlineMapEncoder mapElementsEncoder
 
-	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
+	// decodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
 	// destination value passed to Decode before unmarshaling BSON documents into them.
 	decodeZeroStruct bool
 
-	// DecodeDeepZeroInline causes DecodeValue to delete any existing values from Go structs in the
+	// decodeDeepZeroInline causes DecodeValue to delete any existing values from Go structs in the
 	// destination value passed to Decode before unmarshaling BSON documents into them.
 	decodeDeepZeroInline bool
 
-	// EncodeOmitDefaultStruct causes the Encoder to consider the zero value for a struct (e.g.
+	// encodeOmitDefaultStruct causes the Encoder to consider the zero value for a struct (e.g.
 	// MyStruct{}) as empty and omit it from the marshaled BSON when the "omitempty" struct tag
 	// option is set.
 	encodeOmitDefaultStruct bool
 
-	// AllowUnexportedFields allows encoding and decoding values from un-exported struct fields.
+	// allowUnexportedFields allows encoding and decoding values from un-exported struct fields.
 	allowUnexportedFields bool
 
-	// OverwriteDuplicatedInlinedFields, if false, causes EncodeValue to return an error if there is
+	// overwriteDuplicatedInlinedFields, if false, causes EncodeValue to return an error if there is
 	// a duplicate field in the marshaled BSON when the "inline" struct tag option is set. The
 	// default value is true.
 	overwriteDuplicatedInlinedFields bool
@@ -140,15 +140,13 @@ func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 		}
 
 		if desc.encoder == nil {
-			return ErrNoEncoder{Type: rv.Type()}
+			return errNoEncoder{Type: rv.Type()}
 		}
 
 		encoder := desc.encoder
 
 		var empty bool
-		if cz, ok := encoder.(CodecZeroer); ok {
-			empty = cz.IsTypeZero(rv.Interface())
-		} else if rv.Kind() == reflect.Interface {
+		if rv.Kind() == reflect.Interface {
 			// isEmpty will not treat an interface rv as an interface, so we need to check for the
 			// nil interface separately.
 			empty = rv.IsNil()
@@ -298,7 +296,6 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
-			dc.Ancestor = inlineMap.Type()
 			err = decoder.DecodeValue(dc, vr, elem)
 			if err != nil {
 				return err
@@ -351,7 +348,7 @@ func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		}
 
 		if fd.decoder == nil {
-			return newDecodeError(fd.name, ErrNoDecoder{Type: field.Elem().Type()})
+			return newDecodeError(fd.name, errNoDecoder{Type: field.Elem().Type()})
 		}
 
 		err = fd.decoder.DecodeValue(dctx, vr, field.Elem())

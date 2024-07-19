@@ -317,7 +317,7 @@ func TestDocumentWriter(t *testing.T) {
 			vw := newValueWriterFromSlice(nil)
 			want := TransitionError{current: mTopLevel, destination: mode(0),
 				name: "WriteValueBytes", modes: []mode{mElement, mValue}, action: "write"}
-			got := vw.WriteValueBytes(TypeEmbeddedDocument, nil)
+			got := vw.writeValueBytes(TypeEmbeddedDocument, nil)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Did not received expected error. got %v; want %v", got, want)
 			}
@@ -338,7 +338,7 @@ func TestDocumentWriter(t *testing.T) {
 			noerr(t, err)
 			_, err = vw.WriteDocumentElement("foo")
 			noerr(t, err)
-			err = vw.WriteValueBytes(TypeEmbeddedDocument, doc)
+			err = vw.writeValueBytes(TypeEmbeddedDocument, doc)
 			noerr(t, err)
 			err = vw.WriteDocumentEnd()
 			noerr(t, err)

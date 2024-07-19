@@ -70,12 +70,6 @@ func newDocumentReader(r io.Reader) *valueReader {
 	}
 }
 
-func newValueReaderFromSlice(buf []byte) *valueReader {
-	vr := newDocumentReader(nil)
-	vr.d = buf
-	return vr
-}
-
 func (vr *valueReader) prepload(length int32) (int32, error) {
 	const chunkSize = 512
 
@@ -300,7 +294,7 @@ func (vr *valueReader) nextElementLength() (int32, error) {
 	return length, err
 }
 
-func (vr *valueReader) ReadValueBytes(dst []byte) (Type, []byte, error) {
+func (vr *valueReader) readValueBytes(dst []byte) (Type, []byte, error) {
 	switch vr.stack[vr.frame].mode {
 	case mTopLevel:
 		length, err := vr.peekLength()

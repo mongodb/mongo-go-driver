@@ -224,7 +224,7 @@ func TestDecoderv2(t *testing.T) {
 
 			cdeih := func(string, string) string { return "certainlydoesntexistelsewhereihope" }
 			dec := NewDecoder(NewDocumentReader(bytes.NewReader([]byte{})))
-			want := ErrNoDecoder{Type: reflect.TypeOf(cdeih)}
+			want := errNoDecoder{Type: reflect.TypeOf(cdeih)}
 			got := dec.Decode(&cdeih)
 			assert.Equal(t, want, got, "Received unexpected error.")
 		})
@@ -478,13 +478,11 @@ func TestDecoderConfiguration(t *testing.T) {
 			decodeInto: func() interface{} { return &D{} },
 			want:       &D{{Key: "myBinary", Value: []byte{}}},
 		},
-		// Test that DefaultDocumentD overrides the default "ancestor" logic and always decodes BSON
-		// documents into bson.D values, independent of the top-level Go value type.
+		// Test that the default decoder always decodes BSON documents into bson.D values,
+		// independent of the top-level Go value type.
 		{
-			description: "DefaultDocumentD nested",
-			configure: func(dec *Decoder) {
-				dec.DefaultDocumentD()
-			},
+			description: "DocumentD nested by default",
+			configure:   func(dec *Decoder) {},
 			input: bsoncore.NewDocumentBuilder().
 				AppendDocument("myDocument", bsoncore.NewDocumentBuilder().
 					AppendString("myString", "test value").
@@ -495,8 +493,8 @@ func TestDecoderConfiguration(t *testing.T) {
 				"myDocument": D{{Key: "myString", Value: "test value"}},
 			},
 		},
-		// Test that DefaultDocumentM overrides the default "ancestor" logic and always decodes BSON
-		// documents into bson.M values, independent of the top-level Go value type.
+		// Test that DefaultDocumentM always decodes BSON documents into bson.M values,
+		// independent of the top-level Go value type.
 		{
 			description: "DefaultDocumentM nested",
 			configure: func(dec *Decoder) {
@@ -614,7 +612,7 @@ func TestDecoderConfiguration(t *testing.T) {
 		}
 		assert.Equal(t, want, got, "expected and actual decode results do not match")
 	})
-	t.Run("DefaultDocumentD top-level", func(t *testing.T) {
+	t.Run("Default decodes DocumentD for top-level", func(t *testing.T) {
 		t.Parallel()
 
 		input := bsoncore.NewDocumentBuilder().
@@ -624,8 +622,6 @@ func TestDecoderConfiguration(t *testing.T) {
 			Build()
 
 		dec := NewDecoder(NewDocumentReader(bytes.NewReader(input)))
-
-		dec.DefaultDocumentD()
 
 		var got interface{}
 		err := dec.Decode(&got)

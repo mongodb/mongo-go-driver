@@ -1381,7 +1381,7 @@ func TestValueReader(t *testing.T) {
 						offset: tc.startingOffset,
 					}
 
-					_, got, err := vr.ReadValueBytes(nil)
+					_, got, err := vr.readValueBytes(nil)
 					if !errequal(t, err, tc.err) {
 						t.Errorf("Did not receive expected error; got %v; want %v", err, tc.err)
 					}
@@ -1432,7 +1432,7 @@ func TestValueReader(t *testing.T) {
 						},
 						frame: 0,
 					}
-					gotType, got, gotErr := vr.ReadValueBytes(nil)
+					gotType, got, gotErr := vr.readValueBytes(nil)
 					if !errors.Is(gotErr, tc.wantErr) {
 						t.Errorf("Did not receive expected error. got %v; want %v", gotErr, tc.wantErr)
 					}
@@ -1461,7 +1461,7 @@ func TestValueReader(t *testing.T) {
 		vr := &valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}
 		wanterr := (&valueReader{stack: []vrState{{mode: mTopLevel}, {mode: mDocument}}, frame: 1}).
 			invalidTransitionErr(0, "ReadValueBytes", []mode{mElement, mValue})
-		_, _, goterr := vr.ReadValueBytes(nil)
+		_, _, goterr := vr.readValueBytes(nil)
 		if !cmp.Equal(goterr, wanterr, cmp.Comparer(assert.CompareErrors)) {
 			t.Errorf("Expected correct invalid transition error. got %v; want %v", goterr, wanterr)
 		}

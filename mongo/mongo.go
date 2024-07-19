@@ -52,9 +52,6 @@ func (me MarshalError) Error() string {
 //	}
 type Pipeline []bson.D
 
-// bvwPool is a pool of BSON value writers. BSON value writers
-var bvwPool = bson.NewValueWriterPool()
-
 // getEncoder takes a writer, BSON options, and a BSON registry and returns a properly configured
 // bson.Encoder that writes to the given writer.
 func getEncoder(
@@ -62,7 +59,7 @@ func getEncoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) (*bson.Encoder, error) {
-	vw := bvwPool.Get(w)
+	vw := bson.NewDocumentWriter(w)
 	enc := bson.NewEncoder(vw)
 
 	if opts != nil {

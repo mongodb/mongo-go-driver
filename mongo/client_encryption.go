@@ -109,6 +109,7 @@ func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
 	}
 	r := bson.NewDocumentReader(bytes.NewReader(efBSON))
 	dec := bson.NewDecoder(r)
+	dec.DefaultDocumentM()
 	var m bson.M
 	err = dec.Decode(&m)
 	if err != nil {
