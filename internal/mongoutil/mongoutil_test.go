@@ -150,7 +150,7 @@ func TestNewOptionsLister(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := NewOptionsLister[options.ClientOptions](test.args, nil)
+			opts := NewOptionsLister(test.args, nil)
 
 			got, err := NewOptions[options.ClientOptions](opts)
 			assert.NoError(t, err)

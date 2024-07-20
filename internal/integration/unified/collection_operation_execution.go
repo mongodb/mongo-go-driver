@@ -1199,7 +1199,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 				return bson.Unmarshal(val.Document(), args.AggregateOptions)
 			}
 
-			opts = append(opts, mongoutil.NewOptionsLister[options.ListSearchIndexesOptions](lsiOpts, lsiOptsCallback))
+			opts = append(opts, mongoutil.NewOptionsLister(lsiOpts, lsiOptsCallback))
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}
