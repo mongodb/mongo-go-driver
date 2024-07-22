@@ -435,12 +435,12 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 	return iv.drop(ctx, name, opts...)
 }
 
-// DropWithKey drops a collection index by key using the dropIndexes operation. If the operation succeeds, this returns
+// DropOneWithKey drops a collection index by key using the dropIndexes operation. If the operation succeeds, this returns
 // a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
 // indexes that existed prior to the drop.
 //
 // This function is useful to drop an index using its key specification instead of its name.
-func (iv IndexView) DropWithKey(ctx context.Context, keySpecDocument interface{}, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+func (iv IndexView) DropOneWithKey(ctx context.Context, keySpecDocument interface{}, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	doc, err := marshal(keySpecDocument, iv.coll.bsonOpts, iv.coll.registry)
 	if err != nil {
 		return nil, err
