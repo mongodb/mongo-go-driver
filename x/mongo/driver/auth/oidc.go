@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -173,7 +172,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	case azureEnvironmentValue:
 		resource, ok := oa.AuthMechanismProperties[resourceProp]
 		if !ok {
-			return nil, newAuthError("resource must be specified for Azure OIDC", nil)
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for Azure OIDC", resourceProp), nil)
 		}
 		return getAzureOIDCCallback(oa.userName, resource, oa.httpClient), nil
 	case gcpEnvironmentValue:
@@ -212,7 +211,7 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 		defer resp.Body.Close()
 		var azureResp struct {
 			AccessToken string `json:"access_token"`
-			ExpiresOn   string `json:"expires_on"`
+			ExpiresOn   int64  `json:"expires_on,string"`
 		}
 
 		if resp.StatusCode != http.StatusOK {
@@ -222,11 +221,10 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 		if err != nil {
 			return nil, newAuthError("failed parsing result from Azure Identity Provider", err)
 		}
-		expiresOn, err := strconv.ParseInt(azureResp.ExpiresOn, 10, 64)
-		expiresAt := time.Unix(expiresOn, 0)
+		expireTime := time.Unix(azureResp.ExpiresOn, 0)
 		return &OIDCCredential{
 			AccessToken: azureResp.AccessToken,
-			ExpiresAt:   &expiresAt,
+			ExpiresAt:   &expireTime,
 		}, nil
 	}
 }
