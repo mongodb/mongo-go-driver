@@ -8,8 +8,10 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -166,16 +168,64 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	}
 
 	switch env {
-	// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
+	case azureEnvironmentValue:
+		resource, ok := oa.AuthMechanismProperties[resourceProp]
+		if !ok {
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for Azure OIDC", resourceProp), nil)
+		}
+		return getAzureOIDCCallback(oa.userName, resource, oa.httpClient), nil
 	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
 	// This is here just to pass the linter, it will be fixed in one of the above tickets.
-	case azureEnvironmentValue, gcpEnvironmentValue:
+	case gcpEnvironmentValue:
 		return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
 			return nil, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
 		}, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
 	}
 
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
+}
+
+// getAzureOIDCCallback returns the callback for the Azure Identity Provider.
+func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Client) OIDCCallback {
+	// return the callback parameterized by the clientID and resource, also passing in the user
+	// configured httpClient.
+	return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+		resource = url.QueryEscape(resource)
+		var uri string
+		if clientID != "" {
+			uri = fmt.Sprintf("http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=%s&client_id=%s", resource, clientID)
+		} else {
+			uri = fmt.Sprintf("http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=%s", resource)
+		}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
+		if err != nil {
+			return nil, newAuthError("error creating http request to Azure Identity Provider", err)
+		}
+		req.Header.Add("Metadata", "true")
+		req.Header.Add("Accept", "application/json")
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return nil, newAuthError("error getting access token from Azure Identity Provider", err)
+		}
+		defer resp.Body.Close()
+		var azureResp struct {
+			AccessToken string `json:"access_token"`
+			ExpiresOn   int64  `json:"expires_on,string"`
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, newAuthError(fmt.Sprintf("failed to get a valid response from Azure Identity Provider, http code: %d", resp.StatusCode), nil)
+		}
+		err = json.NewDecoder(resp.Body).Decode(&azureResp)
+		if err != nil {
+			return nil, newAuthError("failed parsing result from Azure Identity Provider", err)
+		}
+		expireTime := time.Unix(azureResp.ExpiresOn, 0)
+		return &OIDCCredential{
+			AccessToken: azureResp.AccessToken,
+			ExpiresAt:   &expireTime,
+		}, nil
+	}
 }
 
 func (oa *OIDCAuthenticator) getAccessToken(

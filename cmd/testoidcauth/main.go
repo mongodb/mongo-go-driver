@@ -74,17 +74,26 @@ func main() {
 			fmt.Println("...Ok")
 		}
 	}
-	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
-	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
-	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
-	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
-	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
-	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
-	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
-	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
-	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
-	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
-	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	env := os.Getenv("OIDC_ENV")
+	switch env {
+	case "":
+		aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
+		aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
+		aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
+		aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
+		aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
+		aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
+		aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
+		aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
+		aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
+		aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
+		aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+	case "azure":
+		aux("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
+		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
+	default:
+		log.Fatal("Unknown OIDC_ENV: ", env)
+	}
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -685,4 +694,45 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 		return fmt.Errorf("machine_4_3: expected callback count to be 2, got %d", callbackCount)
 	}
 	return callbackFailed
+}
+
+func machine51azureWithNoUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_5_1: failed parsing uri: %q", uriSingle)
+	}
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_5_1: failed executing Find: %v", err)
+	}
+	return nil
+}
+
+func machine52azureWithBadUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_5_2: failed parsing uri: %q", uriSingle)
+	}
+	opts.Auth.Username = "bad"
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("machine_5_2: Find succeeded when it should fail")
+	}
+	return nil
 }
