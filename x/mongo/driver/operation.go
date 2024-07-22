@@ -1924,8 +1924,8 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 	if op.canLogCommandMessage() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedCmd := redactStartedInformationCmd(op, info).String()
-		formattedCmd := logger.FormatMessage(redactedCmd, op.Logger.MaxDocumentLength)
+		redactedCmd := redactStartedInformationCmd(op, info)
+		formattedCmd := logger.FormatMessage(bsoncore.Document(redactedCmd), op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -1976,8 +1976,8 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		redactedReply := redactFinishedInformationResponse(info).String()
-		formattedReply := logger.FormatMessage(redactedReply, op.Logger.MaxDocumentLength)
+		redactedReply := redactFinishedInformationResponse(info)
+		formattedReply := logger.FormatMessage(bsoncore.Document(redactedReply), op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -2000,7 +2000,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 	if op.canLogCommandMessage() && !info.success() {
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
-		formattedReply := logger.FormatMessage(info.cmdErr.Error(), op.Logger.MaxDocumentLength)
+		formattedReply := logger.FormatMessage(bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "key", info.cmdErr.Error())), op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,

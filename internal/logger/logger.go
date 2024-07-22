@@ -13,6 +13,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // DefaultMaxDocumentLength is the default maximum number of bytes that can be
@@ -230,46 +232,12 @@ func selectComponentLevels(componentLevels map[Component]Level) map[Component]Le
 	return selected
 }
 
-// truncate will truncate a string to the given width, appending "..." to the
-// end of the string if it is truncated. This routine is safe for multi-byte
-// characters.
-func truncate(str string, width uint) string {
-	if width == 0 {
-		return ""
-	}
-
-	if len(str) <= int(width) {
-		return str
-	}
-
-	// Truncate the byte slice of the string to the given width.
-	newStr := str[:width]
-
-	// Check if the last byte is at the beginning of a multi-byte character.
-	// If it is, then remove the last byte.
-	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
-		return newStr[:len(newStr)-1] + TruncationSuffix
-	}
-
-	// Check if the last byte is in the middle of a multi-byte character. If
-	// it is, then step back until we find the beginning of the character.
-	if newStr[len(newStr)-1]&0xC0 == 0x80 {
-		for i := len(newStr) - 1; i >= 0; i-- {
-			if newStr[i]&0xC0 == 0xC0 {
-				return newStr[:i] + TruncationSuffix
-			}
-		}
-	}
-
-	return newStr + TruncationSuffix
-}
-
 // FormatMessage formats a BSON document for logging. The document is truncated
 // to the given width.
-func FormatMessage(msg string, width uint) string {
+func FormatMessage(msg bsoncore.Document, width uint) string {
 	if len(msg) == 0 {
 		return "{}"
 	}
 
-	return truncate(msg, width)
+	return msg.StringN(int(width)) + TruncationSuffix
 }

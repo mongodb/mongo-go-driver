@@ -217,31 +217,46 @@ func idHex(id [12]byte) string {
 // String implements the fmt.String interface. This method will return values in extended JSON
 // format. If the value is not valid, this returns an empty string
 func (v Value) String() string {
+	return v.StringN(math.MaxInt)
+}
+
+// StringN implements the fmt.String interface. This method will return values in extended JSON
+// format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
+func (v Value) StringN(n int) string {
+	if n <= 0 {
+		return ""
+	}
+
 	switch v.Type {
+	case TypeString:
+		str, ok := v.StringValueOK()
+		if !ok {
+			return ""
+		}
+		str = escapeString(str)
+		if len(str) > n {
+			truncatedStr := truncate(str, uint(n))
+			return truncatedStr
+		}
+		return str
+	case TypeEmbeddedDocument:
+		doc, ok := v.DocumentOK()
+		if !ok {
+			return ""
+		}
+		return doc.StringN(n)
+	case TypeArray:
+		arr, ok := v.ArrayOK()
+		if !ok {
+			return ""
+		}
+		return arr.StringN(n)
 	case TypeDouble:
 		f64, ok := v.DoubleOK()
 		if !ok {
 			return ""
 		}
 		return fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64))
-	case TypeString:
-		str, ok := v.StringValueOK()
-		if !ok {
-			return ""
-		}
-		return escapeString(str)
-	case TypeEmbeddedDocument:
-		doc, ok := v.DocumentOK()
-		if !ok {
-			return ""
-		}
-		return doc.String()
-	case TypeArray:
-		arr, ok := v.ArrayOK()
-		if !ok {
-			return ""
-		}
-		return arr.String()
 	case TypeBinary:
 		subtype, data, ok := v.BinaryOK()
 		if !ok {
@@ -331,48 +346,6 @@ func (v Value) String() string {
 		return `{"$minKey":1}`
 	case TypeMaxKey:
 		return `{"$maxKey":1}`
-	default:
-		return ""
-	}
-}
-
-// StringN implements the fmt.String interface. This method will return values in extended JSON
-// format that will stringify a value upto N bytes. If the value is not valid, this returns an empty string
-func (v Value) StringN(n int) string {
-	if n <= 0 {
-		return ""
-	}
-
-	switch v.Type {
-	case TypeString:
-		str, ok := v.StringValueOK()
-		if !ok {
-			return ""
-		}
-		str = escapeString(str)
-		if len(str) > n {
-			truncatedStr := truncate(str, uint(n))
-			return truncatedStr
-		}
-		return str
-	case TypeEmbeddedDocument:
-		doc, ok := v.DocumentOK()
-		if !ok {
-			return ""
-		}
-		return doc.StringN(n)
-	case TypeArray:
-		arr, ok := v.ArrayOK()
-		if !ok {
-			return ""
-		}
-		return arr.StringN(n)
-	case TypeBinary, TypeDouble, TypeObjectID, TypeBoolean,
-		TypeDateTime, TypeNull, TypeUndefined, TypeRegex,
-		TypeDBPointer, TypeJavaScript, TypeSymbol,
-		TypeCodeWithScope, TypeInt32, TypeTimestamp,
-		TypeInt64, TypeDecimal128, TypeMinKey, TypeMaxKey:
-		return v.String()
 	default:
 		return ""
 	}

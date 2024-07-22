@@ -63,8 +63,7 @@ func BenchmarkLoggerWithLargeDocuments(b *testing.B) {
 				}
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					msg := bsoncore.Document(bs).StringN(1024)
-					logger.Print(LevelInfo, ComponentCommand, msg, "foo", "bar", "baz")
+					logger.Print(LevelInfo, ComponentCommand, FormatMessage(bsoncore.Document(bs), 1024), "foo", "bar", "baz")
 
 				}
 			})
@@ -400,54 +399,6 @@ func TestSelectedComponentLevels(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestTruncate(t *testing.T) {
-	t.Parallel()
-
-	for _, tcase := range []struct {
-		name     string
-		arg      string
-		width    uint
-		expected string
-	}{
-		{
-			name:     "empty",
-			arg:      "",
-			width:    0,
-			expected: "",
-		},
-		{
-			name:     "short",
-			arg:      "foo",
-			width:    DefaultMaxDocumentLength,
-			expected: "foo",
-		},
-		{
-			name:     "long",
-			arg:      "foo bar baz",
-			width:    9,
-			expected: "foo bar b...",
-		},
-		{
-			name:     "multi-byte",
-			arg:      "你好",
-			width:    4,
-			expected: "你...",
-		},
-	} {
-		tcase := tcase
-
-		t.Run(tcase.name, func(t *testing.T) {
-			t.Parallel()
-
-			actual := truncate(tcase.arg, tcase.width)
-			if actual != tcase.expected {
-				t.Errorf("expected %q, got %q", tcase.expected, actual)
-			}
-		})
-	}
-
 }
 
 func TestLogger_LevelComponentEnabled(t *testing.T) {

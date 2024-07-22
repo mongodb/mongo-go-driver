@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -261,34 +262,7 @@ func (d Document) DebugString() string {
 // String outputs an ExtendedJSON version of Document. If the document is not valid, this method
 // returns an empty string.
 func (d Document) String() string {
-	if len(d) < 5 {
-		return ""
-	}
-	var buf strings.Builder
-	buf.WriteByte('{')
-
-	length, rem, _ := ReadLength(d) // We know we have enough bytes to read the length
-
-	length -= 4
-
-	var elem Element
-	var ok bool
-	first := true
-	for length > 1 {
-		if !first {
-			buf.WriteByte(',')
-		}
-		elem, rem, ok = ReadElement(rem)
-		length -= int32(len(elem))
-		if !ok {
-			return ""
-		}
-		buf.WriteString(elem.String())
-		first = false
-	}
-	buf.WriteByte('}')
-
-	return buf.String()
+	return d.StringN(math.MaxInt)
 }
 
 // StringN stringifies a document upto N bytes
@@ -301,7 +275,7 @@ func (d Document) StringN(n int) string {
 	n += 2
 
 	var buf strings.Builder
-	buf.Grow(n) //Preallocate buffer size
+
 	buf.WriteByte('{')
 
 	length, rem, _ := ReadLength(d)
