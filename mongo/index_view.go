@@ -165,7 +165,11 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 
 // CreateOne executes a createIndexes command to create an index on the collection and returns the name of the new
 // index. See the IndexView.CreateMany documentation for more information and an example.
-func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*options.CreateIndexesOptions) (string, error) {
+func (iv IndexView) CreateOne(
+	ctx context.Context,
+	model IndexModel,
+	opts ...*options.CreateIndexesOptions,
+) (string, error) {
 	names, err := iv.CreateMany(ctx, []IndexModel{model}, opts...)
 	if err != nil {
 		return "", err
@@ -184,7 +188,11 @@ func (iv IndexView) CreateOne(ctx context.Context, model IndexModel, opts ...*op
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/createIndexes/.
-func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ...*options.CreateIndexesOptions) ([]string, error) {
+func (iv IndexView) CreateMany(
+	ctx context.Context,
+	models []IndexModel,
+	opts ...*options.CreateIndexesOptions,
+) ([]string, error) {
 	names := make([]string, 0, len(models))
 
 	var indexes bsoncore.Document
@@ -284,9 +292,8 @@ func (iv IndexView) CreateMany(ctx context.Context, models []IndexModel, opts ..
 		op.CommitQuorum(commitQuorum)
 	}
 
-	err = op.Execute(ctx)
+	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
-		_, err = processWriteError(err)
 		return nil, err
 	}
 

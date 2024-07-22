@@ -514,17 +514,13 @@ func (t *T) ClearCollections() {
 				DropEncryptedCollection(t, coll.created, coll.CreateOpts.EncryptedFields)
 			}
 
-			err := coll.created.Drop(context.Background())
-			if errors.Is(err, mongo.ErrUnacknowledgedWrite) || errors.Is(err, driver.ErrUnacknowledgedWrite) {
-				// It's possible that a collection could have an unacknowledged write concern, which
-				// could prevent it from being dropped for sharded clusters. We can resolve this by
-				// re-instantiating the collection with a majority write concern before dropping.
-				collname := coll.created.Name()
-				wcm := writeconcern.Majority()
-				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
-				_ = wccoll.Drop(context.Background())
+			// It's possible that a collection could have an unacknowledged write
+			// concern, which could prevent it from being dropped for sharded
+			// clusters. We can resolve this by  re-instantiating the collection with
+			// a majority write concern before dropping.
+			clonedColl := coll.created.Clone(options.Collection().SetWriteConcern(writeconcern.Majority()))
 
-			}
+			_ = clonedColl.Drop(context.Background())
 		}
 	}
 	t.createdColls = t.createdColls[:0]

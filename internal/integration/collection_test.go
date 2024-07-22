@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
 
@@ -1472,6 +1471,122 @@ func TestCollection(t *testing.T) {
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %v", err)
 		})
 	})
+
+	unackClientOpts := options.Client().
+		SetWriteConcern(writeconcern.Unacknowledged())
+	unackMtOpts := mtest.NewOptions().
+		ClientOptions(unackClientOpts).
+		MinServerVersion("3.6")
+	mt.RunOpts("unacknowledged writes", unackMtOpts, func(mt *mtest.T) {
+		mt.Run("bulk write", func(mt *mtest.T) {
+			models := []mongo.WriteModel{
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
+			}
+
+			res, err := mt.Coll.BulkWrite(context.Background(), models)
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("insert one", func(mt *mtest.T) {
+			res, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("insert many", func(t *mtest.T) {
+			docs := []interface{}{
+				bson.D{{"x", 1}},
+				bson.D{{"y", 1}},
+			}
+
+			res, err := mt.Coll.InsertMany(context.Background(), docs)
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("delete", func(mt *mtest.T) {
+			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}})
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("update", func(t *mtest.T) {
+			res, err := mt.Coll.UpdateOne(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", "2"}}}})
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("find and modify", func(mt *mtest.T) {
+			res := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}})
+
+			assert.ErrorIs(mt, res.Err(), mongo.ErrNoDocuments)
+			assert.False(mt, res.Acknowledged)
+
+		})
+
+		mt.Run("dropping a collection", func(mt *mtest.T) {
+			err := mt.Coll.Drop(context.Background())
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("creating a collection", func(mt *mtest.T) {
+			err := mt.DB.CreateCollection(context.Background(), "test coll")
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("creating an index", func(mt *mtest.T) {
+			indexModel := mongo.IndexModel{
+				Keys:    bson.M{"username": 1},
+				Options: options.Index().SetUnique(true),
+			}
+
+			_, err := mt.Coll.Indexes().CreateMany(context.Background(), []mongo.IndexModel{indexModel})
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("creating an index view", func(mt *mtest.T) {
+			projectStage := bson.D{
+				{"$project", bson.D{
+					{"_id", 0},
+					{"fullName", bson.D{
+						{"$concat", []string{"$firstName", " ", "$lastName"}},
+					}},
+				}},
+			}
+
+			pipeline := mongo.Pipeline{projectStage}
+
+			err := mt.DB.CreateView(context.Background(), "testview", "coll", pipeline, nil)
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("dropping a database", func(mt *mtest.T) {
+			db := mt.Client.Database("bd7b09e4-7d12-4bcb-9fc6-9852ad93715a")
+
+			err := db.Drop(context.Background())
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("dropping an index", func(t *mtest.T) {
+			indexModel := mongo.IndexModel{
+				Keys:    bson.M{"username": 1},
+				Options: options.Index().SetUnique(true).SetName("username_1"),
+			}
+
+			_, err := mt.Coll.Indexes().CreateOne(context.TODO(), indexModel)
+			assert.NoError(mt, err, "failed to create index")
+
+			_, err = mt.Coll.Indexes().DropOne(context.Background(), "username_1")
+			assert.NoError(mt, err)
+		})
+	})
+
 	mt.RunOpts("bulk write", noClientOpts, func(mt *mtest.T) {
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).CreateClient(false)
@@ -1702,22 +1817,6 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, len(res.UpsertedIDs), 2, "expected 2 UpsertedIDs, got %v", len(res.UpsertedIDs))
 			assert.Equal(mt, res.UpsertedIDs[1].(string), id1, "expected UpsertedIDs[1] to be %v, got %v", id1, res.UpsertedIDs[1])
 			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
-		})
-		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.Unacknowledged())
-		unackMtOpts := mtest.NewOptions().
-			ClientOptions(unackClientOpts).
-			MinServerVersion("3.6")
-		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
-			models := []mongo.WriteModel{
-				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
-			}
-			_, err := mt.Coll.BulkWrite(context.Background(), models)
-			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
-				// so the assertion would succeed even if the error had not been wrapped.
-				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
-			}
 		})
 		mt.RunOpts("insert and delete with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// grouped together because delete requires the documents to be inserted

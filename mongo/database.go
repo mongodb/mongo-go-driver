@@ -259,13 +259,14 @@ func (db *Database) RunCommand(ctx context.Context, runCommand interface{}, opts
 
 	err = op.Execute(ctx)
 	// RunCommand can be used to run a write, thus execute may return a write error
-	_, convErr := processWriteError(err)
+	rr, convErr := processWriteError(err)
 	return &SingleResult{
-		ctx:      ctx,
-		err:      convErr,
-		rdr:      bson.Raw(op.Result()),
-		bsonOpts: db.bsonOpts,
-		reg:      db.registry,
+		ctx:          ctx,
+		err:          convErr,
+		rdr:          bson.Raw(op.Result()),
+		bsonOpts:     db.bsonOpts,
+		reg:          db.registry,
+		Acknowledged: rr.isAcknowledged(),
 	}
 }
 
