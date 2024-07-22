@@ -31,7 +31,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...options.SetterLister[options.ClientOptions]) *Client {
+func setupClient(opts ...options.Lister[options.ClientOptions]) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)

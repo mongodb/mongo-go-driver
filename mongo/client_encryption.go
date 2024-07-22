@@ -29,7 +29,7 @@ type ClientEncryption struct {
 }
 
 // NewClientEncryption creates a new ClientEncryption instance configured with the given options.
-func NewClientEncryption(keyVaultClient *Client, opts ...options.SetterLister[options.ClientEncryptionOptions]) (*ClientEncryption, error) {
+func NewClientEncryption(keyVaultClient *Client, opts ...options.Lister[options.ClientEncryptionOptions]) (*ClientEncryption, error) {
 	if keyVaultClient == nil {
 		return nil, errors.New("keyVaultClient must not be nil")
 	}
@@ -78,7 +78,7 @@ func NewClientEncryption(keyVaultClient *Client, opts ...options.SetterLister[op
 // CreateEncryptedCollection creates a new collection for Queryable Encryption with the help of automatic generation of new encryption data keys for null keyIds.
 // It returns the created collection and the encrypted fields document used to create it.
 func (ce *ClientEncryption) CreateEncryptedCollection(ctx context.Context,
-	db *Database, coll string, createOpts options.SetterLister[options.CreateCollectionOptions],
+	db *Database, coll string, createOpts options.Lister[options.CreateCollectionOptions],
 	kmsProvider string, masterKey interface{}) (*Collection, bson.M, error) {
 	if createOpts == nil {
 		return nil, nil, errors.New("nil CreateCollectionOptions")
@@ -151,7 +151,7 @@ func (ce *ClientEncryption) AddKeyAltName(ctx context.Context, id bson.Binary, k
 func (ce *ClientEncryption) CreateDataKey(
 	ctx context.Context,
 	kmsProvider string,
-	opts ...options.SetterLister[options.DataKeyOptions],
+	opts ...options.Lister[options.DataKeyOptions],
 ) (bson.Binary, error) {
 	args, err := mongoutil.NewOptions[options.DataKeyOptions](opts...)
 	if err != nil {
@@ -190,7 +190,7 @@ func (ce *ClientEncryption) CreateDataKey(
 }
 
 // transformExplicitEncryptionOptions creates explicit encryption options to be passed to libmongocrypt.
-func transformExplicitEncryptionOptions(opts ...options.SetterLister[options.EncryptOptions]) *mcopts.ExplicitEncryptionOptions {
+func transformExplicitEncryptionOptions(opts ...options.Lister[options.EncryptOptions]) *mcopts.ExplicitEncryptionOptions {
 	args, _ := mongoutil.NewOptions[options.EncryptOptions](opts...)
 
 	transformed := mcopts.ExplicitEncryption()
@@ -230,7 +230,7 @@ func transformExplicitEncryptionOptions(opts ...options.SetterLister[options.Enc
 func (ce *ClientEncryption) Encrypt(
 	ctx context.Context,
 	val bson.RawValue,
-	opts ...options.SetterLister[options.EncryptOptions],
+	opts ...options.Lister[options.EncryptOptions],
 ) (bson.Binary, error) {
 
 	transformed := transformExplicitEncryptionOptions(opts...)
@@ -255,7 +255,7 @@ func (ce *ClientEncryption) EncryptExpression(
 	ctx context.Context,
 	expr interface{},
 	result interface{},
-	opts ...options.SetterLister[options.EncryptOptions],
+	opts ...options.Lister[options.EncryptOptions],
 ) error {
 	transformed := transformExplicitEncryptionOptions(opts...)
 
@@ -392,7 +392,7 @@ func setRewrapManyDataKeyWriteModels(rewrappedDocuments []bsoncore.Document, wri
 func (ce *ClientEncryption) RewrapManyDataKey(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.RewrapManyDataKeyOptions],
+	opts ...options.Lister[options.RewrapManyDataKeyOptions],
 ) (*RewrapManyDataKeyResult, error) {
 	// libmongocrypt versions 1.5.0 and 1.5.1 have a severe bug in RewrapManyDataKey.
 	// Check if the version string starts with 1.5.0 or 1.5.1. This accounts for pre-release versions, like 1.5.0-rc0.

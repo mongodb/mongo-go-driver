@@ -40,8 +40,8 @@ func Transaction() *TransactionOptionsBuilder {
 	return &TransactionOptionsBuilder{}
 }
 
-// ListSetters returns a list of TransactionOptions setter functions.
-func (t *TransactionOptionsBuilder) ListSetters() []func(*TransactionOptions) error {
+// List returns a list of TransactionOptions setter functions.
+func (t *TransactionOptionsBuilder) List() []func(*TransactionOptions) error {
 	return t.Opts
 }
 

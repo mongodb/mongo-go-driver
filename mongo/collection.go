@@ -66,7 +66,7 @@ func closeImplicitSession(sess *session.Client) {
 	}
 }
 
-func newCollection(db *Database, name string, opts ...options.SetterLister[options.CollectionOptions]) *Collection {
+func newCollection(db *Database, name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	args, _ := mongoutil.NewOptions[options.CollectionOptions](opts...)
 
 	rc := db.readConcern
@@ -141,7 +141,7 @@ func (coll *Collection) copy() *Collection {
 // Clone creates a copy of the Collection configured with the given CollectionOptions.
 // The specified options are merged with the existing options on the collection, with the specified options taking
 // precedence.
-func (coll *Collection) Clone(opts ...options.SetterLister[options.CollectionOptions]) *Collection {
+func (coll *Collection) Clone(opts ...options.Lister[options.CollectionOptions]) *Collection {
 	copyColl := coll.copy()
 
 	args, _ := mongoutil.NewOptions[options.CollectionOptions](opts...)
@@ -190,7 +190,7 @@ func (coll *Collection) Database() *Database {
 //
 // The opts parameter can be used to specify options for the operation (see the options.BulkWriteOptions documentation.)
 func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
-	opts ...options.SetterLister[options.BulkWriteOptions]) (*BulkWriteResult, error) {
+	opts ...options.Lister[options.BulkWriteOptions]) (*BulkWriteResult, error) {
 
 	if len(models) == 0 {
 		return nil, ErrEmptySlice
@@ -228,7 +228,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 	}
 
 	// Ensure opts have the default case at the front.
-	opts = append([]options.SetterLister[options.BulkWriteOptions]{options.BulkWrite()}, opts...)
+	opts = append([]options.Lister[options.BulkWriteOptions]{options.BulkWrite()}, opts...)
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -254,7 +254,7 @@ func (coll *Collection) BulkWrite(ctx context.Context, models []WriteModel,
 func (coll *Collection) insert(
 	ctx context.Context,
 	documents []interface{},
-	opts ...options.SetterLister[options.InsertManyOptions],
+	opts ...options.Lister[options.InsertManyOptions],
 ) ([]interface{}, error) {
 
 	if ctx == nil {
@@ -361,7 +361,7 @@ func (coll *Collection) insert(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/insert/.
 func (coll *Collection) InsertOne(ctx context.Context, document interface{},
-	opts ...options.SetterLister[options.InsertOneOptions]) (*InsertOneResult, error) {
+	opts ...options.Lister[options.InsertOneOptions]) (*InsertOneResult, error) {
 
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
@@ -398,7 +398,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 func (coll *Collection) InsertMany(
 	ctx context.Context,
 	documents interface{},
-	opts ...options.SetterLister[options.InsertManyOptions],
+	opts ...options.Lister[options.InsertManyOptions],
 ) (*InsertManyResult, error) {
 
 	dv := reflect.ValueOf(documents)
@@ -447,7 +447,7 @@ func (coll *Collection) delete(
 	filter interface{},
 	deleteOne bool,
 	expectedRr returnResult,
-	opts ...options.SetterLister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteOptions],
 ) (*DeleteResult, error) {
 
 	if ctx == nil {
@@ -559,7 +559,7 @@ func (coll *Collection) delete(
 func (coll *Collection) DeleteOne(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteOptions],
 ) (*DeleteResult, error) {
 	return coll.delete(ctx, filter, true, rrOne, opts...)
 }
@@ -577,7 +577,7 @@ func (coll *Collection) DeleteOne(
 func (coll *Collection) DeleteMany(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.DeleteOptions],
+	opts ...options.Lister[options.DeleteOptions],
 ) (*DeleteResult, error) {
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
@@ -589,7 +589,7 @@ func (coll *Collection) updateOrReplace(
 	multi bool,
 	expectedRr returnResult,
 	checkDollarKey bool,
-	opts ...options.SetterLister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateOptions],
 ) (*UpdateResult, error) {
 
 	if ctx == nil {
@@ -708,7 +708,7 @@ func (coll *Collection) UpdateByID(
 	ctx context.Context,
 	id interface{},
 	update interface{},
-	opts ...options.SetterLister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateOptions],
 ) (*UpdateResult, error) {
 	if id == nil {
 		return nil, ErrNilValue
@@ -734,7 +734,7 @@ func (coll *Collection) UpdateOne(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...options.SetterLister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -765,7 +765,7 @@ func (coll *Collection) UpdateMany(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...options.SetterLister[options.UpdateOptions],
+	opts ...options.Lister[options.UpdateOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -796,7 +796,7 @@ func (coll *Collection) ReplaceOne(
 	ctx context.Context,
 	filter interface{},
 	replacement interface{},
-	opts ...options.SetterLister[options.ReplaceOptions],
+	opts ...options.Lister[options.ReplaceOptions],
 ) (*UpdateResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -849,7 +849,7 @@ func (coll *Collection) ReplaceOne(
 func (coll *Collection) Aggregate(
 	ctx context.Context,
 	pipeline interface{},
-	opts ...options.SetterLister[options.AggregateOptions],
+	opts ...options.Lister[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
@@ -871,7 +871,7 @@ func (coll *Collection) Aggregate(
 }
 
 // aggregate is the helper method for Aggregate
-func aggregate(a aggregateParams, opts ...options.SetterLister[options.AggregateOptions]) (cur *Cursor, err error) {
+func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOptions]) (cur *Cursor, err error) {
 	if a.ctx == nil {
 		a.ctx = context.Background()
 	}
@@ -1027,7 +1027,7 @@ func aggregate(a aggregateParams, opts ...options.SetterLister[options.Aggregate
 //
 // The opts parameter can be used to specify options for the operation (see the options.CountOptions documentation).
 func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
-	opts ...options.SetterLister[options.CountOptions]) (int64, error) {
+	opts ...options.Lister[options.CountOptions]) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -1120,7 +1120,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/count/.
 func (coll *Collection) EstimatedDocumentCount(
 	ctx context.Context,
-	opts ...options.SetterLister[options.EstimatedDocumentCountOptions],
+	opts ...options.Lister[options.EstimatedDocumentCountOptions],
 ) (int64, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -1188,7 +1188,7 @@ func (coll *Collection) Distinct(
 	ctx context.Context,
 	fieldName string,
 	filter interface{},
-	opts ...options.SetterLister[options.DistinctOptions],
+	opts ...options.Lister[options.DistinctOptions],
 ) *DistinctResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -1276,7 +1276,7 @@ func (coll *Collection) Distinct(
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) Find(ctx context.Context, filter interface{},
-	opts ...options.SetterLister[options.FindOptions]) (*Cursor, error) {
+	opts ...options.Lister[options.FindOptions]) (*Cursor, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -1478,7 +1478,7 @@ func newFindArgsFromFindOneArgs(args *options.FindOneOptions) *options.FindOptio
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/find/.
 func (coll *Collection) FindOne(ctx context.Context, filter interface{},
-	opts ...options.SetterLister[options.FindOneOptions]) *SingleResult {
+	opts ...options.Lister[options.FindOneOptions]) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1568,7 +1568,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 func (coll *Collection) FindOneAndDelete(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.FindOneAndDeleteOptions]) *SingleResult {
+	opts ...options.Lister[options.FindOneAndDeleteOptions]) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
 	if err != nil {
@@ -1647,7 +1647,7 @@ func (coll *Collection) FindOneAndReplace(
 	ctx context.Context,
 	filter interface{},
 	replacement interface{},
-	opts ...options.SetterLister[options.FindOneAndReplaceOptions],
+	opts ...options.Lister[options.FindOneAndReplaceOptions],
 ) *SingleResult {
 
 	f, err := marshal(filter, coll.bsonOpts, coll.registry)
@@ -1745,7 +1745,7 @@ func (coll *Collection) FindOneAndUpdate(
 	ctx context.Context,
 	filter interface{},
 	update interface{},
-	opts ...options.SetterLister[options.FindOneAndUpdateOptions]) *SingleResult {
+	opts ...options.Lister[options.FindOneAndUpdateOptions]) *SingleResult {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -1852,7 +1852,7 @@ func (coll *Collection) FindOneAndUpdate(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (coll *Collection) Watch(ctx context.Context, pipeline interface{},
-	opts ...options.SetterLister[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    coll.readConcern,
@@ -1885,7 +1885,7 @@ func (coll *Collection) SearchIndexes() SearchIndexView {
 
 // Drop drops the collection on the server. This method ignores "namespace not found" errors so it is safe to drop
 // a collection that does not exist on the server.
-func (coll *Collection) Drop(ctx context.Context, opts ...options.SetterLister[options.DropCollectionOptions]) error {
+func (coll *Collection) Drop(ctx context.Context, opts ...options.Lister[options.DropCollectionOptions]) error {
 	args, err := mongoutil.NewOptions[options.DropCollectionOptions](opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)

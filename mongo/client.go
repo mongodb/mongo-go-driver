@@ -104,7 +104,7 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(opts ...options.SetterLister[options.ClientOptions]) (*Client, error) {
+func Connect(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func Connect(opts ...options.SetterLister[options.ClientOptions]) (*Client, erro
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func newClient(opts ...options.SetterLister[options.ClientOptions]) (*Client, error) {
+func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return nil, err
@@ -382,7 +382,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...options.SetterLister[options.SessionOptions]) (*Session, error) {
+func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
@@ -554,7 +554,7 @@ func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) e
 	return err
 }
 
-func (c *Client) newMongoCrypt(opts options.SetterLister[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
+func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
 	args, err := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
@@ -642,7 +642,7 @@ func (c *Client) newMongoCrypt(opts options.SetterLister[options.AutoEncryptionO
 }
 
 //nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
-func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts options.SetterLister[options.AutoEncryptionOptions]) {
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts options.Lister[options.AutoEncryptionOptions]) {
 	args, _ := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
 
 	bypass := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
@@ -674,7 +674,7 @@ func (c *Client) validSession(sess *session.Client) error {
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
-func (c *Client) Database(name string, opts ...options.SetterLister[options.DatabaseOptions]) *Database {
+func (c *Client) Database(name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
 	return newDatabase(c, name, opts...)
 }
 
@@ -687,7 +687,7 @@ func (c *Client) Database(name string, opts ...options.SetterLister[options.Data
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...options.SetterLister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -765,7 +765,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...options.SetterLister[options.ListDatabasesOptions]) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -849,7 +849,7 @@ func (c *Client) UseSessionWithOptions(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
-	opts ...options.SetterLister[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
@@ -886,7 +886,7 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
 // messages using a LogSink.
-func newLogger(opts options.SetterLister[options.LoggerOptions]) (*logger.Logger, error) {
+func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {
 		opts = options.Logger()

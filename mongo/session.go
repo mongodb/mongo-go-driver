@@ -116,7 +116,7 @@ func (s *Session) EndSession(ctx context.Context) {
 func (s *Session) WithTransaction(
 	ctx context.Context,
 	fn func(ctx context.Context) (interface{}, error),
-	opts ...options.SetterLister[options.TransactionOptions],
+	opts ...options.Lister[options.TransactionOptions],
 ) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
@@ -197,7 +197,7 @@ func (s *Session) WithTransaction(
 
 // StartTransaction starts a new transaction. This method returns an error if
 // there is already a transaction in-progress for this session.
-func (s *Session) StartTransaction(opts ...options.SetterLister[options.TransactionOptions]) error {
+func (s *Session) StartTransaction(opts ...options.Lister[options.TransactionOptions]) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err

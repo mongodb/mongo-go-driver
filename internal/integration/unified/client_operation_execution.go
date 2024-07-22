@@ -22,7 +22,7 @@ import (
 
 func executeCreateChangeStream(ctx context.Context, operation *operation) (*operationResult, error) {
 	var watcher interface {
-		Watch(context.Context, interface{}, ...options.SetterLister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
+		Watch(context.Context, interface{}, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 	}
 	var err error
 

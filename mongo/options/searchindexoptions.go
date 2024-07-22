@@ -25,8 +25,8 @@ func SearchIndexes() *SearchIndexesOptionsBuilder {
 	return &SearchIndexesOptionsBuilder{}
 }
 
-// ListSetters returns a list of CountOptions setter functions.
-func (sio *SearchIndexesOptionsBuilder) ListSetters() []func(*SearchIndexesOptions) error {
+// List returns a list of CountOptions setter functions.
+func (sio *SearchIndexesOptionsBuilder) List() []func(*SearchIndexesOptions) error {
 	return sio.Opts
 }
 
@@ -63,8 +63,8 @@ type CreateSearchIndexesOptionsBuilder struct {
 	Opts []func(*CreateSearchIndexesOptions) error
 }
 
-// ListSetters returns a list of CreateSearchIndexesOptions setter functions.
-func (csio *CreateSearchIndexesOptionsBuilder) ListSetters() []func(*CreateSearchIndexesOptions) error {
+// List returns a list of CreateSearchIndexesOptions setter functions.
+func (csio *CreateSearchIndexesOptionsBuilder) List() []func(*CreateSearchIndexesOptions) error {
 	return csio.Opts
 }
 
@@ -80,8 +80,8 @@ type ListSearchIndexesOptionsBuilder struct {
 	Opts []func(*ListSearchIndexesOptions) error
 }
 
-// ListSetters returns a list of ListSearchIndexesOptions setter functions.
-func (lsi *ListSearchIndexesOptionsBuilder) ListSetters() []func(*ListSearchIndexesOptions) error {
+// List returns a list of ListSearchIndexesOptions setter functions.
+func (lsi *ListSearchIndexesOptionsBuilder) List() []func(*ListSearchIndexesOptions) error {
 	return lsi.Opts
 }
 
@@ -96,8 +96,8 @@ type DropSearchIndexOptionsBuilder struct {
 	Opts []func(*DropSearchIndexOptions) error
 }
 
-// ListSetters returns a list of DropSearchIndexOptions setter functions.
-func (dsio *DropSearchIndexOptionsBuilder) ListSetters() []func(*DropSearchIndexOptions) error {
+// List returns a list of DropSearchIndexOptions setter functions.
+func (dsio *DropSearchIndexOptionsBuilder) List() []func(*DropSearchIndexOptions) error {
 	return dsio.Opts
 }
 
@@ -112,7 +112,7 @@ type UpdateSearchIndexOptionsBuilder struct {
 	Opts []func(*UpdateSearchIndexOptions) error
 }
 
-// ListSetters returns a list of UpdateSearchIndexOptions setter functions.
-func (usio *UpdateSearchIndexOptionsBuilder) ListSetters() []func(*UpdateSearchIndexOptions) error {
+// List returns a list of UpdateSearchIndexOptions setter functions.
+func (usio *UpdateSearchIndexOptionsBuilder) List() []func(*UpdateSearchIndexOptions) error {
 	return usio.Opts
 }

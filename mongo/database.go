@@ -29,7 +29,7 @@ import (
 )
 
 var (
-	defaultRunCmdOpts = []options.SetterLister[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
+	defaultRunCmdOpts = []options.Lister[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
 )
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
@@ -45,7 +45,7 @@ type Database struct {
 	registry       *bson.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...options.SetterLister[options.DatabaseOptions]) *Database {
+func newDatabase(client *Client, name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
 	args, _ := mongoutil.NewOptions[options.DatabaseOptions](opts...)
 
 	rc := client.readConcern
@@ -111,7 +111,7 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
-func (db *Database) Collection(name string, opts ...options.SetterLister[options.CollectionOptions]) *Collection {
+func (db *Database) Collection(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	return newCollection(db, name, opts...)
 }
 
@@ -130,7 +130,7 @@ func (db *Database) Collection(name string, opts ...options.SetterLister[options
 func (db *Database) Aggregate(
 	ctx context.Context,
 	pipeline interface{},
-	opts ...options.SetterLister[options.AggregateOptions],
+	opts ...options.Lister[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
@@ -153,7 +153,7 @@ func (db *Database) processRunCommand(
 	ctx context.Context,
 	cmd interface{},
 	cursorCommand bool,
-	opts ...options.SetterLister[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) (*operation.Command, *session.Client, error) {
 	args, err := mongoutil.NewOptions[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
 	if err != nil {
@@ -235,7 +235,7 @@ func (db *Database) processRunCommand(
 func (db *Database) RunCommand(
 	ctx context.Context,
 	runCommand interface{},
-	opts ...options.SetterLister[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -276,7 +276,7 @@ func (db *Database) RunCommand(
 func (db *Database) RunCommandCursor(
 	ctx context.Context,
 	runCommand interface{},
-	opts ...options.SetterLister[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -363,7 +363,7 @@ func (db *Database) Drop(ctx context.Context) error {
 func (db *Database) ListCollectionSpecifications(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.ListCollectionsOptions],
+	opts ...options.Lister[options.ListCollectionsOptions],
 ) ([]*CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
@@ -426,7 +426,7 @@ func (db *Database) ListCollectionSpecifications(
 func (db *Database) ListCollections(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.ListCollectionsOptions],
+	opts ...options.Lister[options.ListCollectionsOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -523,7 +523,7 @@ func (db *Database) ListCollections(
 func (db *Database) ListCollectionNames(
 	ctx context.Context,
 	filter interface{},
-	opts ...options.SetterLister[options.ListCollectionsOptions],
+	opts ...options.Lister[options.ListCollectionsOptions],
 ) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
@@ -567,7 +567,7 @@ func (db *Database) ListCollectionNames(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
-	opts ...options.SetterLister[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,
@@ -589,7 +589,7 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
-func (db *Database) CreateCollection(ctx context.Context, name string, opts ...options.SetterLister[options.CreateCollectionOptions]) error {
+func (db *Database) CreateCollection(ctx context.Context, name string, opts ...options.Lister[options.CreateCollectionOptions]) error {
 	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
@@ -662,7 +662,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 	ctx context.Context,
 	name string,
 	ef interface{},
-	opts ...options.SetterLister[options.CreateCollectionOptions],
+	opts ...options.Lister[options.CreateCollectionOptions],
 ) error {
 	efBSON, err := marshal(ef, db.bsonOpts, db.registry)
 	if err != nil {
@@ -740,7 +740,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 func (db *Database) createCollection(
 	ctx context.Context,
 	name string,
-	opts ...options.SetterLister[options.CreateCollectionOptions],
+	opts ...options.Lister[options.CreateCollectionOptions],
 ) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
@@ -751,7 +751,7 @@ func (db *Database) createCollection(
 
 func (db *Database) createCollectionOperation(
 	name string,
-	opts ...options.SetterLister[options.CreateCollectionOptions],
+	opts ...options.Lister[options.CreateCollectionOptions],
 ) (*operation.Create, error) {
 	args, err := mongoutil.NewOptions[options.CreateCollectionOptions](opts...)
 	if err != nil {
@@ -885,7 +885,7 @@ func (db *Database) createCollectionOperation(
 // The opts parameter can be used to specify options for the operation (see the options.CreateViewOptions
 // documentation).
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
-	opts ...options.SetterLister[options.CreateViewOptions]) error {
+	opts ...options.Lister[options.CreateViewOptions]) error {
 
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)
 	if err != nil {
@@ -943,7 +943,7 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
 // container for files.
-func (db *Database) GridFSBucket(opts ...options.SetterLister[options.BucketOptions]) *GridFSBucket {
+func (db *Database) GridFSBucket(opts ...options.Lister[options.BucketOptions]) *GridFSBucket {
 	b := &GridFSBucket{
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,

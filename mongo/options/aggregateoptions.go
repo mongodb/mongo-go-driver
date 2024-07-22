@@ -71,8 +71,8 @@ func Aggregate() *AggregateOptionsBuilder {
 	return &AggregateOptionsBuilder{}
 }
 
-// ListSetters returns a list of AggergateOptions setter functions.
-func (ao *AggregateOptionsBuilder) ListSetters() []func(*AggregateOptions) error {
+// List returns a list of AggergateOptions setter functions.
+func (ao *AggregateOptionsBuilder) List() []func(*AggregateOptions) error {
 	return ao.Opts
 }
 

@@ -30,8 +30,8 @@ func ListDatabases() *ListDatabasesOptionsBuilder {
 	return &ListDatabasesOptionsBuilder{}
 }
 
-// ListSetters returns a list of ListDatabasesOptions setter functions.
-func (ld *ListDatabasesOptionsBuilder) ListSetters() []func(*ListDatabasesOptions) error {
+// List returns a list of ListDatabasesOptions setter functions.
+func (ld *ListDatabasesOptionsBuilder) List() []func(*ListDatabasesOptions) error {
 	return ld.Opts
 }
 

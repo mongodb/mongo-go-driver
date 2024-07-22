@@ -28,8 +28,8 @@ func DataKey() *DataKeyOptionsBuilder {
 	return &DataKeyOptionsBuilder{}
 }
 
-// ListSetters returns a list of DataKey setter functions.
-func (dk *DataKeyOptionsBuilder) ListSetters() []func(*DataKeyOptions) error {
+// List returns a list of DataKey setter functions.
+func (dk *DataKeyOptionsBuilder) List() []func(*DataKeyOptions) error {
 	return dk.Opts
 }
 

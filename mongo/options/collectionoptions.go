@@ -49,8 +49,8 @@ func Collection() *CollectionOptionsBuilder {
 	return &CollectionOptionsBuilder{}
 }
 
-// ListSetters returns a list of CollectionOptions setter functions.
-func (c *CollectionOptionsBuilder) ListSetters() []func(*CollectionOptions) error {
+// List returns a list of CollectionOptions setter functions.
+func (c *CollectionOptionsBuilder) List() []func(*CollectionOptions) error {
 	return c.Opts
 }
 

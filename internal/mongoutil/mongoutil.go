@@ -14,7 +14,7 @@ import (
 
 // NewOptions will functionally merge a slice of mongo.Options in a
 // "last-one-wins" manner, where nil options are ignored.
-func NewOptions[T any](opts ...options.SetterLister[T]) (*T, error) {
+func NewOptions[T any](opts ...options.Lister[T]) (*T, error) {
 	args := new(T)
 	for _, opt := range opts {
 		if opt == nil || reflect.ValueOf(opt).IsNil() {
@@ -24,7 +24,7 @@ func NewOptions[T any](opts ...options.SetterLister[T]) (*T, error) {
 			continue
 		}
 
-		for _, setArgs := range opt.ListSetters() {
+		for _, setArgs := range opt.List() {
 			if setArgs == nil {
 				continue
 			}
@@ -44,10 +44,10 @@ type OptionsLister[T any] struct {
 	Callback func(*T) error // A callback for further modification
 }
 
-// ListSetters will re-assign the entire argument option to the Args field
+// List will re-assign the entire argument option to the Args field
 // defined on opts. If a callback exists, that function will be executed to
 // further modify the arguments.
-func (opts *OptionsLister[T]) ListSetters() []func(*T) error {
+func (opts *OptionsLister[T]) List() []func(*T) error {
 	return []func(*T) error{
 		func(args *T) error {
 			if opts.Options != nil {

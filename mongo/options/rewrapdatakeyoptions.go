@@ -28,8 +28,8 @@ func RewrapManyDataKey() *RewrapManyDataKeyOptionsBuilder {
 	return new(RewrapManyDataKeyOptionsBuilder)
 }
 
-// ListSetters returns a list of CountOptions setter functions.
-func (rmdko *RewrapManyDataKeyOptionsBuilder) ListSetters() []func(*RewrapManyDataKeyOptions) error {
+// List returns a list of CountOptions setter functions.
+func (rmdko *RewrapManyDataKeyOptionsBuilder) List() []func(*RewrapManyDataKeyOptions) error {
 	return rmdko.Opts
 }
 

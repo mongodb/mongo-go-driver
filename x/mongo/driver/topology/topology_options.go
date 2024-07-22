@@ -45,7 +45,7 @@ type Config struct {
 }
 
 // ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func ConvertToDriverAPIOptions(opts options.SetterLister[options.ServerAPIOptions]) *driver.ServerAPIOptions {
+func ConvertToDriverAPIOptions(opts options.Lister[options.ServerAPIOptions]) *driver.ServerAPIOptions {
 	args, _ := mongoutil.NewOptions[options.ServerAPIOptions](opts)
 
 	driverOpts := driver.NewServerAPIOptions(string(args.ServerAPIVersion))
@@ -58,7 +58,7 @@ func ConvertToDriverAPIOptions(opts options.SetterLister[options.ServerAPIOption
 	return driverOpts
 }
 
-func newLogger(opts options.SetterLister[options.LoggerOptions]) (*logger.Logger, error) {
+func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
 	if opts == nil {
 		opts = options.Logger()
 	}

@@ -6,16 +6,16 @@
 
 package options
 
-// SetterLister is an interface that wraps a ListSetters method to return a
+// Lister is an interface that wraps a List method to return a
 // slice of option setters.
-type SetterLister[T any] interface {
-	ListSetters() []func(*T) error
+type Lister[T any] interface {
+	List() []func(*T) error
 }
 
-func getOptions[T any](mopts SetterLister[T]) (*T, error) {
+func getOptions[T any](mopts Lister[T]) (*T, error) {
 	opts := new(T)
 
-	for _, setterFn := range mopts.ListSetters() {
+	for _, setterFn := range mopts.List() {
 		if setterFn == nil {
 			continue
 		}

@@ -196,7 +196,7 @@ type BSONOptions struct {
 type ClientOptions struct {
 	AppName                  *string
 	Auth                     *Credential
-	AutoEncryptionOptions    *AutoEncryptionOptionsBuilder
+	AutoEncryptionOptions    Lister[AutoEncryptionOptions]
 	ConnectTimeout           *time.Duration
 	Compressors              []string
 	Dialer                   ContextDialer
@@ -207,7 +207,7 @@ type ClientOptions struct {
 	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
-	LoggerOptions            *LoggerOptionsBuilder
+	LoggerOptions            Lister[LoggerOptions]
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -222,7 +222,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
-	ServerAPIOptions         *ServerAPIOptionsBuilder
+	ServerAPIOptions         Lister[ServerAPIOptions]
 	ServerMonitoringMode     *string
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
@@ -264,8 +264,8 @@ func Client() *ClientOptionsBuilder {
 	return opts
 }
 
-// ListSetters returns a list of ClientOptions setter functions.
-func (c *ClientOptionsBuilder) ListSetters() []func(*ClientOptions) error {
+// List returns a list of ClientOptions setter functions.
+func (c *ClientOptionsBuilder) List() []func(*ClientOptions) error {
 	return c.Opts
 }
 
@@ -753,7 +753,7 @@ func (c *ClientOptionsBuilder) SetLocalThreshold(d time.Duration) *ClientOptions
 
 // SetLoggerOptions specifies a LoggerOptions containing options for
 // configuring a logger.
-func (c *ClientOptionsBuilder) SetLoggerOptions(lopts *LoggerOptionsBuilder) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetLoggerOptions(lopts Lister[LoggerOptions]) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.LoggerOptions = lopts
 
@@ -1097,7 +1097,7 @@ func (c *ClientOptionsBuilder) SetZstdLevel(level int) *ClientOptionsBuilder {
 // SetAutoEncryptionOptions specifies an AutoEncryptionOptions instance to automatically encrypt and decrypt commands
 // and their results. See the options.AutoEncryptionOptions documentation for more information about the supported
 // options.
-func (c *ClientOptionsBuilder) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptionsBuilder) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetAutoEncryptionOptions(aeopts Lister[AutoEncryptionOptions]) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.AutoEncryptionOptions = aeopts
 
@@ -1129,7 +1129,7 @@ func (c *ClientOptionsBuilder) SetDisableOCSPEndpointCheck(disableCheck bool) *C
 // SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
 // when running commands. See the options.ServerAPIOptions documentation for more information about the supported
 // options.
-func (c *ClientOptionsBuilder) SetServerAPIOptions(sopts *ServerAPIOptionsBuilder) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetServerAPIOptions(sopts Lister[ServerAPIOptions]) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.ServerAPIOptions = sopts
 

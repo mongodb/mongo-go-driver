@@ -26,7 +26,7 @@ func TestNewOptions(t *testing.T) {
 	// done in a separate test.
 	clientTests := []struct {
 		name string
-		opts []options.SetterLister[options.ClientOptions]
+		opts []options.Lister[options.ClientOptions]
 		want options.ClientOptions
 	}{
 		{
@@ -36,24 +36,24 @@ func TestNewOptions(t *testing.T) {
 		},
 		{
 			name: "no options",
-			opts: []options.SetterLister[options.ClientOptions]{},
+			opts: []options.Lister[options.ClientOptions]{},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "one option",
-			opts: []options.SetterLister[options.ClientOptions]{
+			opts: []options.Lister[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 			},
 			want: options.ClientOptions{AppName: ptrutil.Ptr[string]("testApp")},
 		},
 		{
 			name: "one nil option",
-			opts: []options.SetterLister[options.ClientOptions]{nil},
+			opts: []options.Lister[options.ClientOptions]{nil},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "many same options",
-			opts: []options.SetterLister[options.ClientOptions]{
+			opts: []options.Lister[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				options.Client().SetAppName("testApp"),
 			},
@@ -61,7 +61,7 @@ func TestNewOptions(t *testing.T) {
 		},
 		{
 			name: "many different options (last one wins)",
-			opts: []options.SetterLister[options.ClientOptions]{
+			opts: []options.Lister[options.ClientOptions]{
 				options.Client().SetAppName("testApp1"),
 				options.Client().SetAppName("testApp2"),
 			},
@@ -69,12 +69,12 @@ func TestNewOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options",
-			opts: []options.SetterLister[options.ClientOptions]{nil, nil},
+			opts: []options.Lister[options.ClientOptions]{nil, nil},
 			want: options.ClientOptions{},
 		},
 		{
 			name: "many options where last is nil (non-nil wins)",
-			opts: []options.SetterLister[options.ClientOptions]{
+			opts: []options.Lister[options.ClientOptions]{
 				options.Client().SetAppName("testApp"),
 				nil,
 			},
@@ -82,7 +82,7 @@ func TestNewOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options where first is nil (non-nil wins)",
-			opts: []options.SetterLister[options.ClientOptions]{
+			opts: []options.Lister[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 			},
@@ -90,7 +90,7 @@ func TestNewOptions(t *testing.T) {
 		},
 		{
 			name: "many nil options where middle is non-nil (non-nil wins)",
-			opts: []options.SetterLister[options.ClientOptions]{
+			opts: []options.Lister[options.ClientOptions]{
 				nil,
 				options.Client().SetAppName("testApp"),
 				nil,
@@ -163,7 +163,7 @@ func TestNewOptionsLister(t *testing.T) {
 
 func BenchmarkNewOptions(b *testing.B) {
 	b.Run("reflect.ValueOf is always called", func(b *testing.B) {
-		opts := make([]options.SetterLister[options.ClientOptions], b.N)
+		opts := make([]options.Lister[options.ClientOptions], b.N)
 
 		// Create a huge string to see if we can force reflect.ValueOf to use heap
 		// over stack.
@@ -183,7 +183,7 @@ func BenchmarkNewOptions(b *testing.B) {
 	})
 
 	b.Run("reflect.ValuOf is never called", func(b *testing.B) {
-		opts := make([]options.SetterLister[options.LoggerOptions], b.N)
+		opts := make([]options.Lister[options.LoggerOptions], b.N)
 
 		for i := 0; i < b.N; i++ {
 			var lo *options.LoggerOptionsBuilder

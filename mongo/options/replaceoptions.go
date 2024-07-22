@@ -55,8 +55,8 @@ func Replace() *ReplaceOptionsBuilder {
 	return &ReplaceOptionsBuilder{}
 }
 
-// ListSetters returns a list of CountOptions setter functions.
-func (ro *ReplaceOptionsBuilder) ListSetters() []func(*ReplaceOptions) error {
+// List returns a list of CountOptions setter functions.
+func (ro *ReplaceOptionsBuilder) List() []func(*ReplaceOptions) error {
 	return ro.Opts
 }
 

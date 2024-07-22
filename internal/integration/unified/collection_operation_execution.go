@@ -24,7 +24,7 @@ import (
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...options.SetterLister[options.AggregateOptions]) (*mongo.Cursor, error)
+		Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -1177,7 +1177,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []options.SetterLister[options.ListSearchIndexesOptions]
+	var opts []options.Lister[options.ListSearchIndexesOptions]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1205,7 +1205,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		}
 	}
 
-	aggregateOpts := make([]options.SetterLister[options.ListSearchIndexesOptions], len(opts))
+	aggregateOpts := make([]options.Lister[options.ListSearchIndexesOptions], len(opts))
 	copy(aggregateOpts, opts)
 
 	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, aggregateOpts...)

@@ -44,8 +44,8 @@ type SearchIndexModel struct {
 // documentation).
 func (siv SearchIndexView) List(
 	ctx context.Context,
-	searchIdxOpts options.SetterLister[options.SearchIndexesOptions],
-	opts ...options.SetterLister[options.ListSearchIndexesOptions],
+	searchIdxOpts options.Lister[options.SearchIndexesOptions],
+	opts ...options.Lister[options.ListSearchIndexesOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -76,7 +76,7 @@ func (siv SearchIndexView) List(
 func (siv SearchIndexView) CreateOne(
 	ctx context.Context,
 	model SearchIndexModel,
-	opts ...options.SetterLister[options.CreateSearchIndexesOptions],
+	opts ...options.Lister[options.CreateSearchIndexesOptions],
 ) (string, error) {
 	names, err := siv.CreateMany(ctx, []SearchIndexModel{model}, opts...)
 	if err != nil {
@@ -96,7 +96,7 @@ func (siv SearchIndexView) CreateOne(
 func (siv SearchIndexView) CreateMany(
 	ctx context.Context,
 	models []SearchIndexModel,
-	_ ...options.SetterLister[options.CreateSearchIndexesOptions],
+	_ ...options.Lister[options.CreateSearchIndexesOptions],
 ) ([]string, error) {
 	var indexes bsoncore.Document
 	aidx, indexes := bsoncore.AppendArrayStart(indexes)
@@ -186,7 +186,7 @@ func (siv SearchIndexView) CreateMany(
 func (siv SearchIndexView) DropOne(
 	ctx context.Context,
 	name string,
-	_ ...options.SetterLister[options.DropSearchIndexOptions],
+	_ ...options.Lister[options.DropSearchIndexOptions],
 ) error {
 	if name == "*" {
 		return ErrMultipleIndexDrop
@@ -235,7 +235,7 @@ func (siv SearchIndexView) UpdateOne(
 	ctx context.Context,
 	name string,
 	definition interface{},
-	_ ...options.SetterLister[options.UpdateSearchIndexOptions],
+	_ ...options.Lister[options.UpdateSearchIndexOptions],
 ) error {
 	if definition == nil {
 		return fmt.Errorf("search index definition cannot be nil")

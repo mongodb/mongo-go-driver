@@ -59,8 +59,8 @@ func GridFSBucket() *BucketOptionsBuilder {
 	return bo
 }
 
-// ListSetters returns a list of CountOptions setter functions.
-func (b *BucketOptionsBuilder) ListSetters() []func(*BucketOptions) error {
+// List returns a list of CountOptions setter functions.
+func (b *BucketOptionsBuilder) List() []func(*BucketOptions) error {
 	return b.Opts
 }
 
@@ -149,8 +149,8 @@ func GridFSUpload() *GridFSUploadOptionsBuilder {
 	return opts
 }
 
-// ListSetters returns a list of GridFSUploadOptions setter functions.
-func (u *GridFSUploadOptionsBuilder) ListSetters() []func(*GridFSUploadOptions) error {
+// List returns a list of GridFSUploadOptions setter functions.
+func (u *GridFSUploadOptionsBuilder) List() []func(*GridFSUploadOptions) error {
 	return u.Opts
 }
 
@@ -215,8 +215,8 @@ func GridFSName() *GridFSNameOptionsBuilder {
 	return &GridFSNameOptionsBuilder{}
 }
 
-// ListSetters returns a list of GridFSNameOptions setter functions.
-func (n *GridFSNameOptionsBuilder) ListSetters() []func(*GridFSNameOptions) error {
+// List returns a list of GridFSNameOptions setter functions.
+func (n *GridFSNameOptionsBuilder) List() []func(*GridFSNameOptions) error {
 	return n.Opts
 }
 
@@ -271,8 +271,8 @@ func GridFSFind() *GridFSFindOptionsBuilder {
 	return &GridFSFindOptionsBuilder{}
 }
 
-// ListSetters returns a list of GridFSFindOptions setter functions.
-func (f *GridFSFindOptionsBuilder) ListSetters() []func(*GridFSFindOptions) error {
+// List returns a list of GridFSFindOptions setter functions.
+func (f *GridFSFindOptionsBuilder) List() []func(*GridFSFindOptions) error {
 	return f.Opts
 }
 
