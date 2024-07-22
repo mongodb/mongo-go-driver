@@ -172,7 +172,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	case azureEnvironmentValue:
 		resource, ok := oa.AuthMechanismProperties[resourceProp]
 		if !ok {
-			return nil, newAuthError("resource must be specified for Azure OIDC", nil)
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for Azure OIDC", resourceProp), nil)
 		}
 		return getAzureOIDCCallback(oa.userName, resource, oa.httpClient), nil
 	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
