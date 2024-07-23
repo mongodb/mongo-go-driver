@@ -178,7 +178,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 	case gcpEnvironmentValue:
 		resource, ok := oa.AuthMechanismProperties[resourceProp]
 		if !ok {
-			return nil, newAuthError("resource must be specified for GCP OIDC", nil)
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for GCP OIDC", resourceProp), nil)
 		}
 		return getGCPOIDCCallback(resource, oa.httpClient), nil
 	}
