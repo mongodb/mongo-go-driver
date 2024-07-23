@@ -437,20 +437,22 @@ func TestOperation(t *testing.T) {
 			{"primary/mongos", readpref.Primary(), description.ServerKindMongos, description.TopologyKindSharded, false, nil},
 			{"primary/single", readpref.Primary(), description.ServerKindRSPrimary, description.TopologyKindSingle, false, rpPrimaryPreferred},
 			{"primary/primary", readpref.Primary(), description.ServerKindRSPrimary, description.TopologyKindReplicaSet, false, nil},
-			{"primaryPreferred", readpref.PrimaryPreferred(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpPrimaryPreferred},
-			{"secondaryPreferred/mongos/opquery", readpref.SecondaryPreferred(), description.ServerKindMongos, description.TopologyKindSharded, true, nil},
-			{"secondaryPreferred", readpref.SecondaryPreferred(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondaryPreferred},
-			{"secondary", readpref.Secondary(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondary},
-			{"nearest", readpref.Nearest(), description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpNearest},
+			{"primaryPreferred", &readpref.ReadPref{Mode: readpref.PrimaryPreferredMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpPrimaryPreferred},
+			{"secondaryPreferred/mongos/opquery", &readpref.ReadPref{Mode: readpref.SecondaryMode}, description.ServerKindMongos, description.TopologyKindSharded, true, nil},
+			{"secondaryPreferred", &readpref.ReadPref{Mode: readpref.SecondaryMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondaryPreferred},
+			{"secondary", &readpref.ReadPref{Mode: readpref.SecondaryMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpSecondary},
+			{"nearest", &readpref.ReadPref{Mode: readpref.NearestMode}, description.ServerKindRSSecondary, description.TopologyKindReplicaSet, false, rpNearest},
 			{
 				"secondaryPreferred/withTags",
 				func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred()
+					rpOpts := &readpref.Options{}
 
 					tagSet, err := readpref.NewTagSet("disk", "ssd", "use", "reporting")
 					assert.NoError(t, err)
 
-					rp.TagSets = []readpref.TagSet{tagSet}
+					rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
 					return rp
 				}(),
@@ -462,11 +464,14 @@ func TestOperation(t *testing.T) {
 			{
 				"secondaryPreferred/withTags/emptyTagSet",
 				func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred()
-					rp.TagSets = []readpref.TagSet{
+					rpOpts := &readpref.Options{}
+
+					rpOpts.TagSets = []readpref.TagSet{
 						readpref.TagSet{{Name: "disk", Value: "ssd"}},
 						readpref.TagSet{},
 					}
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
 					return rp
 				}(),
@@ -484,10 +489,12 @@ func TestOperation(t *testing.T) {
 			{
 				"secondaryPreferred/withMaxStaleness",
 				func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred()
+					rpOpts := &readpref.Options{}
 
 					maxStaleness := 25 * time.Second
-					rp.MaxStaleness = &maxStaleness
+					rpOpts.MaxStaleness = &maxStaleness
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
 					return rp
 				}(),
@@ -497,10 +504,12 @@ func TestOperation(t *testing.T) {
 				// A read preference document is generated for SecondaryPreferred if the hedge document is non-nil.
 				"secondaryPreferred with hedge to mongos using OP_QUERY",
 				func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred()
+					rpOpts := &readpref.Options{}
 
 					he := true
-					rp.HedgeEnabled = &he
+					rpOpts.HedgeEnabled = &he
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
 					return rp
 				}(),
@@ -512,18 +521,20 @@ func TestOperation(t *testing.T) {
 			{
 				"secondaryPreferred with all options",
 				func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred()
-
 					tagSet, err := readpref.NewTagSet("disk", "ssd", "use", "reporting")
 					assert.NoError(t, err)
 
-					rp.TagSets = []readpref.TagSet{tagSet}
+					rpOpts := &readpref.Options{}
+
+					rpOpts.TagSets = []readpref.TagSet{tagSet}
 
 					maxStaleness := 25 * time.Second
-					rp.MaxStaleness = &maxStaleness
+					rpOpts.MaxStaleness = &maxStaleness
 
 					he := false
-					rp.HedgeEnabled = &he
+					rpOpts.HedgeEnabled = &he
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
 					return rp
 				}(),
@@ -562,7 +573,7 @@ func TestOperation(t *testing.T) {
 		})
 		t.Run("readPreference", func(t *testing.T) {
 			want := wiremessage.SecondaryOK
-			got := Operation{ReadPreference: readpref.Secondary()}.secondaryOK(description.SelectedServer{})
+			got := Operation{ReadPreference: &readpref.ReadPref{Mode: readpref.SecondaryMode}}.secondaryOK(description.SelectedServer{})
 			if got != want {
 				t.Errorf("Did not receive expected query flags. got %v; want %v", got, want)
 			}

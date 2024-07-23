@@ -431,23 +431,29 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 	}
 
 	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
-		mode, err := readpref.ModeFromString(cs.ReadPreference)
-		if err != nil {
-			c.err = err
-			return c
-		}
-
-		c.ReadPreference = &readpref.ReadPref{
-			Mode: mode,
-		}
+		readprefOpts := &readpref.Options{}
 
 		tagSets := readpref.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
 		if len(tagSets) > 0 {
-			c.ReadPreference.TagSets = tagSets
+			readprefOpts.TagSets = tagSets
 		}
 
 		if cs.MaxStaleness != 0 {
-			c.ReadPreference.MaxStaleness = &cs.MaxStaleness
+			readprefOpts.MaxStaleness = &cs.MaxStaleness
+		}
+
+		mode, err := readpref.ModeFromString(cs.ReadPreference)
+		if err != nil {
+			c.err = err
+
+			return c
+		}
+
+		c.ReadPreference, err = readpref.New(mode, readprefOpts)
+		if err != nil {
+			c.err = err
+
+			return c
 		}
 	}
 

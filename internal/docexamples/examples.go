@@ -2591,7 +2591,9 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 	// Start Causal Consistency Example 2
 
 	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
-	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).
+	secondaryRP := &readpref.ReadPref{Mode: readpref.SecondaryMode}
+
+	opts = options.Session().SetDefaultReadPreference(secondaryRP).
 		SetDefaultReadConcern(rc).SetDefaultWriteConcern(wc)
 	session2, err := client.StartSession(opts)
 	if err != nil {

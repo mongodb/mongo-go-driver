@@ -79,7 +79,7 @@ func TestClientOptions(t *testing.T) {
 			{"PoolMonitor", (*ClientOptions).SetPoolMonitor, &event.PoolMonitor{}, "PoolMonitor", false},
 			{"Monitor", (*ClientOptions).SetMonitor, &event.CommandMonitor{}, "Monitor", false},
 			{"ReadConcern", (*ClientOptions).SetReadConcern, readconcern.Majority(), "ReadConcern", false},
-			{"ReadPreference", (*ClientOptions).SetReadPreference, readpref.SecondaryPreferred(), "ReadPreference", false},
+			{"ReadPreference", (*ClientOptions).SetReadPreference, &readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}, "ReadPreference", false},
 			{"Registry", (*ClientOptions).SetRegistry, bson.NewRegistry(), "Registry", false},
 			{"ReplicaSet", (*ClientOptions).SetReplicaSet, "example-replicaset", "ReplicaSet", true},
 			{"RetryWrites", (*ClientOptions).SetRetryWrites, true, "RetryWrites", true},
@@ -353,16 +353,17 @@ func TestClientOptions(t *testing.T) {
 			{
 				"ReadPreference",
 				"mongodb://localhost/?readPreference=secondaryPreferred",
-				baseClient().SetReadPreference(readpref.SecondaryPreferred()),
+				baseClient().SetReadPreference(&readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}),
 			},
 			{
 				"ReadPreferenceTagSets",
 				"mongodb://localhost/?readPreference=secondaryPreferred&readPreferenceTags=foo:bar",
 				baseClient().SetReadPreference(func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred() //readpref.NewTagSet("foo", "bar")
-
 					tagSet, _ := readpref.NewTagSet("foo", "bar")
-					rp.TagSets = append(rp.TagSets, tagSet)
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, &readpref.Options{
+						TagSets: []readpref.TagSet{tagSet},
+					})
 
 					return rp
 				}()),
@@ -371,10 +372,11 @@ func TestClientOptions(t *testing.T) {
 				"MaxStaleness",
 				"mongodb://localhost/?readPreference=secondaryPreferred&maxStaleness=250",
 				baseClient().SetReadPreference(func() *readpref.ReadPref {
-					rp := readpref.SecondaryPreferred()
-
 					maxStaleness := 250 * time.Second
-					rp.MaxStaleness = &maxStaleness
+
+					rp, _ := readpref.New(readpref.SecondaryPreferredMode, &readpref.Options{
+						MaxStaleness: &maxStaleness,
+					})
 
 					return rp
 				}()),

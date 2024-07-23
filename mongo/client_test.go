@@ -117,7 +117,7 @@ func TestClient(t *testing.T) {
 			assert.Equal(t, gotMode, readpref.SecondaryMode, "expected mode %v, got %v", readpref.SecondaryMode, gotMode)
 			gotTags := client.readPreference.TagSets
 			assert.Equal(t, gotTags, tags, "expected tags %v, got %v", tags, gotTags)
-			gotStaleness := client.readPreference.MaxStaleness
+			gotStaleness := client.readPreference.MaxStaleness()
 			require.NotNil(t, gotStaleness, "expected max staleness to be set but was not")
 			wantStaleness := time.Duration(5) * time.Second
 			assert.Equal(t, *gotStaleness, wantStaleness, "expected staleness %v, got %v", wantStaleness, *gotStaleness)

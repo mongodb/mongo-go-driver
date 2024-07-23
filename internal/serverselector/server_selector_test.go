@@ -242,17 +242,20 @@ func selectServers(t *testing.T, test *testCase) error {
 		return err
 	}
 
-	rp := &readpref.ReadPref{Mode: readprefMode}
+	rpOpts := &readpref.Options{}
 
 	tagSets := readpref.NewTagSetsFromMaps(test.ReadPreference.TagSets)
 	if anyTagsInSets(tagSets) {
-		rp.TagSets = tagSets
+		rpOpts.TagSets = tagSets
 	}
 
 	if test.ReadPreference.MaxStaleness != nil {
 		s := time.Duration(*test.ReadPreference.MaxStaleness) * time.Second
-		rp.MaxStaleness = &s
+		rpOpts.MaxStaleness = &s
 	}
+
+	rp, err := readpref.New(readprefMode, rpOpts)
+	assert.NoError(t, err)
 
 	var selector description.ServerSelector
 
@@ -749,7 +752,7 @@ func TestSelector_Primary_with_no_primary(t *testing.T) {
 func TestSelector_PrimaryPreferred(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.PrimaryPreferred()
+	subject := &readpref.ReadPref{Mode: readpref.PrimaryPreferredMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
@@ -762,12 +765,15 @@ func TestSelector_PrimaryPreferred(t *testing.T) {
 func TestSelector_PrimaryPreferred_ignores_tags(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.PrimaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "2")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
@@ -780,7 +786,8 @@ func TestSelector_PrimaryPreferred_ignores_tags(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.PrimaryPreferred()
+	subject, err := readpref.New(readpref.PrimaryPreferredMode, nil)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
@@ -793,12 +800,15 @@ func TestSelector_PrimaryPreferred_with_no_primary(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_no_primary_and_tags(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.PrimaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "2")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
@@ -811,10 +821,13 @@ func TestSelector_PrimaryPreferred_with_no_primary_and_tags(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.PrimaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
@@ -827,10 +840,13 @@ func TestSelector_PrimaryPreferred_with_maxStaleness(t *testing.T) {
 func TestSelector_PrimaryPreferred_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.PrimaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, err := readpref.New(readpref.PrimaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).
 		SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
@@ -843,7 +859,8 @@ func TestSelector_PrimaryPreferred_with_maxStaleness_and_no_primary(t *testing.T
 func TestSelector_SecondaryPreferred(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, nil)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -855,12 +872,15 @@ func TestSelector_SecondaryPreferred(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_tags(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "2")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -872,12 +892,15 @@ func TestSelector_SecondaryPreferred_with_tags(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -889,12 +912,15 @@ func TestSelector_SecondaryPreferred_with_tags_that_do_not_match(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_tags_that_do_not_match_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
@@ -905,7 +931,8 @@ func TestSelector_SecondaryPreferred_with_tags_that_do_not_match_and_no_primary(
 func TestSelector_SecondaryPreferred_with_no_secondaries(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, nil)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
 
@@ -917,7 +944,7 @@ func TestSelector_SecondaryPreferred_with_no_secondaries(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_no_secondaries_or_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	subject := &readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{})
 
@@ -928,10 +955,13 @@ func TestSelector_SecondaryPreferred_with_no_secondaries_or_primary(t *testing.T
 func TestSelector_SecondaryPreferred_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -943,10 +973,13 @@ func TestSelector_SecondaryPreferred_with_maxStaleness(t *testing.T) {
 func TestSelector_SecondaryPreferred_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, err := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
+	assert.NoError(t, err)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
@@ -958,7 +991,7 @@ func TestSelector_SecondaryPreferred_with_maxStaleness_and_no_primary(t *testing
 func TestSelector_Secondary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Secondary()
+	subject := &readpref.ReadPref{Mode: readpref.SecondaryPreferredMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -970,10 +1003,12 @@ func TestSelector_Secondary(t *testing.T) {
 func TestSelector_Secondary_with_tags(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.SecondaryPreferred()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1010,8 +1045,10 @@ func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
 	}
 	emptyTagSet := readpref.TagSet{}
 
-	rp := readpref.SecondaryPreferred()
-	rp.TagSets = []readpref.TagSet{nonMatchingSet, emptyTagSet}
+	rpOpts := &readpref.Options{}
+	rpOpts.TagSets = []readpref.TagSet{nonMatchingSet, emptyTagSet}
+
+	rp, _ := readpref.New(readpref.SecondaryPreferredMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: rp}).SelectServer(topologyNoTags, topologyNoTags.Servers)
 	assert.Nil(t, err, "SelectServer error: %v", err)
@@ -1022,12 +1059,13 @@ func TestSelector_Secondary_with_empty_tag_set(t *testing.T) {
 func TestSelector_Secondary_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Secondary()
-
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts := &readpref.Options{}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1038,7 +1076,7 @@ func TestSelector_Secondary_with_tags_that_do_not_match(t *testing.T) {
 func TestSelector_Secondary_with_no_secondaries(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Secondary()
+	subject := &readpref.ReadPref{Mode: readpref.SecondaryMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
 
@@ -1049,10 +1087,12 @@ func TestSelector_Secondary_with_no_secondaries(t *testing.T) {
 func TestSelector_Secondary_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Secondary()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1064,10 +1104,12 @@ func TestSelector_Secondary_with_maxStaleness(t *testing.T) {
 func TestSelector_Secondary_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Secondary()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.SecondaryMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
@@ -1079,7 +1121,7 @@ func TestSelector_Secondary_with_maxStaleness_and_no_primary(t *testing.T) {
 func TestSelector_Nearest(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	subject := &readpref.ReadPref{Mode: readpref.NearestMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1091,12 +1133,14 @@ func TestSelector_Nearest(t *testing.T) {
 func TestSelector_Nearest_with_tags(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "1")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1108,12 +1152,14 @@ func TestSelector_Nearest_with_tags(t *testing.T) {
 func TestSelector_Nearest_with_tags_that_do_not_match(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	rpOpts := &readpref.Options{}
 
 	tagSet, err := readpref.NewTagSet("a", "3")
 	assert.NoError(t, err)
 
-	subject.TagSets = []readpref.TagSet{tagSet}
+	rpOpts.TagSets = []readpref.TagSet{tagSet}
+
+	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1124,7 +1170,7 @@ func TestSelector_Nearest_with_tags_that_do_not_match(t *testing.T) {
 func TestSelector_Nearest_with_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	subject := &readpref.ReadPref{Mode: readpref.NearestMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
@@ -1136,7 +1182,7 @@ func TestSelector_Nearest_with_no_primary(t *testing.T) {
 func TestSelector_Nearest_with_no_secondaries(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	subject := &readpref.ReadPref{Mode: readpref.NearestMode}
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestPrimary})
 
@@ -1148,10 +1194,12 @@ func TestSelector_Nearest_with_no_secondaries(t *testing.T) {
 func TestSelector_Nearest_with_maxStaleness(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, readPrefTestTopology.Servers)
 
@@ -1163,10 +1211,12 @@ func TestSelector_Nearest_with_maxStaleness(t *testing.T) {
 func TestSelector_Nearest_with_maxStaleness_and_no_primary(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 90 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
 	result, err := (&ReadPref{ReadPref: subject}).SelectServer(readPrefTestTopology, []description.Server{readPrefTestSecondary1, readPrefTestSecondary2})
 
@@ -1178,10 +1228,12 @@ func TestSelector_Nearest_with_maxStaleness_and_no_primary(t *testing.T) {
 func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 50 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
 	s := description.Server{
 		Addr:              address.Address("localhost:27017"),
@@ -1204,10 +1256,12 @@ func TestSelector_Max_staleness_is_less_than_90_seconds(t *testing.T) {
 func TestSelector_Max_staleness_is_too_low(t *testing.T) {
 	t.Parallel()
 
-	subject := readpref.Nearest()
+	rpOpts := &readpref.Options{}
 
 	maxStaleness := 100 * time.Second
-	subject.MaxStaleness = &maxStaleness
+	rpOpts.MaxStaleness = &maxStaleness
+
+	subject, _ := readpref.New(readpref.NearestMode, rpOpts)
 
 	s := description.Server{
 		Addr:              address.Address("localhost:27017"),

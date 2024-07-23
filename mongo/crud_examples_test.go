@@ -755,8 +755,9 @@ func ExampleClient_StartSession_withTransaction() {
 
 	// Specify the ReadPreference option to set the read preference to primary
 	// preferred for this transaction.
-	txnOpts := options.Transaction().
-		SetReadPreference(readpref.PrimaryPreferred())
+	rp := &readpref.ReadPref{Mode: readpref.PrimaryPreferredMode}
+	txnOpts := options.Transaction().SetReadPreference(rp)
+
 	result, err := sess.WithTransaction(
 		context.TODO(),
 		func(ctx context.Context) (interface{}, error) {

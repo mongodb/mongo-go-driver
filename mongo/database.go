@@ -183,7 +183,9 @@ func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 			ro.ReadPreference = opt.ReadPreference
 		}
 	}
-	if sess != nil && sess.TransactionRunning() && ro.ReadPreference != nil && ro.ReadPreference.Mode != readpref.PrimaryMode {
+	if sess != nil && sess.TransactionRunning() && ro.ReadPreference != nil &&
+		ro.ReadPreference.Mode != readpref.PrimaryMode {
+
 		return nil, sess, errors.New("read preference in a transaction must be primary")
 	}
 

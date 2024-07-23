@@ -1764,9 +1764,9 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 	case readpref.PrimaryPreferredMode:
 		doc = bsoncore.AppendStringElement(doc, "mode", "primaryPreferred")
 	case readpref.SecondaryPreferredMode:
-		ok := rp.MaxStaleness != nil
-		if desc.Server.Kind == description.ServerKindMongos && isOpQuery && !ok && len(rp.TagSets) == 0 &&
-			rp.HedgeEnabled == nil {
+		ok := rp.MaxStaleness() != nil
+		if desc.Server.Kind == description.ServerKindMongos && isOpQuery && !ok && len(rp.TagSets()) == 0 &&
+			rp.HedgeEnabled() == nil {
 
 			return nil, nil
 		}
@@ -1777,8 +1777,8 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc = bsoncore.AppendStringElement(doc, "mode", "nearest")
 	}
 
-	sets := make([]bsoncore.Document, 0, len(rp.TagSets))
-	for _, ts := range rp.TagSets {
+	sets := make([]bsoncore.Document, 0, len(rp.TagSets()))
+	for _, ts := range rp.TagSets() {
 		i, set := bsoncore.AppendDocumentStart(nil)
 		for _, t := range ts {
 			set = bsoncore.AppendStringElement(set, t.Name, t.Value)
@@ -1795,11 +1795,11 @@ func (op Operation) createReadPref(desc description.SelectedServer, isOpQuery bo
 		doc, _ = bsoncore.AppendArrayEnd(doc, aidx)
 	}
 
-	if maxStaleness := rp.MaxStaleness; maxStaleness != nil {
+	if maxStaleness := rp.MaxStaleness(); maxStaleness != nil {
 		doc = bsoncore.AppendInt32Element(doc, "maxStalenessSeconds", int32((*maxStaleness).Seconds()))
 	}
 
-	if hedgeEnabled := rp.HedgeEnabled; hedgeEnabled != nil {
+	if hedgeEnabled := rp.HedgeEnabled(); hedgeEnabled != nil {
 		var hedgeIdx int32
 		hedgeIdx, doc = bsoncore.AppendDocumentElementStart(doc, "hedge")
 		doc = bsoncore.AppendBooleanElement(doc, "enabled", *hedgeEnabled)

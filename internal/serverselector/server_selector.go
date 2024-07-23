@@ -189,7 +189,7 @@ func (ssf Func) SelectServer(
 }
 
 func verifyMaxStaleness(rp *readpref.ReadPref, topo description.Topology) error {
-	maxStaleness := rp.MaxStaleness
+	maxStaleness := rp.MaxStaleness()
 	if maxStaleness == nil {
 		return nil
 	}
@@ -241,7 +241,7 @@ func selectSecondaries(rp *readpref.ReadPref, candidates []description.Server) [
 	if len(secondaries) == 0 {
 		return secondaries
 	}
-	if maxStaleness := rp.MaxStaleness; maxStaleness != nil {
+	if maxStaleness := rp.MaxStaleness(); maxStaleness != nil {
 		primaries := selectByKind(candidates, description.ServerKindRSPrimary)
 		if len(primaries) == 0 {
 			baseTime := secondaries[0].LastWriteTime
@@ -334,24 +334,24 @@ func selectForReplicaSet(
 
 		if len(selected) == 0 {
 			selected = selectSecondaries(rp, candidates)
-			return selectByTagSet(selected, rp.TagSets), nil
+			return selectByTagSet(selected, rp.TagSets()), nil
 		}
 
 		return selected, nil
 	case readpref.SecondaryPreferredMode:
 		selected := selectSecondaries(rp, candidates)
-		selected = selectByTagSet(selected, rp.TagSets)
+		selected = selectByTagSet(selected, rp.TagSets())
 		if len(selected) > 0 {
 			return selected, nil
 		}
 		return selectByKind(candidates, description.ServerKindRSPrimary), nil
 	case readpref.SecondaryMode:
 		selected := selectSecondaries(rp, candidates)
-		return selectByTagSet(selected, rp.TagSets), nil
+		return selectByTagSet(selected, rp.TagSets()), nil
 	case readpref.NearestMode:
 		selected := selectByKind(candidates, description.ServerKindRSPrimary)
 		selected = append(selected, selectSecondaries(rp, candidates)...)
-		return selectByTagSet(selected, rp.TagSets), nil
+		return selectByTagSet(selected, rp.TagSets()), nil
 	}
 
 	return nil, fmt.Errorf("unsupported mode: %d", rp.Mode)

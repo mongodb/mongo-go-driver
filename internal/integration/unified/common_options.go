@@ -69,7 +69,7 @@ func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 		return nil, fmt.Errorf("invalid read preference mode %q", rp.Mode)
 	}
 
-	newReadPref := &readpref.ReadPref{Mode: mode}
+	rpOpts := &readpref.Options{}
 
 	if rp.TagSets != nil {
 		// Each item in the TagSets slice is a document that represents one set.
@@ -82,11 +82,11 @@ func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 			sets = append(sets, parsed)
 		}
 
-		newReadPref.TagSets = sets
+		rpOpts.TagSets = sets
 	}
 	if rp.MaxStalenessSeconds != nil {
 		maxStaleness := time.Duration(*rp.MaxStalenessSeconds) * time.Second
-		newReadPref.MaxStaleness = &maxStaleness
+		rpOpts.MaxStaleness = &maxStaleness
 
 	}
 	if rp.Hedge != nil {
@@ -95,9 +95,9 @@ func (rp *ReadPreference) ToReadPrefOption() (*readpref.ReadPref, error) {
 		}
 		if enabled, ok := rp.Hedge["enabled"]; ok {
 			hedgeEnabled := enabled.(bool)
-			newReadPref.HedgeEnabled = &hedgeEnabled
+			rpOpts.HedgeEnabled = &hedgeEnabled
 		}
 	}
 
-	return newReadPref, nil
+	return readpref.New(mode, rpOpts)
 }
