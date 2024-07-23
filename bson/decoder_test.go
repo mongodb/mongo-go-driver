@@ -18,7 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-func TestBasicDecode(t *testing.T) {
+func TestDecodeValue(t *testing.T) {
 	t.Parallel()
 
 	for _, tc := range unmarshalingTestCases() {
@@ -195,26 +195,48 @@ func TestDecodingInterfaces(t *testing.T) {
 	}
 }
 
-func TestDecoderv2(t *testing.T) {
+func TestDecoder(t *testing.T) {
 	t.Parallel()
 
 	t.Run("Decode", func(t *testing.T) {
 		t.Parallel()
 
-		for _, tc := range unmarshalingTestCases() {
-			tc := tc
+		t.Run("basic", func(t *testing.T) {
+			t.Parallel()
 
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
+			for _, tc := range unmarshalingTestCases() {
+				tc := tc
 
-				got := reflect.New(tc.sType).Interface()
-				vr := NewDocumentReader(bytes.NewReader(tc.data))
-				dec := NewDecoder(vr)
-				err := dec.Decode(got)
-				noerr(t, err)
-				assert.Equal(t, tc.want, got, "Results do not match.")
-			})
-		}
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+
+					got := reflect.New(tc.sType).Interface()
+					vr := NewDocumentReader(bytes.NewReader(tc.data))
+					dec := NewDecoder(vr)
+					err := dec.Decode(got)
+					noerr(t, err)
+					assert.Equal(t, tc.want, got, "Results do not match.")
+				})
+			}
+		})
+		t.Run("stream", func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			vr := NewDocumentReader(&buf)
+			dec := NewDecoder(vr)
+			for _, tc := range unmarshalingTestCases() {
+				tc := tc
+
+				t.Run(tc.name, func(t *testing.T) {
+					buf.Write(tc.data)
+					got := reflect.New(tc.sType).Interface()
+					err := dec.Decode(got)
+					noerr(t, err)
+					assert.Equal(t, tc.want, got, "Results do not match.")
+				})
+			}
+		})
 		t.Run("lookup error", func(t *testing.T) {
 			t.Parallel()
 
