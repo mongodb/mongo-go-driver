@@ -402,8 +402,6 @@ func (iv IndexView) drop(ctx context.Context, index any, opts ...*options.DropIn
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	// TODO(GODRIVER-3038): This operation should pass CSE to the DropIndexes
-	// Crypt setter to be applied to the operation.
 	op := operation.NewDropIndexes(index).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
@@ -437,9 +435,7 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 	return iv.drop(ctx, name, opts...)
 }
 
-// DropWithKey drops a collection index by key using the dropIndexes operation. If the operation succeeds, this returns
-// a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
-// indexes that existed prior to the drop.
+// DropWithKey drops a collection index by key using the dropIndexes operation.
 //
 // This function is useful to drop an index using its key specification instead of its name.
 func (iv IndexView) DropWithKey(ctx context.Context, keySpecDocument interface{}, opts ...*options.DropIndexesOptions) error {
@@ -451,9 +447,7 @@ func (iv IndexView) DropWithKey(ctx context.Context, keySpecDocument interface{}
 	return iv.drop(ctx, doc, opts...)
 }
 
-// DropAll executes a dropIndexes operation to drop all indexes on the collection. If the operation succeeds, this
-// returns a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the
-// number of indexes that existed prior to the drop.
+// DropAll executes a dropIndexes operation to drop all indexes on the collection.
 //
 // The opts parameter can be used to specify options for this operation (see the
 // options.DropIndexesOptions documentation).
