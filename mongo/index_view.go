@@ -376,7 +376,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, index any, opts ...*options.DropIndexesOptions) error {
+func (iv IndexView) drop(ctx context.Context, index any, _ ...*options.DropIndexesOptions) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
