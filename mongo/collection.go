@@ -1043,7 +1043,7 @@ func aggregate(a aggregateParams) (cur *Cursor, err error) {
 		ServerAPI(a.client.serverAPI).
 		HasOutputStage(hasOutputStage).
 		Timeout(a.client.timeout).
-		Authenticator(coll.client.authenticator)
+		Authenticator(a.client.authenticator)
 
 	if ao.AllowDiskUse != nil {
 		op.AllowDiskUse(*ao.AllowDiskUse)

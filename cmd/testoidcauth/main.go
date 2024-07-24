@@ -40,14 +40,14 @@ func tokenFile(user string) string {
 }
 
 func connectAdminClinet() (*mongo.Client, error) {
-	return mongo.Connect(context.Background(), options.Client().ApplyURI(uriAdmin))
+	return mongo.Connect(options.Client().ApplyURI(uriAdmin))
 }
 
 func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
 	opts := options.Client().ApplyURI(uri)
 
 	opts.Auth.OIDCMachineCallback = cb
-	return mongo.Connect(context.Background(), opts)
+	return mongo.Connect(opts)
 }
 
 func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, props map[string]string) (*mongo.Client, error) {
@@ -55,7 +55,7 @@ func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, prop
 
 	opts.Auth.OIDCMachineCallback = cb
 	opts.Auth.AuthMechanismProperties = props
-	return mongo.Connect(context.Background(), opts)
+	return mongo.Connect(opts)
 }
 
 func main() {

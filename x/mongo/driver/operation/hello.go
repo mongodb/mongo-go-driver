@@ -654,6 +654,16 @@ func (h *Hello) FinishHandshake(context.Context, *mnet.Connection) error {
 	return nil
 }
 
+// OmitMaxTimeMS will ensure maxTimMS is not included in the wire message
+// constructed to send a hello request.
+func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+	h.omitMaxTimeMS = val
+	return h
+}
+
 // Authenticator sets the authenticator to use for this operation.
 func (h *Hello) Authenticator(authenticator driver.Authenticator) *Hello {
 	if h == nil {
