@@ -49,7 +49,7 @@ type MongoDBAWSAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *MongoDBAWSAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	providers := creds.NewAWSCredentialProvider(a.httpClient, a.credentials)
 	adapter := &awsSaslAdapter{
 		conversation: &awsConversation{

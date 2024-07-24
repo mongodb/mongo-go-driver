@@ -135,7 +135,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn *mnet.Connec
 	}
 
 	if performAuth(conn.Description()) && ah.options.Authenticator != nil {
-		cfg := &Config{
+		cfg := &driver.AuthConfig{
 			Connection:    conn,
 			ClusterClock:  ah.options.ClusterClock,
 			HandshakeInfo: ah.handshakeInfo,
@@ -153,7 +153,7 @@ func (ah *authHandshaker) FinishHandshake(ctx context.Context, conn *mnet.Connec
 	return ah.wrapped.FinishHandshake(ctx, conn)
 }
 
-func (ah *authHandshaker) authenticate(ctx context.Context, cfg *Config) error {
+func (ah *authHandshaker) authenticate(ctx context.Context, cfg *driver.AuthConfig) error {
 	// If the initial hello reply included a response to the speculative authentication attempt, we only need to
 	// conduct the remainder of the conversation.
 	if speculativeResponse := ah.handshakeInfo.SpeculativeAuthenticate; speculativeResponse != nil {

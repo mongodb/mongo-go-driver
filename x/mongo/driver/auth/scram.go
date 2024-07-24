@@ -78,7 +78,7 @@ type ScramAuthenticator struct {
 var _ SpeculativeAuthenticator = (*ScramAuthenticator)(nil)
 
 // Auth authenticates the provided connection by conducting a full SASL conversation.
-func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *ScramAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	err := ConductSaslConversation(ctx, cfg, a.source, a.createSaslClient())
 	if err != nil {
 		return newAuthError("sasl conversation error", err)

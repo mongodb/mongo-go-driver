@@ -30,7 +30,7 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	return ConductSaslConversation(ctx, cfg, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,

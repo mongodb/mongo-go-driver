@@ -249,13 +249,13 @@ func (oa *OIDCAuthenticator) invalidateAccessToken(conn *mnet.Connection) {
 
 // Reauth reauthenticates the connection when the server returns a 391 code. Reauth is part of the
 // driver.Authenticator interface.
-func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *Config) error {
+func (oa *OIDCAuthenticator) Reauth(ctx context.Context, cfg *driver.AuthConfig) error {
 	oa.invalidateAccessToken(cfg.Connection)
 	return oa.Auth(ctx, cfg)
 }
 
 // Auth authenticates the connection.
-func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	var err error
 
 	if cfg == nil {
@@ -303,12 +303,12 @@ func (oa *OIDCAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	return newAuthError("no OIDC callback provided", nil)
 }
 
-func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *Config, _ OIDCCallback) error {
+func (oa *OIDCAuthenticator) doAuthHuman(_ context.Context, _ *driver.AuthConfig, _ OIDCCallback) error {
 	// TODO GODRIVER-3246: Implement OIDC human flow
 	return newAuthError("OIDC", fmt.Errorf("human flow not implemented yet, %v", oa.idpInfo))
 }
 
-func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *Config, machineCallback OIDCCallback) error {
+func (oa *OIDCAuthenticator) doAuthMachine(ctx context.Context, cfg *driver.AuthConfig, machineCallback OIDCCallback) error {
 	subCtx, cancel := context.WithTimeout(ctx, machineCallbackTimeout)
 	accessToken, err := oa.getAccessToken(subCtx,
 		cfg.Connection,

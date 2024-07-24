@@ -51,7 +51,7 @@ type MongoDBCRAuthenticator struct {
 //
 // The MONGODB-CR authentication mechanism is deprecated in MongoDB 3.6 and removed in
 // MongoDB 4.0.
-func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *MongoDBCRAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 
 	db := a.DB
 	if db == "" {
