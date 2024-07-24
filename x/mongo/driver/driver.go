@@ -20,7 +20,6 @@ import (
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
@@ -31,7 +30,7 @@ import (
 // reexports this under the old name to avoid breaking the public api.
 type AuthConfig struct {
 	Description   description.Server
-	Connection    driver.Connection
+	Connection    *mnet.Connection
 	ClusterClock  *session.ClusterClock
 	HandshakeInfo HandshakeInformation
 	ServerAPI     *ServerAPIOptions
