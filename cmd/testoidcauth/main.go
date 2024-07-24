@@ -80,33 +80,44 @@ func main() {
 			fmt.Println("...Ok")
 		}
 	}
-	aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
-	aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
-	aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
-	aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
-	aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
-	aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
-	aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
-	aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
-	aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
-	aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
-	aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
-	aux("human_1_1_singlePrincipalImplictUsername", human11singlePrincipalImplictUsername)
-	aux("human_1_2_singlePrincipalExplicitUsername", human12singlePrincipalExplicitUsername)
-	aux("human_1_3_mulitplePrincipalUser1", human13mulitplePrincipalUser1)
-	aux("human_1_4_mulitplePrincipalUser2", human14mulitplePrincipalUser2)
-	aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
-	aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
-	aux("human_1_7_allowedHostsInConnectionStringIgnored", human17AllowedHostsInConnectionStringIgnored)
-	aux("human_2_1_validCallbackInputs", human21validCallbackInputs)
-	aux("human_2_2_CallbackReturnsMissingData", human22CallbackReturnsMissingData)
-	aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
-	aux("human_3_1_usesSpeculativeAuth", human31usesSpeculativeAuth)
-	aux("human_3_2_doesNotUseSpecualtiveAuth", human32doesNotUseSpecualtiveAuth)
-	aux("human_4_1_reauthenticationSucceeds", human41ReauthenticationSucceeds)
-	aux("human_4_2_reauthenticationSucceedsNoRefresh", human42ReauthenticationSucceedsNoRefreshToken)
-	aux("human_4_3_reauthenticationSucceedsAfterRefreshFails", human43ReauthenticationSucceedsAfterRefreshFails)
-	aux("human_4_4_reauthenticationFails", human44ReauthenticationFails)
+	env := os.Getenv("OIDC_ENV")
+	switch env {
+	case "":
+		aux("machine_1_1_callbackIsCalled", machine11callbackIsCalled)
+		aux("machine_1_2_callbackIsCalledOnlyOneForMultipleConnections", machine12callbackIsCalledOnlyOneForMultipleConnections)
+		aux("machine_2_1_validCallbackInputs", machine21validCallbackInputs)
+		aux("machine_2_3_oidcCallbackReturnMissingData", machine23oidcCallbackReturnMissingData)
+		aux("machine_2_4_invalidClientConfigurationWithCallback", machine24invalidClientConfigurationWithCallback)
+		aux("machine_3_1_failureWithCachedTokensFetchANewTokenAndRetryAuth", machine31failureWithCachedTokensFetchANewTokenAndRetryAuth)
+		aux("machine_3_2_authFailuresWithoutCachedTokensReturnsAnError", machine32authFailuresWithoutCachedTokensReturnsAnError)
+		aux("machine_3_3_UnexpectedErrorCodeDoesNotClearTheCache", machine33UnexpectedErrorCodeDoesNotClearTheCache)
+		aux("machine_4_1_reauthenticationSucceeds", machine41ReauthenticationSucceeds)
+		aux("machine_4_2_readCommandsFailIfReauthenticationFails", machine42ReadCommandsFailIfReauthenticationFails)
+		aux("machine_4_3_writeCommandsFailIfReauthenticationFails", machine43WriteCommandsFailIfReauthenticationFails)
+		aux("human_1_1_singlePrincipalImplictUsername", human11singlePrincipalImplictUsername)
+		aux("human_1_2_singlePrincipalExplicitUsername", human12singlePrincipalExplicitUsername)
+		aux("human_1_3_mulitplePrincipalUser1", human13mulitplePrincipalUser1)
+		aux("human_1_4_mulitplePrincipalUser2", human14mulitplePrincipalUser2)
+		aux("human_1_5_multiplPrincipalNoUser", human15mulitplePrincipalNoUser)
+		aux("human_1_6_allowedHostsBlocked", human16allowedHostsBlocked)
+		aux("human_1_7_allowedHostsInConnectionStringIgnored", human17AllowedHostsInConnectionStringIgnored)
+		aux("human_2_1_validCallbackInputs", human21validCallbackInputs)
+		aux("human_2_2_CallbackReturnsMissingData", human22CallbackReturnsMissingData)
+		aux("human_2_3_RefreshTokenIsPassedToCallback", human23RefreshTokenIsPassedToCallback)
+		aux("human_3_1_usesSpeculativeAuth", human31usesSpeculativeAuth)
+		aux("human_3_2_doesNotUseSpecualtiveAuth", human32doesNotUseSpecualtiveAuth)
+		aux("human_4_1_reauthenticationSucceeds", human41ReauthenticationSucceeds)
+		aux("human_4_2_reauthenticationSucceedsNoRefresh", human42ReauthenticationSucceedsNoRefreshToken)
+		aux("human_4_3_reauthenticationSucceedsAfterRefreshFails", human43ReauthenticationSucceedsAfterRefreshFails)
+		aux("human_4_4_reauthenticationFails", human44ReauthenticationFails)
+	case "azure":
+		aux("machine_5_1_azureWithNoUsername", machine51azureWithNoUsername)
+		aux("machine_5_2_azureWithNoUsername", machine52azureWithBadUsername)
+	case "gcp":
+		aux("machine_6_1_gcpWithNoUsername", machine61gcpWithNoUsername)
+	default:
+		log.Fatal("Unknown OIDC_ENV: ", env)
+	}
 	if hasError {
 		log.Fatal("One or more tests failed")
 	}
@@ -1483,4 +1494,65 @@ func human44ReauthenticationFails() error {
 	}
 	countMutex.Unlock()
 	return callbackFailed
+}
+
+func machine51azureWithNoUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_5_1: failed parsing uri: %q", uriSingle)
+	}
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("machine_5_1: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_5_1: failed executing Find: %v", err)
+	}
+	return nil
+}
+
+func machine52azureWithBadUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_5_2: failed parsing uri: %q", uriSingle)
+	}
+	opts.Auth.Username = "bad"
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("machine_5_2: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err == nil {
+		return fmt.Errorf("machine_5_2: Find succeeded when it should fail")
+	}
+	return nil
+}
+
+func machine61gcpWithNoUsername() error {
+	opts := options.Client().ApplyURI(uriSingle)
+	if opts == nil || opts.Auth == nil {
+		return fmt.Errorf("machine_6_1: failed parsing uri: %q", uriSingle)
+	}
+	client, err := mongo.Connect(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("machine_6_1: failed connecting client: %v", err)
+	}
+	defer client.Disconnect(context.Background())
+
+	coll := client.Database("test").Collection("test")
+
+	_, err = coll.Find(context.Background(), bson.D{})
+	if err != nil {
+		return fmt.Errorf("machine_6_1: failed executing Find: %v", err)
+	}
+	return nil
 }

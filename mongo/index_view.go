@@ -367,7 +367,7 @@ func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Docum
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+func (iv IndexView) drop(ctx context.Context, index any, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -397,8 +397,7 @@ func (iv IndexView) drop(ctx context.Context, name string, opts ...*options.Drop
 
 	// TODO(GODRIVER-3038): This operation should pass CSE to the DropIndexes
 	// Crypt setter to be applied to the operation.
-	op := operation.NewDropIndexes(name).
-		Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
+	op := operation.NewDropIndexes(index).Session(sess).WriteConcern(wc).CommandMonitor(iv.coll.client.monitor).
 		ServerSelector(selector).ClusterClock(iv.coll.client.clock).
 		Database(iv.coll.db.name).Collection(iv.coll.name).
 		Deployment(iv.coll.client.deployment).ServerAPI(iv.coll.client.serverAPI).
@@ -434,6 +433,20 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 	}
 
 	return iv.drop(ctx, name, opts...)
+}
+
+// DropOneWithKey drops a collection index by key using the dropIndexes operation. If the operation succeeds, this returns
+// a BSON document in the form {nIndexesWas: <int32>}. The "nIndexesWas" field in the response contains the number of
+// indexes that existed prior to the drop.
+//
+// This function is useful to drop an index using its key specification instead of its name.
+func (iv IndexView) DropOneWithKey(ctx context.Context, keySpecDocument interface{}, opts ...*options.DropIndexesOptions) (bson.Raw, error) {
+	doc, err := marshal(keySpecDocument, iv.coll.bsonOpts, iv.coll.registry)
+	if err != nil {
+		return nil, err
+	}
+
+	return iv.drop(ctx, doc, opts...)
 }
 
 // DropAll executes a dropIndexes operation to drop all indexes on the collection. If the operation succeeds, this
