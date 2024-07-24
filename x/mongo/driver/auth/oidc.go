@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -175,12 +176,12 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 			return nil, newAuthError(fmt.Sprintf("%q must be specified for Azure OIDC", resourceProp), nil)
 		}
 		return getAzureOIDCCallback(oa.userName, resource, oa.httpClient), nil
-	// TODO GODRIVER-2806: Automatic token acquisition for GCP Identity Provider
-	// This is here just to pass the linter, it will be fixed in one of the above tickets.
 	case gcpEnvironmentValue:
-		return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
-			return nil, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
-		}, fmt.Errorf("automatic token acquisition for %q not implemented yet", env)
+		resource, ok := oa.AuthMechanismProperties[resourceProp]
+		if !ok {
+			return nil, newAuthError(fmt.Sprintf("%q must be specified for GCP OIDC", resourceProp), nil)
+		}
+		return getGCPOIDCCallback(resource, oa.httpClient), nil
 	}
 
 	return nil, fmt.Errorf("%q %q not supported for MONGODB-OIDC", environmentProp, env)
@@ -225,6 +226,37 @@ func getAzureOIDCCallback(clientID string, resource string, httpClient *http.Cli
 		return &OIDCCredential{
 			AccessToken: azureResp.AccessToken,
 			ExpiresAt:   &expireTime,
+		}, nil
+	}
+}
+
+// getGCPOIDCCallback returns the callback for the GCP Identity Provider.
+func getGCPOIDCCallback(resource string, httpClient *http.Client) OIDCCallback {
+	// return the callback parameterized by the clientID and resource, also passing in the user
+	// configured httpClient.
+	return func(ctx context.Context, args *OIDCArgs) (*OIDCCredential, error) {
+		resource = url.QueryEscape(resource)
+		uri := fmt.Sprintf("http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=%s", resource)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
+		if err != nil {
+			return nil, newAuthError("error creating http request to GCP Identity Provider", err)
+		}
+		req.Header.Add("Metadata-Flavor", "Google")
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			return nil, newAuthError("error getting access token from GCP Identity Provider", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			return nil, newAuthError(fmt.Sprintf("failed to get a valid response from GCP Identity Provider, http code: %d", resp.StatusCode), nil)
+		}
+		accessToken, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, newAuthError("failed parsing reading response from GCP Identity Provider", err)
+		}
+		return &OIDCCredential{
+			AccessToken: string(accessToken),
+			ExpiresAt:   nil,
 		}, nil
 	}
 }
