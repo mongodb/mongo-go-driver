@@ -30,7 +30,7 @@ import (
 // reexports this under the old name to avoid breaking the public api.
 type AuthConfig struct {
 	Description   description.Server
-	Connection    Connection
+	Connection    driver.Connection
 	ClusterClock  *session.ClusterClock
 	HandshakeInfo HandshakeInformation
 	ServerAPI     *ServerAPIOptions
