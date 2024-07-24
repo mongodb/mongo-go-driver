@@ -26,7 +26,6 @@ import (
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
 const MongoDBOIDC = "MONGODB-OIDC"
 
-// TODO GODRIVER-2728: Automatic token acquisition for Azure Identity Provider
 // const tokenResourceProp = "TOKEN_RESOURCE"
 const environmentProp = "ENVIRONMENT"
 const resourceProp = "TOKEN_RESOURCE"
