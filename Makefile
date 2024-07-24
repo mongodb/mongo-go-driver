@@ -129,8 +129,8 @@ evg-test-enterprise-auth:
 
 .PHONY: evg-test-oidc-auth
 evg-test-oidc-auth:
-	go run ./cmd/testoidcauth/main.go
-	go run -race ./cmd/testoidcauth/main.go
+	go run ./internal/cmd/testoidcauth/main.go
+	go run -race ./internal/cmd/testoidcauth/main.go
 
 .PHONY: evg-test-kmip
 evg-test-kmip:
