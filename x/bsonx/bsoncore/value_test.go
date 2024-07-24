@@ -684,6 +684,7 @@ func TestValue_StringN(t *testing.T) {
 	}
 	str1k := buf.String()
 	str128 := str1k[:128]
+	testObjectID := [12]byte{0x60, 0xd4, 0xc2, 0x1f, 0x4e, 0x60, 0x4a, 0x0c, 0x8b, 0x2e, 0x9c, 0x3f}
 
 	testCases := []struct {
 		description string
@@ -747,6 +748,75 @@ func TestValue_StringN(t *testing.T) {
 
 		{"n>0, value with special characters", 5, Value{
 			Type: TypeString, Data: AppendString(nil, "!@#$%^&*()")}, `"!@#$`},
+
+		// Extended cases for each type
+		{"n>0, TypeEmbeddedDocument", 10, Value{
+			Type: TypeEmbeddedDocument, Data: BuildDocument(nil,
+				AppendStringElement(nil, "key", "value"))}, `{"key": "}`},
+
+		{"n>0, TypeArray", 10, Value{
+			Type: TypeArray, Data: AppendArray(nil, Array([]byte{
+				0x1A, 0x00, 0x00, 0x00,
+				0x02, '0', 0x00, 0x05,
+				0x00, 0x00, 0x00, 'a',
+				'b', 'c', 0x00, 0x10, '1',
+				0x00, 0x7B, 0x00, 0x00,
+				0x00, 0x08, '2', 0x00, 0x01, 0x00, 0x00}))}, ``},
+
+		{"n>0, TypeDouble", 10, Value{
+			Type: TypeDouble, Data: AppendDouble(nil, 123.456)}, `{"$numberD`},
+
+		{"n>0, TypeBinary", 10, Value{
+			Type: TypeBinary, Data: AppendBinary(nil, 0x00, []byte{0x01, 0x02, 0x03})}, `{"$binary"`},
+
+		{"n>0, TypeUndefined", 10, Value{
+			Type: TypeUndefined}, `{"$undefin`},
+
+		{"n>0, TypeObjectID", 10, Value{
+			Type: TypeObjectID, Data: AppendObjectID(nil, testObjectID)}, `{"$oid":"6`},
+
+		{"n>0, TypeBoolean", 3, Value{
+			Type: TypeBoolean, Data: AppendBoolean(nil, true)}, `tru`},
+
+		{"n>0, TypeDateTime", 10, Value{
+			Type: TypeDateTime, Data: AppendDateTime(nil, 1234567890)}, `{"$date":{`},
+
+		{"n>0, TypeNull", 3, Value{
+			Type: TypeNull}, `nul`},
+
+		{"n>0, TypeRegex", 10, Value{
+			Type: TypeRegex, Data: AppendRegex(nil, "pattern", "options")}, `{"$regular`},
+
+		{"n>0, TypeDBPointer", 15, Value{
+			Type: TypeDBPointer, Data: AppendDBPointer(nil, "namespace", testObjectID)}, `{"$dbPointer":{`},
+
+		{"n>0, TypeJavaScript", 15, Value{
+			Type: TypeJavaScript, Data: AppendJavaScript(nil, "code")}, `{"$code":"code"`},
+
+		{"n>0, TypeSymbol", 10, Value{
+			Type: TypeSymbol, Data: AppendSymbol(nil, "symbol")}, `{"$symbol"`},
+
+		{"n>0, TypeCodeWithScope", 10, Value{
+			Type: TypeCodeWithScope, Data: AppendCodeWithScope(nil, "code", BuildDocument(nil,
+				AppendStringElement(nil, "key", "value")))}, `{"$code":c`},
+
+		{"n>0, TypeInt32", 10, Value{
+			Type: TypeInt32, Data: AppendInt32(nil, 123)}, `{"$numberI`},
+
+		{"n>0, TypeTimestamp", 10, Value{
+			Type: TypeTimestamp, Data: AppendTimestamp(nil, 123, 456)}, `{"$timesta`},
+
+		{"n>0, TypeInt64", 10, Value{
+			Type: TypeInt64, Data: AppendInt64(nil, 1234567890)}, `{"$numberL`},
+
+		{"n>0, TypeDecimal128", 10, Value{
+			Type: TypeDecimal128, Data: AppendDecimal128(nil, 0x3040000000000000, 0x0000000000000000)}, `{"$numberD`},
+
+		{"n>0, TypeMinKey", 10, Value{
+			Type: TypeMinKey}, `{"$minKey"`},
+
+		{"n>0, TypeMaxKey", 10, Value{
+			Type: TypeMaxKey}, `{"$maxKey"`},
 	}
 
 	for _, tc := range testCases {

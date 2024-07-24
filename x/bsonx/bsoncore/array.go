@@ -101,7 +101,6 @@ func (a Array) StringN(n int) string {
 	var elem Element
 	var ok bool
 
-	n -= buf.Len() + 1
 	if n > 0 {
 		for length > 1 {
 			elem, rem, ok = ReadElement(rem)
@@ -110,13 +109,7 @@ func (a Array) StringN(n int) string {
 				return ""
 			}
 
-			str := elem.Value().String()
-
-			if buf.Len()+len(str) > n {
-				truncatedStr := truncate(str, uint(n-buf.Len()))
-				buf.WriteString(truncatedStr)
-				break
-			}
+			str := elem.Value().StringN(n - buf.Len())
 
 			buf.WriteString(str)
 

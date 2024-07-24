@@ -271,9 +271,6 @@ func (d Document) StringN(n int) string {
 		return ""
 	}
 
-	// String outputted is short by 2
-	n += 2
-
 	var buf strings.Builder
 
 	buf.WriteByte('{')
@@ -286,7 +283,7 @@ func (d Document) StringN(n int) string {
 
 	first := true
 
-	n -= buf.Len() + 1
+	n -= buf.Len()
 	if n > 0 {
 		for length > 1 {
 			if !first {
@@ -298,6 +295,7 @@ func (d Document) StringN(n int) string {
 				return ""
 			}
 
+			// TODO: Performance Improvement
 			str := elem.StringN(n)
 			if buf.Len()+len(str) > n {
 				truncatedStr := truncate(str, uint(n-buf.Len()))
@@ -310,7 +308,7 @@ func (d Document) StringN(n int) string {
 		}
 	}
 
-	if buf.Len()+1 <= n {
+	if buf.Len() <= n {
 		buf.WriteByte('}')
 	}
 

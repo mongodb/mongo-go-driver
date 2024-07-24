@@ -256,96 +256,96 @@ func (v Value) StringN(n int) string {
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64))
+		return truncate(fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64)), uint(n))
 	case TypeBinary:
 		subtype, data, ok := v.BinaryOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype)
+		return truncate(fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype), uint(n))
 	case TypeUndefined:
-		return `{"$undefined":true}`
+		return truncate(`{"$undefined":true}`, uint(n))
 	case TypeObjectID:
 		oid, ok := v.ObjectIDOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid))
+		return truncate(fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid)), uint(n))
 	case TypeBoolean:
 		b, ok := v.BooleanOK()
 		if !ok {
 			return ""
 		}
-		return strconv.FormatBool(b)
+		return truncate(strconv.FormatBool(b), uint(n))
 	case TypeDateTime:
 		dt, ok := v.DateTimeOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt)
+		return truncate(fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt), uint(n))
 	case TypeNull:
-		return "null"
+		return truncate("null", uint(n))
 	case TypeRegex:
 		pattern, options, ok := v.RegexOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(
+		return truncate(fmt.Sprintf(
 			`{"$regularExpression":{"pattern":%s,"options":"%s"}}`,
 			escapeString(pattern), sortStringAlphebeticAscending(options),
-		)
+		), uint(n))
 	case TypeDBPointer:
 		ns, pointer, ok := v.DBPointerOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer))
+		return truncate(fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer)), uint(n))
 	case TypeJavaScript:
 		js, ok := v.JavaScriptOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$code":%s}`, escapeString(js))
+		return truncate(fmt.Sprintf(`{"$code":%s}`, escapeString(js)), uint(n))
 	case TypeSymbol:
 		symbol, ok := v.SymbolOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol))
+		return truncate(fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol)), uint(n))
 	case TypeCodeWithScope:
 		code, scope, ok := v.CodeWithScopeOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope)
+		return truncate(fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope), uint(n))
 	case TypeInt32:
 		i32, ok := v.Int32OK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberInt":"%d"}`, i32)
+		return truncate(fmt.Sprintf(`{"$numberInt":"%d"}`, i32), uint(n))
 	case TypeTimestamp:
 		t, i, ok := v.TimestampOK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i)
+		return truncate(fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i), uint(n))
 	case TypeInt64:
 		i64, ok := v.Int64OK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberLong":"%d"}`, i64)
+		return truncate(fmt.Sprintf(`{"$numberLong":"%d"}`, i64), uint(n))
 	case TypeDecimal128:
 		h, l, ok := v.Decimal128OK()
 		if !ok {
 			return ""
 		}
-		return fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l))
+		return truncate(fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l)), uint(n))
 	case TypeMinKey:
-		return `{"$minKey":1}`
+		return truncate(`{"$minKey":1}`, uint(n))
 	case TypeMaxKey:
-		return `{"$maxKey":1}`
+		return truncate(`{"$maxKey":1}`, uint(n))
 	default:
 		return ""
 	}

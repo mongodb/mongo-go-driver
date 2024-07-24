@@ -454,6 +454,30 @@ func BenchmarkRawString(b *testing.B) {
 	}
 }
 
+func TestComplexDocuments_StringN(t *testing.T) {
+
+	testCases := []struct {
+		description string
+		n           int
+		doc         any
+	}{
+		{"n>0, massive array documents", 1000, createMassiveArraysDocument(1000)},
+		{"n>0, voluminous document with unique values", 1000, createUniqueVoluminousDocument(1000)},
+		{"n>0, large single document", 1000, createLargeSingleDoc()},
+		{"n>0, voluminous document with arrays containing documents", 1000, createVoluminousArrayDocuments(1000)},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			bson, _ := Marshal(tc.doc)
+			bsonDoc := bsoncore.Document(bson)
+
+			got := bsonDoc.StringN(tc.n)
+			assert.Equal(t, tc.n, len(got))
+		})
+	}
+}
+
 // createVoluminousDocument generates a document with a specified number of keys, simulating a very large document in terms of the number of keys.
 func createVoluminousDocument(numKeys int) D {
 	d := make(D, numKeys)
@@ -480,7 +504,6 @@ func createMassiveArraysDocument(arraySize int) D {
 	for i := 0; i < arraySize; i++ {
 		massiveArray[i] = "value"
 	}
-	print(massiveArray[1])
 
 	return D{
 		{Key: "massiveArray1", Value: massiveArray},
@@ -488,4 +511,54 @@ func createMassiveArraysDocument(arraySize int) D {
 		{Key: "massiveArray3", Value: massiveArray},
 		{Key: "massiveArray4", Value: massiveArray},
 	}
+}
+
+// createUniqueVoluminousDocument creates a BSON document with multiple key value pairs and unique value types.
+func createUniqueVoluminousDocument(size int) bsoncore.Document {
+	var docs D
+	for i := 0; i < size; i++ {
+		docs = append(docs, E{
+			Key: "x", Value: NewObjectID(),
+		})
+		docs = append(docs, E{
+			Key: "z", Value: "y",
+		})
+	}
+
+	bsonData, _ := Marshal(docs)
+	return bsoncore.Document(bsonData)
+}
+
+// createLargeSingleDoc creates a large single BSON document.
+func createLargeSingleDoc() bsoncore.Document {
+	var b strings.Builder
+
+	b.Grow(1048577)
+	for i := 0; i < 1048577; i++ {
+		b.WriteByte(0)
+	}
+	s := b.String()
+
+	doc := D{
+		{Key: "x", Value: s},
+	}
+
+	bsonData, _ := Marshal(doc)
+	return bsoncore.Document(bsonData)
+}
+
+// createVoluminousArrayDocuments creates a volumninous BSON document with arrays containing documents.
+func createVoluminousArrayDocuments(size int) bsoncore.Document {
+	var docs D
+	for i := 0; i < size; i++ {
+		docs = append(docs, E{
+			Key: "x", Value: NewObjectID(),
+		})
+		docs = append(docs, E{
+			Key: "z", Value: A{D{{Key: "x", Value: "y"}}},
+		})
+	}
+
+	bsonData, _ := Marshal(docs)
+	return bsoncore.Document(bsonData)
 }

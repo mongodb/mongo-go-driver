@@ -494,7 +494,7 @@ func TestDocument_StringN(t *testing.T) {
 		// n > 0 cases
 		{"n>0, document LT n", 3, BuildDocument(nil,
 			AppendStringElement(nil, "key", "value"),
-		), `{"k`},
+		), `{"}`},
 
 		{"n>0, document GT n", 25, BuildDocument(nil,
 			AppendStringElement(nil, "key", "value"),
@@ -508,12 +508,12 @@ func TestDocument_StringN(t *testing.T) {
 			AppendDocumentElement(nil, "key", BuildDocument(nil,
 				AppendStringElement(nil, "nestedKey", str128),
 			)),
-		), `{"key": {"neste`},
+		), `{"key": {"nest}`},
 
-		{"n>0, document with mixed types", 10, BuildDocument(nil,
+		{"n>0, document with mixed types", 11, BuildDocument(nil,
 			AppendStringElement(nil, "key", str128),
 			AppendInt32Element(nil, "number", 123),
-		), `{"key": "a`},
+		), `{"key": "a}`},
 
 		{"n>0, deeply nested document", 17, BuildDocument(nil,
 			AppendDocumentElement(nil, "a", BuildDocument(nil,
@@ -521,7 +521,7 @@ func TestDocument_StringN(t *testing.T) {
 					AppendStringElement(nil, "c", str128),
 				)),
 			)),
-		), `{"a": {"b": {"c":`},
+		), `{"a": {"b": {"c"}`},
 
 		{"n>0, empty document", 10, Document{}, ""},
 	}

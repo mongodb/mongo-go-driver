@@ -1977,7 +1977,11 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 		host, port, _ := net.SplitHostPort(info.serverAddress.String())
 
 		redactedReply := redactFinishedInformationResponse(info)
+
 		formattedReply := logger.FormatMessage(bsoncore.Document(redactedReply), op.Logger.MaxDocumentLength)
+		//print(len(formattedReply))
+		//print(formattedReply)
+		//print("FORMATTEDREPLY \n")
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
