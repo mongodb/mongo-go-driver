@@ -249,13 +249,14 @@ func (db *Database) RunCommand(
 
 	err = op.Execute(ctx)
 	// RunCommand can be used to run a write, thus execute may return a write error
-	_, convErr := processWriteError(err)
+	rr, convErr := processWriteError(err)
 	return &SingleResult{
-		ctx:      ctx,
-		err:      convErr,
-		rdr:      bson.Raw(op.Result()),
-		bsonOpts: db.bsonOpts,
-		reg:      db.registry,
+		ctx:          ctx,
+		err:          convErr,
+		rdr:          bson.Raw(op.Result()),
+		bsonOpts:     db.bsonOpts,
+		reg:          db.registry,
+		Acknowledged: rr.isAcknowledged(),
 	}
 }
 
@@ -364,7 +365,7 @@ func (db *Database) ListCollectionSpecifications(
 	ctx context.Context,
 	filter interface{},
 	opts ...options.Lister[options.ListCollectionsOptions],
-) ([]*CollectionSpecification, error) {
+) ([]CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -386,13 +387,13 @@ func (db *Database) ListCollectionSpecifications(
 		return nil, err
 	}
 
-	specs := make([]*CollectionSpecification, len(resp))
+	specs := make([]CollectionSpecification, len(resp))
 	for idx, spec := range resp {
-		specs[idx] = &CollectionSpecification{
+		specs[idx] = CollectionSpecification{
 			Name:    spec.Name,
 			Type:    spec.Type,
 			Options: spec.Options,
-			IDIndex: newIndexSpecificationFromResponse(spec.IDIndex),
+			IDIndex: IndexSpecification(spec.IDIndex),
 		}
 
 		if spec.Info != nil {
@@ -402,7 +403,7 @@ func (db *Database) ListCollectionSpecifications(
 
 		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
 		// the response.
-		if specs[idx].IDIndex != nil && specs[idx].IDIndex.Namespace == "" {
+		if specs[idx].IDIndex.Namespace == "" {
 			specs[idx].IDIndex.Namespace = db.name + "." + specs[idx].Name
 		}
 	}

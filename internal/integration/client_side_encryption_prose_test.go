@@ -2939,8 +2939,8 @@ type cseProseTest struct {
 	cseStarted   []*event.CommandStartedEvent
 }
 
-func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts options.SetterLister[options.ClientOptions],
-	ceo options.SetterLister[options.ClientEncryptionOptions]) *cseProseTest {
+func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts options.Lister[options.ClientOptions],
+	ceo options.Lister[options.ClientEncryptionOptions]) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
 	var err error

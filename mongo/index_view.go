@@ -140,7 +140,7 @@ func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.Lis
 func (iv IndexView) ListSpecifications(
 	ctx context.Context,
 	opts ...options.Lister[options.ListIndexesOptions],
-) ([]*IndexSpecification, error) {
+) ([]IndexSpecification, error) {
 	cursor, err := iv.List(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -154,9 +154,9 @@ func (iv IndexView) ListSpecifications(
 
 	namespace := iv.coll.db.Name() + "." + iv.coll.Name()
 
-	specs := make([]*IndexSpecification, len(resp))
+	specs := make([]IndexSpecification, len(resp))
 	for idx, spec := range resp {
-		specs[idx] = newIndexSpecificationFromResponse(spec)
+		specs[idx] = IndexSpecification(spec)
 		specs[idx].Namespace = namespace
 	}
 
@@ -287,9 +287,8 @@ func (iv IndexView) CreateMany(
 		op.CommitQuorum(commitQuorum)
 	}
 
-	err = op.Execute(ctx)
+	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
-		_, err = processWriteError(err)
 		return nil, err
 	}
 
