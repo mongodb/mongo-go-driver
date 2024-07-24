@@ -16,6 +16,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
 )
 
 // MongoDBOIDC is the string constant for the MONGODB-OIDC authentication mechanism.
@@ -180,7 +181,7 @@ func (oa *OIDCAuthenticator) providerCallback() (OIDCCallback, error) {
 
 func (oa *OIDCAuthenticator) getAccessToken(
 	ctx context.Context,
-	conn driver.Connection,
+	conn *mnet.Connection,
 	args *OIDCArgs,
 	callback OIDCCallback,
 ) (string, error) {
@@ -233,7 +234,7 @@ func (oa *OIDCAuthenticator) getAccessToken(
 // tokenGenID of the OIDCAuthenticator. It should never actually be greater than, but only equal,
 // but this is a safety check, since extra invalidation is only a performance impact, not a
 // correctness impact.
-func (oa *OIDCAuthenticator) invalidateAccessToken(conn driver.Connection) {
+func (oa *OIDCAuthenticator) invalidateAccessToken(conn *mnet.Connection) {
 	oa.mu.Lock()
 	defer oa.mu.Unlock()
 	tokenGenID := conn.OIDCTokenGenID()
