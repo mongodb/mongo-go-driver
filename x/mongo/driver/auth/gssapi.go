@@ -45,7 +45,7 @@ type GSSAPIAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *driver.AuthConfig) error {
 	target := cfg.Connection.Description().Addr.String()
 	hostname, _, err := net.SplitHostPort(target)
 	if err != nil {
