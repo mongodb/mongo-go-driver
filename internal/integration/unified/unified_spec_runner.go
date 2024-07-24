@@ -61,6 +61,18 @@ var (
 		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
 		"unpin when a non-transaction write operation uses a session": "Implement GODRIVER-3034",
 		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
+
+		// DRIVERS-2722: Setting "maxTimeMS" on a command that creates a cursor
+		// also limits the lifetime of the cursor. That may be surprising to
+		// users, so omit "maxTimeMS" from operations that return user-managed
+		// cursors.
+		"timeoutMS can be overridden for a find":                                               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured for an operation - find on collection":                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured for an operation - aggregate on collection":               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured for an operation - aggregate on database":                 "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"operation is retried multiple times for non-zero timeoutMS - find on collection":      "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"operation is retried multiple times for non-zero timeoutMS - aggregate on collection": "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"operation is retried multiple times for non-zero timeoutMS - aggregate on database":   "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

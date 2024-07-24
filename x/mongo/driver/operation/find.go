@@ -62,6 +62,7 @@ type Find struct {
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
 	logger              *logger.Logger
+	omitMaxTimeMS       bool
 }
 
 // NewFind constructs and returns a new Find.
@@ -109,6 +110,7 @@ func (f *Find) Execute(ctx context.Context) error {
 		Logger:            f.logger,
 		Name:              driverutil.FindOp,
 		Authenticator:     f.authenticator,
+		OmitMaxTimeMS:     f.omitMaxTimeMS,
 	}.Execute(ctx)
 }
 
@@ -557,5 +559,16 @@ func (f *Find) Authenticator(authenticator driver.Authenticator) *Find {
 	}
 
 	f.authenticator = authenticator
+	return f
+}
+
+// OmitMaxTimeMS omits the automatically-calculated "maxTimeMS" from the
+// command.
+func (f *Find) OmitMaxTimeMS(omit bool) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.omitMaxTimeMS = omit
 	return f
 }

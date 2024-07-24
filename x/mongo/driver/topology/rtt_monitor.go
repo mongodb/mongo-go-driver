@@ -261,6 +261,8 @@ func (r *rttMonitor) Stats() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return fmt.Sprintf(`Round-trip-time monitor statistics:`+"\n"+
-		`moving average RTT: %v, minimum RTT: %v`+"\n", r.averageRTT, r.minRTT)
+	return fmt.Sprintf(
+		"network round-trip time stats: moving avg: %v, min: %v",
+		r.averageRTT,
+		r.minRTT)
 }
