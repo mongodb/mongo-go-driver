@@ -24,7 +24,6 @@ import (
 // DropIndexes performs an dropIndexes operation.
 type DropIndexes struct {
 	index        any
-	maxTime      *time.Duration
 	session      *session.Client
 	clock        *session.ClusterClock
 	collection   string
