@@ -12,6 +12,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -22,7 +23,7 @@ const (
 	testDbName = "unitTestDb"
 )
 
-func setupColl(name string, opts ...*options.CollectionOptions) *Collection {
+func setupColl(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	db := setupDb(testDbName)
 	return db.Collection(name, opts...)
 }
@@ -218,87 +219,36 @@ func TestCollection(t *testing.T) {
 	})
 }
 
-func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
+func TestNewFindArgsFromFindOneArgs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name string
-		opts []*options.FindOneOptions
-		want []*options.FindOptions
+		args *options.FindOneOptions
+		want *options.FindOptions
 	}{
 		{
 			name: "nil",
-			opts: nil,
-			want: []*options.FindOptions{
-				options.Find().SetLimit(-1),
+			args: nil,
+			want: &options.FindOptions{
+				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 		{
 			name: "empty",
-			opts: []*options.FindOneOptions{},
-			want: []*options.FindOptions{
-				options.Find().SetLimit(-1),
+			args: &options.FindOneOptions{},
+			want: &options.FindOptions{
+				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 		{
-			name: "singleton",
-			opts: []*options.FindOneOptions{
-				options.FindOne().SetSkip(1),
+			name: "non empty",
+			args: &options.FindOneOptions{
+				Skip: ptrutil.Ptr(int64(1)),
 			},
-			want: []*options.FindOptions{
-				options.Find().SetSkip(1),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "multiplicity",
-			opts: []*options.FindOneOptions{
-				options.FindOne().SetSkip(1),
-				options.FindOne().SetSkip(2),
-			},
-			want: []*options.FindOptions{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "interior null",
-			opts: []*options.FindOneOptions{
-				options.FindOne().SetSkip(1),
-				nil,
-				options.FindOne().SetSkip(2),
-			},
-			want: []*options.FindOptions{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "start null",
-			opts: []*options.FindOneOptions{
-				nil,
-				options.FindOne().SetSkip(1),
-				options.FindOne().SetSkip(2),
-			},
-			want: []*options.FindOptions{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
-			},
-		},
-		{
-			name: "end null",
-			opts: []*options.FindOneOptions{
-				options.FindOne().SetSkip(1),
-				options.FindOne().SetSkip(2),
-				nil,
-			},
-			want: []*options.FindOptions{
-				options.Find().SetSkip(1),
-				options.Find().SetSkip(2),
-				options.Find().SetLimit(-1),
+			want: &options.FindOptions{
+				Skip:  ptrutil.Ptr(int64(1)),
+				Limit: ptrutil.Ptr(int64(-1)),
 			},
 		},
 	}
@@ -309,8 +259,7 @@ func TestNewFindOptionsFromFindOneOptions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := newFindOptionsFromFindOneOptions(test.opts...)
-			assert.Equal(t, test.want, got)
+			assert.Equal(t, test.want, newFindArgsFromFindOneArgs(test.args))
 		})
 	}
 }

@@ -20,6 +20,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -67,7 +68,7 @@ func jsonFilesInDir(t testing.TB, dir string) []string {
 }
 
 // create client options from a map
-func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
+func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptionsBuilder {
 	t.Helper()
 
 	clientOpts := options.Client()
@@ -125,7 +126,7 @@ func createClientOptions(t testing.TB, opts bson.Raw) *options.ClientOptions {
 	return clientOpts
 }
 
-func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptions {
+func createAutoEncryptionOptions(t testing.TB, opts bson.Raw) *options.AutoEncryptionOptionsBuilder {
 	t.Helper()
 
 	aeo := options.AutoEncryption()
@@ -275,7 +276,7 @@ func createKmsProvidersMap(t testing.TB, opts bson.Raw) map[string]map[string]in
 }
 
 // create session options from a map
-func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
+func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptionsBuilder {
 	t.Helper()
 
 	sessOpts := options.Session()
@@ -289,14 +290,20 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 			sessOpts = sessOpts.SetCausalConsistency(opt.Boolean())
 		case "defaultTransactionOptions":
 			txnOpts := createTransactionOptions(t, opt.Document())
-			if txnOpts.ReadConcern != nil {
-				sessOpts.SetDefaultReadConcern(txnOpts.ReadConcern)
+
+			txnArgs, err := mongoutil.NewOptions[options.TransactionOptions](txnOpts)
+			if err != nil {
+				t.Fatalf("failed to construct options from builder: %v", err)
 			}
-			if txnOpts.ReadPreference != nil {
-				sessOpts.SetDefaultReadPreference(txnOpts.ReadPreference)
+
+			if txnArgs.ReadConcern != nil {
+				sessOpts.SetDefaultReadConcern(txnArgs.ReadConcern)
 			}
-			if txnOpts.WriteConcern != nil {
-				sessOpts.SetDefaultWriteConcern(txnOpts.WriteConcern)
+			if txnArgs.ReadPreference != nil {
+				sessOpts.SetDefaultReadPreference(txnArgs.ReadPreference)
+			}
+			if txnArgs.WriteConcern != nil {
+				sessOpts.SetDefaultWriteConcern(txnArgs.WriteConcern)
 			}
 		default:
 			t.Fatalf("unrecognized session option: %v", name)
@@ -307,7 +314,7 @@ func createSessionOptions(t testing.TB, opts bson.Raw) *options.SessionOptions {
 }
 
 // create database options from a BSON document.
-func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptions {
+func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptionsBuilder {
 	t.Helper()
 
 	do := options.Database()
@@ -330,7 +337,7 @@ func createDatabaseOptions(t testing.TB, opts bson.Raw) *options.DatabaseOptions
 }
 
 // create collection options from a map
-func createCollectionOptions(t testing.TB, opts bson.Raw) *options.CollectionOptions {
+func createCollectionOptions(t testing.TB, opts bson.Raw) *options.CollectionOptionsBuilder {
 	t.Helper()
 
 	co := options.Collection()
@@ -355,7 +362,7 @@ func createCollectionOptions(t testing.TB, opts bson.Raw) *options.CollectionOpt
 }
 
 // create transaction options from a map
-func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionOptions {
+func createTransactionOptions(t testing.TB, opts bson.Raw) *options.TransactionOptionsBuilder {
 	t.Helper()
 
 	txnOpts := options.Transaction()

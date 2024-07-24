@@ -26,7 +26,7 @@ import (
 
 func TestSDAMErrorHandling(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	baseClientOpts := func() *options.ClientOptions {
+	baseClientOpts := func() *options.ClientOptionsBuilder {
 		return options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetRetryWrites(false).

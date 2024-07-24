@@ -14,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -79,7 +81,7 @@ func TestAtlasDataLake(t *testing.T) {
 			{"scram-sha-256", "SCRAM-SHA-256"},
 		}
 		for _, tc := range testCases {
-			clientOpts := getBaseClientOptions()
+			clientOpts := getBaseClientOptions(mt)
 			if tc.authMechanism != "" {
 				cred := getBaseCredential(mt)
 				cred.AuthMechanism = tc.authMechanism
@@ -95,15 +97,21 @@ func TestAtlasDataLake(t *testing.T) {
 	})
 }
 
-func getBaseClientOptions() *options.ClientOptions {
-	opts := options.Client().ApplyURI(mtest.ClusterURI())
-	return options.Client().SetHosts(opts.Hosts)
+func getBaseClientOptions(mt *mtest.T) *options.ClientOptionsBuilder {
+	mt.Helper()
+
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	require.NoError(mt, err)
+
+	return options.Client().SetHosts(hosts)
 }
 
 func getBaseCredential(mt *mtest.T) options.Credential {
 	mt.Helper()
 
-	cred := options.Client().ApplyURI(mtest.ClusterURI()).Auth
+	cred, err := mongoutil.AuthFromURI(mtest.ClusterURI())
+	require.NoError(mt, err)
+
 	assert.NotNil(mt, cred, "expected options for URI %q to have a non-nil Auth field", mtest.ClusterURI())
 	return *cred
 }

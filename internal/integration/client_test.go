@@ -358,7 +358,7 @@ func TestClient(t *testing.T) {
 	mt.RunOpts("causal consistency", sessionOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name       string
-			opts       *options.SessionOptions
+			opts       *options.SessionOptionsBuilder
 			consistent bool
 		}{
 			{"default", options.Session(), true},

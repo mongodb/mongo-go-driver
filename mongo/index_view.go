@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -47,7 +48,7 @@ type IndexModel struct {
 	Keys interface{}
 
 	// The options to use to create the index.
-	Options *options.IndexOptions
+	Options *options.IndexOptionsBuilder
 }
 
 func isNamespaceNotFoundError(err error) bool {
@@ -63,7 +64,7 @@ func isNamespaceNotFoundError(err error) bool {
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listIndexes/.
-func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOptions) (*Cursor, error) {
+func (iv IndexView) List(ctx context.Context, opts ...options.Lister[options.ListIndexesOptions]) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -99,18 +100,14 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(iv.coll.bsonOpts, iv.coll.registry)
 
-	lio := options.ListIndexes()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.BatchSize != nil {
-			lio.BatchSize = opt.BatchSize
-		}
+	args, err := mongoutil.NewOptions[options.ListIndexesOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
-	if lio.BatchSize != nil {
-		op = op.BatchSize(*lio.BatchSize)
-		cursorOpts.BatchSize = *lio.BatchSize
+
+	if args.BatchSize != nil {
+		op = op.BatchSize(*args.BatchSize)
+		cursorOpts.BatchSize = *args.BatchSize
 	}
 
 	retry := driver.RetryNone
@@ -140,7 +137,10 @@ func (iv IndexView) List(ctx context.Context, opts ...*options.ListIndexesOption
 }
 
 // ListSpecifications executes a List command and returns a slice of returned IndexSpecifications
-func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.ListIndexesOptions) ([]IndexSpecification, error) {
+func (iv IndexView) ListSpecifications(
+	ctx context.Context,
+	opts ...options.Lister[options.ListIndexesOptions],
+) ([]IndexSpecification, error) {
 	cursor, err := iv.List(ctx, opts...)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (iv IndexView) ListSpecifications(ctx context.Context, opts ...*options.Lis
 func (iv IndexView) CreateOne(
 	ctx context.Context,
 	model IndexModel,
-	opts ...*options.CreateIndexesOptions,
+	opts ...options.Lister[options.CreateIndexesOptions],
 ) (string, error) {
 	names, err := iv.CreateMany(ctx, []IndexModel{model}, opts...)
 	if err != nil {
@@ -191,7 +191,7 @@ func (iv IndexView) CreateOne(
 func (iv IndexView) CreateMany(
 	ctx context.Context,
 	models []IndexModel,
-	opts ...*options.CreateIndexesOptions,
+	opts ...options.Lister[options.CreateIndexesOptions],
 ) ([]string, error) {
 	names := make([]string, 0, len(models))
 
@@ -268,14 +268,9 @@ func (iv IndexView) CreateMany(
 
 	selector := makePinnedSelector(sess, iv.coll.writeSelector)
 
-	option := options.CreateIndexes()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.CommitQuorum != nil {
-			option.CommitQuorum = opt.CommitQuorum
-		}
+	args, err := mongoutil.NewOptions[options.CreateIndexesOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
 	op := operation.NewCreateIndexes(indexes).
@@ -283,8 +278,8 @@ func (iv IndexView) CreateMany(
 		Database(iv.coll.db.name).Collection(iv.coll.name).CommandMonitor(iv.coll.client.monitor).
 		Deployment(iv.coll.client.deployment).ServerSelector(selector).ServerAPI(iv.coll.client.serverAPI).
 		Timeout(iv.coll.client.timeout).Crypt(iv.coll.client.cryptFLE)
-	if option.CommitQuorum != nil {
-		commitQuorum, err := marshalValue(option.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
+	if args.CommitQuorum != nil {
+		commitQuorum, err := marshalValue(args.CommitQuorum, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
 		}
@@ -300,90 +295,95 @@ func (iv IndexView) CreateMany(
 	return names, nil
 }
 
-func (iv IndexView) createOptionsDoc(opts *options.IndexOptions) (bsoncore.Document, error) {
+func (iv IndexView) createOptionsDoc(opts options.Lister[options.IndexOptions]) (bsoncore.Document, error) {
+	args, err := mongoutil.NewOptions[options.IndexOptions](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	optsDoc := bsoncore.Document{}
-	if opts.ExpireAfterSeconds != nil {
-		optsDoc = bsoncore.AppendInt32Element(optsDoc, "expireAfterSeconds", *opts.ExpireAfterSeconds)
+	if args.ExpireAfterSeconds != nil {
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "expireAfterSeconds", *args.ExpireAfterSeconds)
 	}
-	if opts.Name != nil {
-		optsDoc = bsoncore.AppendStringElement(optsDoc, "name", *opts.Name)
+	if args.Name != nil {
+		optsDoc = bsoncore.AppendStringElement(optsDoc, "name", *args.Name)
 	}
-	if opts.Sparse != nil {
-		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "sparse", *opts.Sparse)
+	if args.Sparse != nil {
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "sparse", *args.Sparse)
 	}
-	if opts.StorageEngine != nil {
-		doc, err := marshal(opts.StorageEngine, iv.coll.bsonOpts, iv.coll.registry)
+	if args.StorageEngine != nil {
+		doc, err := marshal(args.StorageEngine, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
 		}
 
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "storageEngine", doc)
 	}
-	if opts.Unique != nil {
-		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "unique", *opts.Unique)
+	if args.Unique != nil {
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "unique", *args.Unique)
 	}
-	if opts.Version != nil {
-		optsDoc = bsoncore.AppendInt32Element(optsDoc, "v", *opts.Version)
+	if args.Version != nil {
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "v", *args.Version)
 	}
-	if opts.DefaultLanguage != nil {
-		optsDoc = bsoncore.AppendStringElement(optsDoc, "default_language", *opts.DefaultLanguage)
+	if args.DefaultLanguage != nil {
+		optsDoc = bsoncore.AppendStringElement(optsDoc, "default_language", *args.DefaultLanguage)
 	}
-	if opts.LanguageOverride != nil {
-		optsDoc = bsoncore.AppendStringElement(optsDoc, "language_override", *opts.LanguageOverride)
+	if args.LanguageOverride != nil {
+		optsDoc = bsoncore.AppendStringElement(optsDoc, "language_override", *args.LanguageOverride)
 	}
-	if opts.TextVersion != nil {
-		optsDoc = bsoncore.AppendInt32Element(optsDoc, "textIndexVersion", *opts.TextVersion)
+	if args.TextVersion != nil {
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "textIndexVersion", *args.TextVersion)
 	}
-	if opts.Weights != nil {
-		doc, err := marshal(opts.Weights, iv.coll.bsonOpts, iv.coll.registry)
+	if args.Weights != nil {
+		doc, err := marshal(args.Weights, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
 		}
 
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "weights", doc)
 	}
-	if opts.SphereVersion != nil {
-		optsDoc = bsoncore.AppendInt32Element(optsDoc, "2dsphereIndexVersion", *opts.SphereVersion)
+	if args.SphereVersion != nil {
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "2dsphereIndexVersion", *args.SphereVersion)
 	}
-	if opts.Bits != nil {
-		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bits", *opts.Bits)
+	if args.Bits != nil {
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bits", *args.Bits)
 	}
-	if opts.Max != nil {
-		optsDoc = bsoncore.AppendDoubleElement(optsDoc, "max", *opts.Max)
+	if args.Max != nil {
+		optsDoc = bsoncore.AppendDoubleElement(optsDoc, "max", *args.Max)
 	}
-	if opts.Min != nil {
-		optsDoc = bsoncore.AppendDoubleElement(optsDoc, "min", *opts.Min)
+	if args.Min != nil {
+		optsDoc = bsoncore.AppendDoubleElement(optsDoc, "min", *args.Min)
 	}
-	if opts.BucketSize != nil {
-		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bucketSize", *opts.BucketSize)
+	if args.BucketSize != nil {
+		optsDoc = bsoncore.AppendInt32Element(optsDoc, "bucketSize", *args.BucketSize)
 	}
-	if opts.PartialFilterExpression != nil {
-		doc, err := marshal(opts.PartialFilterExpression, iv.coll.bsonOpts, iv.coll.registry)
+	if args.PartialFilterExpression != nil {
+		doc, err := marshal(args.PartialFilterExpression, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
 		}
 
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "partialFilterExpression", doc)
 	}
-	if opts.Collation != nil {
-		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(opts.Collation.ToDocument()))
+	if args.Collation != nil {
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(args.Collation.ToDocument()))
 	}
-	if opts.WildcardProjection != nil {
-		doc, err := marshal(opts.WildcardProjection, iv.coll.bsonOpts, iv.coll.registry)
+	if args.WildcardProjection != nil {
+		doc, err := marshal(args.WildcardProjection, iv.coll.bsonOpts, iv.coll.registry)
 		if err != nil {
 			return nil, err
 		}
 
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "wildcardProjection", doc)
 	}
-	if opts.Hidden != nil {
-		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "hidden", *opts.Hidden)
+	if args.Hidden != nil {
+		optsDoc = bsoncore.AppendBooleanElement(optsDoc, "hidden", *args.Hidden)
 	}
 
 	return optsDoc, nil
 }
 
-func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropIndexesOptions) error {
+func (iv IndexView) drop(ctx context.Context, name string, _ ...options.Lister[options.DropIndexesOptions]) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -433,9 +433,14 @@ func (iv IndexView) drop(ctx context.Context, name string, _ ...*options.DropInd
 // The opts parameter can be used to specify options for this operation (see the
 // options.DropIndexesOptions documentation).
 //
-// For more information about the command, see
-// https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
-func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.DropIndexesOptions) error {
+// For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
+func (iv IndexView) DropOne(
+	ctx context.Context,
+	name string,
+	opts ...options.Lister[options.DropIndexesOptions],
+) error {
+	// For more information about the command, see
+	// https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
 	if name == "*" {
 		return ErrMultipleIndexDrop
 	}
@@ -451,13 +456,21 @@ func (iv IndexView) DropOne(ctx context.Context, name string, opts ...*options.D
 //
 // For more information about the command, see
 // https://www.mongodb.com/docs/manual/reference/command/dropIndexes/.
-func (iv IndexView) DropAll(ctx context.Context, opts ...*options.DropIndexesOptions) error {
+func (iv IndexView) DropAll(
+	ctx context.Context,
+	opts ...options.Lister[options.DropIndexesOptions],
+) error {
 	return iv.drop(ctx, "*", opts...)
 }
 
 func getOrGenerateIndexName(keySpecDocument bsoncore.Document, model IndexModel) (string, error) {
-	if model.Options != nil && model.Options.Name != nil {
-		return *model.Options.Name, nil
+	args, err := mongoutil.NewOptions[options.IndexOptions](model.Options)
+	if err != nil {
+		return "", fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	if args != nil && args.Name != nil {
+		return *args.Name, nil
 	}
 
 	name := bytes.NewBufferString("")

@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/handshake"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/address"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -68,7 +69,10 @@ func TestSDAMProse(t *testing.T) {
 		messages := mt.GetProxiedMessages()
 		duration := time.Since(start)
 
-		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
+		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+		require.NoError(mt, err)
+
+		numNodes := len(hosts)
 		maxExpected := numNodes * (2 + 2*int(duration/heartbeatInterval))
 		minExpected := numNodes * (2 + 2*int(duration/(heartbeatInterval*2)))
 

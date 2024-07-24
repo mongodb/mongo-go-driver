@@ -118,7 +118,7 @@ func NewOptions() *Options {
 }
 
 // CollectionCreateOptions sets the options to pass to Database.CreateCollection() when creating a collection for a test.
-func (op *Options) CollectionCreateOptions(opts *options.CreateCollectionOptions) *Options {
+func (op *Options) CollectionCreateOptions(opts *options.CreateCollectionOptionsBuilder) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.collCreateOpts = opts
 	})
@@ -126,7 +126,7 @@ func (op *Options) CollectionCreateOptions(opts *options.CreateCollectionOptions
 }
 
 // CollectionOptions sets the options to use when creating a collection for a test.
-func (op *Options) CollectionOptions(opts *options.CollectionOptions) *Options {
+func (op *Options) CollectionOptions(opts *options.CollectionOptionsBuilder) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.collOpts = opts
 	})
@@ -134,7 +134,7 @@ func (op *Options) CollectionOptions(opts *options.CollectionOptions) *Options {
 }
 
 // ClientOptions sets the options to use when creating a client for a test.
-func (op *Options) ClientOptions(opts *options.ClientOptions) *Options {
+func (op *Options) ClientOptions(opts *options.ClientOptionsBuilder) *Options {
 	op.optFuncs = append(op.optFuncs, func(t *T) {
 		t.clientOpts = opts
 	})
