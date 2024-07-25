@@ -1089,6 +1089,9 @@ func human23RefreshTokenIsPassedToCallback() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("human_2_3: failed connecting admin client: %v", err)
+	}
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1107,11 +1110,11 @@ func human23RefreshTokenIsPassedToCallback() error {
 		if err != nil {
 			callbackFailed = fmt.Errorf("human_2_3: failed reading token file: %v", err)
 		}
-		refreshToken := "this is a refresh token"
+		rt := "this is fake"
 		return &options.OIDCCredential{
 			AccessToken:  string(accessToken),
 			ExpiresAt:    &t,
-			RefreshToken: &refreshToken,
+			RefreshToken: &rt,
 		}, nil
 	})
 
@@ -1154,6 +1157,9 @@ func human23RefreshTokenIsPassedToCallback() error {
 
 func human31usesSpeculativeAuth() error {
 	adminClient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("human_3_1: failed connecting admin client: %v", err)
+	}
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1212,6 +1218,9 @@ func human32doesNotUseSpecualtiveAuth() error {
 	var callbackFailed error
 
 	adminClient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("human_3_2: failed connecting admin client: %v", err)
+	}
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1438,13 +1447,12 @@ func human44ReauthenticationFails() error {
 				ExpiresAt:    &t,
 				RefreshToken: &badToken,
 			}, nil
-		} else {
-			return &options.OIDCCredential{
-				AccessToken:  badToken,
-				ExpiresAt:    &t,
-				RefreshToken: &badToken,
-			}, fmt.Errorf("failed to refresh token")
 		}
+		return &options.OIDCCredential{
+			AccessToken:  badToken,
+			ExpiresAt:    &t,
+			RefreshToken: &badToken,
+		}, fmt.Errorf("failed to refresh token")
 	})
 
 	defer client.Disconnect(context.Background())
