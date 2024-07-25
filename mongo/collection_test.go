@@ -7,6 +7,7 @@
 package mongo
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 const (
@@ -216,6 +218,39 @@ func TestCollection(t *testing.T) {
 
 		_, err = coll.Watch(bgCtx, nil)
 		assert.Equal(t, aggErr, err, "expected error %v, got %v", aggErr, err)
+	})
+}
+
+func TestCollation(t *testing.T) {
+	t.Run("TestCollationToDocument", func(t *testing.T) {
+		c := &options.Collation{
+			Locale:          "locale",
+			CaseLevel:       true,
+			CaseFirst:       "first",
+			Strength:        1,
+			NumericOrdering: true,
+			Alternate:       "alternate",
+			MaxVariable:     "maxVariable",
+			Normalization:   true,
+			Backwards:       true,
+		}
+
+		doc := toDocument(c)
+		expected := bsoncore.BuildDocumentFromElements(nil,
+			bsoncore.AppendStringElement(nil, "locale", "locale"),
+			bsoncore.AppendBooleanElement(nil, "caseLevel", (true)),
+			bsoncore.AppendStringElement(nil, "caseFirst", ("first")),
+			bsoncore.AppendInt32Element(nil, "strength", (1)),
+			bsoncore.AppendBooleanElement(nil, "numericOrdering", (true)),
+			bsoncore.AppendStringElement(nil, "alternate", ("alternate")),
+			bsoncore.AppendStringElement(nil, "maxVariable", ("maxVariable")),
+			bsoncore.AppendBooleanElement(nil, "normalization", (true)),
+			bsoncore.AppendBooleanElement(nil, "backwards", (true)),
+		)
+
+		if !bytes.Equal(doc, expected) {
+			t.Fatalf("collation did not match expected. got %v; wanted %v", doc, expected)
+		}
 	})
 }
 

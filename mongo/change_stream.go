@@ -176,7 +176,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
 	if cs.options.Collation != nil {
-		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
+		cs.aggregate.Collation(bsoncore.Document(toDocument(cs.options.Collation)))
 	}
 	if cs.options.Comment != nil {
 		comment, err := marshalValue(cs.options.Comment, cs.bsonOpts, cs.registry)

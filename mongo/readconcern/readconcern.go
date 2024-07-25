@@ -10,13 +10,6 @@
 // https://www.mongodb.com/docs/manual/reference/read-concern/
 package readconcern
 
-import (
-	"errors"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-)
-
 // A ReadConcern defines a MongoDB read concern, which allows you to control the consistency and
 // isolation properties of the data read from replica sets and replica set shards.
 //
@@ -69,21 +62,4 @@ func Available() *ReadConcern {
 // https://www.mongodb.com/docs/manual/reference/read-concern-snapshot/
 func Snapshot() *ReadConcern {
 	return &ReadConcern{Level: "snapshot"}
-}
-
-// MarshalBSONValue implements the bson.ValueMarshaler interface.
-//
-// Deprecated: Marshaling a ReadConcern to BSON will not be supported in Go Driver 2.0.
-func (rc *ReadConcern) MarshalBSONValue() (bson.Type, []byte, error) {
-	if rc == nil {
-		return 0, nil, errors.New("cannot marshal nil ReadConcern")
-	}
-
-	var elems []byte
-
-	if len(rc.Level) > 0 {
-		elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
-	}
-
-	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
 }

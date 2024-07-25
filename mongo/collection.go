@@ -501,7 +501,7 @@ func (coll *Collection) delete(
 	doc = bsoncore.AppendDocumentElement(doc, "q", f)
 	doc = bsoncore.AppendInt32Element(doc, "limit", limit)
 	if args.Collation != nil {
-		doc = bsoncore.AppendDocumentElement(doc, "collation", args.Collation.ToDocument())
+		doc = bsoncore.AppendDocumentElement(doc, "collation", toDocument(args.Collation))
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -962,7 +962,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
@@ -1073,7 +1073,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout)
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1244,7 +1244,7 @@ func (coll *Collection) Distinct(
 		Timeout(coll.client.timeout)
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1351,7 +1351,7 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 		op.BatchSize(*args.BatchSize)
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1594,7 +1594,7 @@ func (coll *Collection) FindOneAndDelete(
 
 	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout)
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1685,7 +1685,7 @@ func (coll *Collection) FindOneAndReplace(
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1784,10 +1784,7 @@ func (coll *Collection) FindOneAndUpdate(
 	if args.ArrayFilters != nil {
 		af := args.ArrayFilters
 		reg := coll.registry
-		if af.Registry != nil {
-			reg = af.Registry
-		}
-		filtersDoc, err := marshalValue(af.Filters, coll.bsonOpts, reg)
+		filtersDoc, err := marshalValue(af, coll.bsonOpts, reg)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1797,7 +1794,7 @@ func (coll *Collection) FindOneAndUpdate(
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1994,6 +1991,39 @@ func (coll *Collection) drop(ctx context.Context) error {
 		return replaceErrors(err)
 	}
 	return nil
+}
+
+func toDocument(co *options.Collation) bson.Raw {
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	if co.Locale != "" {
+		doc = bsoncore.AppendStringElement(doc, "locale", co.Locale)
+	}
+	if co.CaseLevel {
+		doc = bsoncore.AppendBooleanElement(doc, "caseLevel", true)
+	}
+	if co.CaseFirst != "" {
+		doc = bsoncore.AppendStringElement(doc, "caseFirst", co.CaseFirst)
+	}
+	if co.Strength != 0 {
+		doc = bsoncore.AppendInt32Element(doc, "strength", int32(co.Strength))
+	}
+	if co.NumericOrdering {
+		doc = bsoncore.AppendBooleanElement(doc, "numericOrdering", true)
+	}
+	if co.Alternate != "" {
+		doc = bsoncore.AppendStringElement(doc, "alternate", co.Alternate)
+	}
+	if co.MaxVariable != "" {
+		doc = bsoncore.AppendStringElement(doc, "maxVariable", co.MaxVariable)
+	}
+	if co.Normalization {
+		doc = bsoncore.AppendBooleanElement(doc, "normalization", true)
+	}
+	if co.Backwards {
+		doc = bsoncore.AppendBooleanElement(doc, "backwards", true)
+	}
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+	return doc
 }
 
 type pinnedServerSelector struct {

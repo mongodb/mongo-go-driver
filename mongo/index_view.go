@@ -366,7 +366,7 @@ func (iv IndexView) createOptionsDoc(opts options.Lister[options.IndexOptions]) 
 		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "partialFilterExpression", doc)
 	}
 	if args.Collation != nil {
-		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(args.Collation.ToDocument()))
+		optsDoc = bsoncore.AppendDocumentElement(optsDoc, "collation", bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.WildcardProjection != nil {
 		doc, err := marshal(args.WildcardProjection, iv.coll.bsonOpts, iv.coll.registry)

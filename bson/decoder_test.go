@@ -29,7 +29,7 @@ func TestBasicDecode(t *testing.T) {
 
 			got := reflect.New(tc.sType).Elem()
 			vr := NewValueReader(tc.data)
-			reg := DefaultRegistry
+			reg := defaultRegistry
 			decoder, err := reg.LookupDecoder(reflect.TypeOf(got))
 			noerr(t, err)
 			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
@@ -185,7 +185,7 @@ func TestDecodingInterfaces(t *testing.T) {
 			data, receiver, check := tc.stub()
 			got := reflect.ValueOf(receiver).Elem()
 			vr := NewValueReader(data)
-			reg := DefaultRegistry
+			reg := defaultRegistry
 			decoder, err := reg.LookupDecoder(got.Type())
 			noerr(t, err)
 			err = decoder.DecodeValue(DecodeContext{Registry: reg}, vr, got)
@@ -355,7 +355,7 @@ func TestDecoderv2(t *testing.T) {
 	t.Run("SetRegistry", func(t *testing.T) {
 		t.Parallel()
 
-		r1, r2 := DefaultRegistry, NewRegistry()
+		r1, r2 := defaultRegistry, NewRegistry()
 		dc1 := DecodeContext{Registry: r1}
 		dc2 := DecodeContext{Registry: r2}
 		dec := NewDecoder(NewValueReader([]byte{}))

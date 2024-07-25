@@ -1455,10 +1455,11 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		return dst, nil
 	}
 
-	_, data, err := rc.MarshalBSONValue() // always returns a document
-	if err != nil {
-		return dst, err
+	var elems []byte
+	if len(rc.Level) > 0 {
+		elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
 	}
+	data := bsoncore.BuildDocument(nil, elems)
 
 	if sessionsSupported(desc.WireVersion) && client != nil {
 		if client.Consistent && client.OperationTime != nil {

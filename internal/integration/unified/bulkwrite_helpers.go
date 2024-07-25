@@ -12,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/bsonutil"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // This file provides helper functions to convert BSON documents to WriteModel
@@ -81,9 +80,9 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 
 			switch key {
 			case "arrayFilters":
-				uom.SetArrayFilters(options.ArrayFilters{
-					Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-				})
+				uom.SetArrayFilters(
+					bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+				)
 			case "collation":
 				collation, err := createCollation(val.Document())
 				if err != nil {
@@ -130,9 +129,9 @@ func createBulkWriteModel(rawModel bson.Raw) (mongo.WriteModel, error) {
 
 			switch key {
 			case "arrayFilters":
-				umm.SetArrayFilters(options.ArrayFilters{
-					Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-				})
+				umm.SetArrayFilters(
+					bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+				)
 			case "collation":
 				collation, err := createCollation(val.Document())
 				if err != nil {

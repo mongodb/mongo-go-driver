@@ -705,9 +705,9 @@ func executeFindOneAndUpdate(mt *mtest.T, sess *mongo.Session, args bson.Raw) *m
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "sort":
 			opts = opts.SetSort(val.Document())
 		case "projection":
@@ -887,9 +887,9 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
@@ -939,9 +939,9 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
@@ -1135,9 +1135,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			uom.SetCollation(createCollation(mt, collation.Document()))
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
-			uom.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
-			})
+			uom.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
+			)
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			uom.SetHint(createHint(mt, hintVal))
@@ -1158,9 +1158,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			umm.SetCollation(createCollation(mt, collation.Document()))
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
-			umm.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
-			})
+			umm.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
+			)
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			umm.SetHint(createHint(mt, hintVal))

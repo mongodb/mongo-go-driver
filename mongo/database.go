@@ -765,7 +765,7 @@ func (db *Database) createCollectionOperation(
 		op.Capped(*args.Capped)
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.ChangeStreamPreAndPostImages != nil {
 		csppi, err := marshal(args.ChangeStreamPreAndPostImages, db.bsonOpts, db.registry)
@@ -903,7 +903,7 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 	}
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 
 	return db.executeCreateOperation(ctx, op)

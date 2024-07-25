@@ -36,7 +36,7 @@ type SingleResult struct {
 }
 
 // NewSingleResultFromDocument creates a SingleResult with the provided error, registry, and an underlying Cursor pre-loaded with
-// the provided document, error and registry. If no registry is provided, bson.DefaultRegistry will be used. If an error distinct
+// the provided document, error and registry. If no registry is provided, bson.NewRegistry() will be used. If an error distinct
 // from the one provided occurs during creation of the SingleResult, that error will be stored on the returned SingleResult.
 //
 // The document parameter must be a non-nil document.
@@ -49,7 +49,7 @@ func NewSingleResultFromDocument(
 		return &SingleResult{err: ErrNilDocument}
 	}
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 
 	cur, createErr := NewCursorFromDocuments([]interface{}{document}, err, registry)

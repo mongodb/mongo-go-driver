@@ -9,7 +9,9 @@ package mongo
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"fmt"
+	"math"
+	"os"
 	"path"
 	"reflect"
 	"testing"
@@ -83,7 +85,7 @@ func TestReadWriteConcernSpec(t *testing.T) {
 }
 
 func runConnectionStringTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	assert.Nil(t, err, "ReadFile error for %v: %v", filePath, err)
 
 	var testFile connectionStringTestFile
@@ -138,7 +140,7 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 }
 
 func runDocumentTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
 	var testFile documentTestFile
@@ -156,13 +158,57 @@ func runDocumentTestFile(t *testing.T, filePath string) {
 	}
 }
 
+func marshalWC(t *testing.T, wc *writeConcern) ([]byte, error) {
+	t.Helper()
+
+	var elems []byte
+	if wc.W != nil {
+		// Only support string or int values for W. That aligns with the
+		// documentation and the behavior of other functions, like Acknowledged.
+		switch w := wc.W.(type) {
+		case int:
+			if w < 0 {
+				return nil, errors.New("write concern `w` field cannot be a negative number")
+			}
+
+			// If Journal=true and W=0, return an error because that write
+			// concern is ambiguous.
+			if wc.Journal != nil && *wc.Journal && w == 0 {
+				return nil, errors.New("a write concern cannot have both w=0 and j=true")
+			}
+
+			if w > math.MaxInt32 {
+				return nil, fmt.Errorf("%d overflows int32", w)
+			}
+			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
+		case string:
+			elems = bsoncore.AppendStringElement(elems, "w", w)
+		default:
+			return nil,
+				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
+		}
+	}
+
+	if wc.Journal != nil {
+		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
+	}
+
+	return elems, nil
+}
+
 func runDocumentTest(t *testing.T, test documentTest) {
 	if test.ReadConcern != nil {
-		_, actual, err := readConcernFromRaw(t, test.ReadConcern).MarshalBSONValue()
+		rc := readConcernFromRaw(t, test.ReadConcern)
+
+		var elems []byte
+		if len(rc.Level) > 0 {
+			elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
+		}
+		actual := bsoncore.BuildDocument(nil, elems)
+
 		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
+			assert.Fail(t, "expected an invalid read concern")
 		} else {
-			assert.Nil(t, err, "MarshalBSONValue error: %v", err)
 			compareDocuments(t, *test.ReadConcernDocument, actual)
 		}
 
@@ -173,9 +219,9 @@ func runDocumentTest(t *testing.T, test documentTest) {
 	}
 	if test.WriteConcern != nil {
 		actualWc := writeConcernFromRaw(t, test.WriteConcern)
-		_, actual, err := actualWc.MarshalBSONValue()
+		actualElems, err := marshalWC(t, &actualWc)
 		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
+			assert.Equal(t, 0, len(actualElems), "expected an invalid write concern")
 			return
 		}
 		if test.IsAcknowledged != nil {
@@ -184,8 +230,10 @@ func runDocumentTest(t *testing.T, test documentTest) {
 				"expected acknowledged %v, got %v", *test.IsAcknowledged, actualAck)
 		}
 
+		assert.Nil(t, err, "MarshalBSONValue error: %v", err)
+
 		expected := *test.WriteConcernDocument
-		if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
+		if len(actualElems) == 0 {
 			elems, _ := expected.Elements()
 			if len(elems) == 0 {
 				assert.NotNil(t, test.IsServerDefault, "expected write concern %s, got empty", expected)
@@ -195,9 +243,10 @@ func runDocumentTest(t *testing.T, test documentTest) {
 			if _, jErr := expected.LookupErr("j"); jErr == nil && len(elems) == 1 {
 				return
 			}
+			assert.Fail(t, "got empty elements")
 		}
 
-		assert.Nil(t, err, "MarshalBSONValue error: %v", err)
+		actual := bsoncore.BuildDocument(nil, actualElems)
 		if jVal, err := expected.LookupErr("j"); err == nil && !jVal.Boolean() {
 			actual = actual[:len(actual)-1]
 			actual = bsoncore.AppendBooleanElement(actual, "j", false)
@@ -272,7 +321,7 @@ func jsonFilesInDir(t *testing.T, dir string) []string {
 
 	files := make([]string, 0)
 
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	assert.Nil(t, err, "unable to read json file: %v", err)
 
 	for _, entry := range entries {

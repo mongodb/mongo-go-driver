@@ -898,7 +898,7 @@ func (c *ClientOptionsBuilder) SetBSONOptions(bopts *BSONOptions) *ClientOptions
 }
 
 // SetRegistry specifies the BSON registry to use for BSON marshalling/unmarshalling operations. The default is
-// bson.DefaultRegistry.
+// bson.NewRegistry().
 func (c *ClientOptionsBuilder) SetRegistry(registry *bson.Registry) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.Registry = registry

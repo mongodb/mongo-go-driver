@@ -172,7 +172,7 @@ func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 		client.bsonOpts = args.BSONOptions
 	}
 	// Registry
-	client.registry = bson.DefaultRegistry
+	client.registry = defaultRegistry
 	if args.Registry != nil {
 		client.registry = args.Registry
 	}
