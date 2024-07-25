@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "go.mongodb.org/mongo-driver/internal/rand"
+	. "go.mongodb.org/mongo-driver/v2/internal/rand"
 )
 
 var printgolden = flag.Bool("printgolden", false, "print golden results for regression test")

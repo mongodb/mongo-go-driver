@@ -9,8 +9,8 @@ package logger
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func verifySerialization(t *testing.T, got, want KeyValues) {
