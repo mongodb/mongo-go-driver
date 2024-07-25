@@ -425,11 +425,10 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
-
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting admin client: %v", err)
 	}
+	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -500,11 +499,10 @@ func machine41ReauthenticationSucceeds() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
-
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting admin client: %v", err)
 	}
+	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -566,11 +564,10 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
-
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting admin client: %v", err)
 	}
+	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -647,11 +644,10 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
-	defer adminClient.Disconnect(context.Background())
-
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting admin client: %v", err)
 	}
+	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithMachineCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
 		countMutex.Lock()
@@ -1279,6 +1275,9 @@ func human42ReauthenticationSucceedsNoRefreshToken() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("human_4_2: failed connecting admin client: %v", err)
+	}
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1353,6 +1352,9 @@ func human43ReauthenticationSucceedsAfterRefreshFails() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("human_4_3: failed connecting admin client: %v", err)
+	}
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
@@ -1428,6 +1430,9 @@ func human44ReauthenticationFails() error {
 	countMutex := sync.Mutex{}
 
 	adminClient, err := connectAdminClinet()
+	if err != nil {
+		return fmt.Errorf("human_4_4: failed connecting admin client: %v", err)
+	}
 	defer adminClient.Disconnect(context.Background())
 
 	client, err := connectWithHumanCB(uriSingle, func(ctx context.Context, args *options.OIDCArgs) (*options.OIDCCredential, error) {
