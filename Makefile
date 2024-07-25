@@ -26,7 +26,7 @@ build-tests:
 
 .PHONY: build-compile-check
 build-compile-check:
-	#etc/compile_check.sh
+	etc/compile_check.sh
 
 # Cross-compiling on Linux for architectures 386, arm, arm64, amd64, ppc64le, and s390x.
 # Omit any build tags because we don't expect our build environment to support compiling the C
