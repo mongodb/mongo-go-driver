@@ -402,9 +402,8 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 	if sessArgs.CausalConsistency != nil {
 		coreOpts.CausalConsistency = sessArgs.CausalConsistency
 	}
-
 	if bldr := sessArgs.DefaultTransactionOptions; bldr != nil {
-		txnOpts, err := newOptionsFromBuilder[options.TransactionOptions](bldr)
+		txnOpts, err := mongoutil.NewOptions[options.TransactionOptions](bldr)
 		if err != nil {
 			return nil, err
 		}
