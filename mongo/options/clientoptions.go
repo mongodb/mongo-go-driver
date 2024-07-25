@@ -171,11 +171,6 @@ type BSONOptions struct {
 	// instead of a primitive.Binary.
 	BinaryAsSlice bool
 
-	// DefaultDocumentD causes the driver to always unmarshal documents into the
-	// primitive.D type. This behavior is restricted to data typed as
-	// "interface{}" or "map[string]interface{}".
-	DefaultDocumentD bool
-
 	// DefaultDocumentM causes the driver to always unmarshal documents into the
 	// primitive.M type. This behavior is restricted to data typed as
 	// "interface{}" or "map[string]interface{}".
@@ -201,7 +196,7 @@ type BSONOptions struct {
 type ClientOptions struct {
 	AppName                  *string
 	Auth                     *Credential
-	AutoEncryptionOptions    *AutoEncryptionOptionsBuilder
+	AutoEncryptionOptions    Lister[AutoEncryptionOptions]
 	ConnectTimeout           *time.Duration
 	Compressors              []string
 	Dialer                   ContextDialer
@@ -212,7 +207,7 @@ type ClientOptions struct {
 	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
-	LoggerOptions            *LoggerOptionsBuilder
+	LoggerOptions            Lister[LoggerOptions]
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -227,7 +222,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
-	ServerAPIOptions         *ServerAPIOptionsBuilder
+	ServerAPIOptions         Lister[ServerAPIOptions]
 	ServerMonitoringMode     *string
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
@@ -269,8 +264,8 @@ func Client() *ClientOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of ClientOptions setter functions.
-func (c *ClientOptionsBuilder) OptionsSetters() []func(*ClientOptions) error {
+// List returns a list of ClientOptions setter functions.
+func (c *ClientOptionsBuilder) List() []func(*ClientOptions) error {
 	return c.Opts
 }
 
@@ -490,10 +485,10 @@ func setURIOpts(uri string, opts *ClientOptions) error {
 // GetURI returns the original URI used to configure the ClientOptions instance.
 // If ApplyURI was not called during construction, this returns "".
 func (c *ClientOptionsBuilder) GetURI() string {
-	opts, _ := getOptions[ClientOptions](c)
+	args, _ := getOptions[ClientOptions](c)
 
-	if opts != nil && opts.connString != nil {
-		return opts.connString.Original
+	if args != nil && args.connString != nil {
+		return args.connString.Original
 	}
 
 	return ""
@@ -502,31 +497,31 @@ func (c *ClientOptionsBuilder) GetURI() string {
 // Validate validates the client options. This method will return the first
 // error found.
 func (c *ClientOptionsBuilder) Validate() error {
-	opts, err := getOptions[ClientOptions](c)
+	args, err := getOptions[ClientOptions](c)
 	if err != nil {
 		return err
 	}
 
 	// Direct connections cannot be made if multiple hosts are specified or an SRV
 	// URI is used.
-	if opts.Direct != nil && *opts.Direct {
-		if len(opts.Hosts) > 1 {
+	if args.Direct != nil && *args.Direct {
+		if len(args.Hosts) > 1 {
 			return errors.New("a direct connection cannot be made if multiple hosts are specified")
 		}
-		if opts.connString != nil && opts.connString.Scheme == connstring.SchemeMongoDBSRV {
+		if args.connString != nil && args.connString.Scheme == connstring.SchemeMongoDBSRV {
 			return errors.New("a direct connection cannot be made if an SRV URI is used")
 		}
 	}
 
-	if opts.MaxPoolSize != nil && opts.MinPoolSize != nil && *opts.MaxPoolSize != 0 &&
-		*opts.MinPoolSize > *opts.MaxPoolSize {
+	if args.MaxPoolSize != nil && args.MinPoolSize != nil && *args.MaxPoolSize != 0 &&
+		*args.MinPoolSize > *args.MaxPoolSize {
 		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d",
-			*opts.MinPoolSize, *opts.MaxPoolSize)
+			*args.MinPoolSize, *args.MaxPoolSize)
 	}
 
 	// verify server API version if ServerAPIOptions are passed in.
-	if opts.ServerAPIOptions != nil {
-		serverAPIopts, err := getOptions[ServerAPIOptions](opts.ServerAPIOptions)
+	if args.ServerAPIOptions != nil {
+		serverAPIopts, err := getOptions[ServerAPIOptions](args.ServerAPIOptions)
 		if err != nil {
 			return fmt.Errorf("failed to construct options from builder: %w", err)
 		}
@@ -537,33 +532,33 @@ func (c *ClientOptionsBuilder) Validate() error {
 	}
 
 	// Validation for load-balanced mode.
-	if opts.LoadBalanced != nil && *opts.LoadBalanced {
-		if len(opts.Hosts) > 1 {
+	if args.LoadBalanced != nil && *args.LoadBalanced {
+		if len(args.Hosts) > 1 {
 			return connstring.ErrLoadBalancedWithMultipleHosts
 		}
-		if opts.ReplicaSet != nil {
+		if args.ReplicaSet != nil {
 			return connstring.ErrLoadBalancedWithReplicaSet
 		}
-		if opts.Direct != nil && *opts.Direct {
+		if args.Direct != nil && *args.Direct {
 			return connstring.ErrLoadBalancedWithDirectConnection
 		}
 	}
 
 	// Validation for srvMaxHosts.
-	if opts.SRVMaxHosts != nil && *opts.SRVMaxHosts > 0 {
-		if opts.ReplicaSet != nil {
+	if args.SRVMaxHosts != nil && *args.SRVMaxHosts > 0 {
+		if args.ReplicaSet != nil {
 			return connstring.ErrSRVMaxHostsWithReplicaSet
 		}
-		if opts.LoadBalanced != nil && *opts.LoadBalanced {
+		if args.LoadBalanced != nil && *args.LoadBalanced {
 			return connstring.ErrSRVMaxHostsWithLoadBalanced
 		}
 	}
 
-	if mode := opts.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
+	if mode := args.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
 		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
 	}
 
-	if to := opts.Timeout; to != nil && *to < 0 {
+	if to := args.Timeout; to != nil && *to < 0 {
 		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
 	}
 
@@ -758,7 +753,7 @@ func (c *ClientOptionsBuilder) SetLocalThreshold(d time.Duration) *ClientOptions
 
 // SetLoggerOptions specifies a LoggerOptions containing options for
 // configuring a logger.
-func (c *ClientOptionsBuilder) SetLoggerOptions(lopts *LoggerOptionsBuilder) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetLoggerOptions(lopts Lister[LoggerOptions]) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.LoggerOptions = lopts
 
@@ -1102,7 +1097,7 @@ func (c *ClientOptionsBuilder) SetZstdLevel(level int) *ClientOptionsBuilder {
 // SetAutoEncryptionOptions specifies an AutoEncryptionOptions instance to automatically encrypt and decrypt commands
 // and their results. See the options.AutoEncryptionOptions documentation for more information about the supported
 // options.
-func (c *ClientOptionsBuilder) SetAutoEncryptionOptions(aeopts *AutoEncryptionOptionsBuilder) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetAutoEncryptionOptions(aeopts Lister[AutoEncryptionOptions]) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.AutoEncryptionOptions = aeopts
 
@@ -1134,7 +1129,7 @@ func (c *ClientOptionsBuilder) SetDisableOCSPEndpointCheck(disableCheck bool) *C
 // SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
 // when running commands. See the options.ServerAPIOptions documentation for more information about the supported
 // options.
-func (c *ClientOptionsBuilder) SetServerAPIOptions(sopts *ServerAPIOptionsBuilder) *ClientOptionsBuilder {
+func (c *ClientOptionsBuilder) SetServerAPIOptions(sopts Lister[ServerAPIOptions]) *ClientOptionsBuilder {
 	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
 		opts.ServerAPIOptions = sopts
 

@@ -26,7 +26,7 @@ import (
 // Enabling Client Side Encryption reduces the maximum document and message size (using a maxBsonObjectSize of 2MiB and
 // maxMessageSizeBytes of 6MB) and may have a negative performance impact.
 type AutoEncryptionOptions struct {
-	KeyVaultClientOptions *ClientOptionsBuilder
+	KeyVaultClientOptions Lister[ClientOptions]
 	KeyVaultNamespace     string
 	KmsProviders          map[string]map[string]interface{}
 	SchemaMap             map[string]interface{}
@@ -58,8 +58,8 @@ func AutoEncryption() *AutoEncryptionOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of AutoEncryptionOptions setter functions.
-func (a *AutoEncryptionOptionsBuilder) OptionsSetters() []func(*AutoEncryptionOptions) error {
+// List returns a list of AutoEncryptionOptions setter functions.
+func (a *AutoEncryptionOptionsBuilder) List() []func(*AutoEncryptionOptions) error {
 	return a.Opts
 }
 
@@ -72,7 +72,7 @@ func (a *AutoEncryptionOptionsBuilder) OptionsSetters() []func(*AutoEncryptionOp
 // (and created if necessary). The internal mongo.Client may be shared during automatic encryption (if
 // BypassAutomaticEncryption is false). The internal mongo.Client is configured with the same options as the target
 // mongo.Client except minPoolSize is set to 0 and AutoEncryptionOptions is omitted.
-func (a *AutoEncryptionOptionsBuilder) SetKeyVaultClientOptions(opts *ClientOptionsBuilder) *AutoEncryptionOptionsBuilder {
+func (a *AutoEncryptionOptionsBuilder) SetKeyVaultClientOptions(opts Lister[ClientOptions]) *AutoEncryptionOptionsBuilder {
 	a.Opts = append(a.Opts, func(args *AutoEncryptionOptions) error {
 		args.KeyVaultClientOptions = opts
 

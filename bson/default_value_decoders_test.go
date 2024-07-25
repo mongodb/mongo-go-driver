@@ -818,7 +818,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					readDocument,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadElement Error",
@@ -904,7 +904,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{BSONType: TypeArray},
 					readArray,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadValue Error",
@@ -998,7 +998,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{BSONType: TypeArray},
 					readArray,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadValue Error",
@@ -1558,7 +1558,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"No Decoder", &wrong, &DecodeContext{Registry: buildDefaultRegistry()}, nil, nothing,
-					ErrNoDecoder{Type: reflect.TypeOf(wrong)},
+					errNoDecoder{Type: reflect.TypeOf(wrong)},
 				},
 				{
 					"decode null",
@@ -2891,10 +2891,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AS: nil,
 					AT: nil,
 					AU: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
-					AV: M{"foo": M{"bar": "baz"}},
+					AV: M{"foo": D{{"bar", "baz"}}},
 					AW: D{{"foo", D{{"bar", "baz"}}}},
-					AX: map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}},
-					AY: []E{{"foo", []E{{"bar", "baz"}}}},
+					AX: map[string]interface{}{"foo": D{{"bar", "baz"}}},
+					AY: []E{{"foo", D{{"bar", "baz"}}}},
 					AZ: D{{"foo", D{{"bar", "baz"}}}},
 				},
 				buildDocument(func(doc []byte) []byte {
@@ -3307,7 +3307,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						}
 						val := reflect.New(tEmpty).Elem()
 						dc := DecodeContext{Registry: newTestRegistry()}
-						want := ErrNoTypeMapEntry{Type: tc.bsontype}
+						want := errNoTypeMapEntry{Type: tc.bsontype}
 						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, val)
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
@@ -3324,7 +3324,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 						dc := DecodeContext{
 							Registry: reg,
 						}
-						want := ErrNoDecoder{Type: reflect.TypeOf(tc.val)}
+						want := errNoDecoder{Type: reflect.TypeOf(tc.val)}
 						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, val)
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
@@ -3389,7 +3389,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		t.Run("no type registered", func(t *testing.T) {
 			llvr := &valueReaderWriter{BSONType: TypeDouble}
-			want := ErrNoTypeMapEntry{Type: TypeDouble}
+			want := errNoTypeMapEntry{Type: TypeDouble}
 			val := reflect.New(tEmpty).Elem()
 			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{Registry: newTestRegistry()}, llvr, val)
 			if !assert.CompareErrors(got, want) {
@@ -3410,7 +3410,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 		t.Run("custom type map entry", func(t *testing.T) {
 			// registering a custom type map entry for both Type(0) anad TypeEmbeddedDocument should cause
-			// both top-level and embedded documents to decode to registered type when unmarshalling to interface{}
+			// the top-level to decode to registered type when unmarshalling to interface{}
 
 			topLevelReg := &Registry{
 				typeEncoders: new(typeEncoderCache),
@@ -3442,9 +3442,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.AppendDocumentElement(nil, "nested", innerDoc),
 			)
 			want := M{
-				"nested": M{
-					"foo": int32(1),
-				},
+				"nested": D{{"foo", int32(1)}},
 			}
 
 			testCases := []struct {
@@ -3466,9 +3464,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 				}
 			}
 		})
-		t.Run("ancestor info is used over custom type map entry", func(t *testing.T) {
-			// If a type map entry is registered for TypeEmbeddedDocument, the decoder should use ancestor
-			// information if available instead of the registered entry.
+		t.Run("custom type map entry is used if there is no type information", func(t *testing.T) {
+			// If a type map entry is registered for TypeEmbeddedDocument, the decoder should use it when
+			// type information is not available.
 
 			reg := &Registry{
 				typeEncoders: new(typeEncoderCache),
@@ -3490,8 +3488,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.AppendDocumentElement(nil, "nested", inner),
 			)
 			want := D{
-				{"nested", D{
-					{"foo", int32(10)},
+				{"nested", M{
+					"foo": int32(10),
 				}},
 			}
 
@@ -3540,7 +3538,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		}
 		stringStructErr := &DecodeError{
 			keys:    []string{"foo"},
-			wrapped: ErrNoDecoder{reflect.TypeOf("")},
+			wrapped: errNoDecoder{reflect.TypeOf("")},
 		}
 
 		// Test a deeply nested struct mixed with maps and slices.

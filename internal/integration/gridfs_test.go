@@ -455,12 +455,13 @@ func TestGridFS(x *testing.T) {
 
 	mt.RunOpts("round trip", mtest.NewOptions().MaxServerVersion("3.6"), func(mt *mtest.T) {
 		skipRoundTripTest(mt)
-		oneK := 1024
-		smallBuffSize := 100
+
+		const oneK = 1024
+		const smallBuffSize = 100
 
 		tests := []struct {
 			name      string
-			chunkSize int // make -1 for no capacity for no chunkSize
+			chunkSize int32 // make -1 for no capacity for no chunkSize
 			fileSize  int
 			bufSize   int // make -1 for no capacity for no bufSize
 		}{
@@ -476,7 +477,7 @@ func TestGridFS(x *testing.T) {
 			mt.Run(test.name, func(mt *mtest.T) {
 				opts := options.GridFSBucket()
 				if test.chunkSize != -1 {
-					opts.SetChunkSizeBytes(int32(test.chunkSize))
+					opts.SetChunkSizeBytes(test.chunkSize)
 				}
 
 				bucket := mt.DB.GridFSBucket(opts)

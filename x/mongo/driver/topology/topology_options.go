@@ -45,8 +45,8 @@ type Config struct {
 }
 
 // ConvertToDriverAPIOptions converts a options.ServerAPIOptions instance to a driver.ServerAPIOptions.
-func ConvertToDriverAPIOptions(opts mongoutil.OptionsBuilder[options.ServerAPIOptions]) *driver.ServerAPIOptions {
-	args, _ := mongoutil.NewOptionsFromBuilder[options.ServerAPIOptions](opts)
+func ConvertToDriverAPIOptions(opts options.Lister[options.ServerAPIOptions]) *driver.ServerAPIOptions {
+	args, _ := mongoutil.NewOptions[options.ServerAPIOptions](opts)
 
 	driverOpts := driver.NewServerAPIOptions(string(args.ServerAPIVersion))
 	if args.Strict != nil {
@@ -58,12 +58,12 @@ func ConvertToDriverAPIOptions(opts mongoutil.OptionsBuilder[options.ServerAPIOp
 	return driverOpts
 }
 
-func newLogger(opts mongoutil.OptionsBuilder[options.LoggerOptions]) (*logger.Logger, error) {
+func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
 	if opts == nil {
 		opts = options.Logger()
 	}
 
-	args, err := mongoutil.NewOptionsFromBuilder[options.LoggerOptions](opts)
+	args, err := mongoutil.NewOptions[options.LoggerOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -84,7 +84,7 @@ func newLogger(opts mongoutil.OptionsBuilder[options.LoggerOptions]) (*logger.Lo
 // NewConfig behaves like NewConfigFromOptions by extracting arguments from a
 // list of ClientOptions setters.
 func NewConfig(opts *options.ClientOptionsBuilder, clock *session.ClusterClock) (*Config, error) {
-	args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](opts)
+	args, err := mongoutil.NewOptions[options.ClientOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}

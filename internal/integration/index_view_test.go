@@ -8,7 +8,6 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -248,19 +247,6 @@ func TestIndexView(t *testing.T) {
 				})
 			}
 		})
-		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.Unacknowledged())
-		unackMtOpts := mtest.NewOptions().
-			ClientOptions(unackClientOpts).
-			MinServerVersion("3.6")
-		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
-			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{Keys: bson.D{{"x", 1}}})
-			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
-				// so the assertion would succeed even if the error had not been wrapped.
-				mt.Fatalf("expected CreateOne error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
-			}
-		})
 		// Needs to run on these versions for failpoints
 		mt.RunOpts("replace error", mtest.NewOptions().Topologies(mtest.ReplicaSet).MinServerVersion("4.0"), func(mt *mtest.T) {
 			mt.SetFailPoint(mtest.FailPoint{
@@ -493,7 +479,7 @@ func TestIndexView(t *testing.T) {
 			})
 			assert.Nil(mt, err, "CreateMany error: %v", err)
 
-			expectedSpecs := []*mongo.IndexSpecification{
+			expectedSpecs := []mongo.IndexSpecification{
 				{
 					Name:               "_id_",
 					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
@@ -582,7 +568,7 @@ func TestIndexView(t *testing.T) {
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		_, err = iv.DropOne(context.Background(), indexNames[1])
+		err = iv.DropOne(context.Background(), indexNames[1])
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
 		cursor, err := iv.List(context.Background())
@@ -634,7 +620,7 @@ func TestIndexView(t *testing.T) {
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 			specs, err := clustered.Indexes().ListSpecifications(context.Background())
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
-			expectedSpecs := []*mongo.IndexSpecification{
+			expectedSpecs := []mongo.IndexSpecification{
 				{
 					Name:         "_id_",
 					Namespace:    mt.DB.Name() + "." + name,

@@ -155,12 +155,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 // aggregator is an interface used to run collection and database-level aggregations
 type aggregator interface {
-	Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateOptions]) (*mongo.Cursor, error)
+	Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 }
 
 // watcher is an interface used to create client, db, and collection-level change streams
 type watcher interface {
-	Watch(context.Context, interface{}, ...mongo.Options[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
+	Watch(context.Context, interface{}, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 }
 
 func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -902,7 +902,7 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -954,7 +954,7 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.UpdateOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -1002,7 +1002,7 @@ func executeReplaceOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		}
 	}
 
-	updateArgs, err := mongoutil.NewOptionsFromBuilder[options.ReplaceOptions](opts)
+	updateArgs, err := mongoutil.NewOptions[options.ReplaceOptions](opts)
 	require.NoError(mt, err, "failed to construct options from builder")
 
 	if updateArgs.Upsert == nil {
@@ -1060,7 +1060,9 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	mt.Helper()
 
 	var testArgs withTransactionArgs
-	err := bson.UnmarshalWithRegistry(specTestRegistry, args, &testArgs)
+	dec := bson.NewDecoder(bson.NewValueReader(args))
+	dec.SetRegistry(specTestRegistry)
+	err := dec.Decode(&testArgs)
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
 	opts := createTransactionOptions(mt, testArgs.Options)
 
@@ -1308,7 +1310,7 @@ func executeCreateIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (string
 	return mt.Coll.Indexes().CreateOne(context.Background(), model)
 }
 
-func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.Raw, error) {
+func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) error {
 	mt.Helper()
 
 	var name string
@@ -1326,14 +1328,11 @@ func executeDropIndex(mt *mtest.T, sess *mongo.Session, args bson.Raw) (bson.Raw
 	}
 
 	if sess != nil {
-		var res bson.Raw
-		err := mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
-			var indexErr error
-			res, indexErr = mt.Coll.Indexes().DropOne(sc, name)
-			return indexErr
+		return mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
+			return mt.Coll.Indexes().DropOne(sc, name)
 		})
-		return res, err
 	}
+
 	return mt.Coll.Indexes().DropOne(context.Background(), name)
 }
 
@@ -1439,7 +1438,7 @@ func executeAdminCommandWithRetry(
 	mt *mtest.T,
 	client *mongo.Client,
 	cmd interface{},
-	opts ...mongo.Options[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) {
 	mt.Helper()
 

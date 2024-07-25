@@ -24,7 +24,7 @@ import (
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...mongo.Options[options.AggregateOptions]) (*mongo.Cursor, error)
+		Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -598,8 +598,8 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("name")
 	}
 
-	res, err := coll.Indexes().DropOne(ctx, name, dropIndexOpts)
-	return newDocumentResult(res, err), nil
+	err = coll.Indexes().DropOne(ctx, name, dropIndexOpts)
+	return newDocumentResult(nil, err), nil
 }
 
 func executeDropIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -1177,7 +1177,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []*mongoutil.OptionsBuilderWithCallback[options.ListSearchIndexesOptions]
+	var opts []options.Lister[options.ListSearchIndexesOptions]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1192,25 +1192,21 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
 			// Unmarshal the document into the AggregateOptions embedded object.
-			opt := &mongoutil.OptionsBuilderWithCallback[options.ListSearchIndexesOptions]{
-				Options: &options.ListSearchIndexesOptions{},
-				Callback: func(args *options.ListSearchIndexesOptions) error {
-					args.AggregateOptions = &options.AggregateOptions{}
+			lsiOpts := &options.ListSearchIndexesOptions{}
+			lsiOptsCallback := func(args *options.ListSearchIndexesOptions) error {
+				args.AggregateOptions = &options.AggregateOptions{}
 
-					return bson.Unmarshal(val.Document(), args.AggregateOptions)
-				},
+				return bson.Unmarshal(val.Document(), args.AggregateOptions)
 			}
 
-			opts = append(opts, opt)
+			opts = append(opts, mongoutil.NewOptionsLister(lsiOpts, lsiOptsCallback))
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}
 	}
 
-	aggregateOpts := make([]mongo.Options[options.ListSearchIndexesOptions], len(opts))
-	for idx, opt := range opts {
-		aggregateOpts[idx] = opt
-	}
+	aggregateOpts := make([]options.Lister[options.ListSearchIndexesOptions], len(opts))
+	copy(aggregateOpts, opts)
 
 	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, aggregateOpts...)
 	return newValueResult(bson.TypeNull, nil, err), nil

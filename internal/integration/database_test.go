@@ -298,7 +298,7 @@ func TestDatabase(t *testing.T) {
 				AppendInt32("size", 4096).
 				Build()
 
-			expectedSpec := &mongo.CollectionSpecification{
+			expectedSpec := mongo.CollectionSpecification{
 				Name:     cappedName,
 				Type:     "collection",
 				ReadOnly: false,
@@ -312,7 +312,7 @@ func TestDatabase(t *testing.T) {
 				keysDoc := bsoncore.NewDocumentBuilder().
 					AppendInt32("_id", 1).
 					Build()
-				expectedSpec.IDIndex = &mongo.IndexSpecification{
+				expectedSpec.IDIndex = mongo.IndexSpecification{
 					Name:         "_id_",
 					Namespace:    mt.DB.Name() + "." + cappedName,
 					KeysDocument: bson.Raw(keysDoc),
@@ -599,7 +599,9 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false")
 
 	var actualOpts bson.M
-	err = bson.UnmarshalWithRegistry(interfaceAsMapRegistry, cursor.Current.Lookup("options").Document(), &actualOpts)
+	dec := bson.NewDecoder(bson.NewValueReader(cursor.Current.Lookup("options").Document()))
+	dec.SetRegistry(interfaceAsMapRegistry)
+	err = dec.Decode(&actualOpts)
 	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)
 
 	return actualOpts

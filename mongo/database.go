@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csfle"
 	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -28,7 +29,7 @@ import (
 )
 
 var (
-	defaultRunCmdOpts = []Options[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
+	defaultRunCmdOpts = []options.Lister[options.RunCmdOptions]{options.RunCmd().SetReadPreference(readpref.Primary())}
 )
 
 // Database is a handle to a MongoDB database. It is safe for concurrent use by multiple goroutines.
@@ -44,8 +45,8 @@ type Database struct {
 	registry       *bson.Registry
 }
 
-func newDatabase(client *Client, name string, opts ...Options[options.DatabaseOptions]) *Database {
-	args, _ := newOptionsFromBuilder[options.DatabaseOptions](opts...)
+func newDatabase(client *Client, name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
+	args, _ := mongoutil.NewOptions[options.DatabaseOptions](opts...)
 
 	rc := client.readConcern
 	if args.ReadConcern != nil {
@@ -110,7 +111,7 @@ func (db *Database) Name() string {
 }
 
 // Collection gets a handle for a collection with the given name configured with the given CollectionOptions.
-func (db *Database) Collection(name string, opts ...Options[options.CollectionOptions]) *Collection {
+func (db *Database) Collection(name string, opts ...options.Lister[options.CollectionOptions]) *Collection {
 	return newCollection(db, name, opts...)
 }
 
@@ -129,7 +130,7 @@ func (db *Database) Collection(name string, opts ...Options[options.CollectionOp
 func (db *Database) Aggregate(
 	ctx context.Context,
 	pipeline interface{},
-	opts ...Options[options.AggregateOptions],
+	opts ...options.Lister[options.AggregateOptions],
 ) (*Cursor, error) {
 	a := aggregateParams{
 		ctx:            ctx,
@@ -152,9 +153,9 @@ func (db *Database) processRunCommand(
 	ctx context.Context,
 	cmd interface{},
 	cursorCommand bool,
-	opts ...Options[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) (*operation.Command, *session.Client, error) {
-	args, err := newOptionsFromBuilder[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
+	args, err := mongoutil.NewOptions[options.RunCmdOptions](append(defaultRunCmdOpts, opts...)...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -234,7 +235,7 @@ func (db *Database) processRunCommand(
 func (db *Database) RunCommand(
 	ctx context.Context,
 	runCommand interface{},
-	opts ...Options[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) *SingleResult {
 	if ctx == nil {
 		ctx = context.Background()
@@ -248,13 +249,14 @@ func (db *Database) RunCommand(
 
 	err = op.Execute(ctx)
 	// RunCommand can be used to run a write, thus execute may return a write error
-	_, convErr := processWriteError(err)
+	rr, convErr := processWriteError(err)
 	return &SingleResult{
-		ctx:      ctx,
-		err:      convErr,
-		rdr:      bson.Raw(op.Result()),
-		bsonOpts: db.bsonOpts,
-		reg:      db.registry,
+		ctx:          ctx,
+		err:          convErr,
+		rdr:          bson.Raw(op.Result()),
+		bsonOpts:     db.bsonOpts,
+		reg:          db.registry,
+		Acknowledged: rr.isAcknowledged(),
 	}
 }
 
@@ -275,7 +277,7 @@ func (db *Database) RunCommand(
 func (db *Database) RunCommandCursor(
 	ctx context.Context,
 	runCommand interface{},
-	opts ...Options[options.RunCmdOptions],
+	opts ...options.Lister[options.RunCmdOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -362,8 +364,8 @@ func (db *Database) Drop(ctx context.Context) error {
 func (db *Database) ListCollectionSpecifications(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.ListCollectionsOptions],
-) ([]*CollectionSpecification, error) {
+	opts ...options.Lister[options.ListCollectionsOptions],
+) ([]CollectionSpecification, error) {
 	cursor, err := db.ListCollections(ctx, filter, opts...)
 	if err != nil {
 		return nil, err
@@ -385,13 +387,13 @@ func (db *Database) ListCollectionSpecifications(
 		return nil, err
 	}
 
-	specs := make([]*CollectionSpecification, len(resp))
+	specs := make([]CollectionSpecification, len(resp))
 	for idx, spec := range resp {
-		specs[idx] = &CollectionSpecification{
+		specs[idx] = CollectionSpecification{
 			Name:    spec.Name,
 			Type:    spec.Type,
 			Options: spec.Options,
-			IDIndex: newIndexSpecificationFromResponse(spec.IDIndex),
+			IDIndex: IndexSpecification(spec.IDIndex),
 		}
 
 		if spec.Info != nil {
@@ -401,7 +403,7 @@ func (db *Database) ListCollectionSpecifications(
 
 		// Pre-4.4 servers report a namespace in their responses, so we only set Namespace manually if it was not in
 		// the response.
-		if specs[idx].IDIndex != nil && specs[idx].IDIndex.Namespace == "" {
+		if specs[idx].IDIndex.Namespace == "" {
 			specs[idx].IDIndex.Namespace = db.name + "." + specs[idx].Name
 		}
 	}
@@ -425,13 +427,13 @@ func (db *Database) ListCollectionSpecifications(
 func (db *Database) ListCollections(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.ListCollectionsOptions],
+	opts ...options.Lister[options.ListCollectionsOptions],
 ) (*Cursor, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	args, err := newOptionsFromBuilder[options.ListCollectionsOptions](opts...)
+	args, err := mongoutil.NewOptions[options.ListCollectionsOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -522,7 +524,7 @@ func (db *Database) ListCollections(
 func (db *Database) ListCollectionNames(
 	ctx context.Context,
 	filter interface{},
-	opts ...Options[options.ListCollectionsOptions],
+	opts ...options.Lister[options.ListCollectionsOptions],
 ) ([]string, error) {
 	opts = append(opts, options.ListCollections().SetNameOnly(true))
 
@@ -566,7 +568,7 @@ func (db *Database) ListCollectionNames(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
-	opts ...Options[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 
 	csConfig := changeStreamConfig{
 		readConcern:    db.readConcern,
@@ -588,8 +590,8 @@ func (db *Database) Watch(ctx context.Context, pipeline interface{},
 // documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/create/.
-func (db *Database) CreateCollection(ctx context.Context, name string, opts ...Options[options.CreateCollectionOptions]) error {
-	args, err := newOptionsFromBuilder(opts...)
+func (db *Database) CreateCollection(ctx context.Context, name string, opts ...options.Lister[options.CreateCollectionOptions]) error {
+	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -661,7 +663,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 	ctx context.Context,
 	name string,
 	ef interface{},
-	opts ...Options[options.CreateCollectionOptions],
+	opts ...options.Lister[options.CreateCollectionOptions],
 ) error {
 	efBSON, err := marshal(ef, db.bsonOpts, db.registry)
 	if err != nil {
@@ -739,7 +741,7 @@ func (db *Database) createCollectionWithEncryptedFields(
 func (db *Database) createCollection(
 	ctx context.Context,
 	name string,
-	opts ...Options[options.CreateCollectionOptions],
+	opts ...options.Lister[options.CreateCollectionOptions],
 ) error {
 	op, err := db.createCollectionOperation(name, opts...)
 	if err != nil {
@@ -750,9 +752,9 @@ func (db *Database) createCollection(
 
 func (db *Database) createCollectionOperation(
 	name string,
-	opts ...Options[options.CreateCollectionOptions],
+	opts ...options.Lister[options.CreateCollectionOptions],
 ) (*operation.Create, error) {
-	args, err := newOptionsFromBuilder[options.CreateCollectionOptions](opts...)
+	args, err := mongoutil.NewOptions[options.CreateCollectionOptions](opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -773,7 +775,7 @@ func (db *Database) createCollectionOperation(
 		op.ChangeStreamPreAndPostImages(csppi)
 	}
 	if args.DefaultIndexOptions != nil {
-		defaultIndexArgs, err := newOptionsFromBuilder[options.DefaultIndexOptions](args.DefaultIndexOptions)
+		defaultIndexArgs, err := mongoutil.NewOptions[options.DefaultIndexOptions](args.DefaultIndexOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
 		}
@@ -825,7 +827,7 @@ func (db *Database) createCollectionOperation(
 		op.ExpireAfterSeconds(*args.ExpireAfterSeconds)
 	}
 	if args.TimeSeriesOptions != nil {
-		timeSeriesArgs, err := newOptionsFromBuilder[options.TimeSeriesOptions](args.TimeSeriesOptions)
+		timeSeriesArgs, err := mongoutil.NewOptions[options.TimeSeriesOptions](args.TimeSeriesOptions)
 		if err != nil {
 			return nil, fmt.Errorf("failed to construct DefaultIndexArgs from options: %w", err)
 		}
@@ -884,7 +886,7 @@ func (db *Database) createCollectionOperation(
 // The opts parameter can be used to specify options for the operation (see the options.CreateViewOptions
 // documentation).
 func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pipeline interface{},
-	opts ...Options[options.CreateViewOptions]) error {
+	opts ...options.Lister[options.CreateViewOptions]) error {
 
 	pipelineArray, _, err := marshalAggregatePipeline(pipeline, db.bsonOpts, db.registry)
 	if err != nil {
@@ -895,7 +897,7 @@ func (db *Database) CreateView(ctx context.Context, viewName, viewOn string, pip
 		ViewOn(viewOn).
 		Pipeline(pipelineArray).
 		ServerAPI(db.client.serverAPI)
-	args, err := newOptionsFromBuilder(opts...)
+	args, err := mongoutil.NewOptions(opts...)
 	if err != nil {
 		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
@@ -942,14 +944,14 @@ func (db *Database) executeCreateOperation(ctx context.Context, op *operation.Cr
 
 // GridFSBucket is used to construct a GridFS bucket which can be used as a
 // container for files.
-func (db *Database) GridFSBucket(opts ...Options[options.BucketOptions]) *GridFSBucket {
+func (db *Database) GridFSBucket(opts ...options.Lister[options.BucketOptions]) *GridFSBucket {
 	b := &GridFSBucket{
 		name:      "fs",
 		chunkSize: DefaultGridFSChunkSize,
 		db:        db,
 	}
 
-	bo, _ := newOptionsFromBuilder[options.BucketOptions](opts...)
+	bo, _ := mongoutil.NewOptions[options.BucketOptions](opts...)
 	if bo.Name != nil {
 		b.name = *bo.Name
 	}

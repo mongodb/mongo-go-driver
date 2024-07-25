@@ -32,8 +32,8 @@ func ListCollections() *ListCollectionsOptionsBuilder {
 	return &ListCollectionsOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of CountOptions setter functions.
-func (lc *ListCollectionsOptionsBuilder) OptionsSetters() []func(*ListCollectionsOptions) error {
+// List returns a list of CountOptions setter functions.
+func (lc *ListCollectionsOptionsBuilder) List() []func(*ListCollectionsOptions) error {
 	return lc.Opts
 }
 

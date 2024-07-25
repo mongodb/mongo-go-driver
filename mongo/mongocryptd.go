@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -39,12 +40,12 @@ type mongocryptdClient struct {
 // newMongocryptdClient creates a client to mongocryptd.
 // newMongocryptdClient is expected to not be called if the crypt shared library is available.
 // The crypt shared library replaces all mongocryptd functionality.
-func newMongocryptdClient(opts *options.AutoEncryptionOptionsBuilder) (*mongocryptdClient, error) {
+func newMongocryptdClient(opts options.Lister[options.AutoEncryptionOptions]) (*mongocryptdClient, error) {
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
 
-	args, err := newOptionsFromBuilder[options.AutoEncryptionOptions](opts)
+	args, err := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}

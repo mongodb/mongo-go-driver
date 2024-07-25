@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/csot"
 	"go.mongodb.org/mongo-driver/internal/driverutil"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -130,7 +131,7 @@ func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
-	opts ...Options[options.ChangeStreamOptions]) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -139,7 +140,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
-	args, err := newOptionsFromBuilder[options.ChangeStreamOptions](opts...)
+	args, err := mongoutil.NewOptions[options.ChangeStreamOptions](opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -198,13 +199,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		// any errors from Marshaling.
 		customOptions := make(map[string]bsoncore.Value)
 		for optionName, optionValue := range cs.options.Custom {
-			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			optionValueBSON, err := marshalValue(optionValue, nil, cs.registry)
 			if err != nil {
 				cs.err = err
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			customOptions[optionName] = optionValueBSON
 		}
 		cs.aggregate.CustomOptions(customOptions)
@@ -214,13 +214,12 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		// any errors from Marshaling.
 		cs.pipelineOptions = make(map[string]bsoncore.Value)
 		for optionName, optionValue := range cs.options.CustomPipeline {
-			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			optionValueBSON, err := marshalValue(optionValue, nil, cs.registry)
 			if err != nil {
 				cs.err = err
 				closeImplicitSession(cs.sess)
 				return nil, cs.Err()
 			}
-			optionValueBSON := bsoncore.Value{Type: bsoncore.Type(bsonType), Data: bsonData}
 			cs.pipelineOptions[optionName] = optionValueBSON
 		}
 	}

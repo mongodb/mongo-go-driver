@@ -48,8 +48,8 @@ func ServerAPI(serverAPIVersion ServerAPIVersion) *ServerAPIOptionsBuilder {
 	return opts
 }
 
-// OptionsSetters returns a list of ServerAPIOptions setter functions.
-func (s *ServerAPIOptionsBuilder) OptionsSetters() []func(*ServerAPIOptions) error {
+// List returns a list of ServerAPIOptions setter functions.
+func (s *ServerAPIOptionsBuilder) List() []func(*ServerAPIOptions) error {
 	return s.Opts
 }
 

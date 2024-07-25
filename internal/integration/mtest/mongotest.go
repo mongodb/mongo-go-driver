@@ -449,7 +449,7 @@ func (t *T) CreateCollection(coll Collection, createOnServer bool) *mongo.Collec
 
 	db := coll.Client.Database(coll.DB)
 
-	opts, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
+	opts, err := mongoutil.NewOptions[options.CreateCollectionOptions](coll.CreateOpts)
 	require.NoError(t, err, "failed to construct options from builder")
 
 	if coll.CreateOpts != nil && opts.EncryptedFields != nil {
@@ -515,24 +515,20 @@ func (t *T) ClearCollections() {
 	// Collections should not be dropped when testing against Atlas Data Lake because the data is pre-inserted.
 	if !testContext.dataLake {
 		for _, coll := range t.createdColls {
-			opts, err := mongoutil.NewOptionsFromBuilder[options.CreateCollectionOptions](coll.CreateOpts)
+			opts, err := mongoutil.NewOptions[options.CreateCollectionOptions](coll.CreateOpts)
 			require.NoError(t, err, "failed to construct options from builder")
 
 			if coll.CreateOpts != nil && opts.EncryptedFields != nil {
 				DropEncryptedCollection(t, coll.created, opts.EncryptedFields)
 			}
 
-			err = coll.created.Drop(context.Background())
-			if errors.Is(err, mongo.ErrUnacknowledgedWrite) || errors.Is(err, driver.ErrUnacknowledgedWrite) {
-				// It's possible that a collection could have an unacknowledged write concern, which
-				// could prevent it from being dropped for sharded clusters. We can resolve this by
-				// re-instantiating the collection with a majority write concern before dropping.
-				collname := coll.created.Name()
-				wcm := writeconcern.Majority()
-				wccoll := t.DB.Collection(collname, options.Collection().SetWriteConcern(wcm))
-				_ = wccoll.Drop(context.Background())
+			// It's possible that a collection could have an unacknowledged write
+			// concern, which could prevent it from being dropped for sharded
+			// clusters. We can resolve this by  re-instantiating the collection with
+			// a majority write concern before dropping.
+			clonedColl := coll.created.Clone(options.Collection().SetWriteConcern(writeconcern.Majority()))
 
-			}
+			_ = clonedColl.Drop(context.Background())
 		}
 	}
 	t.createdColls = t.createdColls[:0]
@@ -632,7 +628,7 @@ func (t *T) createTestClient() {
 		clientOpts = options.Client().SetWriteConcern(MajorityWc).SetReadPreference(PrimaryRp)
 	}
 
-	args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](clientOpts)
+	args, err := mongoutil.NewOptions[options.ClientOptions](clientOpts)
 	if err != nil {
 		t.Fatalf("failed to construct options from builder: %v", err)
 	}
@@ -698,14 +694,14 @@ func (t *T) createTestClient() {
 		t.Client, err = mongo.Connect(uriOpts, clientOpts)
 	case Mock:
 		// clear pool monitor to avoid configuration error
-		args, _ = mongoutil.NewOptionsFromBuilder[options.ClientOptions](clientOpts)
+		args, _ = mongoutil.NewOptions[options.ClientOptions](clientOpts)
 
 		args.PoolMonitor = nil
 
 		t.mockDeployment = newMockDeployment()
 		args.Deployment = t.mockDeployment
 
-		opts := &mongoutil.OptionsBuilderWithCallback[options.ClientOptions]{Options: args}
+		opts := mongoutil.NewOptionsLister(args, nil)
 		t.Client, err = mongo.Connect(opts)
 	case Proxy:
 		t.proxyDialer = newProxyDialer()

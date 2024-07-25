@@ -104,7 +104,7 @@ func TestSearchIndexProse(t *testing.T) {
 		require.NoError(mt, err, "failed to create index")
 		require.Equal(mt, len(indexes), 2, "expected 2 indexes")
 		for _, model := range models {
-			args, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](model.Options)
+			args, err := mongoutil.NewOptions[options.SearchIndexesOptions](model.Options)
 			require.NoError(mt, err, "failed to construct options from builder")
 
 			require.Contains(mt, indexes, *args.Name)
@@ -121,7 +121,7 @@ func TestSearchIndexProse(t *testing.T) {
 				name := cursor.Current.Lookup("name").StringValue()
 				queryable := cursor.Current.Lookup("queryable").Boolean()
 
-				args, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](opts)
+				args, err := mongoutil.NewOptions[options.SearchIndexesOptions](opts)
 				require.NoError(mt, err, "failed to construct options from builder")
 
 				if name == *args.Name && queryable {
@@ -141,7 +141,7 @@ func TestSearchIndexProse(t *testing.T) {
 				doc := getDocument(opts)
 				require.NotNil(mt, doc, "got empty document")
 
-				args, err := mongoutil.NewOptionsFromBuilder[options.SearchIndexesOptions](opts)
+				args, err := mongoutil.NewOptions[options.SearchIndexesOptions](opts)
 				require.NoError(mt, err, "failed to construct options from builder")
 
 				assert.Equal(mt, *args.Name, doc.Lookup("name").StringValue(), "unmatched name")

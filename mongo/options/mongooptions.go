@@ -175,23 +175,3 @@ func (af *ArrayFilters) ToArrayDocument() (bson.Raw, error) {
 	arr, _ = bsoncore.AppendArrayEnd(arr, idx)
 	return arr, nil
 }
-
-type mongoOptions[T any] interface {
-	OptionsSetters() []func(*T) error
-}
-
-func getOptions[T any](mopts mongoOptions[T]) (*T, error) {
-	opts := new(T)
-
-	for _, setOptions := range mopts.OptionsSetters() {
-		if setOptions == nil {
-			continue
-		}
-
-		if err := setOptions(opts); err != nil {
-			return nil, err
-		}
-	}
-
-	return opts, nil
-}

@@ -87,8 +87,12 @@ func runConnectionStringTestFile(t *testing.T, filePath string) {
 	assert.Nil(t, err, "ReadFile error for %v: %v", filePath, err)
 
 	var testFile connectionStringTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
+	assert.Nil(t, err, "decode error: %v", err)
 
 	for _, test := range testFile.Tests {
 		t.Run(test.Description, func(t *testing.T) {
@@ -138,8 +142,12 @@ func runDocumentTestFile(t *testing.T, filePath string) {
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
 	var testFile documentTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
+	assert.Nil(t, err, "decode error: %v", err)
 
 	for _, test := range testFile.Tests {
 		t.Run(test.Description, func(t *testing.T) {

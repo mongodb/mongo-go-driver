@@ -31,8 +31,8 @@ func Distinct() *DistinctOptionsBuilder {
 	return &DistinctOptionsBuilder{}
 }
 
-// OptionsSetters returns a list of DistinctArg setter functions.
-func (do *DistinctOptionsBuilder) OptionsSetters() []func(*DistinctOptions) error {
+// List returns a list of DistinctArg setter functions.
+func (do *DistinctOptionsBuilder) List() []func(*DistinctOptions) error {
 	return do.Opts
 }
 

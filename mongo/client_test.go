@@ -18,6 +18,7 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -30,7 +31,7 @@ import (
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...Options[options.ClientOptions]) *Client {
+func setupClient(opts ...options.Lister[options.ClientOptions]) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)
@@ -315,7 +316,7 @@ func TestClient(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
 
-			args, _ := newOptionsFromBuilder[options.ClientOptions](opts)
+			args, _ := mongoutil.NewOptions[options.ClientOptions](opts)
 			got := args.GetURI()
 
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)

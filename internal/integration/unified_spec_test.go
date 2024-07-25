@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -210,7 +211,11 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	assert.Nil(t, err, "unable to read spec test file %v: %v", filePath, err)
 
 	var testFile testFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
 	assert.Nil(t, err, "unable to unmarshal spec test file at %v: %v", filePath, err)
 
 	// create mtest wrapper and skip if needed
@@ -281,14 +286,14 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
-		args, err := mongoutil.NewOptionsFromBuilder[options.ClientOptions](testClientOpts)
+		args, err := mongoutil.NewOptions[options.ClientOptions](testClientOpts)
 		require.NoError(mt, err, "failed to construct options from builder")
 
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
 		if args.AutoEncryptionOptions != nil {
-			aeArgs, err := mongoutil.NewOptionsFromBuilder[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
+			aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
 			require.NoError(mt, err, "failed to construct options from builder")
 
 			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
@@ -795,10 +800,9 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess *mongo.Session)
 		}
 		return err
 	case "dropIndex":
-		res, err := executeDropIndex(mt, sess, op.Arguments)
+		err := executeDropIndex(mt, sess, op.Arguments)
 		if op.opError == nil && err == nil {
 			assert.Nil(mt, op.Result, "unexpected result for dropIndex: %v", op.Result)
-			assert.NotNil(mt, res, "expected result from dropIndex operation, got nil")
 		}
 		return err
 	case "listIndexNames", "mapReduce":

@@ -41,8 +41,8 @@ func ClientEncryption() *ClientEncryptionOptionsBuilder {
 	}
 }
 
-// OptionsSetters returns a list of ClientEncryptionOptions setter functions.
-func (c *ClientEncryptionOptionsBuilder) OptionsSetters() []func(*ClientEncryptionOptions) error {
+// List returns a list of ClientEncryptionOptions setter functions.
+func (c *ClientEncryptionOptionsBuilder) List() []func(*ClientEncryptionOptions) error {
 	return c.Opts
 }
 

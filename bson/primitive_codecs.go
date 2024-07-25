@@ -51,7 +51,7 @@ func rawValueDecodeValue(_ DecodeContext, vr ValueReader, val reflect.Value) err
 		return ValueDecoderError{Name: "RawValueDecodeValue", Types: []reflect.Type{tRawValue}, Received: val}
 	}
 
-	t, value, err := CopyValueToBytes(vr)
+	t, value, err := copyValueToBytes(vr)
 	if err != nil {
 		return err
 	}
