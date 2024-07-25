@@ -10,13 +10,14 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // transactionOptions is a wrapper for *options.transactionOptions. This type implements the bson.Unmarshaler interface
 // to convert BSON documents to a transactionOptions instance.
 type transactionOptions struct {
-	*options.TransactionOptions
+	*options.TransactionOptionsBuilder
 }
 
 var _ bson.Unmarshaler = (*transactionOptions)(nil)
@@ -35,7 +36,7 @@ func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for transactionOptions: %v", mapKeys(temp.Extra))
 	}
 
-	to.TransactionOptions = options.Transaction()
+	to.TransactionOptionsBuilder = options.Transaction()
 	if rc := temp.RC; rc != nil {
 		to.SetReadConcern(rc.toReadConcernOption())
 	}
@@ -59,7 +60,7 @@ func (to *transactionOptions) UnmarshalBSON(data []byte) error {
 // sessionOptions is a wrapper for *options.sessionOptions. This type implements the bson.Unmarshaler interface to
 // convert BSON documents to a sessionOptions instance.
 type sessionOptions struct {
-	*options.SessionOptions
+	*options.SessionOptionsBuilder
 }
 
 var _ bson.Unmarshaler = (*sessionOptions)(nil)
@@ -78,18 +79,23 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for sessionOptions: %v", mapKeys(temp.Extra))
 	}
 
-	so.SessionOptions = options.Session()
+	so.SessionOptionsBuilder = options.Session()
 	if temp.Causal != nil {
 		so.SetCausalConsistency(*temp.Causal)
 	}
 	if temp.TxnOptions != nil {
-		if rc := temp.TxnOptions.ReadConcern; rc != nil {
+		txnArgs, err := mongoutil.NewOptions[options.TransactionOptions](temp.TxnOptions)
+		if err != nil {
+			return fmt.Errorf("failed to construct options from builder: %w", err)
+		}
+
+		if rc := txnArgs.ReadConcern; rc != nil {
 			so.SetDefaultReadConcern(rc)
 		}
-		if rp := temp.TxnOptions.ReadPreference; rp != nil {
+		if rp := txnArgs.ReadPreference; rp != nil {
 			so.SetDefaultReadPreference(rp)
 		}
-		if wc := temp.TxnOptions.WriteConcern; wc != nil {
+		if wc := txnArgs.WriteConcern; wc != nil {
 			so.SetDefaultWriteConcern(wc)
 		}
 	}

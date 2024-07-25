@@ -211,7 +211,7 @@ func TestIndexView(t *testing.T) {
 
 			testCases := []struct {
 				name             string
-				opts             *options.CreateIndexesOptions
+				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
 				expectedValue    interface{} // ignored if expectError is true
 				minServerVersion string
@@ -357,7 +357,7 @@ func TestIndexView(t *testing.T) {
 
 			testCases := []struct {
 				name             string
-				opts             *options.CreateIndexesOptions
+				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
 				expectedValue    interface{} // ignored if expectError is true
 				minServerVersion string

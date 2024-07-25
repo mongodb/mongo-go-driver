@@ -560,7 +560,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 		documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
 	)
 
-	newLoggerOptions := func(sink options.LogSink) *options.LoggerOptions {
+	newLoggerOptionsBldr := func(sink options.LogSink) *options.LoggerOptionsBuilder {
 		return options.
 			Logger().
 			SetSink(sink).
@@ -603,7 +603,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -667,7 +667,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -701,7 +701,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -765,7 +765,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)

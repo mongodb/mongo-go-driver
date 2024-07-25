@@ -13,10 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// gridFSBucketOptions is a wrapper for *options.BucketOptions. This type implements the bson.Unmarshaler interface to
-// convert BSON documents to a BucketOptions instance.
+// gridFSBucketOptions is a wrapper for *options.BucketOptionsBuilder. This type
+// implements the bson.Unmarshaler interface to convert BSON documents to a
+// BucketOptionsBuilder instance.
 type gridFSBucketOptions struct {
-	*options.BucketOptions
+	*options.BucketOptionsBuilder
 }
 
 var _ bson.Unmarshaler = (*gridFSBucketOptions)(nil)
@@ -37,7 +38,7 @@ func (bo *gridFSBucketOptions) UnmarshalBSON(data []byte) error {
 		return fmt.Errorf("unrecognized fields for gridFSBucketOptions: %v", mapKeys(temp.Extra))
 	}
 
-	bo.BucketOptions = options.GridFSBucket()
+	bo.BucketOptionsBuilder = options.GridFSBucket()
 	if temp.Name != nil {
 		bo.SetName(*temp.Name)
 	}

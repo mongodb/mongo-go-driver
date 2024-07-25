@@ -9,7 +9,8 @@ package options
 // DefaultOrdered is the default value for the Ordered option in BulkWriteOptions.
 var DefaultOrdered = true
 
-// BulkWriteOptions represents options that can be used to configure a BulkWrite operation.
+// BulkWriteOptions represents arguments that can be used to configure a
+// BulkWrite operation.
 type BulkWriteOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
@@ -31,28 +32,56 @@ type BulkWriteOptions struct {
 	Let interface{}
 }
 
+// BulkWriteOptionsBuilder contains options to configure bulk write operations.
+// Each option can be set through setter functions. See documentation for each
+// setter function for an explanation of the option.
+type BulkWriteOptionsBuilder struct {
+	Opts []func(*BulkWriteOptions) error
+}
+
 // BulkWrite creates a new *BulkWriteOptions instance.
-func BulkWrite() *BulkWriteOptions {
-	return &BulkWriteOptions{
-		Ordered: &DefaultOrdered,
-	}
+func BulkWrite() *BulkWriteOptionsBuilder {
+	opts := &BulkWriteOptionsBuilder{}
+	opts = opts.SetOrdered(DefaultOrdered)
+
+	return opts
+}
+
+// List returns a list of BulkWriteOptions setter functions.
+func (b *BulkWriteOptionsBuilder) List() []func(*BulkWriteOptions) error {
+	return b.Opts
 }
 
 // SetComment sets the value for the Comment field.
-func (b *BulkWriteOptions) SetComment(comment interface{}) *BulkWriteOptions {
-	b.Comment = comment
+func (b *BulkWriteOptionsBuilder) SetComment(comment interface{}) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Comment = comment
+
+		return nil
+	})
+
 	return b
 }
 
 // SetOrdered sets the value for the Ordered field.
-func (b *BulkWriteOptions) SetOrdered(ordered bool) *BulkWriteOptions {
-	b.Ordered = &ordered
+func (b *BulkWriteOptionsBuilder) SetOrdered(ordered bool) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Ordered = &ordered
+
+		return nil
+	})
+
 	return b
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOptions {
-	b.BypassDocumentValidation = &bypass
+func (b *BulkWriteOptionsBuilder) SetBypassDocumentValidation(bypass bool) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.BypassDocumentValidation = &bypass
+
+		return nil
+	})
+
 	return b
 }
 
@@ -60,7 +89,12 @@ func (b *BulkWriteOptions) SetBypassDocumentValidation(bypass bool) *BulkWriteOp
 // This option is only valid for MongoDB versions >= 5.0. Older servers will report an error for using this option.
 // This must be a document mapping parameter names to values. Values must be constant or closed expressions that do not
 // reference document fields. Parameters can then be accessed as variables in an aggregate expression context (e.g. "$$var").
-func (b *BulkWriteOptions) SetLet(let interface{}) *BulkWriteOptions {
-	b.Let = &let
+func (b *BulkWriteOptionsBuilder) SetLet(let interface{}) *BulkWriteOptionsBuilder {
+	b.Opts = append(b.Opts, func(opts *BulkWriteOptions) error {
+		opts.Let = &let
+
+		return nil
+	})
+
 	return b
 }

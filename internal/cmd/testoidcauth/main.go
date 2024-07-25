@@ -18,6 +18,7 @@ import (
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
@@ -44,18 +45,18 @@ func connectAdminClinet() (*mongo.Client, error) {
 }
 
 func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
-	opts := options.Client().ApplyURI(uri)
-
+	optsBuilder := options.Client().ApplyURI(uri)
+	opts, _ := mongoutil.NewOptions[options.ClientOptions](optsBuilder)
 	opts.Auth.OIDCMachineCallback = cb
-	return mongo.Connect(opts)
+	return mongo.Connect(optsBuilder)
 }
 
 func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, props map[string]string) (*mongo.Client, error) {
-	opts := options.Client().ApplyURI(uri)
-
+	optsBuilder := options.Client().ApplyURI(uri)
+	opts, _ := mongoutil.NewOptions[options.ClientOptions](optsBuilder)
 	opts.Auth.OIDCMachineCallback = cb
 	opts.Auth.AuthMechanismProperties = props
-	return mongo.Connect(opts)
+	return mongo.Connect(optsBuilder)
 }
 
 func main() {

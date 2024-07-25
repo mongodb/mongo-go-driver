@@ -9,9 +9,11 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -111,8 +113,11 @@ func (s *Session) EndSession(ctx context.Context) {
 // resources are properly cleaned up, context deadlines and cancellations will
 // not be respected during this call. For a usage example, see the
 // Client.StartSession method documentation.
-func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Context) (interface{}, error),
-	opts ...*options.TransactionOptions) (interface{}, error) {
+func (s *Session) WithTransaction(
+	ctx context.Context,
+	fn func(ctx context.Context) (interface{}, error),
+	opts ...options.Lister[options.TransactionOptions],
+) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
 	var err error
@@ -192,7 +197,7 @@ func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Conte
 
 // StartTransaction starts a new transaction. This method returns an error if
 // there is already a transaction in-progress for this session.
-func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
+func (s *Session) StartTransaction(opts ...options.Lister[options.TransactionOptions]) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -200,25 +205,15 @@ func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
 
 	s.didCommitAfterStart = false
 
-	topts := options.Transaction()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			topts.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			topts.ReadPreference = opt.ReadPreference
-		}
-		if opt.WriteConcern != nil {
-			topts.WriteConcern = opt.WriteConcern
-		}
+	args, err := mongoutil.NewOptions[options.TransactionOptions](opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
+
 	coreOpts := &session.TransactionOptions{
-		ReadConcern:    topts.ReadConcern,
-		ReadPreference: topts.ReadPreference,
-		WriteConcern:   topts.WriteConcern,
+		ReadConcern:    args.ReadConcern,
+		ReadPreference: args.ReadPreference,
+		WriteConcern:   args.WriteConcern,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)

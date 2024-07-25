@@ -17,6 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/eventtest"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -36,7 +37,9 @@ func (set saturatedHosts) add(host string, connectionID int64) {
 
 // isSaturated returns true when each client on the cluster URI has a tolerable number of ready connections.
 func (set saturatedHosts) isSaturated(tolerance uint64) bool {
-	for _, host := range options.Client().ApplyURI(mtest.ClusterURI()).Hosts {
+	hosts, _ := mongoutil.HostsFromURI(mtest.ClusterURI())
+
+	for _, host := range hosts {
 		if cxns := set[host]; cxns == nil || uint64(len(cxns)) < tolerance {
 			return false
 		}
@@ -113,7 +116,9 @@ func TestServerSelectionProse(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne() error")
 
-		hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+
+		require.NoError(mt, err)
 		require.GreaterOrEqualf(mt, len(hosts), 2, "test cluster must have at least 2 mongos hosts")
 
 		// Set a failpoint on a specific mongos host that delays all "find" commands for 500ms. We
@@ -191,7 +196,9 @@ func TestServerSelectionProse(t *testing.T) {
 		_, err := mt.Coll.InsertOne(context.Background(), bson.D{})
 		require.NoError(mt, err, "InsertOne() error")
 
-		hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+
+		require.NoError(mt, err)
 		require.GreaterOrEqualf(mt, len(hosts), 2, "test cluster must have at least 2 mongos hosts")
 
 		// Reset the client with exactly 2 mongos hosts. Use a ServerMonitor to wait for both mongos

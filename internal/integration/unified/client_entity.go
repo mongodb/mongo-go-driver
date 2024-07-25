@@ -20,6 +20,7 @@ import (
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
 	"go.mongodb.org/mongo-driver/internal/integtest"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -121,13 +122,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		entity.logQueue = clientLogger.logQueue
 
 		// Update the client options to add the clientLogger.
-		clientOpts.LoggerOptions = options.Logger().
+		loggerOptions := options.Logger().
 			SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
 			SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
 			SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
 			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 			SetMaxDocumentLength(defaultMaxDocumentLen).
 			SetSink(clientLogger)
+
+		clientOpts.SetLoggerOptions(loggerOptions)
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
@@ -181,10 +184,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		if err := entityOptions.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+		args, err := mongoutil.NewOptions[options.ServerAPIOptions](entityOptions.ServerAPIOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+		}
+
+		if err := args.ServerAPIVersion.Validate(); err != nil {
 			return nil, err
 		}
-		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptionsBuilder)
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
@@ -581,7 +589,7 @@ func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
 }
 
-func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {
+func setClientOptionsFromURIOptions(clientOpts *options.ClientOptionsBuilder, uriOpts bson.M) error {
 	// A write concern can be constructed across multiple URI options (e.g. "w", "j", and "wTimeoutMS") so we declare an
 	// empty writeConcern instance here that can be populated in the loop below.
 	var wc writeConcern
@@ -646,7 +654,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 	return nil
 }
 
-func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
+func evaluateUseMultipleMongoses(clientOpts *options.ClientOptionsBuilder, useMultipleMongoses bool) error {
 	hosts := mtest.ClusterConnString().Hosts
 
 	if !useMultipleMongoses {

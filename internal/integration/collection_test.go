@@ -77,22 +77,22 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("options are converted", convertedOptsOpts, func(mt *mtest.T) {
 			nilOptsTestCases := []struct {
 				name            string
-				opts            []*options.InsertOneOptions
+				opts            []options.Lister[options.InsertOneOptions]
 				expectOptionSet bool
 			}{
 				{
 					"only nil is passed",
-					[]*options.InsertOneOptions{nil},
+					[]options.Lister[options.InsertOneOptions]{nil},
 					false,
 				},
 				{
 					"non-nil options is passed before nil",
-					[]*options.InsertOneOptions{options.InsertOne().SetBypassDocumentValidation(true), nil},
+					[]options.Lister[options.InsertOneOptions]{options.InsertOne().SetBypassDocumentValidation(true), nil},
 					true,
 				},
 				{
 					"non-nil options is passed after nil",
-					[]*options.InsertOneOptions{nil, options.InsertOne().SetBypassDocumentValidation(true)},
+					[]options.Lister[options.InsertOneOptions]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
 					true,
 				},
 			}
@@ -820,7 +820,7 @@ func TestCollection(t *testing.T) {
 			testCases := []struct {
 				name     string
 				filter   bson.D
-				opts     *options.CountOptions
+				opts     *options.CountOptionsBuilder
 				count    int64
 				testOpts *mtest.Options
 			}{
@@ -855,7 +855,7 @@ func TestCollection(t *testing.T) {
 	mt.RunOpts("estimated document count", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name  string
-			opts  *options.EstimatedDocumentCountOptions
+			opts  *options.EstimatedDocumentCountOptionsBuilder
 			count int64
 		}{
 			{"no options", nil, 5},
@@ -876,7 +876,7 @@ func TestCollection(t *testing.T) {
 		testCases := []struct {
 			name   string
 			filter bson.D
-			opts   *options.DistinctOptions
+			opts   *options.DistinctOptionsBuilder
 			want   []int32
 		}{
 			{"no options", bson.D{}, nil, all},
@@ -1208,7 +1208,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneOptions
+				opts     *options.FindOneOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOne().SetHint(bson.M{"x": 1}), ""},
@@ -1268,7 +1268,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndDeleteOptions
+				opts     *options.FindOneAndDeleteOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndDelete().SetHint(bson.M{"x": 1}), ""},
@@ -1344,7 +1344,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndReplaceOptions
+				opts     *options.FindOneAndReplaceOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndReplace().SetHint(bson.M{"x": 1}), ""},
@@ -1426,7 +1426,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndUpdateOptions
+				opts     *options.FindOneAndUpdateOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndUpdate().SetHint(bson.M{"x": 1}), ""},
@@ -1986,7 +1986,7 @@ func initCollection(mt *mtest.T, coll *mongo.Collection) {
 	assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
 }
 
-func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts *options.AggregateOptions) {
+func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister[options.AggregateOptions]) {
 	mt.Helper()
 	initCollection(mt, mt.Coll)
 

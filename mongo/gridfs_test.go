@@ -13,6 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -67,8 +69,8 @@ func TestGridFS(t *testing.T) {
 	t.Run("ChunkSize", func(t *testing.T) {
 		chunkSizeTests := []struct {
 			testName   string
-			bucketOpts *options.BucketOptions
-			uploadOpts *options.UploadOptions
+			bucketOpts *options.BucketOptionsBuilder
+			uploadOpts *options.GridFSUploadOptionsBuilder
 		}{
 			{"Default values", nil, nil},
 			{"Options provided without chunk size", options.GridFSBucket(), options.GridFSUpload()},
@@ -84,16 +86,22 @@ func TestGridFS(t *testing.T) {
 				us, err := bucket.OpenUploadStream(context.Background(), "filename", tt.uploadOpts)
 				assert.Nil(t, err, "OpenUploadStream error: %v", err)
 
+				bucketArgs, err := mongoutil.NewOptions[options.BucketOptions](tt.bucketOpts)
+				require.NoError(t, err, "failed to construct options from builder")
+
 				expectedBucketChunkSize := DefaultGridFSChunkSize
-				if tt.bucketOpts != nil && tt.bucketOpts.ChunkSizeBytes != nil {
-					expectedBucketChunkSize = *tt.bucketOpts.ChunkSizeBytes
+				if tt.bucketOpts != nil && bucketArgs.ChunkSizeBytes != nil {
+					expectedBucketChunkSize = *bucketArgs.ChunkSizeBytes
 				}
 				assert.Equal(t, expectedBucketChunkSize, bucket.chunkSize,
 					"expected chunk size %v, got %v", expectedBucketChunkSize, bucket.chunkSize)
 
+				uploadArgs, err := mongoutil.NewOptions[options.GridFSUploadOptions](tt.uploadOpts)
+				require.NoError(t, err, "failed to construct options from builder")
+
 				expectedUploadChunkSize := expectedBucketChunkSize
-				if tt.uploadOpts != nil && tt.uploadOpts.ChunkSizeBytes != nil {
-					expectedUploadChunkSize = *tt.uploadOpts.ChunkSizeBytes
+				if tt.uploadOpts != nil && uploadArgs.ChunkSizeBytes != nil {
+					expectedUploadChunkSize = *uploadArgs.ChunkSizeBytes
 				}
 				assert.Equal(t, expectedUploadChunkSize, us.chunkSize,
 					"expected chunk size %v, got %v", expectedUploadChunkSize, us.chunkSize)

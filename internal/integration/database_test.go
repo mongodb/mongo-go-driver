@@ -481,7 +481,7 @@ func TestDatabase(t *testing.T) {
 				name             string
 				minServerVersion string
 				maxServerVersion string
-				createOpts       *options.CreateCollectionOptions
+				createOpts       *options.CreateCollectionOptionsBuilder
 				expectedOpts     bson.M
 			}{
 				{"all options except collation and csppi", "3.2", "", nonCollationOpts, nonCollationExpected},
