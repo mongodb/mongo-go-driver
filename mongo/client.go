@@ -402,14 +402,23 @@ func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*
 	if sessArgs.CausalConsistency != nil {
 		coreOpts.CausalConsistency = sessArgs.CausalConsistency
 	}
-	if sessArgs.DefaultReadConcern != nil {
-		coreOpts.DefaultReadConcern = sessArgs.DefaultReadConcern
-	}
-	if sessArgs.DefaultWriteConcern != nil {
-		coreOpts.DefaultWriteConcern = sessArgs.DefaultWriteConcern
-	}
-	if sessArgs.DefaultReadPreference != nil {
-		coreOpts.DefaultReadPreference = sessArgs.DefaultReadPreference
+	if bldr := sessArgs.DefaultTransactionOptions; bldr != nil {
+		txnOpts, err := mongoutil.NewOptions[options.TransactionOptions](bldr)
+		if err != nil {
+			return nil, err
+		}
+
+		if rc := txnOpts.ReadConcern; rc != nil {
+			coreOpts.DefaultReadConcern = rc
+		}
+
+		if wc := txnOpts.WriteConcern; wc != nil {
+			coreOpts.DefaultWriteConcern = wc
+		}
+
+		if rp := txnOpts.ReadPreference; rp != nil {
+			coreOpts.DefaultReadPreference = rp
+		}
 	}
 	if sessArgs.Snapshot != nil {
 		coreOpts.Snapshot = sessArgs.Snapshot
