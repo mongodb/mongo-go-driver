@@ -187,7 +187,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"ReadDouble (truncate)", int64(3), &DecodeContext{Truncate: true},
+					"ReadDouble (truncate)", int64(3), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -419,7 +419,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"ReadDouble (truncate)", uint64(3), &DecodeContext{Truncate: true},
+					"ReadDouble (truncate)", uint64(3), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -670,7 +670,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"float32/fast path (truncate)", float32(3.14), &DecodeContext{Truncate: true},
+					"float32/fast path (truncate)", float32(3.14), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -708,7 +708,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"float32/reflection path (truncate)", myfloat32(3.14), &DecodeContext{Truncate: true},
+					"float32/reflection path (truncate)", myfloat32(3.14), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},

@@ -128,7 +128,7 @@ func intEncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 		return vw.WriteInt64(i64)
 	case reflect.Int64:
 		i64 := val.Int()
-		if ec.MinSize && fitsIn32Bits(i64) {
+		if ec.minSize && fitsIn32Bits(i64) {
 			return vw.WriteInt32(int32(i64))
 		}
 		return vw.WriteInt64(i64)
