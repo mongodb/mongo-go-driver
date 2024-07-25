@@ -9,7 +9,7 @@ package mongoutil
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // NewOptions will functionally merge a slice of mongo.Options in a
