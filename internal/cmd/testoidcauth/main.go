@@ -45,6 +45,7 @@ func connectAdminClinet() (*mongo.Client, error) {
 
 func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, error) {
 	cred := options.Credential{
+		AuthMechanism:       "MONGODB-OIDC",
 		OIDCMachineCallback: cb,
 	}
 	optsBuilder := options.Client().ApplyURI(uri).SetAuth(cred)
@@ -53,6 +54,7 @@ func connectWithMachineCB(uri string, cb options.OIDCCallback) (*mongo.Client, e
 
 func connectWithMachineCBAndProperties(uri string, cb options.OIDCCallback, props map[string]string) (*mongo.Client, error) {
 	cred := options.Credential{
+		AuthMechanism:           "MONGODB-OIDC",
 		OIDCMachineCallback:     cb,
 		AuthMechanismProperties: props,
 	}
