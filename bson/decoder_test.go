@@ -430,6 +430,10 @@ func TestDecoderConfiguration(t *testing.T) {
 		MyUint64 uint64
 	}
 
+	type objectIDTest struct {
+		ID string
+	}
+
 	type jsonStructTest struct {
 		StructFieldName string `json:"jsonFieldName"`
 	}
@@ -532,6 +536,21 @@ func TestDecoderConfiguration(t *testing.T) {
 				{Key: "myDocument", Value: M{"myString": "test value"}},
 			},
 		},
+		// Test that ObjectIDAsHexString causes the Decoder to decode object ID to hex.
+		{
+			description: "ObjectIDAsHexString",
+			configure: func(dec *Decoder) {
+				dec.ObjectIDAsHexString()
+			},
+			input: bsoncore.NewDocumentBuilder().
+				AppendObjectID("id", func() ObjectID {
+					id, _ := ObjectIDFromHex("5ef7fdd91c19e3222b41b839")
+					return id
+				}()).
+				Build(),
+			decodeInto: func() interface{} { return &objectIDTest{} },
+			want:       &objectIDTest{ID: "5ef7fdd91c19e3222b41b839"},
+		},
 		// Test that UseJSONStructTags causes the Decoder to fall back to "json" struct tags if
 		// "bson" struct tags are not available.
 		{
@@ -610,6 +629,26 @@ func TestDecoderConfiguration(t *testing.T) {
 		})
 	}
 
+	t.Run("Decoding an object ID to string", func(t *testing.T) {
+		t.Parallel()
+
+		type objectIDTest struct {
+			ID string
+		}
+
+		doc := bsoncore.NewDocumentBuilder().
+			AppendObjectID("id", func() ObjectID {
+				id, _ := ObjectIDFromHex("5ef7fdd91c19e3222b41b839")
+				return id
+			}()).
+			Build()
+
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(doc)))
+
+		var got objectIDTest
+		err := dec.Decode(&got)
+		assert.EqualError(t, err, "error decoding key id: decoding an object ID to a non-hexadecimal string representation is not supported")
+	})
 	t.Run("DefaultDocumentM top-level", func(t *testing.T) {
 		t.Parallel()
 

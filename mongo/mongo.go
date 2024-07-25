@@ -406,7 +406,7 @@ func countDocumentsAggregatePipeline(
 	filter interface{},
 	encOpts *options.BSONOptions,
 	registry *bson.Registry,
-	opts *options.CountOptions,
+	args *options.CountOptions,
 ) (bsoncore.Document, error) {
 	filterDoc, err := marshal(filter, encOpts, registry)
 	if err != nil {
@@ -419,16 +419,16 @@ func countDocumentsAggregatePipeline(
 	arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 
 	index := 1
-	if opts != nil {
-		if opts.Skip != nil {
+	if args != nil {
+		if args.Skip != nil {
 			didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
-			arr = bsoncore.AppendInt64Element(arr, "$skip", *opts.Skip)
+			arr = bsoncore.AppendInt64Element(arr, "$skip", *args.Skip)
 			arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 			index++
 		}
-		if opts.Limit != nil {
+		if args.Limit != nil {
 			didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
-			arr = bsoncore.AppendInt64Element(arr, "$limit", *opts.Limit)
+			arr = bsoncore.AppendInt64Element(arr, "$limit", *args.Limit)
 			arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 			index++
 		}

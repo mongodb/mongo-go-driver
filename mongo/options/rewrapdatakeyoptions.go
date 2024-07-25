@@ -6,8 +6,8 @@
 
 package options
 
-// RewrapManyDataKeyOptions represents all possible options used to decrypt and encrypt all matching data keys with a
-// possibly new masterKey.
+// RewrapManyDataKeyOptions represents all possible options used to decrypt and
+// encrypt all matching data keys with a possibly new masterKey.
 type RewrapManyDataKeyOptions struct {
 	// Provider identifies the new KMS provider. If omitted, encrypting uses the current KMS provider.
 	Provider *string
@@ -16,19 +16,41 @@ type RewrapManyDataKeyOptions struct {
 	MasterKey interface{}
 }
 
+// RewrapManyDataKeyOptionsBuilder contains options to configure rewraping a
+// data key. Each option can be set through setter functions. See documentation
+// for each setter function for an explanation of the option.
+type RewrapManyDataKeyOptionsBuilder struct {
+	Opts []func(*RewrapManyDataKeyOptions) error
+}
+
 // RewrapManyDataKey creates a new RewrapManyDataKeyOptions instance.
-func RewrapManyDataKey() *RewrapManyDataKeyOptions {
-	return new(RewrapManyDataKeyOptions)
+func RewrapManyDataKey() *RewrapManyDataKeyOptionsBuilder {
+	return new(RewrapManyDataKeyOptionsBuilder)
+}
+
+// List returns a list of CountOptions setter functions.
+func (rmdko *RewrapManyDataKeyOptionsBuilder) List() []func(*RewrapManyDataKeyOptions) error {
+	return rmdko.Opts
 }
 
 // SetProvider sets the value for the Provider field.
-func (rmdko *RewrapManyDataKeyOptions) SetProvider(provider string) *RewrapManyDataKeyOptions {
-	rmdko.Provider = &provider
+func (rmdko *RewrapManyDataKeyOptionsBuilder) SetProvider(provider string) *RewrapManyDataKeyOptionsBuilder {
+	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
+		opts.Provider = &provider
+
+		return nil
+	})
+
 	return rmdko
 }
 
 // SetMasterKey sets the value for the MasterKey field.
-func (rmdko *RewrapManyDataKeyOptions) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptions {
-	rmdko.MasterKey = masterKey
+func (rmdko *RewrapManyDataKeyOptionsBuilder) SetMasterKey(masterKey interface{}) *RewrapManyDataKeyOptionsBuilder {
+	rmdko.Opts = append(rmdko.Opts, func(opts *RewrapManyDataKeyOptions) error {
+		opts.MasterKey = masterKey
+
+		return nil
+	})
+
 	return rmdko
 }

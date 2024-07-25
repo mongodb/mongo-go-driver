@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"strings"
 	"testing"
@@ -62,10 +61,6 @@ var (
 		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
 		"unpin when a non-transaction write operation uses a session": "Implement GODRIVER-3034",
 		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
-	}
-
-	skippedServerlessProxyTests = map[string]string{
-		"errors during the initial connection hello are ignored": "Serverless Proxy does not support failpoints on hello (see GODRIVER-3157)",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
@@ -259,11 +254,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	}
 	if skipReason, ok := skippedTests[tc.Description]; ok {
 		ls.Skipf("skipping due to known failure: %q", skipReason)
-	}
-	// If we're running against a Serverless Proxy instance, also check the
-	// tests that should be skipped only for Serverless Proxy.
-	if skipReason, ok := skippedServerlessProxyTests[tc.Description]; ok && os.Getenv("IS_SERVERLESS_PROXY") == "true" {
-		ls.Skipf("skipping due to known failure with Serverless Proxy: %q", skipReason)
 	}
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.

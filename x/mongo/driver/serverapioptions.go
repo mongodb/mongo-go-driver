@@ -10,8 +10,8 @@ package driver
 // Only to be used in testing.
 const TestServerAPIVersion = "1"
 
-// ServerAPIOptions represents options used to configure the API version sent to the server
-// when running commands.
+// ServerAPIOptions represents arguments used to configure the API version sent
+// to the server when running commands.
 type ServerAPIOptions struct {
 	ServerAPIVersion  string
 	Strict            *bool

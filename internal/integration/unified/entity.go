@@ -773,7 +773,7 @@ func (em *EntityMap) addSessionEntity(entityOptions *entityOptions) error {
 
 	sessionOpts := options.Session()
 	if entityOptions.SessionOptions != nil {
-		sessionOpts = entityOptions.SessionOptions.SessionOptions
+		sessionOpts = entityOptions.SessionOptions.SessionOptionsBuilder
 	}
 
 	sess, err := client.StartSession(sessionOpts)
@@ -793,7 +793,7 @@ func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 
 	bucketOpts := options.GridFSBucket()
 	if entityOptions.GridFSBucketOptions != nil {
-		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
+		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptionsBuilder
 	}
 
 	em.gridfsBuckets[entityOptions.ID] = db.GridFSBucket(bucketOpts)

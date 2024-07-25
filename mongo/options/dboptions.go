@@ -13,7 +13,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
-// DatabaseOptions represents options that can be used to configure a Database.
+// DatabaseOptions represents arguments that can be used to configure a
+// database.
 type DatabaseOptions struct {
 	// ReadConcern is the read concern to use for operations executed on the Database. The default value is nil, which means that
 	// the read concern of the Client used to configure the Database will be used.
@@ -36,37 +37,73 @@ type DatabaseOptions struct {
 	Registry *bson.Registry
 }
 
+// DatabaseOptionsBuilder contains options to configure a database object. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type DatabaseOptionsBuilder struct {
+	Opts []func(*DatabaseOptions) error
+}
+
 // Database creates a new DatabaseOptions instance.
-func Database() *DatabaseOptions {
-	return &DatabaseOptions{}
+func Database() *DatabaseOptionsBuilder {
+	return &DatabaseOptionsBuilder{}
+}
+
+// List returns a list of DatabaseOptions setter functions.
+func (d *DatabaseOptionsBuilder) List() []func(*DatabaseOptions) error {
+	return d.Opts
 }
 
 // SetReadConcern sets the value for the ReadConcern field.
-func (d *DatabaseOptions) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptions {
-	d.ReadConcern = rc
+func (d *DatabaseOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.ReadConcern = rc
+
+		return nil
+	})
+
 	return d
 }
 
 // SetWriteConcern sets the value for the WriteConcern field.
-func (d *DatabaseOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptions {
-	d.WriteConcern = wc
+func (d *DatabaseOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.WriteConcern = wc
+
+		return nil
+	})
+
 	return d
 }
 
 // SetReadPreference sets the value for the ReadPreference field.
-func (d *DatabaseOptions) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptions {
-	d.ReadPreference = rp
+func (d *DatabaseOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
+
 	return d
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (d *DatabaseOptions) SetBSONOptions(opts *BSONOptions) *DatabaseOptions {
-	d.BSONOptions = opts
+func (d *DatabaseOptionsBuilder) SetBSONOptions(bopts *BSONOptions) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.BSONOptions = bopts
+
+		return nil
+	})
+
 	return d
 }
 
 // SetRegistry sets the value for the Registry field.
-func (d *DatabaseOptions) SetRegistry(r *bson.Registry) *DatabaseOptions {
-	d.Registry = r
+func (d *DatabaseOptionsBuilder) SetRegistry(r *bson.Registry) *DatabaseOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DatabaseOptions) error {
+		opts.Registry = r
+
+		return nil
+	})
 	return d
 }

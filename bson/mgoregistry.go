@@ -39,6 +39,7 @@ func NewMgoRegistry() *Registry {
 
 	reg := NewRegistry()
 	reg.RegisterTypeDecoder(tEmpty, &emptyInterfaceCodec{decodeBinaryAsSlice: true})
+	reg.RegisterKindDecoder(reflect.String, ValueDecoderFunc(mgoStringDecodeValue))
 	reg.RegisterKindDecoder(reflect.Struct, structCodec)
 	reg.RegisterKindDecoder(reflect.Map, mapCodec)
 	reg.RegisterTypeEncoder(tByteSlice, &byteSliceCodec{encodeNilAsEmpty: true})
@@ -73,6 +74,30 @@ func NewRespectNilValuesMgoRegistry() *Registry {
 	reg.RegisterKindEncoder(reflect.Slice, &sliceCodec{})
 	reg.RegisterKindEncoder(reflect.Map, mapCodec)
 	return reg
+}
+
+func mgoStringDecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+	if val.Kind() != reflect.String {
+		return ValueDecoderError{
+			Name:     "StringDecodeValue",
+			Kinds:    []reflect.Kind{reflect.String},
+			Received: reflect.Zero(val.Type()),
+		}
+	}
+
+	if vr.Type() == TypeObjectID {
+		oid, err := vr.ReadObjectID()
+		if err != nil {
+			return err
+		}
+		if dc.objectIDAsHexString {
+			val.SetString(oid.Hex())
+		} else {
+			val.SetString(string(oid[:]))
+		}
+		return nil
+	}
+	return (&stringCodec{}).DecodeValue(dc, vr, val)
 }
 
 // setter interface: a value implementing the bson.Setter interface will receive the BSON

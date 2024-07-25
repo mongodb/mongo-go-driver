@@ -17,6 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/internal/httputil"
 	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
 	"go.mongodb.org/mongo-driver/internal/serverselector"
 	"go.mongodb.org/mongo-driver/internal/uuid"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -102,7 +104,7 @@ type Client struct {
 //
 // The Client.Ping method can be used to verify that the deployment is successfully connected and the
 // Client was correctly configured.
-func Connect(opts ...*options.ClientOptions) (*Client, error) {
+func Connect(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
 	c, err := newClient(opts...)
 	if err != nil {
 		return nil, err
@@ -127,8 +129,11 @@ func Connect(opts ...*options.ClientOptions) (*Client, error) {
 // option fields of previous options, there is no partial overwriting. For example, if Username is
 // set in the Auth field for the first option, and Password is set for the second but with no
 // Username, after the merge the Username field will be empty.
-func newClient(opts ...*options.ClientOptions) (*Client, error) {
-	clientOpt := options.MergeClientOptions(opts...)
+func newClient(opts ...options.Lister[options.ClientOptions]) (*Client, error) {
+	args, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	id, err := uuid.New()
 	if err != nil {
@@ -141,78 +146,80 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 
 	// LocalThreshold
 	client.localThreshold = defaultLocalThreshold
-	if clientOpt.LocalThreshold != nil {
-		client.localThreshold = *clientOpt.LocalThreshold
+	if args.LocalThreshold != nil {
+		client.localThreshold = *args.LocalThreshold
 	}
 	// Monitor
-	if clientOpt.Monitor != nil {
-		client.monitor = clientOpt.Monitor
+	if args.Monitor != nil {
+		client.monitor = args.Monitor
 	}
 	// ServerMonitor
-	if clientOpt.ServerMonitor != nil {
-		client.serverMonitor = clientOpt.ServerMonitor
+	if args.ServerMonitor != nil {
+		client.serverMonitor = args.ServerMonitor
 	}
 	// ReadConcern
 	client.readConcern = &readconcern.ReadConcern{}
-	if clientOpt.ReadConcern != nil {
-		client.readConcern = clientOpt.ReadConcern
+	if args.ReadConcern != nil {
+		client.readConcern = args.ReadConcern
 	}
 	// ReadPreference
 	client.readPreference = readpref.Primary()
-	if clientOpt.ReadPreference != nil {
-		client.readPreference = clientOpt.ReadPreference
+	if args.ReadPreference != nil {
+		client.readPreference = args.ReadPreference
 	}
 	// BSONOptions
-	if clientOpt.BSONOptions != nil {
-		client.bsonOpts = clientOpt.BSONOptions
+	if args.BSONOptions != nil {
+		client.bsonOpts = args.BSONOptions
 	}
 	// Registry
 	client.registry = bson.DefaultRegistry
-	if clientOpt.Registry != nil {
-		client.registry = clientOpt.Registry
+	if args.Registry != nil {
+		client.registry = args.Registry
 	}
 	// RetryWrites
 	client.retryWrites = true // retry writes on by default
-	if clientOpt.RetryWrites != nil {
-		client.retryWrites = *clientOpt.RetryWrites
+	if args.RetryWrites != nil {
+		client.retryWrites = *args.RetryWrites
 	}
 	client.retryReads = true
-	if clientOpt.RetryReads != nil {
-		client.retryReads = *clientOpt.RetryReads
+	if args.RetryReads != nil {
+		client.retryReads = *args.RetryReads
 	}
-	client.timeout = clientOpt.Timeout
-	client.httpClient = clientOpt.HTTPClient
+	// Timeout
+	client.timeout = args.Timeout
+	client.httpClient = args.HTTPClient
 	// WriteConcern
-	if clientOpt.WriteConcern != nil {
-		client.writeConcern = clientOpt.WriteConcern
+	if args.WriteConcern != nil {
+		client.writeConcern = args.WriteConcern
 	}
 	// AutoEncryptionOptions
-	if clientOpt.AutoEncryptionOptions != nil {
-		if err := client.configureAutoEncryption(clientOpt); err != nil {
+	if args.AutoEncryptionOptions != nil {
+		if err := client.configureAutoEncryption(args); err != nil {
 			return nil, err
 		}
 	} else {
-		client.cryptFLE = clientOpt.Crypt
+		client.cryptFLE = args.Crypt
 	}
 
 	// Deployment
-	if clientOpt.Deployment != nil {
-		client.deployment = clientOpt.Deployment
+	if args.Deployment != nil {
+		client.deployment = args.Deployment
 	}
 
 	// Set default options
-	if clientOpt.MaxPoolSize == nil {
-		clientOpt.SetMaxPoolSize(defaultMaxPoolSize)
+	if args.MaxPoolSize == nil {
+		defaultMaxPoolSize := uint64(defaultMaxPoolSize)
+		args.MaxPoolSize = &defaultMaxPoolSize
 	}
 
-	cfg, err := topology.NewConfig(clientOpt, client.clock)
+	cfg, err := topology.NewConfigFromOptions(args, client.clock)
 	if err != nil {
 		return nil, err
 	}
 
 	var connectTimeout time.Duration
-	if clientOpt.ConnectTimeout != nil {
-		connectTimeout = *clientOpt.ConnectTimeout
+	if args.ConnectTimeout != nil {
+		connectTimeout = *args.ConnectTimeout
 	}
 
 	client.serverAPI = topology.ServerAPIFromServerOptions(connectTimeout, cfg.ServerOpts)
@@ -225,7 +232,7 @@ func newClient(opts ...*options.ClientOptions) (*Client, error) {
 	}
 
 	// Create a logger for the client.
-	client.logger, err = newLogger(clientOpt.LoggerOptions)
+	client.logger, err = newLogger(args.LoggerOptions)
 	if err != nil {
 		return nil, fmt.Errorf("invalid logger options: %w", err)
 	}
@@ -375,54 +382,46 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 //
 // If the DefaultReadConcern, DefaultWriteConcern, or DefaultReadPreference options are not set, the client's read
 // concern, write concern, or read preference will be used, respectively.
-func (c *Client) StartSession(opts ...*options.SessionOptions) (*Session, error) {
+func (c *Client) StartSession(opts ...options.Lister[options.SessionOptions]) (*Session, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
 
-	sopts := options.Session()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.CausalConsistency != nil {
-			sopts.CausalConsistency = opt.CausalConsistency
-		}
-		if opt.DefaultReadConcern != nil {
-			sopts.DefaultReadConcern = opt.DefaultReadConcern
-		}
-		if opt.DefaultReadPreference != nil {
-			sopts.DefaultReadPreference = opt.DefaultReadPreference
-		}
-		if opt.DefaultWriteConcern != nil {
-			sopts.DefaultWriteConcern = opt.DefaultWriteConcern
-		}
-		if opt.Snapshot != nil {
-			sopts.Snapshot = opt.Snapshot
-		}
+	sessArgs, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
-	if sopts.CausalConsistency == nil && (sopts.Snapshot == nil || !*sopts.Snapshot) {
-		sopts.CausalConsistency = &options.DefaultCausalConsistency
+	if sessArgs.CausalConsistency == nil && (sessArgs.Snapshot == nil || !*sessArgs.Snapshot) {
+		sessArgs.CausalConsistency = &options.DefaultCausalConsistency
 	}
 	coreOpts := &session.ClientOptions{
 		DefaultReadConcern:    c.readConcern,
 		DefaultReadPreference: c.readPreference,
 		DefaultWriteConcern:   c.writeConcern,
 	}
-	if sopts.CausalConsistency != nil {
-		coreOpts.CausalConsistency = sopts.CausalConsistency
+	if sessArgs.CausalConsistency != nil {
+		coreOpts.CausalConsistency = sessArgs.CausalConsistency
 	}
-	if sopts.DefaultReadConcern != nil {
-		coreOpts.DefaultReadConcern = sopts.DefaultReadConcern
+	if bldr := sessArgs.DefaultTransactionOptions; bldr != nil {
+		txnOpts, err := mongoutil.NewOptions[options.TransactionOptions](bldr)
+		if err != nil {
+			return nil, err
+		}
+
+		if rc := txnOpts.ReadConcern; rc != nil {
+			coreOpts.DefaultReadConcern = rc
+		}
+
+		if wc := txnOpts.WriteConcern; wc != nil {
+			coreOpts.DefaultWriteConcern = wc
+		}
+
+		if rp := txnOpts.ReadPreference; rp != nil {
+			coreOpts.DefaultReadPreference = rp
+		}
 	}
-	if sopts.DefaultWriteConcern != nil {
-		coreOpts.DefaultWriteConcern = sopts.DefaultWriteConcern
-	}
-	if sopts.DefaultReadPreference != nil {
-		coreOpts.DefaultReadPreference = sopts.DefaultReadPreference
-	}
-	if sopts.Snapshot != nil {
-		coreOpts.Snapshot = sopts.Snapshot
+	if sessArgs.Snapshot != nil {
+		coreOpts.Snapshot = sessArgs.Snapshot
 	}
 
 	sess, err := session.NewClientSession(c.sessionPool, c.id, coreOpts)
@@ -469,89 +468,110 @@ func (c *Client) endSessions(ctx context.Context) {
 	}
 }
 
-func (c *Client) configureAutoEncryption(clientOpts *options.ClientOptions) error {
-	c.encryptedFieldsMap = clientOpts.AutoEncryptionOptions.EncryptedFieldsMap
-	if err := c.configureKeyVaultClientFLE(clientOpts); err != nil {
+func (c *Client) configureAutoEncryption(args *options.ClientOptions) error {
+	aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	c.encryptedFieldsMap = aeArgs.EncryptedFieldsMap
+	if err := c.configureKeyVaultClientFLE(args); err != nil {
 		return err
 	}
-	if err := c.configureMetadataClientFLE(clientOpts); err != nil {
+	if err := c.configureMetadataClientFLE(args); err != nil {
 		return err
 	}
 
-	mc, err := c.newMongoCrypt(clientOpts.AutoEncryptionOptions)
+	mc, err := c.newMongoCrypt(args.AutoEncryptionOptions)
 	if err != nil {
 		return err
 	}
 
 	// If the crypt_shared library was not loaded, try to spawn and connect to mongocryptd.
 	if mc.CryptSharedLibVersionString() == "" {
-		mongocryptdFLE, err := newMongocryptdClient(clientOpts.AutoEncryptionOptions)
+		mongocryptdFLE, err := newMongocryptdClient(args.AutoEncryptionOptions)
 		if err != nil {
 			return err
 		}
 		c.mongocryptdFLE = mongocryptdFLE
 	}
 
-	c.configureCryptFLE(mc, clientOpts.AutoEncryptionOptions)
+	c.configureCryptFLE(mc, args.AutoEncryptionOptions)
 	return nil
 }
 
-func (c *Client) getOrCreateInternalClient(clientOpts *options.ClientOptions) (*Client, error) {
+func (c *Client) getOrCreateInternalClient(args *options.ClientOptions) (*Client, error) {
 	if c.internalClientFLE != nil {
 		return c.internalClientFLE, nil
 	}
 
-	internalClientOpts := options.MergeClientOptions(clientOpts)
-	internalClientOpts.AutoEncryptionOptions = nil
-	internalClientOpts.SetMinPoolSize(0)
+	argsCopy := *args
+
+	argsCopy.AutoEncryptionOptions = nil
+	argsCopy.MinPoolSize = ptrutil.Ptr[uint64](0)
+
+	opts := mongoutil.NewOptionsLister(&argsCopy, nil)
+
 	var err error
-	c.internalClientFLE, err = newClient(internalClientOpts)
+	c.internalClientFLE, err = newClient(opts)
+
 	return c.internalClientFLE, err
 }
 
-func (c *Client) configureKeyVaultClientFLE(clientOpts *options.ClientOptions) error {
+func (c *Client) configureKeyVaultClientFLE(clientArgs *options.ClientOptions) error {
 	// parse key vault options and create new key vault client
-	var err error
-	aeOpts := clientOpts.AutoEncryptionOptions
+	aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	switch {
-	case aeOpts.KeyVaultClientOptions != nil:
-		c.keyVaultClientFLE, err = newClient(aeOpts.KeyVaultClientOptions)
-	case clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0:
+	case aeArgs.KeyVaultClientOptions != nil:
+		c.keyVaultClientFLE, err = newClient(aeArgs.KeyVaultClientOptions)
+	case clientArgs.MaxPoolSize != nil && *clientArgs.MaxPoolSize == 0:
 		c.keyVaultClientFLE = c
 	default:
-		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientOpts)
+		c.keyVaultClientFLE, err = c.getOrCreateInternalClient(clientArgs)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	dbName, collName := splitNamespace(aeOpts.KeyVaultNamespace)
+	dbName, collName := splitNamespace(aeArgs.KeyVaultNamespace)
 	c.keyVaultCollFLE = c.keyVaultClientFLE.Database(dbName).Collection(collName, keyVaultCollOpts)
 	return nil
 }
 
-func (c *Client) configureMetadataClientFLE(clientOpts *options.ClientOptions) error {
+func (c *Client) configureMetadataClientFLE(clientArgs *options.ClientOptions) error {
 	// parse key vault options and create new key vault client
-	aeOpts := clientOpts.AutoEncryptionOptions
-	if aeOpts.BypassAutoEncryption != nil && *aeOpts.BypassAutoEncryption {
+	aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](clientArgs.AutoEncryptionOptions)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	if aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption {
 		// no need for a metadata client.
 		return nil
 	}
-	if clientOpts.MaxPoolSize != nil && *clientOpts.MaxPoolSize == 0 {
+	if clientArgs.MaxPoolSize != nil && *clientArgs.MaxPoolSize == 0 {
 		c.metadataClientFLE = c
 		return nil
 	}
 
-	var err error
-	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientOpts)
+	c.metadataClientFLE, err = c.getOrCreateInternalClient(clientArgs)
 	return err
 }
 
-func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt.MongoCrypt, error) {
+func (c *Client) newMongoCrypt(opts options.Lister[options.AutoEncryptionOptions]) (*mongocrypt.MongoCrypt, error) {
+	args, err := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	// convert schemas in SchemaMap to bsoncore documents
 	cryptSchemaMap := make(map[string]bsoncore.Document)
-	for k, v := range opts.SchemaMap {
+	for k, v := range args.SchemaMap {
 		schema, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
@@ -561,7 +581,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 
 	// convert schemas in EncryptedFieldsMap to bsoncore documents
 	cryptEncryptedFieldsMap := make(map[string]bsoncore.Document)
-	for k, v := range opts.EncryptedFieldsMap {
+	for k, v := range args.EncryptedFieldsMap {
 		encryptedFields, err := marshal(v, c.bsonOpts, c.registry)
 		if err != nil {
 			return nil, err
@@ -569,7 +589,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		cryptEncryptedFieldsMap[k] = encryptedFields
 	}
 
-	kmsProviders, err := marshal(opts.KmsProviders, c.bsonOpts, c.registry)
+	kmsProviders, err := marshal(args.KmsProviders, c.bsonOpts, c.registry)
 	if err != nil {
 		return nil, fmt.Errorf("error creating KMS providers document: %w", err)
 	}
@@ -577,7 +597,7 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// Set the crypt_shared library override path from the "cryptSharedLibPath" extra option if one
 	// was set.
 	cryptSharedLibPath := ""
-	if val, ok := opts.ExtraOptions["cryptSharedLibPath"]; ok {
+	if val, ok := args.ExtraOptions["cryptSharedLibPath"]; ok {
 		str, ok := val.(string)
 		if !ok {
 			return nil, fmt.Errorf(
@@ -590,12 +610,12 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 	// intended for use from tests; there is no supported public API for explicitly disabling
 	// loading the crypt_shared library.
 	cryptSharedLibDisabled := false
-	if v, ok := opts.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
+	if v, ok := args.ExtraOptions["__cryptSharedLibDisabledForTestOnly"]; ok {
 		cryptSharedLibDisabled = v.(bool)
 	}
 
-	bypassAutoEncryption := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
-	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
+	bypassAutoEncryption := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
+	bypassQueryAnalysis := args.BypassQueryAnalysis != nil && *args.BypassQueryAnalysis
 
 	mc, err := mongocrypt.NewMongoCrypt(mcopts.MongoCrypt().
 		SetKmsProviders(kmsProviders).
@@ -604,13 +624,13 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 		SetEncryptedFieldsMap(cryptEncryptedFieldsMap).
 		SetCryptSharedLibDisabled(cryptSharedLibDisabled || bypassAutoEncryption).
 		SetCryptSharedLibOverridePath(cryptSharedLibPath).
-		SetHTTPClient(opts.HTTPClient))
+		SetHTTPClient(args.HTTPClient))
 	if err != nil {
 		return nil, err
 	}
 
 	var cryptSharedLibRequired bool
-	if val, ok := opts.ExtraOptions["cryptSharedLibRequired"]; ok {
+	if val, ok := args.ExtraOptions["cryptSharedLibRequired"]; ok {
 		b, ok := val.(bool)
 		if !ok {
 			return nil, fmt.Errorf(
@@ -631,8 +651,10 @@ func (c *Client) newMongoCrypt(opts *options.AutoEncryptionOptions) (*mongocrypt
 }
 
 //nolint:unused // the unused linter thinks that this function is unreachable because "c.newMongoCrypt" always panics without the "cse" build tag set.
-func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.AutoEncryptionOptions) {
-	bypass := opts.BypassAutoEncryption != nil && *opts.BypassAutoEncryption
+func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts options.Lister[options.AutoEncryptionOptions]) {
+	args, _ := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
+
+	bypass := args.BypassAutoEncryption != nil && *args.BypassAutoEncryption
 	kr := keyRetriever{coll: c.keyVaultCollFLE}
 	var cir collInfoRetriever
 	// If bypass is true, c.metadataClientFLE is nil and the collInfoRetriever
@@ -647,7 +669,7 @@ func (c *Client) configureCryptFLE(mc *mongocrypt.MongoCrypt, opts *options.Auto
 		CollInfoFn:           cir.cryptCollInfo,
 		KeyFn:                kr.cryptKeys,
 		MarkFn:               c.mongocryptdFLE.markCommand,
-		TLSConfig:            opts.TLSConfig,
+		TLSConfig:            args.TLSConfig,
 		BypassAutoEncryption: bypass,
 	})
 }
@@ -661,7 +683,7 @@ func (c *Client) validSession(sess *session.Client) error {
 }
 
 // Database returns a handle for a database with the given name configured with the given DatabaseOptions.
-func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
+func (c *Client) Database(name string, opts ...options.Lister[options.DatabaseOptions]) *Database {
 	return newDatabase(c, name, opts...)
 }
 
@@ -674,7 +696,7 @@ func (c *Client) Database(name string, opts ...*options.DatabaseOptions) *Databa
 // The opts parameter can be used to specify options for this operation (see the options.ListDatabasesOptions documentation).
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (ListDatabasesResult, error) {
+func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) (ListDatabasesResult, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -711,28 +733,20 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 
 	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
-	ldo := options.ListDatabases()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.NameOnly != nil {
-			ldo.NameOnly = opt.NameOnly
-		}
-		if opt.AuthorizedDatabases != nil {
-			ldo.AuthorizedDatabases = opt.AuthorizedDatabases
-		}
+	lda, err := mongoutil.NewOptions(opts...)
+	if err != nil {
+		return ListDatabasesResult{}, err
 	}
 	op := operation.NewListDatabases(filterDoc).
 		Session(sess).ReadPreference(c.readPreference).CommandMonitor(c.monitor).
 		ServerSelector(selector).ClusterClock(c.clock).Database("admin").Deployment(c.deployment).Crypt(c.cryptFLE).
 		ServerAPI(c.serverAPI).Timeout(c.timeout)
 
-	if ldo.NameOnly != nil {
-		op = op.NameOnly(*ldo.NameOnly)
+	if lda.NameOnly != nil {
+		op = op.NameOnly(*lda.NameOnly)
 	}
-	if ldo.AuthorizedDatabases != nil {
-		op = op.AuthorizedDatabases(*ldo.AuthorizedDatabases)
+	if lda.AuthorizedDatabases != nil {
+		op = op.AuthorizedDatabases(*lda.AuthorizedDatabases)
 	}
 
 	retry := driver.RetryNone
@@ -760,7 +774,7 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 // documentation.)
 //
 // For more information about the command, see https://www.mongodb.com/docs/manual/reference/command/listDatabases/.
-func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) ([]string, error) {
+func (c *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...options.Lister[options.ListDatabasesOptions]) ([]string, error) {
 	opts = append(opts, options.ListDatabases().SetNameOnly(true))
 
 	res, err := c.ListDatabases(ctx, filter, opts...)
@@ -818,7 +832,7 @@ func (c *Client) UseSession(ctx context.Context, fn func(context.Context) error)
 // not safe for concurrent use by multiple goroutines.
 func (c *Client) UseSessionWithOptions(
 	ctx context.Context,
-	opts *options.SessionOptions,
+	opts *options.SessionOptionsBuilder,
 	fn func(context.Context) error,
 ) error {
 	defaultSess, err := c.StartSession(opts)
@@ -844,7 +858,7 @@ func (c *Client) UseSessionWithOptions(
 // The opts parameter can be used to specify options for change stream creation (see the options.ChangeStreamOptions
 // documentation).
 func (c *Client) Watch(ctx context.Context, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if c.sessionPool == nil {
 		return nil, ErrClientDisconnected
 	}
@@ -881,15 +895,20 @@ func (c *Client) createBaseCursorOptions() driver.CursorOptions {
 
 // newLogger will use the LoggerOptions to create an internal logger and publish
 // messages using a LogSink.
-func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
+func newLogger(opts options.Lister[options.LoggerOptions]) (*logger.Logger, error) {
 	// If there are no logger options, then create a default logger.
 	if opts == nil {
 		opts = options.Logger()
 	}
 
+	args, err := mongoutil.NewOptions[options.LoggerOptions](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
 	// If there are no component-level options and the environment does not
 	// contain component variables, then do nothing.
-	if (opts.ComponentLevels == nil || len(opts.ComponentLevels) == 0) &&
+	if (args.ComponentLevels == nil || len(args.ComponentLevels) == 0) &&
 		!logger.EnvHasComponentVariables() {
 
 		return nil, nil
@@ -897,9 +916,9 @@ func newLogger(opts *options.LoggerOptions) (*logger.Logger, error) {
 
 	// Otherwise, collect the component-level options and create a logger.
 	componentLevels := make(map[logger.Component]logger.Level)
-	for component, level := range opts.ComponentLevels {
+	for component, level := range args.ComponentLevels {
 		componentLevels[logger.Component(component)] = logger.Level(level)
 	}
 
-	return logger.New(opts.Sink, opts.MaxDocumentLength, componentLevels)
+	return logger.New(args.Sink, args.MaxDocumentLength, componentLevels)
 }

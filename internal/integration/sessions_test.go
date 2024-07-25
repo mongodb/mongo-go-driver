@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/internal/assert"
 	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/internal/mongoutil"
 	"go.mongodb.org/mongo-driver/internal/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -113,13 +114,16 @@ func TestSessions(t *testing.T) {
 		assert.Nil(mt, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
+		var res *mongo.InsertOneResult
+
 		err = mongo.WithSession(context.Background(), sess, func(sc context.Context) error {
-			_, err := mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+			res, err = mt.Coll.InsertOne(sc, bson.D{{"x", 1}})
+
 			return err
 		})
 
-		assert.Equal(mt, err, mongo.ErrUnacknowledgedWrite,
-			"expected ErrUnacknowledgedWrite on unacknowledged write in session, got %v", err)
+		assert.NoError(mt, err)
+		assert.False(mt, res.Acknowledged)
 	})
 
 	// Regression test for GODRIVER-2533. Note that this test assumes the race
@@ -161,7 +165,8 @@ func TestSessionsProse(t *testing.T) {
 
 	mt := mtest.New(t, mtOpts)
 
-	hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	require.NoError(t, err)
 
 	mt.Run("1 setting both snapshot and causalConsistency to true is not allowed", func(mt *mtest.T) {
 		// causalConsistency and snapshot are mutually exclusive
