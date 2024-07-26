@@ -27,7 +27,7 @@ type Encoder struct {
 	vw ValueWriter
 }
 
-// NewEncoder returns a new encoder that uses the NewRegistry() to write to vw.
+// NewEncoder returns a new encoder that writes to vw.
 func NewEncoder(vw ValueWriter) *Encoder {
 	return &Encoder{
 		ec: EncodeContext{Registry: defaultRegistry},

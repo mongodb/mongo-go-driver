@@ -9,8 +9,6 @@ package mongo
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"math"
 	"os"
 	"path"
 	"reflect"
@@ -21,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 )
 
@@ -158,57 +157,13 @@ func runDocumentTestFile(t *testing.T, filePath string) {
 	}
 }
 
-func marshalWC(t *testing.T, wc *writeConcern) ([]byte, error) {
-	t.Helper()
-
-	var elems []byte
-	if wc.W != nil {
-		// Only support string or int values for W. That aligns with the
-		// documentation and the behavior of other functions, like Acknowledged.
-		switch w := wc.W.(type) {
-		case int:
-			if w < 0 {
-				return nil, errors.New("write concern `w` field cannot be a negative number")
-			}
-
-			// If Journal=true and W=0, return an error because that write
-			// concern is ambiguous.
-			if wc.Journal != nil && *wc.Journal && w == 0 {
-				return nil, errors.New("a write concern cannot have both w=0 and j=true")
-			}
-
-			if w > math.MaxInt32 {
-				return nil, fmt.Errorf("%d overflows int32", w)
-			}
-			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
-		case string:
-			elems = bsoncore.AppendStringElement(elems, "w", w)
-		default:
-			return nil,
-				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
-		}
-	}
-
-	if wc.Journal != nil {
-		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
-	}
-
-	return elems, nil
-}
-
 func runDocumentTest(t *testing.T, test documentTest) {
 	if test.ReadConcern != nil {
-		rc := readConcernFromRaw(t, test.ReadConcern)
-
-		var elems []byte
-		if len(rc.Level) > 0 {
-			elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
-		}
-		actual := bsoncore.BuildDocument(nil, elems)
-
+		_, actual, err := driver.MarshalBSONReadConcern(readConcernFromRaw(t, test.ReadConcern))
 		if !test.Valid {
-			assert.Fail(t, "expected an invalid read concern")
+			assert.NotNil(t, err, "expected an invalid read concern")
 		} else {
+			assert.Nil(t, err, "got error: %v", err)
 			compareDocuments(t, *test.ReadConcernDocument, actual)
 		}
 
@@ -219,9 +174,9 @@ func runDocumentTest(t *testing.T, test documentTest) {
 	}
 	if test.WriteConcern != nil {
 		actualWc := writeConcernFromRaw(t, test.WriteConcern)
-		actualElems, err := marshalWC(t, &actualWc)
+		_, actual, err := driver.MarshalBSONWriteConcern(actualWc.WriteConcern, 0)
 		if !test.Valid {
-			assert.Equal(t, 0, len(actualElems), "expected an invalid write concern")
+			assert.NotNil(t, err, "expected an invalid write concern")
 			return
 		}
 		if test.IsAcknowledged != nil {
@@ -230,10 +185,8 @@ func runDocumentTest(t *testing.T, test documentTest) {
 				"expected acknowledged %v, got %v", *test.IsAcknowledged, actualAck)
 		}
 
-		assert.Nil(t, err, "MarshalBSONValue error: %v", err)
-
 		expected := *test.WriteConcernDocument
-		if len(actualElems) == 0 {
+		if errors.Is(err, driver.ErrEmptyWriteConcern) {
 			elems, _ := expected.Elements()
 			if len(elems) == 0 {
 				assert.NotNil(t, test.IsServerDefault, "expected write concern %s, got empty", expected)
@@ -243,10 +196,9 @@ func runDocumentTest(t *testing.T, test documentTest) {
 			if _, jErr := expected.LookupErr("j"); jErr == nil && len(elems) == 1 {
 				return
 			}
-			assert.Fail(t, "got empty elements")
 		}
 
-		actual := bsoncore.BuildDocument(nil, actualElems)
+		assert.Nil(t, err, "MarshalBSONValue error: %v", err)
 		if jVal, err := expected.LookupErr("j"); err == nil && !jVal.Boolean() {
 			actual = actual[:len(actual)-1]
 			actual = bsoncore.AppendBooleanElement(actual, "j", false)

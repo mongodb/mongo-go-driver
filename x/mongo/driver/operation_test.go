@@ -993,7 +993,7 @@ func TestMarshalBSONWriteConcern(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotBSONType, gotBSON, gotErr := marshalBSONWriteConcern(test.writeConcern, test.wtimeout)
+			gotBSONType, gotBSON, gotErr := MarshalBSONWriteConcern(&test.writeConcern, test.wtimeout)
 			assert.Equal(t, test.wantBSONType, gotBSONType)
 
 			wantBSON := []byte(nil)

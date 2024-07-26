@@ -32,7 +32,7 @@ type Decoder struct {
 	vr ValueReader
 }
 
-// NewDecoder returns a new decoder that uses the NewRegistry() to read from vr.
+// NewDecoder returns a new decoder that reads from vr.
 func NewDecoder(vr ValueReader) *Decoder {
 	return &Decoder{
 		dc: DecodeContext{Registry: defaultRegistry},
