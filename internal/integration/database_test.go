@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -599,7 +600,8 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false")
 
 	var actualOpts bson.M
-	dec := bson.NewDecoder(bson.NewValueReader(cursor.Current.Lookup("options").Document()))
+	docBytes := cursor.Current.Lookup("options").Document()
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(docBytes)))
 	dec.SetRegistry(interfaceAsMapRegistry)
 	err = dec.Decode(&actualOpts)
 	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)
