@@ -21,7 +21,7 @@ func TestBasicEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := make(sliceWriter, 0, 1024)
-			vw := NewValueWriter(&got)
+			vw := NewDocumentWriter(&got)
 			reg := DefaultRegistry
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
 			noerr(t, err)
@@ -40,7 +40,7 @@ func TestEncoderEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
 			got := make(sliceWriter, 0, 1024)
-			vw := NewValueWriter(&got)
+			vw := NewDocumentWriter(&got)
 			enc := NewEncoder(vw)
 			err := enc.Encode(tc.val)
 			noerr(t, err)
@@ -94,7 +94,7 @@ func TestEncoderEncode(t *testing.T) {
 					vw = tc.vw
 				} else {
 					compareVW = true
-					vw = NewValueWriter(&b)
+					vw = NewDocumentWriter(&b)
 				}
 				enc := NewEncoder(vw)
 				got := enc.Encode(marshaler)
@@ -273,7 +273,7 @@ func TestEncoderConfiguration(t *testing.T) {
 			t.Parallel()
 
 			got := new(bytes.Buffer)
-			vw := NewValueWriter(got)
+			vw := NewDocumentWriter(got)
 			enc := NewEncoder(vw)
 
 			tc.configure(enc)
