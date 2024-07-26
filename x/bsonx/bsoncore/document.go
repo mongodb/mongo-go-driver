@@ -282,8 +282,8 @@ func (d Document) StringN(n int) string {
 	var ok bool
 
 	first := true
+	truncated := false
 
-	n -= buf.Len()
 	if n > 0 {
 		for length > 1 {
 			if !first {
@@ -300,6 +300,8 @@ func (d Document) StringN(n int) string {
 			if buf.Len()+len(str) > n {
 				truncatedStr := truncate(str, uint(n-buf.Len()))
 				buf.WriteString(truncatedStr)
+
+				truncated = true
 				break
 			}
 
@@ -308,7 +310,7 @@ func (d Document) StringN(n int) string {
 		}
 	}
 
-	if buf.Len() <= n {
+	if !truncated {
 		buf.WriteByte('}')
 	}
 

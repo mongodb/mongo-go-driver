@@ -752,7 +752,7 @@ func TestValue_StringN(t *testing.T) {
 		// Extended cases for each type
 		{"n>0, TypeEmbeddedDocument", 10, Value{
 			Type: TypeEmbeddedDocument, Data: BuildDocument(nil,
-				AppendStringElement(nil, "key", "value"))}, `{"key": "}`},
+				AppendStringElement(nil, "key", "value"))}, `{"key": "v`},
 
 		{"n>0, TypeArray", 10, Value{
 			Type: TypeArray, Data: AppendArray(nil, Array([]byte{

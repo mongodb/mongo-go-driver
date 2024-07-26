@@ -494,7 +494,7 @@ func TestDocument_StringN(t *testing.T) {
 		// n > 0 cases
 		{"n>0, document LT n", 3, BuildDocument(nil,
 			AppendStringElement(nil, "key", "value"),
-		), `{"}`},
+		), `{"k`},
 
 		{"n>0, document GT n", 25, BuildDocument(nil,
 			AppendStringElement(nil, "key", "value"),
@@ -508,12 +508,12 @@ func TestDocument_StringN(t *testing.T) {
 			AppendDocumentElement(nil, "key", BuildDocument(nil,
 				AppendStringElement(nil, "nestedKey", str128),
 			)),
-		), `{"key": {"nest}`},
+		), `{"key": {"neste`},
 
 		{"n>0, document with mixed types", 11, BuildDocument(nil,
 			AppendStringElement(nil, "key", str128),
 			AppendInt32Element(nil, "number", 123),
-		), `{"key": "a}`},
+		), `{"key": "ab`},
 
 		{"n>0, deeply nested document", 17, BuildDocument(nil,
 			AppendDocumentElement(nil, "a", BuildDocument(nil,
@@ -521,7 +521,7 @@ func TestDocument_StringN(t *testing.T) {
 					AppendStringElement(nil, "c", str128),
 				)),
 			)),
-		), `{"a": {"b": {"c"}`},
+		), `{"a": {"b": {"c":`},
 
 		{"n>0, empty document", 10, Document{}, ""},
 	}
@@ -536,4 +536,52 @@ func TestDocument_StringN(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTruncate(t *testing.T) {
+	t.Parallel()
+
+	for _, tcase := range []struct {
+		name     string
+		arg      string
+		width    uint
+		expected string
+	}{
+		{
+			name:     "empty",
+			arg:      "",
+			width:    0,
+			expected: "",
+		},
+		{
+			name:     "short",
+			arg:      "foo",
+			width:    1000,
+			expected: "foo",
+		},
+		{
+			name:     "long",
+			arg:      "foo bar baz",
+			width:    9,
+			expected: "foo bar b",
+		},
+		{
+			name:     "multi-byte",
+			arg:      "你好",
+			width:    4,
+			expected: "你",
+		},
+	} {
+		tcase := tcase
+
+		t.Run(tcase.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := truncate(tcase.arg, tcase.width)
+			if actual != tcase.expected {
+				t.Errorf("expected %q, got %q", tcase.expected, actual)
+			}
+		})
+	}
+
 }
