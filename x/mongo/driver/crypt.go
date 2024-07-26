@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
 const (

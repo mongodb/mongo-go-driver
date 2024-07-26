@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 var errCannotTruncate = errors.New("float64 can only be truncated to a lower precision type when truncation is enabled")

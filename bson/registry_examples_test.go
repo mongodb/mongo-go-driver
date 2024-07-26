@@ -12,7 +12,7 @@ import (
 	"math"
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func ExampleRegistry_customEncoder() {

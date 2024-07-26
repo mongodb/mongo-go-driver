@@ -17,11 +17,11 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal/codecutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Dialer is used to make network connections.

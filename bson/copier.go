@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // copyDocument handles copying one document from the src to the dst.

@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 // TestJoin_Nil asserts that join returns a nil error for the same inputs that

@@ -22,10 +22,10 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/randutil"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const (
