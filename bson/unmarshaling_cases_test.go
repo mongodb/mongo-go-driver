@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"bytes"
 	"reflect"
 )
 
@@ -196,11 +197,11 @@ type unmarshalerNonPtrStruct struct {
 
 type myInt64 int64
 
-func (mi *myInt64) UnmarshalBSON(bytes []byte) error {
-	if len(bytes) == 0 {
+func (mi *myInt64) UnmarshalBSON(b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	i, err := NewBSONValueReader(TypeInt64, bytes).ReadInt64()
+	i, err := newValueReader(TypeInt64, bytes.NewReader(b)).ReadInt64()
 	if err != nil {
 		return err
 	}
@@ -222,11 +223,11 @@ func (mm *myMap) UnmarshalBSON(bytes []byte) error {
 
 type myBytes []byte
 
-func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
-	if len(bytes) == 0 {
+func (mb *myBytes) UnmarshalBSON(b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	b, _, err := NewBSONValueReader(TypeBinary, bytes).ReadBinary()
+	b, _, err := newValueReader(TypeBinary, bytes.NewReader(b)).ReadBinary()
 	if err != nil {
 		return err
 	}
@@ -236,11 +237,11 @@ func (mb *myBytes) UnmarshalBSON(bytes []byte) error {
 
 type myString string
 
-func (ms *myString) UnmarshalBSON(bytes []byte) error {
-	if len(bytes) == 0 {
+func (ms *myString) UnmarshalBSON(b []byte) error {
+	if len(b) == 0 {
 		return nil
 	}
-	s, err := NewBSONValueReader(TypeString, bytes).ReadString()
+	s, err := newValueReader(TypeString, bytes.NewReader(b)).ReadString()
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -87,7 +88,7 @@ func runOnThread(mt *mtest.T, testCase *testCase, op *operation) {
 
 	var routineOperation operation
 	operationDoc := op.Arguments.Lookup("operation")
-	dec := bson.NewDecoder(bson.NewValueReader(operationDoc.Document()))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(operationDoc.Document())))
 	dec.SetRegistry(specTestRegistry)
 	err := dec.Decode(&routineOperation)
 	assert.Nil(mt, err, "error creating operation for runOnThread: %v", err)
