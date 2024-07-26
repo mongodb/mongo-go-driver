@@ -9,9 +9,9 @@ package main
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson/v2"
-	"go.mongodb.org/mongo-driver/mongo/options/v2"
-	"go.mongodb.org/mongo-driver/mongo/v2"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func main() {
