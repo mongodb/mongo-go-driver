@@ -10,8 +10,8 @@ import (
 	"io"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func testEncFn(t *testing.T) EncoderFn {

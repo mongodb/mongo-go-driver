@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // ErrNilContext is returned when the provided DecodeContext is nil.

@@ -10,7 +10,7 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/v2/tag"
 )
 
 // ErrInvalidTagSet indicates that an invalid set of tags was specified.

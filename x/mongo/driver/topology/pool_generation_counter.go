@@ -10,7 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Pool generation state constants.
