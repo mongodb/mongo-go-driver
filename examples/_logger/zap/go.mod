@@ -6,13 +6,9 @@ replace go.mongodb.org/mongo-driver/v2 => ../../../
 
 require (
 	github.com/go-logr/zapr v1.2.3
-	// Note that the Go driver version is replaced with the local Go driver code
-	// by the replace directive above.
-
+	go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
 	go.uber.org/zap v1.24.0
 )
-
-require go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
 
 require (
 	github.com/go-logr/logr v1.2.2 // indirect

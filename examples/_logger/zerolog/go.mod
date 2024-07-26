@@ -8,8 +8,6 @@ require (
 	github.com/go-logr/zerologr v1.2.2
 	github.com/rs/zerolog v1.28.0
 	go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
-// Note that the Go driver version is replaced with the local Go driver code
-// by the replace directive above.
 )
 
 require (
