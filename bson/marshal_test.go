@@ -31,7 +31,7 @@ func TestMarshalWithRegistry(t *testing.T) {
 				reg = defaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw := NewValueWriter(buf)
+			vw := NewDocumentWriter(buf)
 			enc := NewEncoder(vw)
 			enc.SetRegistry(reg)
 			err := enc.Encode(tc.val)
@@ -55,7 +55,7 @@ func TestMarshalWithContext(t *testing.T) {
 				reg = defaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw := NewValueWriter(buf)
+			vw := NewDocumentWriter(buf)
 			enc := NewEncoder(vw)
 			enc.IntMinSize()
 			enc.SetRegistry(reg)
@@ -173,7 +173,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.SetRegistry(customReg)
 		err = enc.Encode(original)

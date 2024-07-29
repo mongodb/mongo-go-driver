@@ -61,7 +61,7 @@ func getEncoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) (*bson.Encoder, error) {
-	vw := bson.NewValueWriter(w)
+	vw := bson.NewDocumentWriter(w)
 	enc := bson.NewEncoder(vw)
 
 	if opts != nil {

@@ -74,7 +74,7 @@ func Marshal(val interface{}) ([]byte, error) {
 		}
 	}()
 	sw.Reset()
-	vw := NewValueWriter(sw)
+	vw := NewDocumentWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
@@ -111,7 +111,7 @@ func MarshalValue(val interface{}) (Type, []byte, error) {
 		}
 	}()
 	sw.Reset()
-	vwFlusher := NewValueWriter(sw).(*valueWriter)
+	vwFlusher := newDocumentWriter(sw)
 	vw, err := vwFlusher.WriteDocumentElement("")
 	if err != nil {
 		return 0, nil, err

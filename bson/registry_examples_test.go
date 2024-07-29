@@ -65,7 +65,7 @@ func ExampleRegistry_customEncoder() {
 	// Marshal the document as BSON. Expect that the int field is encoded to the
 	// same value and that the negatedInt field is encoded as the negated value.
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 	enc := bson.NewEncoder(vw)
 	enc.SetRegistry(reg)
 	err := enc.Encode(doc)
@@ -148,7 +148,7 @@ func ExampleRegistry_customDecoder() {
 		IsOK lenientBool `bson:"isOK"`
 	}
 	var doc MyDocument
-	dec := bson.NewDecoder(bson.NewValueReader(b))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(b)))
 	dec.SetRegistry(reg)
 	err = dec.Decode(&doc)
 	if err != nil {
@@ -205,7 +205,7 @@ func ExampleRegistry_RegisterKindEncoder() {
 	// Marshal the document as BSON. Expect that all fields are encoded as BSON
 	// int64 (represented as "$numberLong" when encoded as Extended JSON).
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 	enc := bson.NewEncoder(vw)
 	enc.SetRegistry(reg)
 	err := enc.Encode(doc)
@@ -292,7 +292,7 @@ func ExampleRegistry_RegisterKindDecoder() {
 		Int64 int64
 	}
 	var doc myDocument
-	dec := bson.NewDecoder(bson.NewValueReader(b))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(b)))
 	dec.SetRegistry(reg)
 	err = dec.Decode(&doc)
 	if err != nil {

@@ -26,7 +26,7 @@ type outputArgs struct {
 func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val interface{}) error {
 	t.Helper()
 
-	vr := NewValueReader(data)
+	vr := NewDocumentReader(bytes.NewReader(data))
 	return unmarshalFromReader(dc, vr, val)
 }
 
@@ -38,7 +38,7 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(defaultRegistry)
@@ -64,7 +64,7 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
 		enc.SetRegistry(defaultRegistry)

@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"bytes"
 	"reflect"
 	"strings"
 	"testing"
@@ -64,7 +65,7 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 				dec := NewDecoder(nil)
 				dec.SetRegistry(reg)
 				for pb.Next() {
-					dec.Reset(NewBSONValueReader(bm.bsontype, bm.bytes))
+					dec.Reset(newValueReader(bm.bsontype, bytes.NewReader(bm.bytes)))
 					err := dec.Decode(&[]byte{})
 					if err != nil {
 						b.Fatal(err)

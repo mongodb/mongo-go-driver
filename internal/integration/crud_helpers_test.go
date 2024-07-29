@@ -1060,7 +1060,7 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	mt.Helper()
 
 	var testArgs withTransactionArgs
-	dec := bson.NewDecoder(bson.NewValueReader(args))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(args)))
 	dec.SetRegistry(specTestRegistry)
 	err := dec.Decode(&testArgs)
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
