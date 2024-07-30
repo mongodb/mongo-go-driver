@@ -281,7 +281,6 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 				extraHeartbeats := heartbeatStartedCount.Load() - serverCount
 				assert.Equal(mt, int64(0), extraHeartbeats)
 			case <-timer.C:
-
 				return
 			}
 		}
