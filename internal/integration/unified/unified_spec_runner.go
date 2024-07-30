@@ -70,9 +70,22 @@ var (
 		"timeoutMS can be configured for an operation - find on collection":                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"timeoutMS can be configured for an operation - aggregate on collection":               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"timeoutMS can be configured for an operation - aggregate on database":                 "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured on a MongoClient - find on collection":                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured on a MongoClient - aggregate on collection":               "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS can be configured on a MongoClient - aggregate on database":                 "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"operation is retried multiple times for non-zero timeoutMS - find on collection":      "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"operation is retried multiple times for non-zero timeoutMS - aggregate on collection": "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
 		"operation is retried multiple times for non-zero timeoutMS - aggregate on database":   "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+		"timeoutMS applied to find command":                                                    "maxTimeMS is disabled on find and aggregate. See DRIVERS-2722.",
+
+		// DRIVERS-2953: This test requires that the driver sends a "getMore"
+		// with "maxTimeMS" set. However, "getMore" can only include "maxTimeMS"
+		// for tailable awaitData cursors. Including "maxTimeMS" on "getMore"
+		// for any other cursor type results in a server error:
+		//
+		//  (BadValue) cannot set maxTimeMS on getMore command for a non-awaitData cursor
+		//
+		"Non-tailable cursor lifetime remaining timeoutMS applied to getMore if timeoutMode is unset": "maxTimeMS can't be set on a getMore. See DRIVERS-2953",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond

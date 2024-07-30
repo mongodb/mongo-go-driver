@@ -444,8 +444,8 @@ func (bc *BatchCursor) getMore(ctx context.Context) {
 
 		// Omit the automatically-calculated maxTimeMS because setting maxTimeMS
 		// on a non-awaitData cursor causes a server error. For awaitData
-		// cursors, maxTimeMS is set by the above CommandFn when maxAwaitTime is
-		// specified.
+		// cursors, maxTimeMS is set when maxAwaitTime is specified by the above
+		// CommandFn.
 		OmitMaxTimeMS: true,
 
 		// No read preference is passed to the getMore command,

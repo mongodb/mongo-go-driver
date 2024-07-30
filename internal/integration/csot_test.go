@@ -24,8 +24,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
-// Test automatic "maxTimeMS" appending and connection closing behavior when
-// CSOT is disabled and enabled.
+// Test automatic "maxTimeMS" appending and connection closing behavior.
 func TestCSOT_maxTimeMS(t *testing.T) {
 	mt := mtest.New(t, mtest.NewOptions().CreateClient(false))
 
