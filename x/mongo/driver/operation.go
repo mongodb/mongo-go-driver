@@ -1927,7 +1927,7 @@ func (op Operation) publishStartedEvent(ctx context.Context, info startedInforma
 
 		redactedCmd := redactStartedInformationCmd(op, info)
 
-		formattedCmd := logger.FormatDocument(bsoncore.Document(redactedCmd), op.Logger.MaxDocumentLength)
+		formattedCmd := logger.FormatDocument(redactedCmd, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
@@ -1980,7 +1980,7 @@ func (op Operation) publishFinishedEvent(ctx context.Context, info finishedInfor
 
 		redactedReply := redactFinishedInformationResponse(info)
 
-		formattedReply := logger.FormatDocument(bsoncore.Document(redactedReply), op.Logger.MaxDocumentLength)
+		formattedReply := logger.FormatDocument(redactedReply, op.Logger.MaxDocumentLength)
 
 		op.Logger.Print(logger.LevelDebug,
 			logger.ComponentCommand,
