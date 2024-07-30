@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 func TestExtJSONReader(t *testing.T) {

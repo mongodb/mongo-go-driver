@@ -16,20 +16,20 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/eventtest"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -358,7 +358,7 @@ func TestClient(t *testing.T) {
 	mt.RunOpts("causal consistency", sessionOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name       string
-			opts       *options.SessionOptions
+			opts       *options.SessionOptionsBuilder
 			consistent bool
 		}{
 			{"default", options.Session(), true},

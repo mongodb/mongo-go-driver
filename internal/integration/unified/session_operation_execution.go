@@ -10,8 +10,8 @@ import (
 	"context"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func executeAbortTransaction(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -73,7 +73,7 @@ func executeStartTransaction(ctx context.Context, operation *operation) (*operat
 			return nil, fmt.Errorf("error unmarshalling arguments to transactionOptions: %v", err)
 		}
 
-		opts = temp.TransactionOptions
+		opts = temp.TransactionOptionsBuilder
 	}
 
 	return newErrorResult(sess.StartTransaction(opts)), nil
@@ -109,6 +109,6 @@ func executeWithTransaction(ctx context.Context, op *operation, loopDone <-chan 
 			}
 		}
 		return nil, nil
-	}, temp.TransactionOptions)
+	}, temp.TransactionOptionsBuilder)
 	return err
 }

@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
 )
 
 // Unmarshaler is the interface implemented by types that can unmarshal a BSON
@@ -35,31 +36,35 @@ type ValueUnmarshaler interface {
 }
 
 // Unmarshal parses the BSON-encoded data and stores the result in the value
-// pointed to by val. If val is nil or not a pointer, Unmarshal returns
-// InvalidUnmarshalError.
+// pointed to by val. If val is nil or not a pointer, Unmarshal returns an error.
 func Unmarshal(data []byte, val interface{}) error {
-	vr := NewValueReader(data)
-	return unmarshalFromReader(DecodeContext{Registry: DefaultRegistry}, vr, val)
+	vr := newDocumentReader(bytes.NewReader(data))
+	if l, err := vr.peekLength(); err != nil {
+		return err
+	} else if int(l) != len(data) {
+		return fmt.Errorf("invalid document length")
+	}
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
-// UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
+// UnmarshalValue parses the BSON value of type t with bson.NewRegistry() and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
 func UnmarshalValue(t Type, data []byte, val interface{}) error {
-	vr := NewBSONValueReader(t, data)
-	return unmarshalFromReader(DecodeContext{Registry: DefaultRegistry}, vr, val)
+	vr := newValueReader(t, bytes.NewReader(data))
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
-// in the value pointed to by val. If val is nil or not a pointer, Unmarshal
-// returns InvalidUnmarshalError.
+// in the value pointed to by val. If val is nil or not a pointer, UnmarshalExtJSON
+// returns an error.
 func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
 	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonical)
 	if err != nil {
 		return err
 	}
 
-	return unmarshalFromReader(DecodeContext{Registry: DefaultRegistry}, ejvr, val)
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, ejvr, val)
 }
 
 func unmarshalFromReader(dc DecodeContext, vr ValueReader, val interface{}) error {

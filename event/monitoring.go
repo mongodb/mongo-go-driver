@@ -10,8 +10,8 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
 )
 
 // CommandStartedEvent represents an event generated when a command is sent to a server.

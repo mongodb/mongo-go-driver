@@ -17,16 +17,16 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 var (
@@ -578,7 +578,7 @@ func TestConvenientTransactions(t *testing.T) {
 	})
 }
 
-func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
+func setupConvenientTransactions(t *testing.T, extraClientOpts ...options.Lister[options.ClientOptions]) *Client {
 	cs := integtest.ConnString(t)
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
@@ -597,7 +597,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 		SetWriteConcern(writeconcern.Majority()).
 		SetPoolMonitor(poolMonitor)
 	integtest.AddTestServerAPIVersion(baseClientOpts)
-	fullClientOpts := []*options.ClientOptions{baseClientOpts}
+	fullClientOpts := []options.Lister[options.ClientOptions]{baseClientOpts}
 	fullClientOpts = append(fullClientOpts, extraClientOpts...)
 
 	client, err := Connect(fullClientOpts...)

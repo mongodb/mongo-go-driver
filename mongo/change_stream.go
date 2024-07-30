@@ -14,19 +14,20 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 var (
@@ -102,55 +103,6 @@ type changeStreamConfig struct {
 	crypt          driver.Crypt
 }
 
-// mergeChangeStreamOptions combines the given ChangeStreamOptions instances into a single ChangeStreamOptions in a
-// last-property-wins fashion.
-func mergeChangeStreamOptions(opts ...*options.ChangeStreamOptions) *options.ChangeStreamOptions {
-	csOpts := options.ChangeStream()
-	for _, cso := range opts {
-		if cso == nil {
-			continue
-		}
-		if cso.BatchSize != nil {
-			csOpts.BatchSize = cso.BatchSize
-		}
-		if cso.Collation != nil {
-			csOpts.Collation = cso.Collation
-		}
-		if cso.Comment != nil {
-			csOpts.Comment = cso.Comment
-		}
-		if cso.FullDocument != nil {
-			csOpts.FullDocument = cso.FullDocument
-		}
-		if cso.FullDocumentBeforeChange != nil {
-			csOpts.FullDocumentBeforeChange = cso.FullDocumentBeforeChange
-		}
-		if cso.MaxAwaitTime != nil {
-			csOpts.MaxAwaitTime = cso.MaxAwaitTime
-		}
-		if cso.ResumeAfter != nil {
-			csOpts.ResumeAfter = cso.ResumeAfter
-		}
-		if cso.ShowExpandedEvents != nil {
-			csOpts.ShowExpandedEvents = cso.ShowExpandedEvents
-		}
-		if cso.StartAtOperationTime != nil {
-			csOpts.StartAtOperationTime = cso.StartAtOperationTime
-		}
-		if cso.StartAfter != nil {
-			csOpts.StartAfter = cso.StartAfter
-		}
-		if cso.Custom != nil {
-			csOpts.Custom = cso.Custom
-		}
-		if cso.CustomPipeline != nil {
-			csOpts.CustomPipeline = cso.CustomPipeline
-		}
-	}
-
-	return csOpts
-}
-
 // validChangeStreamTimeouts will return "false" if maxAwaitTimeMS is set,
 // timeoutMS is set to a non-zero value, and maxAwaitTimeMS is greater than or
 // equal to timeoutMS. Otherwise, the timeouts are valid.
@@ -179,7 +131,7 @@ func validChangeStreamTimeouts(ctx context.Context, cs *ChangeStream) bool {
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
-	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
+	opts ...options.Lister[options.ChangeStreamOptions]) (*ChangeStream, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -188,14 +140,17 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 
 	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
 
-	changeStreamOpts := mergeChangeStreamOptions(opts...)
+	args, err := mongoutil.NewOptions[options.ChangeStreamOptions](opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	cs := &ChangeStream{
 		client:     config.client,
 		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
-		options:    changeStreamOpts,
+		options:    args,
 		selector: &serverselector.Composite{
 			Selectors: []description.ServerSelector{
 				&serverselector.ReadPref{ReadPref: config.readPreference},
@@ -221,7 +176,7 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
 	if cs.options.Collation != nil {
-		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
+		cs.aggregate.Collation(bsoncore.Document(toDocument(cs.options.Collation)))
 	}
 	if cs.options.Comment != nil {
 		comment, err := marshalValue(cs.options.Comment, cs.bsonOpts, cs.registry)
@@ -577,9 +532,9 @@ func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {
 func (cs *ChangeStream) replaceOptions(wireVersion *description.VersionRange) {
 	// Cached resume token: use the resume token as the resumeAfter option and set no other resume options
 	if cs.resumeToken != nil {
-		cs.options.SetResumeAfter(cs.resumeToken)
-		cs.options.SetStartAfter(nil)
-		cs.options.SetStartAtOperationTime(nil)
+		cs.options.ResumeAfter = cs.resumeToken
+		cs.options.StartAfter = nil
+		cs.options.StartAtOperationTime = nil
 		return
 	}
 
@@ -591,16 +546,16 @@ func (cs *ChangeStream) replaceOptions(wireVersion *description.VersionRange) {
 			opTime = cs.sess.OperationTime
 		}
 
-		cs.options.SetStartAtOperationTime(opTime)
-		cs.options.SetResumeAfter(nil)
-		cs.options.SetStartAfter(nil)
+		cs.options.StartAtOperationTime = opTime
+		cs.options.ResumeAfter = nil
+		cs.options.StartAfter = nil
 		return
 	}
 
 	// No cached resume token or operation time: set none of the resume options
-	cs.options.SetResumeAfter(nil)
-	cs.options.SetStartAfter(nil)
-	cs.options.SetStartAtOperationTime(nil)
+	cs.options.ResumeAfter = nil
+	cs.options.StartAfter = nil
+	cs.options.StartAtOperationTime = nil
 }
 
 // ID returns the ID for this change stream, or 0 if the cursor has been closed or exhausted.

@@ -13,8 +13,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
 )
 
 // Test case for all server selection rtt spec tests.

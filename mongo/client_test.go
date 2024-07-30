@@ -14,23 +14,24 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 var bgCtx = context.Background()
 
-func setupClient(opts ...*options.ClientOptions) *Client {
+func setupClient(opts ...options.Lister[options.ClientOptions]) *Client {
 	if len(opts) == 0 {
 		clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
 		integtest.AddTestServerAPIVersion(clientOpts)
@@ -126,7 +127,7 @@ func TestClient(t *testing.T) {
 	t.Run("localThreshold", func(t *testing.T) {
 		testCases := []struct {
 			name              string
-			opts              *options.ClientOptions
+			opts              *options.ClientOptionsBuilder
 			expectedThreshold time.Duration
 		}{
 			{"default", options.Client(), defaultLocalThreshold},
@@ -148,7 +149,7 @@ func TestClient(t *testing.T) {
 	t.Run("min pool size from Set*PoolSize()", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *options.ClientOptions
+			opts *options.ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -192,7 +193,7 @@ func TestClient(t *testing.T) {
 	t.Run("min pool size from ApplyURI()", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			opts *options.ClientOptions
+			opts *options.ClientOptionsBuilder
 			err  error
 		}{
 			{
@@ -239,7 +240,7 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name          string
-			opts          *options.ClientOptions
+			opts          *options.ClientOptionsBuilder
 			expectErr     bool
 			expectedRetry bool
 		}{
@@ -267,7 +268,7 @@ func TestClient(t *testing.T) {
 
 		testCases := []struct {
 			name          string
-			opts          *options.ClientOptions
+			opts          *options.ClientOptionsBuilder
 			expectErr     bool
 			expectedRetry bool
 		}{
@@ -307,13 +308,17 @@ func TestClient(t *testing.T) {
 		})
 		t.Run("ApplyURI called with empty string", func(t *testing.T) {
 			opts := options.Client().ApplyURI("")
+
 			uri := opts.GetURI()
 			assert.Equal(t, "", uri, "expected GetURI to return empty string, got %v", uri)
 		})
 		t.Run("ApplyURI called with non-empty string", func(t *testing.T) {
 			uri := "mongodb://localhost:27017/foobar"
 			opts := options.Client().ApplyURI(uri)
-			got := opts.GetURI()
+
+			args, _ := mongoutil.NewOptions[options.ClientOptions](opts)
+			got := args.GetURI()
+
 			assert.Equal(t, uri, got, "expected GetURI to return %v, got %v", uri, got)
 		})
 	})
@@ -409,7 +414,7 @@ func TestClient(t *testing.T) {
 		}
 	})
 	t.Run("serverAPI version", func(t *testing.T) {
-		getServerAPIOptions := func() *options.ServerAPIOptions {
+		getServerAPIOptions := func() *options.ServerAPIOptionsBuilder {
 			return options.ServerAPI(options.ServerAPIVersion1).
 				SetStrict(false).SetDeprecationErrors(false)
 		}

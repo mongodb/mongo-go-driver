@@ -17,12 +17,14 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal/codecutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+var defaultRegistry = bson.NewRegistry()
 
 // Dialer is used to make network connections.
 type Dialer interface {
@@ -59,7 +61,7 @@ func getEncoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) (*bson.Encoder, error) {
-	vw := bson.NewValueWriter(w)
+	vw := bson.NewDocumentWriter(w)
 	enc := bson.NewEncoder(vw)
 
 	if opts != nil {
@@ -115,7 +117,7 @@ func marshal(
 	registry *bson.Registry,
 ) (bsoncore.Document, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 	if val == nil {
 		return nil, ErrNilDocument
@@ -153,7 +155,7 @@ func ensureID(
 	reg *bson.Registry,
 ) (bsoncore.Document, interface{}, error) {
 	if reg == nil {
-		reg = bson.DefaultRegistry
+		reg = defaultRegistry
 	}
 
 	// Try to find the "_id" element. If it exists, try to unmarshal just the
@@ -406,7 +408,7 @@ func countDocumentsAggregatePipeline(
 	filter interface{},
 	encOpts *options.BSONOptions,
 	registry *bson.Registry,
-	opts *options.CountOptions,
+	args *options.CountOptions,
 ) (bsoncore.Document, error) {
 	filterDoc, err := marshal(filter, encOpts, registry)
 	if err != nil {
@@ -419,16 +421,16 @@ func countDocumentsAggregatePipeline(
 	arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 
 	index := 1
-	if opts != nil {
-		if opts.Skip != nil {
+	if args != nil {
+		if args.Skip != nil {
 			didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
-			arr = bsoncore.AppendInt64Element(arr, "$skip", *opts.Skip)
+			arr = bsoncore.AppendInt64Element(arr, "$skip", *args.Skip)
 			arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 			index++
 		}
-		if opts.Limit != nil {
+		if args.Limit != nil {
 			didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
-			arr = bsoncore.AppendInt64Element(arr, "$limit", *opts.Limit)
+			arr = bsoncore.AppendInt64Element(arr, "$limit", *args.Limit)
 			arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 			index++
 		}

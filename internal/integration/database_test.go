@@ -7,20 +7,21 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 const (
@@ -481,7 +482,7 @@ func TestDatabase(t *testing.T) {
 				name             string
 				minServerVersion string
 				maxServerVersion string
-				createOpts       *options.CreateCollectionOptions
+				createOpts       *options.CreateCollectionOptionsBuilder
 				expectedOpts     bson.M
 			}{
 				{"all options except collation and csppi", "3.2", "", nonCollationOpts, nonCollationExpected},
@@ -599,7 +600,8 @@ func getCollectionOptions(mt *mtest.T, collectionName string) bson.M {
 	assert.True(mt, cursor.Next(context.Background()), "expected Next to return true, got false")
 
 	var actualOpts bson.M
-	dec := bson.NewDecoder(bson.NewValueReader(cursor.Current.Lookup("options").Document()))
+	docBytes := cursor.Current.Lookup("options").Document()
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(docBytes)))
 	dec.SetRegistry(interfaceAsMapRegistry)
 	err = dec.Decode(&actualOpts)
 	assert.Nil(mt, err, "UnmarshalWithRegistry error: %v", err)

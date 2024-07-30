@@ -9,9 +9,9 @@ package unified
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // newMissingArgumentError creates an error to convey that an argument that is required to run an operation is missing
@@ -23,7 +23,7 @@ func newMissingArgumentError(arg string) error {
 type updateArguments struct {
 	filter bson.Raw
 	update interface{}
-	opts   *options.UpdateOptions
+	opts   *options.UpdateOptionsBuilder
 }
 
 func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
@@ -39,9 +39,9 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 
 		switch key {
 		case "arrayFilters":
-			ua.opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			ua.opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "bypassDocumentValidation":
 			ua.opts.SetBypassDocumentValidation(val.Boolean())
 		case "collation":
@@ -85,7 +85,7 @@ func createUpdateArguments(args bson.Raw) (*updateArguments, error) {
 
 type listCollectionsArguments struct {
 	filter bson.Raw
-	opts   *options.ListCollectionsOptions
+	opts   *options.ListCollectionsOptionsBuilder
 }
 
 func createListCollectionsArguments(args bson.Raw) (*listCollectionsArguments, error) {

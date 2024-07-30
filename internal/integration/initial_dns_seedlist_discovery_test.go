@@ -17,16 +17,16 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 const (
@@ -74,7 +74,7 @@ func runSeedlistDiscoveryDirectory(mt *mtest.T, subdirectory string) {
 }
 
 // runSeedlistDiscoveryPingTest will create a new connection using the test URI and attempt to "ping" the server.
-func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptions) {
+func runSeedlistDiscoveryPingTest(mt *mtest.T, clientOpts *options.ClientOptionsBuilder) {
 	ctx := context.Background()
 
 	client, err := mongo.Connect(clientOpts)

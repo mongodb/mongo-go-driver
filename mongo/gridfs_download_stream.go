@@ -13,7 +13,7 @@ import (
 	"math"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // ErrMissingChunk indicates that the number of chunks read from the server is

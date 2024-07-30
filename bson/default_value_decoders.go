@@ -15,7 +15,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 var errCannotTruncate = errors.New("float64 can only be truncated to a lower precision type when truncation is enabled")
@@ -243,7 +243,7 @@ func intDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Va
 		if err != nil {
 			return emptyValue, err
 		}
-		if !dc.Truncate && math.Floor(f64) != f64 {
+		if !dc.truncate && math.Floor(f64) != f64 {
 			return emptyValue, errCannotTruncate
 		}
 		if f64 > float64(math.MaxInt64) {
@@ -368,7 +368,7 @@ func floatDecodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.
 
 	switch t.Kind() {
 	case reflect.Float32:
-		if !dc.Truncate && float64(float32(f)) != f {
+		if !dc.truncate && float64(float32(f)) != f {
 			return emptyValue, errCannotTruncate
 		}
 

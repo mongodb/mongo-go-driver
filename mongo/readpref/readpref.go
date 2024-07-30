@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/v2/tag"
 )
 
 var (

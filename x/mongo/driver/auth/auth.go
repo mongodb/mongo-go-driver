@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // AuthenticatorFactory constructs an authenticator.

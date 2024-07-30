@@ -9,7 +9,7 @@ package bson
 import (
 	"reflect"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // arrayCodec is the Codec used for bsoncore.Array values.

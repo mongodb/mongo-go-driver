@@ -6,7 +6,8 @@
 
 package options
 
-// DropCollectionOptions represents options that can be used to configure a Drop operation.
+// DropCollectionOptions represents arguments that can be used to configure a
+// Drop operation.
 type DropCollectionOptions struct {
 	// EncryptedFields configures encrypted fields for encrypted collections.
 	//
@@ -14,31 +15,30 @@ type DropCollectionOptions struct {
 	EncryptedFields interface{}
 }
 
+// DropCollectionOptionsBuilder contains options to configure collection drop
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type DropCollectionOptionsBuilder struct {
+	Opts []func(*DropCollectionOptions) error
+}
+
 // DropCollection creates a new DropCollectionOptions instance.
-func DropCollection() *DropCollectionOptions {
-	return &DropCollectionOptions{}
+func DropCollection() *DropCollectionOptionsBuilder {
+	return &DropCollectionOptionsBuilder{}
+}
+
+// List returns a list of DropCollectionOptions setter functions.
+func (d *DropCollectionOptionsBuilder) List() []func(*DropCollectionOptions) error {
+	return d.Opts
 }
 
 // SetEncryptedFields sets the encrypted fields for encrypted collections.
-func (d *DropCollectionOptions) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptions {
-	d.EncryptedFields = encryptedFields
+func (d *DropCollectionOptionsBuilder) SetEncryptedFields(encryptedFields interface{}) *DropCollectionOptionsBuilder {
+	d.Opts = append(d.Opts, func(opts *DropCollectionOptions) error {
+		opts.EncryptedFields = encryptedFields
+
+		return nil
+	})
+
 	return d
-}
-
-// MergeDropCollectionOptions combines the given DropCollectionOptions instances into a single
-// DropCollectionOptions in a last-one-wins fashion.
-func MergeDropCollectionOptions(opts ...*DropCollectionOptions) *DropCollectionOptions {
-	dc := DropCollection()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.EncryptedFields != nil {
-			dc.EncryptedFields = opt.EncryptedFields
-		}
-	}
-
-	return dc
 }

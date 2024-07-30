@@ -12,13 +12,13 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func ExampleEncoder() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
@@ -56,7 +56,7 @@ func (k CityState) String() string {
 func ExampleEncoder_StringifyMapKeysWithFmt() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 	encoder := bson.NewEncoder(vw)
 
 	// Configure the Encoder to convert Go map keys to BSON document field names
@@ -81,7 +81,7 @@ func ExampleEncoder_StringifyMapKeysWithFmt() {
 func ExampleEncoder_UseJSONStructTags() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 	encoder := bson.NewEncoder(vw)
 
 	type Product struct {
@@ -114,7 +114,7 @@ func ExampleEncoder_UseJSONStructTags() {
 func ExampleEncoder_multipleBSONDocuments() {
 	// Create an Encoder that writes BSON values to a bytes.Buffer.
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 	encoder := bson.NewEncoder(vw)
 
 	type Coordinate struct {
@@ -224,7 +224,7 @@ func ExampleEncoder_IntMinSize() {
 	}
 
 	buf := new(bytes.Buffer)
-	vw := bson.NewValueWriter(buf)
+	vw := bson.NewDocumentWriter(buf)
 
 	enc := bson.NewEncoder(vw)
 	enc.IntMinSize()

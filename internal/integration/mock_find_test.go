@@ -10,17 +10,17 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // finder is an object that implements FindOne and Find.
 type finder interface {
-	FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) *mongo.SingleResult
-	Find(context.Context, interface{}, ...*options.FindOptions) (*mongo.Cursor, error)
+	FindOne(context.Context, interface{}, ...options.Lister[options.FindOneOptions]) *mongo.SingleResult
+	Find(context.Context, interface{}, ...options.Lister[options.FindOptions]) (*mongo.Cursor, error)
 }
 
 // mockFinder implements finder.
@@ -31,12 +31,12 @@ type mockFinder struct {
 }
 
 // FindOne mocks a findOne operation using NewSingleResultFromDocument.
-func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...*options.FindOneOptions) *mongo.SingleResult {
+func (mf *mockFinder) FindOne(_ context.Context, _ interface{}, _ ...options.Lister[options.FindOneOptions]) *mongo.SingleResult {
 	return mongo.NewSingleResultFromDocument(mf.docs[0], mf.err, mf.registry)
 }
 
 // Find mocks a find operation using NewCursorFromDocuments.
-func (mf *mockFinder) Find(context.Context, interface{}, ...*options.FindOptions) (*mongo.Cursor, error) {
+func (mf *mockFinder) Find(context.Context, interface{}, ...options.Lister[options.FindOptions]) (*mongo.Cursor, error) {
 	return mongo.NewCursorFromDocuments(mf.docs, mf.err, mf.registry)
 }
 

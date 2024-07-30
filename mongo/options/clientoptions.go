@@ -22,16 +22,16 @@ import (
 	"time"
 
 	"github.com/youmark/pkcs8"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/httputil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/tag"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/httputil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/tag"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const (
@@ -190,12 +190,13 @@ type BSONOptions struct {
 	ZeroStructs bool
 }
 
-// ClientOptions contains options to configure a Client instance. Each option can be set through setter functions. See
-// documentation for each setter function for an explanation of the option.
+// ClientOptions contains arguments to configure a Client instance. Arguments
+// can be set through the ClientOptions setter functions. See each function for
+// documentation.
 type ClientOptions struct {
 	AppName                  *string
 	Auth                     *Credential
-	AutoEncryptionOptions    *AutoEncryptionOptions
+	AutoEncryptionOptions    Lister[AutoEncryptionOptions]
 	ConnectTimeout           *time.Duration
 	Compressors              []string
 	Dialer                   ContextDialer
@@ -206,7 +207,7 @@ type ClientOptions struct {
 	HTTPClient               *http.Client
 	LoadBalanced             *bool
 	LocalThreshold           *time.Duration
-	LoggerOptions            *LoggerOptions
+	LoggerOptions            Lister[LoggerOptions]
 	MaxConnIdleTime          *time.Duration
 	MaxPoolSize              *uint64
 	MinPoolSize              *uint64
@@ -221,7 +222,7 @@ type ClientOptions struct {
 	ReplicaSet               *string
 	RetryReads               *bool
 	RetryWrites              *bool
-	ServerAPIOptions         *ServerAPIOptions
+	ServerAPIOptions         Lister[ServerAPIOptions]
 	ServerMonitoringMode     *string
 	ServerSelectionTimeout   *time.Duration
 	SRVMaxHosts              *int
@@ -231,9 +232,6 @@ type ClientOptions struct {
 	WriteConcern             *writeconcern.WriteConcern
 	ZlibLevel                *int
 	ZstdLevel                *int
-
-	err error
-	cs  *connstring.ConnString
 
 	// Crypt specifies a custom driver.Crypt to be used to encrypt and decrypt documents. The default is no
 	// encryption.
@@ -247,87 +245,324 @@ type ClientOptions struct {
 	// Deprecated: This option is for internal use only and should not be set. It may be changed or removed in any
 	// release.
 	Deployment driver.Deployment
+
+	connString *connstring.ConnString
+}
+
+// ClientOptionsBuilder contains options to configure a Client instance. Each
+// option can be set through setter functions. See documentation for each setter
+// function for an explanation of the option.
+type ClientOptionsBuilder struct {
+	Opts []func(*ClientOptions) error
 }
 
 // Client creates a new ClientOptions instance.
-func Client() *ClientOptions {
-	return &ClientOptions{
-		HTTPClient: httputil.DefaultHTTPClient,
-	}
+func Client() *ClientOptionsBuilder {
+	opts := &ClientOptionsBuilder{}
+	opts = opts.SetHTTPClient(httputil.DefaultHTTPClient)
+
+	return opts
 }
 
-// Validate validates the client options. This method will return the first error found.
-func (c *ClientOptions) Validate() error {
-	if c.err != nil {
-		return c.err
-	}
-	c.err = c.validate()
-	return c.err
+// List returns a list of ClientOptions setter functions.
+func (c *ClientOptionsBuilder) List() []func(*ClientOptions) error {
+	return c.Opts
 }
 
-func (c *ClientOptions) validate() error {
-	// Direct connections cannot be made if multiple hosts are specified or an SRV URI is used.
-	if c.Direct != nil && *c.Direct {
-		if len(c.Hosts) > 1 {
-			return errors.New("a direct connection cannot be made if multiple hosts are specified")
-		}
-		if c.cs != nil && c.cs.Scheme == connstring.SchemeMongoDBSRV {
-			return errors.New("a direct connection cannot be made if an SRV URI is used")
+// GetURI returns the original URI used to configure the ClientOptions instance.
+// If ApplyURI was not called during construction, this returns "".
+func (opts *ClientOptions) GetURI() string {
+	if opts.connString == nil {
+		return ""
+	}
+
+	return opts.connString.Original
+}
+
+func setURIOpts(uri string, opts *ClientOptions) error {
+	connString, err := connstring.ParseAndValidate(uri)
+	if err != nil {
+		return err
+	}
+
+	opts.connString = connString
+
+	if connString.AppName != "" {
+		opts.AppName = &connString.AppName
+	}
+
+	// Only create a Credential if there is a request for authentication via
+	// non-empty credentials in the URI.
+	if connString.HasAuthParameters() {
+		opts.Auth = &Credential{
+			AuthMechanism:           connString.AuthMechanism,
+			AuthMechanismProperties: connString.AuthMechanismProperties,
+			AuthSource:              connString.AuthSource,
+			Username:                connString.Username,
+			Password:                connString.Password,
+			PasswordSet:             connString.PasswordSet,
 		}
 	}
 
-	if c.MaxPoolSize != nil && c.MinPoolSize != nil && *c.MaxPoolSize != 0 && *c.MinPoolSize > *c.MaxPoolSize {
-		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d", *c.MinPoolSize, *c.MaxPoolSize)
+	if connString.ConnectSet {
+		direct := connString.Connect == connstring.SingleConnect
+		opts.Direct = &direct
 	}
 
-	// verify server API version if ServerAPIOptions are passed in.
-	if c.ServerAPIOptions != nil {
-		if err := c.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+	if connString.DirectConnectionSet {
+		opts.Direct = &connString.DirectConnection
+	}
+
+	if connString.ConnectTimeoutSet {
+		opts.ConnectTimeout = &connString.ConnectTimeout
+	}
+
+	if len(connString.Compressors) > 0 {
+		opts.Compressors = connString.Compressors
+		if stringSliceContains(opts.Compressors, "zlib") {
+			defaultLevel := wiremessage.DefaultZlibLevel
+			opts.ZlibLevel = &defaultLevel
+		}
+		if stringSliceContains(opts.Compressors, "zstd") {
+			defaultLevel := wiremessage.DefaultZstdLevel
+			opts.ZstdLevel = &defaultLevel
+		}
+	}
+
+	if connString.HeartbeatIntervalSet {
+		opts.HeartbeatInterval = &connString.HeartbeatInterval
+	}
+
+	opts.Hosts = connString.Hosts
+
+	if connString.LoadBalancedSet {
+		opts.LoadBalanced = &connString.LoadBalanced
+	}
+
+	if connString.LocalThresholdSet {
+		opts.LocalThreshold = &connString.LocalThreshold
+	}
+
+	if connString.MaxConnIdleTimeSet {
+		opts.MaxConnIdleTime = &connString.MaxConnIdleTime
+	}
+
+	if connString.MaxPoolSizeSet {
+		opts.MaxPoolSize = &connString.MaxPoolSize
+	}
+
+	if connString.MinPoolSizeSet {
+		opts.MinPoolSize = &connString.MinPoolSize
+	}
+
+	if connString.MaxConnectingSet {
+		opts.MaxConnecting = &connString.MaxConnecting
+	}
+
+	if connString.ReadConcernLevel != "" {
+		opts.ReadConcern = &readconcern.ReadConcern{Level: connString.ReadConcernLevel}
+	}
+
+	if connString.ReadPreference != "" || len(connString.ReadPreferenceTagSets) > 0 || connString.MaxStalenessSet {
+		readPrefOpts := make([]readpref.Option, 0, 1)
+
+		tagSets := tag.NewTagSetsFromMaps(connString.ReadPreferenceTagSets)
+		if len(tagSets) > 0 {
+			readPrefOpts = append(readPrefOpts, readpref.WithTagSets(tagSets...))
+		}
+
+		if connString.MaxStaleness != 0 {
+			readPrefOpts = append(readPrefOpts, readpref.WithMaxStaleness(connString.MaxStaleness))
+		}
+
+		mode, err := readpref.ModeFromString(connString.ReadPreference)
+		if err != nil {
+			return err
+		}
+
+		opts.ReadPreference, err = readpref.New(mode, readPrefOpts...)
+		if err != nil {
 			return err
 		}
 	}
 
-	// Validation for load-balanced mode.
-	if c.LoadBalanced != nil && *c.LoadBalanced {
-		if len(c.Hosts) > 1 {
-			return connstring.ErrLoadBalancedWithMultipleHosts
+	if connString.RetryWritesSet {
+		opts.RetryWrites = &connString.RetryWrites
+	}
+
+	if connString.RetryReadsSet {
+		opts.RetryReads = &connString.RetryReads
+	}
+
+	if connString.ReplicaSet != "" {
+		opts.ReplicaSet = &connString.ReplicaSet
+	}
+
+	if connString.ServerSelectionTimeoutSet {
+		opts.ServerSelectionTimeout = &connString.ServerSelectionTimeout
+	}
+
+	if connString.SRVMaxHosts != 0 {
+		opts.SRVMaxHosts = &connString.SRVMaxHosts
+	}
+
+	if connString.SRVServiceName != "" {
+		opts.SRVServiceName = &connString.SRVServiceName
+	}
+
+	if connString.SSL {
+		tlsConfig := new(tls.Config)
+
+		if connString.SSLCaFileSet {
+			if err := addCACertFromFile(tlsConfig, connString.SSLCaFile); err != nil {
+				return err
+			}
 		}
-		if c.ReplicaSet != nil {
-			return connstring.ErrLoadBalancedWithReplicaSet
+
+		if connString.SSLInsecure {
+			tlsConfig.InsecureSkipVerify = true
 		}
-		if c.Direct != nil && *c.Direct {
-			return connstring.ErrLoadBalancedWithDirectConnection
+
+		var x509Subject string
+		var keyPasswd string
+		if connString.SSLClientCertificateKeyPasswordSet && connString.SSLClientCertificateKeyPassword != nil {
+			keyPasswd = connString.SSLClientCertificateKeyPassword()
+		}
+
+		var err error
+		if connString.SSLClientCertificateKeyFileSet {
+			x509Subject, err = addClientCertFromConcatenatedFile(tlsConfig, connString.SSLClientCertificateKeyFile, keyPasswd)
+		} else if connString.SSLCertificateFileSet || connString.SSLPrivateKeyFileSet {
+			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, connString.SSLCertificateFile,
+				connString.SSLPrivateKeyFile, keyPasswd)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		// If a username wasn't specified fork x509, add one from the certificate.
+		if opts.Auth != nil && strings.ToLower(opts.Auth.AuthMechanism) == "mongodb-x509" && opts.Auth.Username == "" {
+			// The Go x509 package gives the subject with the pairs in reverse order that we want.
+			opts.Auth.Username = extractX509UsernameFromSubject(x509Subject)
+		}
+
+		opts.TLSConfig = tlsConfig
+	}
+
+	if connString.JSet || connString.WString != "" || connString.WNumberSet {
+		opts.WriteConcern = &writeconcern.WriteConcern{}
+
+		if len(connString.WString) > 0 {
+			opts.WriteConcern.W = connString.WString
+		} else if connString.WNumberSet {
+			opts.WriteConcern.W = connString.WNumber
+		}
+
+		if connString.JSet {
+			opts.WriteConcern.Journal = &connString.J
 		}
 	}
 
-	// Validation for srvMaxHosts.
-	if c.SRVMaxHosts != nil && *c.SRVMaxHosts > 0 {
-		if c.ReplicaSet != nil {
-			return connstring.ErrSRVMaxHostsWithReplicaSet
-		}
-		if c.LoadBalanced != nil && *c.LoadBalanced {
-			return connstring.ErrSRVMaxHostsWithLoadBalanced
-		}
+	if connString.ZlibLevelSet {
+		opts.ZlibLevel = &connString.ZlibLevel
+	}
+	if connString.ZstdLevelSet {
+		opts.ZstdLevel = &connString.ZstdLevel
 	}
 
-	if mode := c.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
-		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	if connString.SSLDisableOCSPEndpointCheckSet {
+		opts.DisableOCSPEndpointCheck = &connString.SSLDisableOCSPEndpointCheck
 	}
 
-	if to := c.Timeout; to != nil && *to < 0 {
-		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
+	if connString.TimeoutSet {
+		opts.Timeout = &connString.Timeout
 	}
 
 	return nil
 }
 
-// GetURI returns the original URI used to configure the ClientOptions instance. If ApplyURI was not called during
-// construction, this returns "".
-func (c *ClientOptions) GetURI() string {
-	if c.cs == nil {
-		return ""
+// GetURI returns the original URI used to configure the ClientOptions instance.
+// If ApplyURI was not called during construction, this returns "".
+func (c *ClientOptionsBuilder) GetURI() string {
+	args, _ := getOptions[ClientOptions](c)
+
+	if args != nil && args.connString != nil {
+		return args.connString.Original
 	}
-	return c.cs.Original
+
+	return ""
+}
+
+// Validate validates the client options. This method will return the first
+// error found.
+func (c *ClientOptionsBuilder) Validate() error {
+	args, err := getOptions[ClientOptions](c)
+	if err != nil {
+		return err
+	}
+
+	// Direct connections cannot be made if multiple hosts are specified or an SRV
+	// URI is used.
+	if args.Direct != nil && *args.Direct {
+		if len(args.Hosts) > 1 {
+			return errors.New("a direct connection cannot be made if multiple hosts are specified")
+		}
+		if args.connString != nil && args.connString.Scheme == connstring.SchemeMongoDBSRV {
+			return errors.New("a direct connection cannot be made if an SRV URI is used")
+		}
+	}
+
+	if args.MaxPoolSize != nil && args.MinPoolSize != nil && *args.MaxPoolSize != 0 &&
+		*args.MinPoolSize > *args.MaxPoolSize {
+		return fmt.Errorf("minPoolSize must be less than or equal to maxPoolSize, got minPoolSize=%d maxPoolSize=%d",
+			*args.MinPoolSize, *args.MaxPoolSize)
+	}
+
+	// verify server API version if ServerAPIOptions are passed in.
+	if args.ServerAPIOptions != nil {
+		serverAPIopts, err := getOptions[ServerAPIOptions](args.ServerAPIOptions)
+		if err != nil {
+			return fmt.Errorf("failed to construct options from builder: %w", err)
+		}
+
+		if err := serverAPIopts.ServerAPIVersion.Validate(); err != nil {
+			return err
+		}
+	}
+
+	// Validation for load-balanced mode.
+	if args.LoadBalanced != nil && *args.LoadBalanced {
+		if len(args.Hosts) > 1 {
+			return connstring.ErrLoadBalancedWithMultipleHosts
+		}
+		if args.ReplicaSet != nil {
+			return connstring.ErrLoadBalancedWithReplicaSet
+		}
+		if args.Direct != nil && *args.Direct {
+			return connstring.ErrLoadBalancedWithDirectConnection
+		}
+	}
+
+	// Validation for srvMaxHosts.
+	if args.SRVMaxHosts != nil && *args.SRVMaxHosts > 0 {
+		if args.ReplicaSet != nil {
+			return connstring.ErrSRVMaxHostsWithReplicaSet
+		}
+		if args.LoadBalanced != nil && *args.LoadBalanced {
+			return connstring.ErrSRVMaxHostsWithLoadBalanced
+		}
+	}
+
+	if mode := args.ServerMonitoringMode; mode != nil && !connstring.IsValidServerMonitoringMode(*mode) {
+		return fmt.Errorf("invalid server monitoring mode: %q", *mode)
+	}
+
+	if to := args.Timeout; to != nil && *to < 0 {
+		return fmt.Errorf(`invalid value %q for "Timeout": value must be positive`, *to)
+	}
+
+	return nil
 }
 
 // ApplyURI parses the given URI and sets options accordingly. The URI can contain host names, IPv4/IPv6 literals, or
@@ -344,210 +579,10 @@ func (c *ClientOptions) GetURI() string {
 //
 // For more information about the URI format, see https://www.mongodb.com/docs/manual/reference/connection-string/. See
 // mongo.Connect documentation for examples of using URIs for different Client configurations.
-func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
-	if c.err != nil {
-		return c
-	}
-
-	cs, err := connstring.ParseAndValidate(uri)
-	if err != nil {
-		c.err = err
-		return c
-	}
-	c.cs = cs
-
-	if cs.AppName != "" {
-		c.AppName = &cs.AppName
-	}
-
-	// Only create a Credential if there is a request for authentication via non-empty credentials in the URI.
-	if cs.HasAuthParameters() {
-		c.Auth = &Credential{
-			AuthMechanism:           cs.AuthMechanism,
-			AuthMechanismProperties: cs.AuthMechanismProperties,
-			AuthSource:              cs.AuthSource,
-			Username:                cs.Username,
-			Password:                cs.Password,
-			PasswordSet:             cs.PasswordSet,
-		}
-	}
-
-	if cs.ConnectSet {
-		direct := cs.Connect == connstring.SingleConnect
-		c.Direct = &direct
-	}
-
-	if cs.DirectConnectionSet {
-		c.Direct = &cs.DirectConnection
-	}
-
-	if cs.ConnectTimeoutSet {
-		c.ConnectTimeout = &cs.ConnectTimeout
-	}
-
-	if len(cs.Compressors) > 0 {
-		c.Compressors = cs.Compressors
-		if stringSliceContains(c.Compressors, "zlib") {
-			defaultLevel := wiremessage.DefaultZlibLevel
-			c.ZlibLevel = &defaultLevel
-		}
-		if stringSliceContains(c.Compressors, "zstd") {
-			defaultLevel := wiremessage.DefaultZstdLevel
-			c.ZstdLevel = &defaultLevel
-		}
-	}
-
-	if cs.HeartbeatIntervalSet {
-		c.HeartbeatInterval = &cs.HeartbeatInterval
-	}
-
-	c.Hosts = cs.Hosts
-
-	if cs.LoadBalancedSet {
-		c.LoadBalanced = &cs.LoadBalanced
-	}
-
-	if cs.LocalThresholdSet {
-		c.LocalThreshold = &cs.LocalThreshold
-	}
-
-	if cs.MaxConnIdleTimeSet {
-		c.MaxConnIdleTime = &cs.MaxConnIdleTime
-	}
-
-	if cs.MaxPoolSizeSet {
-		c.MaxPoolSize = &cs.MaxPoolSize
-	}
-
-	if cs.MinPoolSizeSet {
-		c.MinPoolSize = &cs.MinPoolSize
-	}
-
-	if cs.MaxConnectingSet {
-		c.MaxConnecting = &cs.MaxConnecting
-	}
-
-	if cs.ReadConcernLevel != "" {
-		c.ReadConcern = &readconcern.ReadConcern{Level: cs.ReadConcernLevel}
-	}
-
-	if cs.ReadPreference != "" || len(cs.ReadPreferenceTagSets) > 0 || cs.MaxStalenessSet {
-		opts := make([]readpref.Option, 0, 1)
-
-		tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
-		if len(tagSets) > 0 {
-			opts = append(opts, readpref.WithTagSets(tagSets...))
-		}
-
-		if cs.MaxStaleness != 0 {
-			opts = append(opts, readpref.WithMaxStaleness(cs.MaxStaleness))
-		}
-
-		mode, err := readpref.ModeFromString(cs.ReadPreference)
-		if err != nil {
-			c.err = err
-			return c
-		}
-
-		c.ReadPreference, c.err = readpref.New(mode, opts...)
-		if c.err != nil {
-			return c
-		}
-	}
-
-	if cs.RetryWritesSet {
-		c.RetryWrites = &cs.RetryWrites
-	}
-
-	if cs.RetryReadsSet {
-		c.RetryReads = &cs.RetryReads
-	}
-
-	if cs.ReplicaSet != "" {
-		c.ReplicaSet = &cs.ReplicaSet
-	}
-
-	if cs.ServerSelectionTimeoutSet {
-		c.ServerSelectionTimeout = &cs.ServerSelectionTimeout
-	}
-
-	if cs.SRVMaxHosts != 0 {
-		c.SRVMaxHosts = &cs.SRVMaxHosts
-	}
-
-	if cs.SRVServiceName != "" {
-		c.SRVServiceName = &cs.SRVServiceName
-	}
-
-	if cs.SSL {
-		tlsConfig := new(tls.Config)
-
-		if cs.SSLCaFileSet {
-			c.err = addCACertFromFile(tlsConfig, cs.SSLCaFile)
-			if c.err != nil {
-				return c
-			}
-		}
-
-		if cs.SSLInsecure {
-			tlsConfig.InsecureSkipVerify = true
-		}
-
-		var x509Subject string
-		var keyPasswd string
-		if cs.SSLClientCertificateKeyPasswordSet && cs.SSLClientCertificateKeyPassword != nil {
-			keyPasswd = cs.SSLClientCertificateKeyPassword()
-		}
-		if cs.SSLClientCertificateKeyFileSet {
-			x509Subject, err = addClientCertFromConcatenatedFile(tlsConfig, cs.SSLClientCertificateKeyFile, keyPasswd)
-		} else if cs.SSLCertificateFileSet || cs.SSLPrivateKeyFileSet {
-			x509Subject, err = addClientCertFromSeparateFiles(tlsConfig, cs.SSLCertificateFile,
-				cs.SSLPrivateKeyFile, keyPasswd)
-		}
-		if err != nil {
-			c.err = err
-			return c
-		}
-
-		// If a username wasn't specified fork x509, add one from the certificate.
-		if c.Auth != nil && strings.ToLower(c.Auth.AuthMechanism) == "mongodb-x509" &&
-			c.Auth.Username == "" {
-
-			// The Go x509 package gives the subject with the pairs in reverse order that we want.
-			c.Auth.Username = extractX509UsernameFromSubject(x509Subject)
-		}
-
-		c.TLSConfig = tlsConfig
-	}
-
-	if cs.JSet || cs.WString != "" || cs.WNumberSet {
-		c.WriteConcern = &writeconcern.WriteConcern{}
-
-		if len(cs.WString) > 0 {
-			c.WriteConcern.W = cs.WString
-		} else if cs.WNumberSet {
-			c.WriteConcern.W = cs.WNumber
-		}
-
-		if cs.JSet {
-			c.WriteConcern.Journal = &cs.J
-		}
-	}
-
-	if cs.ZlibLevelSet {
-		c.ZlibLevel = &cs.ZlibLevel
-	}
-	if cs.ZstdLevelSet {
-		c.ZstdLevel = &cs.ZstdLevel
-	}
-
-	if cs.SSLDisableOCSPEndpointCheckSet {
-		c.DisableOCSPEndpointCheck = &cs.SSLDisableOCSPEndpointCheck
-	}
-
-	if cs.TimeoutSet {
-		c.Timeout = &cs.Timeout
-	}
+func (c *ClientOptionsBuilder) ApplyURI(uri string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		return setURIOpts(uri, opts)
+	})
 
 	return c
 }
@@ -555,16 +590,26 @@ func (c *ClientOptions) ApplyURI(uri string) *ClientOptions {
 // SetAppName specifies an application name that is sent to the server when creating new connections. It is used by the
 // server to log connection and profiling information (e.g. slow query logs). This can also be set through the "appName"
 // URI option (e.g "appName=example_application"). The default is empty, meaning no app name will be sent.
-func (c *ClientOptions) SetAppName(s string) *ClientOptions {
-	c.AppName = &s
+func (c *ClientOptionsBuilder) SetAppName(s string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.AppName = &s
+
+		return nil
+	})
+
 	return c
 }
 
 // SetAuth specifies a Credential containing options for configuring authentication. See the options.Credential
 // documentation for more information about Credential fields. The default is an empty Credential, meaning no
 // authentication will be configured.
-func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
-	c.Auth = &auth
+func (c *ClientOptionsBuilder) SetAuth(auth Credential) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Auth = &auth
+
+		return nil
+	})
+
 	return c
 }
 
@@ -584,8 +629,12 @@ func (c *ClientOptions) SetAuth(auth Credential) *ClientOptions {
 //
 // This can also be set through the "compressors" URI option (e.g. "compressors=zstd,zlib,snappy"). The default is
 // an empty slice, meaning no compression will be enabled.
-func (c *ClientOptions) SetCompressors(comps []string) *ClientOptions {
-	c.Compressors = comps
+func (c *ClientOptionsBuilder) SetCompressors(comps []string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Compressors = comps
+
+		return nil
+	})
 
 	return c
 }
@@ -593,16 +642,26 @@ func (c *ClientOptions) SetCompressors(comps []string) *ClientOptions {
 // SetConnectTimeout specifies a timeout that is used for creating connections to the server. This can be set through
 // ApplyURI with the "connectTimeoutMS" (e.g "connectTimeoutMS=30") option. If set to 0, no timeout will be used. The
 // default is 30 seconds.
-func (c *ClientOptions) SetConnectTimeout(d time.Duration) *ClientOptions {
-	c.ConnectTimeout = &d
+func (c *ClientOptionsBuilder) SetConnectTimeout(d time.Duration) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ConnectTimeout = &d
+
+		return nil
+	})
+
 	return c
 }
 
 // SetDialer specifies a custom ContextDialer to be used to create new connections to the server. This method overrides
 // the default net.Dialer, so dialer options such as Timeout, KeepAlive, Resolver, etc can be set.
 // See https://golang.org/pkg/net/#Dialer for more information about the net.Dialer type.
-func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
-	c.Dialer = d
+func (c *ClientOptionsBuilder) SetDialer(d ContextDialer) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Dialer = d
+
+		return nil
+	})
+
 	return c
 }
 
@@ -621,15 +680,25 @@ func (c *ClientOptions) SetDialer(d ContextDialer) *ClientOptions {
 // If the "connect" and "directConnection" URI options are both specified in the connection string, their values must
 // not conflict. Direct connections are not valid if multiple hosts are specified or an SRV URI is used. The default
 // value for this option is false.
-func (c *ClientOptions) SetDirect(b bool) *ClientOptions {
-	c.Direct = &b
+func (c *ClientOptionsBuilder) SetDirect(b bool) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Direct = &b
+
+		return nil
+	})
+
 	return c
 }
 
 // SetHeartbeatInterval specifies the amount of time to wait between periodic background server checks. This can also be
 // set through the "heartbeatIntervalMS" URI option (e.g. "heartbeatIntervalMS=10000"). The default is 10 seconds.
-func (c *ClientOptions) SetHeartbeatInterval(d time.Duration) *ClientOptions {
-	c.HeartbeatInterval = &d
+func (c *ClientOptionsBuilder) SetHeartbeatInterval(d time.Duration) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.HeartbeatInterval = &d
+
+		return nil
+	})
+
 	return c
 }
 
@@ -638,8 +707,13 @@ func (c *ClientOptions) SetHeartbeatInterval(d time.Duration) *ClientOptions {
 //
 // Hosts can also be specified as a comma-separated list in a URI. For example, to include "localhost:27017" and
 // "localhost:27018", a URI could be "mongodb://localhost:27017,localhost:27018". The default is ["localhost:27017"]
-func (c *ClientOptions) SetHosts(s []string) *ClientOptions {
-	c.Hosts = s
+func (c *ClientOptionsBuilder) SetHosts(s []string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Hosts = s
+
+		return nil
+	})
+
 	return c
 }
 
@@ -653,8 +727,13 @@ func (c *ClientOptions) SetHosts(s []string) *ClientOptions {
 // 3. The options specify whether or not a direct connection should be made, either via the URI or the SetDirect method.
 //
 // The default value is false.
-func (c *ClientOptions) SetLoadBalanced(lb bool) *ClientOptions {
-	c.LoadBalanced = &lb
+func (c *ClientOptionsBuilder) SetLoadBalanced(lb bool) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.LoadBalanced = &lb
+
+		return nil
+	})
+
 	return c
 }
 
@@ -662,15 +741,24 @@ func (c *ClientOptions) SetLoadBalanced(lb bool) *ClientOptions {
 // operation, this is the acceptable non-negative delta between shortest and longest average round-trip times. A server
 // within the latency window is selected randomly. This can also be set through the "localThresholdMS" URI option (e.g.
 // "localThresholdMS=15000"). The default is 15 milliseconds.
-func (c *ClientOptions) SetLocalThreshold(d time.Duration) *ClientOptions {
-	c.LocalThreshold = &d
+func (c *ClientOptionsBuilder) SetLocalThreshold(d time.Duration) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.LocalThreshold = &d
+
+		return nil
+	})
+
 	return c
 }
 
 // SetLoggerOptions specifies a LoggerOptions containing options for
 // configuring a logger.
-func (c *ClientOptions) SetLoggerOptions(opts *LoggerOptions) *ClientOptions {
-	c.LoggerOptions = opts
+func (c *ClientOptionsBuilder) SetLoggerOptions(lopts Lister[LoggerOptions]) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.LoggerOptions = lopts
+
+		return nil
+	})
 
 	return c
 }
@@ -678,60 +766,99 @@ func (c *ClientOptions) SetLoggerOptions(opts *LoggerOptions) *ClientOptions {
 // SetMaxConnIdleTime specifies the maximum amount of time that a connection will remain idle in a connection pool
 // before it is removed from the pool and closed. This can also be set through the "maxIdleTimeMS" URI option (e.g.
 // "maxIdleTimeMS=10000"). The default is 0, meaning a connection can remain unused indefinitely.
-func (c *ClientOptions) SetMaxConnIdleTime(d time.Duration) *ClientOptions {
-	c.MaxConnIdleTime = &d
+func (c *ClientOptionsBuilder) SetMaxConnIdleTime(d time.Duration) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.MaxConnIdleTime = &d
+
+		return nil
+	})
+
 	return c
 }
 
 // SetMaxPoolSize specifies that maximum number of connections allowed in the driver's connection pool to each server.
 // Requests to a server will block if this maximum is reached. This can also be set through the "maxPoolSize" URI option
 // (e.g. "maxPoolSize=100"). If this is 0, maximum connection pool size is not limited. The default is 100.
-func (c *ClientOptions) SetMaxPoolSize(u uint64) *ClientOptions {
-	c.MaxPoolSize = &u
+func (c *ClientOptionsBuilder) SetMaxPoolSize(u uint64) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.MaxPoolSize = &u
+
+		return nil
+	})
+
 	return c
 }
 
 // SetMinPoolSize specifies the minimum number of connections allowed in the driver's connection pool to each server. If
 // this is non-zero, each server's pool will be maintained in the background to ensure that the size does not fall below
 // the minimum. This can also be set through the "minPoolSize" URI option (e.g. "minPoolSize=100"). The default is 0.
-func (c *ClientOptions) SetMinPoolSize(u uint64) *ClientOptions {
-	c.MinPoolSize = &u
+func (c *ClientOptionsBuilder) SetMinPoolSize(u uint64) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.MinPoolSize = &u
+
+		return nil
+	})
+
 	return c
 }
 
 // SetMaxConnecting specifies the maximum number of connections a connection pool may establish simultaneously. This can
 // also be set through the "maxConnecting" URI option (e.g. "maxConnecting=2"). If this is 0, the default is used. The
 // default is 2. Values greater than 100 are not recommended.
-func (c *ClientOptions) SetMaxConnecting(u uint64) *ClientOptions {
-	c.MaxConnecting = &u
+func (c *ClientOptionsBuilder) SetMaxConnecting(u uint64) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.MaxConnecting = &u
+
+		return nil
+	})
+
 	return c
 }
 
 // SetPoolMonitor specifies a PoolMonitor to receive connection pool events. See the event.PoolMonitor documentation
 // for more information about the structure of the monitor and events that can be received.
-func (c *ClientOptions) SetPoolMonitor(m *event.PoolMonitor) *ClientOptions {
-	c.PoolMonitor = m
+func (c *ClientOptionsBuilder) SetPoolMonitor(m *event.PoolMonitor) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.PoolMonitor = m
+
+		return nil
+	})
+
 	return c
 }
 
 // SetMonitor specifies a CommandMonitor to receive command events. See the event.CommandMonitor documentation for more
 // information about the structure of the monitor and events that can be received.
-func (c *ClientOptions) SetMonitor(m *event.CommandMonitor) *ClientOptions {
-	c.Monitor = m
+func (c *ClientOptionsBuilder) SetMonitor(m *event.CommandMonitor) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Monitor = m
+
+		return nil
+	})
+
 	return c
 }
 
 // SetServerMonitor specifies an SDAM monitor used to monitor SDAM events.
-func (c *ClientOptions) SetServerMonitor(m *event.ServerMonitor) *ClientOptions {
-	c.ServerMonitor = m
+func (c *ClientOptionsBuilder) SetServerMonitor(m *event.ServerMonitor) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ServerMonitor = m
+
+		return nil
+	})
+
 	return c
 }
 
 // SetReadConcern specifies the read concern to use for read operations. A read concern level can also be set through
 // the "readConcernLevel" URI option (e.g. "readConcernLevel=majority"). The default is nil, meaning the server will use
 // its configured default.
-func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptions {
-	c.ReadConcern = rc
+func (c *ClientOptionsBuilder) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ReadConcern = rc
+
+		return nil
+	})
 
 	return c
 }
@@ -749,22 +876,35 @@ func (c *ClientOptions) SetReadConcern(rc *readconcern.ReadConcern) *ClientOptio
 //
 // The default is readpref.Primary(). See https://www.mongodb.com/docs/manual/core/read-preference/#read-preference for
 // more information about read preferences.
-func (c *ClientOptions) SetReadPreference(rp *readpref.ReadPref) *ClientOptions {
-	c.ReadPreference = rp
+func (c *ClientOptionsBuilder) SetReadPreference(rp *readpref.ReadPref) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ReadPreference = rp
+
+		return nil
+	})
 
 	return c
 }
 
 // SetBSONOptions configures optional BSON marshaling and unmarshaling behavior.
-func (c *ClientOptions) SetBSONOptions(opts *BSONOptions) *ClientOptions {
-	c.BSONOptions = opts
+func (c *ClientOptionsBuilder) SetBSONOptions(bopts *BSONOptions) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.BSONOptions = bopts
+
+		return nil
+	})
+
 	return c
 }
 
 // SetRegistry specifies the BSON registry to use for BSON marshalling/unmarshalling operations. The default is
-// bson.DefaultRegistry.
-func (c *ClientOptions) SetRegistry(registry *bson.Registry) *ClientOptions {
-	c.Registry = registry
+// bson.NewRegistry().
+func (c *ClientOptionsBuilder) SetRegistry(registry *bson.Registry) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Registry = registry
+
+		return nil
+	})
 	return c
 }
 
@@ -773,8 +913,13 @@ func (c *ClientOptions) SetRegistry(registry *bson.Registry) *ClientOptions {
 // ApplyURI or SetHosts. All nodes in the replica set must have the same replica set name, or they will not be
 // considered as part of the set by the Client. This can also be set through the "replicaSet" URI option (e.g.
 // "replicaSet=replset"). The default is empty.
-func (c *ClientOptions) SetReplicaSet(s string) *ClientOptions {
-	c.ReplicaSet = &s
+func (c *ClientOptionsBuilder) SetReplicaSet(s string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ReplicaSet = &s
+
+		return nil
+	})
+
 	return c
 }
 
@@ -789,8 +934,12 @@ func (c *ClientOptions) SetReplicaSet(s string) *ClientOptions {
 // This option requires server version >= 3.6 and a replica set or sharded cluster and will be ignored for any other
 // cluster type. This can also be set through the "retryWrites" URI option (e.g. "retryWrites=true"). The default is
 // true.
-func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
-	c.RetryWrites = &b
+func (c *ClientOptionsBuilder) SetRetryWrites(b bool) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.RetryWrites = &b
+
+		return nil
+	})
 
 	return c
 }
@@ -803,16 +952,26 @@ func (c *ClientOptions) SetRetryWrites(b bool) *ClientOptions {
 // operations run through RunCommand are not retried.
 //
 // This option requires server version >= 3.6 and driver version >= 1.1.0. The default is true.
-func (c *ClientOptions) SetRetryReads(b bool) *ClientOptions {
-	c.RetryReads = &b
+func (c *ClientOptionsBuilder) SetRetryReads(b bool) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.RetryReads = &b
+
+		return nil
+	})
+
 	return c
 }
 
 // SetServerSelectionTimeout specifies how long the driver will wait to find an available, suitable server to execute an
 // operation. This can also be set through the "serverSelectionTimeoutMS" URI option (e.g.
 // "serverSelectionTimeoutMS=30000"). The default value is 30 seconds.
-func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOptions {
-	c.ServerSelectionTimeout = &d
+func (c *ClientOptionsBuilder) SetServerSelectionTimeout(d time.Duration) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ServerSelectionTimeout = &d
+
+		return nil
+	})
+
 	return c
 }
 
@@ -824,13 +983,16 @@ func (c *ClientOptions) SetServerSelectionTimeout(d time.Duration) *ClientOption
 // (e.g. "timeoutMS=1000"). The default value is nil, meaning operations do not
 // inherit a timeout from the Client.
 //
-// The value for a Timeout must be positive.
-//
 // If any Timeout is set (even 0) on the Client, the values of MaxTime on
 // operation options, TransactionOptions.MaxCommitTime and
 // SessionOptions.DefaultMaxCommitTime will be ignored.
-func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
-	c.Timeout = &d
+func (c *ClientOptionsBuilder) SetTimeout(d time.Duration) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.Timeout = &d
+
+		return nil
+	})
+
 	return c
 }
 
@@ -858,16 +1020,26 @@ func (c *ClientOptions) SetTimeout(d time.Duration) *ClientOptions {
 // man-in-the-middle attacks and should only be done for testing.
 //
 // The default is nil, meaning no TLS will be enabled.
-func (c *ClientOptions) SetTLSConfig(cfg *tls.Config) *ClientOptions {
-	c.TLSConfig = cfg
+func (c *ClientOptionsBuilder) SetTLSConfig(cfg *tls.Config) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.TLSConfig = cfg
+
+		return nil
+	})
+
 	return c
 }
 
 // SetHTTPClient specifies the http.Client to be used for any HTTP requests.
 //
 // This should only be used to set custom HTTP client configurations. By default, the connection will use an httputil.DefaultHTTPClient.
-func (c *ClientOptions) SetHTTPClient(client *http.Client) *ClientOptions {
-	c.HTTPClient = client
+func (c *ClientOptionsBuilder) SetHTTPClient(client *http.Client) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.HTTPClient = client
+
+		return nil
+	})
+
 	return c
 }
 
@@ -885,8 +1057,12 @@ func (c *ClientOptions) SetHTTPClient(client *http.Client) *ClientOptions {
 // returning (e.g. "journal=true").
 //
 // The default is nil, meaning the server will use its configured default.
-func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOptions {
-	c.WriteConcern = wc
+func (c *ClientOptionsBuilder) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.WriteConcern = wc
+
+		return nil
+	})
 
 	return c
 }
@@ -895,8 +1071,12 @@ func (c *ClientOptions) SetWriteConcern(wc *writeconcern.WriteConcern) *ClientOp
 // compressor through ApplyURI or SetCompressors. Supported values are -1 through 9, inclusive. -1 tells the zlib
 // library to use its default, 0 means no compression, 1 means best speed, and 9 means best compression.
 // This can also be set through the "zlibCompressionLevel" URI option (e.g. "zlibCompressionLevel=-1"). Defaults to -1.
-func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
-	c.ZlibLevel = &level
+func (c *ClientOptionsBuilder) SetZlibLevel(level int) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ZlibLevel = &level
+
+		return nil
+	})
 
 	return c
 }
@@ -904,16 +1084,26 @@ func (c *ClientOptions) SetZlibLevel(level int) *ClientOptions {
 // SetZstdLevel sets the level for the zstd compressor. This option is ignored if zstd is not specified as a compressor
 // through ApplyURI or SetCompressors. Supported values are 1 through 20, inclusive. 1 means best speed and 20 means
 // best compression. This can also be set through the "zstdCompressionLevel" URI option. Defaults to 6.
-func (c *ClientOptions) SetZstdLevel(level int) *ClientOptions {
-	c.ZstdLevel = &level
+func (c *ClientOptionsBuilder) SetZstdLevel(level int) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ZstdLevel = &level
+
+		return nil
+	})
+
 	return c
 }
 
 // SetAutoEncryptionOptions specifies an AutoEncryptionOptions instance to automatically encrypt and decrypt commands
 // and their results. See the options.AutoEncryptionOptions documentation for more information about the supported
 // options.
-func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *ClientOptions {
-	c.AutoEncryptionOptions = opts
+func (c *ClientOptionsBuilder) SetAutoEncryptionOptions(aeopts Lister[AutoEncryptionOptions]) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.AutoEncryptionOptions = aeopts
+
+		return nil
+	})
+
 	return c
 }
 
@@ -926,16 +1116,26 @@ func (c *ClientOptions) SetAutoEncryptionOptions(opts *AutoEncryptionOptions) *C
 //
 // This can also be set through the tlsDisableOCSPEndpointCheck URI option. Both this URI option and tlsInsecure must
 // not be set at the same time and will error if they are. The default value is false.
-func (c *ClientOptions) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOptions {
-	c.DisableOCSPEndpointCheck = &disableCheck
+func (c *ClientOptionsBuilder) SetDisableOCSPEndpointCheck(disableCheck bool) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.DisableOCSPEndpointCheck = &disableCheck
+
+		return nil
+	})
+
 	return c
 }
 
 // SetServerAPIOptions specifies a ServerAPIOptions instance used to configure the API version sent to the server
 // when running commands. See the options.ServerAPIOptions documentation for more information about the supported
 // options.
-func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptions {
-	c.ServerAPIOptions = opts
+func (c *ClientOptionsBuilder) SetServerAPIOptions(sopts Lister[ServerAPIOptions]) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ServerAPIOptions = sopts
+
+		return nil
+	})
+
 	return c
 }
 
@@ -943,8 +1143,12 @@ func (c *ClientOptions) SetServerAPIOptions(opts *ServerAPIOptions) *ClientOptio
 // the helper constants ServerMonitoringModeAuto, ServerMonitoringModePoll, and
 // ServerMonitoringModeStream for more information about valid server
 // monitoring modes.
-func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
-	c.ServerMonitoringMode = &mode
+func (c *ClientOptionsBuilder) SetServerMonitoringMode(mode string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.ServerMonitoringMode = &mode
+
+		return nil
+	})
 
 	return c
 }
@@ -952,160 +1156,25 @@ func (c *ClientOptions) SetServerMonitoringMode(mode string) *ClientOptions {
 // SetSRVMaxHosts specifies the maximum number of SRV results to randomly select during polling. To limit the number
 // of hosts selected in SRV discovery, this function must be called before ApplyURI. This can also be set through
 // the "srvMaxHosts" URI option.
-func (c *ClientOptions) SetSRVMaxHosts(srvMaxHosts int) *ClientOptions {
-	c.SRVMaxHosts = &srvMaxHosts
+func (c *ClientOptionsBuilder) SetSRVMaxHosts(srvMaxHosts int) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.SRVMaxHosts = &srvMaxHosts
+
+		return nil
+	})
+
 	return c
 }
 
 // SetSRVServiceName specifies a custom SRV service name to use in SRV polling. To use a custom SRV service name
 // in SRV discovery, this function must be called before ApplyURI. This can also be set through the "srvServiceName"
 // URI option.
-func (c *ClientOptions) SetSRVServiceName(srvName string) *ClientOptions {
-	c.SRVServiceName = &srvName
-	return c
-}
+func (c *ClientOptionsBuilder) SetSRVServiceName(srvName string) *ClientOptionsBuilder {
+	c.Opts = append(c.Opts, func(opts *ClientOptions) error {
+		opts.SRVServiceName = &srvName
 
-// MergeClientOptions combines the given *ClientOptions into a single *ClientOptions in a last property wins fashion.
-// The specified options are merged with the existing options on the client, with the specified options taking
-// precedence.
-//
-// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
-// single options struct instead.
-func MergeClientOptions(opts ...*ClientOptions) *ClientOptions {
-	c := Client()
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
-		if opt.Dialer != nil {
-			c.Dialer = opt.Dialer
-		}
-		if opt.AppName != nil {
-			c.AppName = opt.AppName
-		}
-		if opt.Auth != nil {
-			c.Auth = opt.Auth
-		}
-		if opt.Compressors != nil {
-			c.Compressors = opt.Compressors
-		}
-		if opt.ConnectTimeout != nil {
-			c.ConnectTimeout = opt.ConnectTimeout
-		}
-		if opt.Crypt != nil {
-			c.Crypt = opt.Crypt
-		}
-		if opt.HeartbeatInterval != nil {
-			c.HeartbeatInterval = opt.HeartbeatInterval
-		}
-		if len(opt.Hosts) > 0 {
-			c.Hosts = opt.Hosts
-		}
-		if opt.HTTPClient != nil {
-			c.HTTPClient = opt.HTTPClient
-		}
-		if opt.LoadBalanced != nil {
-			c.LoadBalanced = opt.LoadBalanced
-		}
-		if opt.LocalThreshold != nil {
-			c.LocalThreshold = opt.LocalThreshold
-		}
-		if opt.MaxConnIdleTime != nil {
-			c.MaxConnIdleTime = opt.MaxConnIdleTime
-		}
-		if opt.MaxPoolSize != nil {
-			c.MaxPoolSize = opt.MaxPoolSize
-		}
-		if opt.MinPoolSize != nil {
-			c.MinPoolSize = opt.MinPoolSize
-		}
-		if opt.MaxConnecting != nil {
-			c.MaxConnecting = opt.MaxConnecting
-		}
-		if opt.PoolMonitor != nil {
-			c.PoolMonitor = opt.PoolMonitor
-		}
-		if opt.Monitor != nil {
-			c.Monitor = opt.Monitor
-		}
-		if opt.ServerAPIOptions != nil {
-			c.ServerAPIOptions = opt.ServerAPIOptions
-		}
-		if opt.ServerMonitor != nil {
-			c.ServerMonitor = opt.ServerMonitor
-		}
-		if opt.ReadConcern != nil {
-			c.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			c.ReadPreference = opt.ReadPreference
-		}
-		if opt.BSONOptions != nil {
-			c.BSONOptions = opt.BSONOptions
-		}
-		if opt.Registry != nil {
-			c.Registry = opt.Registry
-		}
-		if opt.ReplicaSet != nil {
-			c.ReplicaSet = opt.ReplicaSet
-		}
-		if opt.RetryWrites != nil {
-			c.RetryWrites = opt.RetryWrites
-		}
-		if opt.RetryReads != nil {
-			c.RetryReads = opt.RetryReads
-		}
-		if opt.ServerSelectionTimeout != nil {
-			c.ServerSelectionTimeout = opt.ServerSelectionTimeout
-		}
-		if opt.Direct != nil {
-			c.Direct = opt.Direct
-		}
-		if opt.SRVMaxHosts != nil {
-			c.SRVMaxHosts = opt.SRVMaxHosts
-		}
-		if opt.SRVServiceName != nil {
-			c.SRVServiceName = opt.SRVServiceName
-		}
-		if opt.Timeout != nil {
-			c.Timeout = opt.Timeout
-		}
-		if opt.TLSConfig != nil {
-			c.TLSConfig = opt.TLSConfig
-		}
-		if opt.WriteConcern != nil {
-			c.WriteConcern = opt.WriteConcern
-		}
-		if opt.ZlibLevel != nil {
-			c.ZlibLevel = opt.ZlibLevel
-		}
-		if opt.ZstdLevel != nil {
-			c.ZstdLevel = opt.ZstdLevel
-		}
-		if opt.AutoEncryptionOptions != nil {
-			c.AutoEncryptionOptions = opt.AutoEncryptionOptions
-		}
-		if opt.Deployment != nil {
-			c.Deployment = opt.Deployment
-		}
-		if opt.DisableOCSPEndpointCheck != nil {
-			c.DisableOCSPEndpointCheck = opt.DisableOCSPEndpointCheck
-		}
-		if opt.err != nil {
-			c.err = opt.err
-		}
-		if opt.cs != nil {
-			c.cs = opt.cs
-		}
-		if opt.LoggerOptions != nil {
-			c.LoggerOptions = opt.LoggerOptions
-		}
-		if opt.ServerMonitoringMode != nil {
-			c.ServerMonitoringMode = opt.ServerMonitoringMode
-		}
-	}
+		return nil
+	})
 
 	return c
 }

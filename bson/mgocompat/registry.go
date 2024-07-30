@@ -7,7 +7,7 @@
 package mgocompat
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // Registry is the mgo compatible bson.Registry. It contains the default and

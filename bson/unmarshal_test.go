@@ -7,13 +7,14 @@
 package bson
 
 import (
+	"bytes"
 	"math/rand"
 	"reflect"
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestUnmarshal(t *testing.T) {
@@ -70,7 +71,7 @@ func TestUnmarshalWithRegistry(t *testing.T) {
 
 			// Assert that unmarshaling the input data results in the expected value.
 			gotValue := reflect.New(reflect.TypeOf(tc.val))
-			dec := NewDecoder(NewBSONValueReader(tc.bsontype, tc.bytes))
+			dec := NewDecoder(newValueReader(tc.bsontype, bytes.NewReader(tc.bytes)))
 			dec.SetRegistry(reg)
 			err := dec.Decode(gotValue.Interface())
 			noerr(t, err)
@@ -121,7 +122,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, int32(1), first.X, "expected X value to be 1, got %v", first.X)
 
 		var second Struct
-		dec := NewDecoder(NewValueReader(docBytes))
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(docBytes)))
 		dec.SetRegistry(customReg)
 		err = dec.Decode(&second)
 		assert.Nil(t, err, "Unmarshal error: %v", err)
@@ -138,7 +139,7 @@ func TestCachingDecodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, int32(1), *first.X, "expected X value to be 1, got %v", *first.X)
 
 		var second Struct
-		dec := NewDecoder(NewValueReader(docBytes))
+		dec := NewDecoder(NewDocumentReader(bytes.NewReader(docBytes)))
 		dec.SetRegistry(customReg)
 		err = dec.Decode(&second)
 		assert.Nil(t, err, "Unmarshal error: %v", err)

@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestMarshalWithRegistry(t *testing.T) {
@@ -28,10 +28,10 @@ func TestMarshalWithRegistry(t *testing.T) {
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
-				reg = DefaultRegistry
+				reg = defaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw := NewValueWriter(buf)
+			vw := NewDocumentWriter(buf)
 			enc := NewEncoder(vw)
 			enc.SetRegistry(reg)
 			err := enc.Encode(tc.val)
@@ -52,10 +52,10 @@ func TestMarshalWithContext(t *testing.T) {
 			if tc.reg != nil {
 				reg = tc.reg
 			} else {
-				reg = DefaultRegistry
+				reg = defaultRegistry
 			}
 			buf := new(bytes.Buffer)
-			vw := NewValueWriter(buf)
+			vw := NewDocumentWriter(buf)
 			enc := NewEncoder(vw)
 			enc.IntMinSize()
 			enc.SetRegistry(reg)
@@ -173,7 +173,7 @@ func TestCachingEncodersNotSharedAcrossRegistries(t *testing.T) {
 		assert.Equal(t, expectedFirst, Raw(first), "expected document %v, got %v", expectedFirst, Raw(first))
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.SetRegistry(customReg)
 		err = enc.Encode(original)

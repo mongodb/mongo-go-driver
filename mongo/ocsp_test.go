@@ -14,10 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 func TestOCSP(t *testing.T) {
@@ -56,7 +57,7 @@ func TestOCSP(t *testing.T) {
 	})
 }
 
-func createOCSPClientOptions(uri string) *options.ClientOptions {
+func createOCSPClientOptions(uri string) *options.ClientOptionsBuilder {
 	opts := options.Client().ApplyURI(uri)
 
 	timeout := 500 * time.Millisecond
@@ -68,13 +69,18 @@ func createOCSPClientOptions(uri string) *options.ClientOptions {
 	return opts
 }
 
-func createInsecureOCSPClientOptions(uri string) *options.ClientOptions {
+func createInsecureOCSPClientOptions(uri string) *options.ClientOptionsBuilder {
 	opts := createOCSPClientOptions(uri)
 
-	if opts.TLSConfig != nil {
-		opts.TLSConfig.InsecureSkipVerify = true
+	args, _ := mongoutil.NewOptions[options.ClientOptions](opts)
+
+	if args.TLSConfig != nil {
+		args.TLSConfig.InsecureSkipVerify = true
+		opts.SetTLSConfig(args.TLSConfig)
+
 		return opts
 	}
+
 	return opts.SetTLSConfig(&tls.Config{
 		InsecureSkipVerify: true,
 	})

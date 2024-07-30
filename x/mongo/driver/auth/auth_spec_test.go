@@ -13,9 +13,10 @@ import (
 	"path"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type credential struct {
@@ -58,11 +59,15 @@ func runTestsInFile(t *testing.T, dirname string, filename string) {
 
 func runTest(t *testing.T, filename string, test testCase) {
 	t.Run(filename+":"+test.Description, func(t *testing.T) {
-		opts := options.Client().ApplyURI(test.URI)
+		clientOptsBldr := options.Client().ApplyURI(test.URI)
+
+		opts, _ := mongoutil.NewOptions[options.ClientOptions](clientOptsBldr)
+
 		if test.Valid {
-			require.NoError(t, opts.Validate())
+			require.NoError(t, clientOptsBldr.Validate())
 		} else {
-			require.Error(t, opts.Validate())
+			require.Error(t, clientOptsBldr.Validate())
+
 			return
 		}
 

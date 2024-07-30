@@ -9,13 +9,13 @@ package unified
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type dbOrCollectionOptions struct {
-	DBOptions         *options.DatabaseOptions
-	CollectionOptions *options.CollectionOptions
+	DBOptions         *options.DatabaseOptionsBuilder
+	CollectionOptions *options.CollectionOptionsBuilder
 }
 
 var _ bson.Unmarshaler = (*dbOrCollectionOptions)(nil)

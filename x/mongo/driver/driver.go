@@ -17,11 +17,11 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.

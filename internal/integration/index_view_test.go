@@ -8,17 +8,16 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 type index struct {
@@ -212,7 +211,7 @@ func TestIndexView(t *testing.T) {
 
 			testCases := []struct {
 				name             string
-				opts             *options.CreateIndexesOptions
+				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
 				expectedValue    interface{} // ignored if expectError is true
 				minServerVersion string
@@ -246,19 +245,6 @@ func TestIndexView(t *testing.T) {
 					assert.Equal(mt, tc.expectedValue, sentValue, "expected commitQuorum value %v, got %v",
 						tc.expectedValue, sentValue)
 				})
-			}
-		})
-		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.Unacknowledged())
-		unackMtOpts := mtest.NewOptions().
-			ClientOptions(unackClientOpts).
-			MinServerVersion("3.6")
-		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
-			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{Keys: bson.D{{"x", 1}}})
-			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
-				// so the assertion would succeed even if the error had not been wrapped.
-				mt.Fatalf("expected CreateOne error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
 			}
 		})
 		// Needs to run on these versions for failpoints
@@ -371,7 +357,7 @@ func TestIndexView(t *testing.T) {
 
 			testCases := []struct {
 				name             string
-				opts             *options.CreateIndexesOptions
+				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
 				expectedValue    interface{} // ignored if expectError is true
 				minServerVersion string

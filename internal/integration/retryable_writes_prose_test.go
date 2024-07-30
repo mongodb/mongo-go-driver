@@ -14,15 +14,16 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/eventtest"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 func TestRetryableWritesProse(t *testing.T) {
@@ -316,7 +317,9 @@ func TestRetryableWritesProse(t *testing.T) {
 
 		for _, tc := range tests {
 			mt.Run(tc.name, func(mt *mtest.T) {
-				hosts := options.Client().ApplyURI(mtest.ClusterURI()).Hosts
+				hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+
+				require.NoError(mt, err)
 				require.GreaterOrEqualf(mt, len(hosts), tc.hostCount,
 					"test cluster must have at least %v mongos hosts", tc.hostCount)
 

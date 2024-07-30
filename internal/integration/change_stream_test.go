@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/eventtest"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type resumeType int
@@ -380,7 +380,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 						var numExpectedEvents int
 						var initialToken bson.Raw
-						var opts *options.ChangeStreamOptions
+						var opts *options.ChangeStreamOptionsBuilder
 						switch tc.rt {
 						case startAfter:
 							numExpectedEvents = numEvents - 1
@@ -436,7 +436,7 @@ func TestChangeStream_ReplicaSet(t *testing.T) {
 
 				testCases := []struct {
 					name            string
-					opts            *options.ChangeStreamOptions
+					opts            *options.ChangeStreamOptionsBuilder
 					iterateStream   bool // whether or not resulting change stream should be iterated
 					initialToken    bson.Raw
 					numDocsExpected int

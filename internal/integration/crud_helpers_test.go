@@ -15,16 +15,18 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integration/unified"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/unified"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // Helper functions to execute and verify results from CRUD methods.
@@ -130,7 +132,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 		return commandFn(client)
 	}
 
-	for _, host := range opts.Hosts {
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %v", err)
+	}
+
+	for _, host := range hosts {
 		shardClient, err := mongo.Connect(opts.SetHosts([]string{host}))
 		if err != nil {
 			return fmt.Errorf("error creating client for mongos %v: %w", host, err)
@@ -148,12 +155,12 @@ func runCommandOnAllServers(commandFn func(client *mongo.Client) error) error {
 
 // aggregator is an interface used to run collection and database-level aggregations
 type aggregator interface {
-	Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
+	Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 }
 
 // watcher is an interface used to create client, db, and collection-level change streams
 type watcher interface {
-	Watch(context.Context, interface{}, ...*options.ChangeStreamOptions) (*mongo.ChangeStream, error)
+	Watch(context.Context, interface{}, ...options.Lister[options.ChangeStreamOptions]) (*mongo.ChangeStream, error)
 }
 
 func executeAggregate(mt *mtest.T, agg aggregator, sess *mongo.Session, args bson.Raw) (*mongo.Cursor, error) {
@@ -333,7 +340,7 @@ func executeInsertMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 	return mt.Coll.InsertMany(context.Background(), docs, opts)
 }
 
-func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptions) {
+func setFindModifiers(modifiersDoc bson.Raw, opts *options.FindOptionsBuilder) {
 	elems, _ := modifiersDoc.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
@@ -698,9 +705,9 @@ func executeFindOneAndUpdate(mt *mtest.T, sess *mongo.Session, args bson.Raw) *m
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "sort":
 			opts = opts.SetSort(val.Document())
 		case "projection":
@@ -880,9 +887,9 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
@@ -894,7 +901,11 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 			mt.Fatalf("unrecognized updateOne option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
+	require.NoError(mt, err, "failed to construct options from builder")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -928,9 +939,9 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
@@ -942,7 +953,11 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 			mt.Fatalf("unrecognized updateMany option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewOptions[options.UpdateOptions](opts)
+	require.NoError(mt, err, "failed to construct options from builder")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -986,7 +1001,11 @@ func executeReplaceOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 			mt.Fatalf("unrecognized replaceOne option: %v", key)
 		}
 	}
-	if opts.Upsert == nil {
+
+	updateArgs, err := mongoutil.NewOptions[options.ReplaceOptions](opts)
+	require.NoError(mt, err, "failed to construct options from builder")
+
+	if updateArgs.Upsert == nil {
 		opts = opts.SetUpsert(false)
 	}
 
@@ -1041,7 +1060,7 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	mt.Helper()
 
 	var testArgs withTransactionArgs
-	dec := bson.NewDecoder(bson.NewValueReader(args))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(args)))
 	dec.SetRegistry(specTestRegistry)
 	err := dec.Decode(&testArgs)
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
@@ -1116,9 +1135,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			uom.SetCollation(createCollation(mt, collation.Document()))
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
-			uom.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
-			})
+			uom.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
+			)
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			uom.SetHint(createHint(mt, hintVal))
@@ -1139,9 +1158,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			umm.SetCollation(createCollation(mt, collation.Document()))
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
-			umm.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
-			})
+			umm.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
+			)
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			umm.SetHint(createHint(mt, hintVal))
@@ -1415,7 +1434,12 @@ func executeAdminCommand(mt *mtest.T, op *operation) {
 	assert.Nil(mt, err, "RunCommand error for command %q: %v", op.CommandName, err)
 }
 
-func executeAdminCommandWithRetry(mt *mtest.T, client *mongo.Client, cmd interface{}, opts ...*options.RunCmdOptions) {
+func executeAdminCommandWithRetry(
+	mt *mtest.T,
+	client *mongo.Client,
+	cmd interface{},
+	opts ...options.Lister[options.RunCmdOptions],
+) {
 	mt.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

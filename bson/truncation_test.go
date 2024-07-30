@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 type inputArgs struct {
@@ -26,7 +26,7 @@ type outputArgs struct {
 func unmarshalWithContext(t *testing.T, dc DecodeContext, data []byte, val interface{}) error {
 	t.Helper()
 
-	vr := NewValueReader(data)
+	vr := NewDocumentReader(bytes.NewReader(data))
 	return unmarshalFromReader(dc, vr, val)
 }
 
@@ -38,17 +38,17 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
-		enc.SetRegistry(DefaultRegistry)
+		enc.SetRegistry(defaultRegistry)
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
 		dc := DecodeContext{
-			Registry: DefaultRegistry,
-			Truncate: true,
+			Registry: defaultRegistry,
+			truncate: true,
 		}
 
 		err = unmarshalWithContext(t, dc, buf.Bytes(), &output)
@@ -64,17 +64,17 @@ func TestTruncation(t *testing.T) {
 		input := inputArgs{Name: inputName, Val: &inputVal}
 
 		buf := new(bytes.Buffer)
-		vw := NewValueWriter(buf)
+		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
-		enc.SetRegistry(DefaultRegistry)
+		enc.SetRegistry(defaultRegistry)
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
 		dc := DecodeContext{
-			Registry: DefaultRegistry,
-			Truncate: false,
+			Registry: defaultRegistry,
+			truncate: false,
 		}
 
 		// case throws an error when truncation is disabled
