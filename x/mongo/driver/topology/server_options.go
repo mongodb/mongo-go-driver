@@ -205,9 +205,9 @@ func withLogger(fn func() *logger.Logger) ServerOption {
 	}
 }
 
-// withServerMonitoringMode configures the mode (stream, poll, or auto) to use
+// WithServerMonitoringMode configures the mode (stream, poll, or auto) to use
 // for monitoring.
-func withServerMonitoringMode(mode *string) ServerOption {
+func WithServerMonitoringMode(mode *string) ServerOption {
 	return func(cfg *serverConfig) {
 		if mode != nil {
 			cfg.serverMonitoringMode = *mode

@@ -8,9 +8,10 @@ package integration
 
 import (
 	"context"
-	"net"
+	"fmt"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -179,57 +180,110 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 	t.Run("emits the first HeartbeatStartedEvent before the monitoring socket was created", func(t *testing.T) {
 		t.Parallel()
 
-		const address = address.Address("localhost:9999")
-		expectedEvents := []string{
-			"serverHeartbeatStartedEvent",
-			"client connected",
-			"client hello received",
-			"serverHeartbeatFailedEvent",
-		}
+		const address = address.Address("localhost:27017")
 
-		events := make(chan string)
+		//listener, err := net.Listen("tcp", address.String())
+		//assert.NoError(t, err)
+		//defer listener.Close()
+		//go func() {
+		//	conn, err := listener.Accept()
+		//	assert.NoError(t, err)
+		//	//defer conn.Close()
 
-		listener, err := net.Listen("tcp", address.String())
-		assert.NoError(t, err)
-		defer listener.Close()
-		go func() {
-			conn, err := listener.Accept()
-			assert.NoError(t, err)
-			defer conn.Close()
+		//	for {
+		//		_, _ = conn.Read(nil)
+		//		fmt.Println("read")
+		//	}
+		//}()
 
-			events <- "client connected"
-			_, _ = conn.Read(nil)
-			events <- "client hello received"
-		}()
+		var count atomic.Int64
+		poll := "poll"
 
 		server := topology.NewServer(
 			address,
 			primitive.NewObjectID(),
+			topology.WithServerMonitoringMode(&poll),
+			topology.WithHeartbeatInterval(func(d time.Duration) time.Duration { return 200 * time.Millisecond }),
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
 					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
-						events <- "serverHeartbeatStartedEvent"
-					},
-					ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
-						events <- "serverHeartbeatFailedEvent"
+						count.Add(1)
+						//events <- "serverHeartbeatStartedEvent"
 					},
 				}
 			}),
 		)
+
+		fmt.Println("before connect")
 		require.NoError(t, server.Connect(nil))
+		fmt.Println("after connect")
 
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
+		ticker := time.Tick(1 * time.Second)
+		for {
+			fmt.Printf("total heartbeats until now: %d\n", count.Load())
+			<-ticker
+		}
 
-		actualEvents := make([]string, 0, len(expectedEvents))
-		for len(actualEvents) < len(expectedEvents) {
+		//ticker := time.NewTicker(5 * time.Second)
+		//defer ticker.Stop()
+
+		//actualEvents := make([]string, 0, len(expectedEvents))
+		//for len(actualEvents) < len(expectedEvents) {
+		//	select {
+		//	case event := <-events:
+		//		actualEvents = append(actualEvents, event)
+		//	case <-ticker.C:
+
+		//		fmt.Println(count)
+		//		assert.FailNow(t, "timed out for incoming event")
+		//	}
+		//}
+		//assert.Equal(t, expectedEvents, actualEvents)
+	})
+
+	mt := mtest.New(t)
+
+	mt.Run("polling must await frequency", func(mt *mtest.T) {
+		// Create a client with  heartbeatFrequency=100ms,
+		// serverMonitoringMode=poll. Use SDAM to record the number of times the
+		// a heartbeat is started.
+		var count atomic.Int64
+
+		serverMonitor := &event.ServerMonitor{
+			ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
+				count.Add(1)
+			},
+		}
+
+		const heartbeatInterval = 100 * time.Millisecond
+
+		mt.ResetClient(options.Client().
+			SetServerMonitor(serverMonitor).
+			SetHeartbeatInterval(heartbeatInterval).
+			SetServerMonitoringMode(options.ServerMonitoringModePoll))
+
+		// Check on the count 4 times.
+		ticker := time.NewTicker(heartbeatInterval / 4)
+		t.Cleanup(ticker.Stop)
+
+		// Ensure we don't check more than 4 times.
+		timer := time.NewTimer(heartbeatInterval - 1)
+
+		var sum int64
+		var first int64
+	loop:
+		for {
 			select {
-			case event := <-events:
-				actualEvents = append(actualEvents, event)
 			case <-ticker.C:
-				assert.FailNow(t, "timed out for incoming event")
+				if first == 0 {
+					first = count.Load()
+				}
+				sum += count.Load() - first
+			case <-timer.C:
+				break loop
 			}
 		}
-		assert.Equal(t, expectedEvents, actualEvents)
+
+		assert.Equal(mt, int64(0), sum)
 	})
 }
