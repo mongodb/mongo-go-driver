@@ -383,8 +383,7 @@ func (iv IndexView) createOptionsDoc(opts options.Lister[options.IndexOptions]) 
 	return optsDoc, nil
 }
 
-
-func (iv IndexView) drop(ctx context.Context, name string, _ ...options.Lister[options.DropIndexesOptions]) error {
+func (iv IndexView) drop(ctx context.Context, index any, _ ...options.Lister[options.DropIndexesOptions]) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
