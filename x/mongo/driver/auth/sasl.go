@@ -156,7 +156,6 @@ func (sc *saslConversation) Finish(ctx context.Context, cfg *Config, firstRespon
 func ConductSaslConversation(ctx context.Context, cfg *Config, authSource string, client SaslClient) error {
 	// Create a non-speculative SASL conversation.
 	conversation := newSaslConversation(client, authSource, false)
-
 	saslStartDoc, err := conversation.FirstMessage()
 	if err != nil {
 		return newError(err, conversation.mechanism)
