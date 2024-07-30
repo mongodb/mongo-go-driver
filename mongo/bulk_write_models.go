@@ -181,7 +181,7 @@ type UpdateOneModel struct {
 	Upsert       *bool
 	Filter       interface{}
 	Update       interface{}
-	ArrayFilters *options.ArrayFilters
+	ArrayFilters []interface{}
 	Hint         interface{}
 }
 
@@ -218,8 +218,8 @@ func (uom *UpdateOneModel) SetUpdate(update interface{}) *UpdateOneModel {
 
 // SetArrayFilters specifies a set of filters to determine which elements should be modified when updating an array
 // field.
-func (uom *UpdateOneModel) SetArrayFilters(filters options.ArrayFilters) *UpdateOneModel {
-	uom.ArrayFilters = &filters
+func (uom *UpdateOneModel) SetArrayFilters(filters []interface{}) *UpdateOneModel {
+	uom.ArrayFilters = filters
 	return uom
 }
 
@@ -246,7 +246,7 @@ type UpdateManyModel struct {
 	Upsert       *bool
 	Filter       interface{}
 	Update       interface{}
-	ArrayFilters *options.ArrayFilters
+	ArrayFilters []interface{}
 	Hint         interface{}
 }
 
@@ -282,8 +282,8 @@ func (umm *UpdateManyModel) SetUpdate(update interface{}) *UpdateManyModel {
 
 // SetArrayFilters specifies a set of filters to determine which elements should be modified when updating an array
 // field.
-func (umm *UpdateManyModel) SetArrayFilters(filters options.ArrayFilters) *UpdateManyModel {
-	umm.ArrayFilters = &filters
+func (umm *UpdateManyModel) SetArrayFilters(filters []interface{}) *UpdateManyModel {
+	umm.ArrayFilters = filters
 	return umm
 }
 

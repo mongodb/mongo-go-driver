@@ -130,7 +130,7 @@ type GridFSUploadOptions struct {
 	// field.
 	Metadata interface{}
 
-	// The BSON registry to use for converting filters to BSON documents. The default value is bson.DefaultRegistry.
+	// The BSON registry to use for converting filters to BSON documents. The default value is bson.NewRegistry().
 	Registry *bson.Registry
 }
 
@@ -144,7 +144,7 @@ type GridFSUploadOptionsBuilder struct {
 // GridFSUpload creates a new GridFSUploadOptions instance.
 func GridFSUpload() *GridFSUploadOptionsBuilder {
 	opts := &GridFSUploadOptionsBuilder{}
-	opts.SetRegistry(bson.DefaultRegistry)
+	opts.SetRegistry(defaultRegistry)
 
 	return opts
 }

@@ -41,13 +41,13 @@ func TestTruncation(t *testing.T) {
 		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
-		enc.SetRegistry(DefaultRegistry)
+		enc.SetRegistry(defaultRegistry)
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
 		dc := DecodeContext{
-			Registry: DefaultRegistry,
+			Registry: defaultRegistry,
 			truncate: true,
 		}
 
@@ -67,13 +67,13 @@ func TestTruncation(t *testing.T) {
 		vw := NewDocumentWriter(buf)
 		enc := NewEncoder(vw)
 		enc.IntMinSize()
-		enc.SetRegistry(DefaultRegistry)
+		enc.SetRegistry(defaultRegistry)
 		err := enc.Encode(&input)
 		assert.Nil(t, err)
 
 		var output outputArgs
 		dc := DecodeContext{
-			Registry: DefaultRegistry,
+			Registry: defaultRegistry,
 			truncate: false,
 		}
 

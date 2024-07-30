@@ -46,7 +46,7 @@ func (rv RawValue) IsZero() bool {
 func (rv RawValue) Unmarshal(val interface{}) error {
 	reg := rv.r
 	if reg == nil {
-		reg = DefaultRegistry
+		reg = defaultRegistry
 	}
 	return rv.UnmarshalWithRegistry(reg, val)
 }

@@ -9,7 +9,7 @@ package mongo
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"reflect"
 	"testing"
@@ -19,6 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
@@ -83,7 +84,7 @@ func TestReadWriteConcernSpec(t *testing.T) {
 }
 
 func runConnectionStringTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	assert.Nil(t, err, "ReadFile error for %v: %v", filePath, err)
 
 	var testFile connectionStringTestFile
@@ -138,7 +139,7 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 }
 
 func runDocumentTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
 	var testFile documentTestFile
@@ -158,11 +159,11 @@ func runDocumentTestFile(t *testing.T, filePath string) {
 
 func runDocumentTest(t *testing.T, test documentTest) {
 	if test.ReadConcern != nil {
-		_, actual, err := readConcernFromRaw(t, test.ReadConcern).MarshalBSONValue()
+		_, actual, err := driver.MarshalBSONReadConcern(readConcernFromRaw(t, test.ReadConcern))
 		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
+			assert.NotNil(t, err, "expected an invalid read concern")
 		} else {
-			assert.Nil(t, err, "MarshalBSONValue error: %v", err)
+			assert.Nil(t, err, "got error: %v", err)
 			compareDocuments(t, *test.ReadConcernDocument, actual)
 		}
 
@@ -173,9 +174,9 @@ func runDocumentTest(t *testing.T, test documentTest) {
 	}
 	if test.WriteConcern != nil {
 		actualWc := writeConcernFromRaw(t, test.WriteConcern)
-		_, actual, err := actualWc.MarshalBSONValue()
+		_, actual, err := driver.MarshalBSONWriteConcern(actualWc.WriteConcern, 0)
 		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
+			assert.NotNil(t, err, "expected an invalid write concern")
 			return
 		}
 		if test.IsAcknowledged != nil {
@@ -185,7 +186,7 @@ func runDocumentTest(t *testing.T, test documentTest) {
 		}
 
 		expected := *test.WriteConcernDocument
-		if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
+		if errors.Is(err, driver.ErrEmptyWriteConcern) {
 			elems, _ := expected.Elements()
 			if len(elems) == 0 {
 				assert.NotNil(t, test.IsServerDefault, "expected write concern %s, got empty", expected)
@@ -272,7 +273,7 @@ func jsonFilesInDir(t *testing.T, dir string) []string {
 
 	files := make([]string, 0)
 
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	assert.Nil(t, err, "unable to read json file: %v", err)
 
 	for _, entry := range entries {

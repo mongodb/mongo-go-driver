@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/internal/randutil"
-	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
@@ -217,7 +216,7 @@ func (u *ConnString) Validate() error {
 
 	// Check for invalid write concern (i.e. w=0 and j=true)
 	if u.WNumberSet && u.WNumber == 0 && u.JSet && u.J {
-		return writeconcern.ErrInconsistent
+		return errors.New("a write concern cannot have both w=0 and j=true")
 	}
 
 	// Check for invalid use of direct connections.

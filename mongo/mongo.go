@@ -24,6 +24,8 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+var defaultRegistry = bson.NewRegistry()
+
 // Dialer is used to make network connections.
 type Dialer interface {
 	DialContext(ctx context.Context, network, address string) (net.Conn, error)
@@ -115,7 +117,7 @@ func marshal(
 	registry *bson.Registry,
 ) (bsoncore.Document, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 	if val == nil {
 		return nil, ErrNilDocument
@@ -153,7 +155,7 @@ func ensureID(
 	reg *bson.Registry,
 ) (bsoncore.Document, interface{}, error) {
 	if reg == nil {
-		reg = bson.DefaultRegistry
+		reg = defaultRegistry
 	}
 
 	// Try to find the "_id" element. If it exists, try to unmarshal just the

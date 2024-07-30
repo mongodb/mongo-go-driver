@@ -557,7 +557,7 @@ func (b *GridFSBucket) parseGridFSUploadOptions(opts ...options.Lister[options.G
 		upload.chunkSize = *args.ChunkSizeBytes
 	}
 	if args.Registry == nil {
-		args.Registry = bson.DefaultRegistry
+		args.Registry = defaultRegistry
 	}
 	if args.Metadata != nil {
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the

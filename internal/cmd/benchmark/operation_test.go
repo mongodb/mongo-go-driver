@@ -23,7 +23,7 @@ var teststrings = []string{
 func BenchmarkClientWrite(b *testing.B) {
 	benchmarks := []struct {
 		name string
-		opt  *options.ClientOptions
+		opt  *options.ClientOptionsBuilder
 	}{
 		{name: "not compressed", opt: options.Client().ApplyURI("mongodb://localhost:27017")},
 		{name: "snappy", opt: options.Client().ApplyURI("mongodb://localhost:27017").SetCompressors([]string{"snappy"})},
@@ -62,7 +62,7 @@ func BenchmarkClientWrite(b *testing.B) {
 func BenchmarkClientBulkWrite(b *testing.B) {
 	benchmarks := []struct {
 		name string
-		opt  *options.ClientOptions
+		opt  *options.ClientOptionsBuilder
 	}{
 		{name: "not compressed", opt: options.Client().ApplyURI("mongodb://localhost:27017")},
 		{name: "snappy", opt: options.Client().ApplyURI("mongodb://localhost:27017").SetCompressors([]string{"snappy"})},
@@ -106,7 +106,7 @@ func BenchmarkClientBulkWrite(b *testing.B) {
 func BenchmarkClientRead(b *testing.B) {
 	benchmarks := []struct {
 		name string
-		opt  *options.ClientOptions
+		opt  *options.ClientOptionsBuilder
 	}{
 		{name: "not compressed", opt: options.Client().ApplyURI("mongodb://localhost:27017")},
 		{name: "snappy", opt: options.Client().ApplyURI("mongodb://localhost:27017").SetCompressors([]string{"snappy"})},

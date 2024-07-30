@@ -44,15 +44,15 @@ func Unmarshal(data []byte, val interface{}) error {
 	} else if int(l) != len(data) {
 		return fmt.Errorf("invalid document length")
 	}
-	return unmarshalFromReader(DecodeContext{Registry: DefaultRegistry}, vr, val)
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
-// UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
+// UnmarshalValue parses the BSON value of type t with bson.NewRegistry() and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
 func UnmarshalValue(t Type, data []byte, val interface{}) error {
 	vr := newValueReader(t, bytes.NewReader(data))
-	return unmarshalFromReader(DecodeContext{Registry: DefaultRegistry}, vr, val)
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
@@ -64,7 +64,7 @@ func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
 		return err
 	}
 
-	return unmarshalFromReader(DecodeContext{Registry: DefaultRegistry}, ejvr, val)
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, ejvr, val)
 }
 
 func unmarshalFromReader(dc DecodeContext, vr ValueReader, val interface{}) error {

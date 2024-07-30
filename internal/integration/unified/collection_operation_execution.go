@@ -963,9 +963,9 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 
 		switch key {
 		case "arrayFilters":
-			opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
 		case "collation":
