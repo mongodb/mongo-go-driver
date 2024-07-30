@@ -8,7 +8,7 @@ package integration
 
 import (
 	"context"
-	"fmt"
+	"net"
 	"os"
 	"runtime"
 	"sync/atomic"
@@ -180,65 +180,58 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 	t.Run("emits the first HeartbeatStartedEvent before the monitoring socket was created", func(t *testing.T) {
 		t.Parallel()
 
-		const address = address.Address("localhost:27017")
+		const address = address.Address("localhost:9999")
+		expectedEvents := []string{
+			"serverHeartbeatStartedEvent",
+			"client connected",
+			"client hello received",
+			"serverHeartbeatFailedEvent",
+		}
 
-		//listener, err := net.Listen("tcp", address.String())
-		//assert.NoError(t, err)
-		//defer listener.Close()
-		//go func() {
-		//	conn, err := listener.Accept()
-		//	assert.NoError(t, err)
-		//	//defer conn.Close()
+		events := make(chan string)
 
-		//	for {
-		//		_, _ = conn.Read(nil)
-		//		fmt.Println("read")
-		//	}
-		//}()
+		listener, err := net.Listen("tcp", address.String())
+		assert.NoError(t, err)
+		defer listener.Close()
+		go func() {
+			conn, err := listener.Accept()
+			assert.NoError(t, err)
+			defer conn.Close()
 
-		var count atomic.Int64
-		poll := "poll"
+			events <- "client connected"
+			_, _ = conn.Read(nil)
+			events <- "client hello received"
+		}()
 
 		server := topology.NewServer(
 			address,
 			primitive.NewObjectID(),
-			topology.WithServerMonitoringMode(&poll),
-			topology.WithHeartbeatInterval(func(d time.Duration) time.Duration { return 200 * time.Millisecond }),
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
 					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {
-						count.Add(1)
-						//events <- "serverHeartbeatStartedEvent"
+						events <- "serverHeartbeatStartedEvent"
+					},
+					ServerHeartbeatFailed: func(e *event.ServerHeartbeatFailedEvent) {
+						events <- "serverHeartbeatFailedEvent"
 					},
 				}
 			}),
 		)
-
-		fmt.Println("before connect")
 		require.NoError(t, server.Connect(nil))
-		fmt.Println("after connect")
 
-		ticker := time.Tick(1 * time.Second)
-		for {
-			fmt.Printf("total heartbeats until now: %d\n", count.Load())
-			<-ticker
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		actualEvents := make([]string, 0, len(expectedEvents))
+		for len(actualEvents) < len(expectedEvents) {
+			select {
+			case event := <-events:
+				actualEvents = append(actualEvents, event)
+			case <-ticker.C:
+				assert.FailNow(t, "timed out for incoming event")
+			}
 		}
-
-		//ticker := time.NewTicker(5 * time.Second)
-		//defer ticker.Stop()
-
-		//actualEvents := make([]string, 0, len(expectedEvents))
-		//for len(actualEvents) < len(expectedEvents) {
-		//	select {
-		//	case event := <-events:
-		//		actualEvents = append(actualEvents, event)
-		//	case <-ticker.C:
-
-		//		fmt.Println(count)
-		//		assert.FailNow(t, "timed out for incoming event")
-		//	}
-		//}
-		//assert.Equal(t, expectedEvents, actualEvents)
+		assert.Equal(t, expectedEvents, actualEvents)
 	})
 
 	mt := mtest.New(t)

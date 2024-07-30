@@ -378,7 +378,7 @@ func NewConfigWithAuthenticator(co *options.ClientOptions, clock *session.Cluste
 	serverOpts = append(
 		serverOpts,
 		withLogger(func() *logger.Logger { return lgr }),
-		WithServerMonitoringMode(co.ServerMonitoringMode),
+		withServerMonitoringMode(co.ServerMonitoringMode),
 	)
 
 	cfgp.logger = lgr
