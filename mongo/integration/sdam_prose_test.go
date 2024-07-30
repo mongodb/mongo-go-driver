@@ -240,11 +240,11 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		// Create a client with  heartbeatFrequency=100ms,
 		// serverMonitoringMode=poll. Use SDAM to record the number of times the
 		// a heartbeat is started.
-		var count atomic.Int64
+		var heartbeatStartedCount atomic.Int64
 
 		serverMonitor := &event.ServerMonitor{
 			ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
-				count.Add(1)
+				heartbeatStartedCount.Add(1)
 			},
 		}
 
@@ -263,20 +263,27 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		timer := time.NewTimer(heartbeatInterval - 1)
 
 		var sum int64
-		var first int64
-	loop:
+		var serverCount int64
+
+		// Repeatedly check the heartbeat count at intervals defined by the ticker.
+		// When the ticker fires, capture the current count in a running sum. On the
+		// first check, initialize the first count, which should be equal to the
+		// number of servers in the deployment. Subtract this first value from the
+		// sum of each successive tick. When the timer is exhausted, ensure the
+		// sume is 0, indicating that all servers in the deployment are still
+		// awaiting before their second check.
 		for {
 			select {
 			case <-ticker.C:
-				if first == 0 {
-					first = count.Load()
+				if serverCount == 0 {
+					serverCount = heartbeatStartedCount.Load()
 				}
-				sum += count.Load() - first
+				sum += heartbeatStartedCount.Load() - serverCount
 			case <-timer.C:
-				break loop
+				assert.Equal(mt, int64(0), sum)
+
+				return
 			}
 		}
-
-		assert.Equal(mt, int64(0), sum)
 	})
 }
