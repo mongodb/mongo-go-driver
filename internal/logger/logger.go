@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -232,12 +233,23 @@ func selectComponentLevels(componentLevels map[Component]Level) map[Component]Le
 	return selected
 }
 
-// FormatMessage formats a BSON document for logging. The document is truncated
+// FormatDocument formats a BSON document or RawValue for logging. The document is truncated
 // to the given width.
-func FormatMessage(msg bsoncore.Document, width uint) string {
+func FormatDocument(msg bson.Raw, width uint) string {
 	if len(msg) == 0 {
 		return "{}"
 	}
 
 	return msg.StringN(int(width)) + TruncationSuffix
+}
+
+// FormatString formats a String for logging. The string is truncated
+// to the given width.
+func FormatString(str string, width uint) string {
+	rawValue := bson.RawValue{
+		Type:  bson.TypeString,
+		Value: bsoncore.AppendString(nil, str),
+	}
+
+	return rawValue.StringN(int(width)) + TruncationSuffix
 }

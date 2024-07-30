@@ -63,7 +63,7 @@ func BenchmarkLoggerWithLargeDocuments(b *testing.B) {
 				}
 				b.ResetTimer()
 				for i := 0; i < b.N; i++ {
-					logger.Print(LevelInfo, ComponentCommand, FormatMessage(bsoncore.Document(bs), 1024), "foo", "bar", "baz")
+					logger.Print(LevelInfo, ComponentCommand, FormatDocument(bsoncore.Document(bs), 1024), "foo", "bar", "baz")
 
 				}
 			})
