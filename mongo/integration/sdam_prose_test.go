@@ -248,7 +248,10 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 			},
 		}
 
-		const heartbeatInterval = 100 * time.Millisecond
+		// Set the heartbeatInterval to a value so that 1/4 * value is long enough
+		// to ensure that the driver makes it's initial handshake with all servers
+		// in the deployment.
+		const heartbeatInterval = 200 * time.Millisecond
 
 		mt.ResetClient(options.Client().
 			SetServerMonitor(serverMonitor).
@@ -259,28 +262,25 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		ticker := time.NewTicker(heartbeatInterval / 4)
 		t.Cleanup(ticker.Stop)
 
-		// Ensure we don't check more than 4 times.
 		timer := time.NewTimer(heartbeatInterval - 1)
 
-		var sum int64
+		// Repeatedly check the heartbeat count at intervals defined by the ticker.
+		// Initialize the first heartbeat count, which should be equal to the
+		// number of servers in the deployment. Subtract this value from the
+		// count on each successive tick. This sum should be zero, indicating that
+		// all servers in the deployment are still awaiting their second check.
 		var serverCount int64
 
-		// Repeatedly check the heartbeat count at intervals defined by the ticker.
-		// When the ticker fires, capture the current count in a running sum. On the
-		// first check, initialize the first count, which should be equal to the
-		// number of servers in the deployment. Subtract this first value from the
-		// sum of each successive tick. When the timer is exhausted, ensure the
-		// sume is 0, indicating that all servers in the deployment are still
-		// awaiting before their second check.
 		for {
 			select {
 			case <-ticker.C:
 				if serverCount == 0 {
 					serverCount = heartbeatStartedCount.Load()
 				}
-				sum += heartbeatStartedCount.Load() - serverCount
+
+				extraHeartbeats := heartbeatStartedCount.Load() - serverCount
+				assert.Equal(mt, int64(0), extraHeartbeats)
 			case <-timer.C:
-				assert.Equal(mt, int64(0), sum)
 
 				return
 			}
