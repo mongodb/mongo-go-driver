@@ -246,10 +246,10 @@ func FormatDocument(msg bson.Raw, width uint) string {
 // FormatString formats a String for logging. The string is truncated
 // to the given width.
 func FormatString(str string, width uint) string {
-	rawValue := bson.RawValue{
-		Type:  bson.TypeString,
-		Value: bsoncore.AppendString(nil, str),
+	value := bsoncore.Value{
+		Type: bsoncore.Type(bson.TypeString),
+		Data: bsoncore.AppendString(nil, str),
 	}
 
-	return bson.convertToCoreValue(rawValue).StringN(int(width)) + TruncationSuffix
+	return value.StringN(int(width)) + TruncationSuffix
 }
