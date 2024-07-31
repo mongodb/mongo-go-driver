@@ -12,48 +12,13 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
-
-func setUpMonitor() (*event.CommandMonitor, chan *event.CommandStartedEvent, chan *event.CommandSucceededEvent, chan *event.CommandFailedEvent) {
-	started := make(chan *event.CommandStartedEvent, 1)
-	succeeded := make(chan *event.CommandSucceededEvent, 1)
-	failed := make(chan *event.CommandFailedEvent, 1)
-
-	return &event.CommandMonitor{
-		Started: func(ctx context.Context, e *event.CommandStartedEvent) {
-			started <- e
-		},
-		Succeeded: func(ctx context.Context, e *event.CommandSucceededEvent) {
-			succeeded <- e
-		},
-		Failed: func(ctx context.Context, e *event.CommandFailedEvent) {
-			failed <- e
-		},
-	}, started, succeeded, failed
-}
-
-func skipIfBelow32(ctx context.Context, t *testing.T, topo *topology.Topology) {
-	server, err := topo.SelectServer(ctx, &serverselector.Write{})
-	noerr(t, err)
-
-	versionCmd := bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "serverStatus", 1))
-	serverStatus, err := runCommand(server, dbName, versionCmd)
-	noerr(t, err)
-	version, err := serverStatus.LookupErr("version")
-	noerr(t, err)
-
-	if integtest.CompareVersions(t, version.StringValue(), "3.2") < 0 {
-		t.Skip()
-	}
-}
 
 func TestAggregate(t *testing.T) {
 	if testing.Short() {
@@ -127,16 +92,4 @@ func TestAggregate(t *testing.T) {
 		}
 	})
 
-}
-
-func clearChannels(s chan *event.CommandStartedEvent, succ chan *event.CommandSucceededEvent, f chan *event.CommandFailedEvent) {
-	for len(s) > 0 {
-		<-s
-	}
-	for len(succ) > 0 {
-		<-succ
-	}
-	for len(f) > 0 {
-		<-f
-	}
 }
