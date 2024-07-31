@@ -116,7 +116,7 @@ func machine11callbackIsCalled() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_1_1: failed connecting client: %v", err)
@@ -158,7 +158,7 @@ func machine12callbackIsCalledOnlyOneForMultipleConnections() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_1_2: failed connecting client: %v", err)
@@ -229,7 +229,7 @@ func machine21validCallbackInputs() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_2_1: failed connecting client: %v", err)
@@ -265,7 +265,7 @@ func machine23oidcCallbackReturnMissingData() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_2_3: failed connecting client: %v", err)
@@ -324,7 +324,7 @@ func machine31failureWithCachedTokensFetchANewTokenAndRetryAuth() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_1: failed connecting client: %v", err)
@@ -371,7 +371,7 @@ func machine32authFailuresWithoutCachedTokensReturnsAnError() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_2: failed connecting client: %v", err)
@@ -419,7 +419,7 @@ func machine33UnexpectedErrorCodeDoesNotClearTheCache() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_3_3: failed connecting client: %v", err)
@@ -494,7 +494,7 @@ func machine41ReauthenticationSucceeds() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_1: failed connecting client: %v", err)
@@ -569,7 +569,7 @@ func machine42ReadCommandsFailIfReauthenticationFails() error {
 
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_2: failed connecting client: %v", err)
@@ -649,7 +649,7 @@ func machine43WriteCommandsFailIfReauthenticationFails() error {
 		}, nil
 	})
 
-	defer client.Disconnect(context.Background())
+	defer func() { _ = client.Disconnect(context.Background()) }()
 
 	if err != nil {
 		return fmt.Errorf("machine_4_3: failed connecting client: %v", err)
