@@ -10,17 +10,16 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path"
 	"strings"
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 var (
@@ -45,6 +44,13 @@ var (
 		"listSearchIndexes ignores read and write concern":     "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 		"updateSearchIndex ignores the read and write concern": "Sync GODRIVER-3074, but skip testing bug GODRIVER-3043",
 
+		// TODO(DRIVERS-2829): Create CSOT Legacy Timeout Analogues and Compatibility Field
+		"Reset server and pool after network timeout error during authentication": "Uses unsupported socketTimeoutMS",
+		"Ignore network timeout error on find":                                    "Uses unsupported socketTimeoutMS",
+		"A successful find with options":                                          "Uses unsupported maxTimeMS",
+		"estimatedDocumentCount with maxTimeMS":                                   "Uses unsupported maxTimeMS",
+		"supports configuring getMore maxTimeMS":                                  "Uses unsupported maxTimeMS",
+
 		// TODO(GODRIVER-3137): Implement Gossip cluster time"
 		"unpin after TransientTransactionError error on commit": "Implement GODRIVER-3137",
 
@@ -55,10 +61,6 @@ var (
 		"unpin when a new transaction is started":                     "Implement GODRIVER-3034",
 		"unpin when a non-transaction write operation uses a session": "Implement GODRIVER-3034",
 		"unpin when a non-transaction read operation uses a session":  "Implement GODRIVER-3034",
-	}
-
-	skippedServerlessProxyTests = map[string]string{
-		"errors during the initial connection hello are ignored": "Serverless Proxy does not support failpoints on hello (see GODRIVER-3157)",
 	}
 
 	logMessageValidatorTimeout = 10 * time.Millisecond
@@ -252,11 +254,6 @@ func (tc *TestCase) Run(ls LoggerSkipper) error {
 	}
 	if skipReason, ok := skippedTests[tc.Description]; ok {
 		ls.Skipf("skipping due to known failure: %q", skipReason)
-	}
-	// If we're running against a Serverless Proxy instance, also check the
-	// tests that should be skipped only for Serverless Proxy.
-	if skipReason, ok := skippedServerlessProxyTests[tc.Description]; ok && os.Getenv("IS_SERVERLESS_PROXY") == "true" {
-		ls.Skipf("skipping due to known failure with Serverless Proxy: %q", skipReason)
 	}
 
 	// Validate that we support the schema declared by the test file before attempting to use its contents.

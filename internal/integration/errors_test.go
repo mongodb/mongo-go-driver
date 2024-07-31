@@ -15,17 +15,18 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"regexp"
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 type netErr struct {
@@ -45,6 +46,17 @@ func (n netErr) Temporary() bool {
 }
 
 var _ net.Error = (*netErr)(nil)
+
+func containsPattern(patterns []string, str string) bool {
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		if re.MatchString(str) {
+			return true
+		}
+	}
+
+	return false
+}
 
 func TestErrors(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
@@ -96,39 +108,22 @@ func TestErrors(t *testing.T) {
 			}
 			timeoutCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			defer cancel()
+
 			_, err = mt.Coll.Find(timeoutCtx, filter)
 
-			evt := mt.GetStartedEvent()
-			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
-			assert.True(mt, errors.Is(err, context.DeadlineExceeded),
-				"errors.Is failure: expected error %v to be %v", err, context.DeadlineExceeded)
-		})
+			assert.Error(mt, err)
 
-		mt.Run("socketTimeoutMS timeouts return network errors", func(mt *mtest.T) {
-			_, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
-			assert.Nil(mt, err, "InsertOne error: %v", err)
-
-			// Reset the test client to have a 100ms socket timeout. We do this here rather than passing it in as a
-			// test option using mt.RunOpts because that could cause the collection creation or InsertOne to fail.
-			resetClientOpts := options.Client().
-				SetSocketTimeout(100 * time.Millisecond)
-			mt.ResetClient(resetClientOpts)
-
-			mt.ClearEvents()
-			filter := bson.M{
-				"$where": "function() { sleep(1000); return false; }",
+			errPatterns := []string{
+				context.DeadlineExceeded.Error(),
+				`^\(MaxTimeMSExpired\) Executor error during find command.*:: caused by :: operation exceeded time limit$`,
 			}
-			_, err = mt.Coll.Find(context.Background(), filter)
+
+			assert.True(t, containsPattern(errPatterns, err.Error()),
+				"expected possibleErrors=%v to contain %v, but it didn't",
+				errPatterns, err.Error())
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, "find", evt.CommandName, "expected command 'find', got %q", evt.CommandName)
-
-			assert.False(mt, errors.Is(err, context.DeadlineExceeded),
-				"errors.Is failure: expected error %v to not be %v", err, context.DeadlineExceeded)
-			var netErr net.Error
-			ok := errors.As(err, &netErr)
-			assert.True(mt, ok, "errors.As failure: expected error %v to be a net.Error", err)
-			assert.True(mt, netErr.Timeout(), "expected error %v to be a network timeout", err)
 		})
 	})
 	mt.Run("ServerError", func(mt *mtest.T) {
@@ -505,26 +500,124 @@ func TestErrors(t *testing.T) {
 				err    error
 				result bool
 			}{
-				{"context timeout", mongo.CommandError{
-					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}, true},
-				{"deadline would be exceeded", mongo.CommandError{
-					100, "", []string{"other"}, "blah", driver.ErrDeadlineWouldBeExceeded, nil}, true},
-				{"server selection timeout", mongo.CommandError{
-					100, "", []string{"other"}, "blah", topology.ErrServerSelectionTimeout, nil}, true},
-				{"wait queue timeout", mongo.CommandError{
-					100, "", []string{"other"}, "blah", topology.WaitQueueTimeoutError{}, nil}, true},
-				{"ServerError NetworkTimeoutError", mongo.CommandError{
-					100, "", []string{"NetworkTimeoutError"}, "blah", nil, nil}, true},
-				{"ServerError ExceededTimeLimitError", mongo.CommandError{
-					100, "", []string{"ExceededTimeLimitError"}, "blah", nil, nil}, true},
-				{"ServerError false", mongo.CommandError{
-					100, "", []string{"other"}, "blah", nil, nil}, false},
-				{"net error true", mongo.CommandError{
-					100, "", []string{"other"}, "blah", netErr{true}, nil}, true},
-				{"net error false", netErr{false}, false},
-				{"wrapped error", fmt.Errorf("%w", mongo.CommandError{
-					100, "", []string{"other"}, "blah", context.DeadlineExceeded, nil}), true},
-				{"other error", errors.New("foo"), false},
+				{
+					name: "context timeout",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: context.DeadlineExceeded,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "deadline would be exceeded",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: driver.ErrDeadlineWouldBeExceeded,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "server selection timeout",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: context.DeadlineExceeded,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "wait queue timeout",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: topology.WaitQueueTimeoutError{},
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "ServerError NetworkTimeoutError",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"NetworkTimeoutError"},
+						Name:    "blah",
+						Wrapped: nil,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "ServerError ExceededTimeLimitError",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"ExceededTimeLimitError"},
+						Name:    "blah",
+						Wrapped: nil,
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name: "ServerError false",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: nil,
+						Raw:     nil,
+					},
+					result: false,
+				},
+				{
+					name: "net error true",
+					err: mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: netErr{true},
+						Raw:     nil,
+					},
+					result: true,
+				},
+				{
+					name:   "net error false",
+					err:    netErr{false},
+					result: false,
+				},
+				{
+					name: "wrapped error",
+					err: fmt.Errorf("%w", mongo.CommandError{
+						Code:    100,
+						Message: "",
+						Labels:  []string{"other"},
+						Name:    "blah",
+						Wrapped: context.DeadlineExceeded,
+						Raw:     nil,
+					}),
+					result: true,
+				},
+				{
+					name:   "other error",
+					err:    errors.New("foo"),
+					result: false,
+				},
 			}
 			for _, tc := range testCases {
 				mt.Run(tc.name, func(mt *mtest.T) {

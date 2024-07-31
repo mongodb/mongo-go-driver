@@ -16,17 +16,17 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/eventtest"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func TestSDAMErrorHandling(t *testing.T) {
 	mt := mtest.New(t, noClientOpts)
-	baseClientOpts := func() *options.ClientOptions {
+	baseClientOpts := func() *options.ClientOptionsBuilder {
 		return options.Client().
 			ApplyURI(mtest.ClusterURI()).
 			SetRetryWrites(false).
@@ -75,9 +75,10 @@ func TestSDAMErrorHandling(t *testing.T) {
 				mt.ResetClient(baseClientOpts().
 					SetAppName(appName).
 					SetPoolMonitor(tpm.PoolMonitor).
-					// Set a 100ms socket timeout so that the saslContinue delay of 150ms causes a
-					// timeout during socket read (i.e. a timeout not caused by the InsertOne context).
-					SetSocketTimeout(100 * time.Millisecond))
+					// Set a 100ms connect timeout so that the saslContinue delay of 150ms
+					// causes a timeout during a heartbeat (i.e. a timeout not caused by
+					// the InsertOne context).
+					SetConnectTimeout(100 * time.Millisecond))
 
 				// Use context.Background() so that the new connection will not time out due to an
 				// operation-scoped timeout.
@@ -85,23 +86,13 @@ func TestSDAMErrorHandling(t *testing.T) {
 				assert.NotNil(mt, err, "expected InsertOne error, got nil")
 				assert.True(mt, mongo.IsTimeout(err), "expected timeout error, got %v", err)
 				assert.True(mt, mongo.IsNetworkError(err), "expected network error, got %v", err)
+
 				// Assert that the pool is cleared within 2 seconds.
-				assert.Soon(mt, func(ctx context.Context) {
-					ticker := time.NewTicker(100 * time.Millisecond)
-					defer ticker.Stop()
-
-					for {
-						select {
-						case <-ticker.C:
-						case <-ctx.Done():
-							return
-						}
-
-						if tpm.IsPoolCleared() {
-							return
-						}
-					}
-				}, 2*time.Second)
+				assert.Eventually(t,
+					tpm.IsPoolCleared,
+					2*time.Second,
+					100*time.Millisecond,
+					"expected pool is cleared within 2 seconds")
 			})
 
 			mt.RunOpts("pool cleared on non-timeout network error", noClientOpts, func(mt *mtest.T) {
@@ -131,22 +122,11 @@ func TestSDAMErrorHandling(t *testing.T) {
 						SetMinPoolSize(5))
 
 					// Assert that the pool is cleared within 2 seconds.
-					assert.Soon(mt, func(ctx context.Context) {
-						ticker := time.NewTicker(100 * time.Millisecond)
-						defer ticker.Stop()
-
-						for {
-							select {
-							case <-ticker.C:
-							case <-ctx.Done():
-								return
-							}
-
-							if tpm.IsPoolCleared() {
-								return
-							}
-						}
-					}, 2*time.Second)
+					assert.Eventually(t,
+						tpm.IsPoolCleared,
+						2*time.Second,
+						100*time.Millisecond,
+						"expected pool is cleared within 2 seconds")
 				})
 
 				mt.Run("foreground", func(mt *mtest.T) {
@@ -175,22 +155,11 @@ func TestSDAMErrorHandling(t *testing.T) {
 					assert.False(mt, mongo.IsTimeout(err), "expected non-timeout error, got %v", err)
 
 					// Assert that the pool is cleared within 2 seconds.
-					assert.Soon(mt, func(ctx context.Context) {
-						ticker := time.NewTicker(100 * time.Millisecond)
-						defer ticker.Stop()
-
-						for {
-							select {
-							case <-ticker.C:
-							case <-ctx.Done():
-								return
-							}
-
-							if tpm.IsPoolCleared() {
-								return
-							}
-						}
-					}, 2*time.Second)
+					assert.Eventually(t,
+						tpm.IsPoolCleared,
+						2*time.Second,
+						100*time.Millisecond,
+						"expected pool is cleared within 2 seconds")
 				})
 			})
 		})

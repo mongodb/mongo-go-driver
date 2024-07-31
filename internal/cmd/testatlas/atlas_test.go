@@ -11,23 +11,30 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func main() {
+func TestMain(m *testing.M) {
 	flag.Parse()
+	os.Exit(m.Run())
+}
+
+func TestAtlas(t *testing.T) {
 	uris := flag.Args()
 	ctx := context.Background()
 
-	fmt.Printf("Running atlas tests for %d uris\n", len(uris))
+	t.Logf("Running atlas tests for %d uris\n", len(uris))
 
 	for idx, uri := range uris {
-		fmt.Printf("Running test %d\n", idx)
+		t.Logf("Running test %d\n", idx)
 
 		// Set a low server selection timeout so we fail fast if there are errors.
 		clientOpts := options.Client().
@@ -36,21 +43,30 @@ func main() {
 
 		// Run basic connectivity test.
 		if err := runTest(ctx, clientOpts); err != nil {
-			panic(fmt.Sprintf("error running test with TLS at index %d: %v", idx, err))
+			t.Fatalf("error running test with TLS at index %d: %v", idx, err)
 		}
+
+		args, err := mongoutil.NewOptions[options.ClientOptions](clientOpts)
+		if err != nil {
+			panic(fmt.Sprintf("failed to construct args from options: %v", err))
+		}
+
+		tlsConfigSkipVerify := args.TLSConfig
+		tlsConfigSkipVerify.InsecureSkipVerify = true
 
 		// Run the connectivity test with InsecureSkipVerify to ensure SNI is done correctly even if verification is
 		// disabled.
-		clientOpts.TLSConfig.InsecureSkipVerify = true
+		clientOpts.SetTLSConfig(tlsConfigSkipVerify)
+
 		if err := runTest(ctx, clientOpts); err != nil {
-			panic(fmt.Sprintf("error running test with tlsInsecure at index %d: %v", idx, err))
+			t.Fatalf("error running test with tlsInsecure at index %d: %v", idx, err)
 		}
 	}
 
-	fmt.Println("Finished!")
+	t.Logf("Finished!")
 }
 
-func runTest(ctx context.Context, clientOpts *options.ClientOptions) error {
+func runTest(ctx context.Context, clientOpts *options.ClientOptionsBuilder) error {
 	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return fmt.Errorf("Connect error: %w", err)

@@ -12,11 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func TestMongosPinning(t *testing.T) {
@@ -25,7 +27,10 @@ func TestMongosPinning(t *testing.T) {
 		ClientOptions(clientOpts)
 	mt := mtest.New(t, mtOpts)
 
-	if len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts) < 2 {
+	hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+	require.NoError(t, err)
+
+	if len(hosts) < 2 {
 		mt.Skip("skipping because at least 2 mongoses are required")
 	}
 

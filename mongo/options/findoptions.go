@@ -10,20 +10,12 @@ import (
 	"time"
 )
 
-// FindOptions represents options that can be used to configure a Find operation.
+// FindOptions represents arguments that can be used to configure a Find
+// operation.
 type FindOptions struct {
-	// AllowDiskUse specifies whether the server can write temporary data to disk while executing the Find operation.
-	// This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option
-	// is specified. For server versions < 3.2, the driver will return a client-side error if this option is specified.
-	// The default value is false.
-	AllowDiskUse *bool
-
 	// AllowPartial results specifies whether the Find operation on a sharded cluster can return partial results if some
 	// shards are down rather than returning an error. The default value is false.
 	AllowPartialResults *bool
-
-	// BatchSize is the maximum number of documents to be included in each batch returned by the server.
-	BatchSize *int32
 
 	// Collation specifies a collation to use for string comparisons during the operation. This option is only valid for
 	// MongoDB versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
@@ -35,19 +27,10 @@ type FindOptions struct {
 	// which means that no comment will be included in the logs.
 	Comment interface{}
 
-	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
-	// means that the cursor will be closed by the server when the last batch of documents is retrieved.
-	CursorType *CursorType
-
 	// Hint is the index to use for the Find operation. This should either be the index name as a string or the index
 	// specification as a document. The driver will return an error if the hint parameter is a multi-key map. The default
 	// value is nil, which means that no hint will be sent.
 	Hint interface{}
-
-	// Limit is the maximum number of documents to return. The default value is 0, which means that all documents matching the
-	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
-	// batch. The default value is 0.
-	Limit *int64
 
 	// Max is a document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
 	// there is no maximum value.
@@ -58,21 +41,9 @@ type FindOptions struct {
 	// MongoDB versions >= 3.2. For other cursor types or previous server versions, this option is ignored.
 	MaxAwaitTime *time.Duration
 
-	// MaxTime is the maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used in its
-	// place to control the amount of time that a single operation can run before returning an error. MaxTime is ignored if
-	// Timeout is set on the client.
-	MaxTime *time.Duration
-
 	// Min is a document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
 	// there is no minimum value.
 	Min interface{}
-
-	// NoCursorTimeout specifies whether the cursor created by the operation will not timeout after a period of inactivity.
-	// The default value is false.
-	NoCursorTimeout *bool
 
 	// Project is a document describing which fields will be included in the documents returned by the Find operation. The
 	// default value is nil, which means all fields will be included.
@@ -93,137 +64,216 @@ type FindOptions struct {
 	// sort parameter is a multi-key map.
 	Sort interface{}
 
+	// The above are in common with FindOneopts.
+
+	// AllowDiskUse specifies whether the server can write temporary data to disk while executing the Find operation.
+	// This option is only valid for MongoDB versions >= 4.4. Server versions >= 3.2 will report an error if this option
+	// is specified. For server versions < 3.2, the driver will return a client-side error if this option is specified.
+	// The default value is false.
+	AllowDiskUse *bool
+
+	// BatchSize is the maximum number of documents to be included in each batch returned by the server.
+	BatchSize *int32
+
+	// CursorType specifies the type of cursor that should be created for the operation. The default is NonTailable, which
+	// means that the cursor will be closed by the server when the last batch of documents is retrieved.
+	CursorType *CursorType
+
 	// Let specifies parameters for the find expression. This option is only valid for MongoDB versions >= 5.0. Older
 	// servers will report an error for using this option. This must be a document mapping parameter names to values.
 	// Values must be constant or closed expressions that do not reference document fields. Parameters can then be
 	// accessed as variables in an aggregate expression context (e.g. "$$var").
 	Let interface{}
+
+	// Limit is the maximum number of documents to return. The default value is 0, which means that all documents matching the
+	// filter will be returned. A negative limit specifies that the resulting documents should be returned in a single
+	// batch. The default value is 0.
+	Limit *int64
+
+	// NoCursorTimeout specifies whether the cursor created by the operation will not timeout after a period of inactivity.
+	// The default value is false.
+	NoCursorTimeout *bool
+}
+
+// FindOptionsBuilder represents functional options that configure an Findopts.
+type FindOptionsBuilder struct {
+	Opts []func(*FindOptions) error
 }
 
 // Find creates a new FindOptions instance.
-func Find() *FindOptions {
-	return &FindOptions{}
+func Find() *FindOptionsBuilder {
+	return &FindOptionsBuilder{}
+}
+
+// List returns a list of FindOptions setter functions.
+func (f *FindOptionsBuilder) List() []func(*FindOptions) error {
+	return f.Opts
 }
 
 // SetAllowDiskUse sets the value for the AllowDiskUse field.
-func (f *FindOptions) SetAllowDiskUse(b bool) *FindOptions {
-	f.AllowDiskUse = &b
+func (f *FindOptionsBuilder) SetAllowDiskUse(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.AllowDiskUse = &b
+		return nil
+	})
 	return f
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
-func (f *FindOptions) SetAllowPartialResults(b bool) *FindOptions {
-	f.AllowPartialResults = &b
+func (f *FindOptionsBuilder) SetAllowPartialResults(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.AllowPartialResults = &b
+		return nil
+	})
 	return f
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (f *FindOptions) SetBatchSize(i int32) *FindOptions {
-	f.BatchSize = &i
+func (f *FindOptionsBuilder) SetBatchSize(i int32) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.BatchSize = &i
+		return nil
+	})
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOptions) SetCollation(collation *Collation) *FindOptions {
-	f.Collation = collation
+func (f *FindOptionsBuilder) SetCollation(collation *Collation) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Collation = collation
+		return nil
+	})
 	return f
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOptions) SetComment(comment interface{}) *FindOptions {
-	f.Comment = comment
+func (f *FindOptionsBuilder) SetComment(comment interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Comment = &comment
+		return nil
+	})
 	return f
 }
 
 // SetCursorType sets the value for the CursorType field.
-func (f *FindOptions) SetCursorType(ct CursorType) *FindOptions {
-	f.CursorType = &ct
+func (f *FindOptionsBuilder) SetCursorType(ct CursorType) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.CursorType = &ct
+		return nil
+	})
 	return f
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOptions) SetHint(hint interface{}) *FindOptions {
-	f.Hint = hint
+func (f *FindOptionsBuilder) SetHint(hint interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Hint = hint
+		return nil
+	})
 	return f
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOptions) SetLet(let interface{}) *FindOptions {
-	f.Let = let
+func (f *FindOptionsBuilder) SetLet(let interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Let = let
+		return nil
+	})
 	return f
 }
 
 // SetLimit sets the value for the Limit field.
-func (f *FindOptions) SetLimit(i int64) *FindOptions {
-	f.Limit = &i
+func (f *FindOptionsBuilder) SetLimit(i int64) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Limit = &i
+		return nil
+	})
 	return f
 }
 
 // SetMax sets the value for the Max field.
-func (f *FindOptions) SetMax(max interface{}) *FindOptions {
-	f.Max = max
+func (f *FindOptionsBuilder) SetMax(max interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Max = max
+		return nil
+	})
 	return f
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-func (f *FindOptions) SetMaxAwaitTime(d time.Duration) *FindOptions {
-	f.MaxAwaitTime = &d
-	return f
-}
-
-// SetMaxTime specifies the max time to allow the query to run.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used used in its place to control the amount of time that a single operation
-// can run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOptions) SetMaxTime(d time.Duration) *FindOptions {
-	f.MaxTime = &d
+func (f *FindOptionsBuilder) SetMaxAwaitTime(d time.Duration) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.MaxAwaitTime = &d
+		return nil
+	})
 	return f
 }
 
 // SetMin sets the value for the Min field.
-func (f *FindOptions) SetMin(min interface{}) *FindOptions {
-	f.Min = min
+func (f *FindOptionsBuilder) SetMin(min interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Min = min
+		return nil
+	})
 	return f
 }
 
 // SetNoCursorTimeout sets the value for the NoCursorTimeout field.
-func (f *FindOptions) SetNoCursorTimeout(b bool) *FindOptions {
-	f.NoCursorTimeout = &b
+func (f *FindOptionsBuilder) SetNoCursorTimeout(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.NoCursorTimeout = &b
+		return nil
+	})
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOptions) SetProjection(projection interface{}) *FindOptions {
-	f.Projection = projection
+func (f *FindOptionsBuilder) SetProjection(projection interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Projection = projection
+		return nil
+	})
 	return f
 }
 
 // SetReturnKey sets the value for the ReturnKey field.
-func (f *FindOptions) SetReturnKey(b bool) *FindOptions {
-	f.ReturnKey = &b
+func (f *FindOptionsBuilder) SetReturnKey(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.ReturnKey = &b
+		return nil
+	})
 	return f
 }
 
 // SetShowRecordID sets the value for the ShowRecordID field.
-func (f *FindOptions) SetShowRecordID(b bool) *FindOptions {
-	f.ShowRecordID = &b
+func (f *FindOptionsBuilder) SetShowRecordID(b bool) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.ShowRecordID = &b
+		return nil
+	})
 	return f
 }
 
 // SetSkip sets the value for the Skip field.
-func (f *FindOptions) SetSkip(i int64) *FindOptions {
-	f.Skip = &i
+func (f *FindOptionsBuilder) SetSkip(i int64) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Skip = &i
+		return nil
+	})
 	return f
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOptions) SetSort(sort interface{}) *FindOptions {
-	f.Sort = sort
+func (f *FindOptionsBuilder) SetSort(sort interface{}) *FindOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOptions) error {
+		opts.Sort = sort
+		return nil
+	})
 	return f
 }
 
-// FindOneOptions represents options that can be used to configure a FindOne operation.
+// FindOneOptions represents arguments that can be used to configure a FindOne
+// operation.
 type FindOneOptions struct {
 	// If true, an operation on a sharded cluster can return partial results if some shards are down rather than
 	// returning an error. The default value is false.
@@ -247,14 +297,6 @@ type FindOneOptions struct {
 	// A document specifying the exclusive upper bound for a specific index. The default value is nil, which means that
 	// there is no maximum value.
 	Max interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// A document specifying the inclusive lower bound for a specific index. The default value is 0, which means that
 	// there is no minimum value.
@@ -280,88 +322,123 @@ type FindOneOptions struct {
 	Sort interface{}
 }
 
+// FindOneOptionsBuilder represents functional options that configure an
+// FindOneopts.
+type FindOneOptionsBuilder struct {
+	Opts []func(*FindOneOptions) error
+}
+
 // FindOne creates a new FindOneOptions instance.
-func FindOne() *FindOneOptions {
-	return &FindOneOptions{}
+func FindOne() *FindOneOptionsBuilder {
+	return &FindOneOptionsBuilder{}
+}
+
+// List returns a list of FindOneOptions setter functions.
+func (f *FindOneOptionsBuilder) List() []func(*FindOneOptions) error {
+	return f.Opts
 }
 
 // SetAllowPartialResults sets the value for the AllowPartialResults field.
-func (f *FindOneOptions) SetAllowPartialResults(b bool) *FindOneOptions {
-	f.AllowPartialResults = &b
+func (f *FindOneOptionsBuilder) SetAllowPartialResults(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.AllowPartialResults = &b
+		return nil
+	})
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneOptions) SetCollation(collation *Collation) *FindOneOptions {
-	f.Collation = collation
+func (f *FindOneOptionsBuilder) SetCollation(collation *Collation) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Collation = collation
+		return nil
+	})
 	return f
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneOptions) SetComment(comment interface{}) *FindOneOptions {
-	f.Comment = &comment
+func (f *FindOneOptionsBuilder) SetComment(comment interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Comment = &comment
+		return nil
+	})
 	return f
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneOptions) SetHint(hint interface{}) *FindOneOptions {
-	f.Hint = hint
+func (f *FindOneOptionsBuilder) SetHint(hint interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Hint = hint
+		return nil
+	})
 	return f
 }
 
 // SetMax sets the value for the Max field.
-func (f *FindOneOptions) SetMax(max interface{}) *FindOneOptions {
-	f.Max = max
-	return f
-}
-
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneOptions) SetMaxTime(d time.Duration) *FindOneOptions {
-	f.MaxTime = &d
+func (f *FindOneOptionsBuilder) SetMax(max interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Max = max
+		return nil
+	})
 	return f
 }
 
 // SetMin sets the value for the Min field.
-func (f *FindOneOptions) SetMin(min interface{}) *FindOneOptions {
-	f.Min = min
+func (f *FindOneOptionsBuilder) SetMin(min interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Min = min
+		return nil
+	})
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneOptions) SetProjection(projection interface{}) *FindOneOptions {
-	f.Projection = projection
+func (f *FindOneOptionsBuilder) SetProjection(projection interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Projection = projection
+		return nil
+	})
 	return f
 }
 
 // SetReturnKey sets the value for the ReturnKey field.
-func (f *FindOneOptions) SetReturnKey(b bool) *FindOneOptions {
-	f.ReturnKey = &b
+func (f *FindOneOptionsBuilder) SetReturnKey(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.ReturnKey = &b
+		return nil
+	})
 	return f
 }
 
 // SetShowRecordID sets the value for the ShowRecordID field.
-func (f *FindOneOptions) SetShowRecordID(b bool) *FindOneOptions {
-	f.ShowRecordID = &b
+func (f *FindOneOptionsBuilder) SetShowRecordID(b bool) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.ShowRecordID = &b
+		return nil
+	})
 	return f
 }
 
 // SetSkip sets the value for the Skip field.
-func (f *FindOneOptions) SetSkip(i int64) *FindOneOptions {
-	f.Skip = &i
+func (f *FindOneOptionsBuilder) SetSkip(i int64) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Skip = &i
+		return nil
+	})
 	return f
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneOptions) SetSort(sort interface{}) *FindOneOptions {
-	f.Sort = sort
+func (f *FindOneOptionsBuilder) SetSort(sort interface{}) *FindOneOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneOptions) error {
+		opts.Sort = sort
+		return nil
+	})
 	return f
 }
 
-// FindOneAndReplaceOptions represents options that can be used to configure a FindOneAndReplace instance.
+// FindOneAndReplaceOptions represents arguments that can be used to configure a
+// FindOneAndReplace instance.
 type FindOneAndReplaceOptions struct {
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
@@ -377,14 +454,6 @@ type FindOneAndReplaceOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
@@ -418,81 +487,129 @@ type FindOneAndReplaceOptions struct {
 	Let interface{}
 }
 
+// FindOneAndReplaceOptionsBuilder contains options to perform a findAndModify
+// operation. Each option can be set through setter functions. See documentation
+// for each setter function for an explanation of the option.
+type FindOneAndReplaceOptionsBuilder struct {
+	Opts []func(*FindOneAndReplaceOptions) error
+}
+
 // FindOneAndReplace creates a new FindOneAndReplaceOptions instance.
-func FindOneAndReplace() *FindOneAndReplaceOptions {
-	return &FindOneAndReplaceOptions{}
+func FindOneAndReplace() *FindOneAndReplaceOptionsBuilder {
+	return &FindOneAndReplaceOptionsBuilder{}
+}
+
+// List returns a list of FindOneAndReplaceOptions setter functions.
+func (f *FindOneAndReplaceOptionsBuilder) List() []func(*FindOneAndReplaceOptions) error {
+	return f.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (f *FindOneAndReplaceOptions) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptions {
-	f.BypassDocumentValidation = &b
+func (f *FindOneAndReplaceOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.BypassDocumentValidation = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneAndReplaceOptions) SetCollation(collation *Collation) *FindOneAndReplaceOptions {
-	f.Collation = collation
+func (f *FindOneAndReplaceOptionsBuilder) SetCollation(collation *Collation) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Collation = collation
+
+		return nil
+	})
+
 	return f
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneAndReplaceOptions) SetComment(comment interface{}) *FindOneAndReplaceOptions {
-	f.Comment = comment
-	return f
-}
+func (f *FindOneAndReplaceOptionsBuilder) SetComment(comment interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Comment = comment
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneAndReplaceOptions) SetMaxTime(d time.Duration) *FindOneAndReplaceOptions {
-	f.MaxTime = &d
+		return nil
+	})
+
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneAndReplaceOptions) SetProjection(projection interface{}) *FindOneAndReplaceOptions {
-	f.Projection = projection
+func (f *FindOneAndReplaceOptionsBuilder) SetProjection(projection interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Projection = projection
+
+		return nil
+	})
+
 	return f
 }
 
 // SetReturnDocument sets the value for the ReturnDocument field.
-func (f *FindOneAndReplaceOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptions {
-	f.ReturnDocument = &rd
+func (f *FindOneAndReplaceOptionsBuilder) SetReturnDocument(rd ReturnDocument) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.ReturnDocument = &rd
+
+		return nil
+	})
+
 	return f
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneAndReplaceOptions) SetSort(sort interface{}) *FindOneAndReplaceOptions {
-	f.Sort = sort
+func (f *FindOneAndReplaceOptionsBuilder) SetSort(sort interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Sort = sort
+
+		return nil
+	})
+
 	return f
 }
 
 // SetUpsert sets the value for the Upsert field.
-func (f *FindOneAndReplaceOptions) SetUpsert(b bool) *FindOneAndReplaceOptions {
-	f.Upsert = &b
+func (f *FindOneAndReplaceOptionsBuilder) SetUpsert(b bool) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Upsert = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneAndReplaceOptions) SetHint(hint interface{}) *FindOneAndReplaceOptions {
-	f.Hint = hint
+func (f *FindOneAndReplaceOptionsBuilder) SetHint(hint interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Hint = hint
+
+		return nil
+	})
+
 	return f
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOneAndReplaceOptions) SetLet(let interface{}) *FindOneAndReplaceOptions {
-	f.Let = let
+func (f *FindOneAndReplaceOptionsBuilder) SetLet(let interface{}) *FindOneAndReplaceOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndReplaceOptions) error {
+		opts.Let = let
+
+		return nil
+	})
+
 	return f
 }
 
-// FindOneAndUpdateOptions represents options that can be used to configure a FindOneAndUpdate options.
+// FindOneAndUpdateOptions represents arguments that can be used to configure a
+// FindOneAndUpdate options.
 type FindOneAndUpdateOptions struct {
 	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
 	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the update will apply to all array elements.
-	ArrayFilters *ArrayFilters
+	ArrayFilters []interface{}
 
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
@@ -508,14 +625,6 @@ type FindOneAndUpdateOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime is
-	// ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
@@ -549,82 +658,135 @@ type FindOneAndUpdateOptions struct {
 	Let interface{}
 }
 
+// FindOneAndUpdateOptionsBuilder contains options to configure a
+// findOneAndUpdate operation. Each option can be set through setter functions.
+// See documentation for each setter function for an explanation of the option.
+type FindOneAndUpdateOptionsBuilder struct {
+	Opts []func(*FindOneAndUpdateOptions) error
+}
+
 // FindOneAndUpdate creates a new FindOneAndUpdateOptions instance.
-func FindOneAndUpdate() *FindOneAndUpdateOptions {
-	return &FindOneAndUpdateOptions{}
+func FindOneAndUpdate() *FindOneAndUpdateOptionsBuilder {
+	return &FindOneAndUpdateOptionsBuilder{}
+}
+
+// List returns a list of FindOneAndUpdateOptions setter functions.
+func (f *FindOneAndUpdateOptionsBuilder) List() []func(*FindOneAndUpdateOptions) error {
+	return f.Opts
 }
 
 // SetBypassDocumentValidation sets the value for the BypassDocumentValidation field.
-func (f *FindOneAndUpdateOptions) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptions {
-	f.BypassDocumentValidation = &b
+func (f *FindOneAndUpdateOptionsBuilder) SetBypassDocumentValidation(b bool) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.BypassDocumentValidation = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetArrayFilters sets the value for the ArrayFilters field.
-func (f *FindOneAndUpdateOptions) SetArrayFilters(filters ArrayFilters) *FindOneAndUpdateOptions {
-	f.ArrayFilters = &filters
+func (f *FindOneAndUpdateOptionsBuilder) SetArrayFilters(filters []interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.ArrayFilters = filters
+
+		return nil
+	})
+
 	return f
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneAndUpdateOptions) SetCollation(collation *Collation) *FindOneAndUpdateOptions {
-	f.Collation = collation
+func (f *FindOneAndUpdateOptionsBuilder) SetCollation(collation *Collation) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Collation = collation
+
+		return nil
+	})
+
 	return f
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneAndUpdateOptions) SetComment(comment interface{}) *FindOneAndUpdateOptions {
-	f.Comment = comment
-	return f
-}
+func (f *FindOneAndUpdateOptionsBuilder) SetComment(comment interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Comment = comment
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneAndUpdateOptions) SetMaxTime(d time.Duration) *FindOneAndUpdateOptions {
-	f.MaxTime = &d
+		return nil
+	})
+
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneAndUpdateOptions) SetProjection(projection interface{}) *FindOneAndUpdateOptions {
-	f.Projection = projection
+func (f *FindOneAndUpdateOptionsBuilder) SetProjection(projection interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Projection = projection
+
+		return nil
+	})
+
 	return f
 }
 
 // SetReturnDocument sets the value for the ReturnDocument field.
-func (f *FindOneAndUpdateOptions) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptions {
-	f.ReturnDocument = &rd
+func (f *FindOneAndUpdateOptionsBuilder) SetReturnDocument(rd ReturnDocument) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.ReturnDocument = &rd
+
+		return nil
+	})
+
 	return f
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneAndUpdateOptions) SetSort(sort interface{}) *FindOneAndUpdateOptions {
-	f.Sort = sort
+func (f *FindOneAndUpdateOptionsBuilder) SetSort(sort interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Sort = sort
+
+		return nil
+	})
+
 	return f
 }
 
 // SetUpsert sets the value for the Upsert field.
-func (f *FindOneAndUpdateOptions) SetUpsert(b bool) *FindOneAndUpdateOptions {
-	f.Upsert = &b
+func (f *FindOneAndUpdateOptionsBuilder) SetUpsert(b bool) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Upsert = &b
+
+		return nil
+	})
+
 	return f
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneAndUpdateOptions) SetHint(hint interface{}) *FindOneAndUpdateOptions {
-	f.Hint = hint
+func (f *FindOneAndUpdateOptionsBuilder) SetHint(hint interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Hint = hint
+
+		return nil
+	})
+
 	return f
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOneAndUpdateOptions) SetLet(let interface{}) *FindOneAndUpdateOptions {
-	f.Let = let
+func (f *FindOneAndUpdateOptionsBuilder) SetLet(let interface{}) *FindOneAndUpdateOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndUpdateOptions) error {
+		opts.Let = let
+
+		return nil
+	})
+
 	return f
 }
 
-// FindOneAndDeleteOptions represents options that can be used to configure a FindOneAndDelete operation.
+// FindOneAndDeleteOptions represents arguments that can be used to configure a
+// FindOneAndDelete operation.
 type FindOneAndDeleteOptions struct {
 	// Specifies a collation to use for string comparisons during the operation. This option is only valid for MongoDB
 	// versions >= 3.4. For previous server versions, the driver will return an error if this option is used. The
@@ -634,14 +796,6 @@ type FindOneAndDeleteOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default value is nil, which means that no comment will be included in the logs.
 	Comment interface{}
-
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
 
 	// A document describing which fields will be included in the document returned by the operation. The default value
 	// is nil, which means all fields will be included.
@@ -667,53 +821,85 @@ type FindOneAndDeleteOptions struct {
 	Let interface{}
 }
 
+// FindOneAndDeleteOptionsBuilder contains options to configure delete
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type FindOneAndDeleteOptionsBuilder struct {
+	Opts []func(*FindOneAndDeleteOptions) error
+}
+
 // FindOneAndDelete creates a new FindOneAndDeleteOptions instance.
-func FindOneAndDelete() *FindOneAndDeleteOptions {
-	return &FindOneAndDeleteOptions{}
+func FindOneAndDelete() *FindOneAndDeleteOptionsBuilder {
+	return &FindOneAndDeleteOptionsBuilder{}
+}
+
+// List returns a list of FindOneAndDeleteOptions setter functions.
+func (f *FindOneAndDeleteOptionsBuilder) List() []func(*FindOneAndDeleteOptions) error {
+	return f.Opts
 }
 
 // SetCollation sets the value for the Collation field.
-func (f *FindOneAndDeleteOptions) SetCollation(collation *Collation) *FindOneAndDeleteOptions {
-	f.Collation = collation
+func (f *FindOneAndDeleteOptionsBuilder) SetCollation(collation *Collation) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
+		opts.Collation = collation
+
+		return nil
+	})
+
 	return f
 }
 
 // SetComment sets the value for the Comment field.
-func (f *FindOneAndDeleteOptions) SetComment(comment interface{}) *FindOneAndDeleteOptions {
-	f.Comment = comment
-	return f
-}
+func (f *FindOneAndDeleteOptionsBuilder) SetComment(comment interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
+		opts.Comment = comment
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout
-// option may be used in its place to control the amount of time that a single operation can
-// run before returning an error. MaxTime is ignored if Timeout is set on the client.
-func (f *FindOneAndDeleteOptions) SetMaxTime(d time.Duration) *FindOneAndDeleteOptions {
-	f.MaxTime = &d
+		return nil
+	})
+
 	return f
 }
 
 // SetProjection sets the value for the Projection field.
-func (f *FindOneAndDeleteOptions) SetProjection(projection interface{}) *FindOneAndDeleteOptions {
-	f.Projection = projection
+func (f *FindOneAndDeleteOptionsBuilder) SetProjection(projection interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
+		opts.Projection = projection
+
+		return nil
+	})
+
 	return f
 }
 
 // SetSort sets the value for the Sort field.
-func (f *FindOneAndDeleteOptions) SetSort(sort interface{}) *FindOneAndDeleteOptions {
-	f.Sort = sort
+func (f *FindOneAndDeleteOptionsBuilder) SetSort(sort interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
+		opts.Sort = sort
+
+		return nil
+	})
+
 	return f
 }
 
 // SetHint sets the value for the Hint field.
-func (f *FindOneAndDeleteOptions) SetHint(hint interface{}) *FindOneAndDeleteOptions {
-	f.Hint = hint
+func (f *FindOneAndDeleteOptionsBuilder) SetHint(hint interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
+		opts.Hint = hint
+
+		return nil
+	})
+
 	return f
 }
 
 // SetLet sets the value for the Let field.
-func (f *FindOneAndDeleteOptions) SetLet(let interface{}) *FindOneAndDeleteOptions {
-	f.Let = let
+func (f *FindOneAndDeleteOptionsBuilder) SetLet(let interface{}) *FindOneAndDeleteOptionsBuilder {
+	f.Opts = append(f.Opts, func(opts *FindOneAndDeleteOptions) error {
+		opts.Let = let
+
+		return nil
+	})
+
 	return f
 }

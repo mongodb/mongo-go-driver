@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
 )
 
 func TestString(t *testing.T) {
@@ -106,27 +106,6 @@ func TestFromHex_InvalidHex(t *testing.T) {
 func TestFromHex_WrongLength(t *testing.T) {
 	_, err := ObjectIDFromHex("deadbeef")
 	require.Equal(t, ErrInvalidHex, err)
-}
-
-func TestIsValidObjectID(t *testing.T) {
-	testCases := []struct {
-		givenID  string
-		expected bool
-	}{
-		{
-			givenID:  "5ef7fdd91c19e3222b41b839",
-			expected: true,
-		},
-		{
-			givenID:  "5ef7fdd91c19e3222b41b83",
-			expected: false,
-		},
-	}
-
-	for _, testcase := range testCases {
-		got := IsValidObjectID(testcase.givenID)
-		assert.Equal(t, testcase.expected, got, "expected hex string to be valid ObjectID: %v, got %v", testcase.expected, got)
-	}
 }
 
 func TestTimeStamp(t *testing.T) {

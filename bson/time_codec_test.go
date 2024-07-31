@@ -11,9 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestTimeCodec(t *testing.T) {
@@ -22,20 +21,18 @@ func TestTimeCodec(t *testing.T) {
 	t.Run("UseLocalTimeZone", func(t *testing.T) {
 		reader := &valueReaderWriter{BSONType: TypeDateTime, Return: now.UnixNano() / int64(time.Millisecond)}
 		testCases := []struct {
-			name string
-			opts *bsonoptions.TimeCodecOptions
-			utc  bool
+			name      string
+			timeCodec *timeCodec
+			utc       bool
 		}{
-			{"default", bsonoptions.TimeCodec(), true},
-			{"false", bsonoptions.TimeCodec().SetUseLocalTimeZone(false), true},
-			{"true", bsonoptions.TimeCodec().SetUseLocalTimeZone(true), false},
+			{"default", &timeCodec{}, true},
+			{"false", &timeCodec{useLocalTimeZone: false}, true},
+			{"true", &timeCodec{useLocalTimeZone: true}, false},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				timeCodec := NewTimeCodec(tc.opts)
-
 				actual := reflect.New(reflect.TypeOf(now)).Elem()
-				err := timeCodec.DecodeValue(DecodeContext{}, reader, actual)
+				err := tc.timeCodec.DecodeValue(DecodeContext{}, reader, actual)
 				assert.Nil(t, err, "TimeCodec.DecodeValue error: %v", err)
 
 				actualTime := actual.Interface().(time.Time)
@@ -69,7 +66,7 @@ func TestTimeCodec(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				actual := reflect.New(reflect.TypeOf(now)).Elem()
-				err := defaultTimeCodec.DecodeValue(DecodeContext{}, tc.reader, actual)
+				err := (&timeCodec{}).DecodeValue(DecodeContext{}, tc.reader, actual)
 				assert.Nil(t, err, "DecodeValue error: %v", err)
 
 				actualTime := actual.Interface().(time.Time)

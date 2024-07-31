@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func TestCSOTProse(t *testing.T) {
@@ -87,15 +87,21 @@ func TestCSOTProse(t *testing.T) {
 		cliOpts := options.Client().ApplyURI("mongodb://invalid/?serverSelectionTimeoutMS=100")
 		mtOpts := mtest.NewOptions().ClientOptions(cliOpts).CreateCollection(false)
 		mt.RunOpts("serverSelectionTimeoutMS honored if timeoutMS is not set", mtOpts, func(mt *mtest.T) {
-			mt.Parallel()
+			// TODO(GODRIVER-3266): Why do parallel tests fail on windows builds?
+			//mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=100&serverSelectionTimeoutMS=200")
@@ -103,13 +109,18 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("timeoutMS honored for server selection if it's lower than serverSelectionTimeoutMS", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=200&serverSelectionTimeoutMS=100")
@@ -117,13 +128,18 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if it's lower than timeoutMS", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 
 		cliOpts = options.Client().ApplyURI("mongodb://invalid/?timeoutMS=0&serverSelectionTimeoutMS=100")
@@ -131,13 +147,18 @@ func TestCSOTProse(t *testing.T) {
 		mt.RunOpts("serverSelectionTimeoutMS honored for server selection if timeoutMS=0", mtOpts, func(mt *mtest.T) {
 			mt.Parallel()
 
-			callback := func(ctx context.Context) {
-				err := mt.Client.Ping(ctx, nil)
-				assert.NotNil(mt, err, "expected Ping error, got nil")
+			callback := func() bool {
+				err := mt.Client.Ping(context.Background(), nil)
+				assert.Error(mt, err, "expected Ping error, got nil")
+				return true
 			}
 
 			// Assert that Ping fails within 150ms due to server selection timeout.
-			assert.Soon(mt, callback, 150*time.Millisecond)
+			assert.Eventually(t,
+				callback,
+				150*time.Millisecond,
+				time.Millisecond,
+				"expected ping to fail within 150ms")
 		})
 	})
 }

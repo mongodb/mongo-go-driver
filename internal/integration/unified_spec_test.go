@@ -7,6 +7,7 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -19,19 +20,21 @@ import (
 	"time"
 	"unsafe"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 const (
@@ -208,7 +211,11 @@ func runSpecTestFile(t *testing.T, specDir, fileName string) {
 	assert.Nil(t, err, "unable to read spec test file %v: %v", filePath, err)
 
 	var testFile testFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
 	assert.Nil(t, err, "unable to unmarshal spec test file at %v: %v", filePath, err)
 
 	// create mtest wrapper and skip if needed
@@ -279,22 +286,37 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 		// Reset the client using the client options specified in the test.
 		testClientOpts := createClientOptions(mt, test.ClientOptions)
 
+		args, err := mongoutil.NewOptions[options.ClientOptions](testClientOpts)
+		require.NoError(mt, err, "failed to construct options from builder")
+
 		// If AutoEncryptionOptions is set and AutoEncryption isn't disabled (neither
 		// bypassAutoEncryption nor bypassQueryAnalysis are true), then add extra options to load
 		// the crypt_shared library.
-		if testClientOpts.AutoEncryptionOptions != nil {
-			bypassAutoEncryption := testClientOpts.AutoEncryptionOptions.BypassAutoEncryption != nil &&
-				*testClientOpts.AutoEncryptionOptions.BypassAutoEncryption
-			bypassQueryAnalysis := testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis != nil &&
-				*testClientOpts.AutoEncryptionOptions.BypassQueryAnalysis
+		if args.AutoEncryptionOptions != nil {
+			aeArgs, err := mongoutil.NewOptions[options.AutoEncryptionOptions](args.AutoEncryptionOptions)
+			require.NoError(mt, err, "failed to construct options from builder")
+
+			bypassAutoEncryption := aeArgs.BypassAutoEncryption != nil && *aeArgs.BypassAutoEncryption
+			bypassQueryAnalysis := aeArgs.BypassQueryAnalysis != nil && *aeArgs.BypassQueryAnalysis
+
 			if !bypassAutoEncryption && !bypassQueryAnalysis {
-				if testClientOpts.AutoEncryptionOptions.ExtraOptions == nil {
-					testClientOpts.AutoEncryptionOptions.ExtraOptions = make(map[string]interface{})
+				if aeArgs.ExtraOptions == nil {
+					aeArgs.ExtraOptions = make(map[string]interface{})
 				}
 
 				for k, v := range getCryptSharedLibExtraOptions() {
-					testClientOpts.AutoEncryptionOptions.ExtraOptions[k] = v
+					aeArgs.ExtraOptions[k] = v
 				}
+			}
+
+			args.AutoEncryptionOptions = &options.AutoEncryptionOptionsBuilder{
+				Opts: []func(*options.AutoEncryptionOptions) error{
+					func(args *options.AutoEncryptionOptions) error {
+						*args = *aeArgs
+
+						return nil
+					},
+				},
 			}
 		}
 
@@ -303,11 +325,12 @@ func runSpecTestCase(mt *mtest.T, test *testCase, testFile testFile) {
 			Event: test.monitor.handlePoolEvent,
 		})
 		testClientOpts.SetServerMonitor(test.monitor.sdamMonitor)
-		if testClientOpts.HeartbeatInterval == nil {
+		if args.HeartbeatInterval == nil {
 			// If one isn't specified in the test, use a low heartbeat frequency so the Client will quickly recover when
 			// using failpoints that cause SDAM state changes.
 			testClientOpts.SetHeartbeatInterval(defaultHeartbeatInterval)
 		}
+
 		mt.ResetClient(testClientOpts)
 
 		// Record the underlying topology for the test's Client.
@@ -631,7 +654,7 @@ func lastTwoIDs(mt *mtest.T) (bson.RawValue, bson.RawValue) {
 func executeSessionOperation(mt *mtest.T, op *operation, sess *mongo.Session) error {
 	switch op.Name {
 	case "startTransaction":
-		var txnOpts *options.TransactionOptions
+		var txnOpts *options.TransactionOptionsBuilder
 		if opts, err := op.Arguments.LookupErr("options"); err == nil {
 			txnOpts = createTransactionOptions(mt, opts.Document())
 		}
@@ -777,10 +800,9 @@ func executeCollectionOperation(mt *mtest.T, op *operation, sess *mongo.Session)
 		}
 		return err
 	case "dropIndex":
-		res, err := executeDropIndex(mt, sess, op.Arguments)
+		err := executeDropIndex(mt, sess, op.Arguments)
 		if op.opError == nil && err == nil {
 			assert.Nil(mt, op.Result, "unexpected result for dropIndex: %v", op.Result)
-			assert.NotNil(mt, res, "expected result from dropIndex operation, got nil")
 		}
 		return err
 	case "listIndexNames", "mapReduce":
@@ -878,7 +900,7 @@ func executeClientOperation(mt *mtest.T, op *operation, sess *mongo.Session) err
 func setupSessions(mt *mtest.T, test *testCase) (*mongo.Session, *mongo.Session) {
 	mt.Helper()
 
-	var sess0Opts, sess1Opts *options.SessionOptions
+	var sess0Opts, sess1Opts *options.SessionOptionsBuilder
 	if opts, err := test.SessionOptions.LookupErr("session0"); err == nil {
 		sess0Opts = createSessionOptions(mt, opts.Document())
 	}

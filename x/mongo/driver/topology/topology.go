@@ -30,17 +30,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/internal/randutil"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/dns"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/randutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/dns"
 )
 
 // Topology state constants.
@@ -62,10 +62,6 @@ var ErrTopologyClosed = errors.New("topology is closed")
 // ErrTopologyConnected is returned whena  user attempts to Connect to an
 // already connected Topology.
 var ErrTopologyConnected = errors.New("topology is connected or connecting")
-
-// ErrServerSelectionTimeout is returned from server selection when the server
-// selection process took longer than allowed by the timeout.
-var ErrServerSelectionTimeout = errors.New("server selection timeout")
 
 // MonitorMode represents the way in which a server is monitored.
 type MonitorMode uint8
@@ -125,18 +121,6 @@ var (
 	_ driver.Deployment = &Topology{}
 	_ driver.Subscriber = &Topology{}
 )
-
-type serverSelectionState struct {
-	selector    description.ServerSelector
-	timeoutChan <-chan time.Time
-}
-
-func newServerSelectionState(selector description.ServerSelector, timeoutChan <-chan time.Time) serverSelectionState {
-	return serverSelectionState{
-		selector:    selector,
-		timeoutChan: timeoutChan,
-	}
-}
 
 // New creates a new topology. A "nil" config is interpreted as the default configuration.
 func New(cfg *Config) (*Topology, error) {
@@ -503,9 +487,8 @@ func (t *Topology) RequestImmediateCheck() {
 	t.serversLock.Unlock()
 }
 
-// SelectServer selects a server with given a selector. SelectServer complies with the
-// server selection spec, and will time out after serverSelectionTimeout or when the
-// parent context is done.
+// SelectServer selects a server with given a selector, returning the remaining
+// computedServerSelectionTimeout.
 func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelector) (driver.Server, error) {
 	if atomic.LoadInt64(&t.state) != topologyConnected {
 		if mustLogServerSelection(t, logger.LevelDebug) {
@@ -514,17 +497,9 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 		return nil, ErrTopologyClosed
 	}
-	var ssTimeoutCh <-chan time.Time
-
-	if t.cfg.ServerSelectionTimeout > 0 {
-		ssTimeout := time.NewTimer(t.cfg.ServerSelectionTimeout)
-		ssTimeoutCh = ssTimeout.C
-		defer ssTimeout.Stop()
-	}
 
 	var doneOnce bool
 	var sub *driver.Subscription
-	selectionState := newServerSelectionState(ss, ssTimeoutCh)
 
 	// Record the start time.
 	startTime := time.Now()
@@ -539,7 +514,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 
 			// for the first pass, select a server from the current description.
 			// this improves selection speed for up-to-date topology descriptions.
-			suitable, selectErr = t.selectServerFromDescription(t.Description(), selectionState)
+			suitable, selectErr = t.selectServerFromDescription(t.Description(), ss)
 			doneOnce = true
 		} else {
 			// if the first pass didn't select a server, the previous description did not contain a suitable server, so
@@ -557,7 +532,7 @@ func (t *Topology) SelectServer(ctx context.Context, ss description.ServerSelect
 				defer func() { _ = t.Unsubscribe(sub) }()
 			}
 
-			suitable, selectErr = t.selectServerFromSubscription(ctx, sub.Updates, selectionState)
+			suitable, selectErr = t.selectServerFromSubscription(ctx, sub.Updates, ss)
 		}
 		if selectErr != nil {
 			if mustLogServerSelection(t, logger.LevelDebug) {
@@ -704,20 +679,22 @@ func (t *Topology) FindServer(selected description.Server) (*SelectedServer, err
 // selectServerFromSubscription loops until a topology description is available for server selection. It returns
 // when the given context expires, server selection timeout is reached, or a description containing a selectable
 // server is available.
-func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptionCh <-chan description.Topology,
-	selectionState serverSelectionState) ([]description.Server, error) {
+func (t *Topology) selectServerFromSubscription(
+	ctx context.Context,
+	subscriptionCh <-chan description.Topology,
+	srvSelector description.ServerSelector,
+) ([]description.Server, error) {
 
 	current := t.Description()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ServerSelectionError{Wrapped: ctx.Err(), Desc: current}
-		case <-selectionState.timeoutChan:
-			return nil, ServerSelectionError{Wrapped: ErrServerSelectionTimeout, Desc: current}
 		case current = <-subscriptionCh:
+		default:
 		}
 
-		suitable, err := t.selectServerFromDescription(current, selectionState)
+		suitable, err := t.selectServerFromDescription(current, srvSelector)
 		if err != nil {
 			return nil, err
 		}
@@ -730,8 +707,10 @@ func (t *Topology) selectServerFromSubscription(ctx context.Context, subscriptio
 }
 
 // selectServerFromDescription process the given topology description and returns a slice of suitable servers.
-func (t *Topology) selectServerFromDescription(desc description.Topology,
-	selectionState serverSelectionState) ([]description.Server, error) {
+func (t *Topology) selectServerFromDescription(
+	desc description.Topology,
+	srvSelector description.ServerSelector,
+) ([]description.Server, error) {
 
 	// Unlike selectServerFromSubscription, this code path does not check ctx.Done or selectionState.timeoutChan because
 	// selecting a server from a description is not a blocking operation.
@@ -759,7 +738,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 		allowed[i] = desc.Servers[idx]
 	}
 
-	suitable, err := selectionState.selector.SelectServer(desc, allowed)
+	suitable, err := srvSelector.SelectServer(desc, allowed)
 	if err != nil {
 		return nil, ServerSelectionError{Wrapped: err, Desc: desc}
 	}
@@ -769,7 +748,7 @@ func (t *Topology) selectServerFromDescription(desc description.Topology,
 func (t *Topology) pollSRVRecords(hosts string) {
 	defer t.pollingwg.Done()
 
-	serverConfig := newServerConfig(t.cfg.ServerOpts...)
+	serverConfig := newServerConfig(t.cfg.ConnectTimeout, t.cfg.ServerOpts...)
 	heartbeatInterval := serverConfig.heartbeatInterval
 
 	pollTicker := time.NewTicker(t.rescanSRVInterval)
@@ -992,7 +971,7 @@ func (t *Topology) addServer(addr address.Address) error {
 		return nil
 	}
 
-	svr, err := ConnectServer(addr, t.updateCallback, t.id, t.cfg.ServerOpts...)
+	svr, err := ConnectServer(addr, t.updateCallback, t.id, t.cfg.ConnectTimeout, t.cfg.ServerOpts...)
 	if err != nil {
 		return err
 	}
@@ -1102,6 +1081,16 @@ func (t *Topology) publishTopologyClosedEvent() {
 	if mustLogTopologyMessage(t, logger.LevelDebug) {
 		logTopologyMessage(t, logger.LevelDebug, logger.TopologyClosed)
 	}
+}
+
+// GetServerSelectionTimeout returns the server selection timeout defined on
+// the client options.
+func (t *Topology) GetServerSelectionTimeout() time.Duration {
+	if t.cfg == nil {
+		return 0
+	}
+
+	return t.cfg.ServerSelectionTimeout
 }
 
 func newEventServerDescription(srv description.Server) event.ServerDescription {

@@ -17,10 +17,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func noerr(t *testing.T, err error) {
@@ -28,28 +27,6 @@ func noerr(t *testing.T, err error) {
 		t.Helper()
 		t.Errorf("Unexpected error: (%T)%v", err, err)
 		t.FailNow()
-	}
-}
-
-func TestCompareTimestamp(t *testing.T) {
-	testcases := []struct {
-		name     string
-		tp       Timestamp
-		tp2      Timestamp
-		expected int
-	}{
-		{"equal", Timestamp{T: 12345, I: 67890}, Timestamp{T: 12345, I: 67890}, 0},
-		{"T greater than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 2345, I: 67890}, 1},
-		{"I greater than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 12345, I: 7890}, 1},
-		{"T less than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 112345, I: 67890}, -1},
-		{"I less than", Timestamp{T: 12345, I: 67890}, Timestamp{T: 12345, I: 167890}, -1},
-	}
-
-	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := CompareTimestamp(tc.tp, tc.tp2)
-			require.Equal(t, tc.expected, result)
-		})
 	}
 }
 
@@ -297,6 +274,30 @@ func TestD(t *testing.T) {
 	})
 }
 
+func TestDStringer(t *testing.T) {
+	got := D{{"a", 1}, {"b", 2}}.String()
+	want := `{"a":{"$numberInt":"1"},"b":{"$numberInt":"2"}}`
+	assert.Equal(t, want, got, "expected: %s, got: %s", want, got)
+}
+
+func TestMStringer(t *testing.T) {
+	type msg struct {
+		A json.RawMessage `json:"a"`
+		B json.RawMessage `json:"b"`
+	}
+
+	var res msg
+	got := M{"a": 1, "b": 2}.String()
+	err := json.Unmarshal([]byte(got), &res)
+	require.NoError(t, err, "Unmarshal error")
+
+	want := msg{
+		A: json.RawMessage(`{"$numberInt":"1"}`),
+		B: json.RawMessage(`{"$numberInt":"2"}`),
+	}
+
+	assert.Equal(t, want, res, "returned string did not unmarshal to the expected document, returned string: %s", got)
+}
 func TestD_MarshalJSON(t *testing.T) {
 	t.Parallel()
 
@@ -521,21 +522,20 @@ func TestMapCodec(t *testing.T) {
 		strstr := stringerString("foo")
 		mapObj := map[stringerString]int{strstr: 1}
 		testCases := []struct {
-			name string
-			opts *bsonoptions.MapCodecOptions
-			key  string
+			name     string
+			mapCodec *mapCodec
+			key      string
 		}{
-			{"default", bsonoptions.MapCodec(), "foo"},
-			{"true", bsonoptions.MapCodec().SetEncodeKeysWithStringer(true), "bar"},
-			{"false", bsonoptions.MapCodec().SetEncodeKeysWithStringer(false), "foo"},
+			{"default", &mapCodec{}, "foo"},
+			{"true", &mapCodec{encodeKeysWithStringer: true}, "bar"},
+			{"false", &mapCodec{encodeKeysWithStringer: false}, "foo"},
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				mapCodec := NewMapCodec(tc.opts)
 				mapRegistry := NewRegistry()
-				mapRegistry.RegisterKindEncoder(reflect.Map, mapCodec)
+				mapRegistry.RegisterKindEncoder(reflect.Map, tc.mapCodec)
 				buf := new(bytes.Buffer)
-				vw := NewValueWriter(buf)
+				vw := NewDocumentWriter(buf)
 				enc := NewEncoder(vw)
 				enc.SetRegistry(mapRegistry)
 				err := enc.Encode(mapObj)

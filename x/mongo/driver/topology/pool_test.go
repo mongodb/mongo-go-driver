@@ -14,14 +14,14 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/eventtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 func TestPool(t *testing.T) {
@@ -67,7 +67,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p1 := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p1.ready()
 			noerr(t, err)
@@ -92,7 +93,9 @@ func TestPool(t *testing.T) {
 		t.Run("calling close multiple times does not panic", func(t *testing.T) {
 			t.Parallel()
 
-			p := newPool(poolConfig{})
+			p := newPool(poolConfig{
+				ConnectTimeout: defaultConnectionTimeout,
+			})
 			err := p.ready()
 			noerr(t, err)
 
@@ -112,7 +115,8 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -148,7 +152,8 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -183,7 +188,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -229,7 +235,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -284,7 +291,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -313,7 +321,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -369,7 +378,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -407,7 +417,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -456,7 +467,9 @@ func TestPool(t *testing.T) {
 			t.Parallel()
 
 			dialErr := errors.New("create new connection error")
-			p := newPool(poolConfig{}, WithDialer(func(Dialer) Dialer {
+			p := newPool(poolConfig{
+				ConnectTimeout: defaultConnectionTimeout,
+			}, WithDialer(func(Dialer) Dialer {
 				return DialerFunc(func(context.Context, string, string) (net.Conn, error) {
 					return nil, dialErr
 				})
@@ -493,8 +506,9 @@ func TestPool(t *testing.T) {
 			d := newdialer(&net.Dialer{})
 			p := newPool(
 				poolConfig{
-					Address:     address.Address(addr.String()),
-					MaxIdleTime: time.Millisecond,
+					Address:        address.Address(addr.String()),
+					MaxIdleTime:    time.Millisecond,
+					ConnectTimeout: defaultConnectionTimeout,
 				},
 				WithDialer(func(Dialer) Dialer { return d }),
 			)
@@ -538,7 +552,8 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -565,7 +580,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -583,7 +599,9 @@ func TestPool(t *testing.T) {
 			t.Parallel()
 
 			p := newPool(
-				poolConfig{},
+				poolConfig{
+					ConnectTimeout: defaultConnectionTimeout,
+				},
 				WithHandshaker(func(Handshaker) Handshaker {
 					return operation.NewHello()
 				}),
@@ -632,8 +650,9 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MaxPoolSize: 1,
+				Address:        address.Address(addr.String()),
+				MaxPoolSize:    1,
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -672,8 +691,9 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MaxPoolSize: 1,
+				Address:        address.Address(addr.String()),
+				MaxPoolSize:    1,
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -727,8 +747,9 @@ func TestPool(t *testing.T) {
 			d := newdialer(&net.Dialer{})
 			p := newPool(
 				poolConfig{
-					Address:     address.Address(addr.String()),
-					MaxPoolSize: 2,
+					Address:        address.Address(addr.String()),
+					MaxPoolSize:    2,
+					ConnectTimeout: defaultConnectionTimeout,
 				},
 				WithDialer(func(Dialer) Dialer { return d }),
 			)
@@ -794,8 +815,9 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MaxPoolSize: 1,
+				Address:        address.Address(addr.String()),
+				MaxPoolSize:    1,
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -834,7 +856,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p.ready()
 			noerr(t, err)
@@ -867,7 +890,8 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -897,7 +921,8 @@ func TestPool(t *testing.T) {
 			})
 
 			p1 := newPool(poolConfig{
-				Address: address.Address(addr.String()),
+				Address:        address.Address(addr.String()),
+				ConnectTimeout: defaultConnectionTimeout,
 			})
 			err := p1.ready()
 			noerr(t, err)
@@ -927,8 +952,9 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MaxIdleTime: 100 * time.Millisecond,
+				Address:        address.Address(addr.String()),
+				MaxIdleTime:    100 * time.Millisecond,
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -960,9 +986,10 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MinPoolSize: 3,
-				MaxIdleTime: 10 * time.Millisecond,
+				Address:        address.Address(addr.String()),
+				MinPoolSize:    3,
+				MaxIdleTime:    10 * time.Millisecond,
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -1000,8 +1027,9 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MinPoolSize: 3,
+				Address:        address.Address(addr.String()),
+				MinPoolSize:    3,
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -1024,9 +1052,10 @@ func TestPool(t *testing.T) {
 
 			d := newdialer(&net.Dialer{})
 			p := newPool(poolConfig{
-				Address:     address.Address(addr.String()),
-				MinPoolSize: 20,
-				MaxPoolSize: 2,
+				Address:        address.Address(addr.String()),
+				MinPoolSize:    20,
+				MaxPoolSize:    2,
+				ConnectTimeout: defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -1052,6 +1081,7 @@ func TestPool(t *testing.T) {
 				Address: address.Address(addr.String()),
 				// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
 				MaintainInterval: 10 * time.Millisecond,
+				ConnectTimeout:   defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)
@@ -1102,6 +1132,7 @@ func TestPool(t *testing.T) {
 				MinPoolSize: 3,
 				// Set the pool's maintain interval to 10ms so that it allows the test to run quickly.
 				MaintainInterval: 10 * time.Millisecond,
+				ConnectTimeout:   defaultConnectionTimeout,
 			}, WithDialer(func(Dialer) Dialer { return d }))
 			err := p.ready()
 			noerr(t, err)

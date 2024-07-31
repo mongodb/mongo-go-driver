@@ -16,7 +16,7 @@ type condAddrEncoder struct {
 	elseEnc    ValueEncoder
 }
 
-var _ ValueEncoder = (*condAddrEncoder)(nil)
+var _ ValueEncoder = &condAddrEncoder{}
 
 // newCondAddrEncoder returns an condAddrEncoder.
 func newCondAddrEncoder(canAddrEnc, elseEnc ValueEncoder) *condAddrEncoder {
@@ -32,7 +32,7 @@ func (cae *condAddrEncoder) EncodeValue(ec EncodeContext, vw ValueWriter, val re
 	if cae.elseEnc != nil {
 		return cae.elseEnc.EncodeValue(ec, vw, val)
 	}
-	return ErrNoEncoder{Type: val.Type()}
+	return errNoEncoder{Type: val.Type()}
 }
 
 // condAddrDecoder is the decoder used when a pointer to the value has a decoder.
@@ -41,7 +41,7 @@ type condAddrDecoder struct {
 	elseDec    ValueDecoder
 }
 
-var _ ValueDecoder = (*condAddrDecoder)(nil)
+var _ ValueDecoder = &condAddrDecoder{}
 
 // newCondAddrDecoder returns an CondAddrDecoder.
 func newCondAddrDecoder(canAddrDec, elseDec ValueDecoder) *condAddrDecoder {
@@ -57,5 +57,5 @@ func (cad *condAddrDecoder) DecodeValue(dc DecodeContext, vr ValueReader, val re
 	if cad.elseDec != nil {
 		return cad.elseDec.DecodeValue(dc, vr, val)
 	}
-	return ErrNoDecoder{Type: val.Type()}
+	return errNoDecoder{Type: val.Type()}
 }

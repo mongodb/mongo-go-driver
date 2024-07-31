@@ -17,17 +17,23 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
 )
 
 // Deployment is implemented by types that can select a server from a deployment.
 type Deployment interface {
 	SelectServer(context.Context, description.ServerSelector) (Server, error)
 	Kind() description.TopologyKind
+
+	// GetServerSelectionTimeout returns a timeout that should be used to set a
+	// deadline for server selection. This logic is not handleded internally by
+	// the ServerSelector, as a resulting deadline may be applicable by follow-up
+	// operations such as checking out a connection.
+	GetServerSelectionTimeout() time.Duration
 }
 
 // Connector represents a type that can connect to a server.
@@ -144,6 +150,12 @@ func (ssd SingleServerDeployment) SelectServer(context.Context, description.Serv
 // Kind implements the Deployment interface. It always returns description.TopologyKindSingle.
 func (SingleServerDeployment) Kind() description.TopologyKind { return description.TopologyKindSingle }
 
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for single server deployments.
+func (SingleServerDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
+}
+
 // SingleConnectionDeployment is an implementation of Deployment that always returns the same Connection. This
 // implementation should only be used for connection handshakes and server heartbeats as it does not implement
 // ErrorProcessor, which is necessary for application operations.
@@ -157,6 +169,12 @@ var _ Server = SingleConnectionDeployment{}
 // Connection method have a no-op Close method.
 func (scd SingleConnectionDeployment) SelectServer(context.Context, description.ServerSelector) (Server, error) {
 	return scd, nil
+}
+
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for single connection deployment.
+func (SingleConnectionDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
 }
 
 // Kind implements the Deployment interface. It always returns description.TopologyKindSingle.

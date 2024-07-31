@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 const (
@@ -29,12 +29,9 @@ type rttConfig struct {
 	// the operation takes longer than the interval.
 	interval time.Duration
 
-	// The timeout applied to running the "hello" operation. If the timeout is reached while running
-	// the operation, the RTT sample is discarded. The default is 1 minute.
-	timeout time.Duration
-
 	minRTTWindow       time.Duration
 	createConnectionFn func() *connection
+	connectTimeout     time.Duration
 	createOperationFn  func(*mnet.Connection) *operation.Hello
 }
 
@@ -115,7 +112,11 @@ func (r *rttMonitor) start() {
 
 	for {
 		conn := r.cfg.createConnectionFn()
-		err := conn.connect(r.ctx)
+
+		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.connectTimeout)
+		defer cancel()
+
+		err := conn.connect(ctx)
 
 		// Add an RTT sample from the new connection handshake and start a runHellos() loop if we
 		// successfully established the new connection. Otherwise, close the connection and try to
@@ -161,11 +162,7 @@ func (r *rttMonitor) runHellos(conn *connection) {
 		// server or a proxy stops responding to requests on the RTT connection but does not close
 		// the TCP socket, effectively creating an operation that will never complete. We expect
 		// that "connectTimeoutMS" provides at least enough time for a single round trip.
-		timeout := r.cfg.timeout
-		if timeout <= 0 {
-			timeout = conn.config.connectTimeout
-		}
-		ctx, cancel := context.WithTimeout(r.ctx, timeout)
+		ctx, cancel := context.WithTimeout(r.ctx, r.cfg.connectTimeout)
 
 		start := time.Now()
 		iconn := mnet.NewConnection(initConnection{conn})

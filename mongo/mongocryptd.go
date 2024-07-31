@@ -8,14 +8,16 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 const (
@@ -38,19 +40,24 @@ type mongocryptdClient struct {
 // newMongocryptdClient creates a client to mongocryptd.
 // newMongocryptdClient is expected to not be called if the crypt shared library is available.
 // The crypt shared library replaces all mongocryptd functionality.
-func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClient, error) {
+func newMongocryptdClient(opts options.Lister[options.AutoEncryptionOptions]) (*mongocryptdClient, error) {
 	// create mcryptClient instance and spawn process if necessary
 	var bypassSpawn bool
 	var bypassAutoEncryption bool
 
-	if bypass, ok := opts.ExtraOptions["mongocryptdBypassSpawn"]; ok {
-		bypassSpawn = bypass.(bool)
-	}
-	if opts.BypassAutoEncryption != nil {
-		bypassAutoEncryption = *opts.BypassAutoEncryption
+	args, err := mongoutil.NewOptions[options.AutoEncryptionOptions](opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
 
-	bypassQueryAnalysis := opts.BypassQueryAnalysis != nil && *opts.BypassQueryAnalysis
+	if bypass, ok := args.ExtraOptions["mongocryptdBypassSpawn"]; ok {
+		bypassSpawn = bypass.(bool)
+	}
+	if args.BypassAutoEncryption != nil {
+		bypassAutoEncryption = *args.BypassAutoEncryption
+	}
+
+	bypassQueryAnalysis := args.BypassQueryAnalysis != nil && *args.BypassQueryAnalysis
 
 	mc := &mongocryptdClient{
 		// mongocryptd should not be spawned if any of these conditions are true:
@@ -61,7 +68,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClie
 	}
 
 	if !mc.bypassSpawn {
-		mc.path, mc.spawnArgs = createSpawnArgs(opts.ExtraOptions)
+		mc.path, mc.spawnArgs = createSpawnArgs(args.ExtraOptions)
 		if err := mc.spawnProcess(); err != nil {
 			return nil, err
 		}
@@ -69,7 +76,7 @@ func newMongocryptdClient(opts *options.AutoEncryptionOptions) (*mongocryptdClie
 
 	// get connection string
 	uri := defaultURI
-	if u, ok := opts.ExtraOptions["mongocryptdURI"]; ok {
+	if u, ok := args.ExtraOptions["mongocryptdURI"]; ok {
 		uri = u.(string)
 	}
 

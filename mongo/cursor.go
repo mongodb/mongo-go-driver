@@ -15,11 +15,11 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Cursor is used to iterate over a stream of documents. Each document can be decoded into a Go type via the Decode
@@ -55,7 +55,7 @@ func newCursorWithSession(
 	clientSession *session.Client,
 ) (*Cursor, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 	if bc == nil {
 		return nil, errors.New("batch cursor must not be nil")
@@ -82,12 +82,12 @@ func newEmptyCursor() *Cursor {
 }
 
 // NewCursorFromDocuments creates a new Cursor pre-loaded with the provided documents, error and registry. If no registry is provided,
-// bson.DefaultRegistry will be used.
+// bson.NewRegistry() will be used.
 //
 // The documents parameter must be a slice of documents. The slice may be nil or empty, but all elements must be non-nil.
 func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registry *bson.Registry) (*Cursor, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 
 	buf := new(bytes.Buffer)
@@ -103,7 +103,7 @@ func NewCursorFromDocuments(documents []interface{}, preloadedErr error, registr
 			doc = bson.Raw(t)
 		}
 
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		enc.Reset(vw)
 		enc.SetRegistry(registry)
 
@@ -238,7 +238,7 @@ func getDecoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) *bson.Decoder {
-	dec := bson.NewDecoder(bson.NewValueReader(data))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(data)))
 
 	if opts != nil {
 		if opts.AllowTruncatingDoubles {
@@ -246,9 +246,6 @@ func getDecoder(
 		}
 		if opts.BinaryAsSlice {
 			dec.BinaryAsSlice()
-		}
-		if opts.DefaultDocumentD {
-			dec.DefaultDocumentD()
 		}
 		if opts.DefaultDocumentM {
 			dec.DefaultDocumentM()
@@ -394,14 +391,14 @@ func (c *Cursor) SetBatchSize(batchSize int32) {
 	c.bc.SetBatchSize(batchSize)
 }
 
-// SetMaxTime will set the maximum amount of time the server will allow the
+// SetMaxAwaitTime will set the maximum amount of time the server will allow the
 // operations to execute. The server will error if this field is set but the
 // cursor is not configured with awaitData=true.
 //
 // The time.Duration value passed by this setter will be converted and rounded
 // down to the nearest millisecond.
-func (c *Cursor) SetMaxTime(dur time.Duration) {
-	c.bc.SetMaxTime(dur)
+func (c *Cursor) SetMaxAwaitTime(dur time.Duration) {
+	c.bc.SetMaxAwaitTime(dur)
 }
 
 // SetComment will set a user-configurable comment that can be used to identify

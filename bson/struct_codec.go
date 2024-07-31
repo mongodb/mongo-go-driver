@@ -14,8 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 )
 
 // DecodeError represents an error that occurs when unmarshalling BSON bytes into a native Go type.
@@ -49,86 +47,53 @@ func (de *DecodeError) Keys() []string {
 	return reversedKeys
 }
 
-// StructCodec is the Codec used for struct values.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// StructCodec registered.
-type StructCodec struct {
-	cache  sync.Map // map[reflect.Type]*structDescription
-	parser StructTagParser
-
-	// DecodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
-	// destination value passed to Decode before unmarshaling BSON documents into them.
-	//
-	// Deprecated: Use bson.Decoder.ZeroStructs instead.
-	DecodeZeroStruct bool
-
-	// DecodeDeepZeroInline causes DecodeValue to delete any existing values from Go structs in the
-	// destination value passed to Decode before unmarshaling BSON documents into them.
-	//
-	// Deprecated: DecodeDeepZeroInline will not be supported in Go Driver 2.0.
-	DecodeDeepZeroInline bool
-
-	// EncodeOmitDefaultStruct causes the Encoder to consider the zero value for a struct (e.g.
-	// MyStruct{}) as empty and omit it from the marshaled BSON when the "omitempty" struct tag
-	// option is set.
-	//
-	// Deprecated: Use bson.Encoder.OmitZeroStruct instead.
-	EncodeOmitDefaultStruct bool
-
-	// AllowUnexportedFields allows encoding and decoding values from un-exported struct fields.
-	//
-	// Deprecated: AllowUnexportedFields does not work on recent versions of Go and will not be
-	// supported in Go Driver 2.0.
-	AllowUnexportedFields bool
-
-	// OverwriteDuplicatedInlinedFields, if false, causes EncodeValue to return an error if there is
-	// a duplicate field in the marshaled BSON when the "inline" struct tag option is set. The
-	// default value is true.
-	//
-	// Deprecated: Use bson.Encoder.ErrorOnInlineDuplicates instead.
-	OverwriteDuplicatedInlinedFields bool
+// mapElementsEncoder handles encoding of the values of an inline  map.
+type mapElementsEncoder interface {
+	encodeMapElements(EncodeContext, DocumentWriter, reflect.Value, func(string) bool) error
 }
 
-var _ ValueEncoder = &StructCodec{}
-var _ ValueDecoder = &StructCodec{}
+// structCodec is the Codec used for struct values.
+type structCodec struct {
+	cache            sync.Map // map[reflect.Type]*structDescription
+	inlineMapEncoder mapElementsEncoder
 
-// NewStructCodec returns a StructCodec that uses p for struct tag parsing.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// StructCodec registered.
-func NewStructCodec(p StructTagParser, opts ...*bsonoptions.StructCodecOptions) (*StructCodec, error) {
-	if p == nil {
-		return nil, errors.New("a StructTagParser must be provided to NewStructCodec")
-	}
+	// decodeZeroStruct causes DecodeValue to delete any existing values from Go structs in the
+	// destination value passed to Decode before unmarshaling BSON documents into them.
+	decodeZeroStruct bool
 
-	structOpt := bsonoptions.MergeStructCodecOptions(opts...)
+	// decodeDeepZeroInline causes DecodeValue to delete any existing values from Go structs in the
+	// destination value passed to Decode before unmarshaling BSON documents into them.
+	decodeDeepZeroInline bool
 
-	codec := &StructCodec{
-		parser: p,
-	}
+	// encodeOmitDefaultStruct causes the Encoder to consider the zero value for a struct (e.g.
+	// MyStruct{}) as empty and omit it from the marshaled BSON when the "omitempty" struct tag
+	// option is set.
+	encodeOmitDefaultStruct bool
 
-	if structOpt.DecodeZeroStruct != nil {
-		codec.DecodeZeroStruct = *structOpt.DecodeZeroStruct
-	}
-	if structOpt.DecodeDeepZeroInline != nil {
-		codec.DecodeDeepZeroInline = *structOpt.DecodeDeepZeroInline
-	}
-	if structOpt.EncodeOmitDefaultStruct != nil {
-		codec.EncodeOmitDefaultStruct = *structOpt.EncodeOmitDefaultStruct
-	}
-	if structOpt.OverwriteDuplicatedInlinedFields != nil {
-		codec.OverwriteDuplicatedInlinedFields = *structOpt.OverwriteDuplicatedInlinedFields
-	}
-	if structOpt.AllowUnexportedFields != nil {
-		codec.AllowUnexportedFields = *structOpt.AllowUnexportedFields
-	}
+	// allowUnexportedFields allows encoding and decoding values from un-exported struct fields.
+	allowUnexportedFields bool
 
-	return codec, nil
+	// overwriteDuplicatedInlinedFields, if false, causes EncodeValue to return an error if there is
+	// a duplicate field in the marshaled BSON when the "inline" struct tag option is set. The
+	// default value is true.
+	overwriteDuplicatedInlinedFields bool
+}
+
+var (
+	_ ValueEncoder = &structCodec{}
+	_ ValueDecoder = &structCodec{}
+)
+
+// newStructCodec returns a StructCodec that uses p for struct tag parsing.
+func newStructCodec(elemEncoder mapElementsEncoder) *structCodec {
+	return &structCodec{
+		inlineMapEncoder:                 elemEncoder,
+		overwriteDuplicatedInlinedFields: true,
+	}
 }
 
 // EncodeValue handles encoding generic struct types.
-func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (sc *structCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if !val.IsValid() || val.Kind() != reflect.Struct {
 		return ValueEncoderError{Name: "StructCodec.EncodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
@@ -153,7 +118,7 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			}
 		}
 
-		desc.encoder, rv, err = defaultValueEncoders.lookupElementEncoder(ec, desc.encoder, rv)
+		desc.encoder, rv, err = lookupElementEncoder(ec, desc.encoder, rv)
 
 		if err != nil && !errors.Is(err, errInvalidValue) {
 			return err
@@ -175,20 +140,18 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 		}
 
 		if desc.encoder == nil {
-			return ErrNoEncoder{Type: rv.Type()}
+			return errNoEncoder{Type: rv.Type()}
 		}
 
 		encoder := desc.encoder
 
 		var empty bool
-		if cz, ok := encoder.(CodecZeroer); ok {
-			empty = cz.IsTypeZero(rv.Interface())
-		} else if rv.Kind() == reflect.Interface {
+		if rv.Kind() == reflect.Interface {
 			// isEmpty will not treat an interface rv as an interface, so we need to check for the
 			// nil interface separately.
 			empty = rv.IsNil()
 		} else {
-			empty = isEmpty(rv, sc.EncodeOmitDefaultStruct || ec.omitZeroStruct)
+			empty = isEmpty(rv, sc.encodeOmitDefaultStruct || ec.omitZeroStruct)
 		}
 		if desc.omitEmpty && empty {
 			continue
@@ -201,7 +164,7 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 
 		ectx := EncodeContext{
 			Registry:                ec.Registry,
-			MinSize:                 desc.minSize || ec.MinSize,
+			minSize:                 desc.minSize || ec.minSize,
 			errorOnInlineDuplicates: ec.errorOnInlineDuplicates,
 			stringifyMapKeysWithFmt: ec.stringifyMapKeysWithFmt,
 			nilMapAsEmpty:           ec.nilMapAsEmpty,
@@ -223,7 +186,10 @@ func (sc *StructCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect
 			return exists
 		}
 
-		return defaultMapCodec.mapEncodeValue(ec, dw, rv, collisionFn)
+		err = sc.inlineMapEncoder.encodeMapElements(ec, dw, rv, collisionFn)
+		if err != nil {
+			return err
+		}
 	}
 
 	return dw.WriteDocumentEnd()
@@ -245,7 +211,7 @@ func newDecodeError(key string, original error) error {
 // DecodeValue implements the Codec interface.
 // By default, map types in val will not be cleared. If a map has existing key/value pairs, it will be extended with the new ones from vr.
 // For slices, the decoder will set the length of the slice to zero and append all elements. The underlying array will not be cleared.
-func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (sc *structCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Struct {
 		return ValueDecoderError{Name: "StructCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Struct}, Received: val}
 	}
@@ -275,10 +241,10 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		return err
 	}
 
-	if sc.DecodeZeroStruct || dc.zeroStructs {
+	if sc.decodeZeroStruct || dc.zeroStructs {
 		val.Set(reflect.Zero(val.Type()))
 	}
-	if sc.DecodeDeepZeroInline && sd.inline {
+	if sc.decodeDeepZeroInline && sd.inline {
 		val.Set(deepZero(val.Type()))
 	}
 
@@ -330,7 +296,6 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 			}
 
 			elem := reflect.New(inlineMap.Type().Elem()).Elem()
-			dc.Ancestor = inlineMap.Type()
 			err = decoder.DecodeValue(dc, vr, elem)
 			if err != nil {
 				return err
@@ -373,9 +338,10 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 
 		dctx := DecodeContext{
 			Registry:            dc.Registry,
-			Truncate:            fd.truncate || dc.Truncate,
+			truncate:            fd.truncate || dc.truncate,
 			defaultDocumentType: dc.defaultDocumentType,
 			binaryAsSlice:       dc.binaryAsSlice,
+			objectIDAsHexString: dc.objectIDAsHexString,
 			useJSONStructTags:   dc.useJSONStructTags,
 			useLocalTimeZone:    dc.useLocalTimeZone,
 			zeroMaps:            dc.zeroMaps,
@@ -383,7 +349,7 @@ func (sc *StructCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect
 		}
 
 		if fd.decoder == nil {
-			return newDecodeError(fd.name, ErrNoDecoder{Type: field.Elem().Type()})
+			return newDecodeError(fd.name, errNoDecoder{Type: field.Elem().Type()})
 		}
 
 		err = fd.decoder.DecodeValue(dctx, vr, field.Elem())
@@ -474,7 +440,7 @@ func (bi byIndex) Less(i, j int) bool {
 	return len(bi[i].inline) < len(bi[j].inline)
 }
 
-func (sc *StructCodec) describeStruct(
+func (sc *structCodec) describeStruct(
 	r *Registry,
 	t reflect.Type,
 	useJSONStructTags bool,
@@ -497,7 +463,7 @@ func (sc *StructCodec) describeStruct(
 	return ds, nil
 }
 
-func (sc *StructCodec) describeStructSlow(
+func (sc *structCodec) describeStructSlow(
 	r *Registry,
 	t reflect.Type,
 	useJSONStructTags bool,
@@ -513,7 +479,7 @@ func (sc *StructCodec) describeStructSlow(
 	var fields []fieldDescription
 	for i := 0; i < numFields; i++ {
 		sf := t.Field(i)
-		if sf.PkgPath != "" && (!sc.AllowUnexportedFields || !sf.Anonymous) {
+		if sf.PkgPath != "" && (!sc.allowUnexportedFields || !sf.Anonymous) {
 			// field is private or unexported fields aren't allowed, ignore
 			continue
 		}
@@ -535,13 +501,13 @@ func (sc *StructCodec) describeStructSlow(
 			decoder:   decoder,
 		}
 
-		var stags StructTags
+		var stags *structTags
 		// If the caller requested that we use JSON struct tags, use the JSONFallbackStructTagParser
 		// instead of the parser defined on the codec.
 		if useJSONStructTags {
-			stags, err = JSONFallbackStructTagParser.ParseStructTags(sf)
+			stags, err = parseJSONStructTags(sf)
 		} else {
-			stags, err = sc.parser.ParseStructTags(sf)
+			stags, err = parseStructTags(sf)
 		}
 		if err != nil {
 			return nil, err
@@ -624,7 +590,7 @@ func (sc *StructCodec) describeStructSlow(
 			continue
 		}
 		dominant, ok := dominantField(fields[i : i+advance])
-		if !ok || !sc.OverwriteDuplicatedInlinedFields || errorOnDuplicates {
+		if !ok || !sc.overwriteDuplicatedInlinedFields || errorOnDuplicates {
 			return nil, fmt.Errorf("struct %s has duplicated key %s", t.String(), name)
 		}
 		sd.fl = append(sd.fl, dominant)

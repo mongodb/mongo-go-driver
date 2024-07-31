@@ -17,10 +17,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 var (
@@ -773,7 +773,7 @@ func (em *EntityMap) addSessionEntity(entityOptions *entityOptions) error {
 
 	sessionOpts := options.Session()
 	if entityOptions.SessionOptions != nil {
-		sessionOpts = entityOptions.SessionOptions.SessionOptions
+		sessionOpts = entityOptions.SessionOptions.SessionOptionsBuilder
 	}
 
 	sess, err := client.StartSession(sessionOpts)
@@ -793,7 +793,7 @@ func (em *EntityMap) addGridFSBucketEntity(entityOptions *entityOptions) error {
 
 	bucketOpts := options.GridFSBucket()
 	if entityOptions.GridFSBucketOptions != nil {
-		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptions
+		bucketOpts = entityOptions.GridFSBucketOptions.BucketOptionsBuilder
 	}
 
 	em.gridfsBuckets[entityOptions.ID] = db.GridFSBucket(bucketOpts)

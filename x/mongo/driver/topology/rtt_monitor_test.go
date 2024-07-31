@@ -17,14 +17,14 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/drivertest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/drivertest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 func makeHelloReply() []byte {
@@ -91,7 +91,8 @@ func TestRTTMonitor(t *testing.T) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
+			interval:       10 * time.Millisecond,
+			connectTimeout: defaultConnectionTimeout,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
@@ -150,7 +151,8 @@ func TestRTTMonitor(t *testing.T) {
 			return newMockSlowConn(makeHelloReply(), 10*time.Millisecond), nil
 		})
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
+			connectTimeout: defaultConnectionTimeout,
+			interval:       10 * time.Millisecond,
 			createConnectionFn: func() *connection {
 				return newConnection("", WithDialer(func(Dialer) Dialer { return dialer }))
 			},
@@ -248,8 +250,8 @@ func TestRTTMonitor(t *testing.T) {
 		}()
 
 		rtt := newRTTMonitor(&rttConfig{
-			interval: 10 * time.Millisecond,
-			timeout:  100 * time.Millisecond,
+			interval:       10 * time.Millisecond,
+			connectTimeout: 100 * time.Millisecond,
 			createConnectionFn: func() *connection {
 				return newConnection(address.Address(l.Addr().String()))
 			},

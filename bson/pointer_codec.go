@@ -10,29 +10,20 @@ import (
 	"reflect"
 )
 
-var _ ValueEncoder = &PointerCodec{}
-var _ ValueDecoder = &PointerCodec{}
+var (
+	_ ValueEncoder = &pointerCodec{}
+	_ ValueDecoder = &pointerCodec{}
+)
 
-// PointerCodec is the Codec used for pointers.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// PointerCodec registered.
-type PointerCodec struct {
+// pointerCodec is the Codec used for pointers.
+type pointerCodec struct {
 	ecache typeEncoderCache
 	dcache typeDecoderCache
 }
 
-// NewPointerCodec returns a PointerCodec that has been initialized.
-//
-// Deprecated: Use [go.mongodb.org/mongo-driver/bson.NewRegistry] to get a registry with the
-// PointerCodec registered.
-func NewPointerCodec() *PointerCodec {
-	return &PointerCodec{}
-}
-
 // EncodeValue handles encoding a pointer by either encoding it to BSON Null if the pointer is nil
 // or looking up an encoder for the type of value the pointer points to.
-func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
+func (pc *pointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflect.Value) error {
 	if val.Kind() != reflect.Ptr {
 		if !val.IsValid() {
 			return vw.WriteNull()
@@ -47,7 +38,7 @@ func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflec
 	typ := val.Type()
 	if v, ok := pc.ecache.Load(typ); ok {
 		if v == nil {
-			return ErrNoEncoder{Type: typ}
+			return errNoEncoder{Type: typ}
 		}
 		return v.EncodeValue(ec, vw, val.Elem())
 	}
@@ -62,7 +53,7 @@ func (pc *PointerCodec) EncodeValue(ec EncodeContext, vw ValueWriter, val reflec
 
 // DecodeValue handles decoding a pointer by looking up a decoder for the type it points to and
 // using that to decode. If the BSON value is Null, this method will set the pointer to nil.
-func (pc *PointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
+func (pc *pointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflect.Value) error {
 	if !val.CanSet() || val.Kind() != reflect.Ptr {
 		return ValueDecoderError{Name: "PointerCodec.DecodeValue", Kinds: []reflect.Kind{reflect.Ptr}, Received: val}
 	}
@@ -83,7 +74,7 @@ func (pc *PointerCodec) DecodeValue(dc DecodeContext, vr ValueReader, val reflec
 
 	if v, ok := pc.dcache.Load(typ); ok {
 		if v == nil {
-			return ErrNoDecoder{Type: typ}
+			return errNoDecoder{Type: typ}
 		}
 		return v.DecodeValue(dc, vr, val.Elem())
 	}

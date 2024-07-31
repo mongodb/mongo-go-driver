@@ -14,11 +14,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 // Connection pool state constants.
@@ -78,6 +78,7 @@ type poolConfig struct {
 	PoolMonitor      *event.PoolMonitor
 	Logger           *logger.Logger
 	handshakeErrFn   func(error, uint64, *bson.ObjectID)
+	ConnectTimeout   time.Duration
 }
 
 type pool struct {
@@ -122,9 +123,10 @@ type pool struct {
 	conns                 map[int64]*connection // conns holds all currently open connections.
 	newConnWait           wantConnQueue         // newConnWait holds all wantConn requests for new connections.
 
-	idleMu       sync.Mutex    // idleMu guards idleConns, idleConnWait
-	idleConns    []*connection // idleConns holds all idle connections.
-	idleConnWait wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
+	idleMu         sync.Mutex    // idleMu guards idleConns, idleConnWait
+	idleConns      []*connection // idleConns holds all idle connections.
+	idleConnWait   wantConnQueue // idleConnWait holds all wantConn requests for idle connections.
+	connectTimeout time.Duration
 }
 
 // getState returns the current state of the pool. Callers must not hold the stateMu lock.
@@ -221,6 +223,7 @@ func newPool(config poolConfig, connOpts ...ConnectionOption) *pool {
 		createConnectionsCond: sync.NewCond(&sync.Mutex{}),
 		conns:                 make(map[int64]*connection, config.MaxPoolSize),
 		idleConns:             make([]*connection, 0, config.MaxPoolSize),
+		connectTimeout:        config.ConnectTimeout,
 	}
 	// minSize must not exceed maxSize if maxSize is not 0
 	if pool.maxSize != 0 && pool.minSize > pool.maxSize {
@@ -1108,9 +1111,26 @@ func (p *pool) createConnections(ctx context.Context, wg *sync.WaitGroup) {
 		}
 
 		start := time.Now()
-		// Pass the createConnections context to connect to allow pool close to cancel connection
-		// establishment so shutdown doesn't block indefinitely if connectTimeout=0.
-		err := conn.connect(ctx)
+		// Pass the createConnections context to connect to allow pool close to
+		// cancel connection establishment so shutdown doesn't block indefinitely if
+		// connectTimeout=0.
+		//
+		// Per the specifications, an explicit value of connectTimeout=0 means the
+		// timeout is "infinite".
+
+		var cancel context.CancelFunc
+
+		connctx := context.Background()
+		if p.connectTimeout != 0 {
+			connctx, cancel = context.WithTimeout(ctx, p.connectTimeout)
+		}
+
+		err := conn.connect(connctx)
+
+		if cancel != nil {
+			cancel()
+		}
+
 		if err != nil {
 			w.tryDeliver(nil, err)
 

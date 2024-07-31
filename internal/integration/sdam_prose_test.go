@@ -14,16 +14,17 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 func TestSDAMProse(t *testing.T) {
@@ -68,7 +69,10 @@ func TestSDAMProse(t *testing.T) {
 		messages := mt.GetProxiedMessages()
 		duration := time.Since(start)
 
-		numNodes := len(options.Client().ApplyURI(mtest.ClusterURI()).Hosts)
+		hosts, err := mongoutil.HostsFromURI(mtest.ClusterURI())
+		require.NoError(mt, err)
+
+		numNodes := len(hosts)
 		maxExpected := numNodes * (2 + 2*int(duration/heartbeatInterval))
 		minExpected := numNodes * (2 + 2*int(duration/(heartbeatInterval*2)))
 
@@ -124,28 +128,23 @@ func TestSDAMProse(t *testing.T) {
 					AppName:         "streamingRttTest",
 				},
 			})
-			callback := func(ctx context.Context) {
-				for {
-					// Stop loop if callback has been canceled.
-					select {
-					case <-ctx.Done():
-						return
-					default:
+			callback := func() bool {
+				// We don't know which server received the failpoint command, so we wait until any of the server
+				// RTTs cross the threshold.
+				for _, serverDesc := range testTopology.Description().Servers {
+					if serverDesc.AverageRTT > 250*time.Millisecond {
+						return true
 					}
-
-					// We don't know which server received the failpoint command, so we wait until any of the server
-					// RTTs cross the threshold.
-					for _, serverDesc := range testTopology.Description().Servers {
-						if serverDesc.AverageRTT > 250*time.Millisecond {
-							return
-						}
-					}
-
-					// The next update will be in ~500ms.
-					time.Sleep(500 * time.Millisecond)
 				}
+
+				// The next update will be in ~500ms.
+				return false
 			}
-			assert.Soon(t, callback, defaultCallbackTimeout)
+			assert.Eventually(t,
+				callback,
+				defaultCallbackTimeout,
+				500*time.Millisecond,
+				"expected average rtt heartbeats at least within every 500 ms period")
 		})
 	})
 
@@ -210,6 +209,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		server := topology.NewServer(
 			address,
 			bson.NewObjectID(),
+			1*time.Second,
 			topology.WithServerMonitor(func(*event.ServerMonitor) *event.ServerMonitor {
 				return &event.ServerMonitor{
 					ServerHeartbeatStarted: func(e *event.ServerHeartbeatStartedEvent) {

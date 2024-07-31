@@ -10,8 +10,8 @@ import (
 	"io"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // helper type for testing MarshalValue that implements io.Reader
@@ -37,13 +37,13 @@ type marshalValueMarshaler struct {
 
 var _ ValueMarshaler = marshalValueMarshaler{}
 
-func (mvi marshalValueMarshaler) MarshalBSONValue() (Type, []byte, error) {
-	return TypeInt32, bsoncore.AppendInt32(nil, int32(mvi.Foo)), nil
+func (mvi marshalValueMarshaler) MarshalBSONValue() (byte, []byte, error) {
+	return byte(TypeInt32), bsoncore.AppendInt32(nil, int32(mvi.Foo)), nil
 }
 
 var _ ValueUnmarshaler = &marshalValueMarshaler{}
 
-func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ Type, b []byte) error {
+func (mvi *marshalValueMarshaler) UnmarshalBSONValue(_ byte, b []byte) error {
 	v, _, _ := bsoncore.ReadInt32(b)
 	mvi.Foo = int(v)
 	return nil

@@ -9,10 +9,10 @@ package options
 import (
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// ChangeStreamOptions represents options that can be used to configure a Watch operation.
+// ChangeStreamOptions represents arguments that can be used to configure a Watch operation.
 type ChangeStreamOptions struct {
 	// The maximum number of documents to be included in each batch returned by the server.
 	BatchSize *int32
@@ -71,69 +71,110 @@ type ChangeStreamOptions struct {
 	CustomPipeline bson.M
 }
 
+// ChangeStreamOptionsBuilder contains options to configure change stream
+// operations. Each option can be set through setter functions. See
+// documentation for each setter function for an explanation of the option.
+type ChangeStreamOptionsBuilder struct {
+	Opts []func(*ChangeStreamOptions) error
+}
+
 // ChangeStream creates a new ChangeStreamOptions instance.
-func ChangeStream() *ChangeStreamOptions {
-	cso := &ChangeStreamOptions{}
-	return cso
+func ChangeStream() *ChangeStreamOptionsBuilder {
+	return &ChangeStreamOptionsBuilder{}
+}
+
+// List returns a list of ChangeStreamOptions setter functions.
+func (cso *ChangeStreamOptionsBuilder) List() []func(*ChangeStreamOptions) error {
+	return cso.Opts
 }
 
 // SetBatchSize sets the value for the BatchSize field.
-func (cso *ChangeStreamOptions) SetBatchSize(i int32) *ChangeStreamOptions {
-	cso.BatchSize = &i
+func (cso *ChangeStreamOptionsBuilder) SetBatchSize(i int32) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.BatchSize = &i
+		return nil
+	})
 	return cso
 }
 
 // SetCollation sets the value for the Collation field.
-func (cso *ChangeStreamOptions) SetCollation(c Collation) *ChangeStreamOptions {
-	cso.Collation = &c
+func (cso *ChangeStreamOptionsBuilder) SetCollation(c Collation) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.Collation = &c
+		return nil
+	})
 	return cso
 }
 
 // SetComment sets the value for the Comment field.
-func (cso *ChangeStreamOptions) SetComment(comment interface{}) *ChangeStreamOptions {
-	cso.Comment = comment
+func (cso *ChangeStreamOptionsBuilder) SetComment(comment interface{}) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.Comment = comment
+		return nil
+	})
 	return cso
 }
 
 // SetFullDocument sets the value for the FullDocument field.
-func (cso *ChangeStreamOptions) SetFullDocument(fd FullDocument) *ChangeStreamOptions {
-	cso.FullDocument = &fd
+func (cso *ChangeStreamOptionsBuilder) SetFullDocument(fd FullDocument) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.FullDocument = &fd
+		return nil
+	})
 	return cso
 }
 
 // SetFullDocumentBeforeChange sets the value for the FullDocumentBeforeChange field.
-func (cso *ChangeStreamOptions) SetFullDocumentBeforeChange(fdbc FullDocument) *ChangeStreamOptions {
-	cso.FullDocumentBeforeChange = &fdbc
+func (cso *ChangeStreamOptionsBuilder) SetFullDocumentBeforeChange(fdbc FullDocument) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.FullDocumentBeforeChange = &fdbc
+		return nil
+	})
 	return cso
 }
 
 // SetMaxAwaitTime sets the value for the MaxAwaitTime field.
-func (cso *ChangeStreamOptions) SetMaxAwaitTime(d time.Duration) *ChangeStreamOptions {
-	cso.MaxAwaitTime = &d
+func (cso *ChangeStreamOptionsBuilder) SetMaxAwaitTime(d time.Duration) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.MaxAwaitTime = &d
+		return nil
+	})
 	return cso
 }
 
 // SetResumeAfter sets the value for the ResumeAfter field.
-func (cso *ChangeStreamOptions) SetResumeAfter(rt interface{}) *ChangeStreamOptions {
-	cso.ResumeAfter = rt
+func (cso *ChangeStreamOptionsBuilder) SetResumeAfter(rt interface{}) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.ResumeAfter = rt
+		return nil
+	})
 	return cso
 }
 
 // SetShowExpandedEvents sets the value for the ShowExpandedEvents field.
-func (cso *ChangeStreamOptions) SetShowExpandedEvents(see bool) *ChangeStreamOptions {
-	cso.ShowExpandedEvents = &see
+func (cso *ChangeStreamOptionsBuilder) SetShowExpandedEvents(see bool) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.ShowExpandedEvents = &see
+		return nil
+	})
 	return cso
 }
 
 // SetStartAtOperationTime sets the value for the StartAtOperationTime field.
-func (cso *ChangeStreamOptions) SetStartAtOperationTime(t *bson.Timestamp) *ChangeStreamOptions {
-	cso.StartAtOperationTime = t
+func (cso *ChangeStreamOptionsBuilder) SetStartAtOperationTime(t *bson.Timestamp) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.StartAtOperationTime = t
+		return nil
+	})
 	return cso
 }
 
 // SetStartAfter sets the value for the StartAfter field.
-func (cso *ChangeStreamOptions) SetStartAfter(sa interface{}) *ChangeStreamOptions {
-	cso.StartAfter = sa
+func (cso *ChangeStreamOptionsBuilder) SetStartAfter(sa interface{}) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.StartAfter = sa
+		return nil
+	})
 	return cso
 }
 
@@ -141,15 +182,21 @@ func (cso *ChangeStreamOptions) SetStartAfter(sa interface{}) *ChangeStreamOptio
 // with desired option names and values. Values must be Marshalable. Custom options may conflict
 // with non-custom options, and custom options bypass client-side validation. Prefer using non-custom
 // options where possible.
-func (cso *ChangeStreamOptions) SetCustom(c bson.M) *ChangeStreamOptions {
-	cso.Custom = c
+func (cso *ChangeStreamOptionsBuilder) SetCustom(c bson.M) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.Custom = c
+		return nil
+	})
 	return cso
 }
 
 // SetCustomPipeline sets the value for the CustomPipeline field. Key-value pairs of the BSON map
 // should correlate with desired option names and values. Values must be Marshalable. Custom pipeline
 // options bypass client-side validation. Prefer using non-custom options where possible.
-func (cso *ChangeStreamOptions) SetCustomPipeline(cp bson.M) *ChangeStreamOptions {
-	cso.CustomPipeline = cp
+func (cso *ChangeStreamOptionsBuilder) SetCustomPipeline(cp bson.M) *ChangeStreamOptionsBuilder {
+	cso.Opts = append(cso.Opts, func(opts *ChangeStreamOptions) error {
+		opts.CustomPipeline = cp
+		return nil
+	})
 	return cso
 }

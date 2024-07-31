@@ -8,6 +8,7 @@ package bson
 
 import (
 	"bytes"
+	"fmt"
 )
 
 // Unmarshaler is the interface implemented by types that can unmarshal a BSON
@@ -31,129 +32,39 @@ type Unmarshaler interface {
 // document. To create custom BSON unmarshaling behavior for an entire BSON
 // document, implement the Unmarshaler interface instead.
 type ValueUnmarshaler interface {
-	UnmarshalBSONValue(Type, []byte) error
+	UnmarshalBSONValue(typ byte, data []byte) error
 }
 
 // Unmarshal parses the BSON-encoded data and stores the result in the value
-// pointed to by val. If val is nil or not a pointer, Unmarshal returns
-// InvalidUnmarshalError.
+// pointed to by val. If val is nil or not a pointer, Unmarshal returns an error.
 func Unmarshal(data []byte, val interface{}) error {
-	return UnmarshalWithRegistry(DefaultRegistry, data, val)
+	vr := newDocumentReader(bytes.NewReader(data))
+	if l, err := vr.peekLength(); err != nil {
+		return err
+	} else if int(l) != len(data) {
+		return fmt.Errorf("invalid document length")
+	}
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
-// UnmarshalWithRegistry parses the BSON-encoded data using Registry r and
-// stores the result in the value pointed to by val. If val is nil or not
-// a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
-//
-// Deprecated: Use [NewDecoder] and specify the Registry by calling [Decoder.SetRegistry] instead:
-//
-//	dec, err := bson.NewDecoder(NewBSONDocumentReader(data))
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec.SetRegistry(reg)
-//
-// See [Decoder] for more examples.
-func UnmarshalWithRegistry(r *Registry, data []byte, val interface{}) error {
-	vr := NewValueReader(data)
-	return unmarshalFromReader(DecodeContext{Registry: r}, vr, val)
-}
-
-// UnmarshalWithContext parses the BSON-encoded data using DecodeContext dc and
-// stores the result in the value pointed to by val. If val is nil or not
-// a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
-//
-// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
-// behavior instead:
-//
-//	dec, err := bson.NewDecoder(NewBSONDocumentReader(data))
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec.DefaultDocumentM()
-//
-// See [Decoder] for more examples.
-func UnmarshalWithContext(dc DecodeContext, data []byte, val interface{}) error {
-	vr := NewValueReader(data)
-	return unmarshalFromReader(dc, vr, val)
-}
-
-// UnmarshalValue parses the BSON value of type t with bson.DefaultRegistry and
+// UnmarshalValue parses the BSON value of type t with bson.NewRegistry() and
 // stores the result in the value pointed to by val. If val is nil or not a pointer,
 // UnmarshalValue returns an error.
 func UnmarshalValue(t Type, data []byte, val interface{}) error {
-	return UnmarshalValueWithRegistry(DefaultRegistry, t, data, val)
-}
-
-// UnmarshalValueWithRegistry parses the BSON value of type t with registry r and
-// stores the result in the value pointed to by val. If val is nil or not a pointer,
-// UnmarshalValue returns an error.
-//
-// Deprecated: Using a custom registry to unmarshal individual BSON values will not be supported in
-// Go Driver 2.0.
-func UnmarshalValueWithRegistry(r *Registry, t Type, data []byte, val interface{}) error {
-	vr := NewBSONValueReader(t, data)
-	return unmarshalFromReader(DecodeContext{Registry: r}, vr, val)
+	vr := newValueReader(t, bytes.NewReader(data))
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, vr, val)
 }
 
 // UnmarshalExtJSON parses the extended JSON-encoded data and stores the result
-// in the value pointed to by val. If val is nil or not a pointer, Unmarshal
-// returns InvalidUnmarshalError.
+// in the value pointed to by val. If val is nil or not a pointer, UnmarshalExtJSON
+// returns an error.
 func UnmarshalExtJSON(data []byte, canonical bool, val interface{}) error {
-	return UnmarshalExtJSONWithRegistry(DefaultRegistry, data, canonical, val)
-}
-
-// UnmarshalExtJSONWithRegistry parses the extended JSON-encoded data using
-// Registry r and stores the result in the value pointed to by val. If val is
-// nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
-//
-// Deprecated: Use [NewDecoder] and specify the Registry by calling [Decoder.SetRegistry] instead:
-//
-//	vr, err := NewExtJSONValueReader(bytes.NewReader(data), true)
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec, err := bson.NewDecoder(vr)
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec.SetRegistry(reg)
-//
-// See [Decoder] for more examples.
-func UnmarshalExtJSONWithRegistry(r *Registry, data []byte, canonical bool, val interface{}) error {
 	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonical)
 	if err != nil {
 		return err
 	}
 
-	return unmarshalFromReader(DecodeContext{Registry: r}, ejvr, val)
-}
-
-// UnmarshalExtJSONWithContext parses the extended JSON-encoded data using
-// DecodeContext dc and stores the result in the value pointed to by val. If val is
-// nil or not a pointer, UnmarshalWithRegistry returns InvalidUnmarshalError.
-//
-// Deprecated: Use [NewDecoder] and use the Decoder configuration methods to set the desired unmarshal
-// behavior instead:
-//
-//	vr, err := NewExtJSONValueReader(bytes.NewReader(data), true)
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec, err := bson.NewDecoder(vr)
-//	if err != nil {
-//		panic(err)
-//	}
-//	dec.DefaultDocumentM()
-//
-// See [Decoder] for more examples.
-func UnmarshalExtJSONWithContext(dc DecodeContext, data []byte, canonical bool, val interface{}) error {
-	ejvr, err := NewExtJSONValueReader(bytes.NewReader(data), canonical)
-	if err != nil {
-		return err
-	}
-
-	return unmarshalFromReader(dc, ejvr, val)
+	return unmarshalFromReader(DecodeContext{Registry: defaultRegistry}, ejvr, val)
 }
 
 func unmarshalFromReader(dc DecodeContext, vr ValueReader, val interface{}) error {

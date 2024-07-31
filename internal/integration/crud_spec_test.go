@@ -7,20 +7,20 @@
 package integration
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 const (
@@ -91,12 +91,16 @@ func verifyServerlessConstraint(mt *mtest.T, expected string) error {
 }
 
 func runCrudFile(t *testing.T, file string) {
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	assert.Nil(t, err, "ReadFile error for %v: %v", file, err)
 
 	var testFile crudTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(crudRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(crudRegistry)
+	err = dec.Decode(&testFile)
+	assert.Nil(t, err, "decode error: %v", err)
 
 	mt := mtest.New(t, mtest.NewOptions().MinServerVersion(testFile.MinServerVersion).MaxServerVersion(testFile.MaxServerVersion))
 

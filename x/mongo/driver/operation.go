@@ -11,13 +11,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/csot"
@@ -47,8 +47,16 @@ var (
 	ErrReplyDocumentMismatch = errors.New("number of documents returned does not match numberReturned field")
 	// ErrNonPrimaryReadPref is returned when a read is attempted in a transaction with a non-primary read preference.
 	ErrNonPrimaryReadPref = errors.New("read preference in a transaction must be primary")
+	// ErrEmptyReadConcern indicates that a read concern has no fields set.
+	ErrEmptyReadConcern = errors.New("a read concern must have at least one field set")
+	// ErrEmptyWriteConcern indicates that a write concern has no fields set.
+	ErrEmptyWriteConcern = errors.New("a write concern must have at least one field set")
 	// errDatabaseNameEmpty occurs when a database name is not provided.
 	errDatabaseNameEmpty = errors.New("database name cannot be empty")
+	// errNegativeW indicates that a negative integer `w` field was specified.
+	errNegativeW = errors.New("write concern `w` field cannot be a negative number")
+	// errInconsistent indicates that an inconsistent write concern was specified.
+	errInconsistent = errors.New("a write concern cannot have both w=0 and j=true")
 )
 
 const (
@@ -281,9 +289,6 @@ type Operation struct {
 	// read preference will not be added to the command on wire versions < 13.
 	IsOutputAggregate bool
 
-	// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
-	MaxTime *time.Duration
-
 	// Timeout is the amount of time that this operation can execute before returning an error. The default value
 	// nil, which means that the timeout of the operation's caller will be used.
 	Timeout *time.Duration
@@ -293,6 +298,10 @@ type Operation struct {
 	// Name is the name of the operation. This is used when serializing
 	// OP_MSG as well as for logging server selection data.
 	Name string
+
+	// OmitMaxTimeMS will ensure that wire messages sent to the server in service
+	// of the operation do not contain a maxTimeMS field.
+	OmitMaxTimeMS bool
 
 	// omitReadPreference is a boolean that indicates whether to omit the
 	// read preference from the command. This omition includes the case
@@ -409,6 +418,9 @@ func (op Operation) getServerAndConnection(
 	requestID int32,
 	deprioritized []description.Server,
 ) (Server, *mnet.Connection, error) {
+	ctx, cancel := csot.WithServerSelectionTimeout(ctx, op.Deployment.GetServerSelectionTimeout())
+	defer cancel()
+
 	server, err := op.selectServer(ctx, requestID, deprioritized)
 	if err != nil {
 		if op.Client != nil &&
@@ -486,15 +498,8 @@ func (op Operation) Execute(ctx context.Context) error {
 		return err
 	}
 
-	// If no deadline is set on the passed-in context, op.Timeout is set, and context is not already
-	// a Timeout context, honor op.Timeout in new Timeout context for operation execution.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && op.Timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *op.Timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, op.Timeout)
+	defer cancel()
 
 	if op.Client != nil {
 		if err := op.Client.StartCommand(); err != nil {
@@ -1182,6 +1187,7 @@ func (op Operation) addBatchArray(dst []byte) []byte {
 }
 
 func (op Operation) createLegacyHandshakeWireMessage(
+	ctx context.Context,
 	maxTimeMS uint64,
 	dst []byte,
 	desc description.SelectedServer,
@@ -1226,7 +1232,7 @@ func (op Operation) createLegacyHandshakeWireMessage(
 		return dst, info, err
 	}
 
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1298,7 +1304,7 @@ func (op Operation) createMsgWireMessage(
 	if err != nil {
 		return dst, info, err
 	}
-	dst, err = op.addWriteConcern(dst, desc)
+	dst, err = op.addWriteConcern(ctx, dst, desc)
 	if err != nil {
 		return dst, info, err
 	}
@@ -1365,7 +1371,7 @@ func (op Operation) createWireMessage(
 	requestID int32,
 ) ([]byte, startedInformation, error) {
 	if isLegacyHandshake(op, desc) {
-		return op.createLegacyHandshakeWireMessage(maxTimeMS, dst, desc)
+		return op.createLegacyHandshakeWireMessage(ctx, maxTimeMS, dst, desc)
 	}
 
 	return op.createMsgWireMessage(ctx, maxTimeMS, dst, desc, conn, requestID)
@@ -1422,6 +1428,20 @@ func (op Operation) addServerAPI(dst []byte) []byte {
 	return dst
 }
 
+// MarshalBSONReadConcern marshals a ReadConcern.
+func MarshalBSONReadConcern(rc *readconcern.ReadConcern) (bson.Type, []byte, error) {
+	if rc == nil {
+		return 0, nil, ErrEmptyReadConcern
+	}
+
+	var elems []byte
+	if len(rc.Level) > 0 {
+		elems = bsoncore.AppendStringElement(elems, "level", rc.Level)
+	}
+
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+}
+
 func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumReadConcernWireVersion > 0 && (desc.WireVersion == nil ||
 		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumReadConcernWireVersion)) {
@@ -1447,11 +1467,11 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		rc = readconcern.Snapshot()
 	}
 
-	if rc == nil {
+	_, data, err := MarshalBSONReadConcern(rc) // always returns a document
+	if errors.Is(err, ErrEmptyReadConcern) {
 		return dst, nil
 	}
 
-	_, data, err := rc.MarshalBSONValue() // always returns a document
 	if err != nil {
 		return dst, err
 	}
@@ -1475,7 +1495,59 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
-func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer) ([]byte, error) {
+// MarshalBSONWriteConcern marshals a WriteConcern.
+func MarshalBSONWriteConcern(wc *writeconcern.WriteConcern, wtimeout time.Duration) (bson.Type, []byte, error) {
+	if wc == nil {
+		return 0, nil, ErrEmptyWriteConcern
+	}
+
+	var elems []byte
+	if wc.W != nil {
+		// Only support string or int values for W. That aligns with the
+		// documentation and the behavior of other functions, like Acknowledged.
+		switch w := wc.W.(type) {
+		case int:
+			if w < 0 {
+				return 0, nil, errNegativeW
+			}
+
+			// If Journal=true and W=0, return an error because that write
+			// concern is ambiguous.
+			if wc.Journal != nil && *wc.Journal && w == 0 {
+				return 0, nil, errInconsistent
+			}
+
+			// Check for lower and upper bounds on architecture-dependent int.
+			if w > math.MaxInt32 {
+				return 0, nil, fmt.Errorf("WriteConcern.W overflows int32: %v", wc.W)
+			}
+
+			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
+		case string:
+			elems = bsoncore.AppendStringElement(elems, "w", w)
+		default:
+			return 0,
+				nil,
+				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
+		}
+	}
+
+	if wc.Journal != nil {
+		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
+	}
+
+	if wtimeout != 0 {
+		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wtimeout/time.Millisecond))
+	}
+
+	if len(elems) == 0 {
+		return 0, nil, ErrEmptyWriteConcern
+	}
+
+	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
+}
+
+func (op Operation) addWriteConcern(ctx context.Context, dst []byte, desc description.SelectedServer) ([]byte, error) {
 	if op.MinimumWriteConcernWireVersion > 0 && (desc.WireVersion == nil ||
 		!driverutil.VersionRangeIncludes(*desc.WireVersion, op.MinimumWriteConcernWireVersion)) {
 
@@ -1486,15 +1558,27 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 		return dst, nil
 	}
 
-	t, data, err := wc.MarshalBSONValue()
-	if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
+	// The specifications for committing a transaction states:
+	//
+	// > if the modified write concern does not include a wtimeout value, drivers
+	// > MUST also apply wtimeout: 10000 to the write concern in order to avoid
+	// > waiting forever (or until a socket timeout) if the majority write concern
+	// > cannot be satisfied.
+	var wtimeout time.Duration
+	if _, ok := ctx.Deadline(); op.Client != nil && op.Timeout == nil && !ok {
+		wtimeout = op.Client.CurrentWTimeout
+	}
+
+	typ, wcBSON, err := MarshalBSONWriteConcern(wc, wtimeout)
+	if errors.Is(err, ErrEmptyWriteConcern) {
 		return dst, nil
 	}
+
 	if err != nil {
 		return dst, err
 	}
 
-	return append(bsoncore.AppendHeader(dst, bsoncore.Type(t), "writeConcern"), data...), nil
+	return append(bsoncore.AppendHeader(dst, bsoncore.Type(typ), "writeConcern"), wcBSON...), nil
 }
 
 func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
@@ -1558,34 +1642,29 @@ func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) 
 // operation's MaxTimeMS if set. If no MaxTimeMS is set on the operation, and context is
 // not a Timeout context, calculateMaxTimeMS returns 0.
 func (op Operation) calculateMaxTimeMS(ctx context.Context, rttMin time.Duration, rttStats string) (uint64, error) {
-	if csot.IsTimeoutContext(ctx) {
-		if deadline, ok := ctx.Deadline(); ok {
-			remainingTimeout := time.Until(deadline)
-
-			// Always round up to the next millisecond value so we never truncate the calculated
-			// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-			maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
-			if maxTimeMS <= 0 {
-				return 0, fmt.Errorf(
-					"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
-					remainingTimeout,
-					ErrDeadlineWouldBeExceeded,
-					rttStats)
-			}
-
-			return uint64(maxTimeMS), nil
-		}
-	} else if op.MaxTime != nil {
-		// Users are not allowed to pass a negative value as MaxTime. A value of 0 would indicate
-		// no timeout and is allowed.
-		if *op.MaxTime < 0 {
-			return 0, ErrNegativeMaxTime
-		}
-		// Always round up to the next millisecond value so we never truncate the requested
-		// MaxTime value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
-		return uint64((*op.MaxTime + (time.Millisecond - 1)) / time.Millisecond), nil
+	if op.OmitMaxTimeMS {
+		return 0, nil
 	}
-	return 0, nil
+
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return 0, nil
+	}
+
+	remainingTimeout := time.Until(deadline)
+
+	// Always round up to the next millisecond value so we never truncate the calculated
+	// maxTimeMS value (e.g. 400 microseconds evaluates to 1ms, not 0ms).
+	maxTimeMS := int64((remainingTimeout - rttMin + time.Millisecond - 1) / time.Millisecond)
+	if maxTimeMS <= 0 {
+		return 0, fmt.Errorf(
+			"remaining time %v until context deadline is less than or equal to rtt minimum: %w\n%v",
+			remainingTimeout,
+			ErrDeadlineWouldBeExceeded,
+			rttStats)
+	}
+
+	return uint64(maxTimeMS), nil
 }
 
 // updateClusterTimes updates the cluster times for the session and cluster clock attached to this

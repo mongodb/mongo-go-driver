@@ -8,18 +8,16 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 type index struct {
@@ -213,7 +211,7 @@ func TestIndexView(t *testing.T) {
 
 			testCases := []struct {
 				name             string
-				opts             *options.CreateIndexesOptions
+				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
 				expectedValue    interface{} // ignored if expectError is true
 				minServerVersion string
@@ -247,19 +245,6 @@ func TestIndexView(t *testing.T) {
 					assert.Equal(mt, tc.expectedValue, sentValue, "expected commitQuorum value %v, got %v",
 						tc.expectedValue, sentValue)
 				})
-			}
-		})
-		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.Unacknowledged())
-		unackMtOpts := mtest.NewOptions().
-			ClientOptions(unackClientOpts).
-			MinServerVersion("3.6")
-		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
-			_, err := mt.Coll.Indexes().CreateOne(context.Background(), mongo.IndexModel{Keys: bson.D{{"x", 1}}})
-			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
-				// so the assertion would succeed even if the error had not been wrapped.
-				mt.Fatalf("expected CreateOne error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
 			}
 		})
 		// Needs to run on these versions for failpoints
@@ -372,7 +357,7 @@ func TestIndexView(t *testing.T) {
 
 			testCases := []struct {
 				name             string
-				opts             *options.CreateIndexesOptions
+				opts             *options.CreateIndexesOptionsBuilder
 				expectError      bool
 				expectedValue    interface{} // ignored if expectError is true
 				minServerVersion string
@@ -494,7 +479,7 @@ func TestIndexView(t *testing.T) {
 			})
 			assert.Nil(mt, err, "CreateMany error: %v", err)
 
-			expectedSpecs := []*mongo.IndexSpecification{
+			expectedSpecs := []mongo.IndexSpecification{
 				{
 					Name:               "_id_",
 					Namespace:          mt.DB.Name() + "." + mt.Coll.Name(),
@@ -554,16 +539,20 @@ func TestIndexView(t *testing.T) {
 			assert.True(mt, cmp.Equal(specs, expectedSpecs), "expected specifications to match: %v", cmp.Diff(specs, expectedSpecs))
 		})
 		mt.RunOpts("options passed to listIndexes", mtest.NewOptions().MinServerVersion("3.0"), func(mt *mtest.T) {
-			opts := options.ListIndexes().SetMaxTime(100 * time.Millisecond)
+			opts := options.ListIndexes().SetBatchSize(1)
 			_, err := mt.Coll.Indexes().ListSpecifications(context.Background(), opts)
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
 
 			evt := mt.GetStartedEvent()
 			assert.Equal(mt, evt.CommandName, "listIndexes", "expected %q command to be sent, got %q", "listIndexes",
 				evt.CommandName)
-			maxTimeMS, ok := evt.Command.Lookup("maxTimeMS").Int64OK()
-			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "maxTimeMS")
-			assert.Equal(mt, int64(100), maxTimeMS, "expected maxTimeMS value to be 100, got %d", maxTimeMS)
+
+			cursorDoc, ok := evt.Command.Lookup("cursor").DocumentOK()
+			assert.True(mt, ok, "expected command: %v to contain a cursor document", evt.Command)
+
+			batchSize, ok := cursorDoc.Lookup("batchSize").Int32OK()
+			assert.True(mt, ok, "expected command %v to contain %q field", evt.Command, "batchSize")
+			assert.Equal(mt, int32(1), batchSize, "expected batchSize value to be 1, got %d", batchSize)
 		})
 	})
 	mt.Run("drop one", func(mt *mtest.T) {
@@ -579,7 +568,7 @@ func TestIndexView(t *testing.T) {
 		assert.Nil(mt, err, "CreateMany error: %v", err)
 		assert.Equal(mt, 2, len(indexNames), "expected 2 index names, got %v", len(indexNames))
 
-		_, err = iv.DropOne(context.Background(), indexNames[1])
+		err = iv.DropOne(context.Background(), indexNames[1])
 		assert.Nil(mt, err, "DropOne error: %v", err)
 
 		cursor, err := iv.List(context.Background())
@@ -591,6 +580,88 @@ func TestIndexView(t *testing.T) {
 			assert.NotEqual(mt, indexNames[1], idx.Name, "found index %v after dropping", indexNames[1])
 		}
 		assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
+	})
+	mt.Run("drop with key", func(mt *mtest.T) {
+		tests := []struct {
+			name   string
+			models []mongo.IndexModel
+			index  any
+			want   string
+		}{
+			{
+				name: "custom index name and unique indexes",
+				models: []mongo.IndexModel{
+					{
+						Keys:    bson.D{{"username", int32(1)}},
+						Options: options.Index().SetUnique(true).SetName("myidx"),
+					},
+				},
+				index: bson.D{{"username", int32(1)}},
+				want:  "myidx",
+			},
+			{
+				name: "normal generated index name",
+				models: []mongo.IndexModel{
+					{
+						Keys: bson.D{{"foo", int32(-1)}},
+					},
+				},
+				index: bson.D{{"foo", int32(-1)}},
+				want:  "foo_-1",
+			},
+			{
+				name: "compound index",
+				models: []mongo.IndexModel{
+					{
+						Keys: bson.D{{"foo", int32(1)}, {"bar", int32(1)}},
+					},
+				},
+				index: bson.D{{"foo", int32(1)}, {"bar", int32(1)}},
+				want:  "foo_1_bar_1",
+			},
+			{
+				name: "text index",
+				models: []mongo.IndexModel{
+					{
+						Keys: bson.D{{"plot1", "text"}, {"plot2", "text"}},
+					},
+				},
+				// Key is automatically set to Full Text Search for any text index
+				index: bson.D{{"_fts", "text"}, {"_ftsx", int32(1)}},
+				want:  "plot1_text_plot2_text",
+			},
+		}
+
+		for _, test := range tests {
+			mt.Run(test.name, func(mt *mtest.T) {
+				iv := mt.Coll.Indexes()
+				indexNames, err := iv.CreateMany(context.Background(), test.models)
+
+				s, _ := test.index.(bson.D)
+				for _, name := range indexNames {
+					verifyIndexExists(mt, iv, index{
+						Key:  s,
+						Name: name,
+					})
+				}
+
+				assert.NoError(mt, err)
+				assert.Equal(mt, len(test.models), len(indexNames), "expected %v index names, got %v", len(test.models), len(indexNames))
+
+				err = iv.DropWithKey(context.Background(), test.index)
+				assert.Nil(mt, err, "DropOne error: %v", err)
+
+				cursor, err := iv.List(context.Background())
+				assert.Nil(mt, err, "List error: %v", err)
+				for cursor.Next(context.Background()) {
+					var idx index
+					err = cursor.Decode(&idx)
+					assert.Nil(mt, err, "Decode error: %v (document %v)", err, cursor.Current)
+					assert.NotEqual(mt, test.want, idx.Name, "found index %v after dropping", test.want)
+				}
+				assert.Nil(mt, cursor.Err(), "cursor error: %v", cursor.Err())
+			})
+		}
 	})
 	mt.Run("drop all", func(mt *mtest.T) {
 		iv := mt.Coll.Indexes()
@@ -631,7 +702,7 @@ func TestIndexView(t *testing.T) {
 			assert.Nil(mt, err, "CreateOne error: %v", err)
 			specs, err := clustered.Indexes().ListSpecifications(context.Background())
 			assert.Nil(mt, err, "ListSpecifications error: %v", err)
-			expectedSpecs := []*mongo.IndexSpecification{
+			expectedSpecs := []mongo.IndexSpecification{
 				{
 					Name:         "_id_",
 					Namespace:    mt.DB.Name() + "." + name,

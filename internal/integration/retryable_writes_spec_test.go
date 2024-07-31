@@ -7,13 +7,14 @@
 package integration
 
 import (
+	"bytes"
 	"io/ioutil"
 	"path"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 )
 
 const retryableWritesTestDir = "../../testdata/retryable-writes/legacy"
@@ -46,8 +47,12 @@ func runRetryableWritesFile(t *testing.T, filePath string) {
 	assert.Nil(t, err, "ReadFile error for %v: %v", filePath, err)
 
 	var testFile retryableWritesTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
+	assert.Nil(t, err, "decode error: %v", err)
 
 	mt := mtest.New(t, mtest.NewOptions().RunOn(testFile.RunOn...).CreateClient(false))
 

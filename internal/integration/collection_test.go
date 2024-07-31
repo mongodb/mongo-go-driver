@@ -8,19 +8,17 @@ package integration
 
 import (
 	"context"
-	"errors"
 	"strings"
 	"testing"
-	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 const (
@@ -36,8 +34,7 @@ var (
 	// for various operations. It includes a timeout because legacy servers will wait for all W nodes to respond,
 	// causing tests to hang.
 	impossibleWc = &writeconcern.WriteConcern{
-		W:        30,
-		WTimeout: time.Second,
+		W: 30,
 	}
 )
 
@@ -80,22 +77,22 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("options are converted", convertedOptsOpts, func(mt *mtest.T) {
 			nilOptsTestCases := []struct {
 				name            string
-				opts            []*options.InsertOneOptions
+				opts            []options.Lister[options.InsertOneOptions]
 				expectOptionSet bool
 			}{
 				{
 					"only nil is passed",
-					[]*options.InsertOneOptions{nil},
+					[]options.Lister[options.InsertOneOptions]{nil},
 					false,
 				},
 				{
 					"non-nil options is passed before nil",
-					[]*options.InsertOneOptions{options.InsertOne().SetBypassDocumentValidation(true), nil},
+					[]options.Lister[options.InsertOneOptions]{options.InsertOne().SetBypassDocumentValidation(true), nil},
 					true,
 				},
 				{
 					"non-nil options is passed after nil",
-					[]*options.InsertOneOptions{nil, options.InsertOne().SetBypassDocumentValidation(true)},
+					[]options.Lister[options.InsertOneOptions]{nil, options.InsertOne().SetBypassDocumentValidation(true)},
 					true,
 				},
 			}
@@ -823,7 +820,7 @@ func TestCollection(t *testing.T) {
 			testCases := []struct {
 				name     string
 				filter   bson.D
-				opts     *options.CountOptions
+				opts     *options.CountOptionsBuilder
 				count    int64
 				testOpts *mtest.Options
 			}{
@@ -858,11 +855,11 @@ func TestCollection(t *testing.T) {
 	mt.RunOpts("estimated document count", noClientOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name  string
-			opts  *options.EstimatedDocumentCountOptions
+			opts  *options.EstimatedDocumentCountOptionsBuilder
 			count int64
 		}{
 			{"no options", nil, 5},
-			{"options", options.EstimatedDocumentCount().SetMaxTime(1 * time.Second), 5},
+			{"options", options.EstimatedDocumentCount().SetComment("1"), 5},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -879,12 +876,12 @@ func TestCollection(t *testing.T) {
 		testCases := []struct {
 			name   string
 			filter bson.D
-			opts   *options.DistinctOptions
+			opts   *options.DistinctOptionsBuilder
 			want   []int32
 		}{
 			{"no options", bson.D{}, nil, all},
 			{"filter", bson.D{{"x", bson.D{{"$gt", 2}}}}, nil, all[2:]},
-			{"options", bson.D{}, options.Distinct().SetMaxTime(5000000000), all},
+			{"options", bson.D{}, options.Distinct().SetComment("1"), all},
 		}
 		for _, tc := range testCases {
 			mt.Run(tc.name, func(mt *mtest.T) {
@@ -1166,7 +1163,6 @@ func TestCollection(t *testing.T) {
 				SetComment(expectedComment).
 				SetHint(indexName).
 				SetMax(bson.D{{"x", int32(5)}}).
-				SetMaxTime(1 * time.Second).
 				SetMin(bson.D{{"x", int32(0)}}).
 				SetProjection(bson.D{{"x", int32(1)}}).
 				SetReturnKey(false).
@@ -1188,7 +1184,6 @@ func TestCollection(t *testing.T) {
 				AppendString("comment", expectedComment).
 				AppendString("hint", indexName).
 				StartDocument("max").AppendInt32("x", 5).FinishDocument().
-				AppendInt32("maxTimeMS", 1000).
 				StartDocument("min").AppendInt32("x", 0).FinishDocument().
 				StartDocument("projection").AppendInt32("x", 1).FinishDocument().
 				AppendBoolean("returnKey", false).
@@ -1213,7 +1208,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneOptions
+				opts     *options.FindOneOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOne().SetHint(bson.M{"x": 1}), ""},
@@ -1273,7 +1268,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndDeleteOptions
+				opts     *options.FindOneAndDeleteOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndDelete().SetHint(bson.M{"x": 1}), ""},
@@ -1349,7 +1344,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndReplaceOptions
+				opts     *options.FindOneAndReplaceOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndReplace().SetHint(bson.M{"x": 1}), ""},
@@ -1431,7 +1426,7 @@ func TestCollection(t *testing.T) {
 		mt.RunOpts("maps for sorted opts", noClientOpts, func(mt *mtest.T) {
 			testCases := []struct {
 				name     string
-				opts     *options.FindOneAndUpdateOptions
+				opts     *options.FindOneAndUpdateOptionsBuilder
 				errParam string
 			}{
 				{"single key hint", options.FindOneAndUpdate().SetHint(bson.M{"x": 1}), ""},
@@ -1476,6 +1471,122 @@ func TestCollection(t *testing.T) {
 			assert.NotNil(mt, we.WriteConcernError, "expected write concern error, got %v", err)
 		})
 	})
+
+	unackClientOpts := options.Client().
+		SetWriteConcern(writeconcern.Unacknowledged())
+	unackMtOpts := mtest.NewOptions().
+		ClientOptions(unackClientOpts).
+		MinServerVersion("3.6")
+	mt.RunOpts("unacknowledged writes", unackMtOpts, func(mt *mtest.T) {
+		mt.Run("bulk write", func(mt *mtest.T) {
+			models := []mongo.WriteModel{
+				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
+			}
+
+			res, err := mt.Coll.BulkWrite(context.Background(), models)
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("insert one", func(mt *mtest.T) {
+			res, err := mt.Coll.InsertOne(context.Background(), bson.D{{"x", 1}})
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("insert many", func(t *mtest.T) {
+			docs := []interface{}{
+				bson.D{{"x", 1}},
+				bson.D{{"y", 1}},
+			}
+
+			res, err := mt.Coll.InsertMany(context.Background(), docs)
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("delete", func(mt *mtest.T) {
+			res, err := mt.Coll.DeleteOne(context.Background(), bson.D{{"x", 1}})
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("update", func(t *mtest.T) {
+			res, err := mt.Coll.UpdateOne(context.Background(), bson.D{{"x", 1}}, bson.D{{"$set", bson.D{{"x", "2"}}}})
+
+			assert.NoError(mt, err)
+			assert.False(mt, res.Acknowledged)
+		})
+
+		mt.Run("find and modify", func(mt *mtest.T) {
+			res := mt.Coll.FindOneAndDelete(context.Background(), bson.D{{"x", 1}})
+
+			assert.ErrorIs(mt, res.Err(), mongo.ErrNoDocuments)
+			assert.False(mt, res.Acknowledged)
+
+		})
+
+		mt.Run("dropping a collection", func(mt *mtest.T) {
+			err := mt.Coll.Drop(context.Background())
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("creating a collection", func(mt *mtest.T) {
+			err := mt.DB.CreateCollection(context.Background(), "test coll")
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("creating an index", func(mt *mtest.T) {
+			indexModel := mongo.IndexModel{
+				Keys:    bson.M{"username": 1},
+				Options: options.Index().SetUnique(true),
+			}
+
+			_, err := mt.Coll.Indexes().CreateMany(context.Background(), []mongo.IndexModel{indexModel})
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("creating an index view", func(mt *mtest.T) {
+			projectStage := bson.D{
+				{"$project", bson.D{
+					{"_id", 0},
+					{"fullName", bson.D{
+						{"$concat", []string{"$firstName", " ", "$lastName"}},
+					}},
+				}},
+			}
+
+			pipeline := mongo.Pipeline{projectStage}
+
+			err := mt.DB.CreateView(context.Background(), "testview", "coll", pipeline, nil)
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("dropping a database", func(mt *mtest.T) {
+			db := mt.Client.Database("bd7b09e4-7d12-4bcb-9fc6-9852ad93715a")
+
+			err := db.Drop(context.Background())
+			assert.NoError(mt, err)
+		})
+
+		mt.Run("dropping an index", func(t *mtest.T) {
+			indexModel := mongo.IndexModel{
+				Keys:    bson.M{"username": 1},
+				Options: options.Index().SetUnique(true).SetName("username_1"),
+			}
+
+			_, err := mt.Coll.Indexes().CreateOne(context.TODO(), indexModel)
+			assert.NoError(mt, err, "failed to create index")
+
+			err = mt.Coll.Indexes().DropOne(context.Background(), "username_1")
+			assert.NoError(mt, err)
+		})
+	})
+
 	mt.RunOpts("bulk write", noClientOpts, func(mt *mtest.T) {
 		wcCollOpts := options.Collection().SetWriteConcern(impossibleWc)
 		wcTestOpts := mtest.NewOptions().CollectionOptions(wcCollOpts).Topologies(mtest.ReplicaSet).CreateClient(false)
@@ -1707,22 +1818,6 @@ func TestCollection(t *testing.T) {
 			assert.Equal(mt, res.UpsertedIDs[1].(string), id1, "expected UpsertedIDs[1] to be %v, got %v", id1, res.UpsertedIDs[1])
 			assert.Equal(mt, res.UpsertedIDs[3].(string), id3, "expected UpsertedIDs[3] to be %v, got %v", id3, res.UpsertedIDs[3])
 		})
-		unackClientOpts := options.Client().
-			SetWriteConcern(writeconcern.Unacknowledged())
-		unackMtOpts := mtest.NewOptions().
-			ClientOptions(unackClientOpts).
-			MinServerVersion("3.6")
-		mt.RunOpts("unacknowledged write", unackMtOpts, func(mt *mtest.T) {
-			models := []mongo.WriteModel{
-				mongo.NewInsertOneModel().SetDocument(bson.D{{"x", 1}}),
-			}
-			_, err := mt.Coll.BulkWrite(context.Background(), models)
-			if !errors.Is(err, mongo.ErrUnacknowledgedWrite) {
-				// Use a direct comparison rather than assert.Equal because assert.Equal will compare the error strings,
-				// so the assertion would succeed even if the error had not been wrapped.
-				mt.Fatalf("expected BulkWrite error %v, got %v", mongo.ErrUnacknowledgedWrite, err)
-			}
-		})
 		mt.RunOpts("insert and delete with batches", mtest.NewOptions().ClientType(mtest.Mock), func(mt *mtest.T) {
 			// grouped together because delete requires the documents to be inserted
 			maxBatchCount := int(mtest.MockDescription.MaxBatchCount)
@@ -1892,7 +1987,7 @@ func initCollection(mt *mtest.T, coll *mongo.Collection) {
 	assert.Nil(mt, err, "InsertMany error for initial data: %v", err)
 }
 
-func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts *options.AggregateOptions) {
+func testAggregateWithOptions(mt *mtest.T, createIndex bool, opts options.Lister[options.AggregateOptions]) {
 	mt.Helper()
 	initCollection(mt, mt.Coll)
 

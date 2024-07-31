@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // Client examples
@@ -201,7 +201,7 @@ func ExampleCollection_Aggregate() {
 			}},
 		}},
 	}
-	opts := options.Aggregate().SetMaxTime(2 * time.Second)
+	opts := options.Aggregate()
 	cursor, err := coll.Aggregate(
 		context.TODO(),
 		mongo.Pipeline{groupStage},
@@ -264,14 +264,13 @@ func ExampleCollection_BulkWrite() {
 func ExampleCollection_CountDocuments() {
 	var coll *mongo.Collection
 
+	// Specify a timeout to limit the amount of time the operation can run on
+	// the server.
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel()
+
 	// Count the number of times the name "Bob" appears in the collection.
-	// Specify the MaxTime option to limit the amount of time the operation can
-	// run on the server.
-	opts := options.Count().SetMaxTime(2 * time.Second)
-	count, err := coll.CountDocuments(
-		context.TODO(),
-		bson.D{{"name", "Bob"}},
-		opts)
+	count, err := coll.CountDocuments(ctx, bson.D{{"name", "Bob"}}, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -317,13 +316,15 @@ func ExampleCollection_DeleteOne() {
 func ExampleCollection_Distinct() {
 	var coll *mongo.Collection
 
+	// Specify a timeout to limit the amount of time the operation can run on
+	// the server.
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel()
+
 	// Find all unique values for the "name" field for documents in which the
 	// "age" field is greater than 25.
-	// Specify the MaxTime option to limit the amount of time the operation can
-	// run on the server.
 	filter := bson.D{{"age", bson.D{{"$gt", 25}}}}
-	opts := options.Distinct().SetMaxTime(2 * time.Second)
-	res := coll.Distinct(context.TODO(), "name", filter, opts)
+	res := coll.Distinct(ctx, "name", filter)
 	if err := res.Err(); err != nil {
 		log.Fatal(err)
 	}
@@ -341,11 +342,13 @@ func ExampleCollection_Distinct() {
 func ExampleCollection_EstimatedDocumentCount() {
 	var coll *mongo.Collection
 
+	// Specify a timeout to limit the amount of time the operation can run on
+	// the server.
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel()
+
 	// Get and print an estimated of the number of documents in the collection.
-	// Specify the MaxTime option to limit the amount of time the operation can
-	// run on the server.
-	opts := options.EstimatedDocumentCount().SetMaxTime(2 * time.Second)
-	count, err := coll.EstimatedDocumentCount(context.TODO(), opts)
+	count, err := coll.EstimatedDocumentCount(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -619,7 +622,8 @@ func ExampleWithSession() {
 	// The DefaultReadPreference and DefaultWriteConcern options aren't
 	// specified so they will be inheritied from client and be set to primary
 	// and majority, respectively.
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	txnOpts := options.Transaction().SetReadConcern(readconcern.Majority())
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	sess, err := client.StartSession(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -683,7 +687,8 @@ func ExampleClient_UseSessionWithOptions() {
 	// The DefaultReadPreference and DefaultWriteConcern options aren't
 	// specified so they will be inheritied from client and be set to primary
 	// and majority, respectively.
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	txnOpts := options.Transaction().SetReadConcern(readconcern.Majority())
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	err := client.UseSessionWithOptions(
 		context.TODO(),
 		opts,
@@ -743,7 +748,8 @@ func ExampleClient_StartSession_withTransaction() {
 	// The DefaultReadPreference and DefaultWriteConcern options aren't
 	// specified so they will be inheritied from client and be set to primary
 	// and majority, respectively.
-	opts := options.Session().SetDefaultReadConcern(readconcern.Majority())
+	txnOpts := options.Transaction().SetReadConcern(readconcern.Majority())
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	sess, err := client.StartSession(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -752,8 +758,7 @@ func ExampleClient_StartSession_withTransaction() {
 
 	// Specify the ReadPreference option to set the read preference to primary
 	// preferred for this transaction.
-	txnOpts := options.Transaction().
-		SetReadPreference(readpref.PrimaryPreferred())
+	txnOpts.SetReadPreference(readpref.PrimaryPreferred())
 	result, err := sess.WithTransaction(
 		context.TODO(),
 		func(ctx context.Context) (interface{}, error) {
@@ -1053,8 +1058,7 @@ func ExampleIndexView_CreateMany() {
 
 	// Specify the MaxTime option to limit the amount of time the operation can
 	// run on the server
-	opts := options.CreateIndexes().SetMaxTime(2 * time.Second)
-	names, err := indexView.CreateMany(context.TODO(), models, opts)
+	names, err := indexView.CreateMany(context.TODO(), models, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -1065,17 +1069,19 @@ func ExampleIndexView_CreateMany() {
 func ExampleIndexView_List() {
 	var indexView *mongo.IndexView
 
-	// Specify the MaxTime option to limit the amount of time the operation can
-	// run on the server
-	opts := options.ListIndexes().SetMaxTime(2 * time.Second)
-	cursor, err := indexView.List(context.TODO(), opts)
+	// Specify a timeout to limit the amount of time the operation can run on
+	// the server.
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second)
+	defer cancel()
+
+	cursor, err := indexView.List(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Get a slice of all indexes returned and print them out.
 	var results []bson.M
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(ctx, &results); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(results)

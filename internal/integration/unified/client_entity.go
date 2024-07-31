@@ -14,16 +14,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/internal/logger"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // There are no automated tests for truncation. Given that, setting the
@@ -121,13 +122,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		entity.logQueue = clientLogger.logQueue
 
 		// Update the client options to add the clientLogger.
-		clientOpts.LoggerOptions = options.Logger().
+		loggerOptions := options.Logger().
 			SetComponentLevel(options.LogComponentCommand, wrap(olm.Command)).
 			SetComponentLevel(options.LogComponentTopology, wrap(olm.Topology)).
 			SetComponentLevel(options.LogComponentServerSelection, wrap(olm.ServerSelection)).
 			SetComponentLevel(options.LogComponentConnection, wrap(olm.Connection)).
 			SetMaxDocumentLength(defaultMaxDocumentLen).
 			SetSink(clientLogger)
+
+		clientOpts.SetLoggerOptions(loggerOptions)
 	}
 
 	// UseMultipleMongoses requires validation when connecting to a sharded cluster. Options changes and validation are
@@ -181,10 +184,15 @@ func newClientEntity(ctx context.Context, em *EntityMap, entityOptions *entityOp
 		}
 	}
 	if entityOptions.ServerAPIOptions != nil {
-		if err := entityOptions.ServerAPIOptions.ServerAPIVersion.Validate(); err != nil {
+		args, err := mongoutil.NewOptions[options.ServerAPIOptions](entityOptions.ServerAPIOptions)
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+		}
+
+		if err := args.ServerAPIVersion.Validate(); err != nil {
 			return nil, err
 		}
-		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptions)
+		clientOpts.SetServerAPIOptions(entityOptions.ServerAPIOptions.ServerAPIOptionsBuilder)
 	} else {
 		integtest.AddTestServerAPIVersion(clientOpts)
 	}
@@ -474,9 +482,9 @@ func (c *clientEntity) processPoolEvent(evt *event.PoolEvent) {
 	// Update the connection counter. This happens even if we're not storing any events.
 	switch evt.Type {
 	case event.ConnectionCheckedOut:
-		c.numConnsCheckedOut++
+		atomic.AddInt32(&c.numConnsCheckedOut, 1)
 	case event.ConnectionCheckedIn:
-		c.numConnsCheckedOut--
+		atomic.AddInt32(&c.numConnsCheckedOut, -1)
 	}
 
 	eventType := monitoringEventTypeFromPoolEvent(evt)
@@ -581,7 +589,7 @@ func (c *clientEntity) getRecordEvents() bool {
 	return c.recordEvents.Load().(bool)
 }
 
-func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts bson.M) error {
+func setClientOptionsFromURIOptions(clientOpts *options.ClientOptionsBuilder, uriOpts bson.M) error {
 	// A write concern can be constructed across multiple URI options (e.g. "w", "j", and "wTimeoutMS") so we declare an
 	// empty writeConcern instance here that can be populated in the loop below.
 	var wc writeConcern
@@ -612,7 +620,12 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 		case "retrywrites":
 			clientOpts.SetRetryWrites(value.(bool))
 		case "sockettimeoutms":
-			clientOpts.SetSocketTimeout(time.Duration(value.(int32)) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing socketTimeoutMS (a legacy timeout option
+			// that we have removed as of v2), then a CSOT analogue exists. Once we
+			// have ensured an analogue exists, extend "skippedTestDescriptions" to
+			// avoid this error.
+			return newSkipTestError("the socketTimeoutMS client option is not supported")
 		case "w":
 			wc.W = value
 			wcSet = true
@@ -641,7 +654,7 @@ func setClientOptionsFromURIOptions(clientOpts *options.ClientOptions, uriOpts b
 	return nil
 }
 
-func evaluateUseMultipleMongoses(clientOpts *options.ClientOptions, useMultipleMongoses bool) error {
+func evaluateUseMultipleMongoses(clientOpts *options.ClientOptionsBuilder, useMultipleMongoses bool) error {
 	hosts := mtest.ClusterConnString().Hosts
 
 	if !useMultipleMongoses {

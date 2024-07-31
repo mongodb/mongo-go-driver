@@ -16,20 +16,20 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/eventtest"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/eventtest"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -324,7 +324,7 @@ func TestClient(t *testing.T) {
 			// apply the correct URI.
 			invalidClientOpts := options.Client().
 				SetServerSelectionTimeout(100 * time.Millisecond).SetHosts([]string{"invalid:123"}).
-				SetConnectTimeout(500 * time.Millisecond).SetSocketTimeout(500 * time.Millisecond)
+				SetConnectTimeout(500 * time.Millisecond).SetTimeout(500 * time.Millisecond)
 			integtest.AddTestServerAPIVersion(invalidClientOpts)
 			client, err := mongo.Connect(invalidClientOpts)
 			assert.Nil(mt, err, "Connect error: %v", err)
@@ -358,7 +358,7 @@ func TestClient(t *testing.T) {
 	mt.RunOpts("causal consistency", sessionOpts, func(mt *mtest.T) {
 		testCases := []struct {
 			name       string
-			opts       *options.SessionOptions
+			opts       *options.SessionOptionsBuilder
 			consistent bool
 		}{
 			{"default", options.Session(), true},
@@ -517,31 +517,23 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func(ctx context.Context) {
-			for {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
-
-				time.Sleep(100 * time.Millisecond)
-
-				// Wait for all of the server's minimum RTTs to be >250ms.
-				done := true
-				for _, desc := range topo.Description().Servers {
-					server, err := topo.FindServer(desc)
-					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTTMonitor().Min() <= 250*time.Millisecond {
-						done = false
-					}
-				}
-				if done {
-					return
+		callback := func() bool {
+			// Wait for all of the server's minimum RTTs to be >250ms.
+			for _, desc := range topo.Description().Servers {
+				server, err := topo.FindServer(desc)
+				assert.NoError(mt, err, "FindServer error: %v", err)
+				if server.RTTMonitor().Min() <= 250*time.Millisecond {
+					return false // the tick should wait for 100ms in this case
 				}
 			}
-		}, 10*time.Second)
+
+			return true
+		}
+		assert.Eventually(t,
+			callback,
+			10*time.Second,
+			100*time.Millisecond,
+			"expected that the minimum RTT is eventually >250ms")
 	})
 
 	// Test that if the minimum RTT is greater than the remaining timeout for an operation, the
@@ -565,31 +557,23 @@ func TestClient(t *testing.T) {
 
 		// Assert that the minimum RTT is eventually >250ms.
 		topo := getTopologyFromClient(mt.Client)
-		assert.Soon(mt, func(ctx context.Context) {
-			for {
-				// Stop loop if callback has been canceled.
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
-
-				time.Sleep(100 * time.Millisecond)
-
-				// Wait for all of the server's minimum RTTs to be >250ms.
-				done := true
-				for _, desc := range topo.Description().Servers {
-					server, err := topo.FindServer(desc)
-					assert.Nil(mt, err, "FindServer error: %v", err)
-					if server.RTTMonitor().Min() <= 250*time.Millisecond {
-						done = false
-					}
-				}
-				if done {
-					return
+		callback := func() bool {
+			// Wait for all of the server's minimum RTTs to be >250ms.
+			for _, desc := range topo.Description().Servers {
+				server, err := topo.FindServer(desc)
+				assert.NoError(mt, err, "FindServer error: %v", err)
+				if server.RTTMonitor().Min() <= 250*time.Millisecond {
+					return false
 				}
 			}
-		}, 10*time.Second)
+
+			return true
+		}
+		assert.Eventually(t,
+			callback,
+			10*time.Second,
+			100*time.Millisecond,
+			"expected that the minimum RTT is eventually >250ms")
 
 		// Once we've waited for the minimum RTT for the single server to be >250ms, run a bunch of
 		// Ping operations with a timeout of 250ms and expect that they return errors.

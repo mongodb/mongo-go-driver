@@ -18,14 +18,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/ocsp"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/ocsp"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 // Connection state constants.
@@ -56,8 +56,6 @@ type connection struct {
 	addr                 address.Address
 	idleTimeout          time.Duration
 	idleDeadline         atomic.Value // Stores a time.Time
-	readTimeout          time.Duration
-	writeTimeout         time.Duration
 	desc                 description.Server
 	helloRTT             time.Duration
 	compressor           wiremessage.CompressorID
@@ -65,13 +63,13 @@ type connection struct {
 	zstdLevel            int
 	connectDone          chan struct{}
 	config               *connectionConfig
-	cancelConnectContext context.CancelFunc
 	connectContextMade   chan struct{}
 	canStream            bool
 	currentlyStreaming   bool
-	connectContextMutex  sync.Mutex
-	cancellationListener cancellationListener
-	serverConnectionID   *int64 // the server's ID for this client's connection
+	cancellationListener contextListener
+	connectListener      contextListener // Cancels blocking ops during connect
+	serverConnectionID   *int64          // the server's ID for this client's connection
+	prevCanceled         atomic.Value
 
 	// pool related fields
 	pool *pool
@@ -90,12 +88,11 @@ func newConnection(addr address.Address, opts ...ConnectionOption) *connection {
 		id:                   id,
 		addr:                 addr,
 		idleTimeout:          cfg.idleTimeout,
-		readTimeout:          cfg.readTimeout,
-		writeTimeout:         cfg.writeTimeout,
 		connectDone:          make(chan struct{}),
 		config:               cfg,
 		connectContextMade:   make(chan struct{}),
-		cancellationListener: newCancellListener(),
+		cancellationListener: newContextDoneListener(),
+		connectListener:      newNonBlockingContextDoneListener(),
 	}
 	// Connections to non-load balanced deployments should eagerly set the generation numbers so errors encountered
 	// at any point during connection establishment can be processed without the connection being considered stale.
@@ -141,6 +138,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 		return nil
 	}
 
+	defer c.closeConnectContext()
 	defer close(c.connectDone)
 
 	// If connect returns an error, set the connection status as disconnected and close the
@@ -165,35 +163,17 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	// cancellation still applies but with an added timeout to ensure the connectTimeoutMS option is applied to socket
 	// establishment and the TLS handshake as a whole. This is created outside of the connectContextMutex lock to avoid
 	// holding the lock longer than necessary.
-	c.connectContextMutex.Lock()
-	var handshakeCtx context.Context
-	handshakeCtx, c.cancelConnectContext = context.WithCancel(ctx)
-	c.connectContextMutex.Unlock()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-	dialCtx := handshakeCtx
-	var dialCancel context.CancelFunc
-	if c.config.connectTimeout != 0 {
-		dialCtx, dialCancel = context.WithTimeout(handshakeCtx, c.config.connectTimeout)
-		defer dialCancel()
-	}
+	go func() {
+		defer cancel()
 
-	defer func() {
-		var cancelFn context.CancelFunc
-
-		c.connectContextMutex.Lock()
-		cancelFn = c.cancelConnectContext
-		c.cancelConnectContext = nil
-		c.connectContextMutex.Unlock()
-
-		if cancelFn != nil {
-			cancelFn()
-		}
+		c.connectListener.Listen(ctx, func() {})
 	}()
 
-	close(c.connectContextMade)
-
 	// Assign the result of DialContext to a temporary net.Conn to ensure that c.nc is not set in an error case.
-	tempNc, err := c.config.dialer.DialContext(dialCtx, c.addr.Network(), c.addr.String())
+	tempNc, err := c.config.dialer.DialContext(ctx, c.addr.Network(), c.addr.String())
 	if err != nil {
 		return ConnectionError{Wrapped: err, init: true}
 	}
@@ -209,7 +189,8 @@ func (c *connection) connect(ctx context.Context) (err error) {
 			DisableEndpointChecking: c.config.disableOCSPEndpointCheck,
 			HTTPClient:              c.config.httpClient,
 		}
-		tlsNc, err := configureTLS(dialCtx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+		tlsNc, err := configureTLS(ctx, c.config.tlsConnectionSource, c.nc, c.addr, tlsConfig, ocspOpts)
+
 		if err != nil {
 			return ConnectionError{Wrapped: err, init: true}
 		}
@@ -226,10 +207,9 @@ func (c *connection) connect(ctx context.Context) (err error) {
 	handshakeStartTime := time.Now()
 
 	iconn := initConnection{c}
-
 	handshakeConn := mnet.NewConnection(iconn)
 
-	handshakeInfo, err = handshaker.GetHandshakeInformation(handshakeCtx, c.addr, handshakeConn)
+	handshakeInfo, err = handshaker.GetHandshakeInformation(ctx, c.addr, handshakeConn)
 	if err == nil {
 		// We only need to retain the Description field as the connection's description. The authentication-related
 		// fields in handshakeInfo are tracked by the handshaker if necessary.
@@ -253,7 +233,7 @@ func (c *connection) connect(ctx context.Context) (err error) {
 
 		// If we successfully finished the first part of the handshake and verified LB state, continue with the rest of
 		// the handshake.
-		err = handshaker.FinishHandshake(handshakeCtx, handshakeConn)
+		err = handshaker.FinishHandshake(ctx, handshakeConn)
 	}
 
 	// We have a failed handshake here
@@ -299,16 +279,8 @@ func (c *connection) wait() {
 }
 
 func (c *connection) closeConnectContext() {
-	<-c.connectContextMade
-	var cancelFn context.CancelFunc
-
-	c.connectContextMutex.Lock()
-	cancelFn = c.cancelConnectContext
-	c.cancelConnectContext = nil
-	c.connectContextMutex.Unlock()
-
-	if cancelFn != nil {
-		cancelFn()
+	if c.connectListener != nil {
+		c.connectListener.StopListening()
 	}
 }
 
@@ -347,17 +319,7 @@ func (c *connection) writeWireMessage(ctx context.Context, wm []byte) error {
 		}
 	}
 
-	var deadline time.Time
-	if c.writeTimeout != 0 {
-		deadline = time.Now().Add(c.writeTimeout)
-	}
-
-	var contextDeadlineUsed bool
-	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
-		contextDeadlineUsed = true
-		deadline = dl
-	}
-
+	deadline, contextDeadlineUsed := ctx.Deadline()
 	if err := c.nc.SetWriteDeadline(deadline); err != nil {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set write deadline"}
 	}
@@ -401,17 +363,7 @@ func (c *connection) readWireMessage(ctx context.Context) ([]byte, error) {
 		}
 	}
 
-	var deadline time.Time
-	if c.readTimeout != 0 {
-		deadline = time.Now().Add(c.readTimeout)
-	}
-
-	var contextDeadlineUsed bool
-	if dl, ok := ctx.Deadline(); ok && (deadline.IsZero() || dl.Before(deadline)) {
-		contextDeadlineUsed = true
-		deadline = dl
-	}
-
+	deadline, contextDeadlineUsed := ctx.Deadline()
 	if err := c.nc.SetReadDeadline(deadline); err != nil {
 		return nil, ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to set read deadline"}
 	}
@@ -484,6 +436,12 @@ func (c *connection) read(ctx context.Context) (bytesRead []byte, errMsg string,
 }
 
 func (c *connection) close() error {
+	// Stop any blocking operations occurring in connect(), but await closing the
+	// connections directly before closing the connection context. This ensures
+	// that closing a connection will manifest as an io.EOF error, avoiding
+	// non-deterministic connection closure errors.
+	defer c.closeConnectContext()
+
 	// Overwrite the connection state as the first step so only the first close call will execute.
 	if !atomic.CompareAndSwapInt64(&c.state, connConnected, connDisconnected) {
 		return nil
@@ -535,17 +493,20 @@ func (c *connection) getCurrentlyStreaming() bool {
 	return c.currentlyStreaming
 }
 
-func (c *connection) setSocketTimeout(timeout time.Duration) {
-	c.readTimeout = timeout
-	c.writeTimeout = timeout
-}
-
 func (c *connection) ID() string {
 	return c.id
 }
 
 func (c *connection) ServerConnectionID() *int64 {
 	return c.serverConnectionID
+}
+
+func (c *connection) previousCanceled() bool {
+	if val := c.prevCanceled.Load(); val != nil {
+		return val.(bool)
+	}
+
+	return false
 }
 
 // initConnection is an adapter used during connection initialization. It has the minimum
@@ -850,48 +811,4 @@ func configureTLS(ctx context.Context,
 		}
 	}
 	return client, nil
-}
-
-// TODO: Naming?
-
-// cancellListener listens for context cancellation and notifies listeners via a
-// callback function.
-type cancellListener struct {
-	aborted bool
-	done    chan struct{}
-}
-
-// newCancellListener constructs a cancellListener.
-func newCancellListener() *cancellListener {
-	return &cancellListener{
-		done: make(chan struct{}),
-	}
-}
-
-// Listen blocks until the provided context is cancelled or listening is aborted
-// via the StopListening function. If this detects that the context has been
-// cancelled (i.e. errors.Is(ctx.Err(), context.Canceled), the provided callback is
-// called to abort in-progress work. Even if the context expires, this function
-// will block until StopListening is called.
-func (c *cancellListener) Listen(ctx context.Context, abortFn func()) {
-	c.aborted = false
-
-	select {
-	case <-ctx.Done():
-		if errors.Is(ctx.Err(), context.Canceled) {
-			c.aborted = true
-			abortFn()
-		}
-
-		<-c.done
-	case <-c.done:
-	}
-}
-
-// StopListening stops the in-progress Listen call. This blocks if there is no
-// in-progress Listen call. This function will return true if the provided abort
-// callback was called when listening for cancellation on the previous context.
-func (c *cancellListener) StopListening() bool {
-	c.done <- struct{}{}
-	return c.aborted
 }

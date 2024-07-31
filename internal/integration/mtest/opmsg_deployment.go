@@ -9,16 +9,17 @@ package mtest
 import (
 	"context"
 	"errors"
+	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/wiremessage"
 )
 
 const (
@@ -131,6 +132,12 @@ var _ driver.Subscriber = &mockDeployment{}
 // Connection method have a no-op Close method.
 func (md *mockDeployment) SelectServer(context.Context, description.ServerSelector) (driver.Server, error) {
 	return md, nil
+}
+
+// GetServerSelectionTimeout returns zero as a server selection timeout is not
+// applicable for mock deployments.
+func (*mockDeployment) GetServerSelectionTimeout() time.Duration {
+	return 0
 }
 
 // Kind implements the Deployment interface. It always returns description.TopologyKindSingle.

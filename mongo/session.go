@@ -9,15 +9,17 @@ package mongo
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // ErrWrongClient is returned when a user attempts to pass in a session created by a different client than
@@ -111,8 +113,11 @@ func (s *Session) EndSession(ctx context.Context) {
 // resources are properly cleaned up, context deadlines and cancellations will
 // not be respected during this call. For a usage example, see the
 // Client.StartSession method documentation.
-func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Context) (interface{}, error),
-	opts ...*options.TransactionOptions) (interface{}, error) {
+func (s *Session) WithTransaction(
+	ctx context.Context,
+	fn func(ctx context.Context) (interface{}, error),
+	opts ...options.Lister[options.TransactionOptions],
+) (interface{}, error) {
 	timeout := time.NewTimer(withTransactionTimeout)
 	defer timeout.Stop()
 	var err error
@@ -192,7 +197,7 @@ func (s *Session) WithTransaction(ctx context.Context, fn func(ctx context.Conte
 
 // StartTransaction starts a new transaction. This method returns an error if
 // there is already a transaction in-progress for this session.
-func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
+func (s *Session) StartTransaction(opts ...options.Lister[options.TransactionOptions]) error {
 	err := s.clientSession.CheckStartTransaction()
 	if err != nil {
 		return err
@@ -200,29 +205,15 @@ func (s *Session) StartTransaction(opts ...*options.TransactionOptions) error {
 
 	s.didCommitAfterStart = false
 
-	topts := options.Transaction()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ReadConcern != nil {
-			topts.ReadConcern = opt.ReadConcern
-		}
-		if opt.ReadPreference != nil {
-			topts.ReadPreference = opt.ReadPreference
-		}
-		if opt.WriteConcern != nil {
-			topts.WriteConcern = opt.WriteConcern
-		}
-		if opt.MaxCommitTime != nil {
-			topts.MaxCommitTime = opt.MaxCommitTime
-		}
+	args, err := mongoutil.NewOptions[options.TransactionOptions](opts...)
+	if err != nil {
+		return fmt.Errorf("failed to construct options from builder: %w", err)
 	}
+
 	coreOpts := &session.TransactionOptions{
-		ReadConcern:    topts.ReadConcern,
-		ReadPreference: topts.ReadPreference,
-		WriteConcern:   topts.WriteConcern,
-		MaxCommitTime:  topts.MaxCommitTime,
+		ReadConcern:    args.ReadConcern,
+		ReadPreference: args.ReadPreference,
+		WriteConcern:   args.WriteConcern,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)
@@ -282,7 +273,7 @@ func (s *Session) CommitTransaction(ctx context.Context) error {
 		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.deployment).
 		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
 		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).
-		ServerAPI(s.client.serverAPI).MaxTime(s.clientSession.CurrentMct)
+		ServerAPI(s.client.serverAPI)
 
 	err = op.Execute(ctx)
 	// Return error without updating transaction state if it is a timeout, as the transaction has not

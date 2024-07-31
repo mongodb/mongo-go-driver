@@ -14,17 +14,17 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/version"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/version"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // maxClientMetadataSize is the maximum size of the client metadata document
@@ -47,6 +47,7 @@ type Hello struct {
 	maxAwaitTimeMS     *int64
 	serverAPI          *driver.ServerAPIOptions
 	loadBalanced       bool
+	omitMaxTimeMS      bool
 
 	res bsoncore.Document
 }
@@ -590,7 +591,8 @@ func (h *Hello) createOperation() driver.Operation {
 			h.res = info.ServerResponse
 			return nil
 		},
-		ServerAPI: h.serverAPI,
+		ServerAPI:     h.serverAPI,
+		OmitMaxTimeMS: h.omitMaxTimeMS,
 	}
 
 	if isLegacyHandshake(h.serverAPI, h.loadBalanced) {
@@ -649,4 +651,16 @@ func (h *Hello) GetHandshakeInformation(ctx context.Context, _ address.Address, 
 // does not do anything besides the initial Hello for a handshake.
 func (h *Hello) FinishHandshake(context.Context, *mnet.Connection) error {
 	return nil
+}
+
+// OmitMaxTimeMS will ensure maxTimMS is not included in the wire message
+// constructed to send a hello request.
+func (h *Hello) OmitMaxTimeMS(val bool) *Hello {
+	if h == nil {
+		h = new(Hello)
+	}
+
+	h.omitMaxTimeMS = val
+
+	return h
 }

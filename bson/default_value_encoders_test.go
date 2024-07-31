@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 type myInterface interface {
@@ -35,7 +35,6 @@ func (ms myStruct) Foo() int {
 }
 
 func TestDefaultValueEncoders(t *testing.T) {
-	var dve DefaultValueEncoders
 	var wrong = func(string, string) string { return "wrong" }
 
 	type mybool bool
@@ -58,11 +57,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 	d128 := NewDecimal128(12345, 67890)
 	var nilValueMarshaler *testValueMarshaler
 	var nilMarshaler *testMarshaler
-	var nilProxy *testProxy
 
 	vmStruct := struct{ V testValueMarshalPtr }{testValueMarshalPtr{t: TypeString, buf: []byte{0x04, 0x00, 0x00, 0x00, 'f', 'o', 'o', 0x00}}}
 	mStruct := struct{ V testMarshalPtr }{testMarshalPtr{buf: bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))}}
-	pStruct := struct{ V testProxyPtr }{testProxyPtr{ret: int64(1234567890)}}
 
 	type subtest struct {
 		name   string
@@ -80,7 +77,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	}{
 		{
 			"BooleanEncodeValue",
-			ValueEncoderFunc(dve.BooleanEncodeValue),
+			ValueEncoderFunc(booleanEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -96,7 +93,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"IntEncodeValue",
-			ValueEncoderFunc(dve.IntEncodeValue),
+			ValueEncoderFunc(intEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -114,9 +111,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"int16/fast path", int16(32767), nil, nil, writeInt32, nil},
 				{"int32/fast path", int32(2147483647), nil, nil, writeInt32, nil},
 				{"int64/fast path", int64(1234567890987), nil, nil, writeInt64, nil},
-				{"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"int/fast path - positive int32", int(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
 				{"int/fast path - negative int32", int(math.MinInt32 + 1), nil, nil, writeInt32, nil},
 				{"int/fast path - MaxInt32", int(math.MaxInt32), nil, nil, writeInt32, nil},
@@ -125,9 +122,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"int16/reflection path", myint16(32767), nil, nil, writeInt32, nil},
 				{"int32/reflection path", myint32(2147483647), nil, nil, writeInt32, nil},
 				{"int64/reflection path", myint64(1234567890987), nil, nil, writeInt64, nil},
-				{"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"int/reflection path - positive int32", myint(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
 				{"int/reflection path - negative int32", myint(math.MinInt32 + 1), nil, nil, writeInt32, nil},
 				{"int/reflection path - MaxInt32", myint(math.MaxInt32), nil, nil, writeInt32, nil},
@@ -136,7 +133,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UintEncodeValue",
-			defaultUIntCodec,
+			&uintCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -155,29 +152,29 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"uint32/fast path", uint32(2147483647), nil, nil, writeInt64, nil},
 				{"uint64/fast path", uint64(1234567890987), nil, nil, writeInt64, nil},
 				{"uint/fast path", uint(1234567), nil, nil, writeInt64, nil},
-				{"uint32/fast path - minsize", uint32(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint64/fast path - minsize", uint64(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint/fast path - minsize", uint(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint32/fast path - minsize too large", uint32(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint64/fast path - minsize too large", uint64(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint/fast path - minsize too large", uint(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"uint32/fast path - minsize", uint32(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint64/fast path - minsize", uint64(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint/fast path - minsize", uint(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint32/fast path - minsize too large", uint32(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint64/fast path - minsize too large", uint64(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint/fast path - minsize too large", uint(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"uint64/fast path - overflow", uint64(1 << 63), nil, nil, nothing, fmt.Errorf("%d overflows int64", uint64(1<<63))},
 				{"uint8/reflection path", myuint8(127), nil, nil, writeInt32, nil},
 				{"uint16/reflection path", myuint16(32767), nil, nil, writeInt32, nil},
 				{"uint32/reflection path", myuint32(2147483647), nil, nil, writeInt64, nil},
 				{"uint64/reflection path", myuint64(1234567890987), nil, nil, writeInt64, nil},
-				{"uint32/reflection path - minsize", myuint32(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint64/reflection path - minsize", myuint64(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint/reflection path - minsize", myuint(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint32/reflection path - minsize too large", myuint(1 << 31), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint64/reflection path - minsize too large", myuint64(1 << 31), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint/reflection path - minsize too large", myuint(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"uint32/reflection path - minsize", myuint32(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint64/reflection path - minsize", myuint64(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint/reflection path - minsize", myuint(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint32/reflection path - minsize too large", myuint(1 << 31), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint64/reflection path - minsize too large", myuint64(1 << 31), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint/reflection path - minsize too large", myuint(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"uint64/reflection path - overflow", myuint64(1 << 63), nil, nil, nothing, fmt.Errorf("%d overflows int64", uint64(1<<63))},
 			},
 		},
 		{
 			"FloatEncodeValue",
-			ValueEncoderFunc(dve.FloatEncodeValue),
+			ValueEncoderFunc(floatEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -199,7 +196,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimeEncodeValue",
-			defaultTimeCodec,
+			&timeCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -214,7 +211,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MapEncodeValue",
-			defaultMapCodec,
+			&mapCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -235,7 +232,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					map[string]int{"foo": 1},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeDocument,
 					fmt.Errorf("no encoder found for int"),
@@ -259,7 +256,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty map/success",
 					map[string]interface{}{},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeDocumentEnd,
 					nil,
@@ -294,7 +291,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ArrayEncodeValue",
-			ValueEncoderFunc(dve.ArrayEncodeValue),
+			ValueEncoderFunc(arrayEncodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -315,7 +312,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[1]int{1},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -372,7 +369,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SliceEncodeValue",
-			defaultSliceCodec,
+			&sliceCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -393,7 +390,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[]int{1},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArray,
 					fmt.Errorf("no encoder found for int"),
@@ -433,7 +430,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{
 					"empty slice/success",
 					[]interface{}{},
-					&EncodeContext{Registry: newTestRegistryBuilder().Build()},
+					&EncodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					writeArrayEnd,
 					nil,
@@ -458,7 +455,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ObjectIDEncodeValue",
-			ValueEncoderFunc(dve.ObjectIDEncodeValue),
+			ValueEncoderFunc(objectIDEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -477,7 +474,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"Decimal128EncodeValue",
-			ValueEncoderFunc(dve.Decimal128EncodeValue),
+			ValueEncoderFunc(decimal128EncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -492,7 +489,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"JSONNumberEncodeValue",
-			ValueEncoderFunc(dve.JSONNumberEncodeValue),
+			ValueEncoderFunc(jsonNumberEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -521,7 +518,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"URLEncodeValue",
-			ValueEncoderFunc(dve.URLEncodeValue),
+			ValueEncoderFunc(urlEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -536,7 +533,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ByteSliceEncodeValue",
-			defaultByteSliceCodec,
+			&byteSliceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -552,7 +549,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"EmptyInterfaceEncodeValue",
-			defaultEmptyInterfaceCodec,
+			&emptyInterfaceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -566,7 +563,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"ValueMarshalerEncodeValue",
-			ValueEncoderFunc(dve.ValueMarshalerEncodeValue),
+			ValueEncoderFunc(valueMarshalerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -644,7 +641,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MarshalerEncodeValue",
-			ValueEncoderFunc(dve.MarshalerEncodeValue),
+			ValueEncoderFunc(marshalerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -705,78 +702,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 			},
 		},
 		{
-			"ProxyEncodeValue",
-			ValueEncoderFunc(dve.ProxyEncodeValue),
-			[]subtest{
-				{
-					"wrong type",
-					wrong,
-					nil,
-					nil,
-					nothing,
-					ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: reflect.ValueOf(wrong)},
-				},
-				{
-					"Proxy error",
-					testProxy{err: errors.New("proxy error")},
-					nil,
-					nil,
-					nothing,
-					errors.New("proxy error"),
-				},
-				{
-					"Lookup error",
-					testProxy{ret: nil},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					nothing,
-					ErrNoEncoder{Type: nil},
-				},
-				{
-					"success struct implementation",
-					testProxy{ret: int64(1234567890)},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeInt64,
-					nil,
-				},
-				{
-					"success ptr to struct implementation",
-					&testProxy{ret: int64(1234567890)},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeInt64,
-					nil,
-				},
-				{
-					"success nil ptr to struct implementation",
-					nilProxy,
-					nil,
-					nil,
-					writeNull,
-					nil,
-				},
-				{
-					"success ptr to ptr implementation",
-					&testProxyPtr{ret: int64(1234567890)},
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeInt64,
-					nil,
-				},
-				{
-					"unaddressable ptr implementation",
-					testProxyPtr{ret: int64(1234567890)},
-					nil,
-					nil,
-					nothing,
-					ValueEncoderError{Name: "ProxyEncodeValue", Types: []reflect.Type{tProxy}, Received: reflect.ValueOf(testProxyPtr{})},
-				},
-			},
-		},
-		{
 			"PointerCodec.EncodeValue",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"nil",
@@ -808,13 +735,13 @@ func TestDefaultValueEncoders(t *testing.T) {
 					&EncodeContext{Registry: buildDefaultRegistry()},
 					nil,
 					nothing,
-					ErrNoEncoder{Type: reflect.TypeOf(wrong)},
+					errNoEncoder{Type: reflect.TypeOf(wrong)},
 				},
 			},
 		},
 		{
 			"pointer implementation addressable interface",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"ValueMarshaler",
@@ -832,19 +759,11 @@ func TestDefaultValueEncoders(t *testing.T) {
 					writeDocumentEnd,
 					nil,
 				},
-				{
-					"Proxy",
-					&pStruct,
-					&EncodeContext{Registry: buildDefaultRegistry()},
-					nil,
-					writeDocumentEnd,
-					nil,
-				},
 			},
 		},
 		{
 			"JavaScriptEncodeValue",
-			ValueEncoderFunc(dve.JavaScriptEncodeValue),
+			ValueEncoderFunc(javaScriptEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -859,7 +778,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"SymbolEncodeValue",
-			ValueEncoderFunc(dve.SymbolEncodeValue),
+			ValueEncoderFunc(symbolEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -874,7 +793,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"BinaryEncodeValue",
-			ValueEncoderFunc(dve.BinaryEncodeValue),
+			ValueEncoderFunc(binaryEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -889,7 +808,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"UndefinedEncodeValue",
-			ValueEncoderFunc(dve.UndefinedEncodeValue),
+			ValueEncoderFunc(undefinedEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -904,7 +823,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"DateTimeEncodeValue",
-			ValueEncoderFunc(dve.DateTimeEncodeValue),
+			ValueEncoderFunc(dateTimeEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -919,7 +838,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"NullEncodeValue",
-			ValueEncoderFunc(dve.NullEncodeValue),
+			ValueEncoderFunc(nullEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -934,7 +853,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"RegexEncodeValue",
-			ValueEncoderFunc(dve.RegexEncodeValue),
+			ValueEncoderFunc(regexEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -949,7 +868,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"DBPointerEncodeValue",
-			ValueEncoderFunc(dve.DBPointerEncodeValue),
+			ValueEncoderFunc(dbPointerEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -971,7 +890,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"TimestampEncodeValue",
-			ValueEncoderFunc(dve.TimestampEncodeValue),
+			ValueEncoderFunc(timestampEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -986,7 +905,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MinKeyEncodeValue",
-			ValueEncoderFunc(dve.MinKeyEncodeValue),
+			ValueEncoderFunc(minKeyEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1001,7 +920,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"MaxKeyEncodeValue",
-			ValueEncoderFunc(dve.MaxKeyEncodeValue),
+			ValueEncoderFunc(maxKeyEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1016,7 +935,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreDocumentEncodeValue",
-			ValueEncoderFunc(dve.CoreDocumentEncodeValue),
+			ValueEncoderFunc(coreDocumentEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1074,7 +993,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"StructEncodeValue",
-			defaultTestStructCodec,
+			newStructCodec(&mapCodec{}),
 			[]subtest{
 				{
 					"interface value",
@@ -1096,7 +1015,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CodeWithScopeEncodeValue",
-			ValueEncoderFunc(dve.CodeWithScopeEncodeValue),
+			ValueEncoderFunc(codeWithScopeEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1131,7 +1050,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		},
 		{
 			"CoreArrayEncodeValue",
-			defaultArrayCodec,
+			&arrayCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -1555,10 +1474,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC Decimal128
 					AD *time.Time
 					AE testValueMarshaler
-					AF Proxy
-					AG testProxy
-					AH map[string]interface{}
-					AI CodeWithScope
+					AF map[string]interface{}
+					AG CodeWithScope
 				}{
 					A: true,
 					B: 123,
@@ -1584,10 +1501,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC: decimal128,
 					AD: &now,
 					AE: testValueMarshaler{t: TypeString, buf: bsoncore.AppendString(nil, "hello, world")},
-					AF: testProxy{ret: struct{ Hello string }{Hello: "world!"}},
-					AG: testProxy{ret: struct{ Pi float64 }{Pi: 3.14159}},
-					AH: nil,
-					AI: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
+					AF: nil,
+					AG: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
 				},
 				buildDocument(func(doc []byte) []byte {
 					doc = bsoncore.AppendBooleanElement(doc, "a", true)
@@ -1612,10 +1527,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 					doc = bsoncore.AppendDecimal128Element(doc, "ac", decimal128.h, decimal128.l)
 					doc = bsoncore.AppendDateTimeElement(doc, "ad", now.UnixNano()/int64(time.Millisecond))
 					doc = bsoncore.AppendStringElement(doc, "ae", "hello, world")
-					doc = bsoncore.AppendDocumentElement(doc, "af", buildDocument(bsoncore.AppendStringElement(nil, "hello", "world!")))
-					doc = bsoncore.AppendDocumentElement(doc, "ag", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)))
-					doc = bsoncore.AppendNullElement(doc, "ah")
-					doc = bsoncore.AppendCodeWithScopeElement(doc, "ai",
+					doc = bsoncore.AppendNullElement(doc, "af")
+					doc = bsoncore.AppendCodeWithScopeElement(doc, "ag",
 						"var hello = 'world';", buildDocument(bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
 					)
 					return doc
@@ -1650,8 +1563,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AC []Decimal128
 					AD []*time.Time
 					AE []testValueMarshaler
-					AF []Proxy
-					AG []testProxy
 				}{
 					A: []bool{true},
 					B: []int32{123},
@@ -1684,14 +1595,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					AE: []testValueMarshaler{
 						{t: TypeString, buf: bsoncore.AppendString(nil, "hello")},
 						{t: TypeString, buf: bsoncore.AppendString(nil, "world")},
-					},
-					AF: []Proxy{
-						testProxy{ret: struct{ Hello string }{Hello: "world!"}},
-						testProxy{ret: struct{ Foo string }{Foo: "bar"}},
-					},
-					AG: []testProxy{
-						{ret: struct{ One int64 }{One: 1234567890}},
-						{ret: struct{ Pi float64 }{Pi: 3.14159}},
 					},
 				},
 				buildDocument(func(doc []byte) []byte {
@@ -1742,22 +1645,6 @@ func TestDefaultValueEncoders(t *testing.T) {
 					doc = appendArrayElement(doc, "ae",
 						bsoncore.AppendStringElement(bsoncore.AppendStringElement(nil, "0", "hello"), "1", "world"),
 					)
-					doc = appendArrayElement(doc, "af",
-						bsoncore.AppendDocumentElement(
-							bsoncore.AppendDocumentElement(nil, "0",
-								bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "hello", "world!")),
-							), "1",
-							bsoncore.BuildDocument(nil, bsoncore.AppendStringElement(nil, "foo", "bar")),
-						),
-					)
-					doc = appendArrayElement(doc, "ag",
-						bsoncore.AppendDocumentElement(
-							bsoncore.AppendDocumentElement(nil, "0",
-								bsoncore.BuildDocument(nil, bsoncore.AppendInt64Element(nil, "one", 1234567890)),
-							), "1",
-							bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159)),
-						),
-					)
 					return doc
 				}(nil)),
 				nil,
@@ -1766,8 +1653,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				b := make(SliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				b := make(sliceWriter, 0, 512)
+				vw := NewDocumentWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
@@ -1816,8 +1703,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				b := make(SliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				b := make(sliceWriter, 0, 512)
+				vw := NewDocumentWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
@@ -1832,7 +1719,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 	t.Run("EmptyInterfaceEncodeValue/nil", func(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		llvrw := new(valueReaderWriter)
-		err := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
+		err := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
 		noerr(t, err)
 		if llvrw.invoked != writeNull {
 			t.Errorf("Incorrect method called. got %v; want %v", llvrw.invoked, writeNull)
@@ -1843,8 +1730,8 @@ func TestDefaultValueEncoders(t *testing.T) {
 		val := reflect.New(tEmpty).Elem()
 		val.Set(reflect.ValueOf(int64(1234567890)))
 		llvrw := new(valueReaderWriter)
-		got := dve.EmptyInterfaceEncodeValue(EncodeContext{Registry: newTestRegistryBuilder().Build()}, llvrw, val)
-		want := ErrNoEncoder{Type: tInt64}
+		got := (&emptyInterfaceCodec{}).EncodeValue(EncodeContext{Registry: newTestRegistry()}, llvrw, val)
+		want := errNoEncoder{Type: tInt64}
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Did not receive expected error. got %v; want %v", got, want)
 		}
@@ -1857,8 +1744,8 @@ type testValueMarshalPtr struct {
 	err error
 }
 
-func (tvm *testValueMarshalPtr) MarshalBSONValue() (Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
+func (tvm *testValueMarshalPtr) MarshalBSONValue() (byte, []byte, error) {
+	return byte(tvm.t), tvm.buf, tvm.err
 }
 
 type testMarshalPtr struct {
@@ -1869,17 +1756,3 @@ type testMarshalPtr struct {
 func (tvm *testMarshalPtr) MarshalBSON() ([]byte, error) {
 	return tvm.buf, tvm.err
 }
-
-type testProxy struct {
-	ret interface{}
-	err error
-}
-
-func (tp testProxy) ProxyBSON() (interface{}, error) { return tp.ret, tp.err }
-
-type testProxyPtr struct {
-	ret interface{}
-	err error
-}
-
-func (tp *testProxyPtr) ProxyBSON() (interface{}, error) { return tp.ret, tp.err }

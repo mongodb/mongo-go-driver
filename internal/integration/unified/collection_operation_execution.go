@@ -12,18 +12,19 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // This file contains helpers to execute collection operations.
 
 func executeAggregate(ctx context.Context, operation *operation) (*operationResult, error) {
 	var aggregator interface {
-		Aggregate(context.Context, interface{}, ...*options.AggregateOptions) (*mongo.Cursor, error)
+		Aggregate(context.Context, interface{}, ...options.Lister[options.AggregateOptions]) (*mongo.Cursor, error)
 	}
 	var err error
 
@@ -67,8 +68,6 @@ func executeAggregate(ctx context.Context, operation *operation) (*operationResu
 				return nil, fmt.Errorf("error creating hint: %w", err)
 			}
 			opts.SetHint(hint)
-		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "maxAwaitTimeMS":
 			opts.SetMaxAwaitTime(time.Duration(val.Int32()) * time.Millisecond)
 		case "pipeline":
@@ -194,7 +193,12 @@ func executeCountDocuments(ctx context.Context, operation *operation) (*operatio
 		case "limit":
 			opts.SetLimit(val.Int64())
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "skip":
 			opts.SetSkip(int64(val.Int32()))
 		default:
@@ -319,8 +323,13 @@ func executeCreateSearchIndex(ctx context.Context, operation *operation) (*opera
 			}
 			model.Definition = m.Definition
 			model.Options = options.SearchIndexes()
-			model.Options.Name = m.Name
-			model.Options.Type = m.Type
+			if m.Name != nil {
+				model.Options.SetName(*m.Name)
+			}
+
+			if m.Type != nil {
+				model.Options.SetType(*m.Type)
+			}
 		default:
 			return nil, fmt.Errorf("unrecognized createSearchIndex option %q", key)
 		}
@@ -366,8 +375,12 @@ func executeCreateSearchIndexes(ctx context.Context, operation *operation) (*ope
 					Definition: m.Definition,
 					Options:    options.SearchIndexes(),
 				}
-				model.Options.Name = m.Name
-				model.Options.Type = m.Type
+				if m.Name != nil {
+					model.Options.SetName(*m.Name)
+				}
+				if m.Type != nil {
+					model.Options.SetType(*m.Type)
+				}
 				models = append(models, model)
 			}
 		default:
@@ -523,7 +536,12 @@ func executeDistinct(ctx context.Context, operation *operation) (*operationResul
 		case "filter":
 			filter = val.Document()
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized distinct option %q", key)
 		}
@@ -566,7 +584,12 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 		case "name":
 			name = val.StringValue()
 		case "maxTimeMS":
-			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized dropIndex option %q", key)
 		}
@@ -575,8 +598,8 @@ func executeDropIndex(ctx context.Context, operation *operation) (*operationResu
 		return nil, newMissingArgumentError("name")
 	}
 
-	res, err := coll.Indexes().DropOne(ctx, name, dropIndexOpts)
-	return newDocumentResult(res, err), nil
+	err = coll.Indexes().DropOne(ctx, name, dropIndexOpts)
+	return newDocumentResult(nil, err), nil
 }
 
 func executeDropIndexes(ctx context.Context, operation *operation) (*operationResult, error) {
@@ -589,11 +612,15 @@ func executeDropIndexes(ctx context.Context, operation *operation) (*operationRe
 	elems, _ := operation.Arguments.Elements()
 	for _, elem := range elems {
 		key := elem.Key()
-		val := elem.Value()
 
 		switch key {
 		case "maxTimeMS":
-			dropIndexOpts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized dropIndexes option %q", key)
 		}
@@ -654,7 +681,12 @@ func executeEstimatedDocumentCount(ctx context.Context, operation *operation) (*
 		case "comment":
 			opts.SetComment(val)
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		default:
 			return nil, fmt.Errorf("unrecognized estimatedDocumentCount option %q", key)
 		}
@@ -731,7 +763,12 @@ func executeFindOne(ctx context.Context, operation *operation) (*operationResult
 			}
 			opts.SetHint(hint)
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "sort":
@@ -790,7 +827,12 @@ func executeFindOneAndDelete(ctx context.Context, operation *operation) (*operat
 			}
 			opts.SetHint(hint)
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "sort":
@@ -856,7 +898,12 @@ func executeFindOneAndReplace(ctx context.Context, operation *operation) (*opera
 		case "let":
 			opts.SetLet(val.Document())
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "replacement":
@@ -916,9 +963,9 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 
 		switch key {
 		case "arrayFilters":
-			opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "bypassDocumentValidation":
 			opts.SetBypassDocumentValidation(val.Boolean())
 		case "collation":
@@ -940,7 +987,12 @@ func executeFindOneAndUpdate(ctx context.Context, operation *operation) (*operat
 		case "let":
 			opts.SetLet(val.Document())
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "projection":
 			opts.SetProjection(val.Document())
 		case "returnDocument":
@@ -1125,7 +1177,7 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 	}
 
 	searchIdxOpts := options.SearchIndexes()
-	var opts []*options.ListSearchIndexesOptions
+	var opts []options.Lister[options.ListSearchIndexesOptions]
 
 	elems, err := operation.Arguments.Elements()
 	if err != nil {
@@ -1139,20 +1191,24 @@ func executeListSearchIndexes(ctx context.Context, operation *operation) (*opera
 		case "name":
 			searchIdxOpts.SetName(val.StringValue())
 		case "aggregationOptions":
-			var opt options.AggregateOptions
-			err = bson.Unmarshal(val.Document(), &opt)
-			if err != nil {
-				return nil, err
+			// Unmarshal the document into the AggregateOptions embedded object.
+			lsiOpts := &options.ListSearchIndexesOptions{}
+			lsiOptsCallback := func(args *options.ListSearchIndexesOptions) error {
+				args.AggregateOptions = &options.AggregateOptions{}
+
+				return bson.Unmarshal(val.Document(), args.AggregateOptions)
 			}
-			opts = append(opts, &options.ListSearchIndexesOptions{
-				AggregateOpts: &opt,
-			})
+
+			opts = append(opts, mongoutil.NewOptionsLister(lsiOpts, lsiOptsCallback))
 		default:
 			return nil, fmt.Errorf("unrecognized listSearchIndexes option %q", key)
 		}
 	}
 
-	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, opts...)
+	aggregateOpts := make([]options.Lister[options.ListSearchIndexesOptions], len(opts))
+	copy(aggregateOpts, opts)
+
+	_, err = coll.SearchIndexes().List(ctx, searchIdxOpts, aggregateOpts...)
 	return newValueResult(bson.TypeNull, nil, err), nil
 }
 
@@ -1403,7 +1459,12 @@ func createFindCursor(ctx context.Context, operation *operation) (*cursorResult,
 		case "max":
 			opts.SetMax(val.Document())
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS collection option is not supported")
 		case "min":
 			opts.SetMin(val.Document())
 		case "noCursorTimeout":

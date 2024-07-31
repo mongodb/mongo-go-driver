@@ -11,21 +11,20 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Distinct performs a distinct operation.
 type Distinct struct {
 	collation      bsoncore.Document
 	key            *string
-	maxTime        *time.Duration
 	query          bsoncore.Document
 	session        *session.Client
 	clock          *session.ClusterClock
@@ -99,7 +98,6 @@ func (d *Distinct) Execute(ctx context.Context) error {
 		Crypt:             d.crypt,
 		Database:          d.database,
 		Deployment:        d.deployment,
-		MaxTime:           d.maxTime,
 		ReadConcern:       d.readConcern,
 		ReadPreference:    d.readPreference,
 		Selector:          d.selector,
@@ -147,16 +145,6 @@ func (d *Distinct) Key(key string) *Distinct {
 	}
 
 	d.key = &key
-	return d
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (d *Distinct) MaxTime(maxTime *time.Duration) *Distinct {
-	if d == nil {
-		d = new(Distinct)
-	}
-
-	d.maxTime = maxTime
 	return d
 }
 

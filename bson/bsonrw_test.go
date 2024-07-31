@@ -9,11 +9,13 @@ package bson
 import (
 	"testing"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
-var _ ValueReader = (*valueReaderWriter)(nil)
-var _ ValueWriter = (*valueReaderWriter)(nil)
+var (
+	_ ValueReader = &valueReaderWriter{}
+	_ ValueWriter = &valueReaderWriter{}
+)
 
 // invoked is a type used to indicate what method was called last.
 type invoked byte

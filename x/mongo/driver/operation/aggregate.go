@@ -11,15 +11,15 @@ import (
 	"errors"
 	"time"
 
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Aggregate represents an aggregate operation.
@@ -30,7 +30,6 @@ type Aggregate struct {
 	collation                bsoncore.Document
 	comment                  bsoncore.Value
 	hint                     bsoncore.Value
-	maxTime                  *time.Duration
 	pipeline                 bsoncore.Document
 	session                  *session.Client
 	clock                    *session.ClusterClock
@@ -109,7 +108,6 @@ func (a *Aggregate) Execute(ctx context.Context) error {
 		MinimumWriteConcernWireVersion: 5,
 		ServerAPI:                      a.serverAPI,
 		IsOutputAggregate:              a.hasOutputStage,
-		MaxTime:                        a.maxTime,
 		Timeout:                        a.timeout,
 		Name:                           driverutil.AggregateOp,
 	}.Execute(ctx)
@@ -221,16 +219,6 @@ func (a *Aggregate) Hint(hint bsoncore.Value) *Aggregate {
 	}
 
 	a.hint = hint
-	return a
-}
-
-// MaxTime specifies the maximum amount of time to allow the query to run on the server.
-func (a *Aggregate) MaxTime(maxTime *time.Duration) *Aggregate {
-	if a == nil {
-		a = new(Aggregate)
-	}
-
-	a.maxTime = maxTime
 	return a
 }
 

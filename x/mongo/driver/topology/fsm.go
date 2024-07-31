@@ -11,11 +11,11 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/internal/ptrutil"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 var (
@@ -23,7 +23,7 @@ var (
 	MinSupportedMongoDBVersion = "3.6"
 
 	// SupportedWireVersions is the range of wire versions supported by the driver.
-	SupportedWireVersions = driverutil.NewVersionRange(6, 21)
+	SupportedWireVersions = driverutil.NewVersionRange(6, 25)
 )
 
 type fsm struct {

@@ -17,16 +17,16 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/topology"
 )
 
 var (
@@ -399,19 +399,23 @@ func TestConvenientTransactions(t *testing.T) {
 
 		// Insert a document within a session and manually cancel context before
 		// "commitTransaction" can be sent.
-		callback := func(ctx context.Context) {
-			transactionCtx, cancel := context.WithCancel(ctx)
-
+		callback := func() bool {
+			transactionCtx, cancel := context.WithCancel(context.Background())
 			_, _ = sess.WithTransaction(transactionCtx, func(ctx context.Context) (interface{}, error) {
 				_, err := coll.InsertOne(ctx, bson.M{"x": 1})
-				assert.Nil(t, err, "InsertOne error: %v", err)
+				assert.NoError(t, err, "InsertOne error: %v", err)
 				cancel()
 				return nil, nil
 			})
+			return true
 		}
 
 		// Assert that transaction is canceled within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		assert.Eventually(t,
+			callback,
+			500*time.Millisecond,
+			time.Millisecond,
+			"expected transaction to be canceled within 500ms")
 
 		// Assert that AbortTransaction was started once and succeeded.
 		assert.Equal(t, 1, len(abortStarted), "expected 1 abortTransaction started event, got %d", len(abortStarted))
@@ -459,19 +463,24 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		callback := func(ctx context.Context) {
+		callback := func() bool {
 			// Create transaction context with short timeout.
-			withTransactionContext, cancel := context.WithTimeout(ctx, time.Nanosecond)
+			withTransactionContext, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 			defer cancel()
 
 			_, _ = sess.WithTransaction(withTransactionContext, func(ctx context.Context) (interface{}, error) {
 				_, err := coll.InsertOne(ctx, bson.D{{}})
 				return nil, err
 			})
+			return true
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		assert.Eventually(t,
+			callback,
+			500*time.Millisecond,
+			time.Millisecond,
+			"expected transaction to fail within 500ms")
 	})
 	t.Run("canceled context before callback does not retry", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
@@ -489,19 +498,24 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		callback := func(ctx context.Context) {
+		callback := func() bool {
 			// Create transaction context and cancel it immediately.
-			withTransactionContext, cancel := context.WithTimeout(ctx, 2*time.Second)
+			withTransactionContext, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			cancel()
 
 			_, _ = sess.WithTransaction(withTransactionContext, func(ctx context.Context) (interface{}, error) {
 				_, err := coll.InsertOne(ctx, bson.D{{}})
 				return nil, err
 			})
+			return true
 		}
 
 		// Assert that transaction fails within 500ms and not 2 seconds.
-		assert.Soon(t, callback, 500*time.Millisecond)
+		assert.Eventually(t,
+			callback,
+			500*time.Millisecond,
+			time.Millisecond,
+			"expected transaction to fail within 500ms")
 	})
 	t.Run("slow operation in callback retries", func(t *testing.T) {
 		withTransactionTimeout = 2 * time.Second
@@ -540,8 +554,8 @@ func TestConvenientTransactions(t *testing.T) {
 		assert.Nil(t, err, "StartSession error: %v", err)
 		defer sess.EndSession(context.Background())
 
-		callback := func(ctx context.Context) {
-			_, err = sess.WithTransaction(ctx, func(ctx context.Context) (interface{}, error) {
+		callback := func() bool {
+			_, err = sess.WithTransaction(context.Background(), func(ctx context.Context) (interface{}, error) {
 				// Set a timeout of 300ms to cause a timeout on first insertOne
 				// and force a retry.
 				c, cancel := context.WithTimeout(ctx, 300*time.Millisecond)
@@ -550,15 +564,21 @@ func TestConvenientTransactions(t *testing.T) {
 				_, err := coll.InsertOne(c, bson.D{{}})
 				return nil, err
 			})
-			assert.Nil(t, err, "WithTransaction error: %v", err)
+			assert.NoError(t, err, "WithTransaction error: %v", err)
+			return true
 		}
 
 		// Assert that transaction passes within 2 seconds.
-		assert.Soon(t, callback, 2*time.Second)
+		assert.Eventually(t,
+			callback,
+			withTransactionTimeout,
+			time.Millisecond,
+			"expected transaction to be passed within 2s")
+
 	})
 }
 
-func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.ClientOptions) *Client {
+func setupConvenientTransactions(t *testing.T, extraClientOpts ...options.Lister[options.ClientOptions]) *Client {
 	cs := integtest.ConnString(t)
 	poolMonitor := &event.PoolMonitor{
 		Event: func(evt *event.PoolEvent) {
@@ -577,7 +597,7 @@ func setupConvenientTransactions(t *testing.T, extraClientOpts ...*options.Clien
 		SetWriteConcern(writeconcern.Majority()).
 		SetPoolMonitor(poolMonitor)
 	integtest.AddTestServerAPIVersion(baseClientOpts)
-	fullClientOpts := []*options.ClientOptions{baseClientOpts}
+	fullClientOpts := []options.Lister[options.ClientOptions]{baseClientOpts}
 	fullClientOpts = append(fullClientOpts, extraClientOpts...)
 
 	client, err := Connect(fullClientOpts...)

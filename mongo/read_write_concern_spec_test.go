@@ -9,18 +9,18 @@ package mongo
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"os"
 	"path"
 	"reflect"
 	"testing"
-	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/connstring"
 )
 
 const (
@@ -48,6 +48,7 @@ type connectionStringTest struct {
 	Valid        bool     `bson:"valid"`
 	ReadConcern  bson.Raw `bson:"readConcern"`
 	WriteConcern bson.Raw `bson:"writeConcern"`
+	SkipReason   string   `bson:"skipReason"`
 }
 
 type documentTestFile struct {
@@ -83,12 +84,16 @@ func TestReadWriteConcernSpec(t *testing.T) {
 }
 
 func runConnectionStringTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	assert.Nil(t, err, "ReadFile error for %v: %v", filePath, err)
 
 	var testFile connectionStringTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
+	assert.Nil(t, err, "decode error: %v", err)
 
 	for _, test := range testFile.Tests {
 		t.Run(test.Description, func(t *testing.T) {
@@ -98,6 +103,10 @@ func runConnectionStringTestFile(t *testing.T, filePath string) {
 }
 
 func runConnectionStringTest(t *testing.T, test connectionStringTest) {
+	if test.SkipReason != "" {
+		t.Skip(test.SkipReason)
+	}
+
 	cs, err := connstring.ParseAndValidate(test.URI)
 	if !test.Valid {
 		assert.NotNil(t, err, "expected Parse error, got nil")
@@ -122,11 +131,6 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 				assert.Equal(t, expected, cs.WString, "expected w value %v, got %v", expected, cs.WString)
 			}
 		}
-		if expectedWc.timeoutSet {
-			assert.True(t, cs.WTimeoutSet, "expected WTimeoutSet, got false")
-			assert.Equal(t, expectedWc.WTimeout, cs.WTimeout,
-				"expected timeout value %v, got %v", expectedWc.WTimeout, cs.WTimeout)
-		}
 		if expectedWc.jSet {
 			assert.True(t, cs.JSet, "expected JSet, got false")
 			assert.Equal(t, *expectedWc.Journal, cs.J, "expected j value %v, got %v", *expectedWc.Journal, cs.J)
@@ -135,12 +139,16 @@ func runConnectionStringTest(t *testing.T, test connectionStringTest) {
 }
 
 func runDocumentTestFile(t *testing.T, filePath string) {
-	content, err := ioutil.ReadFile(filePath)
+	content, err := os.ReadFile(filePath)
 	assert.Nil(t, err, "ReadFile error: %v", err)
 
 	var testFile documentTestFile
-	err = bson.UnmarshalExtJSONWithRegistry(specTestRegistry, content, false, &testFile)
-	assert.Nil(t, err, "UnmarshalExtJSONWithRegistry error: %v", err)
+	vr, err := bson.NewExtJSONValueReader(bytes.NewReader(content), false)
+	assert.Nil(t, err, "NewExtJSONValueReader error: %v", err)
+	dec := bson.NewDecoder(vr)
+	dec.SetRegistry(specTestRegistry)
+	err = dec.Decode(&testFile)
+	assert.Nil(t, err, "decode error: %v", err)
 
 	for _, test := range testFile.Tests {
 		t.Run(test.Description, func(t *testing.T) {
@@ -151,11 +159,11 @@ func runDocumentTestFile(t *testing.T, filePath string) {
 
 func runDocumentTest(t *testing.T, test documentTest) {
 	if test.ReadConcern != nil {
-		_, actual, err := readConcernFromRaw(t, test.ReadConcern).MarshalBSONValue()
+		_, actual, err := driver.MarshalBSONReadConcern(readConcernFromRaw(t, test.ReadConcern))
 		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
+			assert.NotNil(t, err, "expected an invalid read concern")
 		} else {
-			assert.Nil(t, err, "MarshalBSONValue error: %v", err)
+			assert.Nil(t, err, "got error: %v", err)
 			compareDocuments(t, *test.ReadConcernDocument, actual)
 		}
 
@@ -166,9 +174,9 @@ func runDocumentTest(t *testing.T, test documentTest) {
 	}
 	if test.WriteConcern != nil {
 		actualWc := writeConcernFromRaw(t, test.WriteConcern)
-		_, actual, err := actualWc.MarshalBSONValue()
+		_, actual, err := driver.MarshalBSONWriteConcern(actualWc.WriteConcern, 0)
 		if !test.Valid {
-			assert.NotNil(t, err, "expected MarshalBSONValue error, got nil")
+			assert.NotNil(t, err, "expected an invalid write concern")
 			return
 		}
 		if test.IsAcknowledged != nil {
@@ -178,7 +186,7 @@ func runDocumentTest(t *testing.T, test documentTest) {
 		}
 
 		expected := *test.WriteConcernDocument
-		if errors.Is(err, writeconcern.ErrEmptyWriteConcern) {
+		if errors.Is(err, driver.ErrEmptyWriteConcern) {
 			elems, _ := expected.Elements()
 			if len(elems) == 0 {
 				assert.NotNil(t, test.IsServerDefault, "expected write concern %s, got empty", expected)
@@ -221,9 +229,8 @@ func readConcernFromRaw(t *testing.T, rc bson.Raw) *readconcern.ReadConcern {
 
 type writeConcern struct {
 	*writeconcern.WriteConcern
-	jSet       bool
-	wSet       bool
-	timeoutSet bool
+	jSet bool
+	wSet bool
 }
 
 func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
@@ -247,14 +254,12 @@ func writeConcernFromRaw(t *testing.T, wcRaw bson.Raw) writeConcern {
 			default:
 				t.Fatalf("unexpected type for w: %v", val.Type)
 			}
-		case "wtimeoutMS":
-			wc.timeoutSet = true
-			timeout := time.Duration(val.Int32()) * time.Millisecond
-			wc.WriteConcern.WTimeout = timeout
 		case "journal":
 			wc.jSet = true
 			j := val.Boolean()
 			wc.WriteConcern.Journal = &j
+		case "wtimeoutMS": // Do nothing, this field is deprecated
+			t.Skip("the wtimeoutMS write concern option is not supported")
 		default:
 			t.Fatalf("unrecognized write concern field: %v", key)
 		}
@@ -268,7 +273,7 @@ func jsonFilesInDir(t *testing.T, dir string) []string {
 
 	files := make([]string, 0)
 
-	entries, err := ioutil.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	assert.Nil(t, err, "unable to read json file: %v", err)
 
 	for _, entry := range entries {

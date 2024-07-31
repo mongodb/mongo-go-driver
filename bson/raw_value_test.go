@@ -12,8 +12,8 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestRawValue(t *testing.T) {
@@ -25,10 +25,10 @@ func TestRawValue(t *testing.T) {
 		t.Run("Uses registry attached to value", func(t *testing.T) {
 			t.Parallel()
 
-			reg := newTestRegistryBuilder().Build()
+			reg := newTestRegistry()
 			val := RawValue{Type: TypeString, Value: bsoncore.AppendString(nil, "foobar"), r: reg}
 			var s string
-			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
+			want := errNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.Unmarshal(&s)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
@@ -63,10 +63,10 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			reg := newTestRegistryBuilder().Build()
+			reg := newTestRegistry()
 			var val RawValue
 			var s string
-			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
+			want := errNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.UnmarshalWithRegistry(reg, &s)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)
@@ -114,10 +114,10 @@ func TestRawValue(t *testing.T) {
 		t.Run("Returns lookup error", func(t *testing.T) {
 			t.Parallel()
 
-			dc := DecodeContext{Registry: newTestRegistryBuilder().Build()}
+			dc := DecodeContext{Registry: newTestRegistry()}
 			var val RawValue
 			var s string
-			want := ErrNoDecoder{Type: reflect.TypeOf(s)}
+			want := errNoDecoder{Type: reflect.TypeOf(s)}
 			got := val.UnmarshalWithContext(&dc, &s)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Expected errors to match. got %v; want %v", got, want)

@@ -13,11 +13,10 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func createBucketFindCursor(ctx context.Context, operation *operation) (*cursorResult, error) {
@@ -39,7 +38,12 @@ func createBucketFindCursor(ctx context.Context, operation *operation) (*cursorR
 
 		switch key {
 		case "maxTimeMS":
-			opts.SetMaxTime(time.Duration(val.Int32()) * time.Millisecond)
+			// TODO(DRIVERS-2829): Error here instead of skip to ensure that if new
+			// tests are added containing maxTimeMS (a legacy timeout option that we
+			// have removed as of v2), then a CSOT analogue exists. Once we have
+			// ensured an analogue exists, extend "skippedTestDescriptions" to avoid
+			// this error.
+			return nil, fmt.Errorf("the maxTimeMS gridfs option is not supported")
 		case "filter":
 			filter = val.Document()
 		default:

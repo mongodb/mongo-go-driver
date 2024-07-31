@@ -12,17 +12,17 @@ import (
 	"reflect"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestBasicEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(SliceWriter, 0, 1024)
-			vw := NewValueWriter(&got)
-			reg := DefaultRegistry
+			got := make(sliceWriter, 0, 1024)
+			vw := NewDocumentWriter(&got)
+			reg := defaultRegistry
 			encoder, err := reg.LookupEncoder(reflect.TypeOf(tc.val))
 			noerr(t, err)
 			err = encoder.EncodeValue(EncodeContext{Registry: reg}, vw, reflect.ValueOf(tc.val))
@@ -39,8 +39,8 @@ func TestBasicEncode(t *testing.T) {
 func TestEncoderEncode(t *testing.T) {
 	for _, tc := range marshalingTestCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := make(SliceWriter, 0, 1024)
-			vw := NewValueWriter(&got)
+			got := make(sliceWriter, 0, 1024)
+			vw := NewDocumentWriter(&got)
 			enc := NewEncoder(vw)
 			err := enc.Encode(tc.val)
 			noerr(t, err)
@@ -88,13 +88,13 @@ func TestEncoderEncode(t *testing.T) {
 				marshaler := testMarshaler{buf: tc.buf, err: tc.err}
 
 				var vw ValueWriter
-				b := make(SliceWriter, 0, 100)
+				b := make(sliceWriter, 0, 100)
 				compareVW := false
 				if tc.vw != nil {
 					vw = tc.vw
 				} else {
 					compareVW = true
-					vw = NewValueWriter(&b)
+					vw = NewDocumentWriter(&b)
 				}
 				enc := NewEncoder(vw)
 				got := enc.Encode(marshaler)
@@ -273,7 +273,7 @@ func TestEncoderConfiguration(t *testing.T) {
 			t.Parallel()
 
 			got := new(bytes.Buffer)
-			vw := NewValueWriter(got)
+			vw := NewDocumentWriter(got)
 			enc := NewEncoder(vw)
 
 			tc.configure(enc)

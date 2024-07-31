@@ -10,37 +10,8 @@
 // https://www.mongodb.com/docs/manual/reference/write-concern/
 package writeconcern
 
-import (
-	"errors"
-	"fmt"
-	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-)
-
 // WCMajority can be used to create a WriteConcern with a W value of "majority".
 const WCMajority = "majority"
-
-// ErrInconsistent indicates that an inconsistent write concern was specified.
-//
-// Deprecated: ErrInconsistent will be removed in Go Driver 2.0.
-var ErrInconsistent = errors.New("a write concern cannot have both w=0 and j=true")
-
-// ErrEmptyWriteConcern indicates that a write concern has no fields set.
-//
-// Deprecated: ErrEmptyWriteConcern will be removed in Go Driver 2.0.
-var ErrEmptyWriteConcern = errors.New("a write concern must have at least one field set")
-
-// ErrNegativeW indicates that a negative integer `w` field was specified.
-//
-// Deprecated: ErrNegativeW will be removed in Go Driver 2.0.
-var ErrNegativeW = errors.New("write concern `w` field cannot be a negative number")
-
-// ErrNegativeWTimeout indicates that a negative WTimeout was specified.
-//
-// Deprecated: ErrNegativeWTimeout will be removed in Go Driver 2.0.
-var ErrNegativeWTimeout = errors.New("write concern `wtimeout` field cannot be negative")
 
 // A WriteConcern defines a MongoDB write concern, which describes the level of acknowledgment
 // requested from MongoDB for write operations to a standalone mongod, to replica sets, or to
@@ -74,17 +45,6 @@ type WriteConcern struct {
 	// For more information about the "j" option, see
 	// https://www.mongodb.com/docs/manual/reference/write-concern/#j-option
 	Journal *bool
-
-	// WTimeout specifies a time limit for the write concern. It sets the
-	// "wtimeout" option in a MongoDB write concern.
-	//
-	// It is only applicable for "w" values greater than 1. Using a WTimeout and
-	// setting Timeout on the Client at the same time will result in undefined
-	// behavior.
-	//
-	// For more information about the "wtimeout" option, see
-	// https://www.mongodb.com/docs/manual/reference/write-concern/#wtimeout
-	WTimeout time.Duration
 }
 
 // Unacknowledged returns a WriteConcern that requests no acknowledgment of
@@ -142,59 +102,6 @@ func Majority() *WriteConcern {
 // https://www.mongodb.com/docs/manual/reference/write-concern/#mongodb-writeconcern-writeconcern.-custom-write-concern-name-
 func Custom(tag string) *WriteConcern {
 	return &WriteConcern{W: tag}
-}
-
-// MarshalBSONValue implements the bson.ValueMarshaler interface.
-//
-// Deprecated: Marshaling a WriteConcern to BSON will not be supported in Go
-// Driver 2.0.
-func (wc *WriteConcern) MarshalBSONValue() (bson.Type, []byte, error) {
-	if wc == nil {
-		return 0, nil, ErrEmptyWriteConcern
-	}
-
-	var elems []byte
-	if wc.W != nil {
-		// Only support string or int values for W. That aligns with the
-		// documentation and the behavior of other functions, like Acknowledged.
-		switch w := wc.W.(type) {
-		case int:
-			if w < 0 {
-				return 0, nil, ErrNegativeW
-			}
-
-			// If Journal=true and W=0, return an error because that write
-			// concern is ambiguous.
-			if wc.Journal != nil && *wc.Journal && w == 0 {
-				return 0, nil, ErrInconsistent
-			}
-
-			elems = bsoncore.AppendInt32Element(elems, "w", int32(w))
-		case string:
-			elems = bsoncore.AppendStringElement(elems, "w", w)
-		default:
-			return 0,
-				nil,
-				fmt.Errorf("WriteConcern.W must be a string or int, but is a %T", wc.W)
-		}
-	}
-
-	if wc.Journal != nil {
-		elems = bsoncore.AppendBooleanElement(elems, "j", *wc.Journal)
-	}
-
-	if wc.WTimeout < 0 {
-		return 0, nil, ErrNegativeWTimeout
-	}
-
-	if wc.WTimeout != 0 {
-		elems = bsoncore.AppendInt64Element(elems, "wtimeout", int64(wc.WTimeout/time.Millisecond))
-	}
-
-	if len(elems) == 0 {
-		return 0, nil, ErrEmptyWriteConcern
-	}
-	return bson.TypeEmbeddedDocument, bsoncore.BuildDocument(nil, elems), nil
 }
 
 // Acknowledged indicates whether or not a write with the given write concern will be acknowledged.

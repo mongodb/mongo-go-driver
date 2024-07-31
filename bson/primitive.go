@@ -183,14 +183,6 @@ func (tp Timestamp) Compare(tp2 Timestamp) int {
 	}
 }
 
-// CompareTimestamp compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
-// tp2, it returns +1; if they're the same, it returns 0.
-//
-// Deprecated: Use Timestamp.Compare instead.
-func CompareTimestamp(tp, tp2 Timestamp) int {
-	return tp.Compare(tp2)
-}
-
 // MinKey represents the BSON minkey value.
 type MinKey struct{}
 
@@ -205,16 +197,12 @@ type MaxKey struct{}
 //	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 type D []E
 
-// Map creates a map from the elements of the D.
-//
-// Deprecated: Converting directly from a D to an M will not be supported in Go Driver 2.0. Instead,
-// users should marshal the D to BSON using bson.Marshal and unmarshal it to M using bson.Unmarshal.
-func (d D) Map() M {
-	m := make(M, len(d))
-	for _, e := range d {
-		m[e.Key] = e.Value
+func (d D) String() string {
+	b, err := MarshalExtJSON(d, true, false)
+	if err != nil {
+		return ""
 	}
-	return m
+	return string(b)
 }
 
 // MarshalJSON encodes D into JSON.
@@ -280,6 +268,14 @@ type E struct {
 //
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 type M map[string]interface{}
+
+func (m M) String() string {
+	b, err := MarshalExtJSON(m, true, false)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
 
 // An A is an ordered representation of a BSON array.
 //

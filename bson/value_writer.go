@@ -15,10 +15,10 @@ import (
 	"strings"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
-var _ ValueWriter = (*valueWriter)(nil)
+var _ ValueWriter = &valueWriter{}
 
 var vwPool = sync.Pool{
 	New: func() interface{} {
@@ -31,62 +31,6 @@ func putValueWriter(vw *valueWriter) {
 		vw.w = nil // don't leak the writer
 		vwPool.Put(vw)
 	}
-}
-
-// ValueWriterPool is a pool for BSON ValueWriters.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-type ValueWriterPool struct {
-	pool sync.Pool
-}
-
-// NewValueWriterPool creates a new pool for ValueWriter instances that write to BSON.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func NewValueWriterPool() *ValueWriterPool {
-	return &ValueWriterPool{
-		pool: sync.Pool{
-			New: func() interface{} {
-				return new(valueWriter)
-			},
-		},
-	}
-}
-
-// Get retrieves a BSON ValueWriter from the pool and resets it to use w as the destination.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) Get(w io.Writer) ValueWriter {
-	vw := bvwp.pool.Get().(*valueWriter)
-
-	// TODO: Having to call reset here with the same buffer doesn't really make sense.
-	vw.reset(vw.buf)
-	vw.buf = vw.buf[:0]
-	vw.w = w
-	return vw
-}
-
-// GetAtModeElement retrieves a ValueWriterFlusher from the pool and resets it to use w as the destination.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) GetAtModeElement(w io.Writer) ValueWriterFlusher {
-	vw := bvwp.Get(w).(*valueWriter)
-	vw.push(mElement)
-	return vw
-}
-
-// Put inserts a ValueWriter into the pool. If the ValueWriter is not a BSON ValueWriter, nothing
-// happens and ok will be false.
-//
-// Deprecated: ValueWriterPool will not be supported in Go Driver 2.0.
-func (bvwp *ValueWriterPool) Put(vw ValueWriter) (ok bool) {
-	bvw, ok := vw.(*valueWriter)
-	if !ok {
-		return false
-	}
-
-	bvwp.pool.Put(bvw)
-	return true
 }
 
 // This is here so that during testing we can change it and not require
@@ -184,15 +128,15 @@ func (vw *valueWriter) pop() {
 	}
 }
 
-// NewValueWriter creates a ValueWriter that writes BSON to w.
+// NewDocumentWriter creates a ValueWriter that writes BSON to w.
 //
 // This ValueWriter will only write entire documents to the io.Writer and it
 // will buffer the document as it is built.
-func NewValueWriter(w io.Writer) ValueWriter {
-	return newValueWriter(w)
+func NewDocumentWriter(w io.Writer) ValueWriter {
+	return newDocumentWriter(w)
 }
 
-func newValueWriter(w io.Writer) *valueWriter {
+func newDocumentWriter(w io.Writer) *valueWriter {
 	vw := new(valueWriter)
 	stack := make([]vwState, 1, 5)
 	stack[0] = vwState{mode: mTopLevel}
@@ -202,7 +146,6 @@ func newValueWriter(w io.Writer) *valueWriter {
 	return vw
 }
 
-// TODO: only used in tests
 func newValueWriterFromSlice(buf []byte) *valueWriter {
 	vw := new(valueWriter)
 	stack := make([]vwState, 1, 5)
@@ -260,7 +203,7 @@ func (vw *valueWriter) writeElementHeader(t Type, destination mode, callerName s
 	return nil
 }
 
-func (vw *valueWriter) WriteValueBytes(t Type, b []byte) error {
+func (vw *valueWriter) writeValueBytes(t Type, b []byte) error {
 	if err := vw.writeElementHeader(t, mode(0), "WriteValueBytes"); err != nil {
 		return err
 	}

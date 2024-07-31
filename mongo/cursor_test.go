@@ -12,12 +12,12 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 type testBatchCursor struct {
@@ -95,9 +95,9 @@ func (tbc *testBatchCursor) Close(context.Context) error {
 	return nil
 }
 
-func (tbc *testBatchCursor) SetBatchSize(int32)       {}
-func (tbc *testBatchCursor) SetComment(interface{})   {}
-func (tbc *testBatchCursor) SetMaxTime(time.Duration) {}
+func (tbc *testBatchCursor) SetBatchSize(int32)            {}
+func (tbc *testBatchCursor) SetComment(interface{})        {}
+func (tbc *testBatchCursor) SetMaxAwaitTime(time.Duration) {}
 
 func TestCursor(t *testing.T) {
 	t.Run("loops until docs available", func(t *testing.T) {})

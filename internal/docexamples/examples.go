@@ -16,14 +16,14 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 func requireCursorLength(t *testing.T, cursor *mongo.Cursor, length int) {
@@ -1949,8 +1949,10 @@ func TransactionsExamples(ctx context.Context, client *mongo.Client) error {
 		return commitWithRetry(ctx)
 	}
 
+	txnOpts := options.Transaction().SetReadPreference(readpref.Primary())
+
 	return client.UseSessionWithOptions(
-		ctx, options.Session().SetDefaultReadPreference(readpref.Primary()),
+		ctx, options.Session().SetDefaultTransactionOptions(txnOpts),
 		func(ctx context.Context) error {
 			return runTransactionWithRetry(ctx, updateEmployeeInfo)
 		},
@@ -1978,7 +1980,6 @@ func WithTransactionExample(ctx context.Context) error {
 
 	// Prereq: Create collections.
 	wcMajority := writeconcern.Majority()
-	wcMajority.WTimeout = 1 * time.Second
 	wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 	fooColl := client.Database("mydb1").Collection("foo", wcMajorityCollectionOpts)
 	barColl := client.Database("mydb1").Collection("bar", wcMajorityCollectionOpts)
@@ -2559,9 +2560,11 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	rc := readconcern.Majority()
 	wc := writeconcern.Majority()
-	wc.WTimeout = 1000
+
+	txnOpts := options.Transaction().SetReadConcern(rc).SetWriteConcern(wc)
+
 	// Use a causally-consistent session to run some operations
-	opts := options.Session().SetDefaultReadConcern(rc).SetDefaultWriteConcern(wc)
+	opts := options.Session().SetDefaultTransactionOptions(txnOpts)
 	session1, err := client.StartSession(opts)
 	if err != nil {
 		return err
@@ -2592,9 +2595,10 @@ func CausalConsistencyExamples(client *mongo.Client) error {
 
 	// Start Causal Consistency Example 2
 
+	txnOpts.SetReadPreference(readpref.Secondary())
+
 	// Make a new session that is causally consistent with session1 so session2 reads what session1 writes
-	opts = options.Session().SetDefaultReadPreference(readpref.Secondary()).
-		SetDefaultReadConcern(rc).SetDefaultWriteConcern(wc)
+	opts = options.Session().SetDefaultTransactionOptions(txnOpts)
 	session2, err := client.StartSession(opts)
 	if err != nil {
 		return err

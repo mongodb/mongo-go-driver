@@ -13,10 +13,10 @@ import (
 	"fmt"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 // LegacyNotPrimaryErrMsg is the error message that older MongoDB servers (see
@@ -59,8 +59,6 @@ var (
 	ErrDeadlineWouldBeExceeded = fmt.Errorf(
 		"operation not sent to server, as Timeout would be exceeded: %w",
 		context.DeadlineExceeded)
-	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
-	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
 
 // QueryFailureError is an error representing a command failure as a document.

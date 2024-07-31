@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func bytesFromDoc(doc interface{}) []byte {
@@ -31,8 +31,6 @@ func bytesFromDoc(doc interface{}) []byte {
 
 func TestPrimitiveValueEncoders(t *testing.T) {
 	t.Parallel()
-
-	var pc PrimitiveCodecs
 
 	var wrong = func(string, string) string { return "wrong" }
 
@@ -52,7 +50,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 	}{
 		{
 			"RawValueEncodeValue",
-			ValueEncoderFunc(pc.RawValueEncodeValue),
+			ValueEncoderFunc(rawValueEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -100,7 +98,7 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 		},
 		{
 			"RawEncodeValue",
-			ValueEncoderFunc(pc.RawEncodeValue),
+			ValueEncoderFunc(rawEncodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -460,8 +458,8 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
 
-				b := make(SliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				b := make(sliceWriter, 0, 512)
+				vw := NewDocumentWriter(&b)
 				enc := NewEncoder(vw)
 				err := enc.Encode(tc.value)
 				if !errors.Is(err, tc.err) {
@@ -478,8 +476,6 @@ func TestPrimitiveValueEncoders(t *testing.T) {
 }
 
 func TestPrimitiveValueDecoders(t *testing.T) {
-	var pc PrimitiveCodecs
-
 	var wrong = func(string, string) string { return "wrong" }
 
 	const cansetreflectiontest = "cansetreflectiontest"
@@ -500,7 +496,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 	}{
 		{
 			"RawValueDecodeValue",
-			ValueDecoderFunc(pc.RawValueDecodeValue),
+			ValueDecoderFunc(rawValueDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -544,7 +540,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 		},
 		{
 			"RawDecodeValue",
-			ValueDecoderFunc(pc.RawDecodeValue),
+			ValueDecoderFunc(rawDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1038,7 +1034,7 @@ func TestPrimitiveValueDecoders(t *testing.T) {
 		t.Run("Decode", func(t *testing.T) {
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := NewValueReader(tc.b)
+					vr := NewDocumentReader(bytes.NewReader(tc.b))
 					dec := NewDecoder(vr)
 					gotVal := reflect.New(reflect.TypeOf(tc.value))
 					err := dec.Decode(gotVal.Interface())
@@ -1066,8 +1062,8 @@ type testValueMarshaler struct {
 	err error
 }
 
-func (tvm testValueMarshaler) MarshalBSONValue() (Type, []byte, error) {
-	return tvm.t, tvm.buf, tvm.err
+func (tvm testValueMarshaler) MarshalBSONValue() (byte, []byte, error) {
+	return byte(tvm.t), tvm.buf, tvm.err
 }
 
 type testValueUnmarshaler struct {
@@ -1076,8 +1072,8 @@ type testValueUnmarshaler struct {
 	err error
 }
 
-func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t Type, val []byte) error {
-	tvu.t, tvu.val = t, val
+func (tvu *testValueUnmarshaler) UnmarshalBSONValue(t byte, val []byte) error {
+	tvu.t, tvu.val = Type(t), val
 	return tvu.err
 }
 func (tvu testValueUnmarshaler) Equal(tvu2 testValueUnmarshaler) bool {

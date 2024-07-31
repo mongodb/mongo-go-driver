@@ -9,7 +9,6 @@ package topology
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -17,16 +16,15 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/mongo/address"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/mongo/address"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
 )
 
 const testTimeout = 2 * time.Second
@@ -65,10 +63,6 @@ func TestServerSelection(t *testing.T) {
 	var selectNone serverselector.Func = func(description.Topology, []description.Server) ([]description.Server, error) {
 		return []description.Server{}, nil
 	}
-	var errSelectionError = errors.New("encountered an error in the selector")
-	var selectError serverselector.Func = func(description.Topology, []description.Server) ([]description.Server, error) {
-		return nil, errSelectionError
-	}
 
 	t.Run("Success", func(t *testing.T) {
 		topo, err := New(nil)
@@ -83,8 +77,7 @@ func TestServerSelection(t *testing.T) {
 		subCh := make(chan description.Topology, 1)
 		subCh <- desc
 
-		state := newServerSelectionState(selectFirst, nil)
-		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+		srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, selectFirst)
 		noerr(t, err)
 		if len(srvs) != 1 {
 			t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
@@ -148,8 +141,7 @@ func TestServerSelection(t *testing.T) {
 
 		resp := make(chan []description.Server)
 		go func() {
-			state := newServerSelectionState(selectFirst, nil)
-			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
+			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, selectFirst)
 			noerr(t, err)
 			resp <- srvs
 		}()
@@ -196,8 +188,7 @@ func TestServerSelection(t *testing.T) {
 		resp := make(chan error)
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
-			state := newServerSelectionState(selectNone, nil)
-			_, err := topo.selectServerFromSubscription(ctx, subCh, state)
+			_, err := topo.selectServerFromSubscription(ctx, subCh, selectNone)
 			resp <- err
 		}()
 
@@ -218,77 +209,11 @@ func TestServerSelection(t *testing.T) {
 		want := ServerSelectionError{Wrapped: context.Canceled, Desc: desc}
 		assert.Equal(t, err, want, "Incorrect error received. got %v; want %v", err, want)
 	})
-	t.Run("Timeout", func(t *testing.T) {
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
-				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
-				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
-			},
-		}
-		topo, err := New(nil)
-		noerr(t, err)
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
-		resp := make(chan error)
-		timeout := make(chan time.Time)
-		go func() {
-			state := newServerSelectionState(selectNone, timeout)
-			_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
-			resp <- err
-		}()
-
-		select {
-		case err := <-resp:
-			t.Errorf("Received error from server selection too soon: %v", err)
-		case timeout <- time.Now():
-		}
-
-		select {
-		case err = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
-		}
-
-		if err == nil {
-			t.Fatalf("did not receive error from server selection")
-		}
-	})
-	t.Run("Error", func(t *testing.T) {
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: address.Address("one"), Kind: description.ServerKindStandalone},
-				{Addr: address.Address("two"), Kind: description.ServerKindStandalone},
-				{Addr: address.Address("three"), Kind: description.ServerKindStandalone},
-			},
-		}
-		topo, err := New(nil)
-		noerr(t, err)
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
-		resp := make(chan error)
-		timeout := make(chan time.Time)
-		go func() {
-			state := newServerSelectionState(selectError, timeout)
-			_, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
-			resp <- err
-		}()
-
-		select {
-		case err = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
-		}
-
-		if err == nil {
-			t.Fatalf("did not receive error from server selection")
-		}
-	})
 	t.Run("findServer returns topology kind", func(t *testing.T) {
 		topo, err := New(nil)
 		noerr(t, err)
 		atomic.StoreInt64(&topo.state, topologyConnected)
-		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id)
+		srvr, err := ConnectServer(address.Address("one"), topo.updateCallback, topo.id, defaultConnectionTimeout)
 		noerr(t, err)
 		topo.servers[address.Address("one")] = srvr
 		desc := topo.desc.Load().(description.Topology)
@@ -301,71 +226,6 @@ func TestServerSelection(t *testing.T) {
 		noerr(t, err)
 		if ss.Kind != description.TopologyKindSingle {
 			t.Errorf("findServer does not properly set the topology description kind. got %v; want %v", ss.Kind, description.TopologyKindSingle)
-		}
-	})
-	t.Run("Update on not primary error", func(t *testing.T) {
-		topo, err := New(nil)
-		noerr(t, err)
-		atomic.StoreInt64(&topo.state, topologyConnected)
-
-		addr1 := address.Address("one")
-		addr2 := address.Address("two")
-		addr3 := address.Address("three")
-		desc := description.Topology{
-			Servers: []description.Server{
-				{Addr: addr1, Kind: description.ServerKindRSPrimary},
-				{Addr: addr2, Kind: description.ServerKindRSSecondary},
-				{Addr: addr3, Kind: description.ServerKindRSSecondary},
-			},
-		}
-
-		// manually add the servers to the topology
-		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id)
-			noerr(t, err)
-			topo.servers[srv.Addr] = s
-		}
-
-		// Send updated description
-		desc = description.Topology{
-			Servers: []description.Server{
-				{Addr: addr1, Kind: description.ServerKindRSSecondary},
-				{Addr: addr2, Kind: description.ServerKindRSPrimary},
-				{Addr: addr3, Kind: description.ServerKindRSSecondary},
-			},
-		}
-
-		subCh := make(chan description.Topology, 1)
-		subCh <- desc
-
-		// send a not primary error to the server forcing an update
-		serv, err := topo.FindServer(desc.Servers[0])
-		noerr(t, err)
-		atomic.StoreInt64(&serv.state, serverConnected)
-		_ = serv.ProcessError(driver.Error{Message: driver.LegacyNotPrimaryErrMsg}, initConnection{})
-
-		resp := make(chan []description.Server)
-
-		go func() {
-			// server selection should discover the new topology
-			state := newServerSelectionState(&serverselector.Write{}, nil)
-			srvs, err := topo.selectServerFromSubscription(context.Background(), subCh, state)
-			noerr(t, err)
-			resp <- srvs
-		}()
-
-		var srvs []description.Server
-		select {
-		case srvs = <-resp:
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Timed out while trying to retrieve selected servers")
-		}
-
-		if len(srvs) != 1 {
-			t.Errorf("Incorrect number of descriptions returned. got %d; want %d", len(srvs), 1)
-		}
-		if srvs[0].Addr != desc.Servers[1].Addr {
-			t.Errorf("Incorrect sever selected. got %s; want %s", srvs[0].Addr, desc.Servers[1].Addr)
 		}
 	})
 	t.Run("fast path does not subscribe or check timeouts", func(t *testing.T) {
@@ -382,7 +242,7 @@ func TestServerSelection(t *testing.T) {
 		}
 		topo.desc.Store(desc)
 		for _, srv := range desc.Servers {
-			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id)
+			s, err := ConnectServer(srv.Addr, topo.updateCallback, topo.id, defaultConnectionTimeout)
 			noerr(t, err)
 			topo.servers[srv.Addr] = s
 		}
@@ -700,7 +560,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 		documentDBMsg = `You appear to be connected to a DocumentDB cluster. For more information regarding feature compatibility and support please visit https://www.mongodb.com/supportability/documentdb`
 	)
 
-	newLoggerOptions := func(sink options.LogSink) *options.LoggerOptions {
+	newLoggerOptionsBldr := func(sink options.LogSink) *options.LoggerOptionsBuilder {
 		return options.
 			Logger().
 			SetSink(sink).
@@ -743,7 +603,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -807,7 +667,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -841,7 +701,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -905,7 +765,7 @@ func TestTopologyConstructionLogging(t *testing.T) {
 				t.Parallel()
 
 				sink := &mockLogSink{}
-				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptions(sink)), nil)
+				cfg, err := NewConfig(options.Client().ApplyURI(tc.uri).SetLoggerOptions(newLoggerOptionsBldr(sink)), nil)
 				require.Nil(t, err, "error constructing topology config: %v", err)
 
 				topo, err := New(cfg)
@@ -983,6 +843,7 @@ func runInWindowTest(t *testing.T, directory string, filename string) {
 		server := NewServer(
 			address.Address(testDesc.Address),
 			bson.NilObjectID,
+			defaultConnectionTimeout,
 			withMonitoringDisabled(func(bool) bool { return true }))
 		servers[testDesc.Address] = server
 
@@ -1176,13 +1037,12 @@ func BenchmarkSelectServerFromDescription(b *testing.B) {
 				Servers: servers,
 			}
 
-			timeout := make(chan time.Time)
 			b.ResetTimer()
 			b.RunParallel(func(p *testing.PB) {
 				b.ReportAllocs()
 				for p.Next() {
 					var c Topology
-					_, _ = c.selectServerFromDescription(desc, newServerSelectionState(selectNone, timeout))
+					_, _ = c.selectServerFromDescription(desc, selectNone)
 				}
 			})
 		})

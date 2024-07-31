@@ -13,235 +13,38 @@ import (
 	"sync"
 )
 
-// DefaultRegistry is the default Registry. It contains the default codecs and the
+// defaultRegistry is the default Registry. It contains the default codecs and the
 // primitive codecs.
-var DefaultRegistry = NewRegistry()
+var defaultRegistry = NewRegistry()
 
-// ErrNilType is returned when nil is passed to either LookupEncoder or LookupDecoder.
-//
-// Deprecated: ErrNilType will not be supported in Go Driver 2.0.
-var ErrNilType = errors.New("cannot perform a decoder lookup on <nil>")
-
-// ErrNotPointer is returned when a non-pointer type is provided to LookupDecoder.
-//
-// Deprecated: ErrNotPointer will not be supported in Go Driver 2.0.
-var ErrNotPointer = errors.New("non-pointer provided to LookupDecoder")
-
-// ErrNoEncoder is returned when there wasn't an encoder available for a type.
-//
-// Deprecated: ErrNoEncoder will not be supported in Go Driver 2.0.
-type ErrNoEncoder struct {
+// errNoEncoder is returned when there wasn't an encoder available for a type.
+type errNoEncoder struct {
 	Type reflect.Type
 }
 
-func (ene ErrNoEncoder) Error() string {
+func (ene errNoEncoder) Error() string {
 	if ene.Type == nil {
 		return "no encoder found for <nil>"
 	}
 	return "no encoder found for " + ene.Type.String()
 }
 
-// ErrNoDecoder is returned when there wasn't a decoder available for a type.
-//
-// Deprecated: ErrNoDecoder will not be supported in Go Driver 2.0.
-type ErrNoDecoder struct {
+// errNoDecoder is returned when there wasn't a decoder available for a type.
+type errNoDecoder struct {
 	Type reflect.Type
 }
 
-func (end ErrNoDecoder) Error() string {
+func (end errNoDecoder) Error() string {
 	return "no decoder found for " + end.Type.String()
 }
 
-// ErrNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.
-//
-// Deprecated: ErrNoTypeMapEntry will not be supported in Go Driver 2.0.
-type ErrNoTypeMapEntry struct {
+// errNoTypeMapEntry is returned when there wasn't a type available for the provided BSON type.
+type errNoTypeMapEntry struct {
 	Type Type
 }
 
-func (entme ErrNoTypeMapEntry) Error() string {
+func (entme errNoTypeMapEntry) Error() string {
 	return "no type map entry found for " + entme.Type.String()
-}
-
-// ErrNotInterface is returned when the provided type is not an interface.
-//
-// Deprecated: ErrNotInterface will not be supported in Go Driver 2.0.
-var ErrNotInterface = errors.New("The provided type is not an interface")
-
-// A RegistryBuilder is used to build a Registry. This type is not goroutine
-// safe.
-//
-// Deprecated: Use Registry instead.
-type RegistryBuilder struct {
-	registry *Registry
-}
-
-// NewRegistryBuilder creates a new empty RegistryBuilder.
-//
-// Deprecated: Use NewRegistry instead.
-func NewRegistryBuilder() *RegistryBuilder {
-	rb := &RegistryBuilder{
-		registry: &Registry{
-			typeEncoders: new(typeEncoderCache),
-			typeDecoders: new(typeDecoderCache),
-			kindEncoders: new(kindEncoderCache),
-			kindDecoders: new(kindDecoderCache),
-		},
-	}
-	DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
-	DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
-	PrimitiveCodecs{}.RegisterPrimitiveCodecs(rb)
-	return rb
-}
-
-// RegisterCodec will register the provided ValueCodec for the provided type.
-//
-// Deprecated: Use Registry.RegisterTypeEncoder and Registry.RegisterTypeDecoder instead.
-func (rb *RegistryBuilder) RegisterCodec(t reflect.Type, codec ValueCodec) *RegistryBuilder {
-	rb.RegisterTypeEncoder(t, codec)
-	rb.RegisterTypeDecoder(t, codec)
-	return rb
-}
-
-// RegisterTypeEncoder will register the provided ValueEncoder for the provided type.
-//
-// The type will be used directly, so an encoder can be registered for a type and a different encoder can be registered
-// for a pointer to that type.
-//
-// If the given type is an interface, the encoder will be called when marshaling a type that is that interface. It
-// will not be called when marshaling a non-interface type that implements the interface.
-//
-// Deprecated: Use Registry.RegisterTypeEncoder instead.
-func (rb *RegistryBuilder) RegisterTypeEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
-	rb.registry.RegisterTypeEncoder(t, enc)
-	return rb
-}
-
-// RegisterHookEncoder will register an encoder for the provided interface type t. This encoder will be called when
-// marshaling a type if the type implements t or a pointer to the type implements t. If the provided type is not
-// an interface (i.e. t.Kind() != reflect.Interface), this method will panic.
-//
-// Deprecated: Use Registry.RegisterInterfaceEncoder instead.
-func (rb *RegistryBuilder) RegisterHookEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
-	rb.registry.RegisterInterfaceEncoder(t, enc)
-	return rb
-}
-
-// RegisterTypeDecoder will register the provided ValueDecoder for the provided type.
-//
-// The type will be used directly, so a decoder can be registered for a type and a different decoder can be registered
-// for a pointer to that type.
-//
-// If the given type is an interface, the decoder will be called when unmarshaling into a type that is that interface.
-// It will not be called when unmarshaling into a non-interface type that implements the interface.
-//
-// Deprecated: Use Registry.RegisterTypeDecoder instead.
-func (rb *RegistryBuilder) RegisterTypeDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
-	rb.registry.RegisterTypeDecoder(t, dec)
-	return rb
-}
-
-// RegisterHookDecoder will register an decoder for the provided interface type t. This decoder will be called when
-// unmarshaling into a type if the type implements t or a pointer to the type implements t. If the provided type is not
-// an interface (i.e. t.Kind() != reflect.Interface), this method will panic.
-//
-// Deprecated: Use Registry.RegisterInterfaceDecoder instead.
-func (rb *RegistryBuilder) RegisterHookDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
-	rb.registry.RegisterInterfaceDecoder(t, dec)
-	return rb
-}
-
-// RegisterEncoder registers the provided type and encoder pair.
-//
-// Deprecated: Use Registry.RegisterTypeEncoder or Registry.RegisterInterfaceEncoder instead.
-func (rb *RegistryBuilder) RegisterEncoder(t reflect.Type, enc ValueEncoder) *RegistryBuilder {
-	if t == tEmpty {
-		rb.registry.RegisterTypeEncoder(t, enc)
-		return rb
-	}
-	switch t.Kind() {
-	case reflect.Interface:
-		rb.registry.RegisterInterfaceEncoder(t, enc)
-	default:
-		rb.registry.RegisterTypeEncoder(t, enc)
-	}
-	return rb
-}
-
-// RegisterDecoder registers the provided type and decoder pair.
-//
-// Deprecated: Use Registry.RegisterTypeDecoder or Registry.RegisterInterfaceDecoder instead.
-func (rb *RegistryBuilder) RegisterDecoder(t reflect.Type, dec ValueDecoder) *RegistryBuilder {
-	if t == nil {
-		rb.registry.RegisterTypeDecoder(t, dec)
-		return rb
-	}
-	if t == tEmpty {
-		rb.registry.RegisterTypeDecoder(t, dec)
-		return rb
-	}
-	switch t.Kind() {
-	case reflect.Interface:
-		rb.registry.RegisterInterfaceDecoder(t, dec)
-	default:
-		rb.registry.RegisterTypeDecoder(t, dec)
-	}
-	return rb
-}
-
-// RegisterDefaultEncoder will register the provided ValueEncoder to the provided
-// kind.
-//
-// Deprecated: Use Registry.RegisterKindEncoder instead.
-func (rb *RegistryBuilder) RegisterDefaultEncoder(kind reflect.Kind, enc ValueEncoder) *RegistryBuilder {
-	rb.registry.RegisterKindEncoder(kind, enc)
-	return rb
-}
-
-// RegisterDefaultDecoder will register the provided ValueDecoder to the
-// provided kind.
-//
-// Deprecated: Use Registry.RegisterKindDecoder instead.
-func (rb *RegistryBuilder) RegisterDefaultDecoder(kind reflect.Kind, dec ValueDecoder) *RegistryBuilder {
-	rb.registry.RegisterKindDecoder(kind, dec)
-	return rb
-}
-
-// RegisterTypeMapEntry will register the provided type to the BSON type. The primary usage for this
-// mapping is decoding situations where an empty interface is used and a default type needs to be
-// created and decoded into.
-//
-// By default, BSON documents will decode into interface{} values as bson.D. To change the default type for BSON
-// documents, a type map entry for TypeEmbeddedDocument should be registered. For example, to force BSON documents
-// to decode to bson.Raw, use the following code:
-//
-//	rb.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(bson.Raw{}))
-//
-// Deprecated: Use Registry.RegisterTypeMapEntry instead.
-func (rb *RegistryBuilder) RegisterTypeMapEntry(bt Type, rt reflect.Type) *RegistryBuilder {
-	rb.registry.RegisterTypeMapEntry(bt, rt)
-	return rb
-}
-
-// Build creates a Registry from the current state of this RegistryBuilder.
-//
-// Deprecated: Use NewRegistry instead.
-func (rb *RegistryBuilder) Build() *Registry {
-	r := &Registry{
-		interfaceEncoders: append([]interfaceValueEncoder(nil), rb.registry.interfaceEncoders...),
-		interfaceDecoders: append([]interfaceValueDecoder(nil), rb.registry.interfaceDecoders...),
-		typeEncoders:      rb.registry.typeEncoders.Clone(),
-		typeDecoders:      rb.registry.typeDecoders.Clone(),
-		kindEncoders:      rb.registry.kindEncoders.Clone(),
-		kindDecoders:      rb.registry.kindDecoders.Clone(),
-	}
-	rb.registry.typeMap.Range(func(k, v interface{}) bool {
-		if k != nil && v != nil {
-			r.typeMap.Store(k, v)
-		}
-		return true
-	})
-	return r
 }
 
 // A Registry is a store for ValueEncoders, ValueDecoders, and a type map. See the Registry type
@@ -289,7 +92,16 @@ type Registry struct {
 
 // NewRegistry creates a new empty Registry.
 func NewRegistry() *Registry {
-	return NewRegistryBuilder().Build()
+	reg := &Registry{
+		typeEncoders: new(typeEncoderCache),
+		typeDecoders: new(typeDecoderCache),
+		kindEncoders: new(kindEncoderCache),
+		kindDecoders: new(kindDecoderCache),
+	}
+	registerDefaultEncoders(reg)
+	registerDefaultDecoders(reg)
+	registerPrimitiveCodecs(reg)
+	return reg
 }
 
 // RegisterTypeEncoder registers the provided ValueEncoder for the provided type.
@@ -430,12 +242,12 @@ func (r *Registry) RegisterTypeMapEntry(bt Type, rt reflect.Type) {
 // concurrent use by multiple goroutines after all codecs and encoders are registered.
 func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if valueType == nil {
-		return nil, ErrNoEncoder{Type: valueType}
+		return nil, errNoEncoder{Type: valueType}
 	}
 	enc, found := r.lookupTypeEncoder(valueType)
 	if found {
 		if enc == nil {
-			return nil, ErrNoEncoder{Type: valueType}
+			return nil, errNoEncoder{Type: valueType}
 		}
 		return enc, nil
 	}
@@ -448,7 +260,7 @@ func (r *Registry) LookupEncoder(valueType reflect.Type) (ValueEncoder, error) {
 	if v, ok := r.kindEncoders.Load(valueType.Kind()); ok {
 		return r.storeTypeEncoder(valueType, v), nil
 	}
-	return nil, ErrNoEncoder{Type: valueType}
+	return nil, errNoEncoder{Type: valueType}
 }
 
 func (r *Registry) storeTypeEncoder(rt reflect.Type, enc ValueEncoder) ValueEncoder {
@@ -499,12 +311,12 @@ func (r *Registry) lookupInterfaceEncoder(valueType reflect.Type, allowAddr bool
 // concurrent use by multiple goroutines after all codecs and decoders are registered.
 func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if valueType == nil {
-		return nil, ErrNilType
+		return nil, errors.New("cannot perform a decoder lookup on <nil>")
 	}
 	dec, found := r.lookupTypeDecoder(valueType)
 	if found {
 		if dec == nil {
-			return nil, ErrNoDecoder{Type: valueType}
+			return nil, errNoDecoder{Type: valueType}
 		}
 		return dec, nil
 	}
@@ -517,7 +329,7 @@ func (r *Registry) LookupDecoder(valueType reflect.Type) (ValueDecoder, error) {
 	if v, ok := r.kindDecoders.Load(valueType.Kind()); ok {
 		return r.storeTypeDecoder(valueType, v), nil
 	}
-	return nil, ErrNoDecoder{Type: valueType}
+	return nil, errNoDecoder{Type: valueType}
 }
 
 func (r *Registry) lookupTypeDecoder(valueType reflect.Type) (ValueDecoder, bool) {
@@ -553,7 +365,7 @@ func (r *Registry) lookupInterfaceDecoder(valueType reflect.Type, allowAddr bool
 func (r *Registry) LookupTypeMapEntry(bt Type) (reflect.Type, error) {
 	v, ok := r.typeMap.Load(bt)
 	if v == nil || !ok {
-		return nil, ErrNoTypeMapEntry{Type: bt}
+		return nil, errNoTypeMapEntry{Type: bt}
 	}
 	return v.(reflect.Type), nil
 }

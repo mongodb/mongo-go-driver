@@ -24,18 +24,18 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/handshake"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt"
-	mongocryptopts "go.mongodb.org/mongo-driver/x/mongo/driver/mongocrypt/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/handshake"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt"
+	mongocryptopts "go.mongodb.org/mongo-driver/v2/x/mongo/driver/mongocrypt/options"
 )
 
 var (
@@ -52,16 +52,6 @@ const (
 	cryptMaxBatchSizeBytes        = 2097152             // max bytes in write batch when auto encryption is enabled
 	maxBsonObjSize                = 16777216            // max bytes in BSON object
 )
-
-func containsSubstring(possibleSubstrings []string, str string) bool {
-	for _, possibleSubstring := range possibleSubstrings {
-		if strings.Contains(str, possibleSubstring) {
-			return true
-		}
-	}
-
-	return false
-}
 
 func TestClientSideEncryptionProse(t *testing.T) {
 	t.Parallel()
@@ -150,7 +140,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		// Insert the copied key document into keyvault.datakeys with majority write concern.
 		wcMajority := writeconcern.Majority()
-		wcMajority.WTimeout = 1 * time.Second
 		wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 		wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 		_, err = wcmColl.InsertOne(context.Background(), alteredKeydoc)
@@ -538,7 +527,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			tlsConfig["kmip"] = kmipConfig
 		}
 
-		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptions {
+		getBaseAutoEncryptionOpts := func() *options.AutoEncryptionOptionsBuilder {
 			return options.AutoEncryption().
 				SetKmsProviders(fullKmsProvidersMap).
 				SetKeyVaultNamespace(kvNamespace).
@@ -548,7 +537,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		testCases := []struct {
 			name   string
-			aeo    *options.AutoEncryptionOptions
+			aeo    *options.AutoEncryptionOptionsBuilder
 			schema bson.Raw // the schema to create the collection. if nil, the collection won't be explicitly created
 		}{
 			{"remote schema", getBaseAutoEncryptionOpts(), corpusSchema},
@@ -1001,7 +990,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				if len(tc.errorSubstring) > 0 {
 					assert.NotNil(mt, err, "expected error, got nil")
 
-					assert.True(t, containsSubstring(tc.errorSubstring, err.Error()),
+					assert.True(t, containsPattern(tc.errorSubstring, err.Error()),
 						"expected tc.errorSubstring=%v to contain %v, but it didn't", tc.errorSubstring, err.Error())
 
 					return
@@ -1031,7 +1020,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				_, err = invalidClientEncryption.CreateDataKey(context.Background(), tc.provider, invalidKeyOpts)
 				assert.NotNil(mt, err, "expected CreateDataKey error, got nil")
 
-				assert.True(t, containsSubstring(tc.invalidClientEncryptionErrorSubstring, err.Error()),
+				assert.True(t, containsPattern(tc.invalidClientEncryptionErrorSubstring, err.Error()),
 					"expected tc.invalidClientEncryptionErrorSubstring=%v to contain %v, but it didn't",
 					tc.invalidClientEncryptionErrorSubstring, err.Error())
 			})
@@ -1635,7 +1624,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 					"x509: certificate is not authorized to sign other certificates",  // All others
 				}
 
-				assert.True(t, containsSubstring(possibleErrors, err.Error()),
+				assert.True(t, containsPattern(possibleErrors, err.Error()),
 					"expected possibleErrors=%v to contain %v, but it didn't",
 					possibleErrors, err.Error())
 
@@ -1896,7 +1885,6 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			}
 
 			wcMajority := writeconcern.Majority()
-			wcMajority.WTimeout = 1 * time.Second
 			wcMajorityCollectionOpts := options.Collection().SetWriteConcern(wcMajority)
 			wcmColl := cse.kvClient.Database(kvDatabase).Collection(dkCollection, wcMajorityCollectionOpts)
 			_, err = wcmColl.Indexes().CreateOne(context.Background(), keyVaultIndex)
@@ -2162,7 +2150,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 		kmsProvidersMap := map[string]map[string]interface{}{
 			"azure": {},
 		}
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		err := bson.NewEncoder(vw).Encode(kmsProvidersMap)
 		assert.Nil(mt, err, "error in Encode: %v", err)
 
@@ -2254,7 +2242,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				"Client.Timeout or context cancellation while reading body", // > 1.20 on all OS
 			}
 
-			assert.True(t, containsSubstring(possibleErrors, err.Error()),
+			assert.True(t, containsPattern(possibleErrors, err.Error()),
 				"expected possibleErrors=%v to contain %v, but it didn't",
 				possibleErrors, err.Error())
 		})
@@ -2474,7 +2462,7 @@ func TestClientSideEncryptionProse(t *testing.T) {
 			typeStr       string
 			field         string
 			typeBson      bson.Type
-			rangeOpts     options.RangeOptions
+			rangeOpts     *options.RangeOptionsBuilder
 			zero          bson.RawValue
 			six           bson.RawValue
 			thirty        bson.RawValue
@@ -2506,12 +2494,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 
 		tests := []testcase{
 			{
-				typeStr:  "DecimalNoPrecision",
-				field:    "encryptedDecimalNoPrecision",
-				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.RangeOptions{
-					Sparsity: 1,
-				},
+				typeStr:       "DecimalNoPrecision",
+				field:         "encryptedDecimalNoPrecision",
+				typeBson:      bson.TypeDecimal128,
+				rangeOpts:     options.Range().SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
@@ -2522,12 +2508,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DecimalPrecision",
 				field:    "encryptedDecimalPrecision",
 				typeBson: bson.TypeDecimal128,
-				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
-					Max:       &bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200h, d128_200l)},
-					Sparsity:  1,
-					Precision: &precision,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)}).
+					SetMax(bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_200h, d128_200l)}).
+					SetSparsity(1).
+					SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_0h, d128_0l)},
 				six:           bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_6h, d128_6l)},
 				thirty:        bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_30h, d128_30l)},
@@ -2535,12 +2520,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				twoHundredOne: bson.RawValue{Type: bson.TypeDecimal128, Value: bsoncore.AppendDecimal128(nil, d128_201h, d128_201l)},
 			},
 			{
-				typeStr:  "DoubleNoPrecision",
-				field:    "encryptedDoubleNoPrecision",
-				typeBson: bson.TypeDouble,
-				rangeOpts: options.RangeOptions{
-					Sparsity: 1,
-				},
+				typeStr:       "DoubleNoPrecision",
+				field:         "encryptedDoubleNoPrecision",
+				typeBson:      bson.TypeDouble,
+				rangeOpts:     options.Range().SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2551,12 +2534,11 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "DoublePrecision",
 				field:    "encryptedDoublePrecision",
 				typeBson: bson.TypeDouble,
-				rangeOpts: options.RangeOptions{
-					Min:       &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
-					Max:       &bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)},
-					Sparsity:  1,
-					Precision: &precision,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 200)}).
+					SetSparsity(1).
+					SetPrecision(precision),
 				zero:          bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDouble, Value: bsoncore.AppendDouble(nil, 30)},
@@ -2567,11 +2549,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Date",
 				field:    "encryptedDate",
 				typeBson: bson.TypeDateTime,
-				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)},
-					Sparsity: 1,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 200)}).
+					SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeDateTime, Value: bsoncore.AppendDateTime(nil, 30)},
@@ -2582,11 +2563,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Int",
 				field:    "encryptedInt",
 				typeBson: bson.TypeInt32,
-				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)},
-					Sparsity: 1,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 200)}).
+					SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeInt32, Value: bsoncore.AppendInt32(nil, 30)},
@@ -2597,11 +2577,10 @@ func TestClientSideEncryptionProse(t *testing.T) {
 				typeStr:  "Long",
 				field:    "encryptedLong",
 				typeBson: bson.TypeInt64,
-				rangeOpts: options.RangeOptions{
-					Min:      &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
-					Max:      &bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)},
-					Sparsity: 1,
-				},
+				rangeOpts: options.Range().
+					SetMin(bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)}).
+					SetMax(bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 200)}).
+					SetSparsity(1),
 				zero:          bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 0)},
 				six:           bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 6)},
 				thirty:        bson.RawValue{Type: bson.TypeInt64, Value: bsoncore.AppendInt64(nil, 30)},
@@ -2960,8 +2939,8 @@ type cseProseTest struct {
 	cseStarted   []*event.CommandStartedEvent
 }
 
-func setup(mt *mtest.T, aeo *options.AutoEncryptionOptions, kvClientOpts *options.ClientOptions,
-	ceo *options.ClientEncryptionOptions) *cseProseTest {
+func setup(mt *mtest.T, aeo *options.AutoEncryptionOptionsBuilder, kvClientOpts options.Lister[options.ClientOptions],
+	ceo options.Lister[options.ClientEncryptionOptions]) *cseProseTest {
 	mt.Helper()
 	var cpt cseProseTest
 	var err error
@@ -3039,7 +3018,7 @@ func rawValueToCoreValue(rv bson.RawValue) bsoncore.Value {
 
 type deadlockTest struct {
 	clientTest           *mongo.Client
-	clientKeyVaultOpts   *options.ClientOptions
+	clientKeyVaultOpts   *options.ClientOptionsBuilder
 	clientKeyVaultEvents []startedEvent
 	clientEncryption     *mongo.ClientEncryption
 	ciphertext           bson.Binary

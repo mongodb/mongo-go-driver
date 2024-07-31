@@ -6,40 +6,38 @@
 
 package options
 
-import "time"
-
-// EstimatedDocumentCountOptions represents options that can be used to configure an EstimatedDocumentCount operation.
+// EstimatedDocumentCountOptions represents arguments that can be used to configure
+// an EstimatedDocumentCount operation.
 type EstimatedDocumentCountOptions struct {
 	// A string or document that will be included in server logs, profiling logs, and currentOp queries to help trace
 	// the operation.  The default is nil, which means that no comment will be included in the logs.
 	Comment interface{}
+}
 
-	// The maximum amount of time that the query can run on the server. The default value is nil, meaning that there
-	// is no time limit for query execution.
-	//
-	// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option may be used
-	// in its place to control the amount of time that a single operation can run before returning an error. MaxTime
-	// is ignored if Timeout is set on the client.
-	MaxTime *time.Duration
+// EstimatedDocumentCountOptionsBuilder contains options to estimate document
+// count. Each option can be set through setter functions. See documentation for
+// each setter function for an explanation of the option.
+type EstimatedDocumentCountOptionsBuilder struct {
+	Opts []func(*EstimatedDocumentCountOptions) error
 }
 
 // EstimatedDocumentCount creates a new EstimatedDocumentCountOptions instance.
-func EstimatedDocumentCount() *EstimatedDocumentCountOptions {
-	return &EstimatedDocumentCountOptions{}
+func EstimatedDocumentCount() *EstimatedDocumentCountOptionsBuilder {
+	return &EstimatedDocumentCountOptionsBuilder{}
+}
+
+// List returns a list of CountOptions setter functions.
+func (eco *EstimatedDocumentCountOptionsBuilder) List() []func(*EstimatedDocumentCountOptions) error {
+	return eco.Opts
 }
 
 // SetComment sets the value for the Comment field.
-func (eco *EstimatedDocumentCountOptions) SetComment(comment interface{}) *EstimatedDocumentCountOptions {
-	eco.Comment = comment
-	return eco
-}
+func (eco *EstimatedDocumentCountOptionsBuilder) SetComment(comment interface{}) *EstimatedDocumentCountOptionsBuilder {
+	eco.Opts = append(eco.Opts, func(opts *EstimatedDocumentCountOptions) error {
+		opts.Comment = comment
 
-// SetMaxTime sets the value for the MaxTime field.
-//
-// NOTE(benjirewis): MaxTime will be deprecated in a future release. The more general Timeout option
-// may be used in its place to control the amount of time that a single operation can run before
-// returning an error. MaxTime is ignored if Timeout is set on the client.
-func (eco *EstimatedDocumentCountOptions) SetMaxTime(d time.Duration) *EstimatedDocumentCountOptions {
-	eco.MaxTime = &d
+		return nil
+	})
+
 	return eco
 }

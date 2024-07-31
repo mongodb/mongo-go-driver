@@ -7,6 +7,7 @@
 package bson
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,16 +19,11 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-)
-
-var (
-	defaultTestStructCodec = newDefaultStructCodec()
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestDefaultValueDecoders(t *testing.T) {
-	var dvd DefaultValueDecoders
 	var wrong = func(string, string) string { return "wrong" }
 
 	type mybool bool
@@ -71,7 +67,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 	}{
 		{
 			"BooleanDecodeValue",
-			ValueDecoderFunc(dvd.BooleanDecodeValue),
+			ValueDecoderFunc(booleanDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -140,7 +136,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"IntDecodeValue",
-			ValueDecoderFunc(dvd.IntDecodeValue),
+			ValueDecoderFunc(intDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -192,7 +188,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"ReadDouble (truncate)", int64(3), &DecodeContext{Truncate: true},
+					"ReadDouble (truncate)", int64(3), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -372,7 +368,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultUIntCodec.DecodeValue",
-			defaultUIntCodec,
+			&uintCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -424,7 +420,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"ReadDouble (truncate)", uint64(3), &DecodeContext{Truncate: true},
+					"ReadDouble (truncate)", uint64(3), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -608,7 +604,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"FloatDecodeValue",
-			ValueDecoderFunc(dvd.FloatDecodeValue),
+			ValueDecoderFunc(floatDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -675,7 +671,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"float32/fast path (truncate)", float32(3.14), &DecodeContext{Truncate: true},
+					"float32/fast path (truncate)", float32(3.14), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -713,7 +709,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 					nil,
 				},
 				{
-					"float32/reflection path (truncate)", myfloat32(3.14), &DecodeContext{Truncate: true},
+					"float32/reflection path (truncate)", myfloat32(3.14), &DecodeContext{truncate: true},
 					&valueReaderWriter{BSONType: TypeDouble, Return: float64(3.14)}, readDouble,
 					nil,
 				},
@@ -737,7 +733,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultTimeCodec.DecodeValue",
-			defaultTimeCodec,
+			&timeCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -791,7 +787,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultMapCodec.DecodeValue",
-			defaultMapCodec,
+			&mapCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -820,10 +816,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"Lookup Error",
 					map[string]string{},
-					&DecodeContext{Registry: newTestRegistryBuilder().Build()},
+					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{},
 					readDocument,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadElement Error",
@@ -869,7 +865,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ArrayDecodeValue",
-			ValueDecoderFunc(dvd.ArrayDecodeValue),
+			ValueDecoderFunc(arrayDecodeValue),
 			[]subtest{
 				{
 					"wrong kind",
@@ -906,10 +902,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[1]string{},
-					&DecodeContext{Registry: newTestRegistryBuilder().Build()},
+					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{BSONType: TypeArray},
 					readArray,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadValue Error",
@@ -963,7 +959,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultSliceCodec.DecodeValue",
-			defaultSliceCodec,
+			&sliceCodec{},
 			[]subtest{
 				{
 					"wrong kind",
@@ -1000,10 +996,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 				{
 					"Lookup Error",
 					[]string{},
-					&DecodeContext{Registry: newTestRegistryBuilder().Build()},
+					&DecodeContext{Registry: newTestRegistry()},
 					&valueReaderWriter{BSONType: TypeArray},
 					readArray,
-					ErrNoDecoder{Type: reflect.TypeOf("")},
+					errNoDecoder{Type: reflect.TypeOf("")},
 				},
 				{
 					"ReadValue Error",
@@ -1057,7 +1053,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ObjectIDDecodeValue",
-			ValueDecoderFunc(dvd.ObjectIDDecodeValue),
+			ValueDecoderFunc(objectIDDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1144,7 +1140,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"Decimal128DecodeValue",
-			ValueDecoderFunc(dvd.Decimal128DecodeValue),
+			ValueDecoderFunc(decimal128DecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1206,7 +1202,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"JSONNumberDecodeValue",
-			ValueDecoderFunc(dvd.JSONNumberDecodeValue),
+			ValueDecoderFunc(jsonNumberDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1300,7 +1296,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"URLDecodeValue",
-			ValueDecoderFunc(dvd.URLDecodeValue),
+			ValueDecoderFunc(urlDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1374,7 +1370,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultByteSliceCodec.DecodeValue",
-			defaultByteSliceCodec,
+			&byteSliceCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -1442,7 +1438,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"defaultStringCodec.DecodeValue",
-			defaultStringCodec,
+			&stringCodec{},
 			[]subtest{
 				{
 					"symbol",
@@ -1472,7 +1468,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"ValueUnmarshalerDecodeValue",
-			ValueDecoderFunc(dvd.ValueUnmarshalerDecodeValue),
+			ValueDecoderFunc(valueUnmarshalerDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1506,7 +1502,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"UnmarshalerDecodeValue",
-			ValueDecoderFunc(dvd.UnmarshalerDecodeValue),
+			ValueDecoderFunc(unmarshalerDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1551,7 +1547,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"PointerCodec.DecodeValue",
-			NewPointerCodec(),
+			&pointerCodec{},
 			[]subtest{
 				{
 					"not valid", nil, nil, nil, nothing,
@@ -1563,7 +1559,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				},
 				{
 					"No Decoder", &wrong, &DecodeContext{Registry: buildDefaultRegistry()}, nil, nothing,
-					ErrNoDecoder{Type: reflect.TypeOf(wrong)},
+					errNoDecoder{Type: reflect.TypeOf(wrong)},
 				},
 				{
 					"decode null",
@@ -1585,7 +1581,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"BinaryDecodeValue",
-			ValueDecoderFunc(dvd.BinaryDecodeValue),
+			ValueDecoderFunc(binaryDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1645,7 +1641,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"UndefinedDecodeValue",
-			ValueDecoderFunc(dvd.UndefinedDecodeValue),
+			ValueDecoderFunc(undefinedDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1691,7 +1687,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"DateTimeDecodeValue",
-			ValueDecoderFunc(dvd.DateTimeDecodeValue),
+			ValueDecoderFunc(dateTimeDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1745,7 +1741,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"NullDecodeValue",
-			ValueDecoderFunc(dvd.NullDecodeValue),
+			ValueDecoderFunc(nullDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1783,7 +1779,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"RegexDecodeValue",
-			ValueDecoderFunc(dvd.RegexDecodeValue),
+			ValueDecoderFunc(regexDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1843,7 +1839,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"DBPointerDecodeValue",
-			ValueDecoderFunc(dvd.DBPointerDecodeValue),
+			ValueDecoderFunc(dbPointerDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1908,7 +1904,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"TimestampDecodeValue",
-			ValueDecoderFunc(dvd.TimestampDecodeValue),
+			ValueDecoderFunc(timestampDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -1968,7 +1964,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"MinKeyDecodeValue",
-			ValueDecoderFunc(dvd.MinKeyDecodeValue),
+			ValueDecoderFunc(minKeyDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -2022,7 +2018,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"MaxKeyDecodeValue",
-			ValueDecoderFunc(dvd.MaxKeyDecodeValue),
+			ValueDecoderFunc(maxKeyDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -2076,7 +2072,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"JavaScriptDecodeValue",
-			ValueDecoderFunc(dvd.JavaScriptDecodeValue),
+			ValueDecoderFunc(javaScriptDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -2130,7 +2126,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"SymbolDecodeValue",
-			ValueDecoderFunc(dvd.SymbolDecodeValue),
+			ValueDecoderFunc(symbolDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -2184,7 +2180,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"CoreDocumentDecodeValue",
-			ValueDecoderFunc(dvd.CoreDocumentDecodeValue),
+			ValueDecoderFunc(coreDocumentDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -2222,7 +2218,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"StructCodec.DecodeValue",
-			defaultTestStructCodec,
+			newStructCodec(nil),
 			[]subtest{
 				{
 					"Not struct",
@@ -2252,7 +2248,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"CodeWithScopeDecodeValue",
-			ValueDecoderFunc(dvd.CodeWithScopeDecodeValue),
+			ValueDecoderFunc(codeWithScopeDecodeValue),
 			[]subtest{
 				{
 					"wrong type",
@@ -2313,7 +2309,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		},
 		{
 			"CoreArrayDecodeValue",
-			defaultArrayCodec,
+			&arrayCodec{},
 			[]subtest{
 				{
 					"wrong type",
@@ -2428,7 +2424,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				buildDocument(bsoncore.AppendNullElement(nil, "bar")),
 			),
 		)
-		dvr := NewValueReader(b)
+		dvr := NewDocumentReader(bytes.NewReader(b))
 		dr, err := dvr.ReadDocument()
 		noerr(t, err)
 		_, vr, err := dr.ReadElement()
@@ -2439,7 +2435,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 			Scope: D{{"bar", nil}},
 		}
 		val := reflect.New(tCodeWithScope).Elem()
-		err = dvd.CodeWithScopeDecodeValue(dc, vr, val)
+		err = codeWithScopeDecodeValue(dc, vr, val)
 		noerr(t, err)
 
 		got := val.Interface().(CodeWithScope)
@@ -2454,7 +2450,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		want := errors.New("ubsonv error")
 		valUnmarshaler := &testValueUnmarshaler{err: want}
-		got := dvd.ValueUnmarshalerDecodeValue(dc, llvrw, reflect.ValueOf(valUnmarshaler))
+		got := valueUnmarshalerDecodeValue(dc, llvrw, reflect.ValueOf(valUnmarshaler))
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
@@ -2466,7 +2462,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		val := reflect.ValueOf(testValueUnmarshaler{})
 		want := ValueDecoderError{Name: "ValueUnmarshalerDecodeValue", Types: []reflect.Type{tValueUnmarshaler}, Received: val}
-		got := dvd.ValueUnmarshalerDecodeValue(dc, llvrw, val)
+		got := valueUnmarshalerDecodeValue(dc, llvrw, val)
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
@@ -2481,7 +2477,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		noerr(t, err)
 		doc, err = bsoncore.AppendDocumentEnd(doc, idx)
 		noerr(t, err)
-		dvr := NewValueReader(doc)
+		dvr := NewDocumentReader(bytes.NewReader(doc))
 		noerr(t, err)
 		dr, err := dvr.ReadDocument()
 		noerr(t, err)
@@ -2491,7 +2487,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		want := fmt.Errorf("more elements returned in array than can fit inside %T, got 2 elements", val)
 
 		dc := DecodeContext{Registry: buildDefaultRegistry()}
-		got := dvd.ArrayDecodeValue(dc, vr, reflect.ValueOf(val))
+		got := arrayDecodeValue(dc, vr, reflect.ValueOf(val))
 		if !assert.CompareErrors(got, want) {
 			t.Errorf("Errors do not match. got %v; want %v", got, want)
 		}
@@ -2896,10 +2892,10 @@ func TestDefaultValueDecoders(t *testing.T) {
 					AS: nil,
 					AT: nil,
 					AU: CodeWithScope{Code: "var hello = 'world';", Scope: D{{"pi", 3.14159}}},
-					AV: M{"foo": M{"bar": "baz"}},
+					AV: M{"foo": D{{"bar", "baz"}}},
 					AW: D{{"foo", D{{"bar", "baz"}}}},
-					AX: map[string]interface{}{"foo": map[string]interface{}{"bar": "baz"}},
-					AY: []E{{"foo", []E{{"bar", "baz"}}}},
+					AX: map[string]interface{}{"foo": D{{"bar", "baz"}}},
+					AY: []E{{"foo", D{{"bar", "baz"}}}},
 					AZ: D{{"foo", D{{"bar", "baz"}}}},
 				},
 				buildDocument(func(doc []byte) []byte {
@@ -3132,7 +3128,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.name, func(t *testing.T) {
-					vr := NewValueReader(tc.b)
+					vr := NewDocumentReader(bytes.NewReader(tc.b))
 					reg := buildDefaultRegistry()
 					vtype := reflect.TypeOf(tc.value)
 					dec, err := reg.LookupDecoder(vtype)
@@ -3181,7 +3177,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				vr := NewValueReader(tc.b)
+				vr := NewDocumentReader(bytes.NewReader(tc.b))
 				reg := buildDefaultRegistry()
 				vtype := reflect.TypeOf(tc.value)
 				dec, err := reg.LookupDecoder(vtype)
@@ -3311,9 +3307,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 							t.Skip()
 						}
 						val := reflect.New(tEmpty).Elem()
-						dc := DecodeContext{Registry: newTestRegistryBuilder().Build()}
-						want := ErrNoTypeMapEntry{Type: tc.bsontype}
-						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
+						dc := DecodeContext{Registry: newTestRegistry()}
+						want := errNoTypeMapEntry{Type: tc.bsontype}
+						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, val)
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
@@ -3324,13 +3320,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 							t.Skip()
 						}
 						val := reflect.New(tEmpty).Elem()
+						reg := newTestRegistry()
+						reg.RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val))
 						dc := DecodeContext{
-							Registry: newTestRegistryBuilder().
-								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
-								Build(),
+							Registry: reg,
 						}
-						want := ErrNoDecoder{Type: reflect.TypeOf(tc.val)}
-						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, val)
+						want := errNoDecoder{Type: reflect.TypeOf(tc.val)}
+						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, val)
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
@@ -3342,13 +3338,13 @@ func TestDefaultValueDecoders(t *testing.T) {
 						}
 						want := errors.New("DecodeValue failure error")
 						llc := &llCodec{t: t, err: want}
+						reg := newTestRegistry()
+						reg.RegisterTypeDecoder(reflect.TypeOf(tc.val), llc)
+						reg.RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val))
 						dc := DecodeContext{
-							Registry: newTestRegistryBuilder().
-								RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
-								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
-								Build(),
+							Registry: reg,
 						}
-						got := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, reflect.New(tEmpty).Elem())
+						got := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, reflect.New(tEmpty).Elem())
 						if !assert.CompareErrors(got, want) {
 							t.Errorf("Errors are not equal. got %v; want %v", got, want)
 						}
@@ -3357,14 +3353,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 					t.Run("Success", func(t *testing.T) {
 						want := tc.val
 						llc := &llCodec{t: t, decodeval: tc.val}
+						reg := newTestRegistry()
+						reg.RegisterTypeDecoder(reflect.TypeOf(tc.val), llc)
+						reg.RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val))
 						dc := DecodeContext{
-							Registry: newTestRegistryBuilder().
-								RegisterTypeDecoder(reflect.TypeOf(tc.val), llc).
-								RegisterTypeMapEntry(tc.bsontype, reflect.TypeOf(tc.val)).
-								Build(),
+							Registry: reg,
 						}
 						got := reflect.New(tEmpty).Elem()
-						err := defaultEmptyInterfaceCodec.DecodeValue(dc, llvr, got)
+						err := (&emptyInterfaceCodec{}).DecodeValue(dc, llvr, got)
 						noerr(t, err)
 						if !cmp.Equal(got.Interface(), want, cmp.Comparer(compareDecimal128)) {
 							t.Errorf("Did not receive expected value. got %v; want %v", got.Interface(), want)
@@ -3377,7 +3373,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("non-interface{}", func(t *testing.T) {
 			val := uint64(1234567890)
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
-			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
+			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
@@ -3386,7 +3382,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		t.Run("nil *interface{}", func(t *testing.T) {
 			var val interface{}
 			want := ValueDecoderError{Name: "EmptyInterfaceDecodeValue", Types: []reflect.Type{tEmpty}, Received: reflect.ValueOf(val)}
-			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
+			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{}, nil, reflect.ValueOf(val))
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
@@ -3394,20 +3390,20 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 		t.Run("no type registered", func(t *testing.T) {
 			llvr := &valueReaderWriter{BSONType: TypeDouble}
-			want := ErrNoTypeMapEntry{Type: TypeDouble}
+			want := errNoTypeMapEntry{Type: TypeDouble}
 			val := reflect.New(tEmpty).Elem()
-			got := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: newTestRegistryBuilder().Build()}, llvr, val)
+			got := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{Registry: newTestRegistry()}, llvr, val)
 			if !assert.CompareErrors(got, want) {
 				t.Errorf("Errors are not equal. got %v; want %v", got, want)
 			}
 		})
 		t.Run("top level document", func(t *testing.T) {
 			data := bsoncore.BuildDocument(nil, bsoncore.AppendDoubleElement(nil, "pi", 3.14159))
-			vr := NewValueReader(data)
+			vr := NewDocumentReader(bytes.NewReader(data))
 			want := D{{"pi", 3.14159}}
 			var got interface{}
 			val := reflect.ValueOf(&got).Elem()
-			err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: buildDefaultRegistry()}, vr, val)
+			err := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{Registry: buildDefaultRegistry()}, vr, val)
 			noerr(t, err)
 			if !cmp.Equal(got, want) {
 				t.Errorf("Did not get correct result. got %v; want %v", got, want)
@@ -3415,17 +3411,27 @@ func TestDefaultValueDecoders(t *testing.T) {
 		})
 		t.Run("custom type map entry", func(t *testing.T) {
 			// registering a custom type map entry for both Type(0) anad TypeEmbeddedDocument should cause
-			// both top-level and embedded documents to decode to registered type when unmarshalling to interface{}
+			// the top-level to decode to registered type when unmarshalling to interface{}
 
-			topLevelRb := newTestRegistryBuilder()
-			defaultValueEncoders.RegisterDefaultEncoders(topLevelRb)
-			defaultValueDecoders.RegisterDefaultDecoders(topLevelRb)
-			topLevelRb.RegisterTypeMapEntry(Type(0), reflect.TypeOf(M{}))
+			topLevelReg := &Registry{
+				typeEncoders: new(typeEncoderCache),
+				typeDecoders: new(typeDecoderCache),
+				kindEncoders: new(kindEncoderCache),
+				kindDecoders: new(kindDecoderCache),
+			}
+			registerDefaultEncoders(topLevelReg)
+			registerDefaultDecoders(topLevelReg)
+			topLevelReg.RegisterTypeMapEntry(Type(0), reflect.TypeOf(M{}))
 
-			embeddedRb := newTestRegistryBuilder()
-			defaultValueEncoders.RegisterDefaultEncoders(embeddedRb)
-			defaultValueDecoders.RegisterDefaultDecoders(embeddedRb)
-			embeddedRb.RegisterTypeMapEntry(Type(0), reflect.TypeOf(M{}))
+			embeddedReg := &Registry{
+				typeEncoders: new(typeEncoderCache),
+				typeDecoders: new(typeDecoderCache),
+				kindEncoders: new(kindEncoderCache),
+				kindDecoders: new(kindDecoderCache),
+			}
+			registerDefaultEncoders(embeddedReg)
+			registerDefaultDecoders(embeddedReg)
+			embeddedReg.RegisterTypeMapEntry(Type(0), reflect.TypeOf(M{}))
 
 			// create doc {"nested": {"foo": 1}}
 			innerDoc := bsoncore.BuildDocument(
@@ -3437,39 +3443,41 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.AppendDocumentElement(nil, "nested", innerDoc),
 			)
 			want := M{
-				"nested": M{
-					"foo": int32(1),
-				},
+				"nested": D{{"foo", int32(1)}},
 			}
 
 			testCases := []struct {
 				name     string
 				registry *Registry
 			}{
-				{"top level", topLevelRb.Build()},
-				{"embedded", embeddedRb.Build()},
+				{"top level", topLevelReg},
+				{"embedded", embeddedReg},
 			}
 			for _, tc := range testCases {
 				var got interface{}
-				vr := NewValueReader(doc)
+				vr := NewDocumentReader(bytes.NewReader(doc))
 				val := reflect.ValueOf(&got).Elem()
 
-				err := defaultEmptyInterfaceCodec.DecodeValue(DecodeContext{Registry: tc.registry}, vr, val)
+				err := (&emptyInterfaceCodec{}).DecodeValue(DecodeContext{Registry: tc.registry}, vr, val)
 				noerr(t, err)
 				if !cmp.Equal(got, want) {
 					t.Fatalf("got %v, want %v", got, want)
 				}
 			}
 		})
-		t.Run("ancestor info is used over custom type map entry", func(t *testing.T) {
-			// If a type map entry is registered for TypeEmbeddedDocument, the decoder should use ancestor
-			// information if available instead of the registered entry.
+		t.Run("custom type map entry is used if there is no type information", func(t *testing.T) {
+			// If a type map entry is registered for TypeEmbeddedDocument, the decoder should use it when
+			// type information is not available.
 
-			rb := newTestRegistryBuilder()
-			defaultValueEncoders.RegisterDefaultEncoders(rb)
-			defaultValueDecoders.RegisterDefaultDecoders(rb)
-			rb.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(M{}))
-			reg := rb.Build()
+			reg := &Registry{
+				typeEncoders: new(typeEncoderCache),
+				typeDecoders: new(typeDecoderCache),
+				kindEncoders: new(kindEncoderCache),
+				kindDecoders: new(kindDecoderCache),
+			}
+			registerDefaultEncoders(reg)
+			registerDefaultDecoders(reg)
+			reg.RegisterTypeMapEntry(TypeEmbeddedDocument, reflect.TypeOf(M{}))
 
 			// build document {"nested": {"foo": 10}}
 			inner := bsoncore.BuildDocument(
@@ -3481,15 +3489,15 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.AppendDocumentElement(nil, "nested", inner),
 			)
 			want := D{
-				{"nested", D{
-					{"foo", int32(10)},
+				{"nested", M{
+					"foo": int32(10),
 				}},
 			}
 
 			var got D
-			vr := NewValueReader(doc)
+			vr := NewDocumentReader(bytes.NewReader(doc))
 			val := reflect.ValueOf(&got).Elem()
-			err := defaultSliceCodec.DecodeValue(DecodeContext{Registry: reg}, vr, val)
+			err := (&sliceCodec{}).DecodeValue(DecodeContext{Registry: reg}, vr, val)
 			noerr(t, err)
 			if !cmp.Equal(got, want) {
 				t.Fatalf("got %v, want %v", got, want)
@@ -3502,8 +3510,8 @@ func TestDefaultValueDecoders(t *testing.T) {
 		emptyInterfaceErrorDecode := func(DecodeContext, ValueReader, reflect.Value) error {
 			return decodeValueError
 		}
-		emptyInterfaceErrorRegistry := newTestRegistryBuilder().
-			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).Build()
+		emptyInterfaceErrorRegistry := newTestRegistry()
+		emptyInterfaceErrorRegistry.RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode))
 
 		// Set up a document {foo: 10} and an error that would happen if the value were decoded into interface{}
 		// using the registry defined above.
@@ -3531,7 +3539,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 		}
 		stringStructErr := &DecodeError{
 			keys:    []string{"foo"},
-			wrapped: ErrNoDecoder{reflect.TypeOf("")},
+			wrapped: errNoDecoder{reflect.TypeOf("")},
 		}
 
 		// Test a deeply nested struct mixed with maps and slices.
@@ -3555,11 +3563,14 @@ func TestDefaultValueDecoders(t *testing.T) {
 		outerDoc := buildDocument(bsoncore.AppendDocumentElement(nil, "first", inner1Doc))
 
 		// Use a registry that has all default decoders with the custom interface{} decoder that always errors.
-		nestedRegistryBuilder := newTestRegistryBuilder()
-		defaultValueDecoders.RegisterDefaultDecoders(nestedRegistryBuilder)
-		nestedRegistry := nestedRegistryBuilder.
-			RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode)).
-			Build()
+		nestedRegistry := &Registry{
+			typeEncoders: new(typeEncoderCache),
+			typeDecoders: new(typeDecoderCache),
+			kindEncoders: new(kindEncoderCache),
+			kindDecoders: new(kindDecoderCache),
+		}
+		registerDefaultDecoders(nestedRegistry)
+		nestedRegistry.RegisterTypeDecoder(tEmpty, ValueDecoderFunc(emptyInterfaceErrorDecode))
 		nestedErr := &DecodeError{
 			keys:    []string{"fourth", "1", "third", "randomKey", "second", "first"},
 			wrapped: decodeValueError,
@@ -3577,9 +3588,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// DecodeValue error when decoding into a D.
 				"D slice",
 				D{},
-				NewValueReader(docBytes),
+				NewDocumentReader(bytes.NewReader(docBytes)),
 				emptyInterfaceErrorRegistry,
-				defaultSliceCodec,
+				&sliceCodec{},
 				docEmptyInterfaceErr,
 			},
 			{
@@ -3588,7 +3599,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				[]string{},
 				&valueReaderWriter{BSONType: TypeArray},
 				nil,
-				defaultSliceCodec,
+				&sliceCodec{},
 				&DecodeError{
 					keys:    []string{"0"},
 					wrapped: errors.New("cannot decode array into a string type"),
@@ -3600,9 +3611,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// the decodeD helper function.
 				"D array",
 				[1]E{},
-				NewValueReader(docBytes),
+				NewDocumentReader(bytes.NewReader(docBytes)),
 				emptyInterfaceErrorRegistry,
-				ValueDecoderFunc(dvd.ArrayDecodeValue),
+				ValueDecoderFunc(arrayDecodeValue),
 				docEmptyInterfaceErr,
 			},
 			{
@@ -3613,7 +3624,7 @@ func TestDefaultValueDecoders(t *testing.T) {
 				[1]string{},
 				&valueReaderWriter{BSONType: TypeArray},
 				nil,
-				ValueDecoderFunc(dvd.ArrayDecodeValue),
+				ValueDecoderFunc(arrayDecodeValue),
 				&DecodeError{
 					keys:    []string{"0"},
 					wrapped: errors.New("cannot decode array into a string type"),
@@ -3623,18 +3634,18 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// DecodeValue error when decoding into a map.
 				"map",
 				map[string]interface{}{},
-				NewValueReader(docBytes),
+				NewDocumentReader(bytes.NewReader(docBytes)),
 				emptyInterfaceErrorRegistry,
-				defaultMapCodec,
+				&mapCodec{},
 				docEmptyInterfaceErr,
 			},
 			{
 				// DecodeValue error when decoding into a struct.
 				"struct - DecodeValue error",
 				emptyInterfaceStruct{},
-				NewValueReader(docBytes),
+				NewDocumentReader(bytes.NewReader(docBytes)),
 				emptyInterfaceErrorRegistry,
-				defaultTestStructCodec,
+				newStructCodec(nil),
 				emptyInterfaceStructErr,
 			},
 			{
@@ -3643,17 +3654,17 @@ func TestDefaultValueDecoders(t *testing.T) {
 				// no decoder for strings.
 				"struct - no decoder found",
 				stringStruct{},
-				NewValueReader(docBytes),
-				newTestRegistryBuilder().Build(),
-				defaultTestStructCodec,
+				NewDocumentReader(bytes.NewReader(docBytes)),
+				newTestRegistry(),
+				newStructCodec(nil),
 				stringStructErr,
 			},
 			{
 				"deeply nested struct",
 				outer{},
-				NewValueReader(outerDoc),
+				NewDocumentReader(bytes.NewReader(outerDoc)),
 				nestedRegistry,
-				defaultTestStructCodec,
+				newStructCodec(nil),
 				nestedErr,
 			},
 		}
@@ -3681,9 +3692,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 			type outer struct{ Foo inner }
 
 			dc := DecodeContext{Registry: buildDefaultRegistry()}
-			vr := NewValueReader(outerBytes)
+			vr := NewDocumentReader(bytes.NewReader(outerBytes))
 			val := reflect.New(reflect.TypeOf(outer{})).Elem()
-			err := defaultTestStructCodec.DecodeValue(dc, vr, val)
+			err := newStructCodec(nil).DecodeValue(dc, vr, val)
 
 			var decodeErr *DecodeError
 			assert.True(t, errors.As(err, &decodeErr), "expected DecodeError, got %v of type %T", err, err)
@@ -3709,14 +3720,19 @@ func TestDefaultValueDecoders(t *testing.T) {
 				bsoncore.BuildArrayElement(nil, "boolArray", trueValue),
 			)
 
-			rb := newTestRegistryBuilder()
-			defaultValueDecoders.RegisterDefaultDecoders(rb)
-			reg := rb.RegisterTypeMapEntry(TypeBoolean, reflect.TypeOf(mybool(true))).Build()
+			reg := &Registry{
+				typeEncoders: new(typeEncoderCache),
+				typeDecoders: new(typeDecoderCache),
+				kindEncoders: new(kindEncoderCache),
+				kindDecoders: new(kindDecoderCache),
+			}
+			registerDefaultDecoders(reg)
+			reg.RegisterTypeMapEntry(TypeBoolean, reflect.TypeOf(mybool(true)))
 
 			dc := DecodeContext{Registry: reg}
-			vr := NewValueReader(docBytes)
+			vr := NewDocumentReader(bytes.NewReader(docBytes))
 			val := reflect.New(tD).Elem()
-			err := defaultValueDecoders.DDecodeValue(dc, vr, val)
+			err := dDecodeValue(dc, vr, val)
 			assert.Nil(t, err, "DDecodeValue error: %v", err)
 
 			want := D{
@@ -3733,9 +3749,9 @@ func TestDefaultValueDecoders(t *testing.T) {
 
 			type myMap map[string]mybool
 			dc := DecodeContext{Registry: buildDefaultRegistry()}
-			vr := NewValueReader(docBytes)
+			vr := NewDocumentReader(bytes.NewReader(docBytes))
 			val := reflect.New(reflect.TypeOf(myMap{})).Elem()
-			err := defaultMapCodec.DecodeValue(dc, vr, val)
+			err := (&mapCodec{}).DecodeValue(dc, vr, val)
 			assert.Nil(t, err, "DecodeValue error: %v", err)
 
 			want := myMap{
@@ -3778,8 +3794,13 @@ func buildDocument(elems []byte) []byte {
 }
 
 func buildDefaultRegistry() *Registry {
-	rb := newTestRegistryBuilder()
-	defaultValueEncoders.RegisterDefaultEncoders(rb)
-	defaultValueDecoders.RegisterDefaultDecoders(rb)
-	return rb.Build()
+	reg := &Registry{
+		typeEncoders: new(typeEncoderCache),
+		typeDecoders: new(typeDecoderCache),
+		kindEncoders: new(kindEncoderCache),
+		kindDecoders: new(kindDecoderCache),
+	}
+	registerDefaultEncoders(reg)
+	registerDefaultDecoders(reg)
+	return reg
 }

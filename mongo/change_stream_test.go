@@ -7,15 +7,17 @@
 package mongo
 
 import (
+	"context"
 	"testing"
+	"time"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 func TestChangeStream(t *testing.T) {
 	t.Run("nil cursor", func(t *testing.T) {
-		cs := &ChangeStream{}
+		cs := &ChangeStream{client: &Client{}}
 
 		id := cs.ID()
 		assert.Equal(t, int64(0), id, "expected ID 0, got %v", id)
@@ -29,64 +31,95 @@ func TestChangeStream(t *testing.T) {
 	})
 }
 
-func TestMergeChangeStreamOptions(t *testing.T) {
+func TestValidChangeStreamTimeouts(t *testing.T) {
 	t.Parallel()
 
-	fullDocumentP := func(x options.FullDocument) *options.FullDocument { return &x }
-	int32P := func(x int32) *int32 { return &x }
+	newDurPtr := func(dur time.Duration) *time.Duration {
+		return &dur
+	}
 
-	testCases := []struct {
-		description string
-		input       []*options.ChangeStreamOptions
-		want        *options.ChangeStreamOptions
+	tests := []struct {
+		name                     string
+		parent                   context.Context
+		maxAwaitTimeout, timeout *time.Duration
+		wantTimeout              time.Duration
+		want                     bool
 	}{
 		{
-			description: "nil",
-			input:       nil,
-			want:        &options.ChangeStreamOptions{},
+			name:            "no context deadline and no timeouts",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
 		},
 		{
-			description: "empty",
-			input:       []*options.ChangeStreamOptions{},
-			want:        &options.ChangeStreamOptions{},
+			name:            "no context deadline and maxAwaitTimeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         nil,
+			wantTimeout:     0,
+			want:            true,
 		},
 		{
-			description: "many ChangeStreamOptions with one configuration each",
-			input: []*options.ChangeStreamOptions{
-				options.ChangeStream().SetFullDocumentBeforeChange(options.Required),
-				options.ChangeStream().SetFullDocument(options.Required),
-				options.ChangeStream().SetBatchSize(10),
-			},
-			want: &options.ChangeStreamOptions{
-				FullDocument:             fullDocumentP(options.Required),
-				FullDocumentBeforeChange: fullDocumentP(options.Required),
-				BatchSize:                int32P(10),
-			},
+			name:            "no context deadline and timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: nil,
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            true,
 		},
 		{
-			description: "single ChangeStreamOptions with many configurations",
-			input: []*options.ChangeStreamOptions{
-				options.ChangeStream().
-					SetFullDocumentBeforeChange(options.Required).
-					SetFullDocument(options.Required).
-					SetBatchSize(10),
-			},
-			want: &options.ChangeStreamOptions{
-				FullDocument:             fullDocumentP(options.Required),
-				FullDocumentBeforeChange: fullDocumentP(options.Required),
-				BatchSize:                int32P(10),
-			},
+			name:            "no context deadline and maxAwaitTime gt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(2),
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime lt timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(2),
+			wantTimeout:     0,
+			want:            true,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime eq timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(1),
+			wantTimeout:     0,
+			want:            false,
+		},
+		{
+			name:            "no context deadline and maxAwaitTime with negative timeout",
+			parent:          context.Background(),
+			maxAwaitTimeout: newDurPtr(1),
+			timeout:         newDurPtr(-1),
+			wantTimeout:     0,
+			want:            true,
 		},
 	}
 
-	for _, tc := range testCases {
-		tc := tc // Capture range variable.
+	for _, test := range tests {
+		test := test // Capture the range variable
 
-		t.Run(tc.description, func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := mergeChangeStreamOptions(tc.input...)
-			assert.Equal(t, tc.want, got, "expected and actual ChangeStreamOptions are different")
+			cs := &ChangeStream{
+				options: &options.ChangeStreamOptions{
+					MaxAwaitTime: test.maxAwaitTimeout,
+				},
+				client: &Client{
+					timeout: test.timeout,
+				},
+			}
+
+			got := validChangeStreamTimeouts(test.parent, cs)
+			assert.Equal(t, test.want, got)
 		})
 	}
 }

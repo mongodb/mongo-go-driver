@@ -12,14 +12,14 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/driverutil"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/driverutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // FindAndModify performs a findAndModify operation.
@@ -29,7 +29,6 @@ type FindAndModify struct {
 	collation                bsoncore.Document
 	comment                  bsoncore.Value
 	fields                   bsoncore.Document
-	maxTime                  *time.Duration
 	newDocument              *bool
 	query                    bsoncore.Document
 	remove                   *bool
@@ -137,7 +136,6 @@ func (fam *FindAndModify) Execute(ctx context.Context) error {
 		CommandMonitor: fam.monitor,
 		Database:       fam.database,
 		Deployment:     fam.deployment,
-		MaxTime:        fam.maxTime,
 		Selector:       fam.selector,
 		WriteConcern:   fam.writeConcern,
 		Crypt:          fam.crypt,
@@ -262,16 +260,6 @@ func (fam *FindAndModify) Fields(fields bsoncore.Document) *FindAndModify {
 	}
 
 	fam.fields = fields
-	return fam
-}
-
-// MaxTime specifies the maximum amount of time to allow the operation to run on the server.
-func (fam *FindAndModify) MaxTime(maxTime *time.Duration) *FindAndModify {
-	if fam == nil {
-		fam = new(FindAndModify)
-	}
-
-	fam.maxTime = maxTime
 	return fam
 }
 

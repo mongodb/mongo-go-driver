@@ -13,13 +13,14 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // TODO: add sessions options
@@ -61,11 +62,12 @@ type upload struct {
 // filename.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenUploadStream(
 	ctx context.Context,
 	filename string,
-	opts ...*options.UploadOptions,
+	opts ...options.Lister[options.GridFSUploadOptions],
 ) (*GridFSUploadStream, error) {
 	return b.OpenUploadStreamWithID(ctx, bson.NewObjectID(), filename, opts...)
 }
@@ -74,18 +76,22 @@ func (b *GridFSBucket) OpenUploadStream(
 // ID and filename.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenUploadStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
-	opts ...*options.UploadOptions,
+	opts ...options.Lister[options.GridFSUploadOptions],
 ) (*GridFSUploadStream, error) {
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
+
 	if err := b.checkFirstWrite(ctx); err != nil {
 		return nil, err
 	}
 
-	upload, err := b.parseUploadOptions(opts...)
+	upload, err := b.parseGridFSUploadOptions(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,12 +106,13 @@ func (b *GridFSBucket) OpenUploadStreamWithID(
 // bucket that also require a custom deadline.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) UploadFromStream(
 	ctx context.Context,
 	filename string,
 	source io.Reader,
-	opts ...*options.UploadOptions,
+	opts ...options.Lister[options.GridFSUploadOptions],
 ) (bson.ObjectID, error) {
 	fileID := bson.NewObjectID()
 	err := b.UploadFromStreamWithID(ctx, fileID, filename, source, opts...)
@@ -119,13 +126,14 @@ func (b *GridFSBucket) UploadFromStream(
 // bucket that also require a custom deadline.
 //
 // The context provided to this method controls the entire lifetime of an
-// upload stream io.Writer.
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) UploadFromStreamWithID(
 	ctx context.Context,
 	fileID interface{},
 	filename string,
 	source io.Reader,
-	opts ...*options.UploadOptions,
+	opts ...options.Lister[options.GridFSUploadOptions],
 ) error {
 	us, err := b.OpenUploadStreamWithID(ctx, fileID, filename, opts...)
 	if err != nil {
@@ -157,8 +165,9 @@ func (b *GridFSBucket) UploadFromStreamWithID(
 // OpenDownloadStream creates a stream from which the contents of the file can
 // be read.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{}) (*GridFSDownloadStream, error) {
 	return b.openDownloadStream(ctx, bson.D{{"_id", fileID}})
 }
@@ -171,8 +180,9 @@ func (b *GridFSBucket) OpenDownloadStream(ctx context.Context, fileID interface{
 // cannot be done concurrently with other read operations operations on this
 // bucket that also require a custom deadline.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{}, stream io.Writer) (int64, error) {
 	ds, err := b.OpenDownloadStream(ctx, fileID)
 	if err != nil {
@@ -185,30 +195,25 @@ func (b *GridFSBucket) DownloadToStream(ctx context.Context, fileID interface{},
 // OpenDownloadStreamByName opens a download stream for the file with the given
 // filename.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) OpenDownloadStreamByName(
 	ctx context.Context,
 	filename string,
-	opts ...*options.NameOptions,
+	opts ...options.Lister[options.GridFSNameOptions],
 ) (*GridFSDownloadStream, error) {
-	var numSkip int32 = -1
+	args, err := mongoutil.NewOptions[options.GridFSNameOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
+	}
+
+	numSkip := options.DefaultRevision
+	if args.Revision != nil {
+		numSkip = *args.Revision
+	}
+
 	var sortOrder int32 = 1
-
-	nameOpts := options.GridFSName()
-	nameOpts.Revision = &options.DefaultRevision
-
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.Revision != nil {
-			nameOpts.Revision = opt.Revision
-		}
-	}
-	if nameOpts.Revision != nil {
-		numSkip = *nameOpts.Revision
-	}
 
 	if numSkip < 0 {
 		sortOrder = -1
@@ -227,13 +232,14 @@ func (b *GridFSBucket) OpenDownloadStreamByName(
 // cannot be done concurrently with other read operations operations on this
 // bucket that also require a custom deadline.
 //
-// The context provided to this method controls the entire lifetime of a
-// download stream io.Reader.
+// The context provided to this method controls the entire lifetime of an
+// upload stream io.Writer. If the context does set a deadline, then the
+// client-level timeout will be used to cap the lifetime of the stream.
 func (b *GridFSBucket) DownloadToStreamByName(
 	ctx context.Context,
 	filename string,
 	stream io.Writer,
-	opts ...*options.NameOptions,
+	opts ...options.Lister[options.GridFSNameOptions],
 ) (int64, error) {
 	ds, err := b.OpenDownloadStreamByName(ctx, filename, opts...)
 	if err != nil {
@@ -243,23 +249,13 @@ func (b *GridFSBucket) DownloadToStreamByName(
 	return b.downloadToStream(ds, stream)
 }
 
-// Delete deletes all chunks and metadata associated with the file with the given file ID and runs the underlying
-// delete operations with the provided context.
-//
-// Use the context parameter to time-out or cancel the delete operation. The deadline set by SetWriteDeadline is ignored.
+// Delete deletes all chunks and metadata associated with the file with the
+// given file ID and runs the underlying delete operations with the provided
+// context.
 func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
-	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
-	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
-	// be shared by both delete operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
 
-	// Delete document in files collection and then chunks to minimize race conditions.
 	res, err := b.filesColl.DeleteOne(ctx, bson.D{{"_id", fileID}})
 	if err == nil && res.DeletedCount == 0 {
 		err = ErrFileNotFound
@@ -272,75 +268,42 @@ func (b *GridFSBucket) Delete(ctx context.Context, fileID interface{}) error {
 	return b.deleteChunks(ctx, fileID)
 }
 
-// Find returns the files collection documents that match the given filter and runs the underlying
-// find query with the provided context.
-//
-// Use the context parameter to time-out or cancel the find operation. The deadline set by SetReadDeadline
-// is ignored.
+// Find returns the files collection documents that match the given filter and
+// runs the underlying find query with the provided context.
 func (b *GridFSBucket) Find(
 	ctx context.Context,
 	filter interface{},
-	opts ...*options.GridFSFindOptions,
+	opts ...options.Lister[options.GridFSFindOptions],
 ) (*Cursor, error) {
-	gfsOpts := options.GridFSFind()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.AllowDiskUse != nil {
-			gfsOpts.AllowDiskUse = opt.AllowDiskUse
-		}
-		if opt.BatchSize != nil {
-			gfsOpts.BatchSize = opt.BatchSize
-		}
-		if opt.Limit != nil {
-			gfsOpts.Limit = opt.Limit
-		}
-		if opt.MaxTime != nil {
-			gfsOpts.MaxTime = opt.MaxTime
-		}
-		if opt.NoCursorTimeout != nil {
-			gfsOpts.NoCursorTimeout = opt.NoCursorTimeout
-		}
-		if opt.Skip != nil {
-			gfsOpts.Skip = opt.Skip
-		}
-		if opt.Sort != nil {
-			gfsOpts.Sort = opt.Sort
-		}
+	args, err := mongoutil.NewOptions[options.GridFSFindOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
+
 	find := options.Find()
-	if gfsOpts.AllowDiskUse != nil {
-		find.SetAllowDiskUse(*gfsOpts.AllowDiskUse)
+	if args.AllowDiskUse != nil {
+		find.SetAllowDiskUse(*args.AllowDiskUse)
 	}
-	if gfsOpts.BatchSize != nil {
-		find.SetBatchSize(*gfsOpts.BatchSize)
+	if args.BatchSize != nil {
+		find.SetBatchSize(*args.BatchSize)
 	}
-	if gfsOpts.Limit != nil {
-		find.SetLimit(int64(*gfsOpts.Limit))
+	if args.Limit != nil {
+		find.SetLimit(int64(*args.Limit))
 	}
-	if gfsOpts.MaxTime != nil {
-		find.SetMaxTime(*gfsOpts.MaxTime)
+	if args.NoCursorTimeout != nil {
+		find.SetNoCursorTimeout(*args.NoCursorTimeout)
 	}
-	if gfsOpts.NoCursorTimeout != nil {
-		find.SetNoCursorTimeout(*gfsOpts.NoCursorTimeout)
+	if args.Skip != nil {
+		find.SetSkip(int64(*args.Skip))
 	}
-	if gfsOpts.Skip != nil {
-		find.SetSkip(int64(*gfsOpts.Skip))
-	}
-	if gfsOpts.Sort != nil {
-		find.SetSort(gfsOpts.Sort)
+	if args.Sort != nil {
+		find.SetSort(args.Sort)
 	}
 
 	return b.filesColl.Find(ctx, filter, find)
 }
 
 // Rename renames the stored file with the specified file ID.
-//
-// If this operation requires a custom write deadline to be set on the bucket, it cannot be done concurrently with other
-// write operations operations on this bucket that also require a custom deadline
-//
-// Use SetWriteDeadline to set a deadline for the rename operation.
 func (b *GridFSBucket) Rename(ctx context.Context, fileID interface{}, newFilename string) error {
 	res, err := b.filesColl.UpdateOne(ctx,
 		bson.D{{"_id", fileID}},
@@ -357,21 +320,11 @@ func (b *GridFSBucket) Rename(ctx context.Context, fileID interface{}, newFilena
 	return nil
 }
 
-// Drop drops the files and chunks collections associated with this bucket and runs the drop operations with
-// the provided context.
-//
-// Use the context parameter to time-out or cancel the drop operation. The deadline set by SetWriteDeadline is ignored.
+// Drop drops the files and chunks collections associated with this bucket and
+// runs the drop operations with the provided context.
 func (b *GridFSBucket) Drop(ctx context.Context) error {
-	// If no deadline is set on the passed-in context, Timeout is set on the Client, and context is
-	// not already a Timeout context, honor Timeout in new Timeout context for operation execution to
-	// be shared by both drop operations.
-	if _, deadlineSet := ctx.Deadline(); !deadlineSet && b.db.Client().timeout != nil && !csot.IsTimeoutContext(ctx) {
-		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *b.db.Client().timeout)
-		// Redefine ctx to be the new timeout-derived context.
-		ctx = newCtx
-		// Cancel the timeout-derived context at the end of Execute to avoid a context leak.
-		defer cancelFunc()
-	}
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
 
 	err := b.filesColl.Drop(ctx)
 	if err != nil {
@@ -394,8 +347,11 @@ func (b *GridFSBucket) GetChunksCollection() *Collection {
 func (b *GridFSBucket) openDownloadStream(
 	ctx context.Context,
 	filter interface{},
-	opts ...*options.FindOneOptions,
+	opts ...options.Lister[options.FindOneOptions],
 ) (*GridFSDownloadStream, error) {
+	ctx, cancel := csot.WithTimeout(ctx, b.db.client.timeout)
+	defer cancel()
+
 	result := b.filesColl.FindOne(ctx, filter, opts...)
 
 	// Unmarshal the data into a File instance, which can be passed to newGridFSDownloadStream. The _id value has to be
@@ -425,6 +381,7 @@ func (b *GridFSBucket) openDownloadStream(
 	if err != nil {
 		return nil, err
 	}
+
 	// The chunk size can be overridden for individual files, so the expected chunk size should be the "chunkSize"
 	// field from the files collection document, not the bucket's chunk size.
 	return newGridFSDownloadStream(ctx, chunksCursor, foundFile.ChunkSize, foundFile), nil
@@ -586,45 +543,37 @@ func (b *GridFSBucket) checkFirstWrite(ctx context.Context) error {
 	return nil
 }
 
-func (b *GridFSBucket) parseUploadOptions(opts ...*options.UploadOptions) (*upload, error) {
+func (b *GridFSBucket) parseGridFSUploadOptions(opts ...options.Lister[options.GridFSUploadOptions]) (*upload, error) {
 	upload := &upload{
 		chunkSize: b.chunkSize, // upload chunk size defaults to bucket's value
 	}
 
-	uo := options.GridFSUpload()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-		if opt.ChunkSizeBytes != nil {
-			uo.ChunkSizeBytes = opt.ChunkSizeBytes
-		}
-		if opt.Metadata != nil {
-			uo.Metadata = opt.Metadata
-		}
-		if opt.Registry != nil {
-			uo.Registry = opt.Registry
-		}
+	args, err := mongoutil.NewOptions[options.GridFSUploadOptions](opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct options from builder: %w", err)
 	}
-	if uo.ChunkSizeBytes != nil {
-		upload.chunkSize = *uo.ChunkSizeBytes
+
+	if args.ChunkSizeBytes != nil {
+		upload.chunkSize = *args.ChunkSizeBytes
 	}
-	if uo.Registry == nil {
-		uo.Registry = bson.DefaultRegistry
+	if args.Registry == nil {
+		args.Registry = defaultRegistry
 	}
-	if uo.Metadata != nil {
+	if args.Metadata != nil {
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
 		// TODO gridfs package is merged into the mongo package.
 		buf := new(bytes.Buffer)
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		enc := bson.NewEncoder(vw)
-		enc.SetRegistry(uo.Registry)
-		err := enc.Encode(uo.Metadata)
+		enc.SetRegistry(args.Registry)
+		err := enc.Encode(args.Metadata)
 		if err != nil {
 			return nil, err
 		}
 		var doc bson.D
-		unMarErr := bson.UnmarshalWithRegistry(uo.Registry, buf.Bytes(), &doc)
+		dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(buf.Bytes())))
+		dec.SetRegistry(args.Registry)
+		unMarErr := dec.Decode(&doc)
 		if unMarErr != nil {
 			return nil, unMarErr
 		}

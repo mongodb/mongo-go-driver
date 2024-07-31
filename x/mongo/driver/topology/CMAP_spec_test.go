@@ -19,12 +19,12 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/event"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/internal/spectest"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/mnet"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/event"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/internal/spectest"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/mnet"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
 )
 
 // skippedTestDescriptions is a collection of test descriptions that the test runner will skip. The
@@ -208,7 +208,7 @@ func runCMAPTest(t *testing.T, testFileName string) {
 		}
 	}))
 
-	s := NewServer("mongodb://fake", bson.NewObjectID(), sOpts...)
+	s := NewServer("mongodb://fake", bson.NewObjectID(), defaultConnectionTimeout, sOpts...)
 	s.state = serverConnected
 	require.NoError(t, err, "error connecting connection pool")
 	defer s.pool.close(context.Background())
@@ -274,7 +274,6 @@ func runCMAPTest(t *testing.T, testFileName string) {
 	}
 
 	checkEvents(t, test.Events, testInfo.finalEventChan, test.Ignore)
-
 }
 
 func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *event.PoolEvent, ignoreEvents []string) {
@@ -290,7 +289,6 @@ func checkEvents(t *testing.T, expectedEvents []cmapEvent, actualEvents chan *ev
 		}
 
 		if expectedEvent.Address != nil {
-
 			if expectedEvent.Address == float64(42) { // can be any address
 				if validEvent.Address == "" {
 					t.Errorf("expected address in event, instead received none in %v", expectedEvent.EventType)

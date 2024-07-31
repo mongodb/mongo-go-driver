@@ -14,7 +14,11 @@ import (
 
 const defaultDstCap = 256
 
-var extjPool = NewExtJSONValueWriterPool()
+var extjPool = sync.Pool{
+	New: func() interface{} {
+		return new(extJSONValueWriter)
+	},
+}
 
 // Marshaler is the interface implemented by types that can marshal themselves
 // into a valid BSON document.
@@ -34,7 +38,7 @@ type Marshaler interface {
 // create custom BSON marshaling behavior for an entire BSON document, implement
 // the Marshaler interface instead.
 type ValueMarshaler interface {
-	MarshalBSONValue() (Type, []byte, error)
+	MarshalBSONValue() (typ byte, data []byte, err error)
 }
 
 // Pool of buffers for marshalling BSON.
@@ -70,11 +74,11 @@ func Marshal(val interface{}) ([]byte, error) {
 		}
 	}()
 	sw.Reset()
-	vw := NewValueWriter(sw)
+	vw := NewDocumentWriter(sw)
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 	enc.Reset(vw)
-	enc.SetRegistry(DefaultRegistry)
+	enc.SetRegistry(defaultRegistry)
 	err := enc.Encode(val)
 	if err != nil {
 		return nil, err
@@ -85,25 +89,39 @@ func Marshal(val interface{}) ([]byte, error) {
 
 // MarshalValue returns the BSON encoding of val.
 //
-// MarshalValue will use bson.DefaultRegistry to transform val into a BSON value. If val is a struct, this function will
+// MarshalValue will use bson.NewRegistry() to transform val into a BSON value. If val is a struct, this function will
 // inspect struct tags and alter the marshalling process accordingly.
 func MarshalValue(val interface{}) (Type, []byte, error) {
-	return MarshalValueWithRegistry(DefaultRegistry, val)
-}
-
-// MarshalValueWithRegistry returns the BSON encoding of val using Registry r.
-//
-// Deprecated: Using a custom registry to marshal individual BSON values will not be supported in Go
-// Driver 2.0.
-func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error) {
-	sw := SliceWriter(make([]byte, 0))
-	vwFlusher := bvwPool.GetAtModeElement(&sw)
+	sw := bufPool.Get().(*bytes.Buffer)
+	defer func() {
+		// Proper usage of a sync.Pool requires each entry to have approximately
+		// the same memory cost. To obtain this property when the stored type
+		// contains a variably-sized buffer, we add a hard limit on the maximum
+		// buffer to place back in the pool. We limit the size to 16MiB because
+		// that's the maximum wire message size supported by any current MongoDB
+		// server.
+		//
+		// Comment based on
+		// https://cs.opensource.google/go/go/+/refs/tags/go1.19:src/fmt/print.go;l=147
+		//
+		// Recycle byte slices that are smaller than 16MiB and at least half
+		// occupied.
+		if sw.Cap() < 16*1024*1024 && sw.Cap()/2 < sw.Len() {
+			bufPool.Put(sw)
+		}
+	}()
+	sw.Reset()
+	vwFlusher := newDocumentWriter(sw)
+	vw, err := vwFlusher.WriteDocumentElement("")
+	if err != nil {
+		return 0, nil, err
+	}
 
 	// get an Encoder and encode the value
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
-	enc.Reset(vwFlusher)
-	enc.ec = EncodeContext{Registry: r}
+	enc.Reset(vw)
+	enc.SetRegistry(defaultRegistry)
 	if err := enc.Encode(val); err != nil {
 		return 0, nil, err
 	}
@@ -114,20 +132,27 @@ func MarshalValueWithRegistry(r *Registry, val interface{}) (Type, []byte, error
 	if err := vwFlusher.Flush(); err != nil {
 		return 0, nil, err
 	}
-	return Type(sw[0]), sw[2:], nil
+	typ := sw.Next(2)
+	return Type(typ[0]), sw.Bytes(), nil
 }
 
 // MarshalExtJSON returns the extended JSON encoding of val.
 func MarshalExtJSON(val interface{}, canonical, escapeHTML bool) ([]byte, error) {
-	sw := SliceWriter(make([]byte, 0, defaultDstCap))
-	ejvw := extjPool.Get(&sw, canonical, escapeHTML)
-	defer extjPool.Put(ejvw)
+	sw := sliceWriter(make([]byte, 0, defaultDstCap))
+	ejvw := extjPool.Get().(*extJSONValueWriter)
+	ejvw.reset(sw, canonical, escapeHTML)
+	ejvw.w = &sw
+	defer func() {
+		ejvw.buf = nil
+		ejvw.w = nil
+		extjPool.Put(ejvw)
+	}()
 
 	enc := encPool.Get().(*Encoder)
 	defer encPool.Put(enc)
 
 	enc.Reset(ejvw)
-	enc.ec = EncodeContext{Registry: DefaultRegistry}
+	enc.ec = EncodeContext{Registry: defaultRegistry}
 
 	err := enc.Encode(val)
 	if err != nil {

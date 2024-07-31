@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // waitForEventTimeout is the amount of time to wait for an event to occur. The
@@ -436,7 +436,6 @@ func waitForEvent(ctx context.Context, args waitForEventArguments) error {
 			if args.eventCompleted(client) {
 				return nil
 			}
-
 		}
 
 		time.Sleep(100 * time.Millisecond)
