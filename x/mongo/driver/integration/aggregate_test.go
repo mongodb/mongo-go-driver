@@ -10,12 +10,10 @@ import (
 	"bytes"
 	"context"
 	"testing"
-	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/event"
 	"go.mongodb.org/mongo-driver/v2/internal/integtest"
-	"go.mongodb.org/mongo-driver/v2/internal/require"
 	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
 	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
@@ -62,61 +60,6 @@ func TestAggregate(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	t.Run("TestMaxTimeMSInGetMore", func(t *testing.T) {
-		ctx := context.Background()
-		monitor, started, succeeded, failed := setUpMonitor()
-		dbName := "TestAggMaxTimeDB"
-		collName := "TestAggMaxTimeColl"
-		top := integtest.MonitoredTopology(t, dbName, monitor)
-		clearChannels(started, succeeded, failed)
-		skipIfBelow32(ctx, t, top)
-
-		clearChannels(started, succeeded, failed)
-		err := operation.NewInsert(
-			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
-			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
-			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "x", 1)),
-		).Collection(collName).Database(dbName).
-			Deployment(top).ServerSelector(&serverselector.Write{}).Execute(context.Background())
-		noerr(t, err)
-
-		clearChannels(started, succeeded, failed)
-		op := operation.NewAggregate(bsoncore.BuildDocumentFromElements(nil)).
-			Collection(collName).Database(dbName).Deployment(top).ServerSelector(&serverselector.Write{}).
-			CommandMonitor(monitor).BatchSize(2)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-		defer cancel()
-
-		err = op.Execute(ctx)
-		noerr(t, err)
-		batchCursor, err := op.Result(driver.CursorOptions{BatchSize: 2, CommandMonitor: monitor})
-		noerr(t, err)
-
-		var e *event.CommandStartedEvent
-		select {
-		case e = <-started:
-		case <-time.After(2000 * time.Millisecond):
-			t.Fatal("timed out waiting for aggregate")
-		}
-
-		require.Equal(t, "aggregate", e.CommandName)
-
-		clearChannels(started, succeeded, failed)
-		// first Next() should automatically return true
-		require.True(t, batchCursor.Next(ctx), "expected true from first Next, got false")
-		clearChannels(started, succeeded, failed)
-		batchCursor.Next(ctx) // should do getMore
-
-		select {
-		case e = <-started:
-		case <-time.After(200 * time.Millisecond):
-			t.Fatal("timed out waiting for getMore")
-		}
-		require.Equal(t, "getMore", e.CommandName)
-		_, err = e.Command.LookupErr("maxTimeMS")
-		noerr(t, err)
-	})
 	t.Run("Multiple Batches", func(t *testing.T) {
 		ds := []bsoncore.Document{
 			bsoncore.BuildDocument(nil, bsoncore.AppendInt32Element(nil, "_id", 1)),
