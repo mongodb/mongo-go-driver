@@ -241,7 +241,7 @@ func TestServerHeartbeatStartedEvent(t *testing.T) {
 		var heartbeatStartedCount atomic.Int64
 
 		servers := map[string]bool{}
-		serversMu := sync.RWMutex{} // Guard writing to the servers set
+		serversMu := sync.RWMutex{} // Guard the servers set
 
 		serverMonitor := &event.ServerMonitor{
 			ServerHeartbeatStarted: func(*event.ServerHeartbeatStartedEvent) {
