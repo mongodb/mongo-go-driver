@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
@@ -253,12 +254,7 @@ func FormatDocument(msg bson.Raw, width uint) string {
 // FormatString formats a String for logging. The string is truncated
 // to the given width.
 func FormatString(str string, width uint) string {
-	value := bsoncore.Value{
-		Type: bsoncore.Type(bson.TypeString),
-		Data: bsoncore.AppendString(nil, str),
-	}
-
-	strTrunc := value.StringN(int(width))
+	strTrunc := bsoncoreutil.Truncate(str, int(width))
 
 	// Checks if the string was truncating by comparing the lengths of the two strings.
 	if len(strTrunc) < len(str) {

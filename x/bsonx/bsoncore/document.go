@@ -13,6 +13,8 @@ import (
 	"math"
 	"strconv"
 	"strings"
+
+	"go.mongodb.org/mongo-driver/v2/internal/bsoncoreutil"
 )
 
 // ValidationError is an error type returned when attempting to validate a document or array.
@@ -298,7 +300,7 @@ func (d Document) StringN(n int) string {
 			// TODO: Performance Improvement
 			str := elem.StringN(n)
 			if buf.Len()+len(str) > n {
-				truncatedStr := truncate(str, n-buf.Len())
+				truncatedStr := bsoncoreutil.Truncate(str, n-buf.Len())
 				buf.WriteString(truncatedStr)
 
 				truncated = true
@@ -315,39 +317,6 @@ func (d Document) StringN(n int) string {
 	}
 
 	return buf.String()
-}
-
-// truncate truncates a given string for a certain width
-func truncate(str string, width int) string {
-	if width == 0 {
-		return ""
-	}
-
-	if len(str) <= width {
-		return str
-	}
-
-	// Truncate the byte slice of the string to the given width.
-	newStr := str[:width]
-
-	// Check if the last byte is at the beginning of a multi-byte character.
-	// If it is, then remove the last byte.
-	if newStr[len(newStr)-1]&0xC0 == 0xC0 {
-		return newStr[:len(newStr)-1]
-	}
-
-	// Check if the last byte is a multi-byte character
-	if newStr[len(newStr)-1]&0xC0 == 0x80 {
-		// If it is, step back until you we are at the start of a character
-		for i := len(newStr) - 1; i >= 0; i-- {
-			if newStr[i]&0xC0 == 0xC0 {
-				// Truncate at the end of the character before the character we stepped back to
-				return newStr[:i]
-			}
-		}
-	}
-
-	return newStr
 }
 
 // Elements returns this document as a slice of elements. The returned slice will contain valid
