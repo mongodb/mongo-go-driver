@@ -9,9 +9,9 @@ package unified
 import (
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 // transactionOptions is a wrapper for *options.transactionOptions. This type implements the bson.Unmarshaler interface
@@ -89,15 +89,18 @@ func (so *sessionOptions) UnmarshalBSON(data []byte) error {
 			return fmt.Errorf("failed to construct options from builder: %w", err)
 		}
 
+		txnOpts := options.Transaction()
 		if rc := txnArgs.ReadConcern; rc != nil {
-			so.SetDefaultReadConcern(rc)
+			txnOpts.SetReadConcern(rc)
 		}
 		if rp := txnArgs.ReadPreference; rp != nil {
-			so.SetDefaultReadPreference(rp)
+			txnOpts.SetReadPreference(rp)
 		}
 		if wc := txnArgs.WriteConcern; wc != nil {
-			so.SetDefaultWriteConcern(wc)
+			txnOpts.SetWriteConcern(wc)
 		}
+
+		so.SetDefaultTransactionOptions(txnOpts)
 	}
 	if temp.Snapshot != nil {
 		so.SetSnapshot(*temp.Snapshot)

@@ -15,18 +15,18 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/bsonutil"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
-	"go.mongodb.org/mongo-driver/internal/integration/unified"
-	"go.mongodb.org/mongo-driver/internal/integtest"
-	"go.mongodb.org/mongo-driver/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/internal/require"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/bsonutil"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/unified"
+	"go.mongodb.org/mongo-driver/v2/internal/integtest"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/require"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 // Helper functions to execute and verify results from CRUD methods.
@@ -705,9 +705,9 @@ func executeFindOneAndUpdate(mt *mtest.T, sess *mongo.Session, args bson.Raw) *m
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "sort":
 			opts = opts.SetSort(val.Document())
 		case "projection":
@@ -887,9 +887,9 @@ func executeUpdateOne(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.U
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
@@ -939,9 +939,9 @@ func executeUpdateMany(mt *mtest.T, sess *mongo.Session, args bson.Raw) (*mongo.
 		case "update":
 			update = createUpdate(mt, val)
 		case "arrayFilters":
-			opts = opts.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
-			})
+			opts = opts.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(val.Array())...),
+			)
 		case "upsert":
 			opts = opts.SetUpsert(val.Boolean())
 		case "collation":
@@ -1060,7 +1060,7 @@ func executeWithTransaction(mt *mtest.T, sess *mongo.Session, args bson.Raw) err
 	mt.Helper()
 
 	var testArgs withTransactionArgs
-	dec := bson.NewDecoder(bson.NewValueReader(args))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(args)))
 	dec.SetRegistry(specTestRegistry)
 	err := dec.Decode(&testArgs)
 	assert.Nil(mt, err, "error creating withTransactionArgs: %v", err)
@@ -1135,9 +1135,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			uom.SetCollation(createCollation(mt, collation.Document()))
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
-			uom.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
-			})
+			uom.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
+			)
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			uom.SetHint(createHint(mt, hintVal))
@@ -1158,9 +1158,9 @@ func createBulkWriteModel(mt *mtest.T, rawModel bson.Raw) mongo.WriteModel {
 			umm.SetCollation(createCollation(mt, collation.Document()))
 		}
 		if arrayFilters, err := args.LookupErr("arrayFilters"); err == nil {
-			umm.SetArrayFilters(options.ArrayFilters{
-				Filters: bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
-			})
+			umm.SetArrayFilters(
+				bsonutil.RawToInterfaces(bsonutil.RawArrayToDocuments(arrayFilters.Array())...),
+			)
 		}
 		if hintVal, err := args.LookupErr("hint"); err == nil {
 			umm.SetHint(createHint(mt, hintVal))

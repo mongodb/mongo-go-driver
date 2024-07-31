@@ -13,14 +13,14 @@ import (
 	"fmt"
 	"io"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/csot"
-	"go.mongodb.org/mongo-driver/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csot"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // TODO: add sessions options
@@ -557,13 +557,13 @@ func (b *GridFSBucket) parseGridFSUploadOptions(opts ...options.Lister[options.G
 		upload.chunkSize = *args.ChunkSizeBytes
 	}
 	if args.Registry == nil {
-		args.Registry = bson.DefaultRegistry
+		args.Registry = defaultRegistry
 	}
 	if args.Metadata != nil {
 		// TODO(GODRIVER-2726): Replace with marshal() and unmarshal() once the
 		// TODO gridfs package is merged into the mongo package.
 		buf := new(bytes.Buffer)
-		vw := bson.NewValueWriter(buf)
+		vw := bson.NewDocumentWriter(buf)
 		enc := bson.NewEncoder(vw)
 		enc.SetRegistry(args.Registry)
 		err := enc.Encode(args.Metadata)
@@ -571,7 +571,7 @@ func (b *GridFSBucket) parseGridFSUploadOptions(opts ...options.Lister[options.G
 			return nil, err
 		}
 		var doc bson.D
-		dec := bson.NewDecoder(bson.NewValueReader(buf.Bytes()))
+		dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(buf.Bytes())))
 		dec.SetRegistry(args.Registry)
 		unMarErr := dec.Decode(&doc)
 		if unMarErr != nil {

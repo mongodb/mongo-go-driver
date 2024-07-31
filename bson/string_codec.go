@@ -12,11 +12,7 @@ import (
 )
 
 // stringCodec is the Codec used for string values.
-type stringCodec struct {
-	// DecodeObjectIDAsHex specifies if object IDs should be decoded as their hex representation.
-	// If false, a string made from the raw object ID bytes will be used. Defaults to true.
-	decodeObjectIDAsHex bool
-}
+type stringCodec struct{}
 
 // Assert that stringCodec satisfies the typeDecoder interface, which allows it to be
 // used by collection type decoders (e.g. map, slice, etc) to set individual values in a
@@ -36,7 +32,7 @@ func (sc *stringCodec) EncodeValue(_ EncodeContext, vw ValueWriter, val reflect.
 	return vw.WriteString(val.String())
 }
 
-func (sc *stringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
+func (sc *stringCodec) decodeType(dc DecodeContext, vr ValueReader, t reflect.Type) (reflect.Value, error) {
 	if t.Kind() != reflect.String {
 		return emptyValue, ValueDecoderError{
 			Name:     "StringDecodeValue",
@@ -58,12 +54,10 @@ func (sc *stringCodec) decodeType(_ DecodeContext, vr ValueReader, t reflect.Typ
 		if err != nil {
 			return emptyValue, err
 		}
-		if sc.decodeObjectIDAsHex {
+		if dc.objectIDAsHexString {
 			str = oid.Hex()
 		} else {
-			// TODO(GODRIVER-2796): Return an error here instead of decoding to a garbled string.
-			byteArray := [12]byte(oid)
-			str = string(byteArray[:])
+			return emptyValue, fmt.Errorf("decoding an object ID to a non-hexadecimal string representation is not supported")
 		}
 	case TypeSymbol:
 		str, err = vr.ReadSymbol()

@@ -17,12 +17,14 @@ import (
 	"strconv"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/internal/codecutil"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/codecutil"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+var defaultRegistry = bson.NewRegistry()
 
 // Dialer is used to make network connections.
 type Dialer interface {
@@ -59,7 +61,7 @@ func getEncoder(
 	opts *options.BSONOptions,
 	reg *bson.Registry,
 ) (*bson.Encoder, error) {
-	vw := bson.NewValueWriter(w)
+	vw := bson.NewDocumentWriter(w)
 	enc := bson.NewEncoder(vw)
 
 	if opts != nil {
@@ -115,7 +117,7 @@ func marshal(
 	registry *bson.Registry,
 ) (bsoncore.Document, error) {
 	if registry == nil {
-		registry = bson.DefaultRegistry
+		registry = defaultRegistry
 	}
 	if val == nil {
 		return nil, ErrNilDocument
@@ -153,7 +155,7 @@ func ensureID(
 	reg *bson.Registry,
 ) (bsoncore.Document, interface{}, error) {
 	if reg == nil {
-		reg = bson.DefaultRegistry
+		reg = defaultRegistry
 	}
 
 	// Try to find the "_id" element. If it exists, try to unmarshal just the

@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 // ErrNilContext is returned when the provided DecodeContext is nil.
@@ -46,7 +46,7 @@ func (rv RawValue) IsZero() bool {
 func (rv RawValue) Unmarshal(val interface{}) error {
 	reg := rv.r
 	if reg == nil {
-		reg = DefaultRegistry
+		reg = defaultRegistry
 	}
 	return rv.UnmarshalWithRegistry(reg, val)
 }
@@ -71,7 +71,7 @@ func (rv RawValue) UnmarshalWithRegistry(r *Registry, val interface{}) error {
 		return ErrNilRegistry
 	}
 
-	vr := NewBSONValueReader(rv.Type, rv.Value)
+	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)
@@ -91,7 +91,7 @@ func (rv RawValue) UnmarshalWithContext(dc *DecodeContext, val interface{}) erro
 		return ErrNilContext
 	}
 
-	vr := NewBSONValueReader(rv.Type, rv.Value)
+	vr := newValueReader(rv.Type, bytes.NewReader(rv.Value))
 	rval := reflect.ValueOf(val)
 	if rval.Kind() != reflect.Ptr {
 		return fmt.Errorf("argument to Unmarshal* must be a pointer to a type, but got %v", rval)

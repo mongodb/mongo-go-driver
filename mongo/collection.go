@@ -14,19 +14,19 @@ import (
 	"strings"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/csfle"
-	"go.mongodb.org/mongo-driver/internal/mongoutil"
-	"go.mongodb.org/mongo-driver/internal/serverselector"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/csfle"
+	"go.mongodb.org/mongo-driver/v2/internal/mongoutil"
+	"go.mongodb.org/mongo-driver/v2/internal/serverselector"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver/session"
 )
 
 // Collection is a handle to a MongoDB collection. It is safe for concurrent use by multiple goroutines.
@@ -501,7 +501,7 @@ func (coll *Collection) delete(
 	doc = bsoncore.AppendDocumentElement(doc, "q", f)
 	doc = bsoncore.AppendInt32Element(doc, "limit", limit)
 	if args.Collation != nil {
-		doc = bsoncore.AppendDocumentElement(doc, "collation", args.Collation.ToDocument())
+		doc = bsoncore.AppendDocumentElement(doc, "collation", toDocument(args.Collation))
 	}
 	if args.Hint != nil {
 		if isUnorderedMap(args.Hint) {
@@ -963,7 +963,7 @@ func aggregate(a aggregateParams, opts ...options.Lister[options.AggregateOption
 		op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.MaxAwaitTime != nil {
 		cursorOpts.SetMaxAwaitTime(*args.MaxAwaitTime)
@@ -1074,7 +1074,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		Collection(coll.name).Deployment(coll.client.deployment).Crypt(coll.client.cryptFLE).ServerAPI(coll.client.serverAPI).
 		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1245,7 +1245,7 @@ func (coll *Collection) Distinct(
 		Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1353,7 +1353,7 @@ func (coll *Collection) find(ctx context.Context, filter interface{},
 		op.BatchSize(*args.BatchSize)
 	}
 	if args.Collation != nil {
-		op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1596,7 +1596,7 @@ func (coll *Collection) FindOneAndDelete(
 
 	op := operation.NewFindAndModify(f).Remove(true).ServerAPI(coll.client.serverAPI).Timeout(coll.client.timeout).Authenticator(coll.client.authenticator)
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1687,7 +1687,7 @@ func (coll *Collection) FindOneAndReplace(
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1786,10 +1786,7 @@ func (coll *Collection) FindOneAndUpdate(
 	if args.ArrayFilters != nil {
 		af := args.ArrayFilters
 		reg := coll.registry
-		if af.Registry != nil {
-			reg = af.Registry
-		}
-		filtersDoc, err := marshalValue(af.Filters, coll.bsonOpts, reg)
+		filtersDoc, err := marshalValue(af, coll.bsonOpts, reg)
 		if err != nil {
 			return &SingleResult{err: err}
 		}
@@ -1799,7 +1796,7 @@ func (coll *Collection) FindOneAndUpdate(
 		op = op.BypassDocumentValidation(*args.BypassDocumentValidation)
 	}
 	if args.Collation != nil {
-		op = op.Collation(bsoncore.Document(args.Collation.ToDocument()))
+		op = op.Collation(bsoncore.Document(toDocument(args.Collation)))
 	}
 	if args.Comment != nil {
 		comment, err := marshalValue(args.Comment, coll.bsonOpts, coll.registry)
@@ -1997,6 +1994,39 @@ func (coll *Collection) drop(ctx context.Context) error {
 		return replaceErrors(err)
 	}
 	return nil
+}
+
+func toDocument(co *options.Collation) bson.Raw {
+	idx, doc := bsoncore.AppendDocumentStart(nil)
+	if co.Locale != "" {
+		doc = bsoncore.AppendStringElement(doc, "locale", co.Locale)
+	}
+	if co.CaseLevel {
+		doc = bsoncore.AppendBooleanElement(doc, "caseLevel", true)
+	}
+	if co.CaseFirst != "" {
+		doc = bsoncore.AppendStringElement(doc, "caseFirst", co.CaseFirst)
+	}
+	if co.Strength != 0 {
+		doc = bsoncore.AppendInt32Element(doc, "strength", int32(co.Strength))
+	}
+	if co.NumericOrdering {
+		doc = bsoncore.AppendBooleanElement(doc, "numericOrdering", true)
+	}
+	if co.Alternate != "" {
+		doc = bsoncore.AppendStringElement(doc, "alternate", co.Alternate)
+	}
+	if co.MaxVariable != "" {
+		doc = bsoncore.AppendStringElement(doc, "maxVariable", co.MaxVariable)
+	}
+	if co.Normalization {
+		doc = bsoncore.AppendBooleanElement(doc, "normalization", true)
+	}
+	if co.Backwards {
+		doc = bsoncore.AppendBooleanElement(doc, "backwards", true)
+	}
+	doc, _ = bsoncore.AppendDocumentEnd(doc, idx)
+	return doc
 }
 
 type pinnedServerSelector struct {

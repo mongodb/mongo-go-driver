@@ -7,10 +7,10 @@
 package options
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+	"go.mongodb.org/mongo-driver/v2/mongo/writeconcern"
 )
 
 // DefaultName is the default name for a GridFS bucket.
@@ -130,7 +130,7 @@ type GridFSUploadOptions struct {
 	// field.
 	Metadata interface{}
 
-	// The BSON registry to use for converting filters to BSON documents. The default value is bson.DefaultRegistry.
+	// The BSON registry to use for converting filters to BSON documents. The default value is bson.NewRegistry().
 	Registry *bson.Registry
 }
 
@@ -144,7 +144,7 @@ type GridFSUploadOptionsBuilder struct {
 // GridFSUpload creates a new GridFSUploadOptions instance.
 func GridFSUpload() *GridFSUploadOptionsBuilder {
 	opts := &GridFSUploadOptionsBuilder{}
-	opts.SetRegistry(bson.DefaultRegistry)
+	opts.SetRegistry(defaultRegistry)
 
 	return opts
 }

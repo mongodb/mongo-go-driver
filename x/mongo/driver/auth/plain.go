@@ -10,7 +10,7 @@ import (
 	"context"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 // PLAIN is the mechanism name for PLAIN.

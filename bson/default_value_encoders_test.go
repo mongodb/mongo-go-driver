@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 type myInterface interface {
@@ -111,9 +111,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"int16/fast path", int16(32767), nil, nil, writeInt32, nil},
 				{"int32/fast path", int32(2147483647), nil, nil, writeInt32, nil},
 				{"int64/fast path", int64(1234567890987), nil, nil, writeInt64, nil},
-				{"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"int64/fast path - minsize", int64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"int64/fast path - minsize too large", int64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"int64/fast path - minsize too small", int64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"int/fast path - positive int32", int(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
 				{"int/fast path - negative int32", int(math.MinInt32 + 1), nil, nil, writeInt32, nil},
 				{"int/fast path - MaxInt32", int(math.MaxInt32), nil, nil, writeInt32, nil},
@@ -122,9 +122,9 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"int16/reflection path", myint16(32767), nil, nil, writeInt32, nil},
 				{"int32/reflection path", myint32(2147483647), nil, nil, writeInt32, nil},
 				{"int64/reflection path", myint64(1234567890987), nil, nil, writeInt64, nil},
-				{"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"int64/reflection path - minsize", myint64(math.MaxInt32), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"int64/reflection path - minsize too large", myint64(math.MaxInt32 + 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"int64/reflection path - minsize too small", myint64(math.MinInt32 - 1), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"int/reflection path - positive int32", myint(math.MaxInt32 - 1), nil, nil, writeInt32, nil},
 				{"int/reflection path - negative int32", myint(math.MinInt32 + 1), nil, nil, writeInt32, nil},
 				{"int/reflection path - MaxInt32", myint(math.MaxInt32), nil, nil, writeInt32, nil},
@@ -152,23 +152,23 @@ func TestDefaultValueEncoders(t *testing.T) {
 				{"uint32/fast path", uint32(2147483647), nil, nil, writeInt64, nil},
 				{"uint64/fast path", uint64(1234567890987), nil, nil, writeInt64, nil},
 				{"uint/fast path", uint(1234567), nil, nil, writeInt64, nil},
-				{"uint32/fast path - minsize", uint32(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint64/fast path - minsize", uint64(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint/fast path - minsize", uint(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint32/fast path - minsize too large", uint32(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint64/fast path - minsize too large", uint64(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint/fast path - minsize too large", uint(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"uint32/fast path - minsize", uint32(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint64/fast path - minsize", uint64(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint/fast path - minsize", uint(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint32/fast path - minsize too large", uint32(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint64/fast path - minsize too large", uint64(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint/fast path - minsize too large", uint(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"uint64/fast path - overflow", uint64(1 << 63), nil, nil, nothing, fmt.Errorf("%d overflows int64", uint64(1<<63))},
 				{"uint8/reflection path", myuint8(127), nil, nil, writeInt32, nil},
 				{"uint16/reflection path", myuint16(32767), nil, nil, writeInt32, nil},
 				{"uint32/reflection path", myuint32(2147483647), nil, nil, writeInt64, nil},
 				{"uint64/reflection path", myuint64(1234567890987), nil, nil, writeInt64, nil},
-				{"uint32/reflection path - minsize", myuint32(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint64/reflection path - minsize", myuint64(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint/reflection path - minsize", myuint(2147483647), &EncodeContext{MinSize: true}, nil, writeInt32, nil},
-				{"uint32/reflection path - minsize too large", myuint(1 << 31), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint64/reflection path - minsize too large", myuint64(1 << 31), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
-				{"uint/reflection path - minsize too large", myuint(2147483648), &EncodeContext{MinSize: true}, nil, writeInt64, nil},
+				{"uint32/reflection path - minsize", myuint32(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint64/reflection path - minsize", myuint64(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint/reflection path - minsize", myuint(2147483647), &EncodeContext{minSize: true}, nil, writeInt32, nil},
+				{"uint32/reflection path - minsize too large", myuint(1 << 31), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint64/reflection path - minsize too large", myuint64(1 << 31), &EncodeContext{minSize: true}, nil, writeInt64, nil},
+				{"uint/reflection path - minsize too large", myuint(2147483648), &EncodeContext{minSize: true}, nil, writeInt64, nil},
 				{"uint64/reflection path - overflow", myuint64(1 << 63), nil, nil, nothing, fmt.Errorf("%d overflows int64", uint64(1<<63))},
 			},
 		},
@@ -1654,7 +1654,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				b := make(sliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				vw := NewDocumentWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)
@@ -1704,7 +1704,7 @@ func TestDefaultValueEncoders(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				b := make(sliceWriter, 0, 512)
-				vw := NewValueWriter(&b)
+				vw := NewDocumentWriter(&b)
 				reg := buildDefaultRegistry()
 				enc, err := reg.LookupEncoder(reflect.TypeOf(tc.value))
 				noerr(t, err)

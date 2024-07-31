@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/v2/x/mongo/driver"
 )
 
 func newDefaultAuthenticator(cred *Cred, httpClient *http.Client) (Authenticator, error) {

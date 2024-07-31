@@ -7,12 +7,13 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/integration/mtest"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/integration/mtest"
 )
 
 // Helper functions for the operations in the unified spec test runner that require creating and synchronizing
@@ -87,7 +88,7 @@ func runOnThread(mt *mtest.T, testCase *testCase, op *operation) {
 
 	var routineOperation operation
 	operationDoc := op.Arguments.Lookup("operation")
-	dec := bson.NewDecoder(bson.NewValueReader(operationDoc.Document()))
+	dec := bson.NewDecoder(bson.NewDocumentReader(bytes.NewReader(operationDoc.Document())))
 	dec.SetRegistry(specTestRegistry)
 	err := dec.Decode(&routineOperation)
 	assert.Nil(mt, err, "error creating operation for runOnThread: %v", err)

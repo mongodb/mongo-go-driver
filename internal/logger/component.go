@@ -10,7 +10,7 @@ import (
 	"os"
 	"strconv"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const (

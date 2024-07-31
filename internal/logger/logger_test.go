@@ -15,7 +15,7 @@ import (
 	"sync"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
 )
 
 type mockLogSink struct{}

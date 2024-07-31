@@ -7,12 +7,13 @@
 package bson
 
 import (
+	"bytes"
 	"reflect"
 	"strings"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/x/bsonx/bsoncore"
 )
 
 func TestUnmarshalValue(t *testing.T) {
@@ -64,7 +65,7 @@ func BenchmarkSliceCodecUnmarshal(b *testing.B) {
 				dec := NewDecoder(nil)
 				dec.SetRegistry(reg)
 				for pb.Next() {
-					dec.Reset(NewBSONValueReader(bm.bsontype, bm.bytes))
+					dec.Reset(newValueReader(bm.bsontype, bytes.NewReader(bm.bytes)))
 					err := dec.Decode(&[]byte{})
 					if err != nil {
 						b.Fatal(err)

@@ -10,8 +10,8 @@ import (
 	"context"
 	"testing"
 
-	"go.mongodb.org/mongo-driver/internal/assert"
-	"go.mongodb.org/mongo-driver/internal/logger"
+	"go.mongodb.org/mongo-driver/v2/internal/assert"
+	"go.mongodb.org/mongo-driver/v2/internal/logger"
 )
 
 func TestContext_WithOperationName(t *testing.T) {

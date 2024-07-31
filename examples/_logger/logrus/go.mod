@@ -2,14 +2,12 @@ module go.mongodb.go/mongo-driver/examples/logger/logrus
 
 go 1.20
 
-replace go.mongodb.org/mongo-driver => ../../../
+replace go.mongodb.org/mongo-driver/v2 => ../../../
 
 require (
 	github.com/bombsimon/logrusr/v4 v4.0.0
 	github.com/sirupsen/logrus v1.9.0
-	// Note that the Go driver version is replaced with the local Go driver code
-	// by the replace directive above.
-	go.mongodb.org/mongo-driver v1.11.7
+	go.mongodb.org/mongo-driver/v2 v2.0.0-alpha2
 )
 
 require (

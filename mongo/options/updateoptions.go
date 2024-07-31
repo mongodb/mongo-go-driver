@@ -12,7 +12,7 @@ type UpdateOptions struct {
 	// A set of filters specifying to which array elements an update should apply. This option is only valid for MongoDB
 	// versions >= 3.6. For previous server versions, the driver will return an error if this option is used. The
 	// default value is nil, which means the update will apply to all array elements.
-	ArrayFilters *ArrayFilters
+	ArrayFilters []interface{}
 
 	// If true, writes executed as part of the operation will opt out of document-level validation on the server. This
 	// option is valid for MongoDB versions >= 3.2 and is ignored for previous server versions. The default value is
@@ -66,9 +66,9 @@ func (uo *UpdateOptionsBuilder) List() []func(*UpdateOptions) error {
 }
 
 // SetArrayFilters sets the value for the ArrayFilters field.
-func (uo *UpdateOptionsBuilder) SetArrayFilters(af ArrayFilters) *UpdateOptionsBuilder {
+func (uo *UpdateOptionsBuilder) SetArrayFilters(af []interface{}) *UpdateOptionsBuilder {
 	uo.Opts = append(uo.Opts, func(opts *UpdateOptions) error {
-		opts.ArrayFilters = &af
+		opts.ArrayFilters = af
 
 		return nil
 	})

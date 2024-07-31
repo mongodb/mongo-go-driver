@@ -13,9 +13,9 @@ import (
 	"sync"
 )
 
-// DefaultRegistry is the default Registry. It contains the default codecs and the
+// defaultRegistry is the default Registry. It contains the default codecs and the
 // primitive codecs.
-var DefaultRegistry = NewRegistry()
+var defaultRegistry = NewRegistry()
 
 // errNoEncoder is returned when there wasn't an encoder available for a type.
 type errNoEncoder struct {
