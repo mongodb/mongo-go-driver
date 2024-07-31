@@ -235,7 +235,7 @@ func (v Value) StringN(n int) string {
 		}
 		str = escapeString(str)
 		if len(str) > n {
-			truncatedStr := truncate(str, uint(n))
+			truncatedStr := truncate(str, n)
 			return truncatedStr
 		}
 		return str
@@ -256,35 +256,35 @@ func (v Value) StringN(n int) string {
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64)), uint(n))
+		return truncate(fmt.Sprintf(`{"$numberDouble":"%s"}`, formatDouble(f64)), n)
 	case TypeBinary:
 		subtype, data, ok := v.BinaryOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype), uint(n))
+		return truncate(fmt.Sprintf(`{"$binary":{"base64":"%s","subType":"%02x"}}`, base64.StdEncoding.EncodeToString(data), subtype), n)
 	case TypeUndefined:
-		return truncate(`{"$undefined":true}`, uint(n))
+		return truncate(`{"$undefined":true}`, n)
 	case TypeObjectID:
 		oid, ok := v.ObjectIDOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid)), uint(n))
+		return truncate(fmt.Sprintf(`{"$oid":"%s"}`, idHex(oid)), n)
 	case TypeBoolean:
 		b, ok := v.BooleanOK()
 		if !ok {
 			return ""
 		}
-		return truncate(strconv.FormatBool(b), uint(n))
+		return truncate(strconv.FormatBool(b), n)
 	case TypeDateTime:
 		dt, ok := v.DateTimeOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt), uint(n))
+		return truncate(fmt.Sprintf(`{"$date":{"$numberLong":"%d"}}`, dt), n)
 	case TypeNull:
-		return truncate("null", uint(n))
+		return truncate("null", n)
 	case TypeRegex:
 		pattern, options, ok := v.RegexOK()
 		if !ok {
@@ -293,59 +293,59 @@ func (v Value) StringN(n int) string {
 		return truncate(fmt.Sprintf(
 			`{"$regularExpression":{"pattern":%s,"options":"%s"}}`,
 			escapeString(pattern), sortStringAlphebeticAscending(options),
-		), uint(n))
+		), n)
 	case TypeDBPointer:
 		ns, pointer, ok := v.DBPointerOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer)), uint(n))
+		return truncate(fmt.Sprintf(`{"$dbPointer":{"$ref":%s,"$id":{"$oid":"%s"}}}`, escapeString(ns), idHex(pointer)), n)
 	case TypeJavaScript:
 		js, ok := v.JavaScriptOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$code":%s}`, escapeString(js)), uint(n))
+		return truncate(fmt.Sprintf(`{"$code":%s}`, escapeString(js)), n)
 	case TypeSymbol:
 		symbol, ok := v.SymbolOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol)), uint(n))
+		return truncate(fmt.Sprintf(`{"$symbol":%s}`, escapeString(symbol)), n)
 	case TypeCodeWithScope:
 		code, scope, ok := v.CodeWithScopeOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope), uint(n))
+		return truncate(fmt.Sprintf(`{"$code":%s,"$scope":%s}`, code, scope), n)
 	case TypeInt32:
 		i32, ok := v.Int32OK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$numberInt":"%d"}`, i32), uint(n))
+		return truncate(fmt.Sprintf(`{"$numberInt":"%d"}`, i32), n)
 	case TypeTimestamp:
 		t, i, ok := v.TimestampOK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i), uint(n))
+		return truncate(fmt.Sprintf(`{"$timestamp":{"t":%v,"i":%v}}`, t, i), n)
 	case TypeInt64:
 		i64, ok := v.Int64OK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$numberLong":"%d"}`, i64), uint(n))
+		return truncate(fmt.Sprintf(`{"$numberLong":"%d"}`, i64), n)
 	case TypeDecimal128:
 		h, l, ok := v.Decimal128OK()
 		if !ok {
 			return ""
 		}
-		return truncate(fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l)), uint(n))
+		return truncate(fmt.Sprintf(`{"$numberDecimal":"%s"}`, decimal128.String(h, l)), n)
 	case TypeMinKey:
-		return truncate(`{"$minKey":1}`, uint(n))
+		return truncate(`{"$minKey":1}`, n)
 	case TypeMaxKey:
-		return truncate(`{"$maxKey":1}`, uint(n))
+		return truncate(`{"$maxKey":1}`, n)
 	default:
 		return ""
 	}

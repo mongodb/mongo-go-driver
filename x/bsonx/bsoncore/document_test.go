@@ -544,7 +544,7 @@ func TestTruncate(t *testing.T) {
 	for _, tcase := range []struct {
 		name     string
 		arg      string
-		width    uint
+		width    int
 		expected string
 	}{
 		{

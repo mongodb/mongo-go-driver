@@ -298,7 +298,7 @@ func (d Document) StringN(n int) string {
 			// TODO: Performance Improvement
 			str := elem.StringN(n)
 			if buf.Len()+len(str) > n {
-				truncatedStr := truncate(str, uint(n-buf.Len()))
+				truncatedStr := truncate(str, n-buf.Len())
 				buf.WriteString(truncatedStr)
 
 				truncated = true
@@ -318,12 +318,12 @@ func (d Document) StringN(n int) string {
 }
 
 // truncate truncates a given string for a certain width
-func truncate(str string, width uint) string {
+func truncate(str string, width int) string {
 	if width == 0 {
 		return ""
 	}
 
-	if len(str) <= int(width) {
+	if len(str) <= width {
 		return str
 	}
 
